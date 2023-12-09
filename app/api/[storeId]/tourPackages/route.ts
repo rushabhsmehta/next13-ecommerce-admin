@@ -12,7 +12,7 @@ export async function POST(
 
     const body = await req.json();
 
-    const { name, price, locationId, hotelId, images, isFeatured, isArchived } = body;
+    const { name, price, locationId, hotelId, images, itineraries, isFeatured, isArchived } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -69,12 +69,19 @@ export async function POST(
             ],
           },
         },
+        itineraries: {
+          createMany: {
+            data: [
+              ...itineraries.map((itinerary: { days : string, activities : string, places : string, mealsIncluded : string  }) => itinerary),
+            ],
+          },
+        },          
       },
     });
-  
+
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[tourPackageS_POST]', error);
+    console.log('[TOURPACKAGE_POST]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
@@ -97,7 +104,7 @@ export async function GET(
       where: {
         storeId: params.storeId,
         locationId,
-        hotelId,
+        hotelId,        
         isFeatured: isFeatured ? true : undefined,
         isArchived: false,
       },
@@ -105,15 +112,16 @@ export async function GET(
         images: true,
         location: true,
         hotel: true,
+       // itineraries: true,  // Include itineraries here     
       },
       orderBy: {
         createdAt: 'desc',
       }
     });
-  
+
     return NextResponse.json(tourPackages);
   } catch (error) {
-    console.log('[tourPackageS_GET]', error);
+    console.log('[TOUR_PACKAGES_GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };

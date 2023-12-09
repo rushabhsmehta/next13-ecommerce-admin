@@ -5,29 +5,32 @@ import prismadb from "@/lib/prismadb";
 
 export async function GET(
   req: Request,
-  { params }: { params: { colorId: string } }
+  { params }: { params: { hotelId: string } }
 ) {
   try {
-    if (!params.colorId) {
-      return new NextResponse("Color id is required", { status: 400 });
+    if (!params.hotelId) {
+      return new NextResponse("Hotel id is required", { status: 400 });
     }
 
-    const color = await prismadb.color.findUnique({
+    const hotel = await prismadb.hotel.findUnique({
       where: {
-        id: params.colorId  
+        id: params.hotelId
+      },
+      include: {
+        location : true
       }
     });
   
-    return NextResponse.json(color);
+    return NextResponse.json(hotel);
   } catch (error) {
-    console.log('[COLOR_GET]', error);
+    console.log('[HOTEL_GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { colorId: string, storeId: string } }
+  { params }: { params: { hotelId : string, storeId: string } }
 ) {
   try {
     const { userId } = auth();
@@ -36,14 +39,14 @@ export async function DELETE(
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
-    if (!params.colorId) {
-      return new NextResponse("Color id is required", { status: 400 });
+    if (!params.hotelId) {
+      return new NextResponse("Hotel id is required", { status: 400 });
     }
 
     const storeByUserId = await prismadb.store.findFirst({
       where: {
         id: params.storeId,
-        userId
+        userId,
       }
     });
 
@@ -51,15 +54,15 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-    const color = await prismadb.color.delete({
+    const hotel = await prismadb.hotel.delete({
       where: {
-        id: params.colorId
+        id: params.hotelId,
       }
     });
   
-    return NextResponse.json(color);
+    return NextResponse.json(hotel);
   } catch (error) {
-    console.log('[COLOR_DELETE]', error);
+    console.log('[HOTEL_DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
@@ -67,36 +70,35 @@ export async function DELETE(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { colorId: string, storeId: string } }
+  { params }: { params: { hotelId : string, storeId: string } }
 ) {
-  try {
+  try {   
     const { userId } = auth();
 
     const body = await req.json();
-
-    const { name, value } = body;
-
+    
+    const { name, locationId } = body;
+    
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
+    if (!locationId) {
+      return new NextResponse("Location ID is required", { status: 400 });
     }
 
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });
     }
 
-    if (!value) {
-      return new NextResponse("Value is required", { status: 400 });
-    }
-
-
-    if (!params.colorId) {
-      return new NextResponse("Color id is required", { status: 400 });
+    if (!params.hotelId) {
+      return new NextResponse("Hotel id is required", { status: 400 });
     }
 
     const storeByUserId = await prismadb.store.findFirst({
       where: {
         id: params.storeId,
-        userId
+        userId,
       }
     });
 
@@ -104,19 +106,19 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-    const color = await prismadb.color.update({
+    const hotel = await prismadb.hotel.update({
       where: {
-        id: params.colorId
+        id: params.hotelId,
       },
       data: {
         name,
-        value
+        locationId
       }
     });
   
-    return NextResponse.json(color);
+    return NextResponse.json(hotel);
   } catch (error) {
-    console.log('[COLOR_PATCH]', error);
+    console.log('[HOTEL_PATCH]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };

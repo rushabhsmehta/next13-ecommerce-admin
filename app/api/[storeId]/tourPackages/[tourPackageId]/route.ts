@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     if (!params.tourPackageId) {
-      return new NextResponse("Tour Package id is required", { status: 400 });
+      return new NextResponse("Tour Pacakge id is required", { status: 400 });
     }
 
     const tourPackage = await prismadb.tourPackage.findUnique({
@@ -18,15 +18,19 @@ export async function GET(
       },
       include: {
         images: true,
-        location : true,
-        hotel : true,
-     
+        location: true,
+        hotel: true,
+        itineraries: {
+          orderBy: {
+            days: 'asc' // or 'desc' depending on desired order
+          }
+        },
       }
     });
-  
+
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[tourPackage_GET]', error);
+    console.log('[TOUR_PACKAGE_GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
@@ -43,7 +47,7 @@ export async function DELETE(
     }
 
     if (!params.tourPackageId) {
-      return new NextResponse("Product id is required", { status: 400 });
+      return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
     const storeByUserId = await prismadb.store.findFirst({
@@ -62,10 +66,10 @@ export async function DELETE(
         id: params.tourPackageId
       },
     });
-  
+
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[tourPackage_DELETE]', error);
+    console.log('[TOURPACKAGE_DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
@@ -80,14 +84,14 @@ export async function PATCH(
 
     const body = await req.json();
 
-    const { name, price, locationId, hotelId, images,  isFeatured, isArchived } = body;
+    const { name, price, locationId, hotelId, images, itineraries, isFeatured, isArchived } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
     if (!params.tourPackageId) {
-      return new NextResponse("Product id is required", { status: 400 });
+      return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
     if (!name) {
@@ -133,6 +137,10 @@ export async function PATCH(
         images: {
           deleteMany: {},
         },
+        itineraries:
+        {
+          deleteMany: {},
+        },
         isFeatured,
         isArchived,
       },
@@ -150,9 +158,17 @@ export async function PATCH(
             ],
           },
         },
-      },
-    })
-  
+        itineraries: {
+          createMany: {
+            data: [
+              ...itineraries.map((itinerary: { days: string, activities: string, places: string, mealsIncluded: string }) => itinerary),
+            ],
+          },
+        }
+      }
+    }
+    )
+
     return NextResponse.json(tourPackage);
   } catch (error) {
     console.log('[tourPackage_PATCH]', error);

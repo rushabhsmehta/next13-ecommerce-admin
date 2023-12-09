@@ -9,17 +9,21 @@ datasource db {
 }
 
 model Store {
-  id              String    @id @default(uuid())
-  name            String
-  userId          String
-  billboards      Billboard[] @relation("StoreToBillboard")
-  categories      Category[] @relation("StoreToCategory")
-  products        Product[]  @relation("StoreToProduct")
-  sizes           Size[]     @relation("StoreToSize")
-  colors          Color[]     @relation("StoreToColor")
-  orders          Order[]     @relation("StoreToOrder")
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id            String        @id @default(uuid())
+  name          String
+  userId        String
+  billboards    Billboard[]   @relation("StoreToBillboard")
+  locations     Location[]    @relation("StoreToLocation")
+  hotels        Hotel[]       @relation("StoreToHotel")
+  categories    Category[]    @relation("StoreToCategory")
+  products      Product[]     @relation("StoreToProduct")
+  sizes         Size[]        @relation("StoreToSize")
+  colors        Color[]       @relation("StoreToColor")
+  orders        Order[]       @relation("StoreToOrder")
+  tourPackages  TourPackage[] @relation("StoreTotourPackage")  // Added relation
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Billboard {
@@ -33,6 +37,37 @@ model Billboard {
   updatedAt   DateTime @updatedAt
 
   @@index([storeId])
+}
+
+model Location {
+  id          String @id @default(uuid())
+  storeId     String
+  store       Store @relation("StoreToLocation", fields: [storeId], references: [id])
+  label       String
+  imageUrl    String
+  hotels      Hotel[]  // Add this field to represent the other side of the relation
+  tourPackages   TourPackage[]  @relation("LocationTotourPackage")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+// ... other models remain unchanged
+
+model Hotel {
+  id          String      @id @default(uuid())
+  storeId     String      // Foreign Key to Store
+  store       Store       @relation("StoreToHotel", fields: [storeId], references: [id])
+  locationId  String      // Foreign Key to Location
+  location    Location    @relation(fields: [locationId], references: [id])
+  tourPackages TourPackage[] @relation("HotelToTourPackage")  // Updated relation name
+  name        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([storeId])
+  @@index([locationId])
 }
 
 model Category {
@@ -73,6 +108,49 @@ model Product {
   @@index([categoryId])
   @@index([sizeId])
   @@index([colorId])
+}
+
+
+
+model TourPackage {
+  id          String   @id @default(uuid())
+  storeId     String   // Foreign Key to Store
+  store       Store    @relation("StoreTotourPackage", fields: [storeId], references: [id])  // Updated relation name
+  
+
+  locationId     String   // Foreign Key to Hotel
+  location       Location    @relation("LocationTotourPackage", fields: [locationId], references: [id])  // Updated relation name
+ 
+  hotelId     String   // Foreign Key to Hotel
+  hotel       Hotel    @relation("HotelToTourPackage", fields: [hotelId], references: [id])  // Updated relation name
+  name        String
+  price       Decimal
+
+  itineraries Itinerary[] // Relation to Itinerary Model
+
+  isFeatured  Boolean  @default(false)
+  isArchived  Boolean  @default(false)
+  images      Image[]  // Updated relation name
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId])
+  @@index([hotelId])
+}
+
+model Itinerary {
+  id             String       @id @default(uuid())
+  tourPackageId  String    // Foreign Key to TourPackage
+  tourPackage    TourPackage? @relation(fields : [tourPackageId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
+  days           String?
+  activities     String?
+  places         String?
+  mealsIncluded  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+ 
+  @@index([tourPackageId])
 }
 
 model Order {
@@ -128,12 +206,15 @@ model Color {
 }
 
 model Image {
-  id          String   @id @default(uuid())
-  productId   String   // Foreign Key to Product
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  url         String   // URL of the image
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String      @id @default(uuid())
+  productId    String?     // Foreign Key to Product (optional)
+  product      Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tourPackageId String?    // Foreign Key to tourPackage (optional)
+  tourPackage  TourPackage? @relation(fields : [tourPackageId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
+  url          String      // URL of the image
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@index([productId])
+  @@index([tourPackageId])  // New index for tourPackageId
 }

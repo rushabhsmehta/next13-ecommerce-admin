@@ -18,10 +18,30 @@ export function MainNav({
       label: 'Overview',
       active: pathname === `/${params.storeId}`,
     },
-    {
+   /*  {
       href: `/${params.storeId}/billboards`,
       label: 'Billboards',
       active: pathname === `/${params.storeId}/billboards`,
+    }, */
+    {
+      href: `/${params.storeId}/locations`,
+      label: 'Locations',
+      active: pathname === `/${params.storeId}/locations`,
+    },
+    {
+      href: `/${params.storeId}/hotels`,
+      label: 'Hotels',
+      active: pathname === `/${params.storeId}/hotels`,
+    },
+    {
+      href: `/${params.storeId}/tourPackages`,
+      label: 'Tour Packages',
+      active: pathname === `/${params.storeId}/tourPackages`,
+    },
+    /* {
+      href: `/${params.storeId}/itineraries`,
+      label: 'Itineraries',
+      active: pathname === `/${params.storeId}/itineraries`,
     },
     {
       href: `/${params.storeId}/categories`,
@@ -47,7 +67,7 @@ export function MainNav({
       href: `/${params.storeId}/orders`,
       label: 'Orders',
       active: pathname === `/${params.storeId}/orders`,
-    },
+    }, */
     {
       href: `/${params.storeId}/settings`,
       label: 'Settings',

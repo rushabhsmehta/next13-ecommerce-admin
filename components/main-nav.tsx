@@ -38,6 +38,11 @@ export function MainNav({
       label: 'Tour Packages',
       active: pathname === `/${params.storeId}/tourPackages`,
     },
+    {
+      href: `/${params.storeId}/tourPackageQuery`,
+      label: 'Tour Package Query',
+      active: pathname === `/${params.storeId}/tourPackageQuery`,
+    },
     /* {
       href: `/${params.storeId}/itineraries`,
       label: 'Itineraries',

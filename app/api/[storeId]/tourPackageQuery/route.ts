@@ -114,7 +114,7 @@ export async function POST(
                 flightDetails : {
                     createMany : {
                       data : [
-                        ...flightDetails.map((flightDetail : { date : String, from : String, to : String,    departureTime : String, arrivalTime :  String }) => flightDetail),
+                        ...flightDetails.map((flightDetail : { date : string, from : string, to : string, departureTime : string, arrivalTime :  string }) => flightDetail),
                       ]
                     }
                   },

@@ -160,10 +160,10 @@ model TourPackageQuery {
 
 model FlightDetails {
   id            String   @id @default(uuid())
-  tourPackageQueryId  String    // Foreign Key to TourPackage
+  tourPackageQueryId  String?    // Foreign Key to TourPackage
   tourPackageQuery    TourPackageQuery? @relation(fields : [tourPackageQueryId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
  
-  date          DateTime
+  date          String
   from          String
   to            String
   departureTime String

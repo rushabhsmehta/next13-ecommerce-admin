@@ -79,7 +79,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const toastMessage = initialData ? 'Tour Package updated.' : 'Tour Package created.';
   const action = initialData ? 'Save changes' : 'Create';
   console.log("Initial Data : ", initialData?.itineraries)
-  const transformInitialData = (data: { id: string; storeId: string; locationId: string; hotelId: string; name: string; price: Decimal; isFeatured: boolean; isArchived: boolean; createdAt: Date; updatedAt: Date } & { images: { id: string; productId: string | null; tourPackageId: string | null; url: string; createdAt: Date; updatedAt: Date }[]; itineraries: { id: string; tourPackageId: string; days: string | null; activities: string | null; places: string | null; mealsIncluded: string | null; createdAt: Date; updatedAt: Date }[] }) => {
+  const transformInitialData = (data: { id: string; storeId: string; locationId: string; hotelId: string; name: string; price: Decimal; isFeatured: boolean; isArchived: boolean; createdAt: Date; updatedAt: Date } & { images: { id: string; productId: string | null; tourPackageId: string | null; url: string; createdAt: Date; updatedAt: Date }[]; itineraries: { id: string; days: string | null; activities: string | null; places: string | null; mealsIncluded: string | null; createdAt: Date; updatedAt: Date }[] }) => {
     return {
       ...data,
       price: parseFloat(data.price.toString()), // Convert Decimal to number

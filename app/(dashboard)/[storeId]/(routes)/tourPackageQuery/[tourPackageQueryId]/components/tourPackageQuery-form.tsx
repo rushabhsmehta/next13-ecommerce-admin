@@ -27,9 +27,6 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Decimal } from "@prisma/client/runtime/library"
-import ItineraryForm from "./ItineraryForm"
-import FlightDetailsForm from "./FlightDetailsForm"
 
 
 const itinerarySchema = z.object({
@@ -41,7 +38,7 @@ const itinerarySchema = z.object({
 
 const flightDetailsSchema = z.object({
 
-  date: z.date(),
+  date: z.string(),
   from: z.string(),
   to: z.string(),
   departureTime: z.string(),
@@ -128,8 +125,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     createdAt: Date;
     updatedAt: Date;
     flightDetails: {
-      id: string | null;
-      date: Date;
+      id: string;
+      date: string | null;
       from: string | null,
       to: string | null,
       departureTime: string | null;
@@ -155,7 +152,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     return {
       ...data,
       flightDetails: data.flightDetails.map(({ date, from, to, departureTime, arrivalTime }) => ({
-        date: date ?? new Date(),
+        date: date ?? '',
         from: from ?? '',
         to: to ?? '',
         departureTime: departureTime ?? '',
@@ -446,14 +443,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <div key={index} className="space-y-4">
                         <FormControl>
                           <Input
-                            placeholder="Date"
-                            type="date"
-                            value={flight.date instanceof Date ? flight.date.toISOString().split('T')[0] : ''}
+                            placeholder="Date"                            
+                            value={flight.date}
                             onChange={(e) => {
                               const newFlightDetails = [...value];
-                              // Convert the input string back to a Date object
-                              const updatedDate = e.target.value ? new Date(e.target.value) : new Date();
-                              newFlightDetails[index] = { ...flight, date: updatedDate };
+                              newFlightDetails[index] = { ...flight, date: e.target.value };
                               onChange(newFlightDetails);
                             }}
                           />
@@ -525,7 +519,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     ))}
                   <FormControl>
                     <Button type="button" size="sm"
-                      onClick={() => onChange([...value, { date: new Date(), from: '', to: '', departureTime: '', arrivalTime: '' }])}
+                      onClick={() => onChange([...value, { date: '', from: '', to: '', departureTime: '', arrivalTime: '' }])}
                     >
                       Add Flight
                     </Button>

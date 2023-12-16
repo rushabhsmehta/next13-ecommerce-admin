@@ -40,12 +40,13 @@ const itinerarySchema = z.object({
 });
 
 const flightDetailsSchema = z.object({
+
   date: z.date(),
   from: z.string(),
   to: z.string(),
-  departureTime: z.date(),
-  arrivalTime: z.date(),
-}).array(); // Assuming an array of flight details
+  departureTime: z.string(),
+  arrivalTime: z.string(),
+}); // Assuming an array of flight details
 
 const formSchema = z.object({
   tourPackageQueryName: z.string().min(1),
@@ -58,7 +59,7 @@ const formSchema = z.object({
   price: z.string().min(1),
   locationId: z.string().min(1),
   hotelId: z.string().min(1),
-  flightDetails: flightDetailsSchema,
+  flightDetails: flightDetailsSchema.array(),
   hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
@@ -101,38 +102,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
-  const [itineraries, setItineraries] = useState<Itinerary[]>([]); // Assuming Itinerary is the correct type
 
-
-  const updateFlightDetails = (index: string | number, field: any, value: any) => {
-    const newDetails = [...flightDetails];
-    newDetails[index] = { ...newDetails[index], [field]: value };
-    setFlightDetails(newDetails);
-  };
-
-  const addFlight = () => {
-    setFlightDetails([...flightDetails, { date: '', from: '', to: '', departureTime: '', arrivalTime: '' }]);
-  };
-
-  const removeFlight = (index: number) => {
-    const newDetails = flightDetails.filter((_, i) => i !== index);
-    setFlightDetails(newDetails);
-  };
-
-  const updateItinerary = (index: number, field: keyof Itinerary, value: string) => {
-    const updatedItineraries = [...itineraries];
-    updatedItineraries[index] = { ...updatedItineraries[index], [field]: value };
-    setItineraries(updatedItineraries);
-  };
-
-  const addItinerary = () => {
-    setItineraries([...itineraries, { days: '', activities: '', places: '', mealsIncluded: [] }]);
-  };
-
-  const removeItinerary = (index: number) => {
-    const updatedItineraries = itineraries.filter((_, i) => i !== index);
-    setItineraries(updatedItineraries);
-  };
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
   const description = initialData ? 'Edit a Tour Package Query.' : 'Add a new Tour Package Query';
@@ -157,7 +127,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     isArchived: boolean;
     createdAt: Date;
     updatedAt: Date;
-    flightDetails: FlightDetails[];
+    flightDetails: {
+      id: string | null;
+      date: Date;
+      from: string | null,
+      to: string | null,
+      departureTime: string | null;
+      arrivalTime: string | null;
+    }[];
     hotelDetails: string;
     inclusions: string;
     exclusions: string;
@@ -177,7 +154,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   }) => {
     return {
       ...data,
-//      price: parseFloat(data.price.toString()), // Convert Decimal to number
+      flightDetails: data.flightDetails.map(({ date, from, to, departureTime, arrivalTime }) => ({
+        date: date ?? new Date(),
+        from: from ?? '',
+        to: to ?? '',
+        departureTime: departureTime ?? '',
+        arrivalTime: arrivalTime ?? '',
+      })),
+
       itineraries: data.itineraries.map(({ days, activities, places, mealsIncluded }) => ({
         days: days ?? '', // Convert null to empty string or undefined
         activities: activities ?? '',
@@ -198,7 +182,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     price: '',
     flightDetails: [],
     hotelDetails: '',
-    inclusinos: '',
+    inclusions: '',
     exclusions: '',
     paymentPolicy: '',
     usefulTip: '',
@@ -449,13 +433,107 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             />
           </div>
           {/* //add formfield for flightDetails */}
-          <FlightDetailsForm
-            flightDetails={flightDetails}
-            updateFlightDetails={updateFlightDetails}
-            addFlight={addFlight}
-            removeFlight={removeFlight}
-          />
+          <div className="md:grid md:grid-cols-3 gap-8">
+            <FormField
+              control={form.control}
+              name="flightDetails"
+              render={({ field: { value = [], onChange } }) => (
+                <FormItem>
+                  <FormLabel>Create Itineraries</FormLabel>
+                  {
 
+                    value.map((flight, index) => (
+                      <div key={index} className="space-y-4">
+                        <FormControl>
+                          <Input
+                            placeholder="Date"
+                            type="date"
+                            value={flight.date instanceof Date ? flight.date.toISOString().split('T')[0] : ''}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              // Convert the input string back to a Date object
+                              const updatedDate = e.target.value ? new Date(e.target.value) : new Date();
+                              newFlightDetails[index] = { ...flight, date: updatedDate };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="From"
+                            value={flight.from}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, from: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="To"
+                            value={flight.to}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, to: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="Departure Time"
+                            value={flight.departureTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value]; // Ensure this is your state array
+                              newFlightDetails[index] = { ...flight, departureTime: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+
+                        </FormControl>
+                        <FormControl>
+
+                          <Input
+                            placeholder="Arrival Time"
+                            value={flight.arrivalTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, arrivalTime : e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              const newFlightDetails = value.filter((_, i) => i != index);
+                              onChange(newFlightDetails);
+                            }}>
+                            Remove Flight
+                          </Button>
+                        </FormControl>
+                      </div>
+                    ))}
+                  <FormControl>
+                    <Button type="button" size="sm"
+                      onClick={() => onChange([...value, { date: new Date(), from: '', to: '', departureTime: '', arrivalTime: '' }])}
+                    >
+                      Add Flight
+                    </Button>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
 
           {/* //add formfield for hotelDetails */}
           <FormField
@@ -579,7 +657,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price</FormLabel>
                   <FormControl>
-                    <Input type="number" disabled={loading} placeholder="9.99" {...field} />
+                    <Input disabled={loading} placeholder="9.99" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -677,16 +755,117 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-
-
-            <ItineraryForm
-              itineraries={itineraries}
-              updateItinerary={updateItinerary}
-              handleMealChange={handleMealChange}
-              addItinerary={addItinerary}
-              removeItinerary={removeItinerary}
-            />
           </div>
+
+          <FormField
+            control={form.control}
+            name="itineraries"
+            render={({ field: { value = [], onChange } }) => (
+              <FormItem>
+                <FormLabel>Create Itineraries</FormLabel>
+                {
+
+                  value.map((itinerary, index) => (
+                    <div key={index} className="space-y-4">
+                      <FormControl>
+                        <Input
+                          placeholder="Day"
+                          value={itinerary.days}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, days: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+
+                      </FormControl>
+
+                      <FormControl>
+                        <Input
+                          placeholder="Activities"
+                          value={itinerary.activities}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, activities: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                      <FormControl>
+                        <Input
+                          placeholder="Places"
+                          value={itinerary.places}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, places: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                      <FormControl>
+                        <div className="flex flex-col">
+                          <label>
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('breakfast')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('breakfast', !!isChecked, index)
+                              }
+                            />
+                            Breakfast
+                          </label>
+                          <label>
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('lunch')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('lunch', !!isChecked, index)
+                              }
+                            />
+                            Lunch
+                          </label>
+                          <label>
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('dinner')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('dinner', !!isChecked, index)
+                              }
+                            />
+                            Dinner
+                          </label>
+                        </div>
+                      </FormControl>
+
+
+
+                      {/* Other inputs or elements related to each itinerary can go here */}
+
+                      <FormControl>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            const newItineraries = value.filter((_, i) => i !== index);
+                            onChange(newItineraries);
+                          }}
+                        >
+                          Remove Itinerary
+                        </Button>
+                      </FormControl>
+                    </div>
+                  ))}
+                <FormControl>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => onChange([...value, { days: '', activities: '', places: '', mealsIncluded: [] }])}
+                  >
+                    Add Itinerary
+                  </Button>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
 
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}

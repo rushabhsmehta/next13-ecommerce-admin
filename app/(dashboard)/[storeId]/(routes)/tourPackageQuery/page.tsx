@@ -29,7 +29,7 @@ const tourPackageQueryPage = async ({
     tourPackageQueryName : item.tourPackageQueryName,
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
-    price: formatter.format(item.price.toNumber()),
+    price: item.price,
     location: item.location.label,
     hotel: item.hotel.name,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),

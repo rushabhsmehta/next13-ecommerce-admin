@@ -166,8 +166,8 @@ model FlightDetails {
   date          DateTime
   from          String
   to            String
-  departureTime DateTime
-  arrivalTime   DateTime
+  departureTime String
+  arrivalTime   String
   
   @@index([tourPackageQueryId])
 }
@@ -200,10 +200,10 @@ model TourPackage {
 
 model Itinerary {
   id             String       @id @default(uuid())
-  tourPackageId  String    // Foreign Key to TourPackage
+  tourPackageId  String?   // Foreign Key to TourPackage
   tourPackage    TourPackage? @relation(fields : [tourPackageId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
   
-  tourPackageQueryId  String    // Foreign Key to TourPackage
+  tourPackageQueryId  String?    // Foreign Key to TourPackage
   tourPackageQuery    TourPackageQuery? @relation(fields : [tourPackageQueryId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
  
   days           String?

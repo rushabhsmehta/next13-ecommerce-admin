@@ -80,7 +80,7 @@ interface TourPackageQueryFormProps {
     images: Image[];
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
-  } | null;
+  };
   locations: Location[];
   hotels: Hotel[];
   //  itineraries: Itinerary[];

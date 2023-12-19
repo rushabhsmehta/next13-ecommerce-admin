@@ -104,7 +104,7 @@ model Product {
   size        Size      @relation(fields: [sizeId], references: [id])
   colorId     String    // Foreign Key to Color
   color       Color     @relation(fields: [colorId], references: [id])
-  images      Image[]   // Relation to Image model
+  images      Images[]   // Relation to Image model
   orderItems  OrderItem[]   // Relation to Order model
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -147,7 +147,7 @@ model TourPackageQuery {
 
   isFeatured  Boolean  @default(false)
   isArchived  Boolean  @default(false)
-  images      Image[]  // Updated relation name
+  images      Images[]  // Updated relation name
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -187,7 +187,7 @@ model TourPackage {
 
   isFeatured  Boolean  @default(false)
   isArchived  Boolean  @default(false)
-  images      Image[]  // Updated relation name
+  images      Images[]  // Updated relation name
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -286,7 +286,7 @@ model Color {
   @@index([storeId])
 }
 
-model Image {
+model Images {
   id           String      @id @default(uuid())
   productId    String?     // Foreign Key to Product (optional)
   product      Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)

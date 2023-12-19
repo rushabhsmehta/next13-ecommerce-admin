@@ -43,7 +43,7 @@ const tourPackageQueryPage = async ({
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
+     {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
@@ -51,15 +51,15 @@ const tourPackageQueryPage = async ({
         //    itineraries={[]}
         />
       </div>
-
-     {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+ */}
+      <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryDisplay
           data={tourPackageQuery}
           locations={locations}
           hotels={hotels}
         //    itineraries={[]}
         />
-      </div> */}
+      </div>
     </div>
 
     

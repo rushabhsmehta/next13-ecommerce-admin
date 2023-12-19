@@ -76,6 +76,12 @@ export const CellAction: React.FC<CellActionProps> = ({
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
+           <DropdownMenuItem
+            onClick={() => router.push(`/${params.storeId}/tourPackageQuery/tourPackageQuery/${data.id}`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Generate PDF
+          </DropdownMenuItem>
+
           <DropdownMenuItem
             onClick={() => setOpen(true)}
           >

@@ -1,6 +1,5 @@
 import prismadb from "@/lib/prismadb";
 
-import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
 import { TourPackageQueryDisplay } from "./components/tourPackageQueryDisplay";
 
 const tourPackageQueryPage = async ({

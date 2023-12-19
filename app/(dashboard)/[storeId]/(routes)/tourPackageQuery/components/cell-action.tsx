@@ -76,13 +76,12 @@ export const CellAction: React.FC<CellActionProps> = ({
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
-           <DropdownMenuItem
-            onClick={() => router.push(`/${params.storeId}/tourPackageQuery/tourPackageQuery/${data.id}`)}
+        <DropdownMenuItem
+            onClick={() => router.push(`/${params.storeId}/tourPackageQueryDisplay/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Generate PDF
           </DropdownMenuItem>
-
-          <DropdownMenuItem
+         <DropdownMenuItem
             onClick={() => setOpen(true)}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete

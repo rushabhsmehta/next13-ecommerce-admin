@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
+import { TourPackageQueryDisplay } from "./components/tourPackageQueryDisplay";
 
 const tourPackageQueryPage = async ({
   params
@@ -13,8 +14,11 @@ const tourPackageQueryPage = async ({
     },
     include: {
       images: true,
-      flightDetails : true,
+      flightDetails: true,
       itineraries: {
+        include: {
+          activities: true,
+        },
         orderBy: {
           days: 'asc' // or 'desc', depending on the desired order
         }
@@ -39,15 +43,26 @@ const tourPackageQueryPage = async ({
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
+     {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
           hotels={hotels}
-      //    itineraries={[]}
+        //    itineraries={[]}
+        />
+      </div>
+ */}
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <TourPackageQueryDisplay
+          data={tourPackageQuery}
+          locations={locations}
+          hotels={hotels}
+        //    itineraries={[]}
         />
       </div>
     </div>
+
+    
   );
 }
 

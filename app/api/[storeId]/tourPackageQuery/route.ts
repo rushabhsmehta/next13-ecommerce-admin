@@ -23,7 +23,6 @@ export async function POST(
             numChild0to5,
             price,
             flightDetails,
-            hotelDetails,
             inclusions,
             exclusions,
             paymentPolicy,
@@ -31,7 +30,6 @@ export async function POST(
             cancellationPolicy,
             airlineCancellationPolicy,
             termsconditions,
-            hotelId,
             images,
             itineraries,
             isFeatured,
@@ -57,10 +55,10 @@ export async function POST(
             return new NextResponse("Location id is required", { status: 400 });
         }
 
-        if (!hotelId) {
+     /*    if (!hotelId) {
             return new NextResponse("Hotel id is required", { status: 400 });
         }
-
+ */
         if (!params.storeId) {
             return new NextResponse("Store id is required", { status: 400 });
         }
@@ -87,7 +85,7 @@ export async function POST(
                 numChild5to12,
                 numChild0to5,
                 price,
-                hotelDetails,
+              //  hotelDetails,
                 inclusions,
                 exclusions,
                 paymentPolicy,
@@ -95,7 +93,7 @@ export async function POST(
                 cancellationPolicy,
                 airlineCancellationPolicy,
                 termsconditions,
-                hotelId,
+             //   hotelId,
                 storeId: params.storeId,
                 images: {
                     createMany: {
@@ -105,12 +103,21 @@ export async function POST(
                     },
                 },
                 itineraries: {
-                    createMany: {
-                        data: [
-                            ...itineraries.map((itinerary: { days: string, activities: string, places: string, mealsIncluded: string }) => itinerary),
-                        ],
-                    },
-                },
+                    create: itineraries.map((itinerary: { days: string; hotelId : string,  mealsIncluded: any; activities: { title: any; description: any; }[]; }) => ({
+                      days: itinerary.days,  
+                      hotelId : itinerary.hotelId,        
+                      mealsIncluded: itinerary.mealsIncluded,
+                      // Assuming 'activities' is an array of { title: string, description: string }
+                      activities: {
+                        createMany: {
+                          data: itinerary.activities.map((activity: { title: any; description: any; }) => ({
+                            title: activity.title,
+                            description: activity.description,
+                          })),
+                        },
+                      },
+                    })),
+                  },
                 flightDetails : {
                     createMany : {
                       data : [
@@ -135,7 +142,7 @@ export async function GET(
     try {
         const { searchParams } = new URL(req.url)
         const locationId = searchParams.get('locationId') || undefined;
-        const hotelId = searchParams.get('hotelId') || undefined;
+      //  const hotelId = searchParams.get('hotelId') || undefined;
         const isFeatured = searchParams.get('isFeatured');
 
         if (!params.storeId) {
@@ -146,14 +153,14 @@ export async function GET(
             where: {
                 storeId: params.storeId,
                 locationId,
-                hotelId,
+                //hotelId,
                 isFeatured: isFeatured ? true : undefined,
                 isArchived: false,
             },
             include: {
                 images: true,
                 location: true,
-                hotel: true,
+              //  hotel: true,
                 // itineraries: true,  // Include itineraries here     
             },
             orderBy: {

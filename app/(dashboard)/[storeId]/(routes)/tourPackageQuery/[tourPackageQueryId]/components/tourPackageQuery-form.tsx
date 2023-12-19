@@ -27,14 +27,20 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 
+const activitySchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
 
 const itinerarySchema = z.object({
   days: z.string(),
-  activities: z.string(),
-  places: z.string(),
+  activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
+  hotelId: z.string(), // Array of hotel IDs
 });
+
 
 const flightDetailsSchema = z.object({
 
@@ -55,9 +61,9 @@ const formSchema = z.object({
   numChild0to5: z.string(),
   price: z.string().min(1),
   locationId: z.string().min(1),
-  hotelId: z.string().min(1),
+ // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
-  hotelDetails: z.string(),
+//  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
   paymentPolicy: z.string(),
@@ -118,7 +124,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numChild5to12: string;
     numChild0to5: string;
     locationId: string;
-    hotelId: string;
+    //hotelId: string;
     price: string;
     isFeatured: boolean;
     isArchived: boolean;
@@ -132,7 +138,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       departureTime: string | null;
       arrivalTime: string | null;
     }[];
-    hotelDetails: string;
+   // hotelDetails: string;
     inclusions: string;
     exclusions: string;
     paymentPolicy: string;
@@ -144,9 +150,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     itineraries: {
       id: string;
       days: string | null;
-      activities: string | null;
-      places: string | null;
+      activities: { title: string, description: string }[];
       mealsIncluded: string | null;
+      hotelId: string | null;
     }[];
   }) => {
     return {
@@ -159,11 +165,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: arrivalTime ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, activities, places, mealsIncluded }) => ({
-        days: days ?? '', // Convert null to empty string or undefined
-        activities: activities ?? '',
-        places: places ?? '',
-        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [] // Assuming mealsIncluded is a comma-separated string
+      itineraries: data.itineraries.map(({ days, activities, mealsIncluded, hotelId }) => ({
+        days: days ?? '',
+        activities: activities ?? [],
+        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
+        hotelId : hotelId ?? '',
       }))
     };
   };
@@ -178,7 +184,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numChild0to5: '',
     price: '',
     flightDetails: [],
-    hotelDetails: '',
+   // hotelDetails: '',
     inclusions: '',
     exclusions: '',
     paymentPolicy: '',
@@ -187,10 +193,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     airlineCancellationPolicy: '',
     termsconditions: '',
     images: [],
-    itineraries: [],
+    itineraries: [{
+      days: '',
+      activities: [{title : '', description : ''}],
+      mealsIncluded: '',
+      hotelId: '',
+    }],
     locationId: '',
-    hotelId: '',
-    isFeatured: false,
+   // hotelId: '',
+    isFeatured: true,
     isArchived: false,
   };
 
@@ -314,7 +325,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="md:grid md:grid-cols-3 gap-8">
+          <div className="md:grid md:grid-cols-4 gap-8">
 
             {/* add formfield for TourPackageQueryName */}
             <FormField
@@ -336,6 +347,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
+
             {/* //add formfield for customerName */}
             <FormField
               control={form.control}
@@ -346,6 +358,29 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormControl>
                     <Input disabled={loading} placeholder="Customer Name" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="locationId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -368,7 +403,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           </div>
 
           {/* // add formfield for period */}
-          <div className="md:grid md:grid-cols-4 gap-8">
+          <div className="md:grid md:grid-cols-5 gap-8">
 
             <FormField
               control={form.control}
@@ -428,221 +463,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-          </div>
-          {/* //add formfield for flightDetails */}
-          <div className="md:grid md:grid-cols-3 gap-8">
-            <FormField
-              control={form.control}
-              name="flightDetails"
-              render={({ field: { value = [], onChange } }) => (
-                <FormItem>
-                  <FormLabel>Create Itineraries</FormLabel>
-                  {
-
-                    value.map((flight, index) => (
-                      <div key={index} className="space-y-4">
-                        <FormControl>
-                          <Input
-                            placeholder="Date"                            
-                            value={flight.date}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, date: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <Input
-                            placeholder="From"
-                            value={flight.from}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, from: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-
-                          <Input
-                            placeholder="To"
-                            value={flight.to}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, to: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-
-                          <Input
-                            placeholder="Departure Time"
-                            value={flight.departureTime}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value]; // Ensure this is your state array
-                              newFlightDetails[index] = { ...flight, departureTime: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-
-                        </FormControl>
-                        <FormControl>
-
-                          <Input
-                            placeholder="Arrival Time"
-                            value={flight.arrivalTime}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, arrivalTime : e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              const newFlightDetails = value.filter((_, i) => i != index);
-                              onChange(newFlightDetails);
-                            }}>
-                            Remove Flight
-                          </Button>
-                        </FormControl>
-                      </div>
-                    ))}
-                  <FormControl>
-                    <Button type="button" size="sm"
-                      onClick={() => onChange([...value, { date: '', from: '', to: '', departureTime: '', arrivalTime: '' }])}
-                    >
-                      Add Flight
-                    </Button>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* //add formfield for hotelDetails */}
-          <FormField
-            control={form.control}
-            name="hotelDetails"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hotel Details</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Hotel Details" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for inclusions */}
-          <FormField
-            control={form.control}
-            name="inclusions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Inclusions</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Inclusions" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for exclusions */}
-          <FormField
-            control={form.control}
-            name="exclusions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Exclusions</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Exclusions" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for paymentPolicy */}
-          <FormField
-            control={form.control}
-            name="paymentPolicy"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Policy</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Payment Policy" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for usefulTip */}
-          <FormField
-            control={form.control}
-            name="usefulTip"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Useful Tip</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Useful Tip" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for cancellationPolicy */}
-          <FormField
-            control={form.control}
-            name="cancellationPolicy"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cancellation Policy</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Cancellation Policy" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for airlineCancellationPolicy */}
-          <FormField
-            control={form.control}
-            name="airlineCancellationPolicy"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Airline Cancellation Policy</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-
-          {/* //add formfield for termsconditions */}
-          <FormField
-            control={form.control}
-            name="termsconditions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Terms and Conditions</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Terms and Conditions" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
 
 
-          <div className="md:grid md:grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
@@ -657,95 +479,113 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="locationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="hotelId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hotel</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Hotel" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {hotels.map((hotel) => (
-                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          </div>
 
 
+
+          {/* //add formfield for flightDetails */}
+          <div>
             <FormField
               control={form.control}
-              name="isFeatured"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              name="flightDetails"
+              render={({ field: { value = [], onChange } }) => (
+                <FormItem>
+                  <FormLabel>Create Flight Plan</FormLabel>
+                  {
+                    value.map((flight, index) => (
+
+                      <div key={index} className="md:grid md:grid-cols-6 gap-8">
+                        <FormControl>
+                          <Input
+                            placeholder="Date"
+                            disabled={loading}
+                            value={flight.date}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, date: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="From"
+                            disabled={loading}
+                            value={flight.from}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, from: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="To"
+                            disabled={loading}
+                            value={flight.to}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, to: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="Departure Time"
+                            disabled={loading}
+                            value={flight.departureTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value]; // Ensure this is your state array
+                              newFlightDetails[index] = { ...flight, departureTime: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+
+                        </FormControl>
+                        <FormControl>
+
+                          <Input
+                            placeholder="Arrival Time"
+                            disabled={loading}
+                            value={flight.arrivalTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <Button
+                          
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={loading}
+                            onClick={() => {
+                              const newFlightDetails = value.filter((_, i) => i != index);
+                              onChange(newFlightDetails);
+                            }}>
+                            Remove Flight
+                          </Button>
+                        </FormControl>
+                      </div>
+                    ))}
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      // @ts-ignore
-                      onCheckedChange={field.onChange}
-                    />
+                    <Button type="button" size="sm"
+                      disabled={loading}
+                      onClick={() => onChange([...value, { date: '', from: '', to: '', departureTime: '', arrivalTime: '' }])}
+                    >
+                      Add Flight
+                    </Button>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Featured
-                    </FormLabel>
-                    <FormDescription>
-                      This Tour Package will appear on the home page
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isArchived"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      // @ts-ignore
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Archived
-                    </FormLabel>
-                    <FormDescription>
-                      This Tour Package will not appear anywhere in the store.
-                    </FormDescription>
-                  </div>
                 </FormItem>
               )}
             />
@@ -755,15 +595,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             control={form.control}
             name="itineraries"
             render={({ field: { value = [], onChange } }) => (
-              <FormItem>
+              <FormItem className = "flex flex-col items-start space-y-3 rounded-md border p-4">
                 <FormLabel>Create Itineraries</FormLabel>
-                {
-
-                  value.map((itinerary, index) => (
-                    <div key={index} className="space-y-4">
+                {value.map((itinerary, index) => (
+                  <div key={index} className="md:grid md:grid-cols-3 gap-8">
+                    <FormItem>
+                      <FormLabel>Day {index + 1}</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Day"
+                          disabled={loading}
+
                           value={itinerary.days}
                           onChange={(e) => {
                             const newItineraries = [...value];
@@ -771,34 +613,48 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             onChange(newItineraries);
                           }}
                         />
+                      </FormControl>
+                    </FormItem>
+                    <FormItem>
+                      <FormLabel>Hotel</FormLabel>
+                      <Select
+                        disabled={loading}
+                        value={itinerary.hotelId}
+                        defaultValue={itinerary.hotelId}
+                        onValueChange={(selectedHotelId) => {
+                          const newItineraries = [...value];
+                          newItineraries[index] = {
+                            ...itinerary,
+                            hotelId: selectedHotelId
+                          };
+                          onChange(newItineraries); // Update the state with the new itineraries
 
-                      </FormControl>
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              defaultValue={itinerary.hotelId}                              
+                              placeholder="Select a Hotel"
+                               />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {hotels.map((hotel) => (
+                            <SelectItem key={hotel.id} value={hotel.id}>
+                              {hotel.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
 
+                    <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                      <FormLabel>Meal Plan</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Activities"
-                          value={itinerary.activities}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, activities: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <Input
-                          placeholder="Places"
-                          value={itinerary.places}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, places: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <div className="flex flex-col">
-                          <label>
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2">
                             <Checkbox
                               checked={itinerary.mealsIncluded?.includes('breakfast')}
                               onCheckedChange={(isChecked) =>
@@ -807,7 +663,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             />
                             Breakfast
                           </label>
-                          <label>
+                          <label className="flex items-center gap-2">
                             <Checkbox
                               checked={itinerary.mealsIncluded?.includes('lunch')}
                               onCheckedChange={(isChecked) =>
@@ -816,56 +672,216 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             />
                             Lunch
                           </label>
-                          <label>
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('dinner')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('dinner', !!isChecked, index)
-                              }
-                            />
+                          <label className="flex items-center gap-2">                            <Checkbox
+                            checked={itinerary.mealsIncluded?.includes('dinner')}
+                            onCheckedChange={(isChecked) =>
+                              handleMealChange('dinner', !!isChecked, index)
+                            }
+                          />
                             Dinner
                           </label>
                         </div>
                       </FormControl>
+                    </FormItem>
 
 
-
-                      {/* Other inputs or elements related to each itinerary can go here */}
-
-                      <FormControl>
+                    {itinerary.activities.map((activity, activityIndex) => (
+                      <div key={activityIndex} className="space-y-2">
+                        <FormControl>
+                          <Input
+                            disabled={loading}
+                            placeholder="Activity Title"
+                            value={activity.title}
+                            onChange={(e) => {
+                              const newItineraries = [...value];
+                              newItineraries[index].activities[activityIndex] = { ...activity, title: e.target.value };
+                              onChange(newItineraries);
+                            }}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Activity Description"
+                            disabled={loading}
+                            value={activity.description}
+                            onChange={(e) => {
+                              const newItineraries = [...value];
+                              newItineraries[index].activities[activityIndex] = { ...activity, description: e.target.value };
+                              onChange(newItineraries);
+                            }}
+                          />
+                        </FormControl>
                         <Button
                           type="button"
                           variant="destructive"
                           size="sm"
                           onClick={() => {
-                            const newItineraries = value.filter((_, i) => i !== index);
+                            const newItineraries = [...value];
+                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
                             onChange(newItineraries);
                           }}
                         >
-                          Remove Itinerary
+                          Remove Activity
                         </Button>
-                      </FormControl>
-                    </div>
-                  ))}
-                <FormControl>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => onChange([...value, { days: '', activities: '', places: '', mealsIncluded: [] }])}
-                  >
-                    Add Itinerary
-                  </Button>
-                </FormControl>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        const newItineraries = [...value];
+                        newItineraries[index].activities = [...newItineraries[index].activities, { title: '', description: '' }];
+                        onChange(newItineraries);
+                      }}
+                    >
+                      Add Activity
+                    </Button>
+
+
+
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        const newItineraries = value.filter((_, i) => i !== index);
+                        onChange(newItineraries);
+                      }}
+                    >
+                      Remove Itinerary for Day {index + 1}
+
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => onChange([...value, { days: '', activities: [], mealsIncluded: [], hotelId: '' }])}
+                >
+                  Add Itinerary
+                </Button>
+
+
               </FormItem>
             )}
           />
+
+          <div className="md:grid md:grid-cols-3 gap-8">
+            {/* //add formfield for hotelDetails */}
+
+
+            {/* //add formfield for inclusions */}
+            <FormField
+              control={form.control}
+              name="inclusions"
+              
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Inclusions</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Inclusions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for exclusions */}
+            <FormField
+              control={form.control}
+              name="exclusions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Exclusions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+          </div>
+          {/* //add formfield for paymentPolicy */}
+          <div className="md:grid md:grid-cols-3 gap-8">
+
+            <FormField
+              control={form.control}
+              name="paymentPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Policy</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Payment Policy" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for usefulTip */}
+            <FormField
+              control={form.control}
+              name="usefulTip"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Useful Tip</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Useful Tip" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for cancellationPolicy */}
+            <FormField
+              control={form.control}
+              name="cancellationPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cancellation Policy</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Cancellation Policy" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+          </div>
+          {/* //add formfield for airlineCancellationPolicy */}
+          <div className="md:grid md:grid-cols-3 gap-8">
+            <FormField
+              control={form.control}
+              name="airlineCancellationPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Airline Cancellation Policy</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for termsconditions */}
+            <FormField
+              control={form.control}
+              name="termsconditions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Terms and Conditions</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Terms and Conditions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+          </div>
+
+
 
 
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>
 
-        </form>
+        </form >
       </Form >
     </>
   )

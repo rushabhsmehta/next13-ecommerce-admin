@@ -16,14 +16,14 @@ export async function GET(
       where: {
         id: params.tourPackageQueryId
       },
-      include: {        
-        flightDetails : true,
+      include: {
+        flightDetails: true,
         images: true,
         location: true,
-        hotel: true,
-        itineraries: {
-          orderBy: {
-            days: 'asc' // or 'desc' depending on desired order
+         //hotel: true,
+        itineraries: {          
+          orderBy: {            
+            days: 'asc'
           }
         },
       }
@@ -85,7 +85,7 @@ export async function PATCH(
 
     const body = await req.json();
 
-    const { 
+    const {
       tourPackageQueryName,
       customerName,
       numDaysNight,
@@ -96,7 +96,7 @@ export async function PATCH(
       numChild0to5,
       price,
       flightDetails,
-      hotelDetails,
+   //   hotelDetails,
       inclusions,
       exclusions,
       paymentPolicy,
@@ -104,11 +104,12 @@ export async function PATCH(
       cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
-      hotelId,
+     // hotelId,
       images,
       itineraries,
       isFeatured,
-      isArchived } = body;
+      isArchived,
+    } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -134,9 +135,10 @@ export async function PATCH(
       return new NextResponse("Location id is required", { status: 400 });
     }
 
-    if (!hotelId) {
+    /* if (!hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
-    }
+    } */
+    
 
     const storeByUserId = await prismadb.store.findFirst({
       where: {
@@ -163,7 +165,6 @@ export async function PATCH(
         numChild5to12,
         numChild0to5,
         price,
-        hotelDetails,
         inclusions,
         exclusions,
         paymentPolicy,
@@ -171,7 +172,6 @@ export async function PATCH(
         cancellationPolicy,
         airlineCancellationPolicy,
         termsconditions,
-        hotelId,
         flightDetails: {
           deleteMany: {},
         },
@@ -200,16 +200,25 @@ export async function PATCH(
           },
         },
         itineraries: {
+          create: itineraries.map((itinerary: { days: any; hotelId : string, mealsIncluded: any; activities: { title: any; description: any; }[]; }) => ({
+            days: itinerary.days,
+            hotelId : itinerary.hotelId,          
+            mealsIncluded: itinerary.mealsIncluded,
+            // Assuming 'activities' is an array of { title: string, description: string }
+            activities: {
+              createMany: {
+                data: itinerary.activities.map((activity: { title: string; description: string; }) => ({
+                  title: activity.title,
+                  description: activity.description,
+                })),
+              },
+            },
+          })),
+        },
+        flightDetails: {
           createMany: {
             data: [
-              ...itineraries.map((itinerary: { days: string, activities: string, places: string, mealsIncluded: string }) => itinerary),
-            ],
-          },
-        },
-        flightDetails : {
-          createMany : {
-            data : [
-              ...flightDetails.map((flightDetail : { date :string, from : string, to : string,    departureTime : string, arrivalTime :  string }) => flightDetail),
+              ...flightDetails.map((flightDetail: { date: string, from: string, to: string, departureTime: string, arrivalTime: string }) => flightDetail),
             ]
           }
         },

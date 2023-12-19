@@ -65,7 +65,7 @@ model Hotel {
   locationId  String      // Foreign Key to Location
   location    Location    @relation(fields: [locationId], references: [id])
   tourPackages TourPackage[] @relation("HotelToTourPackage")  // Updated relation name
-  tourPackageQuery TourPackageQuery[] @relation("HotelToTourPackageQuery")  // Updated relation name
+  itineraries   Itinerary[] @relation(name: "ItineraryToHotel")
 
   name        String
   createdAt   DateTime    @default(now())
@@ -134,8 +134,7 @@ model TourPackageQuery {
   price             String
 
   flightDetails     FlightDetails[] // One-to-many relation to FlightDetails
-  hotelDetails      String
-
+ 
   inclusions        String
   exclusions        String
   paymentPolicy     String
@@ -143,9 +142,7 @@ model TourPackageQuery {
   cancellationPolicy String
   airlineCancellationPolicy String
   termsconditions String
-  hotelId     String   // Foreign Key to Hotel
-  hotel       Hotel    @relation("HotelToTourPackageQuery", fields: [hotelId], references: [id])  // Updated relation name
-
+  
   itineraries Itinerary[] // Relation to Itinerary Model
 
   isFeatured  Boolean  @default(false)
@@ -155,7 +152,7 @@ model TourPackageQuery {
   updatedAt   DateTime @updatedAt
 
   @@index([storeId])
-  @@index([hotelId])
+
 }
 
 model FlightDetails {
@@ -198,6 +195,21 @@ model TourPackage {
   @@index([hotelId])
 }
 
+model Activity {
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  itineraryId String     // Foreign Key to Itinerary
+  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([itineraryId])
+
+}
+
+
+
 model Itinerary {
   id             String       @id @default(uuid())
   tourPackageId  String?   // Foreign Key to TourPackage
@@ -206,13 +218,16 @@ model Itinerary {
   tourPackageQueryId  String?    // Foreign Key to TourPackage
   tourPackageQuery    TourPackageQuery? @relation(fields : [tourPackageQueryId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
  
-  days           String?
-  activities     String?
-  places         String?
+  
+  days          String?
+  hotelId       String?
+  hotel         Hotel?   @relation(name: "ItineraryToHotel", fields: [hotelId], references: [id])
+
   mealsIncluded  String?
+  activities     Activity[]
+ 
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-
  
   @@index([tourPackageId])
   @@index([tourPackageQueryId])

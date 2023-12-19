@@ -9,7 +9,7 @@ export type TourPackageQueryColumn = {
   tourPackageQueryName : string;
   price: string;
   location : string;
-  hotel : string;
+  //hotel : string;
   createdAt: string;
   isFeatured: boolean;
   isArchived: boolean;
@@ -36,10 +36,10 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
     accessorKey: "location",
     header: "Location",
   },
-  {
-    accessorKey: "hotel",
-    header: "Hotel",
-  },
+  // {
+  //   accessorKey: "hotel",
+  //   header: "Hotel",
+  // },
   
   {
     accessorKey: "createdAt",

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Location, Image, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
@@ -83,7 +83,7 @@ type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
   initialData: TourPackageQuery & {
-    images: Image[];
+    images: Images[];
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
   } | null;
@@ -165,7 +165,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: arrivalTime ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, activities, mealsIncluded, hotelId }) => ({
+      itineraries: data.itineraries.map(({ days, activities , mealsIncluded, hotelId }) => ({
         days: days ?? '',
         activities: activities ?? [],
         mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],

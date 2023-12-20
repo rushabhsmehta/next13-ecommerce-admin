@@ -21,6 +21,9 @@ export async function GET(
         location: true,
         hotel: true,
         itineraries: {
+          include: {
+            activities: true,
+          },
           orderBy: {
             days: 'asc' // or 'desc' depending on desired order
           }

@@ -14,7 +14,10 @@ const tourPackageQueryPage = async ({
     include: {
       images: true,
       flightDetails: true,
-      itineraries: {       
+      itineraries: { 
+        include: {
+          activities: true,
+        },      
         orderBy: {
           days: 'asc' // or 'desc', depending on the desired order
         }
@@ -50,7 +53,7 @@ const tourPackageQueryPage = async ({
  */}
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryDisplay
-          data={tourPackageQuery}
+          initialData = {tourPackageQuery}
           locations={locations}
           hotels={hotels}
         //    itineraries={[]}

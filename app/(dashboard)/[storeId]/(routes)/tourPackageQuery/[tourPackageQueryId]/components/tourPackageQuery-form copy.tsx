@@ -150,9 +150,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     itineraries: {
       id: string;
       days: string | null;
+      hotelId: string | null;
       activities: { title: string, description: string }[];
       mealsIncluded: string | null;
-      hotelId: string | null;
     }[];
   }) => {
     return {

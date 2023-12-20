@@ -74,7 +74,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 }) => {
   const params = useParams();
   const router = useRouter();
-  const defaultItinerary = { days: '', hotelId : '', activities: [], mealsIncluded: false };
+  const defaultItinerary = { days: '', hotelId : '', activities: [], mealsIncluded: '' };
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -323,7 +323,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           }}
                         />
                        
-                        <Input
+                      {/*   <Input
                           placeholder="Activities"
                           value={itinerary.activities}
                           onChange={(e) => {
@@ -331,7 +331,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             newItineraries[index] = { ...itinerary, activities: e.target.value };
                             onChange(newItineraries);
                           }}
-                        />
+                        /> */}
                          
                        {/*  <Input
                           placeholder="Places"
@@ -342,7 +342,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             onChange(newItineraries);
                           }}
                         /> */}
-                        <div className="flex items-center space-x-2">
+                       {/*  <div className="flex items-center space-x-2">
                           <Checkbox
                             checked={itinerary.mealsIncluded || false}
                             onCheckedChange={(checked) => {
@@ -355,7 +355,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           />
                           <span>Meals Included</span>
                         </div>
-                        
+                         */}
                         
 
                         <Button

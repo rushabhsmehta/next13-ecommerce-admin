@@ -2,12 +2,33 @@
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
+import { Location, Images, Hotel, TourPackageQuery, FlightDetails } from "@prisma/client"
 import { Key, ReactElement, useState } from "react";
 import Image from 'next/image'
 import { useForm } from "react-hook-form";
 import { useParams, useRouter } from "next/navigation";
 
+interface Activity {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: Date;
+  updatedAt: Date;
+  // Add other fields from the Activity model as needed
+}
+interface Itinerary {
+  id: string;
+  tourPackageId?: string;
+  tourPackageQueryId?: string;
+  days?: string;
+  hotelId?: string;
+ // hotel?: Hotel; // Assuming you have a corresponding interface for Hotel
+  mealsIncluded?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  activities: Activity[]; // Include activities here
+  // Add other fields from the Itinerary model as needed
+}
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
@@ -58,7 +79,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="font-bold">Location:</div>
-                  {initialData.locationId}
+                  {locations.find((location) => location.id === initialData.locationId)?.label}
+              {/*   {initialData.locationId} */}
                 </div>
 
                 <div>
@@ -134,7 +156,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div className="p-4 rounded-lg">
                   <div className="font-bold text-lg">Day {index + 1}</div>
 
-                  <div className="font-medium">{itinerary.hotelId}</div>
+                  <div className="font-medium">
+                    Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
+                    {/* {itinerary.hotel?.name} */}
+                    </div>
+                
+                  
                   <Image
                     alt="Hotel Image"
                     className="rounded-lg object-cover mt-2"

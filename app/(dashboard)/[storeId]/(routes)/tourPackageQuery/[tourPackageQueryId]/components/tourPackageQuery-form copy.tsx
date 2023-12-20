@@ -7,7 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
+import { Images } from "@prisma/client"
+import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
+ // hotel : z.string(),
 });
 
 
@@ -61,9 +63,10 @@ const formSchema = z.object({
   numChild0to5: z.string(),
   price: z.string().min(1),
   locationId: z.string().min(1),
- // hotelId: z.string().min(1),
+  //location : z.string(),
+  // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
-//  hotelDetails: z.string(),
+  //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
   paymentPolicy: z.string(),
@@ -124,6 +127,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numChild5to12: string;
     numChild0to5: string;
     locationId: string;
+    //location : string;
     //hotelId: string;
     price: string;
     isFeatured: boolean;
@@ -138,7 +142,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       departureTime: string | null;
       arrivalTime: string | null;
     }[];
-   // hotelDetails: string;
+    // hotelDetails: string;
     inclusions: string;
     exclusions: string;
     paymentPolicy: string;
@@ -151,8 +155,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       id: string;
       days: string | null;
       hotelId: string | null;
-      activities: { title: string, description: string }[];
+      //hotel : string | null;
       mealsIncluded: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      activities?: { title: string, description: string }[]; // Mark as optional
     }[];
   }) => {
     return {
@@ -165,11 +172,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: arrivalTime ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, activities , mealsIncluded, hotelId }) => ({
+      itineraries: data.itineraries.map(({ days, hotelId, mealsIncluded, activities, }) => ({
         days: days ?? '',
-        activities: activities ?? [],
+        hotelId: hotelId ?? '',
+        //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-        hotelId : hotelId ?? '',
+        activities: activities ?? [],
       }))
     };
   };
@@ -184,7 +192,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numChild0to5: '',
     price: '',
     flightDetails: [],
-   // hotelDetails: '',
+    // hotelDetails: '',
     inclusions: '',
     exclusions: '',
     paymentPolicy: '',
@@ -193,14 +201,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     airlineCancellationPolicy: '',
     termsconditions: '',
     images: [],
-    itineraries: [{
+    itineraries: [],
+    /* itineraries: [{
       days: '',
-      activities: [{title : '', description : ''}],
-      mealsIncluded: '',
+      activities: [],
+      mealsIncluded: [],
       hotelId: '',
     }],
+     */
     locationId: '',
-   // hotelId: '',
+    //location : '',
+    // hotelId: '',
     isFeatured: true,
     isArchived: false,
   };
@@ -498,6 +509,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <FormControl>
                           <Input
                             placeholder="Date"
+                            disabled={loading}
                             value={flight.date}
                             onChange={(e) => {
                               const newFlightDetails = [...value];
@@ -510,6 +522,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <FormControl>
                           <Input
                             placeholder="From"
+                            disabled={loading}
                             value={flight.from}
                             onChange={(e) => {
                               const newFlightDetails = [...value];
@@ -523,6 +536,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                           <Input
                             placeholder="To"
+                            disabled={loading}
                             value={flight.to}
                             onChange={(e) => {
                               const newFlightDetails = [...value];
@@ -536,6 +550,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                           <Input
                             placeholder="Departure Time"
+                            disabled={loading}
                             value={flight.departureTime}
                             onChange={(e) => {
                               const newFlightDetails = [...value]; // Ensure this is your state array
@@ -549,6 +564,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                           <Input
                             placeholder="Arrival Time"
+                            disabled={loading}
                             value={flight.arrivalTime}
                             onChange={(e) => {
                               const newFlightDetails = [...value];
@@ -559,9 +575,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         </FormControl>
                         <FormControl>
                           <Button
+
                             type="button"
                             variant="destructive"
                             size="sm"
+                            disabled={loading}
                             onClick={() => {
                               const newFlightDetails = value.filter((_, i) => i != index);
                               onChange(newFlightDetails);
@@ -573,6 +591,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     ))}
                   <FormControl>
                     <Button type="button" size="sm"
+                      disabled={loading}
                       onClick={() => onChange([...value, { date: '', from: '', to: '', departureTime: '', arrivalTime: '' }])}
                     >
                       Add Flight
@@ -587,7 +606,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             control={form.control}
             name="itineraries"
             render={({ field: { value = [], onChange } }) => (
-              <FormItem className = "flex flex-col items-start space-y-3 rounded-md border p-4">
+              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                 <FormLabel>Create Itineraries</FormLabel>
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-3 gap-8">
@@ -596,6 +615,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <FormControl>
                         <Input
                           placeholder="Day"
+                          disabled={loading}
+
                           value={itinerary.days}
                           onChange={(e) => {
                             const newItineraries = [...value];
@@ -625,7 +646,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           <SelectTrigger>
                             <SelectValue
                               defaultValue={itinerary.hotelId}
-                              placeholder="Select a Hotel" />
+                              placeholder="Select a Hotel"
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -661,12 +683,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             />
                             Lunch
                           </label>
-                          <label className="flex items-center gap-2">                            <Checkbox
-                            checked={itinerary.mealsIncluded?.includes('dinner')}
-                            onCheckedChange={(isChecked) =>
-                              handleMealChange('dinner', !!isChecked, index)
-                            }
-                          />
+                          <label className="flex items-center gap-2">
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('dinner')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('dinner', !!isChecked, index)
+                              }
+                            />
                             Dinner
                           </label>
                         </div>
@@ -678,6 +701,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <div key={activityIndex} className="space-y-2">
                         <FormControl>
                           <Input
+                            disabled={loading}
                             placeholder="Activity Title"
                             value={activity.title}
                             onChange={(e) => {
@@ -690,6 +714,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <FormControl>
                           <Textarea
                             placeholder="Activity Description"
+                            disabled={loading}
                             value={activity.description}
                             onChange={(e) => {
                               const newItineraries = [...value];
@@ -743,7 +768,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { days: '', activities: [], mealsIncluded: [], hotelId: '' }])}
+                  onClick={() => onChange([...value, { days: '', activities: [], mealsIncluded: [], hotelId: ''}])}
                 >
                   Add Itinerary
                 </Button>
@@ -761,6 +786,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             <FormField
               control={form.control}
               name="inclusions"
+
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Inclusions</FormLabel>
@@ -859,10 +885,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )} />
 
           </div>
-
-
-
-
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>

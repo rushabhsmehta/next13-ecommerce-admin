@@ -29,13 +29,18 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 
 
+const activitySchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
 const itinerarySchema = z.object({
   days: z.string(),
-  hotelId: z.string(),
-  activities: z.string(),
- //places: z.string(),
-  mealsIncluded: z.boolean().optional(),
+  activities: z.array(activitySchema),
+  mealsIncluded: z.array(z.string()).optional(),
+  hotelId: z.string(), // Array of hotel IDs
 });
+
 
 const formSchema = z.object({
   name: z.string().min(1),
@@ -328,7 +333,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           }}
                         />
                          
-                        <Input
+                       {/*  <Input
                           placeholder="Places"
                           value={itinerary.places}
                           onChange={(e) => {
@@ -336,7 +341,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             newItineraries[index] = { ...itinerary, places: e.target.value };
                             onChange(newItineraries);
                           }}
-                        />
+                        /> */}
                         <div className="flex items-center space-x-2">
                           <Checkbox
                             checked={itinerary.mealsIncluded || false}
@@ -367,7 +372,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     ))}
               <Button
               size="sm"
-              onClick={() => onChange([...value, { days: '', activities: '', places: '', mealsIncluded: false }])}
+              onClick={() => onChange([...value, { days: '', hotelId : '', activities: [], mealsIncluded: [] }])}
             >
               Add Itinerary
             </Button>

@@ -166,11 +166,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: arrivalTime ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, activities, mealsIncluded, hotelId }) => ({
+      itineraries: data.itineraries.map(({ days, hotelId, mealsIncluded, activities,  }) => ({
         days: days ?? '',
-        activities: activities ?? [],
-        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
         hotelId : hotelId ?? '',
+        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
+        activities: activities ?? [],
       }))
     };
   };

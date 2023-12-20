@@ -1,13 +1,16 @@
 'use client'
-
+import * as z from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
-import { Key, ReactElement } from "react";
+import { Key, ReactElement, useState } from "react";
 import Image from 'next/image'
+import { useForm } from "react-hook-form";
+import { useParams, useRouter } from "next/navigation";
 
 
 interface TourPackageQueryDisplayProps {
-  data: TourPackageQuery & {
+  initialData: TourPackageQuery & {
     images: Images[];
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
@@ -17,12 +20,16 @@ interface TourPackageQueryDisplayProps {
   //  itineraries: Itinerary[];
 };
 
+
+
 export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
-  data,
+  initialData,
   locations,
   hotels,
 }) => {
-  if (!data) return <div>No data available</div>;
+
+ 
+  if (!initialData) return <div>No data available</div>;
 
   return (
     <>
@@ -32,15 +39,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             {/* <CardTitle>Tour Images</CardTitle> */}
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
-            {data.images.map((image: { url: string }, index: number) => (
+            {initialData.images.map((image: { url: string }, index: number) => (
               <Image key={index} src={image.url} alt={`Images ${index + 1}`} className="mb-2" />
           ))}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{data.tourPackageQueryName}</CardTitle>
-            <CardDescription>Customer: {data.customerName}</CardDescription>
+            <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
+            <CardDescription>Customer: {initialData.customerName}</CardDescription>
           </CardHeader>
         </Card>
         <Card>
@@ -51,32 +58,32 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <div className="font-bold">Location:</div>
-                  {data.locationId}
+                  {initialData.locationId}
                 </div>
 
                 <div>
                   <div className="font-bold">Duration:</div>
-                  {data.numDaysNight}
+                  {initialData.numDaysNight}
                 </div>
                 <div>
                   <div className="font-bold">Period:</div>
-                  {data.period}
+                  {initialData.period}
                 </div>
                 <div>
                   <div className="font-bold">Adults:</div>
-                  {data.numAdults}
+                  {initialData.numAdults}
                 </div>
                 <div>
                   <div className="font-bold">Children (5 - 12 Years):</div>
-                  {data.numChild5to12}
+                  {initialData.numChild5to12}
                 </div>
                 <div>
                   <div className="font-bold">Children (0 - 5 Years):</div>
-                  {data.numChild0to5}
+                  {initialData.numChild0to5}
                 </div>
                 <div>
                   <div className="font-bold">Price:</div>
-                  {data.price}
+                  {initialData.price}
                 </div>
               </div>
             </div>
@@ -87,7 +94,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardTitle>Flight Details</CardTitle>
           </CardHeader>
 
-          {data.flightDetails.map((flight, index) => (
+          {initialData.flightDetails.map((flight, index) => (
             <CardContent key={index}>
               <div className="grid gap-4 md:grid-cols-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -121,7 +128,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Itinerary Details</CardTitle>
           </CardHeader>
-          {data.itineraries.map((itinerary, index) => (
+          {initialData.itineraries.map((itinerary, index) => (
             <CardContent key={index} >              
               <div className="grid gap-4 md:grid-cols-1">
                 <div className="p-4 rounded-lg">
@@ -142,8 +149,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
                   <div className="font-bold mt-2">Meal Plan:</div>
                   <div className="font-medium">{itinerary.mealsIncluded}</div>
-                    
-                  
+
                   {itinerary.activities.map((activity, activityIndex: number) => (
                     <Card key = {activityIndex} className="mt-4">
                       <CardHeader>
@@ -167,7 +173,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardHeader>
             <CardContent>
               <ul>
-                <li> {data.inclusions}</li>
+                <li> {initialData.inclusions}</li>
                 <li>Flight tickets</li>
                 <li>Breakfast</li>
                 <li>Sightseeing</li>
@@ -181,7 +187,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardHeader>
             <CardContent>
               <ul>
-                <li> {data.exclusions}</li>
+                <li> {initialData.exclusions}</li>
                 <li>Travel insurance</li>
                 <li>Personal expenses</li>
               </ul>
@@ -193,14 +199,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardHeader>
               <CardTitle>Payment Policy</CardTitle>
             </CardHeader>
-            <CardContent> {data.paymentPolicy}</CardContent>
+            <CardContent> {initialData.paymentPolicy}</CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Useful Tips</CardTitle>
             </CardHeader>
-            <CardContent> {data.usefulTip}</CardContent>
+            <CardContent> {initialData.usefulTip}</CardContent>
           </Card>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -208,14 +214,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardHeader>
               <CardTitle>Cancellation Policy</CardTitle>
             </CardHeader>
-            <CardContent> {data.cancellationPolicy}</CardContent>
+            <CardContent> {initialData.cancellationPolicy}</CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Airline Cancellation Policy</CardTitle>
             </CardHeader>
-            <CardContent> {data.airlineCancellationPolicy}</CardContent>
+            <CardContent> {initialData.airlineCancellationPolicy}</CardContent>
           </Card>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -224,7 +230,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardHeader>
               <CardTitle>Terms and Conditions</CardTitle>
             </CardHeader>
-            <CardContent> {data.termsconditions}</CardContent>
+            <CardContent> {initialData.termsconditions}</CardContent>
 
           </Card>
         </div>

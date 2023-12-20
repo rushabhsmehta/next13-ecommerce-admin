@@ -21,7 +21,10 @@ export async function GET(
         images: true,
         location: true,
          //hotel: true,
-        itineraries: {          
+        itineraries: {  
+          include : {
+            activities : true,
+          },        
           orderBy: {            
             days: 'asc'
           }

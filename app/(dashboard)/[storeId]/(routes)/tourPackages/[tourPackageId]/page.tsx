@@ -14,6 +14,9 @@ const tourPackagePage = async ({
     include: {
       images: true,
       itineraries: {
+        include: {
+          activities: true,
+        },
         orderBy: {
           days: 'asc' // or 'desc', depending on the desired order
         }

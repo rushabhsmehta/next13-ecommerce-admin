@@ -7,8 +7,6 @@ import { Key, ReactElement, useState } from "react";
 import Image from 'next/image'
 import { useForm } from "react-hook-form";
 import { useParams, useRouter } from "next/navigation";
-import { PlaneTakeoffIcon } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 interface Activity {
   id: string;
@@ -24,7 +22,7 @@ interface Itinerary {
   tourPackageQueryId?: string;
   days?: string;
   hotelId?: string;
-  // hotel?: Hotel; // Assuming you have a corresponding interface for Hotel
+ // hotel?: Hotel; // Assuming you have a corresponding interface for Hotel
   mealsIncluded?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -51,7 +49,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   hotels,
 }) => {
 
-
+ 
   if (!initialData) return <div>No data available</div>;
 
   return (
@@ -64,7 +62,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardContent className="grid gap-4 md:grid-cols-3">
             {initialData.images.map((image: { url: string }, index: number) => (
               <Image key={index} src={image.url} alt={`Images ${index + 1}`} className="mb-2" />
-            ))}
+          ))}
           </CardContent>
         </Card>
         <Card>
@@ -82,7 +80,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div>
                   <div className="font-bold">Location:</div>
                   {locations.find((location) => location.id === initialData.locationId)?.label}
-                  {/*   {initialData.locationId} */}
+              {/*   {initialData.locationId} */}
                 </div>
 
                 <div>
@@ -117,72 +115,82 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Flight Details</CardTitle>
           </CardHeader>
-              <Separator/>
+
           {initialData.flightDetails.map((flight, index) => (
-            <div key={index} className="space-y-4">
-              <div className="flex justify-between items-center p-4 rounded-lg text-white">
-              <div>{flight.date}</div>
-                <div>
-                  <div className="font-bold">{flight.from}</div>
-                  <div>{flight.departureTime}</div>
-                </div>
-                <div>
-                  <PlaneTakeoffIcon className="mx-2" />
-                </div>
-                <div>
-                  <div className="font-bold">{flight.to}</div>
-                  <div>{flight.arrivalTime}</div>
+            <CardContent key={index}>
+              
+
+              <div className="grid gap-4 md:grid-cols-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div>
+                    <div className="font-bold">Date:</div>
+                    {flight.date}
+                  </div>
+                  <div>
+                    <div className="font-bold">From:</div>
+                    {flight.from}
+                  </div>
+                  <div>
+                    <div className="font-bold">To:</div>
+                    {flight.to}
+                  </div>
+                  <div>
+                    <div className="font-bold">Departure Time:</div>
+                    {flight.departureTime}
+                  </div>
+                  <div>
+                    <div className="font-bold">Arrival Time:</div>
+                    {flight.arrivalTime}
+                  </div>
                 </div>
               </div>
-            </div>
+            </CardContent>
           ))}
         </Card>
         {/* Itinerary Details */}
-        < Card >
+        <Card>
           <CardHeader>
             <CardTitle>Itinerary Details</CardTitle>
           </CardHeader>
-          {
-            initialData.itineraries.map((itinerary, index) => (
-              <CardContent key={index} >
-                <div className="grid gap-4 md:grid-cols-1">
-                  <div className="p-4 rounded-lg">
-                    <div className="font-bold text-lg">Day {index + 1}</div>
+          {initialData.itineraries.map((itinerary, index) => (
+            <CardContent key={index} >              
+              <div className="grid gap-4 md:grid-cols-1">
+                <div className="p-4 rounded-lg">
+                  <div className="font-bold text-lg">Day {index + 1}</div>
 
-                    <div className="font-medium">
-                      Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
-                      {/* {itinerary.hotel?.name} */}
+                  <div className="font-medium">
+                    Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
+                    {/* {itinerary.hotel?.name} */}
                     </div>
+                
+                  
+                  <Image
+                    alt="Hotel Image"
+                    className="rounded-lg object-cover mt-2"
+                    height="200"
+                    src="/placeholder.svg"
+                    style={{
+                      aspectRatio: "200/200",
+                      objectFit: "cover",
+                    }}
+                    width="200"
+                  />                
 
+                  <div className="font-bold mt-2">Meal Plan:</div>
+                  <div className="font-medium">{itinerary.mealsIncluded}</div>
 
-                    <Image
-                      alt="Hotel Image"
-                      className="rounded-lg object-cover mt-2"
-                      height="200"
-                      src="/placeholder.svg"
-                      style={{
-                        aspectRatio: "200/200",
-                        objectFit: "cover",
-                      }}
-                      width="200"
-                    />
-
-                    <div className="font-bold mt-2">Meal Plan:</div>
-                    <div className="font-medium">{itinerary.mealsIncluded}</div>
-
-                    {itinerary.activities.map((activity, activityIndex: number) => (
-                      <Card key={activityIndex} className="mt-4">
-                        <CardHeader>
-                          <CardTitle>{activity.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>{activity.description}</CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                  {itinerary.activities.map((activity, activityIndex: number) => (
+                    <Card key = {activityIndex} className="mt-4">
+                      <CardHeader>
+                        <CardTitle>{activity.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>{activity.description}</CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </CardContent>
-            ))
-          }
+              </div>
+            </CardContent>
+          ))}
 
         </Card>
 
@@ -256,7 +264,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </Card>
         </div>
       </div>
-    </>
-  );
+      </>
+      );  
 };
 

@@ -31,8 +31,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 const itinerarySchema = z.object({
   days: z.string(),
+  hotelId: z.string(),
   activities: z.string(),
-  places: z.string(),
+ //places: z.string(),
   mealsIncluded: z.boolean().optional(),
 });
 
@@ -53,7 +54,7 @@ type TourPackageFormValues = z.infer<typeof formSchema>
 
 interface TourPackageFormProps {
   initialData: TourPackage & {
-    images: Image[]
+    images: Images[]
   } | null;
   locations: Location[];
   hotels: Hotel[];
@@ -68,7 +69,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 }) => {
   const params = useParams();
   const router = useRouter();
-  const defaultItinerary = { days: '', activities: '', places: '', mealsIncluded: false };
+  const defaultItinerary = { days: '', hotelId : '', activities: [], mealsIncluded: false };
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

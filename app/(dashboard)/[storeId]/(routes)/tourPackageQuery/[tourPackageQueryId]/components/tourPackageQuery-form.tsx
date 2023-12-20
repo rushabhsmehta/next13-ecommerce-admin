@@ -7,7 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
+import { Images } from "@prisma/client"
+import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
@@ -83,7 +84,7 @@ type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
   initialData: TourPackageQuery & {
-    images: Image[];
+    images: Images[];
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
   } | null;
@@ -193,13 +194,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     airlineCancellationPolicy: '',
     termsconditions: '',
     images: [],
-    itineraries: [{
+    itineraries : [],
+    /* itineraries: [{
       days: '',
-      activities: [{title : '', description : ''}],
-      mealsIncluded: '',
+      activities: [],
+      mealsIncluded: [],
       hotelId: '',
     }],
-    locationId: '',
+     */locationId: '',
    // hotelId: '',
     isFeatured: true,
     isArchived: false,
@@ -672,7 +674,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             />
                             Lunch
                           </label>
-                          <label className="flex items-center gap-2">                            <Checkbox
+                          <label className="flex items-center gap-2">
+                            <Checkbox
                             checked={itinerary.mealsIncluded?.includes('dinner')}
                             onCheckedChange={(isChecked) =>
                               handleMealChange('dinner', !!isChecked, index)

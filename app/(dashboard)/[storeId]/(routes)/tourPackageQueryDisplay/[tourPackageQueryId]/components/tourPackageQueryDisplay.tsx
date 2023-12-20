@@ -5,6 +5,7 @@ import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } f
 import { Key, ReactElement } from "react";
 import Image from 'next/image'
 
+
 interface TourPackageQueryDisplayProps {
   data: TourPackageQuery & {
     images: Images[];
@@ -120,11 +121,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Itinerary Details</CardTitle>
           </CardHeader>
-          {data.itineraries.map((itinerary, index: number) => (
-            <CardContent key={index} >
+          {data.itineraries.map((itinerary, index) => (
+            <CardContent key={index} >              
               <div className="grid gap-4 md:grid-cols-1">
                 <div className="p-4 rounded-lg">
                   <div className="font-bold text-lg">Day {index + 1}</div>
+
                   <div className="font-medium">{itinerary.hotelId}</div>
                   <Image
                     alt="Hotel Image"
@@ -140,6 +142,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
                   <div className="font-bold mt-2">Meal Plan:</div>
                   <div className="font-medium">{itinerary.mealsIncluded}</div>
+                    
+                  
                   {itinerary.activities.map((activity, activityIndex: number) => (
                     <Card key = {activityIndex} className="mt-4">
                       <CardHeader>

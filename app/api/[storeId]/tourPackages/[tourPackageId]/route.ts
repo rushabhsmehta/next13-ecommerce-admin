@@ -161,7 +161,7 @@ export async function PATCH(
         itineraries: {
           createMany: {
             data: [
-              ...itineraries.map((itinerary: { days: string, activities: string, places: string, mealsIncluded: string }) => itinerary),
+              ...itineraries.map((itinerary: { days: string, hotelId: string, activities: string[], mealsIncluded: string }) => itinerary),
             ],
           },
         }

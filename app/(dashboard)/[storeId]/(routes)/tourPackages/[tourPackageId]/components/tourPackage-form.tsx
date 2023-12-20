@@ -29,11 +29,16 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Decimal } from "@prisma/client/runtime/library"
 
+const activitySchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
 
 const itinerarySchema = z.object({
   days: z.string(),
-  activities: z.string(),
-  places: z.string(),
+  hotelId : z.string(),
+  activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
 });
 
@@ -42,7 +47,7 @@ const formSchema = z.object({
   images: z.object({ url: z.string() }).array(),
   price: z.coerce.number().min(1),
   locationId: z.string().min(1),
-  hotelId: z.string().min(1),
+ // hotelId: z.string().min(1),
   itineraries: itinerarySchema.array(),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional()
@@ -54,7 +59,7 @@ type TourPackageFormValues = z.infer<typeof formSchema>
 
 interface TourPackageFormProps {
   initialData: TourPackage & {
-    images: Image[];
+    images: Images[];
     itineraries: Itinerary[];
   } | null;
   locations: Location[];
@@ -79,15 +84,16 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const toastMessage = initialData ? 'Tour Package updated.' : 'Tour Package created.';
   const action = initialData ? 'Save changes' : 'Create';
   console.log("Initial Data : ", initialData?.itineraries)
-  const transformInitialData = (data: { id: string; storeId: string; locationId: string; hotelId: string; name: string; price: Decimal; isFeatured: boolean; isArchived: boolean; createdAt: Date; updatedAt: Date } & { images: { id: string; productId: string | null; tourPackageId: string | null; url: string; createdAt: Date; updatedAt: Date }[]; itineraries: { id: string; days: string | null; activities: string | null; places: string | null; mealsIncluded: string | null; createdAt: Date; updatedAt: Date }[] }) => {
+  const transformInitialData = (data: { id: string; storeId: string; locationId: string; hotelId: string; name: string; price: Decimal; isFeatured: boolean; isArchived: boolean; createdAt: Date; updatedAt: Date } & { images: { id: string; productId: string | null; tourPackageId: string | null; url: string; createdAt: Date; updatedAt: Date }[]; itineraries: { id: string; days: string | null; hotelId : string | null; activities: string[] | null; mealsIncluded: string | null; createdAt: Date; updatedAt: Date }[] }) => {
     return {
       ...data,
       price: parseFloat(data.price.toString()), // Convert Decimal to number
-      itineraries: data.itineraries.map(({ days, activities, places, mealsIncluded }) => ({
+      itineraries: data.itineraries.map(({ days, activities, hotelId, mealsIncluded }) => ({
         days: days ?? '', // Convert null to empty string or undefined
-        activities: activities ?? '',
-        places: places ?? '',
-        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [] // Assuming mealsIncluded is a comma-separated string
+        hotelId: hotelId ?? '',
+        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [], // Assuming mealsIncluded is a comma-separated string
+        activities: activities ?? [],
+        
       }))
     };
   };
@@ -270,7 +276,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             />
-            <FormField
+        {/*     <FormField
               control={form.control}
               name="hotelId"
               render={({ field }) => (
@@ -292,7 +298,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             />
-
+ */}
 
             <FormField
               control={form.control}
@@ -365,28 +371,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
                         </FormControl>
 
-                        <FormControl>
-                          <Input
-                            placeholder="Activities"
-                            value={itinerary.activities}
-                            onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index] = { ...itinerary, activities: e.target.value };
-                              onChange(newItineraries);
-                            }}
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <Input
-                            placeholder="Places"
-                            value={itinerary.places}
-                            onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index] = { ...itinerary, places: e.target.value };
-                              onChange(newItineraries);
-                            }}
-                          />
-                        </FormControl>
+                     
+                      
                         <FormControl>
                           <div className="flex flex-col">
                             <label>
@@ -442,7 +428,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     <Button
                       type="button"
                       size="sm"
-                      onClick={() => onChange([...value, { days: '', activities: '', places: '', mealsIncluded: [] }])}
+                      onClick={() => onChange([...value, { days: '', hotelId : '', activities: [], mealsIncluded: [] }])}
                     >
                       Add Itinerary
                     </Button>

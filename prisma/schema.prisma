@@ -3,111 +3,106 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
 model Store {
-  id            String        @id @default(uuid())
-  name          String
-  userId        String
-  billboards    Billboard[]   @relation("StoreToBillboard")
-  locations     Location[]    @relation("StoreToLocation")
-  hotels        Hotel[]       @relation("StoreToHotel")
-  categories    Category[]    @relation("StoreToCategory")
-  products      Product[]     @relation("StoreToProduct")
-  sizes         Size[]        @relation("StoreToSize")
-  colors        Color[]       @relation("StoreToColor")
-  orders        Order[]       @relation("StoreToOrder")
-  tourPackages  TourPackage[] @relation("StoreTotourPackage")  // Added relation
-  tourPackageQuery  TourPackageQuery[] @relation("StoreTotourPackageQuery")  // Added relation
-
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id               String             @id @default(uuid())
+  name             String
+  userId           String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  billboards       Billboard[]        @relation("StoreToBillboard")
+  locations        Location[]         @relation("StoreToLocation")
+  hotels           Hotel[]            @relation("StoreToHotel")
+  categories       Category[]         @relation("StoreToCategory")
+  products         Product[]          @relation("StoreToProduct")
+  sizes            Size[]             @relation("StoreToSize")
+  colors           Color[]            @relation("StoreToColor")
+  orders           Order[]            @relation("StoreToOrder")
+  tourPackages     TourPackage[]      @relation("StoreTotourPackage")
+  tourPackageQuery TourPackageQuery[] @relation("StoreTotourPackageQuery")
 }
 
 model Billboard {
-  id          String @id @default(uuid())
-  storeId     String
-  store       Store @relation("StoreToBillboard", fields: [storeId], references: [id])
-  label       String
-  imageUrl    String
-  categories  Category[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String     @id @default(uuid())
+  storeId    String
+  label      String
+  imageUrl   String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  store      Store      @relation("StoreToBillboard", fields: [storeId], references: [id])
+  categories Category[]
 
   @@index([storeId])
 }
 
 model Location {
-  id          String @id @default(uuid())
-  storeId     String
-  store       Store @relation("StoreToLocation", fields: [storeId], references: [id])
-  label       String
-  imageUrl    String
-  hotels      Hotel[]  // Add this field to represent the other side of the relation
-  tourPackages   TourPackage[]  @relation("LocationTotourPackage")
-  tourPackageQuery  TourPackageQuery[]  @relation("LocationTotourPackageQuery")
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String             @id @default(uuid())
+  storeId          String
+  label            String
+  imageUrl         String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  store            Store              @relation("StoreToLocation", fields: [storeId], references: [id])
+  hotels           Hotel[]
+  tourPackages     TourPackage[]      @relation("LocationTotourPackage")
+  tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
 
   @@index([storeId])
 }
 
-// ... other models remain unchanged
-
 model Hotel {
-  id          String      @id @default(uuid())
-  storeId     String      // Foreign Key to Store
-  store       Store       @relation("StoreToHotel", fields: [storeId], references: [id])
-  locationId  String      // Foreign Key to Location
-  location    Location    @relation(fields: [locationId], references: [id])
-  tourPackages TourPackage[] @relation("HotelToTourPackage")  // Updated relation name
-  itineraries   Itinerary[] @relation(name: "ItineraryToHotel")
-
-  name        String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id           String        @id @default(uuid())
+  storeId      String
+  locationId   String
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  store        Store         @relation("StoreToHotel", fields: [storeId], references: [id])
+  location     Location      @relation(fields: [locationId], references: [id])
+  tourPackages TourPackage[] @relation("HotelToTourPackage")
+  itineraries  Itinerary[]   @relation("ItineraryToHotel")
 
   @@index([storeId])
   @@index([locationId])
 }
 
 model Category {
-  id          String      @id @default(uuid())
-  storeId     String      // Foreign Key to Store
-  store       Store       @relation("StoreToCategory", fields: [storeId], references: [id])
-  billboardId String      // Foreign Key to Billboard
-  billboard   Billboard   @relation(fields: [billboardId], references: [id])
+  id          String    @id @default(uuid())
+  storeId     String
+  billboardId String
   name        String
-  products    Product[]   @relation("CategoryToProduct")
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  store       Store     @relation("StoreToCategory", fields: [storeId], references: [id])
+  billboard   Billboard @relation(fields: [billboardId], references: [id])
+  products    Product[] @relation("CategoryToProduct")
 
   @@index([storeId])
   @@index([billboardId])
 }
 
 model Product {
-  id          String    @id @default(uuid())
-  storeId     String    // Foreign Key to Store
-  store       Store     @relation("StoreToProduct", fields: [storeId], references: [id])
-  categoryId  String    // Foreign Key to Category
-  category    Category  @relation("CategoryToProduct", fields: [categoryId], references: [id])
-  name        String
-  price       Decimal
-  isFeatured  Boolean   @default(false)
-  isArchived  Boolean   @default(false)
-  sizeId      String    // Foreign Key to Size
-  size        Size      @relation(fields: [sizeId], references: [id])
-  colorId     String    // Foreign Key to Color
-  color       Color     @relation(fields: [colorId], references: [id])
-  images      Images[]   // Relation to Image model
-  orderItems  OrderItem[]   // Relation to Order model
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String      @id @default(uuid())
+  storeId    String
+  categoryId String
+  name       String
+  price      Decimal
+  isFeatured Boolean     @default(false)
+  isArchived Boolean     @default(false)
+  sizeId     String
+  colorId    String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  store      Store       @relation("StoreToProduct", fields: [storeId], references: [id])
+  category   Category    @relation("CategoryToProduct", fields: [categoryId], references: [id])
+  size       Size        @relation(fields: [sizeId], references: [id])
+  color      Color       @relation(fields: [colorId], references: [id])
+  images     Images[]
+  orderItems OrderItem[]
 
   @@index([storeId])
   @@index([categoryId])
@@ -116,80 +111,66 @@ model Product {
 }
 
 model TourPackageQuery {
-
-  id          String   @id @default(uuid())
-  storeId     String   // Foreign Key to Store
-  store       Store    @relation("StoreTotourPackageQuery", fields: [storeId], references: [id])  // Updated relation name
-  tourPackageQueryName        String
-  customerName  String
-  numDaysNight  String
-
-  locationId     String   // Foreign Key to Hotel
-  location       Location    @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])  // Updated relation name
- 
-  period            String
-  numAdults         String
-  numChild5to12     String
-  numChild0to5      String
-  price             String
-
-  flightDetails     FlightDetails[] // One-to-many relation to FlightDetails
- 
-  inclusions        String
-  exclusions        String
-  paymentPolicy     String
-  usefulTip        String
-  cancellationPolicy String
+  id                        String          @id @default(uuid())
+  storeId                   String
+  tourPackageQueryName      String
+  customerName              String
+  numDaysNight              String
+  locationId                String
+  period                    String
+  numAdults                 String
+  numChild5to12             String
+  numChild0to5              String
+  price                     String
+  inclusions                String
+  exclusions                String
+  paymentPolicy             String
+  usefulTip                 String
+  cancellationPolicy        String
   airlineCancellationPolicy String
-  termsconditions String
-  
-  itineraries Itinerary[] // Relation to Itinerary Model
-
-  isFeatured  Boolean  @default(false)
-  isArchived  Boolean  @default(false)
-  images      Images[]  // Updated relation name
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  termsconditions           String
+  isFeatured                Boolean         @default(false)
+  isArchived                Boolean         @default(false)
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  store                     Store           @relation("StoreTotourPackageQuery", fields: [storeId], references: [id])
+  location                  Location        @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
+  flightDetails             FlightDetails[]
+  itineraries               Itinerary[]
+  images                    Images[]
 
   @@index([storeId])
-
 }
 
 model FlightDetails {
-  id            String   @id @default(uuid())
-  tourPackageQueryId  String?    // Foreign Key to TourPackage
-  tourPackageQuery    TourPackageQuery? @relation(fields : [tourPackageQueryId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
- 
-  date          String
-  from          String
-  to            String
-  departureTime String
-  arrivalTime   String
-  
+  id                 String            @id @default(uuid())
+  date               String
+  from               String
+  to                 String
+  departureTime      String
+  arrivalTime        String
+  tourPackageQueryId String?
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+
   @@index([tourPackageQueryId])
 }
 
 model TourPackage {
-  id          String   @id @default(uuid())
-  storeId     String   // Foreign Key to Store
-  store       Store    @relation("StoreTotourPackage", fields: [storeId], references: [id])  // Updated relation name
-  
-
-  locationId     String   // Foreign Key to Hotel
-  location       Location    @relation("LocationTotourPackage", fields: [locationId], references: [id])  // Updated relation name
- 
-  hotelId     String   // Foreign Key to Hotel
-  hotel       Hotel    @relation("HotelToTourPackage", fields: [hotelId], references: [id])  // Updated relation name
+  id          String      @id @default(uuid())
+  storeId     String
+  locationId  String
+  hotelId     String
   name        String
   price       Decimal
-
-  itineraries Itinerary[] // Relation to Itinerary Model
-
-  isFeatured  Boolean  @default(false)
-  isArchived  Boolean  @default(false)
-  images      Images[]  // Updated relation name
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isFeatured  Boolean     @default(false)
+  isArchived  Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  store       Store       @relation("StoreTotourPackage", fields: [storeId], references: [id])
+  location    Location    @relation("LocationTotourPackage", fields: [locationId], references: [id])
+  hotel       Hotel       @relation("HotelToTourPackage", fields: [hotelId], references: [id])
+  itineraries Itinerary[]
+  images      Images[]
 
   @@index([storeId])
   @@index([hotelId])
@@ -201,59 +182,49 @@ model Activity {
   description String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  itineraryId String     // Foreign Key to Itinerary
+  itineraryId String
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@index([itineraryId])
-
 }
 
-
-
 model Itinerary {
-  id             String       @id @default(uuid())
-  tourPackageId  String?   // Foreign Key to TourPackage
-  tourPackage    TourPackage? @relation(fields : [tourPackageId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
-  
-  tourPackageQueryId  String?    // Foreign Key to TourPackage
-  tourPackageQuery    TourPackageQuery? @relation(fields : [tourPackageQueryId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
- 
-  
-  days          String?
-  hotelId       String?
-  hotel         Hotel?   @relation(name: "ItineraryToHotel", fields: [hotelId], references: [id])
+  id                 String            @id @default(uuid())
+  tourPackageId      String?
+  tourPackageQueryId String?
+  days               String?
+  hotelId            String?
+  hotel              Hotel?            @relation("ItineraryToHotel", fields: [hotelId], references: [id])
+  mealsIncluded      String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  activities         Activity[]
 
-  mealsIncluded  String?
-  activities     Activity[]
- 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
- 
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
-
 }
 
 model Order {
-  id        String    @id @default(uuid())
-  storeId     String    // Foreign Key to Store
-  store       Store     @relation("StoreToOrder", fields: [storeId], references: [id])
-  orderItems OrderItem[] // Relation to OrderItem model
-  isPaid     Boolean   @default(false)
-  phone      String    @default("")
-  address    String    @default("")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         String      @id @default(uuid())
+  storeId    String
+  isPaid     Boolean     @default(false)
+  phone      String      @default("")
+  address    String      @default("")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  store      Store       @relation("StoreToOrder", fields: [storeId], references: [id])
+  orderItems OrderItem[]
 
   @@index([storeId])
 }
 
-// Intermediary for a many-to-many relationship
 model OrderItem {
   id        String  @id @default(uuid())
-  orderId   String  // Foreign Key to Order
+  orderId   String
+  productId String
   order     Order   @relation(fields: [orderId], references: [id])
-  productId String  // Foreign Key to Product
   product   Product @relation(fields: [productId], references: [id])
 
   @@index([orderId])
@@ -261,47 +232,44 @@ model OrderItem {
 }
 
 model Size {
-  id          String    @id @default(uuid())
-  storeId     String    // Foreign Key to Store
-  store       Store     @relation("StoreToSize", fields: [storeId], references: [id])
-  name        String
-  value       String
-  products    Product[] // Relation to Product model
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(uuid())
+  storeId   String
+  name      String
+  value     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  store     Store     @relation("StoreToSize", fields: [storeId], references: [id])
+  products  Product[]
 
   @@index([storeId])
 }
 
 model Color {
-  id          String   @id @default(uuid())
-  storeId     String   // Foreign Key to Store
-  store       Store    @relation("StoreToColor", fields: [storeId], references: [id])
-  name        String
-  value       String
-  products    Product[] // Relation to Product model
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String    @id @default(uuid())
+  storeId   String
+  name      String
+  value     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  store     Store     @relation("StoreToColor", fields: [storeId], references: [id])
+  products  Product[]
 
   @@index([storeId])
 }
 
 model Images {
-  id           String      @id @default(uuid())
-  productId    String?     // Foreign Key to Product (optional)
-  product      Product?    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  tourPackageId String?    // Foreign Key to tourPackage (optional)
-  tourPackage  TourPackage? @relation(fields : [tourPackageId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
-
-  tourPackageQueryId String?    // Foreign Key to tourPackage (optional)
-  tourPackageQuery  TourPackageQuery? @relation(fields : [tourPackageQueryId], references: [id], onDelete : Cascade)  // New field for relation to tourPackage
-
-  url          String      // URL of the image
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id                 String            @id @default(uuid())
+  productId          String?
+  tourPackageId      String?
+  tourPackageQueryId String?
+  url                String
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  product            Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
 
   @@index([productId])
-  @@index([tourPackageId])  // New index for tourPackageId
-  @@index([tourPackageQueryId])  // New index for tourPackageId
-
+  @@index([tourPackageId])
+  @@index([tourPackageQueryId])
 }

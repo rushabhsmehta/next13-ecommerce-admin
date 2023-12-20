@@ -13,11 +13,8 @@ const tourPackageQueryPage = async ({
     },
     include: {
       images: true,
-      flightDetails: true,
-      itineraries: {
-        include: {
-          activities: true,
-        },
+      flightDetails: true,      
+      itineraries: {        
         orderBy: {
           days: 'asc' // or 'desc', depending on the desired order
         }

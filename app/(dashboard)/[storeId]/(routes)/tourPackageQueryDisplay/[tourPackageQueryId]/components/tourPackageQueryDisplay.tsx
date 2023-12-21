@@ -1,6 +1,8 @@
 'use client'
 import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
 import Image from 'next/image'
@@ -11,7 +13,6 @@ import {
   FormLabel,
 } from "@/components/ui/form"
 
-import { useForm } from "react-hook-form"
 
 
 const activitySchema = z.object({

@@ -59,10 +59,7 @@ const tourPackageQueryPage = async ({
         //    itineraries={[]}
         />
       </div>
-    </div>
-
-    
+    </div>    
   );
 }
-
 export default tourPackageQueryPage;

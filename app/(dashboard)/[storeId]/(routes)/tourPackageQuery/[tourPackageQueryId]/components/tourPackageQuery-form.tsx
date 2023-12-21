@@ -30,6 +30,7 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 
+
 const activitySchema = z.object({
   title: z.string(),
   description: z.string(),

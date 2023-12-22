@@ -12,7 +12,7 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,
+      images: true, 
       flightDetails: true,
       itineraries: { 
         include: {
@@ -38,7 +38,7 @@ const tourPackageQueryPage = async ({
     },
   });
 
-
+  
 
   return (
     <div className="flex-col">
@@ -59,7 +59,7 @@ const tourPackageQueryPage = async ({
         //    itineraries={[]}
         />
       </div>
-    </div>    
+    </div>
   );
 }
 export default tourPackageQueryPage;

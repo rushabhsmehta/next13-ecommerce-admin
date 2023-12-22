@@ -297,6 +297,7 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
           </CardContent>
         ))}
       </Card>
+      <Card>
       {/* Itinerary Details */}
       <Form {...form}>
         <form className="space-y-8 w-full">
@@ -347,6 +348,7 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
           />
         </form>
       </Form>
+      </Card>
 
 
 

@@ -1,4 +1,4 @@
-"use client"
+/* "use client"
 
 import * as z from "zod"
 import axios from "axios"
@@ -298,7 +298,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             />
- */}
+ }
 
             <FormField
               control={form.control}
@@ -407,7 +407,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
 
 
-                        {/* Other inputs or elements related to each itinerary can go here */}
 
                         <FormControl>
                           <Button
@@ -447,3 +446,28 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     </>
   )
 } 
+ */
+import { TourPackage, Images, Itinerary, Hotel } from '@prisma/client';
+import React from 'react';
+interface TourPackageFormProps {
+  initialData: TourPackage & {
+    images: Images[];
+    itineraries: Itinerary[];
+  } | null;
+  locations: Location[];
+  hotels: Hotel[];
+  //  itineraries: Itinerary[];
+};
+
+
+export const TourPackageForm: React.FC<TourPackageFormProps> = ({
+  initialData,
+  locations,
+  hotels,
+}) => {  return (
+    <div>
+      
+    </div>
+  );
+};
+

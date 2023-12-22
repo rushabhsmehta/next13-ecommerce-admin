@@ -1,6 +1,6 @@
 import prismadb from "@/lib/prismadb";
 
-import { TourPackageForm } from "./components/tourPackage-form";
+import { TourPackageForm } from "./components/tourPackage-form.tsx";
 
 const tourPackagePage = async ({
   params

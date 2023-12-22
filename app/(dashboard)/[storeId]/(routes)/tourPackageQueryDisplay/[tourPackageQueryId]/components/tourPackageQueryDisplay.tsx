@@ -78,119 +78,127 @@ interface TourPackageQueryDisplayProps {
   //  itineraries: Itinerary[];
 };
 
+const transformInitialData = (data: {
+  id: string;
+  storeId: string;
+  tourPackageQueryName: string;
+  customerName: string;
+  numDaysNight: string;
+  period: string;
+  numAdults: string;
+  numChild5to12: string;
+  numChild0to5: string;
+  locationId: string;
+  //location : string;
+  //hotelId: string;
+  price: string;
+  isFeatured: boolean;
+  isArchived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  flightDetails: {
+    id: string;
+    date: string | null;
+    from: string | null,
+    to: string | null,
+    departureTime: string | null;
+    arrivalTime: string | null;
+  }[];
+  // hotelDetails: string;
+  inclusions: string;
+  exclusions: string;
+  paymentPolicy: string;
+  usefulTip: string;
+  cancellationPolicy: string;
+  airlineCancellationPolicy: string;
+  termsconditions: string;
+  images: { id: string; url: string; }[];
+  itineraries: {
+    id: string;
+    days: string | null;
+    hotelId: string | null;
+    //hotel : string | null;
+    mealsIncluded: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    activities?: { title: string, description: string }[]; // Mark as optional
+  }[];
+}) => {
+  return {
+    ...data,
+    flightDetails: data.flightDetails.map(({ date, from, to, departureTime, arrivalTime }) => ({
+      date: date ?? '',
+      from: from ?? '',
+      to: to ?? '',
+      departureTime: departureTime ?? '',
+      arrivalTime: arrivalTime ?? '',
+    })),
+
+    itineraries: data.itineraries.map(({ days, hotelId, mealsIncluded, activities, }) => ({
+      days: days ?? '',
+      hotelId: hotelId ?? '',
+      //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
+      mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
+      activities: activities ?? [],
+    }))
+  };
+};
+
 export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
   initialData,
   locations,
   hotels,
 }) => {
 
+  const form = useForm<TourPackageQueryDisplayValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: initialData ? transformInitialData(initialData) : {
+      // Default values
+    }
+  });
+  
+const defaultValues = initialData ? transformInitialData(initialData) : {
+
+  tourPackageQueryName: '',
+  customerName: '',
+  numDaysNight: '',
+  period: '',
+  numAdults: '',
+  numChild5to12: '',
+  numChild0to5: '',
+  price: '',
+  flightDetails: [],
+  // hotelDetails: '',
+  inclusions: '',
+  exclusions: '',
+  paymentPolicy: '',
+  usefulTip: '',
+  cancellationPolicy: '',
+  airlineCancellationPolicy: '',
+  termsconditions: '',
+  images: [],
+  itineraries: [],
+  /* itineraries: [{
+    days: '',
+    activities: [],
+    mealsIncluded: [],
+    hotelId: '',
+  }],
+   */
+  locationId: '',
+  //location : '',
+  // hotelId: '',
+  isFeatured: true,
+  isArchived: false,
+};
+
+
+
+
   if (!initialData) return <div>No data available</div>;
 
 
-  const transformInitialData = (data: {
-    id: string;
-    storeId: string;
-    tourPackageQueryName: string;
-    customerName: string;
-    numDaysNight: string;
-    period: string;
-    numAdults: string;
-    numChild5to12: string;
-    numChild0to5: string;
-    locationId: string;
-    //location : string;
-    //hotelId: string;
-    price: string;
-    isFeatured: boolean;
-    isArchived: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-    flightDetails: {
-      id: string;
-      date: string | null;
-      from: string | null,
-      to: string | null,
-      departureTime: string | null;
-      arrivalTime: string | null;
-    }[];
-    // hotelDetails: string;
-    inclusions: string;
-    exclusions: string;
-    paymentPolicy: string;
-    usefulTip: string;
-    cancellationPolicy: string;
-    airlineCancellationPolicy: string;
-    termsconditions: string;
-    images: { id: string; url: string; }[];
-    itineraries: {
-      id: string;
-      days: string | null;
-      hotelId: string | null;
-      //hotel : string | null;
-      mealsIncluded: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-      activities?: { title: string, description: string }[]; // Mark as optional
-    }[];
-  }) => {
-    return {
-      ...data,
-      flightDetails: data.flightDetails.map(({ date, from, to, departureTime, arrivalTime }) => ({
-        date: date ?? '',
-        from: from ?? '',
-        to: to ?? '',
-        departureTime: departureTime ?? '',
-        arrivalTime: arrivalTime ?? '',
-      })),
-
-      itineraries: data.itineraries.map(({ days, hotelId, mealsIncluded, activities, }) => ({
-        days: days ?? '',
-        hotelId: hotelId ?? '',
-        //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
-        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-        activities: activities ?? [],
-      }))
-    };
-  };
-  const defaultValues = initialData ? transformInitialData(initialData) : {
-
-    tourPackageQueryName: '',
-    customerName: '',
-    numDaysNight: '',
-    period: '',
-    numAdults: '',
-    numChild5to12: '',
-    numChild0to5: '',
-    price: '',
-    flightDetails: [],
-    // hotelDetails: '',
-    inclusions: '',
-    exclusions: '',
-    paymentPolicy: '',
-    usefulTip: '',
-    cancellationPolicy: '',
-    airlineCancellationPolicy: '',
-    termsconditions: '',
-    images: [],
-    itineraries: [],
-    /* itineraries: [{
-      days: '',
-      activities: [],
-      mealsIncluded: [],
-      hotelId: '',
-    }],
-     */
-    locationId: '',
-    //location : '',
-    // hotelId: '',
-    isFeatured: true,
-    isArchived: false,
-  };
-
-  const form = useForm<TourPackageQueryDisplayValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues
-  });
+  
 
  
 

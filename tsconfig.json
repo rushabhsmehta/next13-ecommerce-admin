@@ -23,6 +23,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/(dashboard)/[storeId]/(routes)/tourPackages/[tourPackageId]/components/tourPackage-form", "app/(dashboard)/[storeId]/(routes)/tourPackages/[tourPackageId]/components/tourPackage-form copy"],
   "exclude": ["node_modules"]
 }

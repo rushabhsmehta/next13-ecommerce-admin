@@ -1,4 +1,4 @@
-"use client"
+/* "use client"
 
 import * as z from "zod"
 import axios from "axios"
@@ -331,9 +331,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             newItineraries[index] = { ...itinerary, activities: e.target.value };
                             onChange(newItineraries);
                           }}
-                        /> */}
+                        /> 
                          
-                       {/*  <Input
+                         <Input
                           placeholder="Places"
                           value={itinerary.places}
                           onChange={(e) => {
@@ -341,8 +341,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             newItineraries[index] = { ...itinerary, places: e.target.value };
                             onChange(newItineraries);
                           }}
-                        /> */}
-                       {/*  <div className="flex items-center space-x-2">
+                        /> 
+                        <div className="flex items-center space-x-2">
                           <Checkbox
                             checked={itinerary.mealsIncluded || false}
                             onCheckedChange={(checked) => {
@@ -355,7 +355,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           />
                           <span>Meals Included</span>
                         </div>
-                         */}
+                         
                         
 
                         <Button
@@ -392,3 +392,4 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     </>
   );
 };
+ */

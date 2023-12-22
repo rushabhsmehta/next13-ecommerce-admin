@@ -454,7 +454,7 @@ interface TourPackageFormProps {
     images: Images[];
     itineraries: Itinerary[];
   } | null;
-  locations: Location[];
+//  locations: Location[];
   hotels: Hotel[];
   //  itineraries: Itinerary[];
 };
@@ -462,7 +462,7 @@ interface TourPackageFormProps {
 
 export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   initialData,
-  locations,
+//  locations,
   hotels,
 }) => {  return (
     <div>

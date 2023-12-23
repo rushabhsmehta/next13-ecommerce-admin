@@ -112,7 +112,7 @@ export async function PATCH(
       itineraries,
       isFeatured,
       isArchived,
-      assignedToPerson,
+      assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
     } = body;
@@ -190,7 +190,7 @@ export async function PATCH(
         },
         isFeatured,
         isArchived,
-        assignedToPerson,
+        assignedTo,
         assignedToMobileNumber,
         assignedToEmail,
       },

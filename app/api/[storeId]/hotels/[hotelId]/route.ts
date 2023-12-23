@@ -77,7 +77,7 @@ export async function PATCH(
 
     const body = await req.json();
     
-    const { name, locationId } = body;
+    const { name, imageUrl, locationId } = body;
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -85,6 +85,9 @@ export async function PATCH(
 
     if (!locationId) {
       return new NextResponse("Location ID is required", { status: 400 });
+    }
+    if (!imageUrl) {
+      return new NextResponse("Image URL is required", { status: 400 });
     }
 
     if (!name) {
@@ -112,6 +115,7 @@ export async function PATCH(
       },
       data: {
         name,
+        imageUrl,
         locationId
       }
     });

@@ -139,7 +139,7 @@ model TourPackageQuery {
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
   images                    Images[]
-  assignedToPerson           String?
+  assignedTo                 String?
   assignedToMobileNumber     String?
   assignedToEmail          String?
   @@index([storeId])

@@ -32,6 +32,9 @@ export async function POST(
             termsconditions,
             images,
             itineraries,
+            assignedToPerson,
+            assignedToMobileNumber,
+            assignedToEmail,
             isFeatured,
             isArchived } = body;
 
@@ -93,6 +96,9 @@ export async function POST(
                 cancellationPolicy,
                 airlineCancellationPolicy,
                 termsconditions,
+                assignedToPerson,
+                assignedToMobileNumber,
+                assignedToEmailId,
              //   hotelId,
                 storeId: params.storeId,
                 images: {
@@ -103,7 +109,9 @@ export async function POST(
                     },
                 },
                 itineraries: {
-                    create: itineraries.map((itinerary: { days: string; hotelId : string,  mealsIncluded: any; activities: { title: any; description: any; }[]; }) => ({
+                    create: itineraries.map((itinerary: { itineraryTitle : string, itineraryDescription : string, days: string; hotelId : string,  mealsIncluded: any; activities: { title: any; description: any; }[]; }) => ({
+                    itineraryTitle : itinerary.itineraryTitle,
+                    itineraryDescription : itinerary.itineraryDescription,
                       days: itinerary.days,  
                       hotelId : itinerary.hotelId,        
                       mealsIncluded: itinerary.mealsIncluded,
@@ -121,8 +129,7 @@ export async function POST(
                 flightDetails : {
                     createMany : {
                       data : [
-                        ...flightDetails.map((flightDetail : { date : string, from : string, to : string, departureTime : string, arrivalTime :  string }) => flightDetail),
-                      ]
+                        ...flightDetails.map((flightDetail: { date: string, flightName : string, flightNumber : string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration : string }) => flightDetail),                      ]
                     }
                   },
             },

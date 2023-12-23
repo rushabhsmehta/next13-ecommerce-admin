@@ -138,17 +138,22 @@ model TourPackageQuery {
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
   images                    Images[]
-
+  assignedToPerson           String?
+  assignedToMobileNumber     String?
+  assignedToEmail          String?
   @@index([storeId])
 }
 
 model FlightDetails {
   id                 String            @id @default(uuid())
-  date               String
-  from               String
-  to                 String
-  departureTime      String
-  arrivalTime        String
+  date               String?
+  flightName         String?
+  flightNumber       String? 
+  from               String?
+  to                 String?
+  departureTime      String?
+  arrivalTime        String?
+  flightDuration     String?
   tourPackageQueryId String?
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
 
@@ -192,6 +197,8 @@ model Itinerary {
   id                 String            @id @default(uuid())
   tourPackageId      String?
   tourPackageQueryId String?
+  itineraryTitle              String?
+  itineraryDescription        String?
   days               String?
   hotelId            String?
   hotel              Hotel?            @relation("ItineraryToHotel", fields: [hotelId], references: [id])

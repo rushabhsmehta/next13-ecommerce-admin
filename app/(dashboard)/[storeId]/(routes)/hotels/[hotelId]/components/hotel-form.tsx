@@ -39,7 +39,7 @@ type HotelFormValues = z.infer<typeof formSchema>
 
 interface HotelFormProps {
   initialData: Hotel | null;
-  images: Images[];
+ // images: Images[];
   locations : Location[];
 };
 

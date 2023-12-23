@@ -141,9 +141,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     price: string;
     isFeatured: boolean;
     isArchived: boolean;
-    assignedTo: string;
-    assignedToMobileNumber: string;
-    assignedToEmail: string;
+    assignedTo: string | null;
+    assignedToMobileNumber: string | null;
+    assignedToEmail: string | null;
     createdAt: Date;
     updatedAt: Date;
     flightDetails: {
@@ -181,6 +181,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   }) => {
     return {
       ...data,
+      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+      assignedToEmail: data.assignedToEmail ?? '',
       flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
         date: date ?? '',
         flightName: from ?? '',
@@ -366,11 +369,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             name="assignedToMobileNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Assigned To</FormLabel>
+                <FormLabel>Mobile Number</FormLabel>
                 <FormControl>
                   <Input
                     disabled={loading}
-                    placeholder="Mobile Number"
+                    placeholder="Mobile Number (Assigned To)"
                     value={field.value}
                     onChange={field.onChange}
                   />
@@ -384,7 +387,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             name="assignedToEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email ID</FormLabel>
+                <FormLabel>Email ID (Assigned To)</FormLabel>
                 <FormControl>
                   <Input
                     disabled={loading}

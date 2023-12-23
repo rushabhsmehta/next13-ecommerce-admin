@@ -141,7 +141,7 @@ model TourPackageQuery {
   images                    Images[]
   assignedTo                 String?
   assignedToMobileNumber     String?
-  assignedToEmail          String?
+  assignedToEmail            String?
   @@index([storeId])
 }
 

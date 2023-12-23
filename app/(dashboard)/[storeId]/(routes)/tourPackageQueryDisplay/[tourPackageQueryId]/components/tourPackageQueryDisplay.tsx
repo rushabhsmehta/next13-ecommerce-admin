@@ -124,9 +124,9 @@ const transformInitialData = (data: {
   cancellationPolicy: string;
   airlineCancellationPolicy: string;
   termsconditions: string;
-  assignedTo : string,
-  assignedToMobileNumber : string,
-  assignedToEmail : string,
+  assignedTo : string | null;
+  assignedToMobileNumber : string | null;
+  assignedToEmail : string | null;
   images: { id: string; url: string; }[];
   itineraries: {
     id: string;
@@ -143,6 +143,9 @@ const transformInitialData = (data: {
 }) => {
   return {
     ...data,
+    assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+    assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+    assignedToEmail: data.assignedToEmail ?? '',
     flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
       date: date ?? '',
       flightName: flightName ?? '',
@@ -252,8 +255,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <Card>
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
-          <CardDescription>Customer : {initialData.customerName}</CardDescription>
-          <CardDescription>Assigned To : {initialData.assignedTo} | {initialData.assignedToMobileNumber} |  {initialData.assignedToMobileNumber} | </CardDescription>
+          <CardDescription>Customer : {initialData.customerName} | Assigned To : {initialData.assignedTo} | {initialData.assignedToMobileNumber} |  {initialData.assignedToMobileNumber} | </CardDescription>
         </CardHeader>
       </Card>
       <Card>

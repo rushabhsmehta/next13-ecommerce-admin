@@ -141,9 +141,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     price: string;
     isFeatured: boolean;
     isArchived: boolean;
-    assignedTo: string;
-    assignedToMobileNumber: string;
-    assignedToEmail: string;
+    assignedTo: string | null;
+    assignedToMobileNumber: string | null;
+    assignedToEmail: string | null;
     createdAt: Date;
     updatedAt: Date;
     flightDetails: {
@@ -181,6 +181,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   }) => {
     return {
       ...data,
+      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+      assignedToEmail: data.assignedToEmail ?? '',
       flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
         date: date ?? '',
         flightName: from ?? '',

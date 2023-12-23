@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form"
+import { PlaneTakeoffIcon } from "lucide-react";
 
 
 
@@ -22,6 +23,8 @@ const activitySchema = z.object({
 
 const itinerarySchema = z.object({
   days: z.string(),
+  itineraryTitle : z.string(),
+  itineraryDescription: z.string(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
@@ -32,10 +35,13 @@ const itinerarySchema = z.object({
 const flightDetailsSchema = z.object({
 
   date: z.string(),
+  flightName: z.string(),
+  flightNumber: z.string(),
   from: z.string(),
   to: z.string(),
   departureTime: z.string(),
   arrivalTime: z.string(),
+  flightDuration: z.string(),
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
@@ -63,6 +69,9 @@ const formSchema = z.object({
   itineraries: itinerarySchema.array(),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
+  assignedTo: z.string().optional(),
+  assignedToMobileNumber: z.string().optional(),
+  assignedToEmail: z.string().optional(),
 });
 
 type TourPackageQueryDisplayValues = z.infer<typeof formSchema>
@@ -99,10 +108,13 @@ const transformInitialData = (data: {
   flightDetails: {
     id: string;
     date: string | null;
+    flightName: string | null;
+    flightNumber: string | null;
     from: string | null,
     to: string | null,
     departureTime: string | null;
     arrivalTime: string | null;
+    flightDuration: string | null;
   }[];
   // hotelDetails: string;
   inclusions: string;
@@ -112,10 +124,15 @@ const transformInitialData = (data: {
   cancellationPolicy: string;
   airlineCancellationPolicy: string;
   termsconditions: string;
+  assignedTo : string,
+  assignedToMobileNumber : string,
+  assignedToEmail : string,
   images: { id: string; url: string; }[];
   itineraries: {
     id: string;
     days: string | null;
+    itineraryTitle : string | null;
+    itineraryDescription: string | null;
     hotelId: string | null;
     //hotel : string | null;
     mealsIncluded: string | null;
@@ -126,16 +143,21 @@ const transformInitialData = (data: {
 }) => {
   return {
     ...data,
-    flightDetails: data.flightDetails.map(({ date, from, to, departureTime, arrivalTime }) => ({
+    flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
       date: date ?? '',
+      flightName: flightName ?? '',
+      flightNumber: flightNumber ?? '',
       from: from ?? '',
       to: to ?? '',
       departureTime: departureTime ?? '',
       arrivalTime: arrivalTime ?? '',
+      flightDuration: flightDuration ?? '',
     })),
 
-    itineraries: data.itineraries.map(({ days, hotelId, mealsIncluded, activities, }) => ({
+    itineraries: data.itineraries.map(({ days, itineraryTitle, itineraryDescription, hotelId, mealsIncluded, activities, }) => ({
       days: days ?? '',
+      itineraryTitle: itineraryTitle ?? '',
+      itineraryDescription : itineraryDescription ?? '',
       hotelId: hotelId ?? '',
       //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
       mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
@@ -176,6 +198,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
     cancellationPolicy: '',
     airlineCancellationPolicy: '',
     termsconditions: '',
+    assignedTo : '',
+    assignedToMobileNumber : '',
+    assignedToEmail : '',
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -190,6 +215,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
     // hotelId: '',
     isFeatured: true,
     isArchived: false,
+    
   };
 
 
@@ -217,7 +243,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               //sizes="100vw"
               //style={{ width: '100%', height: 'auto', }}
               alt={`Images ${index + 1}`}
-              width={500}
+              width={800}
               height={300}
             />
           ))}
@@ -226,7 +252,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <Card>
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
-          <CardDescription>Customer: {initialData.customerName}</CardDescription>
+          <CardDescription>Customer : {initialData.customerName}</CardDescription>
+          <CardDescription>Assigned To : {initialData.assignedTo} | {initialData.assignedToMobileNumber} |  {initialData.assignedToMobileNumber} | </CardDescription>
         </CardHeader>
       </Card>
       <Card>
@@ -275,157 +302,156 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardHeader>
 
         {initialData.flightDetails.map((flight, index) => (
-          <CardContent key={index}>
-
-
-            <div className="grid gap-4 md:grid-cols-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <div>
-                  <div className="font-bold">Date:</div>
-                  {flight.date}
-                </div>
-                <div>
-                  <div className="font-bold">From:</div>
-                  {flight.from}
-                </div>
-                <div>
-                  <div className="font-bold">To:</div>
-                  {flight.to}
-                </div>
-                <div>
-                  <div className="font-bold">Departure Time:</div>
-                  {flight.departureTime}
-                </div>
-                <div>
-                  <div className="font-bold">Arrival Time:</div>
-                  {flight.arrivalTime}
-                </div>
+          <CardContent key={index} className="flex flex-col bg-white rounded-lg shadow-lg p-4 my-4">
+            <div className="flex items-center justify-between border-b pb-2 mb-2">
+              <span className="font-semibold text-lg">{flight.date}</span>
+              <div>
+                <span className="font-semibold">{flight.flightName}</span> |
+                <span className="ml-1">{flight.flightNumber}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="font-bold">{flight.from}</div>
+                <div className="text-sm ml-2">{flight.departureTime}</div>
+              </div>
+              <div className="mx-2 text-center">
+                <span> <PlaneTakeoffIcon/> </span>
+                <div className="text-xs">{flight.flightDuration}</div>
+                <hr className="border-t-2 border-black mx-1" />
+              </div>
+              <div className="flex items-center">
+                <div className="font-bold">{flight.to}</div>
+                <div className="text-sm ml-2">{flight.arrivalTime}</div>
               </div>
             </div>
           </CardContent>
         ))}
-      </Card>
+        </Card>
 
-      {/* Itinerary Details */}
-      <Form {...form}>
-        <form className="space-y-8 w-full">
-          <FormField
-            control={form.control}
-            name="itineraries"
-            render={({ field: { value = [], onChange } }) => (
-              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                <FormLabel>Create Itineraries</FormLabel>
-                {value.map((itinerary, index) => (
-                  <div key={index} >
-                    <div>
-                      <div className="p-4 rounded-lg">
-                        <div className="font-bold text-lg">Day {index + 1}</div>
 
-                        <div className="font-medium">
-                          Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
-                          <Image
-                            alt="Hotel Image"
-                            className="rounded-lg object-cover mt-2"
-                            height="200"
-                            src="/placeholder.svg"
-                            style={{
-                              aspectRatio: "200/200",
-                              objectFit: "cover",
-                            }}
-                            width="200"
-                          />
-                          <div className="font-bold mt-2">Meal Plan:</div>
-                          <div className="font-medium">{itinerary.mealsIncluded}</div>
-                          {itinerary.activities.map((activity, activityIndex: number) => (
-                            <div key={activityIndex} className="mt-4">
-                              <div>{activity.title}</div>
-                              <div>{activity.description}</div>
-                            </div>
-                          ))}
+        {/* Itinerary Details */}
+        <Form {...form}>
+          <form className="space-y-8 w-full">
+            <FormField
+              control={form.control}
+              name="itineraries"
+              render={({ field: { value = [], onChange } }) => (
+                <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                  <FormLabel>Detailed Itineraries</FormLabel>
+                  {value.map((itinerary, index) => (
+                    <div key={index} >
+                      <div>
+                        <div className="p-4 rounded-lg">
+                          <div className="font-bold text-lg">Day {index + 1}</div>
+                          <div className="font-bold text-lg">{itinerary.itineraryTitle}</div>
+                          <div className="font-bold text-lg">{itinerary.itineraryDescription}</div>
+
+                          <div className="font-medium">
+                            Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
+                            <Image
+                              alt="Hotel Image"
+                              className="rounded-lg object-cover mt-2"
+                              height="200"
+                              src="/placeholder.svg"
+                              style={{
+                                aspectRatio: "200/200",
+                                objectFit: "cover",
+                              }}
+                              width="200"
+                            />
+                            <div className="font-bold mt-2">Meal Plan:</div>
+                            <div className="font-medium">{itinerary.mealsIncluded}</div>
+                            {itinerary.activities.map((activity, activityIndex: number) => (
+                              <div key={activityIndex} className="mt-4">
+                                <div>{activity.title}</div>
+                                <div>{activity.description}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
+                  ))}
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
 
 
 
 
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Inclusions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul>
-              <li> {initialData.inclusions}</li>
-              <li>Flight tickets</li>
-              <li>Breakfast</li>
-              <li>Sightseeing</li>
-            </ul>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Inclusions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul>
+                <li> {initialData.inclusions}</li>
+                <li>Flight tickets</li>
+                <li>Breakfast</li>
+                <li>Sightseeing</li>
+              </ul>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Exclusions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul>
-              <li> {initialData.exclusions}</li>
-              <li>Travel insurance</li>
-              <li>Personal expenses</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Policy</CardTitle>
-          </CardHeader>
-          <CardContent> {initialData.paymentPolicy}</CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Exclusions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul>
+                <li> {initialData.exclusions}</li>
+                <li>Travel insurance</li>
+                <li>Personal expenses</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Policy</CardTitle>
+            </CardHeader>
+            <CardContent> {initialData.paymentPolicy}</CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Useful Tips</CardTitle>
-          </CardHeader>
-          <CardContent> {initialData.usefulTip}</CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent> {initialData.cancellationPolicy}</CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Useful Tips</CardTitle>
+            </CardHeader>
+            <CardContent> {initialData.usefulTip}</CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Cancellation Policy</CardTitle>
+            </CardHeader>
+            <CardContent> {initialData.cancellationPolicy}</CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Airline Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent> {initialData.airlineCancellationPolicy}</CardContent>
-        </Card>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Airline Cancellation Policy</CardTitle>
+            </CardHeader>
+            <CardContent> {initialData.airlineCancellationPolicy}</CardContent>
+          </Card>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Terms and Conditions</CardTitle>
-          </CardHeader>
-          <CardContent> {initialData.termsconditions}</CardContent>
+          <Card>
+            <CardHeader>
+              <CardTitle>Terms and Conditions</CardTitle>
+            </CardHeader>
+            <CardContent> {initialData.termsconditions}</CardContent>
 
-        </Card>
-      </div>
-    </div>
+          </Card>
+        </div>
+    </div >
   )
 }
 

@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
 import Image from 'next/image'
 import {
-  Form,    
+  Form,
   FormField,
   FormItem,
   FormLabel,
@@ -156,41 +156,41 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       // Default values
     }
   });
-  
-const defaultValues = initialData ? transformInitialData(initialData) : {
 
-  tourPackageQueryName: '',
-  customerName: '',
-  numDaysNight: '',
-  period: '',
-  numAdults: '',
-  numChild5to12: '',
-  numChild0to5: '',
-  price: '',
-  flightDetails: [],
-  // hotelDetails: '',
-  inclusions: '',
-  exclusions: '',
-  paymentPolicy: '',
-  usefulTip: '',
-  cancellationPolicy: '',
-  airlineCancellationPolicy: '',
-  termsconditions: '',
-  images: [],
-  itineraries: [],
-  /* itineraries: [{
-    days: '',
-    activities: [],
-    mealsIncluded: [],
-    hotelId: '',
-  }],
-   */
-  locationId: '',
-  //location : '',
-  // hotelId: '',
-  isFeatured: true,
-  isArchived: false,
-};
+  const defaultValues = initialData ? transformInitialData(initialData) : {
+
+    tourPackageQueryName: '',
+    customerName: '',
+    numDaysNight: '',
+    period: '',
+    numAdults: '',
+    numChild5to12: '',
+    numChild0to5: '',
+    price: '',
+    flightDetails: [],
+    // hotelDetails: '',
+    inclusions: '',
+    exclusions: '',
+    paymentPolicy: '',
+    usefulTip: '',
+    cancellationPolicy: '',
+    airlineCancellationPolicy: '',
+    termsconditions: '',
+    images: [],
+    itineraries: [],
+    /* itineraries: [{
+      days: '',
+      activities: [],
+      mealsIncluded: [],
+      hotelId: '',
+    }],
+     */
+    locationId: '',
+    //location : '',
+    // hotelId: '',
+    isFeatured: true,
+    isArchived: false,
+  };
 
 
 
@@ -198,9 +198,9 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
   if (!initialData) return <div>No data available</div>;
 
 
-  
 
- 
+
+
 
   return (
 
@@ -211,7 +211,15 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           {initialData.images.map((image: { url: string }, index: number) => (
-            <Image key={index} src={image.url} alt={`Images ${index + 1}`} className="mb-2" />
+            <Image className="mb-2"
+              key={index}
+              src={image.url}
+              //sizes="100vw"
+              //style={{ width: '100%', height: 'auto', }}
+              alt={`Images ${index + 1}`}
+              width={500}
+              height={300}
+            />
           ))}
         </CardContent>
       </Card>
@@ -297,7 +305,7 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
           </CardContent>
         ))}
       </Card>
-      <Card>
+
       {/* Itinerary Details */}
       <Form {...form}>
         <form className="space-y-8 w-full">
@@ -308,39 +316,35 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
               <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                 <FormLabel>Create Itineraries</FormLabel>
                 {value.map((itinerary, index) => (
-                  <div key={index} className="grid gap-4 md:grid-cols-1">
-                    <Card>
-                      <div className="grid gap-4 md:grid-cols-1">
-                        <div className="p-4 rounded-lg">
-                          <div className="font-bold text-lg">Day {index + 1}</div>
+                  <div key={index} >
+                    <div>
+                      <div className="p-4 rounded-lg">
+                        <div className="font-bold text-lg">Day {index + 1}</div>
 
-                          <div className="font-medium">
-                            Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
-                            <Image
-                              alt="Hotel Image"
-                              className="rounded-lg object-cover mt-2"
-                              height="200"
-                              src="/placeholder.svg"
-                              style={{
-                                aspectRatio: "200/200",
-                                objectFit: "cover",
-                              }}
-                              width="200"
-                            />
-                            <div className="font-bold mt-2">Meal Plan:</div>
-                            <div className="font-medium">{itinerary.mealsIncluded}</div>
-                            {itinerary.activities.map((activity, activityIndex: number) => (
-                              <Card key={activityIndex} className="mt-4">
-                                <CardHeader>
-                                  <CardTitle>{activity.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent>{activity.description}</CardContent>
-                              </Card>
-                            ))}
-                          </div>
+                        <div className="font-medium">
+                          Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
+                          <Image
+                            alt="Hotel Image"
+                            className="rounded-lg object-cover mt-2"
+                            height="200"
+                            src="/placeholder.svg"
+                            style={{
+                              aspectRatio: "200/200",
+                              objectFit: "cover",
+                            }}
+                            width="200"
+                          />
+                          <div className="font-bold mt-2">Meal Plan:</div>
+                          <div className="font-medium">{itinerary.mealsIncluded}</div>
+                          {itinerary.activities.map((activity, activityIndex: number) => (
+                            <div key={activityIndex} className="mt-4">
+                              <div>{activity.title}</div>
+                              <div>{activity.description}</div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </Card>
+                    </div>
                   </div>
                 ))}
               </FormItem>
@@ -348,7 +352,7 @@ const defaultValues = initialData ? transformInitialData(initialData) : {
           />
         </form>
       </Form>
-      </Card>
+
 
 
 

@@ -59,7 +59,7 @@ model Hotel {
   storeId      String
   locationId   String
   name         String
-  imageUrl     String
+  images       Images[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   store        Store         @relation("StoreToHotel", fields: [storeId], references: [id])
@@ -276,8 +276,13 @@ model Images {
   product            Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-
+  hotelId            String?
+  hotel              Hotel?            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  
   @@index([productId])
+  @@index([hotelId])
+
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
+
 }

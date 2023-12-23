@@ -17,6 +17,7 @@ export async function GET(
         id: params.hotelId
       },
       include: {
+        images: true,
         location : true
       }
     });
@@ -39,8 +40,15 @@ export async function DELETE(
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
+
+
     if (!params.hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
+    }
+
+    
+    if (!images || !images.length) {
+      return new NextResponse("Images are required", { status: 400 });
     }
 
     const storeByUserId = await prismadb.store.findFirst({
@@ -77,7 +85,7 @@ export async function PATCH(
 
     const body = await req.json();
     
-    const { name, imageUrl, locationId } = body;
+    const { name, images, locationId } = body;
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -86,8 +94,8 @@ export async function PATCH(
     if (!locationId) {
       return new NextResponse("Location ID is required", { status: 400 });
     }
-    if (!imageUrl) {
-      return new NextResponse("Image URL is required", { status: 400 });
+    if (!images || !images.length) {
+      return new NextResponse("Images are required", { status: 400 });
     }
 
     if (!name) {
@@ -109,16 +117,37 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-    const hotel = await prismadb.hotel.update({
+    await prismadb.hotel.update({
       where: {
         id: params.hotelId,
       },
       data: {
         name,
-        imageUrl,
-        locationId
+        locationId,
+        images: {
+          deleteMany: {},
+        },
       }
     });
+
+    const hotel = await prismadb.hotel.update({
+      where: {
+        id: params.hotelId
+      },
+      data: {
+        images: {
+          createMany: {
+            data: [
+              ...images.map((image: { url: string }) => image),
+            ],
+          },
+        },
+     
+       
+      }
+    }
+    )
+ 
   
     return NextResponse.json(hotel);
   } catch (error) {

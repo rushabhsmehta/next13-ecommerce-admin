@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
 import { Location , Hotel  } from "@prisma/client"
+import { Images } from "@prisma/client"
+
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
@@ -23,13 +25,13 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
-import ImageUpload from "@/components/ui/image-upload"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import ImageUpload from "@/components/ui/image-upload"
 
 const formSchema = z.object({
   name: z.string().min(2),
-  imageUrl: z.string().min(1),
+  images: z.object({ url: z.string() }).array(),
   locationId: z.string().min(1),
 });
 
@@ -37,6 +39,7 @@ type HotelFormValues = z.infer<typeof formSchema>
 
 interface HotelFormProps {
   initialData: Hotel | null;
+  images: Images[];
   locations : Location[];
 };
 
@@ -59,7 +62,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       name: '',
-      imageUrl :'',
+      images: [],
       locationId: '',
     }
   });
@@ -122,23 +125,23 @@ export const HotelForm: React.FC<HotelFormProps> = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
         <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Background image</FormLabel>
-                  <FormControl>
-                    <ImageUpload 
-                      value={field.value ? [field.value] : []} 
-                      disabled={loading} 
-                      onChange={(url) => field.onChange(url)}
-                      onRemove={() => field.onChange('')}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            control={form.control}
+            name="images"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Images</FormLabel>
+                <FormControl>
+                  <ImageUpload
+                    value={field.value.map((image) => image.url)}
+                    disabled={loading}
+                    onChange={(url) => field.onChange([...field.value, { url }])}
+                    onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <div className="md:grid md:grid-cols-3 gap-8">
             <FormField

@@ -12,7 +12,7 @@ export async function POST(
 
     const body = await req.json();
 
-    const { name, imageUrl, locationId } = body;
+    const { name, images, locationId } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -21,14 +21,15 @@ export async function POST(
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });
     }
-
-    if (!imageUrl) {
-      return new NextResponse("Image URL is required", { status: 400 });
-    }
+ 
     
     if (!locationId) {
       return new NextResponse("Location ID is required", { status: 400 });
     }
+
+    if (!images || !images.length) {
+      return new NextResponse("Images are required", { status: 400 });
+  }
 
     if (!params.storeId) {
       return new NextResponse("Store id is required", { status: 400 });
@@ -48,9 +49,16 @@ export async function POST(
     const hotel = await prismadb.hotel.create({
       data: {
         name,
-        imageUrl,
         locationId,
         storeId: params.storeId,
+
+        images: {
+          createMany: {
+              data: [
+                  ...images.map((image: { url: string }) => image),
+              ],
+          },
+      },
       }
     });
   
@@ -73,7 +81,16 @@ export async function GET(
     const hotels = await prismadb.hotel.findMany({
       where: {
         storeId: params.storeId
-      }
+      },
+      include: {
+        images: true,
+        location: true,
+        //  hotel: true,
+        // itineraries: true,  // Include itineraries here     
+    },
+    orderBy: {
+        createdAt: 'desc',
+    }
     });
   
     return NextResponse.json(hotels);

@@ -44,13 +44,8 @@ export async function DELETE(
 
     if (!params.hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
-    }
-
+    }    
     
-    if (!images || !images.length) {
-      return new NextResponse("Images are required", { status: 400 });
-    }
-
     const storeByUserId = await prismadb.store.findFirst({
       where: {
         id: params.storeId,

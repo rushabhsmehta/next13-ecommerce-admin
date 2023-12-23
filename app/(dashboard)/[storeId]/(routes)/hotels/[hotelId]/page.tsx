@@ -10,6 +10,9 @@ const HotelPage = async ({
   const hotel = await prismadb.hotel.findUnique({
     where: {
       id: params.hotelId
+    },
+    include: {
+      images: true,
     }
   });
 

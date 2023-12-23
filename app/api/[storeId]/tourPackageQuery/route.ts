@@ -98,7 +98,7 @@ export async function POST(
                 termsconditions,
                 assignedToPerson,
                 assignedToMobileNumber,
-                assignedToEmailId,
+                assignedToEmail,
              //   hotelId,
                 storeId: params.storeId,
                 images: {

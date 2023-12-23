@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 
 
 const activitySchema = z.object({
@@ -41,7 +42,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
- // hotel : z.string(),
+  // hotel : z.string(),
 });
 
 
@@ -80,8 +81,6 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
 });
-
-
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
@@ -194,13 +193,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     price: '',
     flightDetails: [],
     // hotelDetails: '',
-    inclusions: '',
-    exclusions: '',
-    paymentPolicy: '',
-    usefulTip: '',
-    cancellationPolicy: '',
-    airlineCancellationPolicy: '',
-    termsconditions: '',
+    inclusions: INCLUSIONS_DEFAULT,
+    exclusions: EXCLUSIONS_DEFAULT,
+    paymentPolicy: PAYMENT_TERMS_DEFAULT,
+    usefulTip: USEFUL_TIPS_DEFAULT,
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
+    termsconditions: IMPORTANT_NOTES_DEFAULT,
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -713,7 +712,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           />
                         </FormControl>
                         <FormControl>
-                          <Textarea
+                          <Textarea rows = {10}
                             placeholder="Activity Description"
                             disabled={loading}
                             value={activity.description}
@@ -769,7 +768,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { days: '', activities: [], mealsIncluded: [], hotelId: ''}])}
+                  onClick={() => onChange([...value, { days: '', activities: [], mealsIncluded: [], hotelId: '' }])}
                 >
                   Add Itinerary
                 </Button>
@@ -779,7 +778,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             )}
           />
 
-          <div className="md:grid md:grid-cols-3 gap-8">
+          <div className="md:grid md:grid-cols-2 gap-8">
             {/* //add formfield for hotelDetails */}
 
 
@@ -792,7 +791,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Inclusions</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Inclusions" {...field} />
+                    <Textarea rows = {10} disabled={loading} placeholder="Inclusions" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -806,14 +805,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Exclusions</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Exclusions" {...field} />
+                    <Textarea rows = {10} disabled={loading} placeholder="Exclusions" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
           </div>
           {/* //add formfield for paymentPolicy */}
-          <div className="md:grid md:grid-cols-3 gap-8">
+          <div className="md:grid md:grid-cols-2 gap-8">
 
             <FormField
               control={form.control}
@@ -822,7 +821,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Payment Policy</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Payment Policy" {...field} />
+                    <Textarea rows = {10} disabled={loading} placeholder="Payment Policy" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -836,13 +835,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Useful Tip</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Useful Tip" {...field} />
+                    <Textarea rows = {10} disabled={loading} placeholder="Useful Tip" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
+          </div>
+          {/* //add formfield for cancellationPolicy */}
+          <div className="md:grid md:grid-cols-2 gap-8">
 
-            {/* //add formfield for cancellationPolicy */}
             <FormField
               control={form.control}
               name="cancellationPolicy"
@@ -850,14 +851,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Cancellation Policy</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Cancellation Policy" {...field} />
+                    <Textarea rows = {10} disabled={loading} placeholder="Cancellation Policy" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-          </div>
-          {/* //add formfield for airlineCancellationPolicy */}
-          <div className="md:grid md:grid-cols-3 gap-8">
+
+            {/* //add formfield for airlineCancellationPolicy */}
+
             <FormField
               control={form.control}
               name="airlineCancellationPolicy"
@@ -865,33 +866,33 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Airline Cancellation Policy</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
+                    <Textarea rows = {10} disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-
-            {/* //add formfield for termsconditions */}
-            <FormField
-              control={form.control}
-              name="termsconditions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Terms and Conditions</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Terms and Conditions" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
           </div>
-          <Button disabled={loading} className="ml-auto" type="submit">
-            {action}
-          </Button>
+          {/* //add formfield for termsconditions */}
+          <FormField
+            control={form.control}
+            name="termsconditions"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Terms and Conditions</FormLabel>
+                <FormControl>
+                  <Textarea rows = {10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-        </form >
-      </Form >
+        
+        <Button disabled={loading} className="ml-auto" type="submit">
+          {action}
+        </Button>
+
+      </form >
+    </Form >
     </>
   )
 } 

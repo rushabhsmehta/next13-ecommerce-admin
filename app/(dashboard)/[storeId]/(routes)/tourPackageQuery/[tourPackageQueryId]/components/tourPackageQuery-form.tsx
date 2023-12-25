@@ -35,9 +35,11 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 const activitySchema = z.object({
   title: z.string(),
   description: z.string(),
+  activityImages: z.object({ url: z.string() }).array(),
 });
 
 const itinerarySchema = z.object({
+  itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string(),
   itineraryDescription: z.string(),
   days: z.string(),
@@ -83,7 +85,7 @@ const formSchema = z.object({
   airlineCancellationPolicy: z.string(),
   termsconditions: z.string(),
   images: z.object({ url: z.string() }).array(),
-  itineraries: itinerarySchema.array(),
+  itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   assignedTo: z.string().optional(),
@@ -168,6 +170,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     images: { id: string; url: string; }[];
     itineraries: {
       id: string;
+      itineraryImages: { id: string; url: string; }[];
       itineraryTitle: string | null;
       itineraryDescription: string | null;
       days: string | null;
@@ -176,7 +179,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       mealsIncluded: string | null;
       createdAt: Date;
       updatedAt: Date;
-      activities?: { title: string, description: string }[]; // Mark as optional
+      activities?: {
+        id: string;
+        activityImages: { id: string; url: string; }[];
+        title: string,
+        description: string
+      }[]; // Mark as optional
     }[];
   }) => {
     return {
@@ -195,14 +203,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         flightDuration: flightDuration ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, itineraryTitle, itineraryDescription, hotelId, mealsIncluded, activities, }) => ({
+      itineraries: data.itineraries.map(({ days, itineraryImages, itineraryTitle, itineraryDescription, hotelId, mealsIncluded, activities, }) => ({
         days: days ?? '',
+        itineraryImages : itineraryImages ?? [],
         itineraryTitle: itineraryTitle ?? '',
         itineraryDescription: itineraryDescription ?? '',
         hotelId: hotelId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-        activities: activities ?? [],
+        activities: activities?.map(({ activityImages, title, description }) => ({
+          activityImages: activityImages ?? [],
+          title: title ?? '',
+          description: description ?? '',
+        }))    
       }))
     };
   };
@@ -277,7 +290,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none'
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(', ') : 'none'
       }))
     };
 
@@ -346,61 +359,63 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <FormField
-            control={form.control}
-            name="assignedTo"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Assigned To</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={loading}
-                    placeholder="Assigned To"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="assignedToMobileNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Assigned To</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={loading}
-                    placeholder="Mobile Number"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="assignedToEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email ID</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={loading}
-                    placeholder="Email ID"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="md:grid md:grid-cols-4 gap-8">
 
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned To</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Assigned To"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="assignedToMobileNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile Number (Assigned To)</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Mobile Number (Assigned To)"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="assignedToEmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email ID (Assinged To)</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Email ID"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
@@ -751,6 +766,29 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </FormControl>
                     </FormItem>
+
+                    <ImageUpload
+                      value={itinerary.itineraryImages?.map((image) => image.url) || []}
+                      disabled={loading}
+                      onChange={(newItineraryUrl) => {
+                        const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
+                        // Update the itinerary with the new images array
+                        const updatedItineraries = [...value];
+                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                        onChange(updatedItineraries);
+                      }}
+                      onRemove={(itineraryURLToRemove) => {
+                        // Filter out the image to remove
+                        const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
+                        // Update the itinerary with the new images array
+                        const updatedItineraries = [...value];
+                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                        onChange(updatedItineraries);
+                      }}
+                    />
+
+
+
                     <FormItem>
                       <FormLabel>Title</FormLabel>
                       <FormControl>
@@ -784,25 +822,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </FormControl>
                     </FormItem>
-                    
 
-                    <FormItem>
-                      <FormLabel>Day {index + 1}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Day"
-                          disabled={loading}
-
-                          value={itinerary.days}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, days: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                    
                     <FormItem>
                       <FormLabel>Hotel</FormLabel>
                       <Select
@@ -900,6 +920,37 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             }}
                           />
                         </FormControl>
+
+                        <ImageUpload
+                          value={activity.activityImages?.map((image) => image.url)}
+                          disabled={loading}
+                          onChange={(newActivityURL) => {
+                            // Add new image URL to the activity's images
+                            const updatedImages = [...activity.activityImages, { url: newActivityURL }];
+                            // Update the specific activity in the itinerary
+                            const updatedActivities = [...itinerary.activities];
+                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                            // Update the specific itinerary in the itineraries array
+                            const updatedItineraries = [...value];
+                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                            onChange(updatedItineraries);
+                          }}
+                          onRemove={(activityURLToRemove) => {
+                            // Filter out the image to remove
+                            const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                            // Update the specific activity in the itinerary
+                            const updatedActivities = [...itinerary.activities];
+                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                            // Update the specific itinerary in the itineraries array
+                            const updatedItineraries = [...value];
+                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                            onChange(updatedItineraries);
+                          }}
+                        />
+
+
                         <Button
                           type="button"
                           variant="destructive"
@@ -919,7 +970,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       size="sm"
                       onClick={() => {
                         const newItineraries = [...value];
-                        newItineraries[index].activities = [...newItineraries[index].activities, { title: '', description: '' }];
+                        newItineraries[index].activities = [...newItineraries[index].activities, { activityImages : [], title: '', description: '' }];
                         onChange(newItineraries);
                       }}
                     >
@@ -945,7 +996,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { days: '', itineraryTitle : '', itineraryDescription : '', activities: [], mealsIncluded: [], hotelId: '' }])}
+                  onClick={() => onChange([...value, { days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '' }])}
                 >
                   Add Itinerary
                 </Button>

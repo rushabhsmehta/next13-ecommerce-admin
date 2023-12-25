@@ -108,24 +108,33 @@ export async function POST(
                         ],
                     },
                 },
+
                 itineraries: {
-                    create: itineraries.map((itinerary: { itineraryTitle: string, itineraryDescription: string, days: string; hotelId: string, mealsIncluded: any; activities: { title: any; description: any; }[]; }) => ({
+                    create: itineraries.map((itinerary: { itineraryTitle: any; itineraryDescription: any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: { activityImages: { url: string; }[]; title: any; description: any; }[]; }) => ({
                         itineraryTitle: itinerary.itineraryTitle,
                         itineraryDescription: itinerary.itineraryDescription,
                         days: itinerary.days,
                         hotelId: itinerary.hotelId,
                         mealsIncluded: itinerary.mealsIncluded,
-                        // Assuming 'activities' is an array of { title: string, description: string }
-                        activities: {
+                        itineraryImages: {
                             createMany: {
-                                data: itinerary.activities.map((activity: { title: any; description: any; }) => ({
-                                    title: activity.title,
-                                    description: activity.description,
-                                })),
+                                data: itinerary.itineraryImages.map((img: { url: any; }) => ({ url: img.url })),
                             },
+                        },       // Assuming 'activities' is an array of { title: string, description: string }
+                        activities: {
+                            create: itinerary.activities.map(activity => ({
+                                title: activity.title,
+                                description: activity.description,
+                                activityImages: {
+                                    createMany: {
+                                        data: activity.activityImages.map(img => ({ url: img.url })),
+                                    },
+                                },
+                            })),
                         },
                     })),
                 },
+
                 flightDetails: {
                     createMany: {
                         data: [
@@ -167,8 +176,16 @@ export async function GET(
             include: {
                 images: true,
                 location: true,
-                //  hotel: true,
-                // itineraries: true,  // Include itineraries here     
+                itineraries: {
+                    include: {
+                        itineraryImages: true,
+                        activities: {
+                            include: {
+                                activityImages: true,
+                            },
+                        },
+                    },
+                },
             },
             orderBy: {
                 createdAt: 'desc',

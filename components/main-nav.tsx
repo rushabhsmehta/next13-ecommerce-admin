@@ -34,6 +34,16 @@ export function MainNav({
       active: pathname === `/${params.storeId}/hotels`,
     },
     {
+      href: `/${params.storeId}/itineraries`,
+      label: 'Itineraries',
+      active: pathname === `/${params.storeId}/itineraries`,
+    },
+    {
+      href: `/${params.storeId}/activities`,
+      label: 'Activities',
+      active: pathname === `/${params.storeId}/activities`,
+    },
+    {
       href: `/${params.storeId}/tourPackages`,
       label: 'Tour Packages',
       active: pathname === `/${params.storeId}/tourPackages`,

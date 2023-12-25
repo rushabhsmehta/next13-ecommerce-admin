@@ -20,18 +20,19 @@ export async function GET(
         flightDetails: true,
         images: true,
         location: true,
-         //hotel: true,
-        itineraries: {  
-          include : {
-            activities : true,
-          },        
-          orderBy: {            
+        //hotel: true,
+        itineraries: {
+          include: {
+            itineraryImages: true,
+            activities:
+              true,
+          },
+          orderBy: {
             days: 'asc'
-          }
+          },
         },
-      }
-    });
-
+      },
+    },)
     return NextResponse.json(tourPackageQuery);
   } catch (error) {
     console.log('[TOUR_PACKAGE_QUERY_GET]', error);
@@ -99,7 +100,7 @@ export async function PATCH(
       numChild0to5,
       price,
       flightDetails,
-   //   hotelDetails,
+      //   hotelDetails,
       inclusions,
       exclusions,
       paymentPolicy,
@@ -107,7 +108,7 @@ export async function PATCH(
       cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
-     // hotelId,
+      // hotelId,
       images,
       itineraries,
       isFeatured,
@@ -144,7 +145,7 @@ export async function PATCH(
     /* if (!hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
     } */
-    
+
 
     const storeByUserId = await prismadb.store.findFirst({
       where: {
@@ -178,64 +179,77 @@ export async function PATCH(
         cancellationPolicy,
         airlineCancellationPolicy,
         termsconditions,
-        flightDetails: {
-          deleteMany: {},
-        },
-        images: {
-          deleteMany: {},
-        },
-        itineraries:
-        {
-          deleteMany: {},
-        },
         isFeatured,
         isArchived,
         assignedTo,
         assignedToMobileNumber,
         assignedToEmail,
+        // Delete existing nested relations
+        flightDetails: { deleteMany: {} },
+        images: { deleteMany: {} },
+        itineraries: { deleteMany: {} },
       },
     });
 
     const tourPackageQuery = await prismadb.tourPackageQuery.update({
       where: {
-        id: params.tourPackageQueryId
+        id: params.tourPackageQueryId,
       },
       data: {
         images: {
           createMany: {
-            data: [
-              ...images.map((image: { url: string }) => image),
-            ],
+            data: images.map((image: { url: any; }) => ({ url: image.url })),
           },
         },
         itineraries: {
-          create: itineraries.map((itinerary: { itineraryTitle : string, itineraryDescription : string, days: string; hotelId : string, mealsIncluded: any; activities: { title: any; description: any; }[]; }) => ({
-            itineraryTitle : itinerary.itineraryTitle,
-            itineraryDescription : itinerary.itineraryDescription,
+          create: itineraries.map((itinerary: { itineraryTitle: any; itineraryDescription: any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }) => ({
+            itineraryTitle: itinerary.itineraryTitle,
+            itineraryDescription: itinerary.itineraryDescription,
             days: itinerary.days,
-            hotelId : itinerary.hotelId,          
+            hotelId: itinerary.hotelId,
             mealsIncluded: itinerary.mealsIncluded,
-            // Assuming 'activities' is an array of { title: string, description: string }
-            activities: {
+            itineraryImages: {
               createMany: {
-                data: itinerary.activities.map((activity: { title: string; description: string; }) => ({
-                  title: activity.title,
-                  description: activity.description,
-                })),
+                data: itinerary.itineraryImages.map((img: { url: any; }) => ({ url: img.url })),
               },
+            },
+            activities: {
+              create: itinerary.activities.map((activity: { title: any; description: any; activityImages: any[]; }) => ({
+                title: activity.title,
+                description: activity.description,
+                activityImages: {
+                  createMany: {
+                    data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+                  },
+                },
+              })),
             },
           })),
         },
         flightDetails: {
           createMany: {
-            data: [
-              ...flightDetails.map((flightDetail: { date: string, flightName : string, flightNumber : string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration : string }) => flightDetail),
-            ]
-          }
+            data: flightDetails.map((detail: any) => ({
+              // map flight detail fields here
+            })),
+          },
         },
-      }
-    }
-    )
+      },
+      include: {
+        // Include the relations to return in the response
+        images: true,
+        itineraries: {
+          include: {
+            itineraryImages: true,
+            activities: {
+              include: {
+                activityImages: true,
+              },
+            },
+          },
+        },
+        flightDetails: true,
+      },
+    });
 
     return NextResponse.json(tourPackageQuery);
   } catch (error) {

@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
+import { Turret_Road } from "next/font/google";
 
 const tourPackageQueryPage = async ({
   params
@@ -13,11 +14,12 @@ const tourPackageQueryPage = async ({
     },
     include: {
       images: true,
-      flightDetails: true,      
-      itineraries: { 
+      flightDetails: true,
+      itineraries: {
         include: {
-          activities : true,
-        },       
+          itineraryImages: true,
+          activities: true,
+        },
         orderBy: {
           days: 'asc' // or 'desc', depending on the desired order
         }
@@ -51,7 +53,7 @@ const tourPackageQueryPage = async ({
         />
       </div>
 
-     {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+      {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryDisplay
           data={tourPackageQuery}
           locations={locations}
@@ -61,8 +63,7 @@ const tourPackageQueryPage = async ({
       </div> */}
     </div>
 
-    
+
   );
 }
-
 export default tourPackageQueryPage;

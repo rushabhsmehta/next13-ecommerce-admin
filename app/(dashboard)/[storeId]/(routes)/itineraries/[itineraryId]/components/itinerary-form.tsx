@@ -57,7 +57,10 @@ interface ItineraryFormProps {
   initialData: Itinerary
   & {
     itineraryImages: Images[],
-    activities: Activity[];
+    activities: Activity[] &
+    {
+      activityImages : Images[],
+    }
   }
   | null;
   // images: Images[];

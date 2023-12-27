@@ -13,6 +13,7 @@ const ItineraryPage = async ({
     },
     include: {
       location : true,
+      hotel : true,
       itineraryImages: true,
       activities :
       {
@@ -33,6 +34,7 @@ const ItineraryPage = async ({
       storeId: params.storeId,
     },
   });
+
 
   return ( 
     <div className="flex-col">

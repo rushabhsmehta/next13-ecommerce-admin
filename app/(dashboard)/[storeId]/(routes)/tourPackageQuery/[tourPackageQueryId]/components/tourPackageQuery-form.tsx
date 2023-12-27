@@ -46,6 +46,8 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
+  locationId: z.string(), // Array of hotel IDs
+
   // hotel : z.string(),
 });
 
@@ -170,17 +172,21 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     images: { id: string; url: string; }[];
     itineraries: {
       id: string;
+      storeId : string;
       itineraryImages: { id: string; url: string; }[];
       itineraryTitle: string | null;
       itineraryDescription: string | null;
       days: string | null;
       hotelId: string | null;
+      locationId : string | null;
       //hotel : string | null;
       mealsIncluded: string | null;
       createdAt: Date;
       updatedAt: Date;
       activities?: {
         id: string;
+        storeId : string,
+        locationId : string,
         activityImages: { id: string; url: string; }[];
         title: string,
         description: string
@@ -194,8 +200,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       assignedToEmail: data.assignedToEmail ?? '',
       flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
         date: date ?? '',
-        flightName: from ?? '',
-        flightNumber: to ?? '',
+        flightName: flightName ?? '',
+        flightNumber: flightNumber ?? '',
         from: from ?? '',
         to: to ?? '',
         departureTime: departureTime ?? '',
@@ -203,16 +209,21 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         flightDuration: flightDuration ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, itineraryImages, itineraryTitle, itineraryDescription, hotelId, mealsIncluded, activities, }) => ({
+      itineraries: data.itineraries.map(({ days, itineraryImages, itineraryTitle, itineraryDescription, hotelId, locationId, mealsIncluded, activities, }) => ({
+
+        storeId : params.storeId,
         days: days ?? '',
-        itineraryImages : itineraryImages ?? [],
+        itineraryImages: itineraryImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itineraryTitle ?? '',
         itineraryDescription: itineraryDescription ?? '',
         hotelId: hotelId ?? '',
+        locationId : locationId ?? '',  
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-        activities: activities?.map(({ activityImages, title, description }) => ({
-          activityImages: activityImages ?? [],
+        activities: activities?.map(({ locationId, activityImages, title, description }) => ({
+          storeId : params.storeId,
+          locationId : locationId ?? '',  
+          activityImages : activityImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
           title: title ?? '',
           description: description ?? '',
         }))    
@@ -290,7 +301,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(', ') : 'none'
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none'
       }))
     };
 
@@ -996,7 +1007,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '' }])}
+                  onClick={() => onChange([...value, { days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId : '' }])}
                 >
                   Add Itinerary
                 </Button>

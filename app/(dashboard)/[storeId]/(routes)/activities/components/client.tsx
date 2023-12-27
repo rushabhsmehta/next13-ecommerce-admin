@@ -25,13 +25,13 @@ export const ActivitiesClient: React.FC<ActivitiesClientProps> = ({
   return (
     <>
       <div className="flex items-center justify-between">
-        <Heading title={`Activites (${data.length})`} description="Manage Activities for your store" />
-        <Button onClick={() => router.push(`/${params.storeId}/activites/new`)}>
+        <Heading title={`Activities (${data.length})`} description="Manage Activities for your store" />
+        <Button onClick={() => router.push(`/${params.storeId}/activities/new`)}>
           <Plus className="mr-2 h-4 w-4" /> Add New
         </Button>
       </div>
       <Separator />
-      <DataTable searchKey="title" columns={columns} data={data} />
+      <DataTable searchKey="activityTitle" columns={columns} data={data} />
       <Heading title="API" description="API Calls for Activities" />
       <Separator />
       <ApiList entityName="activities" entityIdName="activityId" />

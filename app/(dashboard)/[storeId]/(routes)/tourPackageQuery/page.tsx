@@ -15,12 +15,25 @@ const tourPackageQueryPage = async ({
       storeId: params.storeId
     },
     include: {
-      location: true,
-    //  hotel : true,
-   
-    },
-    orderBy: {
-      createdAt: 'desc'
+      images: true,
+      location : true,
+      flightDetails: true,
+      itineraries: {
+        
+        include: {
+          itineraryImages: true,
+          activities:
+          {
+            include:
+            {
+              activityImages: true,
+            }
+          }
+        },
+        orderBy: {
+          days: 'asc' // or 'desc', depending on the desired order
+        }
+      }
     }
   });
 

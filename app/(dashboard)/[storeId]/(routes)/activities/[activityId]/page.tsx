@@ -12,8 +12,8 @@ const ActivityPage = async ({
       id: params.activityId
     },
     include: {
-      activityImages: true,
-    }
+      activityImages: true,      
+    },    
   });
 
   const locations = await prismadb.location.findMany({
@@ -22,10 +22,16 @@ const ActivityPage = async ({
     }
   });
 
+  const itineraries = await prismadb.itinerary.findMany({
+    where: {
+      storeId: params.storeId
+    }
+  });
+
   return ( 
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <ActivityForm locations ={locations } initialData={activity} />
+        <ActivityForm locations ={locations } itineraries = { itineraries } initialData={activity} />
       </div>
     </div>
   );

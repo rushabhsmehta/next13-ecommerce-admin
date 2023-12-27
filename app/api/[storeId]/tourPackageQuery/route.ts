@@ -110,7 +110,11 @@ export async function POST(
                 },
 
                 itineraries: {
-                    create: itineraries.map((itinerary: { itineraryTitle: any; itineraryDescription: any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: { activityImages: { url: string; }[]; title: any; description: any; }[]; }) => ({
+                    create: itineraries.map((itinerary: { locationId: string, itineraryTitle: string; itineraryDescription: string; days: string; hotelId: string; mealsIncluded: string; itineraryImages: { url: string }[]; activities: { storeId: string; locationId: string; title: string, description: string, activityImages: { url: string }[], }[]; }) => ({
+                        
+                        storeId: params.storeId,
+                        locationId: itinerary.locationId,
+
                         itineraryTitle: itinerary.itineraryTitle,
                         itineraryDescription: itinerary.itineraryDescription,
                         days: itinerary.days,
@@ -118,16 +122,18 @@ export async function POST(
                         mealsIncluded: itinerary.mealsIncluded,
                         itineraryImages: {
                             createMany: {
-                                data: itinerary.itineraryImages.map((img: { url: any; }) => ({ url: img.url })),
+                                data: itinerary.itineraryImages.map((img: { url: string; }) => ({ url: img.url })),
                             },
-                        },       // Assuming 'activities' is an array of { title: string, description: string }
+                        },
                         activities: {
-                            create: itinerary.activities.map(activity => ({
+                            create: itinerary.activities.map((activity: { locationId: string; title: string; description: string; activityImages: { url: string }[]; }) => ({
+                                storeId: params.storeId,
+                                locationId: activity.locationId,
                                 title: activity.title,
                                 description: activity.description,
                                 activityImages: {
                                     createMany: {
-                                        data: activity.activityImages.map(img => ({ url: img.url })),
+                                        data: activity.activityImages.map((img: { url: string; }) => ({ url: img.url })),
                                     },
                                 },
                             })),

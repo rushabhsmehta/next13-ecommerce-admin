@@ -80,7 +80,7 @@ export async function PATCH(
 
     const body = await req.json();
     
-    const { title, description, activityImages, locationId } = body;
+    const { activityTitle, activityDescription, activityImages, locationId } = body;
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -93,11 +93,11 @@ export async function PATCH(
       return new NextResponse("Images are required", { status: 400 });
     }
 
-    if (!title) {
+    if (!activityTitle) {
       return new NextResponse("Title is required", { status: 400 });
     }
 
-    if (!description) {
+    if (!activityDescription) {
         return new NextResponse("Description is required", { status: 400 });
       }
 
@@ -121,8 +121,8 @@ export async function PATCH(
         id: params.activityId,
       },
       data: {
-        title,
-        description,
+        activityTitle,
+        activityDescription,
         locationId,
         activityImages: {
           deleteMany: {},

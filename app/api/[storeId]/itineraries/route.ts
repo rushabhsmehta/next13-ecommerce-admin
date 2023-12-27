@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs";
 
 import prismadb from "@/lib/prismadb";
 
+
 export async function POST(
   req: Request,
   { params }: { params: { storeId: string } }
@@ -60,7 +61,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-    const createdItinerary = await prismadb.itinerary.create({
+    const itinerary = await prismadb.itinerary.create({
       data: {
         storeId: params.storeId,
         locationId,
@@ -79,13 +80,16 @@ export async function POST(
         // Create activities for this itinerary
         activities: {
           createMany: {
-            data: activities.map((activity: { title: any; description: any; activityImages: any[]; }) => ({
-              title: activity.title,
-              description: activity.description,
+            data: activities.map((activity: { storeId : string, locationId : string, itineraryId : string,activityTitle: string; activityDescription: string; activityImages: { url : string }[]; }) => ({
+              storeId: params.storeId,
+              locationId: activity.locationId,
+              itineraryId : activity.itineraryId,
+              activityTitle: activity.activityTitle,
+              activityDescription: activity.activityDescription,
               // Consider defining activityImages inside the map function
               activityImages: {
                 createMany: {
-                  data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+                  data: activity.activityImages.map((img: { url: string; }) => ({ url: img.url })),
                 },
               },
             })),
@@ -94,7 +98,7 @@ export async function POST(
       }
     });
 
-    return NextResponse.json(createdItinerary);
+    return NextResponse.json(itinerary);
   } catch (error) {
     console.log('[ITINERARY_POST]', error);
     return new NextResponse("Internal error", { status: 500 });
@@ -116,11 +120,15 @@ export async function GET(
         storeId: params.storeId
       },
       include: {
-        //activityImages : true,
         location : true,
-        //  hotel: true,
-        // itineraries: true,  // Include itineraries here     
-    },
+      /*   activities :
+        {
+        include : 
+        {
+          activityImages : true,
+        },
+      }, */
+   },
     orderBy: {
         createdAt: 'desc',
     }

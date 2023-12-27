@@ -6,14 +6,14 @@ import { CellAction } from "./cell-action"
 
 export type ActivityColumn = {
   id: string
-  title : string;
+  activityTitle : string;
   locationLabel: string;
   createdAt: string;
 }
 
 export const columns: ColumnDef<ActivityColumn>[] = [
   {
-    accessorKey: "title",
+    accessorKey: "activityTitle",
     header: "Title",
   },
   {

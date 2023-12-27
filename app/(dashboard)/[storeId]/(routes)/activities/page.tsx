@@ -24,7 +24,7 @@ const ActivitiesPage = async ({
 
   const formattedActivities: ActivityColumn[] = activities.map((item) => ({
     id: item.id,
-    title : item.title,
+    activityTitle : item.activityTitle,
     locationLabel: item.location.label,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Location, Hotel, Activity } from "@prisma/client"
+import { Location, Activity, Itinerary } from "@prisma/client"
 import { Images } from "@prisma/client"
 
 import { useParams, useRouter } from "next/navigation"
@@ -30,9 +30,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 
 const formSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-  images: z.array(z.object({ url: z.string() })),
+  activityTitle: z.string().min(1),
+  activityDescription: z.string().min(1),
+  activityImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   itineraryId: z.string().optional(), // Optional if itinerary is not mandatory
 });
@@ -40,10 +40,15 @@ const formSchema = z.object({
 type ActivityFormValues = z.infer<typeof formSchema>
 
 interface ActivityFormProps {
-  initialData: Activity | null;
+  initialData: Activity & {
+    activityImages : Images[]
+  } | null;
   // images: Images[];
   locations: Location[];
+  itineraries : Itinerary[];
 };
+
+
 
 export const ActivityForm: React.FC<ActivityFormProps> = ({
   initialData,
@@ -60,14 +65,24 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const toastMessage = initialData ? 'Activity updated.' : 'Activity created.';
   const action = initialData ? 'Save changes' : 'Create';
 
+  const transformInitialData = (data: { activityTitle: string; activityDescription: string; activityImages: { id: string; url : string }[]; locationId: string; itineraryId: string | null}) => {
+    return {
+      ...data,
+      itineraryId: data.itineraryId || '', // Convert null to undefined
+    };
+  }; 
+  
+  const defaultValues = initialData ? transformInitialData(initialData) : {
+    activityTitle: '',
+    activityescription: '',
+    activityImages: [],
+    locationId: '',
+    itineraryId: '',  
+  }
+  
   const form = useForm<ActivityFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      title: '',
-      description: '',
-      images: [],
-      locationId: '',
-    }
+    defaultValues
   });
 
   const onSubmit = async (data: ActivityFormValues) => {
@@ -91,7 +106,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/activities/${params.hotelId}`);
+      await axios.delete(`/api/${params.storeId}/activities/${params.activityId}`);
       router.refresh();
       router.push(`/${params.storeId}/activities`);
       toast.success('Activity deleted.');
@@ -129,7 +144,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <FormField
             control={form.control}
-            name="images"
+            name="activityImages"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Images</FormLabel>
@@ -173,7 +188,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
             <FormField
               control={form.control}
-              name="title"
+              name="activityTitle"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Activity Title</FormLabel>
@@ -187,7 +202,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
             <FormField
               control={form.control}
-              name="description"
+              name="activityDescription"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Activity Description</FormLabel>

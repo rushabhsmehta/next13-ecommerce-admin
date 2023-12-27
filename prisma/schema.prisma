@@ -195,11 +195,11 @@ model Activity {
   location     Location      @relation(fields: [locationId], references: [id])
   
   activityImages      Images[]
-  title       String     @db.Text
-  description String     @db.Text
+  activityTitle       String     @db.Text
+  activityDescription String     @db.Text
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  itineraryId String
+  itineraryId String?
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@index([storeId])

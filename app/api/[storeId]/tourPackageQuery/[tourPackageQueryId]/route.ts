@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 
 import prismadb from "@/lib/prismadb";
+import { string } from "zod";
 
 export async function GET(
   req: Request,
@@ -24,8 +25,11 @@ export async function GET(
         itineraries: {
           include: {
             itineraryImages: true,
-            activities:
-              true,
+            activities: {
+              include: {
+                activityImages: true,
+              }
+            }
           },
           orderBy: {
             days: 'asc'
@@ -202,7 +206,10 @@ export async function PATCH(
           },
         },
         itineraries: {
-          create: itineraries.map((itinerary: { itineraryTitle: any; itineraryDescription: any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }) => ({
+          create: itineraries.map((itinerary: { locationId : string, itineraryTitle: string; itineraryDescription: string; days: string; hotelId: string; mealsIncluded: string; itineraryImages: { url: string }[]; activities: { storeId : string; locationId : string; title: string, description: string, activityImages: { url: string }[], }[]; }) => ({
+            storeId : params.storeId,
+            locationId : itinerary.locationId,
+
             itineraryTitle: itinerary.itineraryTitle,
             itineraryDescription: itinerary.itineraryDescription,
             days: itinerary.days,
@@ -210,16 +217,18 @@ export async function PATCH(
             mealsIncluded: itinerary.mealsIncluded,
             itineraryImages: {
               createMany: {
-                data: itinerary.itineraryImages.map((img: { url: any; }) => ({ url: img.url })),
+                data: itinerary.itineraryImages.map((img: { url: string; }) => ({ url: img.url })),
               },
             },
             activities: {
-              create: itinerary.activities.map((activity: { title: any; description: any; activityImages: any[]; }) => ({
+              create: itinerary.activities.map((activity: { locationId : string; title: string; description: string; activityImages: { url: string }[]; }) => ({
+                storeId : params.storeId,
+                locationId : activity.locationId,
                 title: activity.title,
                 description: activity.description,
                 activityImages: {
                   createMany: {
-                    data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+                    data: activity.activityImages.map((img: { url: string; }) => ({ url: img.url })),
                   },
                 },
               })),
@@ -227,29 +236,37 @@ export async function PATCH(
           })),
         },
         flightDetails: {
-          createMany: {
-            data: flightDetails.map((detail: any) => ({
-              // map flight detail fields here
-            })),
-          },
+          create: flightDetails.map((flight: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; }) => ({
+
+            date: flight.date,
+            flightName: flight.flightName,
+            flightNumber: flight.flightNumber,
+            from: flight.from,
+            to: flight.to,
+            departureTime: flight.departureTime,
+            arrivalTime: flight.arrivalTime,
+            flightDuration: flight.flightDuration,
+
+          }))
         },
-      },
+      },     
+      
       include: {
-        // Include the relations to return in the response
-        images: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            activities: {
-              include: {
-                activityImages: true,
+          // Include the relations to return in the response
+          images: true,
+          itineraries: {
+            include: {
+              itineraryImages: true,
+              activities: {
+                include: {
+                  activityImages: true,
+                },
               },
             },
           },
+          flightDetails: true,
         },
-        flightDetails: true,
-      },
-    });
+      });
 
     return NextResponse.json(tourPackageQuery);
   } catch (error) {

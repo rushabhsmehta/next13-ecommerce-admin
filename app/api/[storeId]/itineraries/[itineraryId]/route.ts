@@ -86,12 +86,12 @@ export async function PATCH(
 
     const body = await req.json();
 
-    const { 
-      itineraryTitle, 
-      itineraryDescription, 
-      itineraryImages, 
-      activities, 
-      locationId, 
+    const {
+      itineraryTitle,
+      itineraryDescription,
+      itineraryImages,
+      activities,
+      locationId,
       tourPackageId,
       tourPackageQueryId,
       days,
@@ -134,66 +134,47 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-    await prismadb.itinerary.update({
+    const itinerary = await prismadb.itinerary.update({
       where: {
         id: params.itineraryId,
       },
       data: {
-        itineraryTitle,
-        itineraryDescription,
         locationId,
         tourPackageId,  // Update tourPackageId
         tourPackageQueryId,  // Update tourPackageQueryId
+    
+        itineraryTitle,
+        itineraryDescription,
         days,  // Update days
         hotelId,  // Update hotelId
         mealsIncluded,  // Update mealsIncluded
         itineraryImages: {
           deleteMany: {},
           createMany: {
-            data: itineraryImages.map((img: { url: any; }) => ({ url: img.url })),
+            data: itineraryImages.map((img: { url: string; }) => ({ url: img.url })),
           },
         },
         activities: {
-          deleteMany: {}
-        }
-      }
-    });
-
-    for (const activity of activities) {
-      await prismadb.activity.create({
-        data: {
-          storeId : activity.storeId,
-          locationId: activity.locationId,
-          itineraryId: activity.itineraryId,
-          title: activity.title,
-          description: activity.description,
-          // Create images for this activity
-          activityImages: {
-            createMany: {
-              data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+          deleteMany: {},
+          createMany: {data: activities.map((activity: { storeId : string, locationId : string, itineraryId : string,activityTitle: string; activityDescription: string; activityImages: { url : string }[]; }) => ({
+            storeId: params.storeId,
+            locationId: activity.locationId,
+            itineraryId : activity.itineraryId,
+            activityTitle: activity.activityTitle,
+            activityDescription: activity.activityDescription,
+            // Consider defining activityImages inside the map function
+            activityImages: {
+              createMany: {
+                data: activity.activityImages.map((img: { url: string; }) => ({ url: img.url })),
+              },
             },
-          },
-        }
-      });
-      // Optionally handle the created activity, e.g., logging or further processing
-    }
-
-    const updatedItinerary = await prismadb.itinerary.findUnique({
-      where: {
-        id: params.itineraryId,
-      },
-      include: {
-        itineraryImages: true,
-        activities: {
-          include: {
-            activityImages: true,
-          },
+          })),
         },
-      }
-    });
-
-   
-    return NextResponse.json(updatedItinerary);
+      },
+    },
+  });
+  
+    return NextResponse.json(itinerary);
   } catch (error) {
     console.log('[ITINERARY_PATCH]', error);
     return new NextResponse("Internal error", { status: 500 });

@@ -31,18 +31,22 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 
 const activitySchema = z.object({
-  title: z.string().min(2),
-  description: z.string().min(2),
+  activityTitle: z.string().min(2),
+  activityDescription: z.string().min(2),
   activityImages: z.array(z.object({ url: z.string() })),
+  locationId: z.string().optional(),
+  itineraryId: z.string().optional(),
 });
 
 const formSchema = z.object({
-  itineraryTitle: z.string().min(1),
-  itineraryDescription: z.string().min(1),
+  itineraryTitle: z.string().optional(),
+  itineraryDescription: z.string().optional(),
   itineraryImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   hotelId: z.string().optional(),
-  days: z.string().min(1),
+  tourPackageId: z.string().optional(),
+  tourPackageQueryId: z.string().optional(),
+  days: z.string().optional(),
   mealsIncluded: z.array(z.string()).optional(),
   activities: z.array(activitySchema),
 });
@@ -77,27 +81,75 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
   const toastMessage = initialData ? 'Itinerary updated.' : 'Itinerary created.';
   const action = initialData ? 'Save changes' : 'Create';
 
+  const transformInitialData = (data: { 
+    id: string; 
+    storeId: string; 
+    locationId: string; 
+    tourPackageId: string | null; 
+    tourPackageQueryId: string | null; 
+    itineraryTitle: string | null; 
+    itineraryDescription: string | null;
+    itineraryImages : { id : string; url : string; }[];
+    days: string | null; 
+    hotelId: string | null; 
+    mealsIncluded: string | null; 
+    createdAt: Date; 
+    updatedAt: Date; 
+    activities: { 
+      id: string; 
+      storeId: string; 
+      locationId: string; 
+      activityImages : { id : string; url : string; }[];    
+      activityTitle: string; 
+      activityDescription: string; 
+      createdAt: Date; 
+      updatedAt: Date; 
+      itineraryId: string | null }[] }) => {
+    return {
+      ...data,
+      mealsIncluded: data.mealsIncluded ? data.mealsIncluded.split(',') : [],
 
-  const defaultValues = initialData ? {
+      // locationId: data.locationId ?? '',
+      // tourPackageId: data.tourPackageId ?? '',
+      // tourPackageQueryId: data.tourPackageQueryId ?? '',
+      // itineraryTitle: data.itineraryTitle ?? '',
+      // itineraryDescription: data.itineraryDescription ?? '',
+      // itineraryImages: data.itineraryImages ?? [],
+      // days: data.days ?? '',
+      // hotelId: data.hotelId ?? '',
+      // mealsIncluded: data.mealsIncluded ?? '',
+      // activities: data.activities.map((activity : any) => ({
+      //   ...activity,
+      //   activityImages: activity.activityImages ?? [], // Default to an empty array if not present
+      //   activityTitle: activity.activityTitle ?? '',
+      //   activityDescription: activity.activityDescription ?? '',
+      //   locationId: activity.locationId ?? '',
+      //   itineraryId: activity.itineraryId ?? '',
+      //})),
+    };
+  };
 
-    itineraryTitle: initialData.itineraryTitle || '',
-    itineraryDescription: initialData.itineraryDescription || '',
-    itineraryImages: initialData.itineraryImages || [],
-    locationId: initialData.locationId || '',
-    hotelId: initialData.hotelId || '',
-    days: initialData.days || '',
-    mealsIncluded: initialData.mealsIncluded ? initialData.mealsIncluded.split(',') : [],
-    activities: initialData.activities || [{ title: '', description: '', activityImages: [] }],
-  } : {
+  const defaultValues = initialData ? transformInitialData(initialData) : {
+
+    locationId: '',
+    tourPackageId: '',
+    tourPackageQueryId: '',
     itineraryTitle: '',
     itineraryDescription: '',
     itineraryImages: [],
-    locationId: '',
-    hotelId: '',
     days: '',
+    hotelId: '',
     mealsIncluded: [],
-    activities: [{ title: '', description: '', activityImages: [] }],
-  };
+    activities: [
+      {
+        activityTitle: '',
+        activityDescription: '',
+        activityImages: [],
+        locationId: '', // Default to empty or you can set to first location if preferred
+        itineraryId: '', // Default to empty as it's optional
+      }]
+  }
+
 
   const form = useForm<ItineraryFormValues>({
     resolver: zodResolver(formSchema),
@@ -109,12 +161,12 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     const submitData = {
       ...data,
       mealsIncluded: data.mealsIncluded?.join(','), // Convert array to comma-separated string
-      activities: data.activities.map(activity => ({
+      activities: data.activities?.map((activity) => ({
         ...activity,
-        activityImages: activity.activityImages.map(img => img.url) // Extract URLs from image objects
+        locationId: data.locationId,
       }))
     };
-
+    console.log("Data being Submitted is : ", submitData);
     try {
       setLoading(true);
       if (initialData) {
@@ -201,7 +253,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                   <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a hotel" />
+                        <SelectValue defaultValue={field.value} placeholder="Location" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -301,7 +353,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
             name="activities"
             render={({ field: { value = [], onChange } }) => (
               <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                <FormLabel>Create Activities </FormLabel>
+                <FormLabel> Activities </FormLabel>
                 {value.map((activity, index) => (
                   <div key={index} className="md:grid md:grid-cols-3 gap-8">
                     <FormItem>
@@ -311,51 +363,51 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                           placeholder="Title"
                           disabled={loading}
 
-                          value={activity.title}
+                          value={activity.activityTitle}
                           onChange={(e) => {
                             const newActivities = [...value];
-                            newActivities[index] = { ...activity, title: e.target.value };
+                            newActivities[index] = { ...activity, activityTitle: e.target.value };
                             onChange(newActivities);
                           }}
                         />
                       </FormControl>
                     </FormItem>
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          placeholder="Description"
+                          disabled={loading}
 
-                    <FormControl>
-                      <Input
-                        placeholder="Description"
+                          value={activity.activityDescription}
+                          onChange={(e) => {
+                            const newActivities = [...value];
+                            newActivities[index] = { ...activity, activityDescription: e.target.value };
+                            onChange(newActivities);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+                    <FormItem>
+                      <ImageUpload
+                        value={activity.activityImages?.map((image) => image.url) || []}
                         disabled={loading}
-
-                        value={activity.description}
-                        onChange={(e) => {
-                          const newActivities = [...value];
-                          newActivities[index] = { ...activity, description: e.target.value };
-                          onChange(newActivities);
+                        onChange={(newActivityUrl) => {
+                          const updatedImages = [...activity.activityImages, { url: newActivityUrl }];
+                          // Update the itinerary with the new images array
+                          const updatedActivities = [...value];
+                          updatedActivities[index] = { ...activity, activityImages: updatedImages };
+                          onChange(updatedActivities);
+                        }}
+                        onRemove={(activityURLToRemove) => {
+                          // Filter out the image to remove
+                          const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                          // Update the itinerary with the new images array
+                          const updatedActivities = [...value];
+                          updatedActivities[index] = { ...activity, activityImages: updatedImages };
+                          onChange(updatedActivities);
                         }}
                       />
-                    </FormControl>
-
-
-                    <ImageUpload
-                      value={activity.activityImages?.map((image) => image.url) || []}
-                      disabled={loading}
-                      onChange={(newActivityUrl) => {
-                        const updatedImages = [...activity.activityImages, { url: newActivityUrl }];
-                        // Update the itinerary with the new images array
-                        const updatedActivities = [...value];
-                        updatedActivities[index] = { ...activity, activityImages: updatedImages };
-                        onChange(updatedActivities);
-                      }}
-                      onRemove={(activityURLToRemove) => {
-                        // Filter out the image to remove
-                        const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
-                        // Update the itinerary with the new images array
-                        const updatedActivities = [...value];
-                        updatedActivities[index] = { ...activity, activityImages: updatedImages };
-                        onChange(updatedActivities);
-                      }}
-                    />
-
+                    </FormItem>
 
                     <Button
                       type="button"
@@ -374,7 +426,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { title: '', description: '', activityImages: [] }])}
+                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '', activityImages: [] }])}
                 >
                   Add Activity
                 </Button>

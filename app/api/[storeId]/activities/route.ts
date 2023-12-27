@@ -12,17 +12,17 @@ export async function POST(
 
     const body = await req.json();
 
-    const { title, description, activityImages, locationId, itineraryId } = body; // Added itineraryId
+    const { activityTitle, activityDescription, activityImages, locationId, itineraryId } = body; // Added itineraryId
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
-    if (!title) {
+    if (!activityTitle) {
       return new NextResponse("Title is required", { status: 400 });
     }
 
-    if (!description) {
+    if (!activityDescription) {
       return new NextResponse("Description is required", { status: 400 });
     }
 
@@ -34,9 +34,7 @@ export async function POST(
       return new NextResponse("Images are required", { status: 400 });
     }
 
-    if (!itineraryId) {
-      return new NextResponse("Itinerary ID is required", { status: 400 });
-    }
+    
     if (!params.storeId) {
       return new NextResponse("Store id is required", { status: 400 });
     }
@@ -54,8 +52,8 @@ export async function POST(
 
     const activity = await prismadb.activity.create({
       data: {
-        title,
-        description,
+        activityTitle,
+        activityDescription,
         locationId,
         itineraryId,
         storeId: params.storeId,

@@ -88,8 +88,11 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     return {
       ...data,
       mealsIncluded: data.mealsIncluded ? data.mealsIncluded.split(',') : [],
-      activities: data.activities.map((activity : any) => ({
+      activities: data.activities.map((activity: { activityImages: { url: string }[] }) => ({
         ...activity,
+        activityImages: activity.activityImages.map((image : { url : string }) => ({ 
+          url: image.url,
+        })),        
         itineraryId: data.itineraryId || '', // Convert null to undefined
     }))
          
@@ -150,7 +153,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
         ...activity,
       
         locationId: data.locationId,
-        activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
+  //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
 
       }))
     };

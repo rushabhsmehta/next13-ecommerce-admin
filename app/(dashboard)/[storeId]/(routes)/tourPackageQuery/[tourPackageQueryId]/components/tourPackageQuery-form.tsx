@@ -33,8 +33,8 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 
 
 const activitySchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  activityTitle: z.string(),
+  activityDescription: z.string(),
   activityImages: z.object({ url: z.string() }).array(),
 });
 
@@ -172,24 +172,24 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     images: { id: string; url: string; }[];
     itineraries: {
       id: string;
-      storeId : string;
+      storeId: string;
       itineraryImages: { id: string; url: string; }[];
       itineraryTitle: string | null;
       itineraryDescription: string | null;
       days: string | null;
       hotelId: string | null;
-      locationId : string | null;
+      locationId: string | null;
       //hotel : string | null;
       mealsIncluded: string | null;
       createdAt: Date;
       updatedAt: Date;
       activities?: {
         id: string;
-        storeId : string,
-        locationId : string,
+        storeId: string,
+        locationId: string,
         activityImages: { id: string; url: string; }[];
-        title: string,
-        description: string
+        activityTitle: string,
+        activityDescription: string
       }[]; // Mark as optional
     }[];
   }) => {
@@ -211,22 +211,22 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       itineraries: data.itineraries.map(({ days, itineraryImages, itineraryTitle, itineraryDescription, hotelId, locationId, mealsIncluded, activities, }) => ({
 
-        storeId : params.storeId,
+        storeId: params.storeId,
         days: days ?? '',
         itineraryImages: itineraryImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itineraryTitle ?? '',
         itineraryDescription: itineraryDescription ?? '',
         hotelId: hotelId ?? '',
-        locationId : locationId ?? '',  
+        locationId: locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-        activities: activities?.map(({ locationId, activityImages, title, description }) => ({
-          storeId : params.storeId,
-          locationId : locationId ?? '',  
-          activityImages : activityImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
-          title: title ?? '',
-          description: description ?? '',
-        }))    
+        activities: activities?.map(({ locationId, activityImages, activityTitle, activityDescription }) => ({
+          storeId: params.storeId,
+          locationId: locationId ?? '',
+          activityImages: activityImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
+          activityTitle: activityTitle ?? '',
+          activityDescription: activityDescription ?? '',
+        }))
       }))
     };
   };
@@ -295,843 +295,859 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
-    console.log("Itineraries before submission:", data.itineraries);
 
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none'
+        storeId: params.storeId,
+        locationId: data.locationId,
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none',
+        activities: itinerary.activities?.map((activity) => ({
+          ...activity,
+          storeId: params.storeId,
+          locationId: data.locationId,
+
+          //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
+        }))
       }))
     };
+
 
 
     try {
       setLoading(true);
       if (initialData) {
         // console.log({ formattedData })
-        await axios.patch(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
-      } else {
-        await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);
-      }
-      router.refresh();
-      router.push(`/${params.storeId}/tourPackageQuery`);
-      toast.success(toastMessage);
-    } catch (error: any) {
-      console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
-      toast.error('Something went wrong.');
-    } finally {
-      setLoading(false);
+        formattedData.itineraries.forEach((itinerary, index) => {
+          itinerary.activities.forEach(activity => {
+            console.log("Activity Data Being Submitted is :", activity);
+          }
+          )
+        })
+        
+      await axios.patch(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
+    } else {
+      await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);
     }
-  };
-
-  const onDelete = async () => {
-    try {
-      setLoading(true);
-      await axios.delete(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`);
-      router.refresh();
-      router.push(`/${params.storeId}/tourPackageQuery`);
-      toast.success('Tour Package Query deleted.');
-    } catch (error: any) {
-      toast.error('Something went wrong.');
-    } finally {
-      setLoading(false);
-      setOpen(false);
-    }
+    router.refresh();
+    router.push(`/${params.storeId}/tourPackageQuery`);
+    toast.success(toastMessage);
+  } catch (error: any) {
+    console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
+    toast.error('Something went wrong.');
+  } finally {
+    setLoading(false);
   }
+};
+
+const onDelete = async () => {
+  try {
+    setLoading(true);
+    await axios.delete(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`);
+    router.refresh();
+    router.push(`/${params.storeId}/tourPackageQuery`);
+    toast.success('Tour Package Query deleted.');
+  } catch (error: any) {
+    toast.error('Something went wrong.');
+  } finally {
+    setLoading(false);
+    setOpen(false);
+  }
+}
 
 
 
-  // Function to handle meal checkbox changes
+// Function to handle meal checkbox changes
 
 
 
-  return (
-    <>
-      <AlertModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onConfirm={onDelete}
-        loading={loading}
-      />
-      <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
-        {initialData && (
-          <Button
-            disabled={loading}
-            variant="destructive"
-            size="sm"
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      <Separator />
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <div className="md:grid md:grid-cols-4 gap-8">
-
-            <FormField
-              control={form.control}
-              name="assignedTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Assigned To</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Assigned To"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="assignedToMobileNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mobile Number (Assigned To)</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Mobile Number (Assigned To)"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="assignedToEmail"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email ID (Assinged To)</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Email ID"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+return (
+  <>
+    <AlertModal
+      isOpen={open}
+      onClose={() => setOpen(false)}
+      onConfirm={onDelete}
+      loading={loading}
+    />
+    <div className="flex items-center justify-between">
+      <Heading title={title} description={description} />
+      {initialData && (
+        <Button
+          disabled={loading}
+          variant="destructive"
+          size="sm"
+          onClick={() => setOpen(true)}
+        >
+          <Trash className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+    <Separator />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+        <div className="md:grid md:grid-cols-4 gap-8">
 
           <FormField
             control={form.control}
-            name="images"
+            name="assignedTo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Images</FormLabel>
+                <FormLabel>Assigned To</FormLabel>
                 <FormControl>
-                  <ImageUpload
-                    value={field.value.map((image) => image.url)}
+                  <Input
                     disabled={loading}
-                    onChange={(url) => field.onChange([...field.value, { url }])}
-                    onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                    placeholder="Assigned To"
+                    value={field.value}
+                    onChange={field.onChange}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <div className="md:grid md:grid-cols-4 gap-8">
-
-            {/* add formfield for TourPackageQueryName */}
-            <FormField
-              control={form.control}
-              name="tourPackageQueryName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tour Package Query Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Tour Package Query Name"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-
-            {/* //add formfield for customerName */}
-            <FormField
-              control={form.control}
-              name="customerName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer Name</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Customer Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="locationId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numDaysNight */}
-            <FormField
-              control={form.control}
-              name="numDaysNight"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Days/Night</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* // add formfield for period */}
-          <div className="md:grid md:grid-cols-5 gap-8">
-
-            <FormField
-              control={form.control}
-              name="period"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Period</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Period" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numAdults */}
-            <FormField
-              control={form.control}
-              name="numAdults"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Adults</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Adults" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numChildren */}
-            <FormField
-              control={form.control}
-              name="numChild5to12"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Children 5 to 12</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numChildren */}
-            <FormField
-              control={form.control}
-              name="numChild0to5"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Children 0 to 5</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-
-
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="9.99" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-
-
-          {/* //add formfield for flightDetails */}
-          <div>
-            <FormField
-              control={form.control}
-              name="flightDetails"
-              render={({ field: { value = [], onChange } }) => (
-                <FormItem>
-                  <FormLabel>Create Flight Plan</FormLabel>
-                  {
-                    value.map((flight, index) => (
-
-                      <div key={index} className="md:grid md:grid-cols-6 gap-8">
-                        <FormControl>
-                          <Input
-                            placeholder="Date"
-                            disabled={loading}
-                            value={flight.date}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, date: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <Input
-                            placeholder="Flight Name"
-                            disabled={loading}
-                            value={flight.flightName}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, flightName: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <Input
-                            placeholder="Flight Number"
-                            disabled={loading}
-                            value={flight.flightNumber}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <Input
-                            placeholder="From"
-                            disabled={loading}
-                            value={flight.from}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, from: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-
-                          <Input
-                            placeholder="To"
-                            disabled={loading}
-                            value={flight.to}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, to: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-
-                          <Input
-                            placeholder="Departure Time"
-                            disabled={loading}
-                            value={flight.departureTime}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value]; // Ensure this is your state array
-                              newFlightDetails[index] = { ...flight, departureTime: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-
-                        </FormControl>
-                        <FormControl>
-
-                          <Input
-                            placeholder="Arrival Time"
-                            disabled={loading}
-                            value={flight.arrivalTime}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-                        <FormControl>
-                          <Input
-                            placeholder="Flight Duration"
-                            disabled={loading}
-                            value={flight.flightDuration}
-                            onChange={(e) => {
-                              const newFlightDetails = [...value];
-                              newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
-                              onChange(newFlightDetails);
-                            }}
-                          />
-                        </FormControl>
-
-
-                        <FormControl>
-                          <Button
-
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            disabled={loading}
-                            onClick={() => {
-                              const newFlightDetails = value.filter((_, i) => i != index);
-                              onChange(newFlightDetails);
-                            }}>
-                            Remove Flight
-                          </Button>
-                        </FormControl>
-                      </div>
-                    ))}
-                  <FormControl>
-                    <Button type="button" size="sm"
-                      disabled={loading}
-                      onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
-                    >
-                      Add Flight
-                    </Button>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-
           <FormField
             control={form.control}
-            name="itineraries"
-            render={({ field: { value = [], onChange } }) => (
-              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                <FormLabel>Create Itineraries</FormLabel>
-                {value.map((itinerary, index) => (
-                  <div key={index} className="md:grid md:grid-cols-3 gap-8">
-                    <FormItem>
-                      <FormLabel>Day {index + 1}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Day"
-                          disabled={loading}
+            name="assignedToMobileNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile Number (Assigned To)</FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={loading}
+                    placeholder="Mobile Number (Assigned To)"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="assignedToEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email ID (Assinged To)</FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={loading}
+                    placeholder="Email ID"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-                          value={itinerary.days}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, days: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
+        <FormField
+          control={form.control}
+          name="images"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Images</FormLabel>
+              <FormControl>
+                <ImageUpload
+                  value={field.value.map((image) => image.url)}
+                  disabled={loading}
+                  onChange={(url) => field.onChange([...field.value, { url }])}
+                  onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="md:grid md:grid-cols-4 gap-8">
 
-                    <ImageUpload
-                      value={itinerary.itineraryImages?.map((image) => image.url) || []}
-                      disabled={loading}
-                      onChange={(newItineraryUrl) => {
-                        const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
-                        // Update the itinerary with the new images array
-                        const updatedItineraries = [...value];
-                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                        onChange(updatedItineraries);
-                      }}
-                      onRemove={(itineraryURLToRemove) => {
-                        // Filter out the image to remove
-                        const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
-                        // Update the itinerary with the new images array
-                        const updatedItineraries = [...value];
-                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                        onChange(updatedItineraries);
-                      }}
-                    />
-
-
-
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Title"
-                          disabled={loading}
-
-                          value={itinerary.itineraryTitle}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, itineraryTitle: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Description"
-                          disabled={loading}
-
-                          value={itinerary.itineraryDescription}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, itineraryDescription: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem>
-                      <FormLabel>Hotel</FormLabel>
-                      <Select
-                        disabled={loading}
-                        value={itinerary.hotelId}
-                        defaultValue={itinerary.hotelId}
-                        onValueChange={(selectedHotelId) => {
-                          const newItineraries = [...value];
-                          newItineraries[index] = {
-                            ...itinerary,
-                            hotelId: selectedHotelId
-                          };
-                          onChange(newItineraries); // Update the state with the new itineraries
-
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              defaultValue={itinerary.hotelId}
-                              placeholder="Select a Hotel"
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {hotels.map((hotel) => (
-                            <SelectItem key={hotel.id} value={hotel.id}>
-                              {hotel.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-
-                    <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                      <FormLabel>Meal Plan</FormLabel>
-                      <FormControl>
-                        <div className="flex flex-col gap-2">
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('breakfast')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('breakfast', !!isChecked, index)
-                              }
-                            />
-                            Breakfast
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('lunch')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('lunch', !!isChecked, index)
-                              }
-                            />
-                            Lunch
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('dinner')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('dinner', !!isChecked, index)
-                              }
-                            />
-                            Dinner
-                          </label>
-                        </div>
-                      </FormControl>
-                    </FormItem>
-
-
-                    {itinerary.activities.map((activity, activityIndex) => (
-                      <div key={activityIndex} className="space-y-2">
-                        <FormControl>
-                          <Input
-                            disabled={loading}
-                            placeholder="Activity Title"
-                            value={activity.title}
-                            onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index].activities[activityIndex] = { ...activity, title: e.target.value };
-                              onChange(newItineraries);
-                            }}
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <Textarea rows={10}
-                            placeholder="Activity Description"
-                            disabled={loading}
-                            value={activity.description}
-                            onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index].activities[activityIndex] = { ...activity, description: e.target.value };
-                              onChange(newItineraries);
-                            }}
-                          />
-                        </FormControl>
-
-                        <ImageUpload
-                          value={activity.activityImages?.map((image) => image.url)}
-                          disabled={loading}
-                          onChange={(newActivityURL) => {
-                            // Add new image URL to the activity's images
-                            const updatedImages = [...activity.activityImages, { url: newActivityURL }];
-                            // Update the specific activity in the itinerary
-                            const updatedActivities = [...itinerary.activities];
-                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                            // Update the specific itinerary in the itineraries array
-                            const updatedItineraries = [...value];
-                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                            onChange(updatedItineraries);
-                          }}
-                          onRemove={(activityURLToRemove) => {
-                            // Filter out the image to remove
-                            const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
-                            // Update the specific activity in the itinerary
-                            const updatedActivities = [...itinerary.activities];
-                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                            // Update the specific itinerary in the itineraries array
-                            const updatedItineraries = [...value];
-                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                            onChange(updatedItineraries);
-                          }}
-                        />
-
-
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            const newItineraries = [...value];
-                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
-                            onChange(newItineraries);
-                          }}
-                        >
-                          Remove Activity
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        const newItineraries = [...value];
-                        newItineraries[index].activities = [...newItineraries[index].activities, { activityImages : [], title: '', description: '' }];
-                        onChange(newItineraries);
-                      }}
-                    >
-                      Add Activity
-                    </Button>
-
-
-
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        const newItineraries = value.filter((_, i) => i !== index);
-                        onChange(newItineraries);
-                      }}
-                    >
-                      Remove Itinerary for Day {index + 1}
-
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => onChange([...value, { days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId : '' }])}
-                >
-                  Add Itinerary
-                </Button>
-
-
+          {/* add formfield for TourPackageQueryName */}
+          <FormField
+            control={form.control}
+            name="tourPackageQueryName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tour Package Query Name</FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={loading}
+                    placeholder="Tour Package Query Name"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
 
-          <div className="md:grid md:grid-cols-2 gap-8">
-            {/* //add formfield for hotelDetails */}
 
-
-            {/* //add formfield for inclusions */}
-            <FormField
-              control={form.control}
-              name="inclusions"
-
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Inclusions</FormLabel>
-                  <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Inclusions" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-            {/* //add formfield for exclusions */}
-            <FormField
-              control={form.control}
-              name="exclusions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Exclusions</FormLabel>
-                  <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-          </div>
-          {/* //add formfield for paymentPolicy */}
-          <div className="md:grid md:grid-cols-2 gap-8">
-
-            <FormField
-              control={form.control}
-              name="paymentPolicy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Policy</FormLabel>
-                  <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Payment Policy" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-            {/* //add formfield for usefulTip */}
-            <FormField
-              control={form.control}
-              name="usefulTip"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Useful Tip</FormLabel>
-                  <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Useful Tip" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-          </div>
-          {/* //add formfield for cancellationPolicy */}
-          <div className="md:grid md:grid-cols-2 gap-8">
-
-            <FormField
-              control={form.control}
-              name="cancellationPolicy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cancellation Policy</FormLabel>
-                  <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Cancellation Policy" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-            {/* //add formfield for airlineCancellationPolicy */}
-
-            <FormField
-              control={form.control}
-              name="airlineCancellationPolicy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Airline Cancellation Policy</FormLabel>
-                  <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-          </div>
-          {/* //add formfield for termsconditions */}
+          {/* //add formfield for customerName */}
           <FormField
             control={form.control}
-            name="termsconditions"
+            name="customerName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Terms and Conditions</FormLabel>
+                <FormLabel>Customer Name</FormLabel>
                 <FormControl>
-                  <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                  <Input disabled={loading} placeholder="Customer Name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="locationId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location</FormLabel>
+                <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue defaultValue={field.value} placeholder="Select a Location" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* //add formfield for numDaysNight */}
+          <FormField
+            control={form.control}
+            name="numDaysNight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Days/Night</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* // add formfield for period */}
+        <div className="md:grid md:grid-cols-5 gap-8">
+
+          <FormField
+            control={form.control}
+            name="period"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Period</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="Period" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* //add formfield for numAdults */}
+          <FormField
+            control={form.control}
+            name="numAdults"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Adults</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="Number of Adults" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* //add formfield for numChildren */}
+          <FormField
+            control={form.control}
+            name="numChild5to12"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Children 5 to 12</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* //add formfield for numChildren */}
+          <FormField
+            control={form.control}
+            name="numChild0to5"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Children 0 to 5</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+
+
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="9.99" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+
+
+        {/* //add formfield for flightDetails */}
+        <div>
+          <FormField
+            control={form.control}
+            name="flightDetails"
+            render={({ field: { value = [], onChange } }) => (
+              <FormItem>
+                <FormLabel>Create Flight Plan</FormLabel>
+                {
+                  value.map((flight, index) => (
+
+                    <div key={index} className="md:grid md:grid-cols-6 gap-8">
+                      <FormControl>
+                        <Input
+                          placeholder="Date"
+                          disabled={loading}
+                          value={flight.date}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, date: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <Input
+                          placeholder="Flight Name"
+                          disabled={loading}
+                          value={flight.flightName}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, flightName: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <Input
+                          placeholder="Flight Number"
+                          disabled={loading}
+                          value={flight.flightNumber}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <Input
+                          placeholder="From"
+                          disabled={loading}
+                          value={flight.from}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, from: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+
+                        <Input
+                          placeholder="To"
+                          disabled={loading}
+                          value={flight.to}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, to: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+
+                        <Input
+                          placeholder="Departure Time"
+                          disabled={loading}
+                          value={flight.departureTime}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value]; // Ensure this is your state array
+                            newFlightDetails[index] = { ...flight, departureTime: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+
+                      </FormControl>
+                      <FormControl>
+
+                        <Input
+                          placeholder="Arrival Time"
+                          disabled={loading}
+                          value={flight.arrivalTime}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+                      <FormControl>
+                        <Input
+                          placeholder="Flight Duration"
+                          disabled={loading}
+                          value={flight.flightDuration}
+                          onChange={(e) => {
+                            const newFlightDetails = [...value];
+                            newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
+                            onChange(newFlightDetails);
+                          }}
+                        />
+                      </FormControl>
+
+
+                      <FormControl>
+                        <Button
+
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          disabled={loading}
+                          onClick={() => {
+                            const newFlightDetails = value.filter((_, i) => i != index);
+                            onChange(newFlightDetails);
+                          }}>
+                          Remove Flight
+                        </Button>
+                      </FormControl>
+                    </div>
+                  ))}
+                <FormControl>
+                  <Button type="button" size="sm"
+                    disabled={loading}
+                    onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
+                  >
+                    Add Flight
+                  </Button>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="itineraries"
+          render={({ field: { value = [], onChange } }) => (
+            <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+              <FormLabel>Create Itineraries</FormLabel>
+              {value.map((itinerary, index) => (
+                <div key={index} className="md:grid md:grid-cols-3 gap-8">
+                  <FormItem>
+                    <FormLabel>Day {index + 1}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Day"
+                        disabled={loading}
+
+                        value={itinerary.days}
+                        onChange={(e) => {
+                          const newItineraries = [...value];
+                          newItineraries[index] = { ...itinerary, days: e.target.value };
+                          onChange(newItineraries);
+                        }}
+                      />
+                    </FormControl>
+                  </FormItem>
+
+                  <ImageUpload
+                    value={itinerary.itineraryImages?.map((image) => image.url) || []}
+                    disabled={loading}
+                    onChange={(newItineraryUrl) => {
+                      const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
+                      // Update the itinerary with the new images array
+                      const updatedItineraries = [...value];
+                      updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                      onChange(updatedItineraries);
+                    }}
+                    onRemove={(itineraryURLToRemove) => {
+                      // Filter out the image to remove
+                      const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
+                      // Update the itinerary with the new images array
+                      const updatedItineraries = [...value];
+                      updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                      onChange(updatedItineraries);
+                    }}
+                  />
+
+
+
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Title"
+                        disabled={loading}
+
+                        value={itinerary.itineraryTitle}
+                        onChange={(e) => {
+                          const newItineraries = [...value];
+                          newItineraries[index] = { ...itinerary, itineraryTitle: e.target.value };
+                          onChange(newItineraries);
+                        }}
+                      />
+                    </FormControl>
+                  </FormItem>
+
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Description"
+                        disabled={loading}
+
+                        value={itinerary.itineraryDescription}
+                        onChange={(e) => {
+                          const newItineraries = [...value];
+                          newItineraries[index] = { ...itinerary, itineraryDescription: e.target.value };
+                          onChange(newItineraries);
+                        }}
+                      />
+                    </FormControl>
+                  </FormItem>
+
+                  <FormItem>
+                    <FormLabel>Hotel</FormLabel>
+                    <Select
+                      disabled={loading}
+                      value={itinerary.hotelId}
+                      defaultValue={itinerary.hotelId}
+                      onValueChange={(selectedHotelId) => {
+                        const newItineraries = [...value];
+                        newItineraries[index] = {
+                          ...itinerary,
+                          hotelId: selectedHotelId
+                        };
+                        onChange(newItineraries); // Update the state with the new itineraries
+
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            defaultValue={itinerary.hotelId}
+                            placeholder="Select a Hotel"
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {hotels.map((hotel) => (
+                          <SelectItem key={hotel.id} value={hotel.id}>
+                            {hotel.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+
+                  <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                    <FormLabel>Meal Plan</FormLabel>
+                    <FormControl>
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center gap-2">
+                          <Checkbox
+                            checked={itinerary.mealsIncluded?.includes('breakfast')}
+                            onCheckedChange={(isChecked) =>
+                              handleMealChange('breakfast', !!isChecked, index)
+                            }
+                          />
+                          Breakfast
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <Checkbox
+                            checked={itinerary.mealsIncluded?.includes('lunch')}
+                            onCheckedChange={(isChecked) =>
+                              handleMealChange('lunch', !!isChecked, index)
+                            }
+                          />
+                          Lunch
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <Checkbox
+                            checked={itinerary.mealsIncluded?.includes('dinner')}
+                            onCheckedChange={(isChecked) =>
+                              handleMealChange('dinner', !!isChecked, index)
+                            }
+                          />
+                          Dinner
+                        </label>
+                      </div>
+                    </FormControl>
+                  </FormItem>
+
+
+                  {itinerary.activities.map((activity, activityIndex) => (
+                    <div key={activityIndex} className="space-y-2">
+                      <FormControl>
+                        <Input
+                          disabled={loading}
+                          placeholder="Activity Title"
+                          value={activity.activityTitle}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                      <FormControl>
+                        <Textarea rows={10}
+                          placeholder="Activity Description"
+                          disabled={loading}
+                          value={activity.activityDescription}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+
+                      <ImageUpload
+                        value={activity.activityImages?.map((image) => image.url)}
+                        disabled={loading}
+                        onChange={(newActivityURL) => {
+                          // Add new image URL to the activity's images
+                          const updatedImages = [...activity.activityImages, { url: newActivityURL }];
+                          // Update the specific activity in the itinerary
+                          const updatedActivities = [...itinerary.activities];
+                          updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                          // Update the specific itinerary in the itineraries array
+                          const updatedItineraries = [...value];
+                          updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                          onChange(updatedItineraries);
+                        }}
+                        onRemove={(activityURLToRemove) => {
+                          // Filter out the image to remove
+                          const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                          // Update the specific activity in the itinerary
+                          const updatedActivities = [...itinerary.activities];
+                          updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                          // Update the specific itinerary in the itineraries array
+                          const updatedItineraries = [...value];
+                          updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                          onChange(updatedItineraries);
+                        }}
+                      />
+
+
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          const newItineraries = [...value];
+                          newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                          onChange(newItineraries);
+                        }}
+                      >
+                        Remove Activity
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      const newItineraries = [...value];
+                      newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
+                      onChange(newItineraries);
+                    }}
+                  >
+                    Add Activity
+                  </Button>
+
+
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      const newItineraries = value.filter((_, i) => i !== index);
+                      onChange(newItineraries);
+                    }}
+                  >
+                    Remove Itinerary for Day {index + 1}
+
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => onChange([...value, { days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
+              >
+                Add Itinerary
+              </Button>
+
+
+            </FormItem>
+          )}
+        />
+
+        <div className="md:grid md:grid-cols-2 gap-8">
+          {/* //add formfield for hotelDetails */}
+
+
+          {/* //add formfield for inclusions */}
+          <FormField
+            control={form.control}
+            name="inclusions"
+
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Inclusions</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Inclusions" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
 
+          {/* //add formfield for exclusions */}
+          <FormField
+            control={form.control}
+            name="exclusions"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Exclusions</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+        </div>
+        {/* //add formfield for paymentPolicy */}
+        <div className="md:grid md:grid-cols-2 gap-8">
 
-          <Button disabled={loading} className="ml-auto" type="submit">
-            {action}
-          </Button>
+          <FormField
+            control={form.control}
+            name="paymentPolicy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment Policy</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Payment Policy" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
 
-        </form >
-      </Form >
-    </>
-  )
+          {/* //add formfield for usefulTip */}
+          <FormField
+            control={form.control}
+            name="usefulTip"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Useful Tip</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Useful Tip" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+        </div>
+        {/* //add formfield for cancellationPolicy */}
+        <div className="md:grid md:grid-cols-2 gap-8">
+
+          <FormField
+            control={form.control}
+            name="cancellationPolicy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cancellation Policy</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Cancellation Policy" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+          {/* //add formfield for airlineCancellationPolicy */}
+
+          <FormField
+            control={form.control}
+            name="airlineCancellationPolicy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Airline Cancellation Policy</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+        </div>
+        {/* //add formfield for termsconditions */}
+        <FormField
+          control={form.control}
+          name="termsconditions"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Terms and Conditions</FormLabel>
+              <FormControl>
+                <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+
+
+        <Button disabled={loading} className="ml-auto" type="submit">
+          {action}
+        </Button>
+
+      </form >
+    </Form >
+  </>
+)
 } 

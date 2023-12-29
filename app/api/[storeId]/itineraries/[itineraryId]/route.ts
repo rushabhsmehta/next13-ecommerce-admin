@@ -26,6 +26,9 @@ export async function GET(
           include: {
             activityImages: true,
           },
+          orderBy: {
+            createdAt: 'asc'
+          },
         }
       }
     });
@@ -101,6 +104,20 @@ export async function PATCH(
       mealsIncluded,
     } = body;
 
+    itineraryImages.forEach((itineraryImage: any) => {
+      console.log("Itinerary Image URL is :", itineraryImage.url)
+    });
+
+
+    activities.forEach((activity: any) => {
+      activity.activityImages.forEach((activityImage: { url: any; }) => {
+        console.log("Activity Image URL is :", activityImage.url)
+      });
+    });
+
+    console.log("Data Received is : ", JSON.stringify(body, null, 2));
+
+
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
@@ -136,69 +153,56 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-
-
-
-
-    /* 
-    
-        const operations = [];
-        operations.push( */
-    await prismadb.itinerary.update({
-
-      where: {
-        id: params.itineraryId,
-      },
-      data: {
-        locationId,
-        tourPackageId,  // Update tourPackageId
-        tourPackageQueryId,  // Update tourPackageQueryId
-        itineraryTitle,
-        itineraryDescription,
-        days,  // Update days
-        hotelId,  // Update hotelId
-        mealsIncluded,  // Update mealsIncluded
-        itineraryImages: {
-          deleteMany: {},
-          createMany: {
-            data: [
-              ...itineraryImages.map((image: { url: string }) => image),
-            ],
-          },
+    const operations = [];
+    const itineraryUpdateData =
+    {
+      locationId,
+      tourPackageId,  // Update tourPackageId
+      tourPackageQueryId,  // Update tourPackageQueryId
+      itineraryTitle,
+      itineraryDescription,
+      days,  // Update days
+      hotelId,  // Update hotelId
+      mealsIncluded,  // Update mealsIncluded
+      itineraryImages: itineraryImages && itineraryImages.length > 0 ? {
+        deleteMany: {},
+        createMany: {
+          data: [
+            ...itineraryImages.map((image: { url: string }) => image),
+          ],
         },
-        activities: {
-          deleteMany: {},
-        }
+      } : { deleteMany: {} },
+      activities: {
+        deleteMany: {},
       }
     }
-    )
 
 
-    activities.forEach((activity: { locationId: string; activityTitle: string; activityDescription: string; activityImages: { url : string} []; storeId: string; }) => {
+    operations.push(prismadb.itinerary.update({
+      where: { id: params.itineraryId },
+      data: itineraryUpdateData
+    }));
 
-
-      prismadb.activity.create({
-        data: {
-          storeId: params.storeId,
-          activityTitle : activity.activityTitle,
-          activityDescription : activity.activityDescription,
-          locationId : activity.locationId,          
-          itineraryId : params.itineraryId,
-          activityImages: {
-
-            createMany: {
-              data: [
-                ...activity.activityImages.map((activityImage: { url: string }) => activityImage),
-              ],
-            },
+    activities.forEach((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+      const activityData = {
+        storeId: params.storeId,
+        itineraryId: params.itineraryId,
+        activityTitle: activity.activityTitle,
+        activityDescription: activity.activityDescription,
+        locationId: activity.locationId,
+        activityImages: activity.activityImages && activity.activityImages.length > 0 ? {
+          createMany: {
+            data: activity.activityImages.map((img) => ({ url: img.url })),
           },
-        }
-      }
-      )
-    }
-    )
+        } : {},
+      };
 
-    
+      operations.push(prismadb.activity.create({ data: activityData }));
+    });
+     
+     
+    await prismadb.$transaction(operations);
+
     const itinerary = await prismadb.itinerary.findUnique({
       where: { id: params.itineraryId },
       include: {

@@ -84,33 +84,15 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
   const toastMessage = initialData ? 'Itinerary updated.' : 'Itinerary created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const transformInitialData = (data: { 
-    id: string; 
-    storeId: string; 
-    locationId: string; 
-    tourPackageId: string | null; 
-    tourPackageQueryId: string | null; 
-    itineraryTitle: string | null; 
-    itineraryDescription: string | null;
-    itineraryImages : { id : string; url : string; }[];
-    days: string | null; 
-    hotelId: string | null; 
-    mealsIncluded: string | null; 
-    createdAt: Date; 
-    updatedAt: Date; 
-    activities: { 
-      id: string; 
-      storeId: string; 
-      locationId: string; 
-      activityImages : { id : string; url : string; }[];    
-      activityTitle: string; 
-      activityDescription: string; 
-      createdAt: Date; 
-      updatedAt: Date; 
-      itineraryId: string | null }[] }) => {
+  const transformInitialData = (data : any) => {
     return {
       ...data,
       mealsIncluded: data.mealsIncluded ? data.mealsIncluded.split(',') : [],
+      activities: data.activities.map((activity : any) => ({
+        ...activity,
+        itineraryId: data.itineraryId || '', // Convert null to undefined
+    }))
+         
 
       // locationId: data.locationId ?? '',
       // tourPackageId: data.tourPackageId ?? '',
@@ -166,7 +148,10 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
       mealsIncluded: data.mealsIncluded?.join(','), // Convert array to comma-separated string
       activities: data.activities?.map((activity) => ({
         ...activity,
+      
         locationId: data.locationId,
+        activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
+
       }))
     };
     console.log("Data being Submitted is : ", submitData);
@@ -429,7 +414,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '', activityImages: [] }])}
+                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '',  itineraryId : '', activityImages: [] }])}
                 >
                   Add Activity
                 </Button>

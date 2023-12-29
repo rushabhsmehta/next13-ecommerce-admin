@@ -32,7 +32,7 @@ const tourPackageQueryPage = async ({
       }
     }
   });
-  console.log("Fetched tourPackage Query:", tourPackageQuery);
+ // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
     where: {

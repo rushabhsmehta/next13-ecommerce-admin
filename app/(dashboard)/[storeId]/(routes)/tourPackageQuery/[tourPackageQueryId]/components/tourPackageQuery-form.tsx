@@ -129,103 +129,40 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const action = initialData ? 'Save changes' : 'Create';
   console.log("Initial Data : ", initialData?.itineraries)
 
-  const transformInitialData = (data: {
-    id: string;
-    storeId: string;
-    tourPackageQueryName: string;
-    customerName: string;
-    numDaysNight: string;
-    period: string;
-    numAdults: string;
-    numChild5to12: string;
-    numChild0to5: string;
-    locationId: string;
-    //location : string;
-    //hotelId: string;
-    price: string;
-    isFeatured: boolean;
-    isArchived: boolean;
-    assignedTo: string | null;
-    assignedToMobileNumber: string | null;
-    assignedToEmail: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-    flightDetails: {
-      id: string;
-      date: string | null;
-      flightName: string | null;
-      flightNumber: string | null;
-      from: string | null,
-      to: string | null,
-      departureTime: string | null;
-      arrivalTime: string | null;
-      flightDuration: string | null;
-    }[];
-    // hotelDetails: string;
-    inclusions: string;
-    exclusions: string;
-    paymentPolicy: string;
-    usefulTip: string;
-    cancellationPolicy: string;
-    airlineCancellationPolicy: string;
-    termsconditions: string;
-    images: { id: string; url: string; }[];
-    itineraries: {
-      id: string;
-      storeId: string;
-      itineraryImages: { id: string; url: string; }[];
-      itineraryTitle: string | null;
-      itineraryDescription: string | null;
-      days: string | null;
-      hotelId: string | null;
-      locationId: string | null;
-      //hotel : string | null;
-      mealsIncluded: string | null;
-      createdAt: Date;
-      updatedAt: Date;
-      activities?: {
-        id: string;
-        storeId: string,
-        locationId: string,
-        activityImages: { id: string; url: string; }[];
-        activityTitle: string,
-        activityDescription: string
-      }[]; // Mark as optional
-    }[];
-  }) => {
+  const transformInitialData = (data: any) => {
     return {
       ...data,
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
-      flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
-        date: date ?? '',
-        flightName: flightName ?? '',
-        flightNumber: flightNumber ?? '',
-        from: from ?? '',
-        to: to ?? '',
-        departureTime: departureTime ?? '',
-        arrivalTime: arrivalTime ?? '',
-        flightDuration: flightDuration ?? '',
+      flightDetails: data.flightDetails.map((flightDetail : any ) => ({
+        date: flightDetail.date ?? '',
+        flightName: flightDetail.flightName ?? '',
+        flightNumber: flightDetail.flightNumber ?? '',
+        from: flightDetail.from ?? '',
+        to: flightDetail.to ?? '',
+        departureTime: flightDetail.departureTime ?? '',
+        arrivalTime: flightDetail.arrivalTime ?? '',
+        flightDuration: flightDetail.flightDuration ?? '',
       })),
 
-      itineraries: data.itineraries.map(({ days, itineraryImages, itineraryTitle, itineraryDescription, hotelId, locationId, mealsIncluded, activities, }) => ({
+      itineraries: data.itineraries.map((itinerary : any)  => ({
 
         storeId: params.storeId,
-        days: days ?? '',
-        itineraryImages: itineraryImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
-        itineraryTitle: itineraryTitle ?? '',
-        itineraryDescription: itineraryDescription ?? '',
-        hotelId: hotelId ?? '',
-        locationId: locationId ?? '',
+        days: itinerary.days ?? '',
+        itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
+        itineraryTitle: itinerary.itineraryTitle ?? '',
+        itineraryDescription: itinerary.itineraryDescription ?? '',
+        hotelId: itinerary.hotelId ?? '',
+        locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
-        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-        activities: activities?.map(({ locationId, activityImages, activityTitle, activityDescription }) => ({
+        mealsIncluded: itinerary.mealsIncluded ?itinerary.mealsIncluded.split(',') : [],
+        activities: itinerary.activities?.map((activity : any) => ({
           storeId: params.storeId,
-          locationId: locationId ?? '',
-          activityImages: activityImages.map(image => ({ url: image.url })), // Transform to { url: string }[]        
-          activityTitle: activityTitle ?? '',
-          activityDescription: activityDescription ?? '',
+          locationId: activity.locationId ?? '',
+          activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
+          activityTitle: activity.activityTitle ?? '',
+          activityDescription: activity.activityDescription ?? '',
         }))
       }))
     };

@@ -57,10 +57,7 @@ interface ItineraryFormProps {
   initialData: Itinerary
   & {
     itineraryImages: Images[],
-    activities: Activity[] &
-    {
-      activityImages : Images[],
-    }
+    activities: Activity[],
   }
   | null;
   // images: Images[];
@@ -88,9 +85,9 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     return {
       ...data,
       mealsIncluded: data.mealsIncluded ? data.mealsIncluded.split(',') : [],
-      activities: data.activities.map((activity: { activityImages: { url: string }[] }) => ({
+      activities: data.activities.map((activity: any) => ({
         ...activity,
-        activityImages: activity.activityImages.map((image : { url : string }) => ({ 
+        activityImages: activity.activityImages.map((image : any) => ({ 
           url: image.url,
         })),        
         itineraryId: data.itineraryId || '', // Convert null to undefined
@@ -127,15 +124,8 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     itineraryImages: [],
     days: '',
     hotelId: '',
-    mealsIncluded: [],
-    activities: [
-      {
-        activityTitle: '',
-        activityDescription: '',
-        activityImages: [],
-        locationId: '', // Default to empty or you can set to first location if preferred
-        itineraryId: '', // Default to empty as it's optional
-      }]
+    mealsIncluded: '',
+    activities: [],
   }
 
 

@@ -242,6 +242,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none',
         activities: itinerary.activities?.map((activity) => ({
           ...activity,
+         // activityTitle : activity.activityTitle,
+         // activityDescription : activity.activityDescription,
           storeId: params.storeId,
           locationId: data.locationId,
 
@@ -756,7 +758,7 @@ return (
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input
+                      <Textarea rows={3}
                         placeholder="Title"
                         disabled={loading}
 
@@ -773,7 +775,7 @@ return (
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Input
+                      <Textarea rows={10}
                         placeholder="Description"
                         disabled={loading}
 
@@ -861,7 +863,7 @@ return (
                   {itinerary.activities.map((activity, activityIndex) => (
                     <div key={activityIndex} className="space-y-2">
                       <FormControl>
-                        <Input
+                        <Textarea rows={3}
                           disabled={loading}
                           placeholder="Activity Title"
                           value={activity.activityTitle}

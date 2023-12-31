@@ -12,12 +12,12 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true, 
+      images: true,
       flightDetails: true,
-      itineraries: { 
+      itineraries: {
         include: {
           activities: true,
-        },      
+        },
         orderBy: {
           days: 'asc' // or 'desc', depending on the desired order
         }
@@ -36,13 +36,16 @@ const tourPackageQueryPage = async ({
     where: {
       storeId: params.storeId,
     },
+    include: {
+      images: true,
+    }
   });
 
-  
+
 
   return (
     <div className="flex-col">
-     {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+      {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
@@ -53,7 +56,7 @@ const tourPackageQueryPage = async ({
  */}
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryDisplay
-          initialData = {tourPackageQuery}
+          initialData={tourPackageQuery}
           locations={locations}
           hotels={hotels}
         //    itineraries={[]}

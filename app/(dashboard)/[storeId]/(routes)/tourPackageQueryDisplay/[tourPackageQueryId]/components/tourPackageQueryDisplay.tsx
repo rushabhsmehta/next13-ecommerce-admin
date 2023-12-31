@@ -13,7 +13,6 @@ import {
   FormLabel,
 } from "@/components/ui/form"
 import { PlaneTakeoffIcon } from "lucide-react";
-import prismadb from "@/lib/prismadb";
 
 
 
@@ -228,6 +227,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
   if (!initialData) return <div>No data available</div>;
 
+
+
+
+
+
   return (
 
     <div className="flex flex-col space-y-8 md:space-y-12">
@@ -343,33 +347,36 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     <div>
                       <div className="p-4 rounded-lg">
                         <div className="font-bold text-lg">Day {index + 1}</div>
-                        <div className="font-bold text-lg">{itinerary.itineraryTitle}</div>
-                        <div className="font-bold text-lg">{itinerary.itineraryDescription}</div>
+                        <div className="font-bold">{itinerary.itineraryTitle}</div>
+                        <div className="text-sm ml-2">{itinerary.itineraryDescription}</div>
 
 
                         <div className="font-medium">
                           Hotel: {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
                           <div className="mt-2 grid grid-cols-2 gap-4"> {/* Adjust grid layout as needed */}
                           
-                          {/*   {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.((image, index) => (
+                            {/* {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.map((image, index) => ( */}
                               <Image
+                                key={index}
                                 alt={`Hotel Image ${index + 1}`}
                                 className="rounded-lg object-cover"
                                 height="200"
-                                src={image.url} // assuming image.url is the path to the image
+                                src={''} // assuming image.url is the path to the image
                                 style={{
                                   aspectRatio: "200/200",
                                   objectFit: "cover",
                                 }}
                                 width="200"
                               />
-                            ))} */}
+                            {/* ))} */}
                           </div>
 
 
 
                           <div className="font-bold mt-2">Meal Plan:</div>
                           <div className="font-medium">{itinerary.mealsIncluded}</div>
+
+
                           {itinerary.activities.map((activity, activityIndex: number) => (
                             <div key={activityIndex} className="mt-4">
                               <div>{activity.title}</div>
@@ -386,6 +393,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           />
         </form>
       </Form>
+
+
+
+
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

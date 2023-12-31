@@ -218,8 +218,8 @@ model Itinerary {
 
   tourPackageId      String?
   tourPackageQueryId String?
-  itineraryTitle              String?
-  itineraryDescription        String?
+  itineraryTitle              String? @db.Text
+  itineraryDescription        String? @db.Text
   itineraryImages             Images[]
   days               String?
   hotelId            String?

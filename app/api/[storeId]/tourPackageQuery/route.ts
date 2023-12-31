@@ -3,6 +3,51 @@ import { auth } from '@clerk/nextjs';
 
 import prismadb from '@/lib/prismadb';
 
+async function createItineraryAndActivities(itinerary: { storeId: string, itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageQueryId: any) {
+    // First, create the itinerary and get its id
+    const createdItinerary = await prismadb.itinerary.create({
+        data: {
+            storeId: storeId,
+            itineraryTitle: itinerary.itineraryTitle,
+            itineraryDescription: itinerary.itineraryDescription,
+            locationId: itinerary.locationId,
+            tourPackageId: itinerary.tourPackageId,
+            tourPackageQueryId: tourPackageQueryId,
+            days: itinerary.days,
+            hotelId: itinerary.hotelId,
+            mealsIncluded: itinerary.mealsIncluded,
+            itineraryImages: {
+                createMany: {
+                    data: itinerary.itineraryImages.map((image: { url: any; }) => ({ url: image.url })),
+                },
+            },
+        },
+    });
+
+    // Next, create activities linked to this itinerary
+    if (itinerary.activities && itinerary.activities.length > 0) {
+        await Promise.all(itinerary.activities.map((activity: { storeId: string, activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+            console.log("Received Activities is ", activity);
+            return prismadb.activity.create({
+                data: {
+                    storeId: storeId,
+                    itineraryId: createdItinerary.id, // Link to the created itinerary
+                    activityTitle: activity.activityTitle,
+                    activityDescription: activity.activityDescription,
+                    locationId: activity.locationId,
+                    activityImages: {
+                        createMany: {
+                            data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+                        },
+                    },
+                },
+            });
+        }));
+    }
+
+    return createdItinerary;
+}
+
 export async function POST(
     req: Request,
     { params }: { params: { storeId: string } }
@@ -77,7 +122,7 @@ export async function POST(
             return new NextResponse("Unauthorized", { status: 405 });
         }
 
-        const tourPackageQuery = await prismadb.tourPackageQuery.create({
+        const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
                 tourPackageQueryName,
                 customerName,
@@ -108,39 +153,6 @@ export async function POST(
                         ],
                     },
                 },
-
-                itineraries: {
-                    create: itineraries.map((itinerary: { locationId: string, itineraryTitle: string; itineraryDescription: string; days: string; hotelId: string; mealsIncluded: string; itineraryImages: { url: string }[]; activities: { storeId: string; locationId: string; title: string, description: string, activityImages: { url: string }[], }[]; }) => ({
-                        
-                        storeId: params.storeId,
-                        locationId: itinerary.locationId,
-
-                        itineraryTitle: itinerary.itineraryTitle,
-                        itineraryDescription: itinerary.itineraryDescription,
-                        days: itinerary.days,
-                        hotelId: itinerary.hotelId,
-                        mealsIncluded: itinerary.mealsIncluded,
-                        itineraryImages: {
-                            createMany: {
-                                data: itinerary.itineraryImages.map((img: { url: string; }) => ({ url: img.url })),
-                            },
-                        },
-                        activities: {
-                            create: itinerary.activities.map((activity: { locationId: string; title: string; description: string; activityImages: { url: string }[]; }) => ({
-                                storeId: params.storeId,
-                                locationId: activity.locationId,
-                                title: activity.title,
-                                description: activity.description,
-                                activityImages: {
-                                    createMany: {
-                                        data: activity.activityImages.map((img: { url: string; }) => ({ url: img.url })),
-                                    },
-                                },
-                            })),
-                        },
-                    })),
-                },
-
                 flightDetails: {
                     createMany: {
                         data: [
@@ -148,9 +160,24 @@ export async function POST(
                     }
                 },
             },
+        }
+        )
+
+        if (itineraries && itineraries.length > 0) {
+            for (const itinerary of itineraries) {
+                await createItineraryAndActivities(itinerary, params.storeId, newTourPackageQuery.id);
+            }
+        }
+
+        const createdTourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+            where: { id: newTourPackageQuery.id },
+            include: {
+                // Include relevant relations
+            },
         });
 
-        return NextResponse.json(tourPackageQuery);
+
+        return NextResponse.json(createdTourPackageQuery);
     } catch (error) {
         console.log('[TOURPACKAGE_QUERY_POST]', error);
         return new NextResponse("Internal error", { status: 500 });

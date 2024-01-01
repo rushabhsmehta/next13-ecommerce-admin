@@ -373,6 +373,20 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div key={activityIndex} className="mt-4 border-b pb-2 mb-2">
                   <div className="font-bold mt-2">{activity.activityTitle}</div>
                   <div className="font-medium">{activity.activityDescription}</div>
+                  {activity.activityImages?.map((image, imageIndex: number) => (
+                     <Image
+                     key={index}
+                     alt={`Activity Image ${imageIndex + 1}`}
+                     className="rounded-lg object-cover"
+                     height="200"
+                     src={image.url} // assuming image.url is the path to the image
+                     style={{
+                       aspectRatio: "200/200",
+                       objectFit: "cover",
+                     }}
+                     width="200"
+                   />))
+                    }
                 </div>
               ))}
             </div>

@@ -156,7 +156,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         hotelId: itinerary.hotelId ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
-        mealsIncluded: itinerary.mealsIncluded ?itinerary.mealsIncluded.split(',') : [],
+        mealsIncluded: itinerary.mealsIncluded ?itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity : any) => ({
           storeId: params.storeId,
           locationId: activity.locationId ?? '',
@@ -239,7 +239,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         ...itinerary,
         storeId: params.storeId,
         locationId: data.locationId,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none',
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join('-') : 'none',
         activities: itinerary.activities?.map((activity) => ({
           ...activity,
          // activityTitle : activity.activityTitle,
@@ -830,27 +830,27 @@ return (
                       <div className="flex flex-col gap-2">
                         <label className="flex items-center gap-2">
                           <Checkbox
-                            checked={itinerary.mealsIncluded?.includes('breakfast')}
+                            checked={itinerary.mealsIncluded?.includes('Breakfast')}
                             onCheckedChange={(isChecked) =>
-                              handleMealChange('breakfast', !!isChecked, index)
+                              handleMealChange('Breakfast', !!isChecked, index)
                             }
                           />
                           Breakfast
                         </label>
                         <label className="flex items-center gap-2">
                           <Checkbox
-                            checked={itinerary.mealsIncluded?.includes('lunch')}
+                            checked={itinerary.mealsIncluded?.includes('Lunch')}
                             onCheckedChange={(isChecked) =>
-                              handleMealChange('lunch', !!isChecked, index)
+                              handleMealChange('Lunch', !!isChecked, index)
                             }
                           />
                           Lunch
                         </label>
                         <label className="flex items-center gap-2">
                           <Checkbox
-                            checked={itinerary.mealsIncluded?.includes('dinner')}
+                            checked={itinerary.mealsIncluded?.includes('Dinner')}
                             onCheckedChange={(isChecked) =>
-                              handleMealChange('dinner', !!isChecked, index)
+                              handleMealChange('Dinner', !!isChecked, index)
                             }
                           />
                           Dinner

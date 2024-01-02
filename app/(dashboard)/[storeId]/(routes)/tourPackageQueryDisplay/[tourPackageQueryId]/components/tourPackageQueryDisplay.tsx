@@ -31,12 +31,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card>
-      <CardHeader>
+        <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
             Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
-       </CardHeader>
+        </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
@@ -56,7 +56,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Tour Package Details */}
       <Card>
         <CardHeader>
-          
+
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
@@ -129,33 +129,38 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardHeader>
             <CardContent>
               <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>
-              <div className="font-bold">Hotel:</div>
-              <p className="text-sm mb-2">{hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || 'Hotel Name Not Available'}</p>
+              <Card>
 
-              {/* Display hotel images */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                  <Image
-                    key={imgIndex}
-                    src={image.url}
-                    alt={`Hotel Image ${imgIndex + 1}`}
-                    width={200}
-                    height={200}
-                    className="rounded-lg object-cover"
-                  />
-                ))}
+              <div className="mb-4 flex items-start space-x-4">
+                {/* Images Container */}
+                <div className="flex-shrink-0 mx-2 my-2">
+                  {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                    <Image
+                      key={imgIndex}
+                      src={image.url}
+                      alt={`Hotel Image ${imgIndex + 1}`}
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-cover mb-2"
+                    />
+                  ))}
+                </div>
+
+                {/* Text Content */}
+                <div className="flex-grow mx-2 my-2">
+                  <div className="font-bold">Hotel:</div>
+                  <p className="text-sm mb-2">{hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || 'Hotel Name Not Available'}</p>
+
+                  <div className="font-bold">Meal Plan:</div>
+                  <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                </div>
               </div>
-
-              <div className="font-bold">Meal Plan:</div>
-              <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
-
+              </Card>
               {/* Display activities */}
               {itinerary.activities.map((activity, activityIndex) => (
-                <div key={activityIndex} className="mb-4">
-                  <div className="font-bold">{activity.activityTitle}</div>
-                  <p className="text-sm">{activity.activityDescription}</p>
-                  {/* Display activity images */}
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                <div key={activityIndex} className="mb-4 flex items-start space-x-4">
+                  {/* Images Container */}
+                  <div className="flex-shrink-0 mx-2 my-2">
                     {activity.activityImages.map((image, actImgIndex) => (
                       <Image
                         key={actImgIndex}
@@ -163,12 +168,19 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         alt={`Activity Image ${actImgIndex + 1}`}
                         width={200}
                         height={200}
-                        className="rounded-lg object-cover"
+                        className="rounded-lg object-cover mb-2" // Added margin-bottom for spacing between images
                       />
                     ))}
                   </div>
+
+                  {/* Text Content */}
+                  <div className="flex-grow mx-2 my-2">
+                    <div className="font-bold">{activity.activityTitle}</div>
+                    <p className="text-sm">{activity.activityDescription}</p>
+                  </div>
                 </div>
               ))}
+
             </CardContent>
           </Card>
         ))

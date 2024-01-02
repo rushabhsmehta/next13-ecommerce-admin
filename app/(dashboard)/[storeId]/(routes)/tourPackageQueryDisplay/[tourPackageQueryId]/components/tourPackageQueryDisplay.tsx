@@ -28,7 +28,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   if (!initialData) return <div>No data available</div>;
 
   return (
-    <div className="flex flex-col space-y-8 md:space-y-12">
+    <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card>
       <CardHeader>
@@ -37,7 +37,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3 justify-center items-center">
+        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
               <Image
@@ -61,32 +61,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="font-bold">Location:</div>
-              <div>{locations.find(location => location.id === initialData.locationId)?.label || 'N/A'}</div>
+              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label || 'N/A'}</div>
             </div>
             <div>
-              <div className="font-bold">Duration:</div>
-              <div>{initialData.numDaysNight || 'N/A'}</div>
+              <div className="font-semibold">Duration : {initialData.numDaysNight || 'N/A'}</div>
             </div>
             <div>
-              <div className="font-bold">Period:</div>
-              <div>{initialData.period || 'N/A'}</div>
+              <div className="font-semibold">Period : {initialData.period || 'N/A'}</div>
             </div>
             <div>
-              <div className="font-bold">Adults:</div>
-              <div>{initialData.numAdults || 'N/A'}</div>
+              <div className="font-semibold">Adults : {initialData.numAdults || 'N/A'}</div>
             </div>
             <div>
-              <div className="font-bold">Children (5 - 12 Years):</div>
-              <div>{initialData.numChild5to12 || 'N/A'}</div>
+              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12 || 'N/A'}</div>
             </div>
             <div>
-              <div className="font-bold">Children (0 - 5 Years):</div>
-              <div>{initialData.numChild0to5 || 'N/A'}</div>
+              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5 || 'N/A'}</div>
             </div>
             <div>
-              <div className="font-bold">Price:</div>
-              <div>{initialData.price || 'N/A'}</div>
+              <div className="font-semibold">Price : {initialData.price || 'N/A'}</div>
             </div>
           </div>
         </CardContent>
@@ -99,18 +92,18 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardTitle>Flight Details</CardTitle>
         </CardHeader>
         {initialData.flightDetails.map((flight, index) => (
-          <CardContent key={index} className="flex flex-col bg-white rounded-lg shadow-lg p-4 my-4">
+          <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
             <div className="flex items-center justify-between border-b pb-2 mb-2">
-              <span className="font-semibold text-lg">{flight.date || 'Date Not Available'}</span>
+              <span className="font-semibold text-sm">{flight.date || 'Date Not Available'}</span>
               <div>
-                <span className="font-semibold">{flight.flightName || 'Flight Name Not Available'}</span> |
-                <span className="ml-1">{flight.flightNumber || 'Flight Number Not Available'}</span>
+                <span className="font-semibold text-xs">{flight.flightName || 'Flight Name Not Available'}</span> |
+                <span className="text-xs ml-1">{flight.flightNumber || 'Flight Number Not Available'}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="font-bold">{flight.from || 'Origin Not Available'}</div>
-                <div className="text-sm ml-2">{flight.departureTime || 'Departure Time Not Available'}</div>
+                <div className="font-bold text-xs">{flight.from || 'Origin Not Available'}</div>
+                <div className="text-xs ml-2">{flight.departureTime || 'Departure Time Not Available'}</div>
               </div>
               <div className="mx-2 text-center">
                 <span> <PlaneTakeoffIcon /> </span>
@@ -118,7 +111,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <hr className="border-t-2 border-black mx-1" />
               </div>
               <div className="flex items-center">
-                <div className="font-bold">{flight.to || 'Destination Not Available'}</div>
+                <div className="font-bold text-xs">{flight.to || 'Destination Not Available'}</div>
                 <div className="text-sm ml-2">{flight.arrivalTime || 'Arrival Time Not Available'}</div>
               </div>
             </div>
@@ -182,7 +175,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       }
 
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         {/* Inclusions Card */}
         <Card>
           <CardHeader>

@@ -3,6 +3,7 @@ import { PlaneTakeoffIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 
+
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
     images: Images[];
@@ -254,7 +255,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.termsconditions}</pre>
+            <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
           </CardContent>
         </Card>
       </div>

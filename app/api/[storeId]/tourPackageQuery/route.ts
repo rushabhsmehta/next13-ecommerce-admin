@@ -87,7 +87,7 @@ export async function POST(
             return new NextResponse("Unauthenticated", { status: 403 });
         }
 
-        if (!tourPackageQueryName) {
+      /*   if (!tourPackageQueryName) {
             return new NextResponse("Tour Package Query Name is required", { status: 400 });
         }
 
@@ -97,7 +97,7 @@ export async function POST(
 
         if (!price) {
             return new NextResponse("Price is required", { status: 400 });
-        }
+        } */
 
         if (!locationId) {
             return new NextResponse("Location id is required", { status: 400 });

@@ -33,7 +33,7 @@ export async function GET(
             }
           },
           orderBy: {
-            days: 'asc'
+            createdAt: 'asc',
           },
         },
       },
@@ -178,7 +178,7 @@ export async function PATCH(
       return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
-    if (!tourPackageQueryName) {
+ /*    if (!tourPackageQueryName) {
       return new NextResponse("Tour Package Query Name is required", { status: 400 });
     }
 
@@ -188,7 +188,7 @@ export async function PATCH(
 
     if (!price) {
       return new NextResponse("Price is required", { status: 400 });
-    }
+    } */
 
     if (!locationId) {
       return new NextResponse("Location id is required", { status: 400 });

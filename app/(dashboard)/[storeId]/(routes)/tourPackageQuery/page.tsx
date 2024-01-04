@@ -39,10 +39,10 @@ const tourPackageQueryPage = async ({
 
   const formattedtourPackageQuery : TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
     id: item.id,
-    tourPackageQueryName : item.tourPackageQueryName,
+    tourPackageQueryName : item.tourPackageQueryName ?? '',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
-    price: item.price,
+    price: item.price ?? '',
     location: item.location.label,
     //hotel: item.hotel.name,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),

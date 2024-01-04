@@ -211,7 +211,6 @@ export async function PATCH(
     }
 
 
-    const operations = [];
     const tourPackageUpdateData =
     {
 
@@ -264,10 +263,10 @@ export async function PATCH(
       }
     }
 
-    operations.push(prismadb.tourPackageQuery.update({
+    await prismadb.tourPackageQuery.update({
       where: { id: params.tourPackageQueryId },
       data: tourPackageUpdateData
-    }));
+    });
 
 
    /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageQueryId: string; }) => {
@@ -289,19 +288,17 @@ export async function PATCH(
     );
  */
 
+    
     if (itineraries && itineraries.length > 0) {
-      for (const itinerary of itineraries) {
-          await createItineraryAndActivities(itinerary, params.storeId, params.tourPackageQueryId);
-      }
-  }
+      // Map each itinerary to a promise to create the itinerary and its activities
+      const itineraryPromises = itineraries.map((itinerary : any)=> 
+        createItineraryAndActivities(itinerary, params.storeId, params.tourPackageQueryId)
+      );
 
-  /*   itineraries.forEach(async (itinerary: any) => {
-
-      await createItineraryAndActivities(itinerary, params.storeId, params.tourPackageQueryId);
+      // Wait for all itinerary promises to resolve
+      await Promise.all(itineraryPromises);
     }
-    ) */
 
-    await prismadb.$transaction(operations);
 
 
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({

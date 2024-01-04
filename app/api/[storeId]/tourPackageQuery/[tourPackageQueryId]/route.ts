@@ -256,7 +256,11 @@ export async function PATCH(
       },
 
       flightDetails : {
-        deleteMany : {}
+        deleteMany : {},
+        createMany: {
+          data: [
+              ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
+      }
       }
     }
 
@@ -266,7 +270,7 @@ export async function PATCH(
     }));
 
 
-    flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageQueryId: string; }) => {
+   /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageQueryId: string; }) => {
       const flightDetailData =
       {
         date: flightDetail.date,
@@ -283,12 +287,19 @@ export async function PATCH(
       operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
     }
     );
+ */
 
-    itineraries.forEach(async (itinerary: any) => {
+    if (itineraries && itineraries.length > 0) {
+      for (const itinerary of itineraries) {
+          await createItineraryAndActivities(itinerary, params.storeId, params.tourPackageQueryId);
+      }
+  }
+
+  /*   itineraries.forEach(async (itinerary: any) => {
 
       await createItineraryAndActivities(itinerary, params.storeId, params.tourPackageQueryId);
     }
-    )
+    ) */
 
     await prismadb.$transaction(operations);
 

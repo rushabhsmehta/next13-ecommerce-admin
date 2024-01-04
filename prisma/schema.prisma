@@ -118,22 +118,22 @@ model Product {
 model TourPackageQuery {
   id                        String          @id @default(uuid())
   storeId                   String
-  tourPackageQueryName      String
-  customerName              String
-  numDaysNight              String
+  tourPackageQueryName      String?
+  customerName              String?
+  numDaysNight              String?
   locationId                String
-  period                    String
-  numAdults                 String
-  numChild5to12             String
-  numChild0to5              String
-  price                     String
-  inclusions                String @db.Text
-  exclusions                String @db.Text
-  paymentPolicy             String @db.Text
-  usefulTip                 String @db.Text
-  cancellationPolicy        String @db.Text
-  airlineCancellationPolicy String @db.Text
-  termsconditions           String @db.Text
+  period                    String?
+  numAdults                 String?
+  numChild5to12             String?
+  numChild0to5              String?
+  price                     String?
+  inclusions                String? @db.Text
+  exclusions                String? @db.Text
+  paymentPolicy             String? @db.Text
+  usefulTip                 String? @db.Text
+  cancellationPolicy        String? @db.Text
+  airlineCancellationPolicy String? @db.Text
+  termsconditions           String? @db.Text
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
@@ -170,8 +170,8 @@ model TourPackage {
   storeId     String
   locationId  String
   hotelId     String
-  name        String
-  price       Decimal
+  name        String?
+  price       Decimal?
   isFeatured  Boolean     @default(false)
   isArchived  Boolean     @default(false)
   createdAt   DateTime    @default(now())
@@ -195,8 +195,8 @@ model Activity {
   location     Location      @relation(fields: [locationId], references: [id])
   
   activityImages      Images[]
-  activityTitle       String     @db.Text
-  activityDescription String     @db.Text
+  activityTitle       String?     @db.Text
+  activityDescription String?     @db.Text
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   itineraryId String?
@@ -208,7 +208,7 @@ model Activity {
 }
 
 model Itinerary {
-  id                 String            @id @default(uuid())
+  id          String            @id @default(uuid())
 
   storeId     String
   store       Store         @relation("StoreToItinerary", fields: [storeId], references: [id])
@@ -293,7 +293,7 @@ model Images {
   productId          String?
   tourPackageId      String?
   tourPackageQueryId String?
-  url                String
+  url                String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   product            Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)

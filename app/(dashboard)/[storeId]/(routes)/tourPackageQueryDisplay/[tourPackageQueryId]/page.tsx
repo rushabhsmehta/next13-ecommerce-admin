@@ -22,10 +22,13 @@ const tourPackageQueryPage = async ({
             include: {
               activityImages: true,
             },
+            orderBy: {
+              createdAt: 'desc',
+            },
           },
         },
         orderBy: {
-          days: 'asc' // or 'desc', depending on the desired order
+          createdAt: 'desc',
         }
       }
     }

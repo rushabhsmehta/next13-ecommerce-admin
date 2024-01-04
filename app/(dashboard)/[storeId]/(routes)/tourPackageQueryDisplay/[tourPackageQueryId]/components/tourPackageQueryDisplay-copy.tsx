@@ -1,172 +1,24 @@
-'use client'
-import * as z from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
-import Image from 'next/image'
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form"
+import Image from 'next/image';
 import { PlaneTakeoffIcon } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 
-
-
-const activitySchema = z.object({
-  title: z.string(),
-  description: z.string(),
-});
-
-const itinerarySchema = z.object({
-  days: z.string(),
-  itineraryTitle : z.string(),
-  itineraryDescription: z.string(),
-  activities: z.array(activitySchema),
-  mealsIncluded: z.array(z.string()).optional(),
-  hotelId: z.string(), // Array of hotel IDs
-  // hotel : z.string(),
-});
-
-
-const flightDetailsSchema = z.object({
-
-  date: z.string(),
-  flightName: z.string(),
-  flightNumber: z.string(),
-  from: z.string(),
-  to: z.string(),
-  departureTime: z.string(),
-  arrivalTime: z.string(),
-  flightDuration: z.string(),
-}); // Assuming an array of flight details
-
-const formSchema = z.object({
-  tourPackageQueryName: z.string().min(1),
-  customerName: z.string().min(1),
-  numDaysNight: z.string().min(1),
-  period: z.string(),
-  numAdults: z.string(),
-  numChild5to12: z.string(),
-  numChild0to5: z.string(),
-  price: z.string().min(1),
-  locationId: z.string().min(1),
-  //location : z.string(),
-  // hotelId: z.string().min(1),
-  flightDetails: flightDetailsSchema.array(),
-  //  hotelDetails: z.string(),
-  inclusions: z.string(),
-  exclusions: z.string(),
-  paymentPolicy: z.string(),
-  usefulTip: z.string(),
-  cancellationPolicy: z.string(),
-  airlineCancellationPolicy: z.string(),
-  termsconditions: z.string(),
-  images: z.object({ url: z.string() }).array(),
-  itineraries: itinerarySchema.array(),
-  isFeatured: z.boolean().default(false).optional(),
-  isArchived: z.boolean().default(false).optional(),
-  assignedTo: z.string().optional(),
-  assignedToMobileNumber: z.string().optional(),
-  assignedToEmail: z.string().optional(),
-});
-
-type TourPackageQueryDisplayValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
     images: Images[];
-    itineraries: Itinerary[];
+    itineraries: (Itinerary & {
+      itineraryImages: Images[];
+      activities: (Activity & {
+        activityImages: Images[];
+      })[];
+    })[];
     flightDetails: FlightDetails[];
   } | null;
   locations: Location[];
-  hotels: Hotel[];
-  //  itineraries: Itinerary[];
-};
-
-const transformInitialData = (data: {
-  id: string;
-  storeId: string;
-  tourPackageQueryName: string;
-  customerName: string;
-  numDaysNight: string;
-  period: string;
-  numAdults: string;
-  numChild5to12: string;
-  numChild0to5: string;
-  locationId: string;
-  //location : string;
-  //hotelId: string;
-  price: string;
-  isFeatured: boolean;
-  isArchived: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  flightDetails: {
-    id: string;
-    date: string | null;
-    flightName: string | null;
-    flightNumber: string | null;
-    from: string | null,
-    to: string | null,
-    departureTime: string | null;
-    arrivalTime: string | null;
-    flightDuration: string | null;
-  }[];
-  // hotelDetails: string;
-  inclusions: string;
-  exclusions: string;
-  paymentPolicy: string;
-  usefulTip: string;
-  cancellationPolicy: string;
-  airlineCancellationPolicy: string;
-  termsconditions: string;
-  assignedTo : string | null;
-  assignedToMobileNumber : string | null;
-  assignedToEmail : string | null;
-  images: { id: string; url: string; }[];
-  itineraries: {
-    id: string;
-    days: string | null;
-    itineraryTitle : string | null;
-    itineraryDescription: string | null;
-    hotelId: string | null;
-    //hotel : string | null;
-    mealsIncluded: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-    activities?: { title: string, description: string }[]; // Mark as optional
-  }[];
-}) => {
-  return {
-    ...data,
-    assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-    assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-    assignedToEmail: data.assignedToEmail ?? '',
-    flightDetails: data.flightDetails.map(({ date, flightName, flightNumber, from, to, departureTime, arrivalTime, flightDuration }) => ({
-      date: date ?? '',
-      flightName: flightName ?? '',
-      flightNumber: flightNumber ?? '',
-      from: from ?? '',
-      to: to ?? '',
-      departureTime: departureTime ?? '',
-      arrivalTime: arrivalTime ?? '',
-      flightDuration: flightDuration ?? '',
-    })),
-
-    itineraries: data.itineraries.map(({ days, itineraryTitle, itineraryDescription, hotelId, mealsIncluded, activities, }) => ({
-      days: days ?? '',
-      itineraryTitle: itineraryTitle ?? '',
-      itineraryDescription : itineraryDescription ?? '',
-      hotelId: hotelId ?? '',
-      //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
-      mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [],
-      activities: activities ?? [],
-    }))
-  };
+  hotels: (Hotel & {
+    images: Images[];
+  })[];
 };
 
 export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
@@ -174,288 +26,240 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   locations,
   hotels,
 }) => {
-
-  const form = useForm<TourPackageQueryDisplayValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: initialData ? transformInitialData(initialData) : {
-      // Default values
-    }
-  });
-
-  const defaultValues = initialData ? transformInitialData(initialData) : {
-
-    tourPackageQueryName: '',
-    customerName: '',
-    numDaysNight: '',
-    period: '',
-    numAdults: '',
-    numChild5to12: '',
-    numChild0to5: '',
-    price: '',
-    flightDetails: [],
-    // hotelDetails: '',
-    inclusions: '',
-    exclusions: '',
-    paymentPolicy: '',
-    usefulTip: '',
-    cancellationPolicy: '',
-    airlineCancellationPolicy: '',
-    termsconditions: '',
-    assignedTo : '',
-    assignedToMobileNumber : '',
-    assignedToEmail : '',
-    images: [],
-    itineraries: [],
-    /* itineraries: [{
-      days: '',
-      activities: [],
-      mealsIncluded: [],
-      hotelId: '',
-    }],
-     */
-    locationId: '',
-    //location : '',
-    // hotelId: '',
-    isFeatured: true,
-    isArchived: false,
-    
-  };
-
-
-
-
   if (!initialData) return <div>No data available</div>;
 
-
-
-
-
-
   return (
-
-    <div className="flex flex-col space-y-8 md:space-y-12">
-      <Card>
-        <CardHeader>
-          {/* <CardTitle>Tour Images</CardTitle> */}
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          {initialData.images.map((image: { url: string }, index: number) => (
-            <Image className="mb-2"
-              key={index}
-              src={image.url}
-              //sizes="100vw"
-              //style={{ width: '100%', height: 'auto', }}
-              alt={`Images ${index + 1}`}
-              width={800}
-              height={300}
-            />
-          ))}
-        </CardContent>
-      </Card>
+    <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
+      {/* Tour Images */}
       <Card>
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
-          <CardDescription>Customer : {initialData.customerName} | Assigned To : {initialData.assignedTo} | {initialData.assignedToMobileNumber} |  {initialData.assignedToMobileNumber} | </CardDescription>
+          <CardDescription>
+            Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+          </CardDescription>
         </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+          {initialData.images.map((image, index) => (
+            <div key={index} className="flex justify-center items-center">
+              <Image
+                src={image.url}
+                alt={`Tour Image ${index + 1}`}
+                width={800}
+                height={300}
+                className="rounded-lg object-cover"
+                style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
+              />
+            </div>
+          ))}
+        </CardContent>
       </Card>
+
+      {/* Tour Package Details */}
       <Card>
         <CardHeader>
+
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-1">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <div className="font-bold">Location:</div>
-                {locations.find((location) => location.id === initialData.locationId)?.label}
-                {/*   {initialData.locationId} */}
-              </div>
-
-              <div>
-                <div className="font-bold">Duration:</div>
-                {initialData.numDaysNight}
-              </div>
-              <div>
-                <div className="font-bold">Period:</div>
-                {initialData.period}
-              </div>
-              <div>
-                <div className="font-bold">Adults:</div>
-                {initialData.numAdults}
-              </div>
-              <div>
-                <div className="font-bold">Children (5 - 12 Years):</div>
-                {initialData.numChild5to12}
-              </div>
-              <div>
-                <div className="font-bold">Children (0 - 5 Years):</div>
-                {initialData.numChild0to5}
-              </div>
-              <div>
-                <div className="font-bold">Price:</div>
-                {initialData.price}
-              </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Duration : {initialData.numDaysNight || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Period : {initialData.period || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Adults : {initialData.numAdults || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12 || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5 || 'N/A'}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Price : {initialData.price || 'N/A'}</div>
             </div>
           </div>
         </CardContent>
+
       </Card>
+
+      {/* Flight Details */}
       <Card>
         <CardHeader>
           <CardTitle>Flight Details</CardTitle>
         </CardHeader>
-
         {initialData.flightDetails.map((flight, index) => (
-          <CardContent key={index} className="flex flex-col bg-white rounded-lg shadow-lg p-4 my-4">
+          <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
             <div className="flex items-center justify-between border-b pb-2 mb-2">
-              <span className="font-semibold text-lg">{flight.date}</span>
+              <span className="font-semibold text-sm">{flight.date || 'Date Not Available'}</span>
               <div>
-                <span className="font-semibold">{flight.flightName}</span> |
-                <span className="ml-1">{flight.flightNumber}</span>
+                <span className="font-semibold text-xs">{flight.flightName || 'Flight Name Not Available'}</span> |
+                <span className="text-xs ml-1">{flight.flightNumber || 'Flight Number Not Available'}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="font-bold">{flight.from}</div>
-                <div className="text-sm ml-2">{flight.departureTime}</div>
+                <div className="font-bold text-xs">{flight.from || 'Origin Not Available'}</div>
+                <div className="text-xs ml-2">{flight.departureTime || 'Departure Time Not Available'}</div>
               </div>
               <div className="mx-2 text-center">
-                <span> <PlaneTakeoffIcon/> </span>
-                <div className="text-xs">{flight.flightDuration}</div>
+                <span> <PlaneTakeoffIcon /> </span>
+                <div className="text-xs">{flight.flightDuration || 'Duration Not Available'}</div>
                 <hr className="border-t-2 border-black mx-1" />
               </div>
               <div className="flex items-center">
-                <div className="font-bold">{flight.to}</div>
-                <div className="text-sm ml-2">{flight.arrivalTime}</div>
+                <div className="font-bold text-xs">{flight.to || 'Destination Not Available'}</div>
+                <div className="text-sm ml-2">{flight.arrivalTime || 'Arrival Time Not Available'}</div>
               </div>
             </div>
           </CardContent>
         ))}
+      </Card>
+
+
+      {/* Itineraries */}
+      {
+        initialData.itineraries.map((itinerary, index) => (
+          <Card key={index} className="mb-4">
+            <CardHeader>
+              <CardTitle>Day {index + 1}: {itinerary.itineraryTitle}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>
+              <Card>
+
+              <div className="mb-4 flex items-start space-x-4">
+                {/* Images Container */}
+                <div className="flex-shrink-0 mx-2 my-2">
+                  {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                    <Image
+                      key={imgIndex}
+                      src={image.url}
+                      alt={`Hotel Image ${imgIndex + 1}`}
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-cover mb-2"
+                    />
+                  ))}
+                </div>
+
+                {/* Text Content */}
+                <div className="flex-grow mx-2 my-2">
+                  <div className="font-bold">Hotel:</div>
+                  <p className="text-sm mb-2">{hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || 'Hotel Name Not Available'}</p>
+
+                  <div className="font-bold">Meal Plan:</div>
+                  <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                </div>
+              </div>
+              </Card>
+              {/* Display activities */}
+              {itinerary.activities.map((activity, activityIndex) => (
+                <div key={activityIndex} className="mb-4 flex items-start space-x-4">
+                  {/* Images Container */}
+                  <div className="flex-shrink-0 mx-2 my-2">
+                    {activity.activityImages.map((image, actImgIndex) => (
+                      <Image
+                        key={actImgIndex}
+                        src={image.url}
+                        alt={`Activity Image ${actImgIndex + 1}`}
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-cover mb-2" // Added margin-bottom for spacing between images
+                      />
+                    ))}
+                  </div>
+
+                  {/* Text Content */}
+                  <div className="flex-grow mx-2 my-2">
+                    <div className="font-bold">{activity.activityTitle}</div>
+                    <p className="text-sm">{activity.activityDescription}</p>
+                  </div>
+                </div>
+              ))}
+
+            </CardContent>
+          </Card>
+        ))
+      }
+
+
+      <div className="grid gap-4">
+        {/* Inclusions Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Inclusions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.inclusions}</pre>
+          </CardContent>
         </Card>
 
+        {/* Exclusions Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Exclusions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
+          </CardContent>
+        </Card>
 
-        {/* Itinerary Details */}
-        <Form {...form}>
-          <form className="space-y-8 w-full">
-            <FormField
-              control={form.control}
-              name="itineraries"
-              render={({ field: { value = [], onChange } }) => (
-                <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                  <FormLabel>Detailed Itineraries</FormLabel>
-                  {value.map((itinerary, index) => (
-                    <div key={index} >
-                      <div>
-                        <div className="p-4 rounded-lg">
-                          <div className="font-bold text-lg">Day {index + 1}</div>
-                          <div className="font-bold text-lg">{itinerary.itineraryTitle}</div>
-                          <div className="font-bold text-lg">{itinerary.itineraryDescription}</div>
+        {/* Payment Policy Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Policy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
+          </CardContent>
+        </Card>
 
-                          <div className="font-medium">
-                            Hotel : {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}
-                            <Image
-                              alt="Hotel Image"
-                              className="rounded-lg object-cover mt-2"
-                              height="200"
-                              src="/placeholder.svg"
-                              style={{
-                                aspectRatio: "200/200",
-                                objectFit: "cover",
-                              }}
-                              width="200"
-                            />
-                            <div className="font-bold mt-2">Meal Plan:</div>
-                            <div className="font-medium">{itinerary.mealsIncluded}</div>
-                            {itinerary.activities.map((activity, activityIndex: number) => (
-                              <div key={activityIndex} className="mt-4">
-                                <div>{activity.title}</div>
-                                <div>{activity.description}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </FormItem>
-              )}
-            />
-          </form>
-        </Form>
+        {/* Useful Tips Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Useful Tips</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.usefulTip}</pre>
+          </CardContent>
+        </Card>
 
+        {/* Cancellation Policy Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Cancellation Policy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
+          </CardContent>
+        </Card>
 
+        {/* Airline Cancellation Policy Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Airline Cancellation Policy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
+          </CardContent>
+        </Card>
 
+        {/* Terms and Conditions Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Terms and Conditions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
+          </CardContent>
+        </Card>
+      </div>
 
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Inclusions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul>
-                <li> {initialData.inclusions}</li>
-                <li>Flight tickets</li>
-                <li>Breakfast</li>
-                <li>Sightseeing</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Exclusions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul>
-                <li> {initialData.exclusions}</li>
-                <li>Travel insurance</li>
-                <li>Personal expenses</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Policy</CardTitle>
-            </CardHeader>
-            <CardContent> {initialData.paymentPolicy}</CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Useful Tips</CardTitle>
-            </CardHeader>
-            <CardContent> {initialData.usefulTip}</CardContent>
-          </Card>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cancellation Policy</CardTitle>
-            </CardHeader>
-            <CardContent> {initialData.cancellationPolicy}</CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Airline Cancellation Policy</CardTitle>
-            </CardHeader>
-            <CardContent> {initialData.airlineCancellationPolicy}</CardContent>
-          </Card>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Terms and Conditions</CardTitle>
-            </CardHeader>
-            <CardContent> {initialData.termsconditions}</CardContent>
-
-          </Card>
-        </div>
-    </div >
-  )
-}
-
-
-
+    </div>
+  );
+};

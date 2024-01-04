@@ -6,7 +6,7 @@ import { CellAction } from "./cell-action"
 
 export type ActivityColumn = {
   id: string
-  activityTitle : string;
+  activityTitle : string | null;
   locationLabel: string;
   createdAt: string;
 }

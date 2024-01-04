@@ -30,8 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 
 const formSchema = z.object({
-  activityTitle: z.string().min(1),
-  activityDescription: z.string().min(1),
+  activityTitle: z.string().optional(),
+  activityDescription: z.string().optional(),
   activityImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   itineraryId: z.string().optional(), // Optional if itinerary is not mandatory
@@ -65,7 +65,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const toastMessage = initialData ? 'Activity updated.' : 'Activity created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const transformInitialData = (data: { activityTitle: string; activityDescription: string; activityImages: { id: string; url : string }[]; locationId: string; itineraryId: string | null}) => {
+  const transformInitialData = (data:any) => {
     return {
       ...data,
       itineraryId: data.itineraryId || '', // Convert null to undefined

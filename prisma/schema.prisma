@@ -293,7 +293,7 @@ model Images {
   productId          String?
   tourPackageId      String?
   tourPackageQueryId String?
-  url                String?
+  url                String
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   product            Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)

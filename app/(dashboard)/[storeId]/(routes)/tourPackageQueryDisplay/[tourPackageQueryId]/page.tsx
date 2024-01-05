@@ -23,12 +23,12 @@ const tourPackageQueryPage = async ({
               activityImages: true,
             },
             orderBy: {
-              createdAt: 'desc',
+              createdAt: 'asc',
             },
           },
         },
         orderBy: {
-          createdAt: 'desc',
+          createdAt: 'asc',
         }
       }
     }

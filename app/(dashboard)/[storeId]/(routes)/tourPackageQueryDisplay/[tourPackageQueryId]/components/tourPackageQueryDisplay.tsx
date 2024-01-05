@@ -62,25 +62,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label || 'N/A'}</div>
+              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
             <div>
-              <div className="font-semibold">Duration : {initialData.numDaysNight || 'N/A'}</div>
+              <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
             </div>
             <div>
-              <div className="font-semibold">Period : {initialData.period || 'N/A'}</div>
+              <div className="font-semibold">Period : {initialData.period}</div>
             </div>
             <div>
-              <div className="font-semibold">Adults : {initialData.numAdults || 'N/A'}</div>
+              <div className="font-semibold">Adults : {initialData.numAdults}</div>
             </div>
             <div>
-              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12 || 'N/A'}</div>
+              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
             </div>
             <div>
-              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5 || 'N/A'}</div>
+              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
             </div>
             <div>
-              <div className="font-semibold">Price : {initialData.price || 'N/A'}</div>
+              <div className="font-semibold">Price : {initialData.price}</div>
             </div>
           </div>
         </CardContent>
@@ -98,7 +98,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <span className="font-semibold text-sm">{flight.date}</span>
               <div>
                 <span className="font-semibold text-xs">{flight.flightName}</span> |
-                <span className="text-xs ml-1">{flight.flightNumber'}</span>
+                <span className="text-xs ml-1">{flight.flightNumber}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">

@@ -95,25 +95,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         {initialData.flightDetails.map((flight, index) => (
           <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
             <div className="flex items-center justify-between border-b pb-2 mb-2">
-              <span className="font-semibold text-sm">{flight.date || 'Date Not Available'}</span>
+              <span className="font-semibold text-sm">{flight.date}</span>
               <div>
-                <span className="font-semibold text-xs">{flight.flightName || 'Flight Name Not Available'}</span> |
-                <span className="text-xs ml-1">{flight.flightNumber || 'Flight Number Not Available'}</span>
+                <span className="font-semibold text-xs">{flight.flightName}</span> |
+                <span className="text-xs ml-1">{flight.flightNumber'}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="font-bold text-xs">{flight.from || 'Origin Not Available'}</div>
-                <div className="text-xs ml-2">{flight.departureTime || 'Departure Time Not Available'}</div>
+                <div className="font-bold text-xs">{flight.from}</div>
+                <div className="text-xs ml-2">{flight.departureTime}</div>
               </div>
               <div className="mx-2 text-center">
                 <span> <PlaneTakeoffIcon /> </span>
-                <div className="text-xs">{flight.flightDuration || 'Duration Not Available'}</div>
+                <div className="text-xs">{flight.flightDuration}</div>
                 <hr className="border-t-2 border-black mx-1" />
               </div>
               <div className="flex items-center">
-                <div className="font-bold text-xs">{flight.to || 'Destination Not Available'}</div>
-                <div className="text-sm ml-2">{flight.arrivalTime || 'Arrival Time Not Available'}</div>
+                <div className="font-bold text-xs">{flight.to}</div>
+                <div className="text-sm ml-2">{flight.arrivalTime}</div>
               </div>
             </div>
           </CardContent>
@@ -150,7 +150,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 {/* Text Content */}
                 <div className="flex-grow mx-2 my-2">
                   <div className="font-bold">Hotel:</div>
-                  <p className="text-sm mb-2">{hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || 'Hotel Name Not Available'}</p>
+                  <p className="text-sm mb-2">{hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}</p>
 
                   <div className="font-bold">Meal Plan:</div>
                   <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>

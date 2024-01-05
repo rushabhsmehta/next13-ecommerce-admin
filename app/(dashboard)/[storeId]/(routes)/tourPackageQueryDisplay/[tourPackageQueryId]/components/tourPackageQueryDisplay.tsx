@@ -88,54 +88,57 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </Card>
 
       {/* Flight Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Flight Details</CardTitle>
-        </CardHeader>
-        {initialData.flightDetails.map((flight, index) => (
-          <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
-            <div className="flex items-center justify-between border-b pb-2 mb-2">
-              <span className="font-semibold text-sm">{flight.date}</span>
-              <div>
-                <span className="font-semibold text-xs">{flight.flightName}</span> |
-                <span className="text-xs ml-1">{flight.flightNumber}</span>
+      {initialData.flightDetails.length > 0 && (
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Flight Details</CardTitle>
+          </CardHeader>
+          {initialData.flightDetails.map((flight, index) => (
+            <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
+              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                <span className="font-semibold text-sm">{flight.date}</span>
+                <div>
+                  <span className="font-semibold text-xs">{flight.flightName}</span> |
+                  <span className="text-xs ml-1">{flight.flightNumber}</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="font-bold text-xs">{flight.from}</div>
-                <div className="text-xs ml-2">{flight.departureTime}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="font-bold text-xs">{flight.from}</div>
+                  <div className="text-xs ml-2">{flight.departureTime}</div>
+                </div>
+                <div className="mx-2 text-center">
+                  <span> <PlaneTakeoffIcon /> </span>
+                  <div className="text-xs">{flight.flightDuration}</div>
+                  <hr className="border-t-2 border-black mx-1" />
+                </div>
+                <div className="flex items-center">
+                  <div className="font-bold text-xs">{flight.to}</div>
+                  <div className="text-sm ml-2">{flight.arrivalTime}</div>
+                </div>
               </div>
-              <div className="mx-2 text-center">
-                <span> <PlaneTakeoffIcon /> </span>
-                <div className="text-xs">{flight.flightDuration}</div>
-                <hr className="border-t-2 border-black mx-1" />
-              </div>
-              <div className="flex items-center">
-                <div className="font-bold text-xs">{flight.to}</div>
-                <div className="text-sm ml-2">{flight.arrivalTime}</div>
-              </div>
-            </div>
-          </CardContent>
-        ))}
-      </Card>
+            </CardContent>
+          ))}
+        </Card>
+      )}
 
 
       {/* Itineraries */}
-      {
-        initialData.itineraries.map((itinerary, index) => (
-          <Card key={index} className="mb-4">
-            <CardHeader>
-              <CardTitle>Day {index + 1}: {itinerary.itineraryTitle}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>
-              <Card>
+      {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+        <Card key={index} className="mb-4">
+          <CardHeader>
+            <CardTitle>Day {index + 1}: {itinerary.itineraryTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
 
+            {/* Hotel Section */}
+            {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <div className="mb-4 flex items-start space-x-4">
                 {/* Images Container */}
                 <div className="flex-shrink-0 mx-2 my-2">
-                  {hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
                     <Image
                       key={imgIndex}
                       src={image.url}
@@ -146,46 +149,48 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     />
                   ))}
                 </div>
-
                 {/* Text Content */}
                 <div className="flex-grow mx-2 my-2">
                   <div className="font-bold">Hotel:</div>
-                  <p className="text-sm mb-2">{hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name}</p>
+                  <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
 
-                  <div className="font-bold">Meal Plan:</div>
-                  <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                  {itinerary.mealsIncluded && (
+                    <>
+                      <div className="font-bold">Meal Plan:</div>
+                      <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                    </>
+                  )}
                 </div>
               </div>
-              </Card>
-              {/* Display activities */}
-              {itinerary.activities.map((activity, activityIndex) => (
-                <div key={activityIndex} className="mb-4 flex items-start space-x-4">
-                  {/* Images Container */}
-                  <div className="flex-shrink-0 mx-2 my-2">
-                    {activity.activityImages.map((image, actImgIndex) => (
-                      <Image
-                        key={actImgIndex}
-                        src={image.url}
-                        alt={`Activity Image ${actImgIndex + 1}`}
-                        width={200}
-                        height={200}
-                        className="rounded-lg object-cover mb-2" // Added margin-bottom for spacing between images
-                      />
-                    ))}
-                  </div>
+            )}
 
-                  {/* Text Content */}
-                  <div className="flex-grow mx-2 my-2">
-                    <div className="font-bold">{activity.activityTitle}</div>
-                    <p className="text-sm">{activity.activityDescription}</p>
-                  </div>
+            {/* Activities Section */}
+            {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
+              <div key={activityIndex} className="mb-4 flex items-start space-x-4">
+                {/* Images Container */}
+                <div className="flex-shrink-0 mx-2 my-2">
+                  {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
+                    <Image
+                      key={actImgIndex}
+                      src={image.url}
+                      alt={`Activity Image ${actImgIndex + 1}`}
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-cover mb-2"
+                    />
+                  ))}
                 </div>
-              ))}
+                {/* Text Content */}
+                <div className="flex-grow mx-2 my-2">
+                  <div className="font-bold">{activity.activityTitle}</div>
+                  <p className="text-sm">{activity.activityDescription}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
 
-            </CardContent>
-          </Card>
-        ))
-      }
 
 
       <div className="grid gap-4">

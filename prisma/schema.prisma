@@ -18,6 +18,7 @@ model Store {
   locations        Location[]         @relation("StoreToLocation")
   hotels           Hotel[]            @relation("StoreToHotel")
   activities       Activity[]         @relation("StoreToActivity")
+  activitiesMaster ActivityMaster[]   @relation("StoreToActivityMaster")
   itineraries      Itinerary[]        @relation("StoreToItinerary")
   categories       Category[]         @relation("StoreToCategory")
   products         Product[]          @relation("StoreToProduct")
@@ -51,6 +52,7 @@ model Location {
   store            Store              @relation("StoreToLocation", fields: [storeId], references: [id])
   hotels           Hotel[]
   activities       Activity[]
+  activitiesMaster ActivityMaster[]
   itineraries      Itinerary[]
   tourPackages     TourPackage[]      @relation("LocationTotourPackage")
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
@@ -187,7 +189,7 @@ model TourPackage {
 }
 
 model Activity {
-  id          String     @id @default(uuid())
+  id           String     @id @default(uuid())
   storeId      String
   locationId   String
 
@@ -197,6 +199,27 @@ model Activity {
   activityImages      Images[]
   activityTitle       String?     @db.Text
   activityDescription String?     @db.Text
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  itineraryId String?
+  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([locationId])
+  @@index([itineraryId])
+}
+
+model ActivityMaster {
+  id          String     @id @default(uuid())
+  storeId      String
+  locationId   String
+
+  store        Store         @relation("StoreToActivityMaster", fields: [storeId], references: [id])
+  location     Location      @relation(fields: [locationId], references: [id])
+  
+  activityMasterImages      Images[]
+  activityMasterTitle       String?     @db.Text
+  activityMasterDescription String?     @db.Text
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   itineraryId String?
@@ -230,6 +253,7 @@ model Itinerary {
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
+  activitiesMaster   ActivityMaster[]
 
   @@index([storeId])
   @@index([locationId])
@@ -308,10 +332,14 @@ model Images {
   activitiesId       String?
   activities         Activity?          @relation(fields: [activitiesId], references: [id], onDelete: Cascade) 
   
+  activitiesMasterId String?
+  activitiesMaster   ActivityMaster?    @relation(fields: [activitiesMasterId], references: [id], onDelete: Cascade) 
+  
   @@index([productId])
   @@index([hotelId])
   @@index([itinerariesId])
   @@index([activitiesId])
+  @@index([activitiesMasterId])
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
 }

@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { formatter } from "@/lib/utils";
 import { TourPackagesClient } from "./components/client";
 import { TourPackageColumn } from "./components/columns";
+import Navbar from "@/components/navbar";
 
 const tourPackagesPage = async ({
   params
@@ -36,11 +37,14 @@ const tourPackagesPage = async ({
   }));
 
   return (
-    <div className="flex-col">
+    <>
+    <Navbar />
+      <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackagesClient data={formattedtourPackages} />
       </div>
     </div>
+    </>
   );
 };
 

@@ -5,6 +5,7 @@ import { formatter } from "@/lib/utils";
 
 import { OrderColumn } from "./components/columns"
 import { OrderClient } from "./components/client";
+import Navbar from "@/components/navbar";
 
 
 const OrdersPage = async ({
@@ -41,11 +42,14 @@ const OrdersPage = async ({
   }));
 
   return (
-    <div className="flex-col">
+    <>
+    <Navbar />
+      <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <OrderClient data={formattedOrders} />
       </div>
     </div>
+    </>
   );
 };
 

@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 
 import { LocationColumn } from "./components/columns"
 import { LocationClient } from "./components/client";
+import Navbar from "@/components/navbar";
 
 const LocationsPage = async ({
   params
@@ -26,11 +27,14 @@ const LocationsPage = async ({
   }));
 
   return (
-    <div className="flex-col">
+    <>
+    <Navbar />
+      <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <LocationClient data={formattedLocations} />
       </div>
     </div>
+    </>
   );
 };
 

@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 
 import { HotelColumn } from "./components/columns"
 import { HotelsClient } from "./components/client";
+import Navbar from "@/components/navbar";
 
 const HotelsPage = async ({
   params
@@ -30,11 +31,14 @@ const HotelsPage = async ({
   }));
 
   return (
+    <>
+    <Navbar />  
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <HotelsClient data={formattedHotels} />
       </div>
     </div>
+    </>
   );
 };
 

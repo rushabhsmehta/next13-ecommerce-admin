@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 
 import { ItineraryColumn } from "./components/columns"
 import { ItinerariesClient } from "./components/client";
+import Navbar from "@/components/navbar";
 
 const ItinerariesPage = async ({
   params
@@ -31,11 +32,14 @@ const ItinerariesPage = async ({
   }));
 
   return (
-    <div className="flex-col">
+    <>
+    <Navbar />
+      <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <ItinerariesClient data={formattedItineraries} />
       </div>
     </div>
+    </>
   );
 };
 

@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryDisplay } from "./components/tourPackageQueryDisplay";
+import Navbar from "@/components/navbar";
 
 const tourPackageQueryPage = async ({
   params
@@ -53,7 +54,9 @@ const tourPackageQueryPage = async ({
 
 
   return (
-    <div className="flex-col">
+    <>
+    <Navbar />
+      <div className="flex-col">
       {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
@@ -72,6 +75,7 @@ const tourPackageQueryPage = async ({
         />
       </div>
     </div>
+    </>
   );
 }
 export default tourPackageQueryPage;

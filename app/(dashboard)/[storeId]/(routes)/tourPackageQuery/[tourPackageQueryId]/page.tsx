@@ -46,7 +46,12 @@ const tourPackageQueryPage = async ({
     },
   });
 
-
+const activitiesMaster = await prismadb.activityMaster.findMany({
+  where : {
+    storeId : params.storeId,
+  },
+}
+);
 
   return (
     <div className="flex-col">
@@ -55,6 +60,7 @@ const tourPackageQueryPage = async ({
           initialData={tourPackageQuery}
           locations={locations}
           hotels={hotels}
+          activitiesMaster={activitiesMaster}
         //    itineraries={[]}
         />
       </div>

@@ -9,6 +9,7 @@ import { getSalesCount } from "@/actions/get-sales-count";
 import { getGraphRevenue } from "@/actions/get-graph-revenue";
 import { getStockCount } from "@/actions/get-stock-count";
 import { formatter } from "@/lib/utils";
+import Navbar from "@/components/navbar";
 
 interface DashboardPageProps {
   params: {
@@ -25,6 +26,8 @@ const DashboardPage: React.FC<DashboardPageProps> = async ({
   const stockCount = await getStockCount(params.storeId);
 
   return (
+    <>
+    <Navbar />  
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <Heading title="Dashboard" description="Overview of your store" />
@@ -70,6 +73,7 @@ const DashboardPage: React.FC<DashboardPageProps> = async ({
         </Card>
       </div>
     </div>
+    </>
   );
 };
 

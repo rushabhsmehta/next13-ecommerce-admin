@@ -39,9 +39,9 @@ export function MainNav({
       active: pathname === `/${params.storeId}/itineraries`,
     },
     {
-      href: `/${params.storeId}/activities`,
+      href: `/${params.storeId}/activitiesMaster`,
       label: 'Activities',
-      active: pathname === `/${params.storeId}/activities`,
+      active: pathname === `/${params.storeId}/activitiesMaster`,
     },
     {
       href: `/${params.storeId}/tourPackages`,

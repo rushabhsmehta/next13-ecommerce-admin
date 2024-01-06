@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Images } from "@prisma/client"
+import { ActivityMaster, Images } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
@@ -105,6 +105,7 @@ interface TourPackageQueryFormProps {
   } | null;
   locations: Location[];
   hotels: Hotel[];
+  activitiesMaster : ActivityMaster[];
   //  itineraries: Itinerary[];
 };
 

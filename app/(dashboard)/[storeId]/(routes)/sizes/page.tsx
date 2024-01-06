@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 
 import { SizeColumn } from "./components/columns"
 import { SizesClient } from "./components/client";
+import Navbar from "@/components/navbar";
 
 const SizesPage = async ({
   params
@@ -27,11 +28,14 @@ const SizesPage = async ({
   }));
 
   return (
-    <div className="flex-col">
+    <>
+    <Navbar />
+      <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <SizesClient data={formattedSizes} />
       </div>
     </div>
+    </>
   );
 };
 

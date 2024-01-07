@@ -32,7 +32,7 @@ const tourPackageQueryPage = async ({
       }
     }
   });
- // console.log("Fetched tourPackage Query:", tourPackageQuery);
+  // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
     where: {
@@ -46,12 +46,15 @@ const tourPackageQueryPage = async ({
     },
   });
 
-const activitiesMaster = await prismadb.activityMaster.findMany({
-  where : {
-    storeId : params.storeId,
-  },
-}
-);
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    where: {
+      storeId: params.storeId,
+    },
+    include: {
+      activityMasterImages: true,
+    },
+  }
+  );
 
   return (
     <div className="flex-col">

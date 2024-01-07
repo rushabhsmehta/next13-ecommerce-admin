@@ -22,11 +22,17 @@ export const ActivitiesMasterClient: React.FC<ActivitiesMasterClientProps> = ({
   const params = useParams();
   const router = useRouter();
 
+  const handleAddNewClick = () => {
+    // Open the link in a new tab
+    window.open(`/${params.storeId}/activitiesMaster/new`, '_blank');
+  };
+
+
   return (
     <>
       <div className="flex items-center justify-between">
         <Heading title={`Activities (${data.length})`} description="Manage Activities for your store" />
-        <Button onClick={() => router.push(`/${params.storeId}/activitiesMaster/new`)}>
+        <Button onClick={handleAddNewClick}>
           <Plus className="mr-2 h-4 w-4" /> Add New
         </Button>
       </div>

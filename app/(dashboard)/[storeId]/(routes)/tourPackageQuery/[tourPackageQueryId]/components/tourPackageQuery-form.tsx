@@ -2,7 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { Key, useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
@@ -106,7 +106,6 @@ interface TourPackageQueryFormProps {
   locations: Location[];
   hotels: Hotel[];
   activitiesMaster: ActivityMaster[];
-
   //  itineraries: Itinerary[];
 };
 
@@ -300,6 +299,21 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
 
 
+  const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
+    const selectedActivityMaster = (activitiesMaster as ActivityMaster[]).find(activity => activity.id === selectedActivityId);
+
+    if (selectedActivityMaster) {
+      const updatedItineraries = [...form.getValues('itineraries')];
+      updatedItineraries[itineraryIndex].activities[activityIndex] = {
+        ...updatedItineraries[itineraryIndex].activities[activityIndex],
+
+        activityTitle: selectedActivityMaster.activityMasterTitle || '',
+        activityDescription: selectedActivityMaster.activityMasterDescription || '',
+       // activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
+      };
+      form.setValue('itineraries', updatedItineraries);
+    }
+  };
 
 
   // Function to handle meal checkbox changes
@@ -868,9 +882,26 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                     {itinerary.activities.map((activity, activityIndex) => (
                       <div key={activityIndex} className="space-y-2">
-
-               
-
+                        <Select
+                          disabled={loading}
+                          onValueChange={(selectedActivityId) =>
+                            handleActivitySelection(selectedActivityId, index, activityIndex)
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an Activity" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {activitiesMaster.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                              <SelectItem key={activityMaster.id} 
+                              value={activityMaster.id}>
+                                {activityMaster.activityMasterTitle}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormControl>
                           <Textarea rows={3}
                             disabled={loading}

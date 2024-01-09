@@ -105,8 +105,9 @@ interface TourPackageQueryFormProps {
   } | null;
   locations: Location[];
   hotels: Hotel[];
-  activitiesMaster: ActivityMaster[];
-  //  itineraries: Itinerary[];
+  activitiesMaster: (ActivityMaster & {
+    activityMasterImages: Images[];
+  })[] | null;
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
@@ -309,7 +310,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         activityTitle: selectedActivityMaster.activityMasterTitle || '',
         activityDescription: selectedActivityMaster.activityMasterDescription || '',
-       // activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
+       activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
       };
       form.setValue('itineraries', updatedItineraries);
     }
@@ -894,7 +895,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {activitiesMaster.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
                               <SelectItem key={activityMaster.id} 
                               value={activityMaster.id}>
                                 {activityMaster.activityMasterTitle}

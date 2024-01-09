@@ -145,11 +145,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     />
                   ))}
                 </div>
-          
 
-          </CardContent>
-          <CardContent>
-            {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
+           {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
 
             {/* Hotel Section */}
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (

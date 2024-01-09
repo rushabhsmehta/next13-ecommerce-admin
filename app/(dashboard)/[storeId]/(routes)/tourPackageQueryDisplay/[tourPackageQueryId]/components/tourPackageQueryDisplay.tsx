@@ -145,6 +145,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     />
                   ))}
                 </div>
+            
 
            {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
 

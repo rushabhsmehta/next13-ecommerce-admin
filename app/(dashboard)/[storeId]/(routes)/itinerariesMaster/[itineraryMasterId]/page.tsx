@@ -1,20 +1,20 @@
 import prismadb from "@/lib/prismadb";
 
-import { ItineraryForm } from "./components/itinerary-form";
+import { ItineraryMasterForm } from "./components/itineraryMaster-form";
 
-const ItineraryPage = async ({
+const ItineraryMasterPage = async ({
   params
 }: {
-  params: { itineraryId: string, storeId: string }
+  params: { itineraryMasterId: string, storeId: string }
 }) => {
-  const itinerary = await prismadb.itinerary.findUnique({
+  const itineraryMaster = await prismadb.itineraryMaster.findUnique({
     where: {
-      id: params.itineraryId
+      id: params.itineraryMasterId
     },
     include: {
       location : true,
       hotel : true,
-      itineraryImages: true,
+      itineraryMasterImages: true,
       activities :
       {
         include: {
@@ -39,14 +39,14 @@ const ItineraryPage = async ({
   return ( 
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <ItineraryForm 
+        <ItineraryMasterForm 
         hotels = {hotels}
         locations ={locations } 
-        initialData={itinerary} 
+        initialData={itineraryMaster} 
         />
       </div>
     </div>
   );
 }
 
-export default ItineraryPage;
+export default ItineraryMasterPage;

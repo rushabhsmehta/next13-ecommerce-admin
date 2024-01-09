@@ -2,16 +2,16 @@ import { format } from "date-fns";
 
 import prismadb from "@/lib/prismadb";
 
-import { ItineraryColumn } from "./components/columns"
-import { ItinerariesClient } from "./components/client";
+import { ItineraryMasterColumn } from "./components/columns"
+import { ItinerariesMasterClient } from "./components/client";
 import Navbar from "@/components/navbar";
 
-const ItinerariesPage = async ({
+const ItinerariesMasterPage = async ({
   params
 }: {
   params: { storeId: string }
 }) => {
-  const itineraries = await prismadb.itinerary.findMany({
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
     where: {
       storeId: params.storeId
     },
@@ -23,9 +23,9 @@ const ItinerariesPage = async ({
     }
   });
 
-  const formattedItineraries : ItineraryColumn[] = itineraries.map((item) => ({
+  const formattedItinerariesMaster : ItineraryMasterColumn[] = itinerariesMaster.map((item) => ({
     id: item.id,
-    itineraryTitle : item.itineraryTitle || '',
+    itineraryMasterTitle : item.itineraryMasterTitle || '',
   //  itineraryDescription : item.itineraryDescription,    
     locationLabel: item.location.label,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
@@ -36,11 +36,11 @@ const ItinerariesPage = async ({
     <Navbar />
       <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <ItinerariesClient data={formattedItineraries} />
+        <ItinerariesMasterClient data={formattedItinerariesMaster} />
       </div>
     </div>
     </>
   );
 };
 
-export default ItinerariesPage;
+export default ItinerariesMasterPage;

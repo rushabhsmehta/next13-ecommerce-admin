@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Location, Hotel, Itinerary, Activity } from "@prisma/client"
+import { Location, Hotel, ItineraryMaster, Activity } from "@prisma/client"
 import { Images } from "@prisma/client"
 
 import { useParams, useRouter } from "next/navigation"
@@ -35,13 +35,13 @@ const activitySchema = z.object({
   activityDescription: z.string().min(2),
   activityImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().optional(),
-  itineraryId: z.string().optional(),
+  itineraryMasterId: z.string().optional(),
 });
 
 const formSchema = z.object({
-  itineraryTitle: z.string().optional(),
-  itineraryDescription: z.string().optional(),
-  itineraryImages: z.array(z.object({ url: z.string() })),
+  itineraryMasterTitle: z.string().optional(),
+  itineraryMasterDescription: z.string().optional(),
+  itineraryMasterImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   hotelId: z.string().optional(),
   tourPackageId: z.string().optional(),
@@ -51,12 +51,12 @@ const formSchema = z.object({
   activities: z.array(activitySchema),
 });
 
-type ItineraryFormValues = z.infer<typeof formSchema>
+type ItineraryMasterFormValues = z.infer<typeof formSchema>
 
-interface ItineraryFormProps {
-  initialData: Itinerary
+interface ItineraryMasterFormProps {
+  initialData: ItineraryMaster
   & {
-    itineraryImages: Images[],
+    itineraryMasterImages: Images[],
     activities: Activity[],
   }
   | null;
@@ -65,7 +65,7 @@ interface ItineraryFormProps {
   hotels: Hotel[];
 };
 
-export const ItineraryForm: React.FC<ItineraryFormProps> = ({
+export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
   initialData,
   locations,
   hotels,
@@ -90,7 +90,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
         activityImages: activity.activityImages.map((image : any) => ({ 
           url: image.url,
         })),        
-        itineraryId: data.itineraryId || '', // Convert null to undefined
+        itineraryMasterId: data.itineraryMasterId || '', // Convert null to undefined
     }))
          
 
@@ -119,9 +119,9 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     locationId: '',
     tourPackageId: '',
     tourPackageQueryId: '',
-    itineraryTitle: '',
-    itineraryDescription: '',
-    itineraryImages: [],
+    itineraryMasterTitle: '',
+    itineraryMasterDescription: '',
+    itineraryMasterImages: [],
     days: '',
     hotelId: '',
     mealsIncluded: '',
@@ -129,12 +129,12 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
   }
 
 
-  const form = useForm<ItineraryFormValues>({
+  const form = useForm<ItineraryMasterFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
 
-  const onSubmit = async (data: ItineraryFormValues) => {
+  const onSubmit = async (data: ItineraryMasterFormValues) => {
     // Transform data for submission
     const submitData = {
       ...data,
@@ -151,12 +151,12 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/${params.storeId}/itineraries/${params.itineraryId}`, submitData);
+        await axios.patch(`/api/${params.storeId}/itinerariesMaster/${params.itineraryMasterId}`, submitData);
       } else {
-        await axios.post(`/api/${params.storeId}/itineraries`, submitData);
+        await axios.post(`/api/${params.storeId}/itinerariesMaster`, submitData);
       }
       router.refresh();
-      router.push(`/${params.storeId}/itineraries`);
+      router.push(`/${params.storeId}/itinerariesMaster`);
       toast.success(toastMessage);
     } catch (error: any) {
       toast.error('Something went wrong.');
@@ -168,9 +168,9 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/itineraries/${params.itineraryId}`);
+      await axios.delete(`/api/${params.storeId}/itinerariesMaster/${params.itineraryMasterId}`);
       router.refresh();
-      router.push(`/${params.storeId}/itineraries`);
+      router.push(`/${params.storeId}/itinerariesMaster`);
       toast.success('Itinerary deleted.');
     } catch (error: any) {
       toast.error('Make sure you removed all products using this Itinerary first.');
@@ -206,7 +206,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <FormField
             control={form.control}
-            name="itineraryImages"
+            name="itineraryMasterImages"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Images</FormLabel>
@@ -250,7 +250,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
 
             <FormField
               control={form.control}
-              name="itineraryTitle"
+              name="itineraryMasterTitle"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
@@ -264,7 +264,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
 
             <FormField
               control={form.control}
-              name="itineraryDescription"
+              name="itineraryMasterDescription"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
@@ -407,7 +407,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '',  itineraryId : '', activityImages: [] }])}
+                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '',  itineraryMasterId : '', activityImages: [] }])}
                 >
                   Add Activity
                 </Button>

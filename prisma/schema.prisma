@@ -20,6 +20,7 @@ model Store {
   activities       Activity[]         @relation("StoreToActivity")
   activitiesMaster ActivityMaster[]   @relation("StoreToActivityMaster")
   itineraries      Itinerary[]        @relation("StoreToItinerary")
+  itinerariesMaster      ItineraryMaster[]        @relation("StoreToItineraryMaster")
   categories       Category[]         @relation("StoreToCategory")
   products         Product[]          @relation("StoreToProduct")
   sizes            Size[]             @relation("StoreToSize")
@@ -54,6 +55,8 @@ model Location {
   activities       Activity[]
   activitiesMaster ActivityMaster[]
   itineraries      Itinerary[]
+  itinerariesMaster      ItineraryMaster[]
+
   tourPackages     TourPackage[]      @relation("LocationTotourPackage")
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
 
@@ -72,6 +75,8 @@ model Hotel {
   location     Location      @relation(fields: [locationId], references: [id])
   tourPackages TourPackage[] @relation("HotelToTourPackage")
   itineraries  Itinerary[]   @relation("ItineraryToHotel")
+  itinerariesMaster  ItineraryMaster[]   @relation("ItineraryMasterToHotel")
+
 
   @@index([storeId])
   @@index([locationId])
@@ -144,6 +149,8 @@ model TourPackageQuery {
   location                  Location        @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
+  itinerariesMaster         ItineraryMaster[]
+
   images                    Images[]
   assignedTo                 String?
   assignedToMobileNumber     String?
@@ -182,6 +189,7 @@ model TourPackage {
   location    Location    @relation("LocationTotourPackage", fields: [locationId], references: [id])
   hotel       Hotel       @relation("HotelToTourPackage", fields: [hotelId], references: [id])
   itineraries Itinerary[]
+  itinerariesMaster ItineraryMaster[]
   images      Images[]
 
   @@index([storeId])
@@ -204,9 +212,15 @@ model Activity {
   itineraryId String?
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
+  itineraryMasterId String?
+  itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
+
+
   @@index([storeId])
   @@index([locationId])
   @@index([itineraryId])
+  @@index([itineraryMasterId])
+
 }
 
 model ActivityMaster {
@@ -260,6 +274,38 @@ model Itinerary {
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
 }
+
+
+model ItineraryMaster {
+  id          String            @id @default(uuid())
+
+  storeId     String
+  store       Store         @relation("StoreToItineraryMaster", fields: [storeId], references: [id])
+
+  locationId   String
+  location     Location      @relation(fields: [locationId], references: [id])
+
+  tourPackageId      String?
+  tourPackageQueryId String?
+  itineraryMasterTitle              String? @db.Text
+  itineraryMasterDescription        String? @db.Text
+  itineraryMasterImages             Images[]
+  days               String?
+  hotelId            String?
+  hotel              Hotel?            @relation("ItineraryMasterToHotel", fields: [hotelId], references: [id])
+  mealsIncluded      String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  activities         Activity[]
+
+  @@index([storeId])
+  @@index([locationId])
+  @@index([tourPackageId])
+  @@index([tourPackageQueryId])
+}
+
 
 model Order {
   id         String      @id @default(uuid())
@@ -329,6 +375,9 @@ model Images {
   itinerariesId      String?
   itineraries        Itinerary?          @relation(fields: [itinerariesId], references: [id], onDelete: Cascade) 
   
+  itinerariesMasterId      String?
+  itinerariesMaster        ItineraryMaster?          @relation(fields: [itinerariesMasterId], references: [id], onDelete: Cascade) 
+ 
   activitiesId       String?
   activities         Activity?          @relation(fields: [activitiesId], references: [id], onDelete: Cascade) 
   
@@ -338,6 +387,7 @@ model Images {
   @@index([productId])
   @@index([hotelId])
   @@index([itinerariesId])
+  @@index([itinerariesMasterId])
   @@index([activitiesId])
   @@index([activitiesMasterId])
   @@index([tourPackageId])

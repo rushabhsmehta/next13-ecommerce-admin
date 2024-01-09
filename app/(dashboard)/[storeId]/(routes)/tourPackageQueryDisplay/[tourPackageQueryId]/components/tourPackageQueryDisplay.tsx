@@ -132,6 +132,23 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardDescription> {itinerary.itineraryTitle} </CardDescription>
           </CardHeader>
           <CardContent>
+            
+                <div className="flex-shrink-0 mx-2 my-2">
+             {itinerary.itineraryImages && itinerary.itineraryImages > 0 && itinerary.itineraryImages.map((itineraryImage, itineraryImageIndex) => (
+                    <Image
+                      key={itineraryImageIndex}
+                      src={itineraryImage.url}
+                      alt={`Itinerary Image ${itineraryImageIndex + 1}`}
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-cover mb-2"
+                    />
+                  ))}
+                </div>
+          
+
+          </CardContent>
+          <CardContent>
             {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
 
             {/* Hotel Section */}

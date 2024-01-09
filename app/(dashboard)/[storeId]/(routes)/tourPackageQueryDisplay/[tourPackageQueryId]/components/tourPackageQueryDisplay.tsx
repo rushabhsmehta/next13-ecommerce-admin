@@ -128,7 +128,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
         <Card key={index} className="mb-4">
           <CardHeader>
-            <CardTitle>Day {index + 1}: {itinerary.itineraryTitle}</CardTitle>
+            <CardTitle>Day : {itinerary.days} </CardTitle>
+            <CardDescription> {itinerary.itineraryTitle} </CardDescription>
           </CardHeader>
           <CardContent>
             {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}

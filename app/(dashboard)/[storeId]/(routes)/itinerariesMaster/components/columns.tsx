@@ -4,16 +4,16 @@ import { ColumnDef } from "@tanstack/react-table"
 
 import { CellAction } from "./cell-action"
 
-export type ItineraryColumn = {
+export type ItineraryMasterColumn = {
   id: string
-  itineraryTitle : string;
+  itineraryMasterTitle : string;
   locationLabel: string;
   createdAt: string;
 }
 
-export const columns: ColumnDef<ItineraryColumn>[] = [
+export const columns: ColumnDef<ItineraryMasterColumn>[] = [
   {
-    accessorKey: "itineraryTitle",
+    accessorKey: "itineraryMasterTitle",
     header: "Title",
   },
   {

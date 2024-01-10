@@ -31,7 +31,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
-      <Card>
+      <Card className="break-inside-auto">
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
@@ -55,7 +55,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </Card>
 
       {/* Tour Package Details */}
-      <Card>
+      <Card className="break-inside-auto">
         <CardHeader>
 
         </CardHeader>
@@ -90,7 +90,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Flight Details */}
       {initialData.flightDetails.length > 0 && (
 
-        <Card>
+        <Card className="break-inside-auto">
           <CardHeader>
             <CardTitle>Flight Details</CardTitle>
           </CardHeader>
@@ -153,7 +153,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <div className="mb-4 flex items-start space-x-4">
                 {/* Images Container */}
-                <div className="flex-shrink-0 mx-2 my-2">
+                <div className="flex-shrink-0 mx-2 my-2 break-inside-auto">
                   {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
                     <Image
                       key={imgIndex}
@@ -182,7 +182,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
             {/* Activities Section */}
             {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
-              <div key={activityIndex} className="mb-4 flex items-start space-x-4">
+              <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-auto">
                 {/* Images Container */}
                 <div className="flex-shrink-0 mx-2 my-2">
                   {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (

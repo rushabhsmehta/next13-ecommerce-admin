@@ -31,7 +31,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
-      <Card className="break-inside-auto">
+      <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
@@ -55,7 +55,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </Card>
 
       {/* Tour Package Details */}
-      <Card className="break-inside-auto">
+      <Card className="break-inside-avoid">
         <CardHeader>
 
         </CardHeader>
@@ -90,7 +90,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Flight Details */}
       {initialData.flightDetails.length > 0 && (
 
-        <Card className="break-inside-auto">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Flight Details</CardTitle>
           </CardHeader>
@@ -126,34 +126,45 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Itineraries */}
       {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-        <Card key={index} className="mb-4">
+        <Card key={index} className="mb-4 break-inside-avoid">
           <CardHeader>
-            <CardTitle>Day : {itinerary.days} </CardTitle>
-            <CardDescription> {itinerary.itineraryTitle} </CardDescription>
+            <CardTitle>Day : {itinerary.days}</CardTitle>
+            <CardDescription>{itinerary.itineraryTitle}</CardDescription>
           </CardHeader>
-          <CardContent>
-            
-                <div className="flex-shrink-0 mx-2 my-2">
-             {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((itineraryImage, itineraryImageIndex) => (
-                    <Image
-                      key={itineraryImageIndex}
-                      src={itineraryImage.url}
-                      alt={`Itinerary Image ${itineraryImageIndex + 1}`}
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-cover mb-2"
-                    />
-                  ))}
-                </div>
-            
 
-           {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
+          {/* Flex Container for Itinerary Image and Description */}
+          <div className="flex flex-row items-start space-x-4 mx-8 my-2">
+
+            {/* Image Section */}
+            <div className="w-1/3">
+              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+                <Image
+                  key={imageIndex}
+                  src={image.url}
+                  alt={`Itinerary Image ${imageIndex + 1}`}
+                  width={200}
+                  height={200}
+                  className="rounded-lg object-cover mb-2"
+                />
+              ))}
+            </div>
+
+            {/* Description Section */}
+            <div className="w-2/3">
+              {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
+            </div>
+
+          </div>
+
+          <CardContent>
+
+
 
             {/* Hotel Section */}
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <div className="mb-4 flex items-start space-x-4">
                 {/* Images Container */}
-                <div className="flex-shrink-0 mx-2 my-2 break-inside-auto">
+                <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
                   {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
                     <Image
                       key={imgIndex}
@@ -182,7 +193,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
             {/* Activities Section */}
             {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
-              <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-auto">
+              <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
                 {/* Images Container */}
                 <div className="flex-shrink-0 mx-2 my-2">
                   {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (

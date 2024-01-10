@@ -1,14 +1,13 @@
 import prismadb from "@/lib/prismadb";
 
-import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
-import { Turret_Road } from "next/font/google";
+import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCreateCopy-form";
 
-const tourPackageQueryPage = async ({
+const tourPackageQueryCreateCopyPage = async ({
   params
 }: {
   params: { tourPackageQueryId: string, storeId: string }
 }) => {
-  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+  const tourPackageQueryCreateCopy = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,
     },
@@ -59,8 +58,8 @@ const tourPackageQueryPage = async ({
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryForm
-          initialData={tourPackageQuery}
+        <TourPackageQueryCreateCopyForm
+          initialData={tourPackageQueryCreateCopy}
           locations={locations}
           hotels={hotels}
           activitiesMaster={activitiesMaster}
@@ -81,4 +80,4 @@ const tourPackageQueryPage = async ({
 
   );
 }
-export default tourPackageQueryPage;
+export default tourPackageQueryCreateCopyPage;

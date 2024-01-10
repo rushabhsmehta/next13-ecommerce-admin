@@ -95,9 +95,9 @@ const formSchema = z.object({
   assignedToEmail: z.string().optional(),
 });
 
-type TourPackageQueryFormValues = z.infer<typeof formSchema>
+type TourPackageQueryCreateCopyFormValues = z.infer<typeof formSchema>
 
-interface TourPackageQueryFormProps {
+interface TourPackageQueryCreateCopyFormProps {
   initialData: TourPackageQuery & {
     images: Images[];
     itineraries: Itinerary[];
@@ -109,7 +109,7 @@ interface TourPackageQueryFormProps {
   //  itineraries: Itinerary[];
 };
 
-export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
+export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopyFormProps> = ({
   initialData,
   locations,
   hotels,
@@ -125,11 +125,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [flightDetails, setFlightDetails] = useState([]);
 
   //console.log(initialData);
-  const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
-  const description = initialData ? 'Edit a Tour Package Query.' : 'Add a new Tour Package Query';
-  const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
-  const action = initialData ? 'Save changes' : 'Create';
-  console.log("Initial Data : ", initialData?.itineraries)
+  const title = 'Create Tour Package Query';
+  const description = 'Add a new Tour Package Query';
+  const toastMessage = 'Tour Package Query created.';
+  const action =  'Create';
+ // console.log("Initial Data : ", initialData?.itineraries)
 
   const transformInitialData = (data: any) => {
     return {
@@ -207,7 +207,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     isArchived: false,
   };
 
-  const form = useForm<TourPackageQueryFormValues>({
+  const form = useForm<TourPackageQueryCreateCopyFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
@@ -233,7 +233,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     form.setValue('itineraries', updatedItineraries);
   };
 
-  const onSubmit = async (data: TourPackageQueryFormValues) => {
+  const onSubmit = async (data: TourPackageQueryCreateCopyFormValues) => {
 
     const formattedData = {
       ...data,
@@ -258,19 +258,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     try {
       setLoading(true);
-      if (initialData) {
-        // console.log({ formattedData })
-        formattedData.itineraries.forEach((itinerary, index) => {
-          itinerary.activities.forEach(activity => {
-            console.log("Activity Data Being Submitted is :", activity);
-          }
-          )
-        })
-
-        await axios.patch(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
-      } else {
-        await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);
-      }
+      await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);     
       router.refresh();
       router.push(`/${params.storeId}/tourPackageQuery`);
       toast.success(toastMessage);

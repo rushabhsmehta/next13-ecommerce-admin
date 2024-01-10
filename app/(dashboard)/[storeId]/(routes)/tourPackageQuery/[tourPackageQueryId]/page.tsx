@@ -6,11 +6,11 @@ import { Turret_Road } from "next/font/google";
 const tourPackageQueryPage = async ({
   params
 }: {
-  params: { tourPackageQueryCreateCopyId: string, storeId: string }
+  params: { tourPackageQueryId: string, storeId: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
-      id: params.tourPackageQueryCreateCopyId,
+      id: params.tourPackageQueryId,
     },
     include: {
       images: true,

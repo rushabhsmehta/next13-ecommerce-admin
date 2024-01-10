@@ -5,11 +5,11 @@ import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCre
 const tourPackageQueryPage = async ({
   params
 }: {
-  params: { storeId: string, tourPackageQueryId: string,  }
+  params: { tourPackageQueryCreateCopyId: string, storeId: string  }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
-      id: params.tourPackageQueryId,
+      id: params.tourPackageQueryCreateCopyId,
     },
     include: {
       images: true,

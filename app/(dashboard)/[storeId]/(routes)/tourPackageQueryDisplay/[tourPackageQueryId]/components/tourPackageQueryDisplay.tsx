@@ -134,7 +134,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardContent>
             
                 <div className="flex-shrink-0 mx-2 my-2">
-             {itinerary.itineraryImages && itinerary.itineraryImages > 0 && itinerary.itineraryImages.map((itineraryImage, itineraryImageIndex) => (
+             {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((itineraryImage, itineraryImageIndex) => (
                     <Image
                       key={itineraryImageIndex}
                       src={itineraryImage.url}

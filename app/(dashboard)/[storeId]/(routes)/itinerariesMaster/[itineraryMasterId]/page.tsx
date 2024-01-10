@@ -1,0 +1,52 @@
+import prismadb from "@/lib/prismadb";
+
+import { ItineraryMasterForm } from "./components/itineraryMaster-form";
+
+const ItineraryMasterPage = async ({
+  params
+}: {
+  params: { itineraryMasterId: string, storeId: string }
+}) => {
+  const itineraryMaster = await prismadb.itineraryMaster.findUnique({
+    where: {
+      id: params.itineraryMasterId
+    },
+    include: {
+      location : true,
+      hotel : true,
+      itineraryMasterImages: true,
+      activities :
+      {
+        include: {
+          activityImages : true,
+      }
+    }
+  }});
+
+  const locations = await prismadb.location.findMany({
+    where: {
+      storeId: params.storeId
+    }
+  });
+  
+  const hotels = await prismadb.hotel.findMany({
+    where: {
+      storeId: params.storeId,
+    },
+  });
+
+
+  return ( 
+    <div className="flex-col">
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <ItineraryMasterForm 
+        hotels = {hotels}
+        locations ={locations } 
+        initialData={itineraryMaster} 
+        />
+      </div>
+    </div>
+  );
+}
+
+export default ItineraryMasterPage;

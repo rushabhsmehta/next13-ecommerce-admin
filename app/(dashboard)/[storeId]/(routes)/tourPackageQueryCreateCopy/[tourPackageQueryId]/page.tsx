@@ -2,12 +2,12 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCreateCopy-form";
 
-const tourPackageQueryCreateCopyPage = async ({
+const tourPackageQueryPage = async ({
   params
 }: {
-  params: { tourPackageQueryId: string, storeId: string }
+  params: { storeId: string, tourPackageQueryId: string,  }
 }) => {
-  const tourPackageQueryCreateCopy = await prismadb.tourPackageQuery.findUnique({
+  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,
     },
@@ -59,25 +59,13 @@ const tourPackageQueryCreateCopyPage = async ({
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryCreateCopyForm
-          initialData={tourPackageQueryCreateCopy}
+          initialData={tourPackageQuery}
           locations={locations}
           hotels={hotels}
           activitiesMaster={activitiesMaster}
-        //    itineraries={[]}
         />
-      </div>
-
-      {/*  <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryDisplay
-          data={tourPackageQuery}
-          locations={locations}
-          hotels={hotels}
-        //    itineraries={[]}
-        />
-      </div> */}
+      </div>    
     </div>
-
-
   );
 }
-export default tourPackageQueryCreateCopyPage;
+export default tourPackageQueryPage;

@@ -270,21 +270,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     }
   };
 
-  const onDelete = async () => {
-    try {
-      setLoading(true);
-      await axios.delete(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`);
-      router.refresh();
-      router.push(`/${params.storeId}/tourPackageQuery`);
-      toast.success('Tour Package Query deleted.');
-    } catch (error: any) {
-      toast.error('Something went wrong.');
-    } finally {
-      setLoading(false);
-      setOpen(false);
-    }
-  }
-
 
 
   const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
@@ -310,26 +295,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
   return (
     <>
-      <AlertModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onConfirm={onDelete}
-        loading={loading}
-      />
-      <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
-        {initialData && (
-          <Button
-            disabled={loading}
-            variant="destructive"
-            size="sm"
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      <Separator />
+    
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="md:grid md:grid-cols-4 gap-8">

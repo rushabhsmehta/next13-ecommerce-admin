@@ -8,6 +8,7 @@ export type TourPackageQueryColumn = {
   id: string;
   customerName: string;
   tourPackageQueryName : string;
+  assignedTo : string;
   price: string;
   location : string;
   //hotel : string;
@@ -25,14 +26,10 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
     accessorKey: "tourPackageQueryName",
     header: "Tour Package Query Name",
   },
-  {
-    accessorKey: "isArchived",
-    header: "Archived",
-  },
-  {
-    accessorKey: "isFeatured",
-    header: "Featured",
-  },
+   {
+    accessorKey: "assignedTo",
+    header: "Assigned To",
+  }, 
   {
     accessorKey: "price",
     header: "Price",

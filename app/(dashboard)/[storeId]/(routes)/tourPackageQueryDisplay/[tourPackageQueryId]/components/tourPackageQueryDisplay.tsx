@@ -129,14 +129,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <Card key={index} className="mb-4 break-inside-avoid">
           <CardHeader>
             <CardTitle>Day : {itinerary.days}</CardTitle>
-            <CardDescription>{itinerary.itineraryTitle}</CardDescription>
           </CardHeader>
 
           {/* Flex Container for Itinerary Image and Description */}
-          <div className="flex flex-row items-start space-x-4 mx-8 my-2">
+          <div className="mb-4 flex items-start space-x-4 ml-6">
 
             {/* Image Section */}
-            <div className="w-1/3">
+            <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
               {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
                 <Image
                   key={imageIndex}
@@ -150,10 +149,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
 
             {/* Description Section */}
-            <div className="w-2/3">
-              {itinerary.itineraryDescription && <p className="text-sm mb-2">{itinerary.itineraryDescription}</p>}
+            <div className="flex-grow mx-2 my-2">
+              <div className="font-bold">{itinerary.itineraryTitle}</div>
+              <div>
+                {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
+              </div>
             </div>
-
           </div>
 
           <CardContent>
@@ -222,7 +223,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
@@ -232,7 +233,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Exclusions Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
@@ -242,7 +243,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Payment Policy Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
@@ -252,7 +253,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Useful Tips Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
@@ -262,7 +263,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Cancellation Policy Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
@@ -272,7 +273,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Airline Cancellation Policy Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
@@ -282,7 +283,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Terms and Conditions Card */}
-        <Card>
+        <Card className = "break-inside-avoid">
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>

@@ -5,8 +5,10 @@ import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
 
 export type TourPackageQueryColumn = {
-  id: string
+  id: string;
+  customerName: string;
   tourPackageQueryName : string;
+  assignedTo : string;
   price: string;
   location : string;
   //hotel : string;
@@ -16,18 +18,18 @@ export type TourPackageQueryColumn = {
 }
 
 export const columns: ColumnDef<TourPackageQueryColumn>[] = [
+   {
+    accessorKey: "customerName",
+    header: "Customer Name",
+  },
   {
     accessorKey: "tourPackageQueryName",
     header: "Tour Package Query Name",
   },
-  {
-    accessorKey: "isArchived",
-    header: "Archived",
-  },
-  {
-    accessorKey: "isFeatured",
-    header: "Featured",
-  },
+   {
+    accessorKey: "assignedTo",
+    header: "Assigned To",
+  }, 
   {
     accessorKey: "price",
     header: "Price",

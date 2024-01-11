@@ -99,6 +99,7 @@ export async function PATCH(
       locationId,
       tourPackageId,
       tourPackageQueryId,
+      dayNumber,
       days,
       hotelId,
       mealsIncluded,
@@ -161,6 +162,7 @@ export async function PATCH(
       tourPackageQueryId,  // Update tourPackageQueryId
       itineraryTitle,
       itineraryDescription,
+      dayNumber,  // Update dayNumber
       days,  // Update days
       hotelId,  // Update hotelId
       mealsIncluded,  // Update mealsIncluded

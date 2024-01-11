@@ -29,7 +29,7 @@ const tourPackageQueryPage = async ({
           },
         },
         orderBy: {
-          days : 'asc',
+          dayNumber : 'asc',
         }
       }
     }

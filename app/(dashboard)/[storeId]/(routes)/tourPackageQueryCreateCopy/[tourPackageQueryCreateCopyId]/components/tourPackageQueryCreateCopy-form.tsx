@@ -42,6 +42,7 @@ const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string(),
   itineraryDescription: z.string(),
+  dayNumber : z.number(),
   days: z.string(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
@@ -151,6 +152,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       itineraries: data.itineraries.map((itinerary: any) => ({
 
         storeId: params.storeId,
+        dayNumber : itinerary.dayNumber ?? 0,
         days: itinerary.days ?? '',
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
@@ -689,8 +691,24 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <FormLabel>Create Itineraries</FormLabel>
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-3 gap-8">
-                    <FormItem>
+                     <FormItem>
                       <FormLabel>Day {index + 1}</FormLabel>
+                      <FormControl>
+                        <Input                          
+                          disabled={loading}
+                          value={itinerary.dayNumber}
+                          onChange={(e) => {
+                            const dayNumber = Number(e.target.value);
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Day"
@@ -956,7 +974,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber : 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

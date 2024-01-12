@@ -737,7 +737,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                 <FormLabel>Create Itineraries</FormLabel>
                 {value.map((itinerary, index) => (
-                  <div key={index} className="md:grid md:grid-cols-3 gap-8">
+                  <div key={index} className="md:grid md:grid-cols-4 gap-8">
                     <FormItem>
                       <FormLabel>Day {index + 1}</FormLabel>
                       <FormControl>

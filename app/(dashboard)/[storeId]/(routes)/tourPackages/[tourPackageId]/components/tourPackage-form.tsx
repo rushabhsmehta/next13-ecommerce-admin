@@ -1,13 +1,14 @@
-/* "use client"
+"use client"
 
 import * as z from "zod"
 import axios from "axios"
-import { useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Location, Images, Hotel, TourPackage, Itinerary } from "@prisma/client"
+import { Images } from "@prisma/client"
+import { Location, Hotel, TourPackage, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
 import { Input } from "@/components/ui/input"
@@ -27,33 +28,73 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Decimal } from "@prisma/client/runtime/library"
+import { Textarea } from "@/components/ui/textarea"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+
 
 const activitySchema = z.object({
-  title: z.string(),
-  description: z.string(),
+  activityTitle: z.string(),
+  activityDescription: z.string(),
+  activityImages: z.object({ url: z.string() }).array(),
 });
-
 
 const itinerarySchema = z.object({
+  itineraryImages: z.object({ url: z.string() }).array(),
+  itineraryTitle: z.string(),
+  itineraryDescription: z.string(),
+  dayNumber: z.coerce.number(),
   days: z.string(),
-  hotelId : z.string(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
+  hotelId: z.string(), // Array of hotel IDs
+  locationId: z.string(), // Array of hotel IDs
+
+  // hotel : z.string(),
 });
+
+
+const flightDetailsSchema = z.object({
+
+  date: z.string(),
+  flightName: z.string(),
+  flightNumber: z.string(),
+  from: z.string(),
+  to: z.string(),
+  departureTime: z.string(),
+  arrivalTime: z.string(),
+  flightDuration: z.string(),
+
+}); // Assuming an array of flight details
 
 const formSchema = z.object({
-  name: z.string().min(1),
-  images: z.object({ url: z.string() }).array(),
-  price: z.coerce.number().min(1),
+  tourPackageName: z.string().min(1),
+  customerName: z.string().min(1),
+  numDaysNight: z.string().min(1),
+  period: z.string(),
+  numAdults: z.string(),
+  numChild5to12: z.string(),
+  numChild0to5: z.string(),
+  price: z.string().min(1),
   locationId: z.string().min(1),
- // hotelId: z.string().min(1),
-  itineraries: itinerarySchema.array(),
+  //location : z.string(),
+  // hotelId: z.string().min(1),
+  flightDetails: flightDetailsSchema.array(),
+  //  hotelDetails: z.string(),
+  inclusions: z.string(),
+  exclusions: z.string(),
+  paymentPolicy: z.string(),
+  usefulTip: z.string(),
+  cancellationPolicy: z.string(),
+  airlineCancellationPolicy: z.string(),
+  termsconditions: z.string(),
+  images: z.object({ url: z.string() }).array(),
+  itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
-  isArchived: z.boolean().default(false).optional()
+  isArchived: z.boolean().default(false).optional(),
+  assignedTo: z.string().optional(),
+  assignedToMobileNumber: z.string().optional(),
+  assignedToEmail: z.string().optional(),
 });
-
-
 
 type TourPackageFormValues = z.infer<typeof formSchema>
 
@@ -61,52 +102,114 @@ interface TourPackageFormProps {
   initialData: TourPackage & {
     images: Images[];
     itineraries: Itinerary[];
+    flightDetails: FlightDetails[];
   } | null;
   locations: Location[];
   hotels: Hotel[];
-  //  itineraries: Itinerary[];
+  activitiesMaster: (ActivityMaster & {
+    activityMasterImages: Images[];
+  })[] | null;
 };
 
 export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   initialData,
   locations,
   hotels,
+  activitiesMaster,
 }) => {
   const params = useParams();
   const router = useRouter();
+
   //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [flightDetails, setFlightDetails] = useState([]);
+
   //console.log(initialData);
-  const title = initialData ? 'Edit Tour Package' : 'Create Tour Package';
-  const description = initialData ? 'Edit a Tour Package.' : 'Add a new Tour Package';
-  const toastMessage = initialData ? 'Tour Package updated.' : 'Tour Package created.';
+  const title = initialData ? 'Edit Tour  ' : 'Create Tour Package ';
+  const description = initialData ? 'Edit a Tour Package .' : 'Add a new Tour Package ';
+  const toastMessage = initialData ? 'Tour Package  updated.' : 'Tour Package  created.';
   const action = initialData ? 'Save changes' : 'Create';
   console.log("Initial Data : ", initialData?.itineraries)
-  const transformInitialData = (data: { id: string; storeId: string; locationId: string; hotelId: string; name: string; price: Decimal; isFeatured: boolean; isArchived: boolean; createdAt: Date; updatedAt: Date } & { images: { id: string; productId: string | null; tourPackageId: string | null; url: string; createdAt: Date; updatedAt: Date }[]; itineraries: { id: string; days: string | null; hotelId : string | null; activities: string[] | null; mealsIncluded: string | null; createdAt: Date; updatedAt: Date }[] }) => {
+
+  const transformInitialData = (data: any) => {
     return {
       ...data,
-      price: parseFloat(data.price.toString()), // Convert Decimal to number
-      itineraries: data.itineraries.map(({ days, activities, hotelId, mealsIncluded }) => ({
-        days: days ?? '', // Convert null to empty string or undefined
-        hotelId: hotelId ?? '',
-        mealsIncluded: mealsIncluded ? mealsIncluded.split(',') : [], // Assuming mealsIncluded is a comma-separated string
-        activities: activities ?? [],
-        
+      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+      assignedToEmail: data.assignedToEmail ?? '',
+      flightDetails: data.flightDetails.map((flightDetail: any) => ({
+        date: flightDetail.date ?? '',
+        flightName: flightDetail.flightName ?? '',
+        flightNumber: flightDetail.flightNumber ?? '',
+        from: flightDetail.from ?? '',
+        to: flightDetail.to ?? '',
+        departureTime: flightDetail.departureTime ?? '',
+        arrivalTime: flightDetail.arrivalTime ?? '',
+        flightDuration: flightDetail.flightDuration ?? '',
+      })),
+
+      itineraries: data.itineraries.map((itinerary: any) => ({
+
+        storeId: params.storeId,
+        dayNumber: itinerary.dayNumber ?? 0,
+        days: itinerary.days ?? '',
+        itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
+        itineraryTitle: itinerary.itineraryTitle ?? '',
+        itineraryDescription: itinerary.itineraryDescription ?? '',
+        hotelId: itinerary.hotelId ?? '',
+        locationId: itinerary.locationId ?? '',
+        //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
+        mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
+        activities: itinerary.activities?.map((activity: any) => ({
+          storeId: params.storeId,
+          locationId: activity.locationId ?? '',
+          activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
+          activityTitle: activity.activityTitle ?? '',
+          activityDescription: activity.activityDescription ?? '',
+        }))
       }))
     };
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {
-    name: '',
+
+    tourPackageName: '',
+    customerName: '',
+    numDaysNight: '',
+    period: '',
+    numAdults: '',
+    numChild5to12: '',
+    numChild0to5: '',
+    price: '',
+    assignedTo: '',
+    assignedToMobileNumber: '',
+    assignedToEmail: '',
+    flightDetails: [],
+    // hotelDetails: '',
+    inclusions: INCLUSIONS_DEFAULT,
+    exclusions: EXCLUSIONS_DEFAULT,
+    paymentPolicy: PAYMENT_TERMS_DEFAULT,
+    usefulTip: USEFUL_TIPS_DEFAULT,
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
+    termsconditions: IMPORTANT_NOTES_DEFAULT,
     images: [],
     itineraries: [],
-    price: 0,
+    /* itineraries: [{
+      days: '',
+      activities: [],
+      mealsIncluded: [],
+      hotelId: '',
+    }],
+     */
     locationId: '',
-    hotelId: '',
-    isFeatured: false,
+    //location : '',
+    // hotelId: '',
+    isFeatured: true,
     isArchived: false,
   };
+
   const form = useForm<TourPackageFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -125,7 +228,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         currentMeals.push(mealType);
       }
     } else {
-      // Remove the meal type if unchecked
+      // Remove the meal type if unccked
       currentMeals = currentMeals.filter((meal) => meal !== mealType);
     }
 
@@ -134,27 +237,45 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   };
 
   const onSubmit = async (data: TourPackageFormValues) => {
-    console.log("Itineraries before submission:", data.itineraries);
 
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join(',') : 'none'
+        storeId: params.storeId,
+        locationId: data.locationId,
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join('-') : 'none',
+        activities: itinerary.activities?.map((activity) => ({
+          ...activity,
+          // activityTitle : activity.activityTitle,
+          // activityDescription : activity.activityDescription,
+          storeId: params.storeId,
+          locationId: data.locationId,
+
+          //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
+        }))
       }))
     };
+
 
 
     try {
       setLoading(true);
       if (initialData) {
         // console.log({ formattedData })
-        await axios.patch(`/api/${params.storeId}/tourPackages/${params.tourPackageId}`, formattedData);
+        formattedData.itineraries.forEach((itinerary, index) => {
+          itinerary.activities.forEach(activity => {
+            console.log("Activity Data Being Submitted is :", activity);
+          }
+          )
+        })
+
+        await axios.patch(`/api/${params.storeId}/tourPackage/${params.tourPackageId}`, formattedData);
       } else {
-        await axios.post(`/api/${params.storeId}/tourPackages`, formattedData);
+        await axios.post(`/api/${params.storeId}/tourPackage`, formattedData);
       }
       router.refresh();
-      router.push(`/${params.storeId}/tourPackages`);
+      router.push(`/${params.storeId}/tourPackage`);
       toast.success(toastMessage);
     } catch (error: any) {
       console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
@@ -167,10 +288,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/tourPackages/${params.tourPackageId}`);
+      await axios.delete(`/api/${params.storeId}/tourPackage/${params.tourPackageId}`);
       router.refresh();
-      router.push(`/${params.storeId}/tourPackages`);
-      toast.success('Tour Package deleted.');
+      router.push(`/${params.storeId}/tourPackage`);
+      toast.success('Tour Package  deleted.');
     } catch (error: any) {
       toast.error('Something went wrong.');
     } finally {
@@ -179,6 +300,22 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     }
   }
 
+ 
+  const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
+    const selectedActivityMaster = (activitiesMaster as ActivityMaster[]).find(activity => activity.id === selectedActivityId);
+
+    if (selectedActivityMaster) {
+      const updatedItineraries = [...form.getValues('itineraries')];
+      updatedItineraries[itineraryIndex].activities[activityIndex] = {
+        ...updatedItineraries[itineraryIndex].activities[activityIndex],
+
+        activityTitle: selectedActivityMaster.activityMasterTitle || '',
+        activityDescription: selectedActivityMaster.activityMasterDescription || '',
+        //  activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
+      };
+      form.setValue('itineraries', updatedItineraries);
+    }
+  };
 
 
   // Function to handle meal checkbox changes
@@ -209,6 +346,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+       
           <FormField
             control={form.control}
             name="images"
@@ -227,33 +365,28 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="md:grid md:grid-cols-3 gap-8">
+          <div className="md:grid md:grid-cols-4 gap-8">
+
+            {/* add formfield for TourPackageName */}
             <FormField
               control={form.control}
-              name="name"
+              name="tourPackageName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Tour Package  Name</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Tour Package name" {...field} />
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package  Name"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price</FormLabel>
-                  <FormControl>
-                    <Input type="number" disabled={loading} placeholder="9.99" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+ 
             <FormField
               control={form.control}
               name="locationId"
@@ -276,160 +409,151 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             />
-        {/*     <FormField
-              control={form.control}
-              name="hotelId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hotel</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Hotel" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {hotels.map((hotel) => (
-                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
- }
 
+      </div>
+
+          {/* //add formfield for flightDetails */}
+          <div>
             <FormField
               control={form.control}
-              name="isFeatured"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      // @ts-ignore
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Featured
-                    </FormLabel>
-                    <FormDescription>
-                      This Tour Package will appear on the home page
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isArchived"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      // @ts-ignore
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Archived
-                    </FormLabel>
-                    <FormDescription>
-                      This Tour Package will not appear anywhere in the store.
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-
-            <FormField
-              control={form.control}
-              name="itineraries"
+              name="flightDetails"
               render={({ field: { value = [], onChange } }) => (
                 <FormItem>
-                  <FormLabel>Create Itineraries</FormLabel>
+                  <FormLabel>Create Flight Plan</FormLabel>
                   {
+                    value.map((flight, index) => (
 
-                    value.map((itinerary, index) => (
-                      <div key={index} className="space-y-4">
+                      <div key={index} className="md:grid md:grid-cols-6 gap-8">
                         <FormControl>
                           <Input
-                            placeholder="Day"
-                            value={itinerary.days}
+                            placeholder="Date"
+                            disabled={loading}
+                            value={flight.date}
                             onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index] = { ...itinerary, days: e.target.value };
-                              onChange(newItineraries);
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, date: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="Flight Name"
+                            disabled={loading}
+                            value={flight.flightName}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, flightName: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="Flight Number"
+                            disabled={loading}
+                            value={flight.flightNumber}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="From"
+                            disabled={loading}
+                            value={flight.from}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, from: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="To"
+                            disabled={loading}
+                            value={flight.to}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, to: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="Departure Time"
+                            disabled={loading}
+                            value={flight.departureTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value]; // Ensure this is your state array
+                              newFlightDetails[index] = { ...flight, departureTime: e.target.value };
+                              onChange(newFlightDetails);
                             }}
                           />
 
                         </FormControl>
-
-                     
-                      
                         <FormControl>
-                          <div className="flex flex-col">
-                            <label>
-                              <Checkbox
-                                checked={itinerary.mealsIncluded?.includes('breakfast')}
-                                onCheckedChange={(isChecked) =>
-                                  handleMealChange('breakfast', !!isChecked, index)
-                                }
-                              />
-                              Breakfast
-                            </label>
-                            <label>
-                              <Checkbox
-                                checked={itinerary.mealsIncluded?.includes('lunch')}
-                                onCheckedChange={(isChecked) =>
-                                  handleMealChange('lunch', !!isChecked, index)
-                                }
-                              />
-                              Lunch
-                            </label>
-                            <label>
-                              <Checkbox
-                                checked={itinerary.mealsIncluded?.includes('dinner')}
-                                onCheckedChange={(isChecked) =>
-                                  handleMealChange('dinner', !!isChecked, index)
-                                }
-                              />
-                              Dinner
-                            </label>
-                          </div>
+
+                          <Input
+                            placeholder="Arrival Time"
+                            disabled={loading}
+                            value={flight.arrivalTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
                         </FormControl>
 
-
+                        <FormControl>
+                          <Input
+                            placeholder="Flight Duration"
+                            disabled={loading}
+                            value={flight.flightDuration}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
 
 
                         <FormControl>
                           <Button
+
                             type="button"
                             variant="destructive"
                             size="sm"
+                            disabled={loading}
                             onClick={() => {
-                              const newItineraries = value.filter((_, i) => i !== index);
-                              onChange(newItineraries);
-                            }}
-                          >
-                            Remove Itinerary
+                              const newFlightDetails = value.filter((_, i) => i != index);
+                              onChange(newFlightDetails);
+                            }}>
+                            Remove Flight
                           </Button>
                         </FormControl>
                       </div>
                     ))}
                   <FormControl>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => onChange([...value, { days: '', hotelId : '', activities: [], mealsIncluded: [] }])}
+                    <Button type="button" size="sm"
+                      disabled={loading}
+                      onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
                     >
-                      Add Itinerary
+                      Add Flight
                     </Button>
                   </FormControl>
                 </FormItem>
@@ -437,37 +561,423 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             />
           </div>
 
+          <FormField
+            control={form.control}
+            name="itineraries"
+            render={({ field: { value = [], onChange } }) => (
+              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                <FormLabel>Create Itineraries</FormLabel>
+                {value.map((itinerary, index) => (
+                  <div key={index} className="md:grid md:grid-cols-4 gap-8">
+                    <FormItem>
+                      <FormLabel>Day {index + 1}</FormLabel>
+                      <FormControl>
+                        <Input
+                          disabled={loading}
+                          type="number"
+                          value={itinerary.dayNumber}
+                          onChange={(e) => {
+                            const dayNumber = Number(e.target.value);
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Day"
+                          disabled={loading}
+
+                          value={itinerary.days}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, days: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <ImageUpload
+                      value={itinerary.itineraryImages?.map((image) => image.url) || []}
+                      disabled={loading}
+                      onChange={(newItineraryUrl) => {
+                        const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
+                        // Update the itinerary with the new images array
+                        const updatedItineraries = [...value];
+                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                        onChange(updatedItineraries);
+                      }}
+                      onRemove={(itineraryURLToRemove) => {
+                        // Filter out the image to remove
+                        const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
+                        // Update the itinerary with the new images array
+                        const updatedItineraries = [...value];
+                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                        onChange(updatedItineraries);
+                      }}
+                    />
+
+
+
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Textarea rows={3}
+                          placeholder="Title"
+                          disabled={loading}
+
+                          value={itinerary.itineraryTitle}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, itineraryTitle: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea rows={10}
+                          placeholder="Description"
+                          disabled={loading}
+
+                          value={itinerary.itineraryDescription}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, itineraryDescription: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <FormItem>
+                      <FormLabel>Hotel</FormLabel>
+                      <Select
+                        disabled={loading}
+                        value={itinerary.hotelId}
+                        defaultValue={itinerary.hotelId}
+                        onValueChange={(selectedHotelId) => {
+                          const newItineraries = [...value];
+                          newItineraries[index] = {
+                            ...itinerary,
+                            hotelId: selectedHotelId
+                          };
+                          onChange(newItineraries); // Update the state with the new itineraries
+
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              defaultValue={itinerary.hotelId}
+                              placeholder="Select a Hotel"
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
+                            <SelectItem key={hotel.id} value={hotel.id}>
+                              {hotel.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+
+                    <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                      <FormLabel>Meal Plan</FormLabel>
+                      <FormControl>
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2">
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('Breakfast')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('Breakfast', !!isChecked, index)
+                              }
+                            />
+                            Breakfast
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('Lunch')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('Lunch', !!isChecked, index)
+                              }
+                            />
+                            Lunch
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <Checkbox
+                              checked={itinerary.mealsIncluded?.includes('Dinner')}
+                              onCheckedChange={(isChecked) =>
+                                handleMealChange('Dinner', !!isChecked, index)
+                              }
+                            />
+                            Dinner
+                          </label>
+                        </div>
+                      </FormControl>
+                    </FormItem>
+
+
+
+                    {itinerary.activities.map((activity, activityIndex) => (
+                      <div key={activityIndex} className="space-y-2">
+                        <Select
+                          disabled={loading}
+                          onValueChange={(selectedActivityId) =>
+                            handleActivitySelection(selectedActivityId, index, activityIndex)
+                          }
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an Activity" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                              <SelectItem key={activityMaster.id}
+                                value={activityMaster.id}>
+                                {activityMaster.activityMasterTitle}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormControl>
+                          <Textarea rows={3}
+                            disabled={loading}
+                            placeholder="Activity Title"
+                            value={activity.activityTitle}
+                            onChange={(e) => {
+                              const newItineraries = [...value];
+                              newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e.target.value };
+                              onChange(newItineraries);
+                            }}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <Textarea rows={10}
+                            placeholder="Activity Description"
+                            disabled={loading}
+                            value={activity.activityDescription}
+                            onChange={(e) => {
+                              const newItineraries = [...value];
+                              newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e.target.value };
+                              onChange(newItineraries);
+                            }}
+                          />
+                        </FormControl>
+
+                        <ImageUpload
+                          value={activity.activityImages?.map((image) => image.url)}
+                          disabled={loading}
+                          onChange={(newActivityURL) => {
+                            // Add new image URL to the activity's images
+                            const updatedImages = [...activity.activityImages, { url: newActivityURL }];
+                            // Update the specific activity in the itinerary
+                            const updatedActivities = [...itinerary.activities];
+                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                            // Update the specific itinerary in the itineraries array
+                            const updatedItineraries = [...value];
+                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                            onChange(updatedItineraries);
+                          }}
+                          onRemove={(activityURLToRemove) => {
+                            // Filter out the image to remove
+                            const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                            // Update the specific activity in the itinerary
+                            const updatedActivities = [...itinerary.activities];
+                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                            // Update the specific itinerary in the itineraries array
+                            const updatedItineraries = [...value];
+                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                            onChange(updatedItineraries);
+                          }}
+                        />
+
+
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            const newItineraries = [...value];
+                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                            onChange(newItineraries);
+                          }}
+                        >
+                          Remove Activity
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        const newItineraries = [...value];
+                        newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
+                        onChange(newItineraries);
+                      }}
+                    >
+                      Add Activity
+                    </Button>
+
+
+
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        const newItineraries = value.filter((_, i) => i !== index);
+                        onChange(newItineraries);
+                      }}
+                    >
+                      Remove Itinerary for Day {index + 1}
+
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
+                >
+                  Add Itinerary
+                </Button>
+
+
+              </FormItem>
+            )}
+          />
+
+          <div className="md:grid md:grid-cols-2 gap-8">
+            {/* //add formfield for hotelDetails */}
+
+
+            {/* //add formfield for inclusions */}
+            <FormField
+              control={form.control}
+              name="inclusions"
+
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Inclusions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Inclusions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for exclusions */}
+            <FormField
+              control={form.control}
+              name="exclusions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+          </div>
+          {/* //add formfield for paymentPolicy */}
+          <div className="md:grid md:grid-cols-2 gap-8">
+
+            <FormField
+              control={form.control}
+              name="paymentPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Policy</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Payment Policy" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for usefulTip */}
+            <FormField
+              control={form.control}
+              name="usefulTip"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Useful Tip</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Useful Tip" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+          </div>
+          {/* //add formfield for cancellationPolicy */}
+          <div className="md:grid md:grid-cols-2 gap-8">
+
+            <FormField
+              control={form.control}
+              name="cancellationPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cancellation Policy</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Cancellation Policy" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            {/* //add formfield for airlineCancellationPolicy */}
+
+            <FormField
+              control={form.control}
+              name="airlineCancellationPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Airline Cancellation Policy</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+          </div>
+          {/* //add formfield for termsconditions */}
+          <FormField
+            control={form.control}
+            name="termsconditions"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Terms and Conditions</FormLabel>
+                <FormControl>
+                  <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>
 
-        </form>
+        </form >
       </Form >
     </>
   )
 } 
- */
-import { TourPackage, Images, Itinerary, Hotel } from '@prisma/client';
-import React from 'react';
-interface TourPackageFormProps {
-  initialData: TourPackage & {
-    images: Images[];
-    itineraries: Itinerary[];
-  } | null;
-//  locations: Location[];
-  hotels: Hotel[];
-  //  itineraries: Itinerary[];
-};
-
-
-export const TourPackageForm: React.FC<TourPackageFormProps> = ({
-  initialData,
-//  locations,
-  hotels,
-}) => {  return (
-    <div>
-      
-    </div>
-  );
-};
-

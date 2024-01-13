@@ -6,10 +6,10 @@ import { CellAction } from "./cell-action"
 
 export type TourPackageColumn = {
   id: string
-  name: string;
+  tourPackageName: string;
   price: string;
   location : string;
-  hotel : string;
+  //hotel : string;
   createdAt: string;
   isFeatured: boolean;
   isArchived: boolean;
@@ -17,8 +17,8 @@ export type TourPackageColumn = {
 
 export const columns: ColumnDef<TourPackageColumn>[] = [
   {
-    accessorKey: "name",
-    header: "Name",
+    accessorKey: "tourPackageName",
+    header: "Tour Package Name",
   },
   {
     accessorKey: "isArchived",
@@ -36,10 +36,10 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
     accessorKey: "location",
     header: "Location",
   },
-  {
+ /*  {
     accessorKey: "hotel",
     header: "Hotel",
-  },
+  }, */
   
   {
     accessorKey: "createdAt",

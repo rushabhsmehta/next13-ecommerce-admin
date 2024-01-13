@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 
 import prismadb from "@/lib/prismadb";
+import { string } from "zod";
+import { Activity } from "@prisma/client";
 
 export async function GET(
   req: Request,
@@ -9,7 +11,7 @@ export async function GET(
 ) {
   try {
     if (!params.tourPackageId) {
-      return new NextResponse("Tour Pacakge id is required", { status: 400 });
+      return new NextResponse("Tour Pacakge  id is required", { status: 400 });
     }
 
     const tourPackage = await prismadb.tourPackage.findUnique({
@@ -17,23 +19,28 @@ export async function GET(
         id: params.tourPackageId
       },
       include: {
+        flightDetails: true,
         images: true,
         location: true,
-        hotel: true,
+        //hotel: true,
         itineraries: {
           include: {
-            activities: true,
+            itineraryImages: true,
+            activities: {
+              include: {
+                activityImages: true,
+              }
+            }
           },
           orderBy: {
-            days: 'asc' // or 'desc' depending on desired order
-          }
+            createdAt: 'asc',
+          },
         },
-      }
-    });
-
+      },
+    },)
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[TOUR_PACKAGE_GET]', error);
+    console.log('[TOUR_PACKAGE__GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
@@ -50,7 +57,7 @@ export async function DELETE(
     }
 
     if (!params.tourPackageId) {
-      return new NextResponse("Tour Package id is required", { status: 400 });
+      return new NextResponse("Tour Package  Id is required", { status: 400 });
     }
 
     const storeByUserId = await prismadb.store.findFirst({
@@ -72,10 +79,56 @@ export async function DELETE(
 
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[TOURPACKAGE_DELETE]', error);
+    console.log('[TOURPACKAGE__DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };
+
+async function createItineraryAndActivities(itinerary: { storeId : string,  itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber : any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageQueryId: any) {
+  // First, create the itinerary and get its id
+  const createdItinerary = await prismadb.itinerary.create({
+    data: {
+      storeId: storeId,
+      itineraryTitle: itinerary.itineraryTitle,
+      itineraryDescription: itinerary.itineraryDescription,
+      locationId: itinerary.locationId,
+      tourPackageId: itinerary.tourPackageId,
+      tourPackageQueryId: tourPackageQueryId,
+      dayNumber : itinerary.dayNumber,
+      days: itinerary.days,
+      hotelId: itinerary.hotelId,
+      mealsIncluded: itinerary.mealsIncluded,
+      itineraryImages: {
+        createMany: {
+          data: itinerary.itineraryImages.map((image: { url: any; }) => ({ url: image.url })),
+        },
+      },
+    },
+  });
+
+  // Next, create activities linked to this itinerary
+  if (itinerary.activities && itinerary.activities.length > 0) {
+    await Promise.all(itinerary.activities.map((activity: { storeId : string, activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+      console.log("Received Activities is ", activity);
+      return prismadb.activity.create({
+        data: {
+          storeId: storeId,          
+          itineraryId: createdItinerary.id, // Link to the created itinerary
+          activityTitle: activity.activityTitle,
+          activityDescription: activity.activityDescription,
+          locationId: activity.locationId,
+          activityImages: {
+            createMany: {
+              data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+            },
+          },
+        },
+      });
+    }));
+  }
+
+  return createdItinerary;
+}
 
 
 export async function PATCH(
@@ -87,7 +140,36 @@ export async function PATCH(
 
     const body = await req.json();
 
-    const { name, price, locationId, hotelId, images, itineraries, isFeatured, isArchived } = body;
+    const {
+      tourPackageName,
+      customerName,
+      numDaysNight,
+      locationId,
+      period,
+      numAdults,
+      numChild5to12,
+      numChild0to5,
+      price,
+      flightDetails,
+      //   hotelDetails,
+      inclusions,
+      exclusions,
+      paymentPolicy,
+      usefulTip,
+      cancellationPolicy,
+      airlineCancellationPolicy,
+      termsconditions,
+      // hotelId,
+      images,
+      itineraries,
+      isFeatured,
+      isArchived,
+      assignedTo,
+      assignedToMobileNumber,
+      assignedToEmail,
+    } = body;
+
+    console.log(flightDetails);
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -97,8 +179,8 @@ export async function PATCH(
       return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
-    if (!name) {
-      return new NextResponse("Name is required", { status: 400 });
+ /*    if (!tourPackageName) {
+      return new NextResponse("Tour Package  Name is required", { status: 400 });
     }
 
     if (!images || !images.length) {
@@ -107,15 +189,16 @@ export async function PATCH(
 
     if (!price) {
       return new NextResponse("Price is required", { status: 400 });
-    }
+    } */
 
     if (!locationId) {
       return new NextResponse("Location id is required", { status: 400 });
     }
 
-    if (!hotelId) {
+    /* if (!hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
-    }
+    } */
+
 
     const storeByUserId = await prismadb.store.findFirst({
       where: {
@@ -128,53 +211,121 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 405 });
     }
 
-    await prismadb.tourPackage.update({
-      where: {
-        id: params.tourPackageId
-      },
-      data: {
-        name,
-        price,
-        locationId,
-        hotelId,
-        images: {
-          deleteMany: {},
-        },
-        itineraries:
-        {
-          deleteMany: {},
-        },
-        isFeatured,
-        isArchived,
-      },
-    });
 
-    const tourPackage = await prismadb.tourPackage.update({
-      where: {
-        id: params.tourPackageId
-      },
-      data: {
-        images: {
-          createMany: {
-            data: [
-              ...images.map((image: { url: string }) => image),
-            ],
-          },
+    const tourPackageUpdateData =
+    {
+
+      //  await prismadb.tourPackage.update({
+      //  where: {
+      //    id: params.tourPackageId
+      //  },
+      //    data: {
+      tourPackageName,
+      customerName,
+      numDaysNight,
+      locationId,
+      period,
+      numAdults,
+      numChild5to12,
+      numChild0to5,
+      price,
+      inclusions,
+      exclusions,
+      paymentPolicy,
+      usefulTip,
+      cancellationPolicy,
+      airlineCancellationPolicy,
+      termsconditions,
+      isFeatured,
+      isArchived,
+      assignedTo,
+      assignedToMobileNumber,
+      assignedToEmail,
+
+      images: images && images.length > 0 ? {
+        deleteMany: {},
+        createMany: {
+          data: [
+            ...images.map((img: { url: string }) => img),
+          ],
         },
-        itineraries: {
-          createMany: {
-            data: [
-              ...itineraries.map((itinerary: { days: string, hotelId: string, activities: string[], mealsIncluded: string }) => itinerary),
-            ],
-          },
-        }
+      } : { deleteMany: {} },
+
+      itineraries: {
+        deleteMany: {},
+      },
+
+      flightDetails : {
+        deleteMany : {},
+        createMany: {
+          data: [
+              ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
+      }
       }
     }
-    )
+
+    await prismadb.tourPackage.update({
+      where: { id: params.tourPackageId },
+      data: tourPackageUpdateData
+    });
+
+
+   /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageId: string; }) => {
+      const flightDetailData =
+      {
+        date: flightDetail.date,
+        flightName: flightDetail.flightName,
+        flightNumber: flightDetail.flightNumber,
+        from: flightDetail.from,
+        to: flightDetail.to,
+        departureTime: flightDetail.departureTime,
+        arrivalTime: flightDetail.arrivalTime,
+        flightDuration: flightDetail.flightDuration,
+        tourPackageId: params.tourPackageId,
+      }
+
+      operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
+    }
+    );
+ */
+
+    
+    if (itineraries && itineraries.length > 0) {
+      // Map each itinerary to a promise to create the itinerary and its activities
+      const itineraryPromises = itineraries.map((itinerary : any)=> 
+        createItineraryAndActivities(itinerary, params.storeId, params.tourPackageId)
+      );
+
+      // Wait for all itinerary promises to resolve
+      await Promise.all(itineraryPromises);
+    }
+
+
+
+    const tourPackage = await prismadb.tourPackage.findUnique({
+      where: { id: params.tourPackageId },
+      include: {
+        location: true,
+        flightDetails: true,
+        images: true,
+        itineraries: {
+          include: {
+            itineraryImages: true,
+            activities: {
+              include: {
+                activityImages: true,
+              }
+            }
+          },
+        },
+      }
+    });
+
+
 
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[tourPackage_PATCH]', error);
+    console.log('[TOURPACKAGE_PATCH]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 };

@@ -29,6 +29,7 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
 
 const activitySchema = z.object({
   activityTitle: z.string().min(2),
@@ -46,7 +47,7 @@ const formSchema = z.object({
   hotelId: z.string().optional(),
   tourPackageId: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
-  dayNumber : z.number().optional(),
+  dayNumber: z.number().optional(),
   days: z.string().optional(),
   mealsIncluded: z.array(z.string()).optional(),
   activities: z.array(activitySchema),
@@ -82,18 +83,19 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
   const toastMessage = initialData ? 'Itinerary updated.' : 'Itinerary created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const transformInitialData = (data : any) => {
+  const transformInitialData = (data: any) => {
     return {
       ...data,
+      dayNumber: data.dayNumber ? 0 : 0,
       mealsIncluded: data.mealsIncluded ? data.mealsIncluded.split(',') : [],
       activities: data.activities.map((activity: any) => ({
         ...activity,
-        activityImages: activity.activityImages.map((image : any) => ({ 
+        activityImages: activity.activityImages.map((image: any) => ({
           url: image.url,
-        })),        
+        })),
         itineraryMasterId: data.itineraryMasterId || '', // Convert null to undefined
-    }))
-         
+      }))
+
 
       // locationId: data.locationId ?? '',
       // tourPackageId: data.tourPackageId ?? '',
@@ -123,7 +125,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
     itineraryMasterTitle: '',
     itineraryMasterDescription: '',
     itineraryMasterImages: [],
-    dayNumber : 0,
+    dayNumber: 0,
     days: '',
     hotelId: '',
     mealsIncluded: '',
@@ -140,12 +142,13 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
     // Transform data for submission
     const submitData = {
       ...data,
+      dayNumber: data.dayNumber ? 0 : 0,
       mealsIncluded: data.mealsIncluded?.join(','), // Convert array to comma-separated string
       activities: data.activities?.map((activity) => ({
         ...activity,
-      
+
         locationId: data.locationId,
-  //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
+        //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
 
       }))
     };
@@ -250,6 +253,8 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               )}
             />
 
+            
+
             <FormField
               control={form.control}
               name="itineraryMasterTitle"
@@ -257,7 +262,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Title" {...field} />
+                    <Textarea rows={3} disabled={loading} placeholder="Title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -271,7 +276,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Description" {...field} />
+                    <Textarea rows={10} disabled={loading} placeholder="Description" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -342,7 +347,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                     <FormItem>
                       <FormLabel>Activity {index + 1}</FormLabel>
                       <FormControl>
-                        <Input
+                        <Textarea rows={3}
                           placeholder="Title"
                           disabled={loading}
 
@@ -357,7 +362,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                     </FormItem>
                     <FormItem>
                       <FormControl>
-                        <Input
+                        <Textarea rows={10}
                           placeholder="Description"
                           disabled={loading}
 
@@ -409,7 +414,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '',  itineraryMasterId : '', activityImages: [] }])}
+                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '', itineraryMasterId: '', activityImages: [] }])}
                 >
                   Add Activity
                 </Button>

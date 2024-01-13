@@ -291,6 +291,7 @@ model ItineraryMaster {
   itineraryMasterTitle              String? @db.Text
   itineraryMasterDescription        String? @db.Text
   itineraryMasterImages             Images[]
+  dayNumber          Int?
   days               String?
   hotelId            String?
   hotel              Hotel?            @relation("ItineraryMasterToHotel", fields: [hotelId], references: [id])

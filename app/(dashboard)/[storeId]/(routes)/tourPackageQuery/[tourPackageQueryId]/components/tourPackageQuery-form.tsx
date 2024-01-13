@@ -2,7 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
@@ -300,8 +300,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   }
 
-
-
+ 
   const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
     const selectedActivityMaster = (activitiesMaster as ActivityMaster[]).find(activity => activity.id === selectedActivityId);
 
@@ -853,7 +852,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {hotels.map((hotel) => (
+                          {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
                             <SelectItem key={hotel.id} value={hotel.id}>
                               {hotel.name}
                             </SelectItem>
@@ -1022,7 +1021,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber :0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

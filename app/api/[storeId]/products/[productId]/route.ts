@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+/* import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 
 import prismadb from "@/lib/prismadb";
@@ -19,7 +19,7 @@ export async function GET(
       include: {
         images: true,
         location : true,
-        hotel : true,
+        //hotel : true,
      
       }
     });
@@ -126,10 +126,10 @@ export async function PATCH(
         id: params.tourPackageId
       },
       data: {
-        name,
+        tourPackageName,
         price,
         locationId,
-        hotelId,
+       // hotelId,
         images: {
           deleteMany: {},
         },
@@ -159,3 +159,4 @@ export async function PATCH(
     return new NextResponse("Internal error", { status: 500 });
   }
 };
+ */

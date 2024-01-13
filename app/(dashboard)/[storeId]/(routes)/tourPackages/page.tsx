@@ -17,7 +17,7 @@ const tourPackagesPage = async ({
     },
     include: {
       location: true,
-      hotel : true,
+    //  hotel : true,
    
     },
     orderBy: {
@@ -27,12 +27,12 @@ const tourPackagesPage = async ({
 
   const formattedtourPackages: TourPackageColumn[] = tourPackages.map((item) => ({
     id: item.id,
-    name: item.name ?? '',
+    tourPackageName: item.tourPackageName ?? '',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
-    price: item.price ? formatter.format(item.price.toNumber()) : '0',
+    price: item.price ?? '',
     location: item.location.label,
-    hotel: item.hotel.name,
+  //  hotel: item.hotel.name,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 

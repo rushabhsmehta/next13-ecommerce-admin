@@ -73,7 +73,6 @@ model Hotel {
   updatedAt    DateTime      @updatedAt
   store        Store         @relation("StoreToHotel", fields: [storeId], references: [id])
   location     Location      @relation(fields: [locationId], references: [id])
-  tourPackages TourPackage[] @relation("HotelToTourPackage")
   itineraries  Itinerary[]   @relation("ItineraryToHotel")
   itinerariesMaster  ItineraryMaster[]   @relation("ItineraryMasterToHotel")
 
@@ -168,32 +167,52 @@ model FlightDetails {
   departureTime      String?
   arrivalTime        String?
   flightDuration     String?
+
+  tourPackageId String?
+  tourPackage   TourPackage? @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+
   tourPackageQueryId String?
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
 
   @@index([tourPackageQueryId])
+  @@index([tourPackageId])
 }
 
 model TourPackage {
-  id          String      @id @default(uuid())
-  storeId     String
-  locationId  String
-  hotelId     String
-  name        String?
-  price       Decimal?
-  isFeatured  Boolean     @default(false)
-  isArchived  Boolean     @default(false)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  store       Store       @relation("StoreTotourPackage", fields: [storeId], references: [id])
-  location    Location    @relation("LocationTotourPackage", fields: [locationId], references: [id])
-  hotel       Hotel       @relation("HotelToTourPackage", fields: [hotelId], references: [id])
-  itineraries Itinerary[]
-  itinerariesMaster ItineraryMaster[]
-  images      Images[]
+  id                        String      @id @default(uuid())
+   storeId                  String
+  tourPackageName           String?
+  customerName              String?
+  numDaysNight              String?
+  locationId                String
+  period                    String?
+  numAdults                 String?
+  numChild5to12             String?
+  numChild0to5              String?
+  price                     String?
+  inclusions                String? @db.Text
+  exclusions                String? @db.Text
+  paymentPolicy             String? @db.Text
+  usefulTip                 String? @db.Text
+  cancellationPolicy        String? @db.Text
+  airlineCancellationPolicy String? @db.Text
+  termsconditions           String? @db.Text
+  isFeatured                Boolean         @default(false)
+  isArchived                Boolean         @default(false)
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  store                     Store           @relation("StoreTotourPackage", fields: [storeId], references: [id])
+  location                  Location        @relation("LocationTotourPackage", fields: [locationId], references: [id])
+  flightDetails             FlightDetails[]
+  itineraries               Itinerary[]
+  itinerariesMaster         ItineraryMaster[]
 
+  images                    Images[]
+  assignedTo                 String?
+  assignedToMobileNumber     String?
+  assignedToEmail            String?
+ 
   @@index([storeId])
-  @@index([hotelId])
 }
 
 model Activity {

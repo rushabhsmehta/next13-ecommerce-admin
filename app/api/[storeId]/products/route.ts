@@ -34,10 +34,10 @@ export async function POST(
       return new NextResponse("Location id is required", { status: 400 });
     }
 
-    if (!hotelId) {
+  /*   if (!hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
     }
-
+ */
     if (!params.storeId) {
       return new NextResponse("Store id is required", { status: 400 });
     }
@@ -55,12 +55,12 @@ export async function POST(
 
     const tourPackage = await prismadb.tourPackage.create({
       data: {
-        name,
+        tourPackageName,
         price,
         isFeatured,
         isArchived,
         locationId,
-        hotelId,
+       // hotelId,
         storeId: params.storeId,
         images: {
           createMany: {
@@ -97,14 +97,14 @@ export async function GET(
       where: {
         storeId: params.storeId,
         locationId,
-        hotelId,
+     //   hotelId,
         isFeatured: isFeatured ? true : undefined,
         isArchived: false,
       },
       include: {
         images: true,
         location: true,
-        hotel: true,
+      //  hotel: true,
       },
       orderBy: {
         createdAt: 'desc',

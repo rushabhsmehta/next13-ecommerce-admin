@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
 // GET method to retrieve a specific itinerary master
-export async function GET(req: any, { params }: any) {
+export async function GET(req: Request, { params }: {params : { itineraryMasterId : string}}) {
   try {
     if (!params.itineraryMasterId) {
       return new NextResponse("Itinerary id is required", { status: 400 });
@@ -37,7 +37,7 @@ export async function GET(req: any, { params }: any) {
 };
 
 // DELETE method to delete a specific itinerary master
-export async function DELETE(req: any, { params }: any) {
+export async function DELETE(req: Request, { params }: { params : {itineraryMasterId : string, storeId : string }}) {
   try {
     const { userId } = auth();
 
@@ -74,7 +74,7 @@ export async function DELETE(req: any, { params }: any) {
 };
 
 // PATCH method to update a specific itinerary master
-export async function PATCH(req: { json: () => any; }, { params }: any) {
+export async function PATCH(req: Request, { params }: { params : {itineraryMasterId : string, storeId : string }}) {
   try {
     const { userId } = auth();
     const body = await req.json();

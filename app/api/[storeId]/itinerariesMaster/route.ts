@@ -22,7 +22,7 @@ async function createActivities(activity: { activityTitle: any; activityDescript
 }
 
 // POST function to create itinerary and activities
-export async function POST(req: { json: () => any; }, { params }: any) {
+export async function POST(req: Request, {params} : {params : { storeId : string}}) {
   try {
     const { userId } = auth();
     const body = await req.json();

@@ -71,11 +71,32 @@ export const CellAction: React.FC<CellActionProps> = ({
           >
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={() => router.push(`/${params.storeId}/tourPackageQueryCreateCopy/${data.id}`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Create New Query
+          </DropdownMenuItem>
+
+
+          <DropdownMenuItem
+            onClick={() => router.push(`/${params.storeId}/tourPackageCreateCopy/${data.id}`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Copy and Create New
+          </DropdownMenuItem>
+
           <DropdownMenuItem
             onClick={() => router.push(`/${params.storeId}/tourPackages/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={() => router.push(`/${params.storeId}/tourPackageDisplay/${data.id}`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Generate PDF
+          </DropdownMenuItem>
+
           <DropdownMenuItem
             onClick={() => setOpen(true)}
           >

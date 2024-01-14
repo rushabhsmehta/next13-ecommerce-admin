@@ -32,12 +32,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card className="break-inside-avoid">
-        <CardHeader>
-          <CardTitle>{initialData.tourPackageName}</CardTitle>
-          <CardDescription>
-            Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
-          </CardDescription>
-        </CardHeader>
+       
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
@@ -64,27 +59,9 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
             <div>
               <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
-            <div>
-              <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Period : {initialData.period}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Adults : {initialData.numAdults}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Price : {initialData.price}</div>
-            </div>
+          
           </div>
         </CardContent>
-
       </Card>
 
       {/* Flight Details */}

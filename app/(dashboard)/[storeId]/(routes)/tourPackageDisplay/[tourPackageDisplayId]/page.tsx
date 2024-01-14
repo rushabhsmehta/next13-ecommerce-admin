@@ -3,14 +3,14 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageDisplay } from "./components/tourPackageDisplay";
 import Navbar from "@/components/navbar";
 
-const tourPackagePage = async ({
+const tourPackageDisplayPage = async ({
   params
 }: {
-  params: { tourPackageId: string, storeId: string }
+  params: { tourPackageDisplayId: string, storeId: string }
 }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
-      id: params.tourPackageId,
+      id: params.tourPackageDisplayId,
     },
     include: {
       images: true,
@@ -77,4 +77,4 @@ const tourPackagePage = async ({
     </>
   );
 }
-export default tourPackagePage;
+export default tourPackageDisplayPage;

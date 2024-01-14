@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageForm } from "./components/tourPackage-form";
+import Navbar from "@/components/navbar";
 
 const tourPackagePage = async ({
   params
@@ -59,18 +60,15 @@ const tourPackagePage = async ({
   );
 
   return (
-    <div className="flex-col">
+    <><Navbar /><div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageForm
           initialData={tourPackage}
           locations={locations}
           hotels={hotels}
-          activitiesMaster={activitiesMaster}
-
-      //    itineraries={[]}
-        />
+          activitiesMaster={activitiesMaster} />
       </div>
-    </div>
+    </div></>
   );
 }
 

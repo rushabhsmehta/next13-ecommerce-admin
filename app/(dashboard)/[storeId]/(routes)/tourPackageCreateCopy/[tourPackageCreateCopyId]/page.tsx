@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 
 import { TourPackageCreateCopyForm } from "./components/tourPackageCreateCopy-form";
+import Navbar from "@/components/navbar";
 
 const tourPackagePage = async ({
   params
 }: {
-  params: { tourPackageCreateCopyId: string, storeId: string  }
+  params: { tourPackageCreateCopyId: string, storeId: string }
 }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
@@ -26,7 +27,7 @@ const tourPackagePage = async ({
           }
         },
         orderBy: {
-          dayNumber :  'asc' // or 'desc', depending on the desired order
+          dayNumber: 'asc' // or 'desc', depending on the desired order
         }
       }
     }
@@ -56,16 +57,15 @@ const tourPackagePage = async ({
   );
 
   return (
-    <div className="flex-col">
+    <><Navbar /><div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageCreateCopyForm
           initialData={tourPackage}
           locations={locations}
           hotels={hotels}
-          activitiesMaster={activitiesMaster}
-        />
-      </div>    
-    </div>
+          activitiesMaster={activitiesMaster} />
+      </div>
+    </div></>
   );
 }
 export default tourPackagePage;

@@ -20,18 +20,18 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
     accessorKey: "tourPackageName",
     header: "Tour Package Name",
   },
-  {
+ /*  {
     accessorKey: "isArchived",
     header: "Archived",
   },
   {
     accessorKey: "isFeatured",
     header: "Featured",
-  },
-  {
+  }, */
+  /* {
     accessorKey: "price",
     header: "Price",
-  },
+  }, */
   {
     accessorKey: "location",
     header: "Location",

@@ -67,14 +67,14 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  tourPackageName: z.string().min(1),
-  customerName: z.string().min(1),
-  numDaysNight: z.string().min(1),
-  period: z.string(),
-  numAdults: z.string(),
-  numChild5to12: z.string(),
-  numChild0to5: z.string(),
-  price: z.string().min(1),
+  tourPackageName: z.string().optional(),
+  customerName: z.string().optional(),
+  numDaysNight: z.string().optional(),
+  period: z.string().optional(),
+  numAdults: z.string().optional(),
+  numChild5to12: z.string().optional(),
+  numChild0to5: z.string().optional(),
+  price: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -238,6 +238,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const onSubmit = async (data: TourPackageFormValues) => {
 
+
+   
+
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
@@ -262,7 +265,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     try {
       setLoading(true);
       if (initialData) {
-        // console.log({ formattedData })
         formattedData.itineraries.forEach((itinerary, index) => {
           itinerary.activities.forEach(activity => {
             console.log("Activity Data Being Submitted is :", activity);
@@ -270,12 +272,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           )
         })
 
-        await axios.patch(`/api/${params.storeId}/tourPackage/${params.tourPackageId}`, formattedData);
+        await axios.patch(`/api/${params.storeId}/tourPackages/${params.tourPackageId}`, formattedData);
       } else {
-        await axios.post(`/api/${params.storeId}/tourPackage`, formattedData);
+        await axios.post(`/api/${params.storeId}/tourPackages`, formattedData);
       }
       router.refresh();
-      router.push(`/${params.storeId}/tourPackage`);
+      router.push(`/${params.storeId}/tourPackages`);
       toast.success(toastMessage);
     } catch (error: any) {
       console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
@@ -288,9 +290,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/tourPackage/${params.tourPackageId}`);
+      await axios.delete(`/api/${params.storeId}/tourPackages/${params.tourPackageId}`);
       router.refresh();
-      router.push(`/${params.storeId}/tourPackage`);
+      router.push(`/${params.storeId}/tourPackages`);
       toast.success('Tour Package  deleted.');
     } catch (error: any) {
       toast.error('Something went wrong.');

@@ -67,14 +67,14 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  tourPackageName: z.string().min(1),
-  customerName: z.string().min(1),
-  numDaysNight: z.string().min(1),
-  period: z.string(),
-  numAdults: z.string(),
-  numChild5to12: z.string(),
-  numChild0to5: z.string(),
-  price: z.string().min(1),
+  tourPackageName: z.string().optional(),
+  customerName: z.string().optional(),
+  numDaysNight: z.string().optional(),
+  period: z.string().optional(),
+  numAdults: z.string().optional(),
+  numChild5to12: z.string().optional(),
+  numChild0to5: z.string().optional(),
+  price: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -260,9 +260,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
 
     try {
       setLoading(true);
-      await axios.post(`/api/${params.storeId}/tourPackage`, formattedData);     
+      await axios.post(`/api/${params.storeId}/tourPackages`, formattedData);     
       router.refresh();
-      router.push(`/${params.storeId}/tourPackage`);
+      router.push(`/${params.storeId}/tourPackages`);
       toast.success(toastMessage);
     } catch (error: any) {
       console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
@@ -302,60 +302,6 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="md:grid md:grid-cols-4 gap-8">
 
-            <FormField
-              control={form.control}
-              name="assignedTo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Assigned To</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Assigned To"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="assignedToMobileNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mobile Number (Assigned To)</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Mobile Number (Assigned To)"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="assignedToEmail"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email ID (Assinged To)</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Email ID"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
 
           <FormField
@@ -388,7 +334,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <Input
                       disabled={loading}
-                      placeholder="Tour Package  Name"
+                      placeholder="Tour Package Query Name"
                       value={field.value}
                       onChange={field.onChange}
                     />
@@ -399,20 +345,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
             />
 
 
-            {/* //add formfield for customerName */}
-            <FormField
-              control={form.control}
-              name="customerName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer Name</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Customer Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+       
 
             <FormField
               control={form.control}
@@ -437,99 +370,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
               )}
             />
 
-            {/* //add formfield for numDaysNight */}
-            <FormField
-              control={form.control}
-              name="numDaysNight"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Days/Night</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          
           </div>
 
           {/* // add formfield for period */}
           <div className="md:grid md:grid-cols-5 gap-8">
-
-            <FormField
-              control={form.control}
-              name="period"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Period</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Period" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numAdults */}
-            <FormField
-              control={form.control}
-              name="numAdults"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Adults</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Adults" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numChildren */}
-            <FormField
-              control={form.control}
-              name="numChild5to12"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Children 5 to 12</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* //add formfield for numChildren */}
-            <FormField
-              control={form.control}
-              name="numChild0to5"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Children 0 to 5</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-
-
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="9.99" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
 
 

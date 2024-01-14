@@ -84,7 +84,7 @@ export async function DELETE(
   }
 };
 
-async function createItineraryAndActivities(itinerary: { storeId : string,  itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber : any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageQueryId: any) {
+async function createItineraryAndActivities(itinerary: { storeId : string,  itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageId: any) {
   // First, create the itinerary and get its id
   const createdItinerary = await prismadb.itinerary.create({
     data: {
@@ -92,8 +92,8 @@ async function createItineraryAndActivities(itinerary: { storeId : string,  itin
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
       locationId: itinerary.locationId,
-      tourPackageId: itinerary.tourPackageId,
-      tourPackageQueryId: tourPackageQueryId,
+      tourPackageId: tourPackageId,
+      tourPackageQueryId: itinerary.tourPackageQueryId,
       dayNumber : itinerary.dayNumber,
       days: itinerary.days,
       hotelId: itinerary.hotelId,

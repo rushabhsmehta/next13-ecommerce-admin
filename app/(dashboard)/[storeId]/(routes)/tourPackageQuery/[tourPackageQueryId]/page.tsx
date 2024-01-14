@@ -2,6 +2,7 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
 import { Turret_Road } from "next/font/google";
+import Navbar from "@/components/navbar";
 
 const tourPackageQueryPage = async ({
   params
@@ -57,26 +58,24 @@ const tourPackageQueryPage = async ({
   );
 
   return (
-    <div className="flex-col">
+    <><Navbar /><div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
           hotels={hotels}
-          activitiesMaster={activitiesMaster}
-        //    itineraries={[]}
-        />
+          activitiesMaster={activitiesMaster} />
       </div>
 
       {/*  <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryDisplay
-          data={tourPackageQuery}
-          locations={locations}
-          hotels={hotels}
-        //    itineraries={[]}
-        />
-      </div> */}
-    </div>
+      <TourPackageQueryDisplay
+        data={tourPackageQuery}
+        locations={locations}
+        hotels={hotels}
+      //    itineraries={[]}
+      />
+    </div> */}
+    </div></>
 
 
   );

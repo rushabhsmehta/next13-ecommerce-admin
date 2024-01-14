@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 
 import { HotelForm } from "./components/hotel-form";
+import Navbar from "@/components/navbar";
 
 const HotelPage = async ({
   params
@@ -22,12 +23,15 @@ const HotelPage = async ({
     }
   });
 
-  return ( 
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <HotelForm locations ={locations } initialData={hotel} />
+  return (
+    <>
+      <Navbar />
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <HotelForm locations={locations} initialData={hotel} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

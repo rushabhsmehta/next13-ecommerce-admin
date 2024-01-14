@@ -1,6 +1,7 @@
 import prismadb from "@/lib/prismadb";
 
 import { ItineraryForm } from "./components/itinerary-form";
+import Navbar from "@/components/navbar";
 
 const ItineraryPage = async ({
   params
@@ -12,23 +13,24 @@ const ItineraryPage = async ({
       id: params.itineraryId
     },
     include: {
-      location : true,
-      hotel : true,
+      location: true,
+      hotel: true,
       itineraryImages: true,
-      activities :
+      activities:
       {
         include: {
-          activityImages : true,
+          activityImages: true,
+        }
       }
     }
-  }});
+  });
 
   const locations = await prismadb.location.findMany({
     where: {
       storeId: params.storeId
     }
   });
-  
+
   const hotels = await prismadb.hotel.findMany({
     where: {
       storeId: params.storeId,
@@ -36,16 +38,17 @@ const ItineraryPage = async ({
   });
 
 
-  return ( 
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <ItineraryForm 
-        hotels = {hotels}
-        locations ={locations } 
-        initialData={itinerary} 
-        />
-      </div>
-    </div>
+  return (
+    <>
+      <Navbar />
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <ItineraryForm
+            hotels={hotels}
+            locations={locations}
+            initialData={itinerary} />
+        </div>
+      </div></>
   );
 }
 

@@ -1,11 +1,12 @@
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryFromTourPackageForm } from "./components/tourPackageQueryFromTourPackage-form";
+import Navbar from "@/components/navbar";
 
 
 const tourPackageQueryFromTourPackagePage = async ({
   params
 }: {
-  params: { tourPackageQueryFromTourPackageId: string, storeId: string  }
+  params: { tourPackageQueryFromTourPackageId: string, storeId: string }
 }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
@@ -26,7 +27,7 @@ const tourPackageQueryFromTourPackagePage = async ({
           }
         },
         orderBy: {
-          dayNumber :  'asc' // or 'desc', depending on the desired order
+          dayNumber: 'asc' // or 'desc', depending on the desired order
         }
       }
     }
@@ -56,16 +57,16 @@ const tourPackageQueryFromTourPackagePage = async ({
   );
 
   return (
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryFromTourPackageForm
-          initialData={tourPackage}
-          locations={locations}
-          hotels={hotels}
-          activitiesMaster={activitiesMaster}
-        />
-      </div>    
-    </div>
+    <><Navbar />
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryFromTourPackageForm
+            initialData={tourPackage}
+            locations={locations}
+            hotels={hotels}
+            activitiesMaster={activitiesMaster} />
+        </div>
+      </div></>
   );
 }
 export default tourPackageQueryFromTourPackagePage;

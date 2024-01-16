@@ -58,6 +58,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
+              <div className="font-bold">Price : {initialData.price} </div>
             </div>
           
           </div>

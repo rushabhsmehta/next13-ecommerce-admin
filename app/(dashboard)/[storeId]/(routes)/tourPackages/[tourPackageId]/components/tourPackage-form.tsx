@@ -421,7 +421,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <FormItem>
                     <FormLabel>Price</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="9.99" {...field} />
+                      <Input disabled={loading} placeholder="" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

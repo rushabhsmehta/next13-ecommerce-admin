@@ -16,10 +16,10 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
-import { TourPackageQueryColumn } from "./columns";
+import { ProductColumn } from "./columns";
 
 interface CellActionProps {
-  data: TourPackageQueryColumn;
+  data: ProductColumn;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
@@ -33,8 +33,8 @@ export const CellAction: React.FC<CellActionProps> = ({
   const onConfirm = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/tourPackageQuery/${data.id}`);
-      toast.success('Tour Package Query deleted.');
+      await axios.delete(`/api/${params.storeId}/products/${data.id}`);
+      toast.success('Product deleted.');
       router.refresh();
     } catch (error) {
       toast.error('Something went wrong');
@@ -46,7 +46,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
-    toast.success('Tour Package ID copied to clipboard.');
+    toast.success('Product ID copied to clipboard.');
   }
 
   return (
@@ -71,29 +71,12 @@ export const CellAction: React.FC<CellActionProps> = ({
           >
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
-            <DropdownMenuItem
-            onClick={() => router.push(`/${params.storeId}/tourPackageQueryCreateCopy/${data.id}`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Copy and Create New
-          </DropdownMenuItem>          
           <DropdownMenuItem
-            onClick={() => router.push(`/${params.storeId}/tourPackageQuery/${data.id}`)}
+            onClick={() => router.push(`/${params.storeId}/products/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
-
           <DropdownMenuItem
-            onClick={() => router.push(`/${params.storeId}/tourPackageFromTourPackageQuery/${data.id}`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Create Tour Package
-          </DropdownMenuItem>
-
-        <DropdownMenuItem
-            onClick={() => router.push(`/${params.storeId}/tourPackageQueryDisplay/${data.id}`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Generate PDF
-          </DropdownMenuItem>
-         <DropdownMenuItem
             onClick={() => setOpen(true)}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete

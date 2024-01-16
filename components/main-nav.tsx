@@ -18,11 +18,11 @@ export function MainNav({
       label: 'Overview',
       active: pathname === `/${params.storeId}`,
     },
-   /*  {
+     /* {
       href: `/${params.storeId}/billboards`,
       label: 'Billboards',
-      active: pathname === `/${params.storeId}/billboards`,
-    }, */
+      active: pathname === `/${params.storeId}/bill boards`,
+    },  */
     {
       href: `/${params.storeId}/locations`,
       label: 'Locations',
@@ -57,13 +57,14 @@ export function MainNav({
       href: `/${params.storeId}/itineraries`,
       label: 'Itineraries',
       active: pathname === `/${params.storeId}/itineraries`,
-    },
+    }, */
+
     {
       href: `/${params.storeId}/categories`,
       label: 'Categories',
       active: pathname === `/${params.storeId}/categories`,
     },
-    {
+    /*  {
       href: `/${params.storeId}/sizes`,
       label: 'Sizes',
       active: pathname === `/${params.storeId}/sizes`,
@@ -77,7 +78,8 @@ export function MainNav({
       href: `/${params.storeId}/products`,
       label: 'Products',
       active: pathname === `/${params.storeId}/products`,
-    },
+    }, 
+    
     {
       href: `/${params.storeId}/orders`,
       label: 'Orders',

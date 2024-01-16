@@ -239,7 +239,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const onSubmit = async (data: TourPackageFormValues) => {
 
 
-   
+
 
     const formattedData = {
       ...data,
@@ -302,7 +302,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     }
   }
 
- 
+
   const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
     const selectedActivityMaster = (activitiesMaster as ActivityMaster[]).find(activity => activity.id === selectedActivityId);
 
@@ -348,7 +348,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-       
+
           <FormField
             control={form.control}
             name="images"
@@ -388,7 +388,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             />
- 
+
             <FormField
               control={form.control}
               name="locationId"
@@ -412,7 +412,23 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               )}
             />
 
-      </div>
+            <div className="md:grid md:grid-cols-5 gap-8">
+
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="9.99" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
 
           {/* //add formfield for flightDetails */}
           <div>

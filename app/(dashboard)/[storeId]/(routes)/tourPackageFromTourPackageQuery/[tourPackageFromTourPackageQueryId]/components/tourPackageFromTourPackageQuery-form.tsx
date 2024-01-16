@@ -126,9 +126,9 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
   const [flightDetails, setFlightDetails] = useState([]);
 
   //console.log(initialData);
-  const title = 'Create Tour Package Query';
-  const description = 'Add a new Tour Package Query';
-  const toastMessage = 'Tour Package Query created.';
+  const title = 'Create Tour Package';
+  const description = 'Add a new Tour Package';
+  const toastMessage = 'Tour Package created.';
   const action =  'Create';
  // console.log("Initial Data : ", initialData?.itineraries)
 

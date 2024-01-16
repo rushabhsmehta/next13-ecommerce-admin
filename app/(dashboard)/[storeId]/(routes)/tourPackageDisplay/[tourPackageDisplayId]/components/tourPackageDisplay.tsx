@@ -32,6 +32,11 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card className="break-inside-avoid">
+      <CardHeader>
+        <CardTitle>{initialData.tourPackageName}</CardTitle>
+        <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
+        <CardDescription>Price : {initialData.price} </CardDescription>
+        </CardHeader>
        
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
@@ -46,22 +51,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               />
             </div>
           ))}
-        </CardContent>
-      </Card>
-
-      {/* Tour Package Details */}
-      <Card className="break-inside-avoid">
-        <CardHeader>
-
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
-              <div className="font-bold">Price : {initialData.price} </div>
-            </div>
-          
-          </div>
         </CardContent>
       </Card>
 

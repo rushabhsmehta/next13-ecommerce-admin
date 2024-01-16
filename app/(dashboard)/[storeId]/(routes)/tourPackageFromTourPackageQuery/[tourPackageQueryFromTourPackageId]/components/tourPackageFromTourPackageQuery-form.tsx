@@ -261,9 +261,9 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
 
     try {
       setLoading(true);
-      await axios.post(`/api/${params.storeId}/tourPackage`, formattedData);     
+      await axios.post(`/api/${params.storeId}/tourPackages`, formattedData);     
       router.refresh();
-      router.push(`/${params.storeId}/tourPackage`);
+      router.push(`/${params.storeId}/tourPackages`);
       toast.success(toastMessage);
     } catch (error: any) {
       console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
@@ -384,7 +384,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                 <FormItem>
                   <FormLabel>Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="9.99" {...field} />
+                    <Input disabled={loading} placeholder="0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { Trash } from "lucide-react"
-import { Images } from "@prisma/client"
+import { Activity, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
@@ -109,6 +109,13 @@ interface TourPackageQueryFormProps {
   activitiesMaster: (ActivityMaster & {
     activityMasterImages: Images[];
   })[] | null;
+  itinerariesMaster: (ItineraryMaster & {
+    itineraryMasterImages: Images[];
+    activities: (Activity & {
+      activityImages: Images[];
+    }) [] | null;
+  
+  })[] | null;
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
@@ -116,6 +123,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   locations,
   hotels,
   activitiesMaster,
+  itinerariesMaster,
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -300,9 +308,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   }
 
- 
+
   const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
-    const selectedActivityMaster = (activitiesMaster as ActivityMaster[]).find(activity => activity.id === selectedActivityId);
+    const selectedActivityMaster = activitiesMaster?.find(activity => activity.id === selectedActivityId);
 
     if (selectedActivityMaster) {
       const updatedItineraries = [...form.getValues('itineraries')];
@@ -311,7 +319,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         activityTitle: selectedActivityMaster.activityMasterTitle || '',
         activityDescription: selectedActivityMaster.activityMasterDescription || '',
-        //  activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
+        activityImages: selectedActivityMaster.activityMasterImages?.map((image: { url: any }) => ({ url: image.url }))
       };
       form.setValue('itineraries', updatedItineraries);
     }
@@ -570,7 +578,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price</FormLabel>
                   <FormControl>
-                    <Textarea rows = {5} disabled={loading} placeholder="0" {...field} />
+                    <Textarea rows={5} disabled={loading} placeholder="0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -735,8 +743,50 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             render={({ field: { value = [], onChange } }) => (
               <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                 <FormLabel>Create Itineraries</FormLabel>
+
+
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-4 gap-8">
+
+                    <Select
+                      disabled={loading}
+                      onValueChange={(selectedItineraryMasterId) => {
+                        const selectedItineraryMaster = itinerariesMaster?.find(itineraryMaster => itineraryMaster.id === selectedItineraryMasterId);
+                        if (selectedItineraryMaster) {
+                          const updatedItineraries = [...form.getValues('itineraries')];
+                          updatedItineraries[index] = {
+                            ...updatedItineraries[index],
+                            itineraryTitle: selectedItineraryMaster.itineraryMasterTitle || '',
+                            itineraryDescription: selectedItineraryMaster.itineraryMasterDescription || '',
+                        //    hotelId : selectedItineraryMaster.hotelId || '',
+                       //     mealsIncluded: selectedItineraryMaster.mealsIncluded ? selectedItineraryMaster.mealsIncluded.split('-') : [],
+                            itineraryImages: selectedItineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
+                             activities: selectedItineraryMaster.activities?.map(activity => ({
+                            activityTitle: activity.activityTitle || '',
+                            activityDescription: activity.activityDescription || '',
+                            activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                            // Include other activity fields as necessary
+                          })) || [],
+      
+                            // If itineraryMaster has images or any other properties you want to copy, do it here
+                          };
+                          form.setValue('itineraries', updatedItineraries);
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an Itinerary Master" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {itinerariesMaster?.map((itineraryMaster) => (
+                          <SelectItem key={itineraryMaster.id} value={itineraryMaster.id}>
+                            {itineraryMaster.itineraryMasterTitle}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormItem>
                       <FormLabel>Day {index + 1}</FormLabel>
                       <FormControl>

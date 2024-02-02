@@ -89,6 +89,7 @@ export async function PATCH(req: Request, { params }: { params : {itineraryMaste
       dayNumber,
       days,
       hotelId,
+      roomCategory,
       mealsIncluded,
     } = body;
 
@@ -138,6 +139,7 @@ const itineraryMasterUpdateData = {
   dayNumber,
   days,
   hotelId,
+  roomCategory,
   mealsIncluded,
   itineraryMasterImages: {
     deleteMany: {},

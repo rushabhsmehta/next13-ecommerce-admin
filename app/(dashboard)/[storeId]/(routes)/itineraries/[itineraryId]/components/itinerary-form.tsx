@@ -44,9 +44,10 @@ const formSchema = z.object({
   itineraryImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   hotelId: z.string().optional(),
+  roomCategory: z.string().optional(),
   tourPackageId: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
-  dayNumber : z.number().optional(),
+  dayNumber: z.number().optional(),
   days: z.string().optional(),
   mealsIncluded: z.array(z.string()).optional(),
   activities: z.array(activitySchema),
@@ -82,18 +83,18 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
   const toastMessage = initialData ? 'Itinerary updated.' : 'Itinerary created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const transformInitialData = (data : any) => {
+  const transformInitialData = (data: any) => {
     return {
       ...data,
       mealsIncluded: data.mealsIncluded ? data.mealsIncluded.split(',') : [],
       activities: data.activities.map((activity: any) => ({
         ...activity,
-        activityImages: activity.activityImages.map((image : any) => ({ 
+        activityImages: activity.activityImages.map((image: any) => ({
           url: image.url,
-        })),        
+        })),
         itineraryId: data.itineraryId || '', // Convert null to undefined
-    }))
-         
+      }))
+
 
       // locationId: data.locationId ?? '',
       // tourPackageId: data.tourPackageId ?? '',
@@ -123,9 +124,10 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
     itineraryTitle: '',
     itineraryDescription: '',
     itineraryImages: [],
-    dayNumber : 0,
+    dayNumber: 0,
     days: '',
     hotelId: '',
+    roomCategory: '',
     mealsIncluded: '',
     activities: [],
   }
@@ -143,9 +145,9 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
       mealsIncluded: data.mealsIncluded?.join(','), // Convert array to comma-separated string
       activities: data.activities?.map((activity) => ({
         ...activity,
-      
+
         locationId: data.locationId,
-  //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
+        //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
 
       }))
     };
@@ -303,6 +305,20 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
 
             <FormField
               control={form.control}
+              name="roomCategory"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Room Category</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Room Category" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="mealsIncluded"
               render={({ field }) => (
                 <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
@@ -409,7 +425,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '',  itineraryId : '', activityImages: [] }])}
+                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '', itineraryId: '', activityImages: [] }])}
                 >
                   Add Activity
                 </Button>

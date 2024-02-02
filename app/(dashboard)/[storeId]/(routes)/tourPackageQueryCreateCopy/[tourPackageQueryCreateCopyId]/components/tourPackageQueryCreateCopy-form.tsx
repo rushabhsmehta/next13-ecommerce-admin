@@ -47,6 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
+  roomCategory : z.string(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -158,6 +159,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
+        roomCategory : itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
@@ -815,6 +817,24 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                       <FormMessage />
                     </FormItem>
 
+                    <FormItem>
+                      <FormLabel>Room Category</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Room Category"
+                          disabled={loading}
+
+                          value={itinerary.roomCategory}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+
                     <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                       <FormLabel>Meal Plan</FormLabel>
                       <FormControl>
@@ -974,7 +994,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber : 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber : 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory : '',locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

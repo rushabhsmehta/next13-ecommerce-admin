@@ -24,6 +24,7 @@ export async function POST(
       dayNumber,
       days,
       hotelId,
+      roomCategory,
       mealsIncluded,
     } = body;
 
@@ -73,6 +74,7 @@ export async function POST(
         dayNumber,
         days,
         hotelId,
+        roomCategory,
         mealsIncluded,
         itineraryImages: {
           createMany: {

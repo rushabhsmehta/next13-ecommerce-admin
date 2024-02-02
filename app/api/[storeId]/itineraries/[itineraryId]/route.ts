@@ -102,6 +102,7 @@ export async function PATCH(
       dayNumber,
       days,
       hotelId,
+      roomCategory,
       mealsIncluded,
     } = body;
 
@@ -165,6 +166,7 @@ export async function PATCH(
       dayNumber,  // Update dayNumber
       days,  // Update days
       hotelId,  // Update hotelId
+      roomCategory,  // Update roomCategory
       mealsIncluded,  // Update mealsIncluded
       itineraryImages: itineraryImages && itineraryImages.length > 0 ? {
         deleteMany: {},

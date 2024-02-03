@@ -239,7 +239,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4">
                       {/* Title */}
                       <div className="mb-4">
                         <h2 className="font-bold text-xl">Activities</h2>

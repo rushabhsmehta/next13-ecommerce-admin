@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { PlaneTakeoffIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
+import { FaFacebookF, FaTwitter, FaInstagram, FaWhatsapp } from 'react-icons/fa';
 
 
 interface TourPackageQueryDisplayProps {
@@ -348,6 +349,37 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
       </div>
+
+      {/* Footer Section with Company Details */}
+      <footer className="mt-8 bg-gray-100 text-center p-4 rounded-lg">
+        <div className="mb-2">
+          {/* Company Logo */}
+          <img src="/path-to-your-logo.png" alt="Company Logo" className="mx-auto h-12 w-auto" />
+        </div>
+        <div className="font-semibold">Contact Us</div>
+        <ul className="text-sm space-y-1">
+          <li>1234 Company Address, City, Country</li>
+          <li>Phone: +1234567890</li>
+          <li>WhatsApp: +1234567890</li>
+          <li>Email: contact@yourcompany.com</li>
+          <li>Website: <a href="https://yourcompany.com" className="text-blue-600">yourcompany.com</a></li>
+        </ul>
+        <div className="flex justify-center space-x-4 mt-4">
+          {/* Social Media Icons */}
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-600">
+            <FaFacebookF />
+          </a>
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-blue-400">
+            <FaTwitter />
+          </a>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-pink-600">
+            <FaInstagram />
+          </a>
+          <a href="https://api.whatsapp.com/send?phone=+1234567890" target="_blank" rel="noopener noreferrer" className="text-green-500">
+            <FaWhatsapp />
+          </a>
+        </div>
+      </footer>
 
     </div >
   );

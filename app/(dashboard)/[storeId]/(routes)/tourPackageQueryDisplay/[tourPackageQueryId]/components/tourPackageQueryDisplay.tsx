@@ -236,7 +236,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               {itinerary.activities && itinerary.activities.length > 0 && (
                 <Card className="break-inside-avoid">
                   <CardHeader>
-
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4">

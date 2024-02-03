@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  roomCategory : z.string(),
+  roomCategory: z.string(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -72,10 +72,16 @@ const formSchema = z.object({
   customerName: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
+  transport: z.string().optional(),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
   price: z.string().optional(),
+  pricePerAdult: z.string().optional(),
+  pricePerChildOrExtraBed: z.string().optional(),
+  pricePerChild5to12YearsNoBed: z.string().optional(),
+  pricePerChildwithSeatBelow5Years: z.string().optional(),
+  totalPrice: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -160,7 +166,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
-        roomCategory : itinerary.roomCategory ?? '',
+        roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
@@ -180,10 +186,16 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     customerName: '',
     numDaysNight: '',
     period: '',
+    transport: '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
     price: '',
+    pricePerAdult: '',
+    pricePerChildOrExtraBed: '',
+    pricePerChild5to12YearsNoBed: '',
+    pricePerChildwithSeatBelow5Years: '',
+    totalPrice: '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -418,10 +430,140 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
               <FormField
                 control={form.control}
-                name="price"
+                name="transport"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price</FormLabel>
+                    <FormLabel>Transport</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Transport" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* //add formfield for numAdults */}
+              <FormField
+                control={form.control}
+                name="numAdults"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Adults</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Number of Adults" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* //add formfield for numChildren */}
+              <FormField
+                control={form.control}
+                name="numChild5to12"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Children 5 to 12</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* //add formfield for numChildren */}
+              <FormField
+                control={form.control}
+                name="numChild0to5"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Children 0 to 5</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+
+
+              {/*     <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price</FormLabel>
+                  <FormControl>
+                    <Textarea rows={5} disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+ */}
+              <FormField
+                control={form.control}
+                name="pricePerAdult"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Adult</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pricePerChildOrExtraBed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Child/Extra Bed</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pricePerChild5to12YearsNoBed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pricePerChildwithSeatBelow5Years"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="totalPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Price</FormLabel>
                     <FormControl>
                       <Input disabled={loading} placeholder="" {...field} />
                     </FormControl>
@@ -890,7 +1032,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory : '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

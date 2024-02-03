@@ -227,28 +227,37 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               )}
 
               {/* Activities Section */}
-              {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
-                <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
-                  {/* Images Container */}
-                  <div className="flex-shrink-0 mx-2 my-2">
-                    {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
-                      <Image
-                        key={actImgIndex}
-                        src={image.url}
-                        alt={`Activity Image ${actImgIndex + 1}`}
-                        width={200}
-                        height={200}
-                        className="rounded-lg object-cover mb-2"
-                      />
-                    ))}
+              {itinerary.activities && itinerary.activities.length > 0 && (
+                <div>
+                  {/* Title */}
+                  <div className="mb-4">
+                    <h2 className="font-bold text-xl">Activities</h2>
                   </div>
-                  {/* Text Content */}
-                  <div className="flex-grow mx-2 my-2">
-                    <div className="font-bold">{activity.activityTitle}</div>
-                    <p className="text-sm">{activity.activityDescription}</p>
-                  </div>
+                  {/* Activities List */}
+                  {itinerary.activities.map((activity, activityIndex) => (
+                    <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
+                      {/* Images Container */}
+                      <div className="flex-shrink-0 mx-2 my-2">
+                        {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
+                          <Image
+                            key={actImgIndex}
+                            src={image.url}
+                            alt={`Activity Image ${actImgIndex + 1}`}
+                            width={200}
+                            height={200}
+                            className="rounded-lg object-cover mb-2"
+                          />
+                        ))}
+                      </div>
+                      {/* Text Content */}
+                      <div className="flex-grow mx-2 my-2">
+                        <div className="font-bold">{activity.activityTitle}</div>
+                        <p className="text-sm">{activity.activityDescription}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         ))

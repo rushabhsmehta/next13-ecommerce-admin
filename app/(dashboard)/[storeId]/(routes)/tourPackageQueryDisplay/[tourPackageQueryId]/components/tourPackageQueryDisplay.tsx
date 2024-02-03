@@ -86,6 +86,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardContent>
       </Card>
       <Card className="break-inside-avoid">
+        <CardHeader>
+
+        </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
 
@@ -229,10 +232,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               )}
 
 
-                {/* Activities Section */}
-                {itinerary.activities && itinerary.activities.length > 0 && (
-                  <Card className="break-inside-avoid">
-                    <div>
+              {/* Activities Section */}
+              {itinerary.activities && itinerary.activities.length > 0 && (
+                <Card className="break-inside-avoid">
+                  <CardHeader>
+
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-2">
                       {/* Title */}
                       <div className="mb-4">
                         <h2 className="font-bold text-xl">Activities</h2>
@@ -261,8 +268,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         </div>
                       ))}
                     </div>
-                    </Card>
-                )}
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         ))

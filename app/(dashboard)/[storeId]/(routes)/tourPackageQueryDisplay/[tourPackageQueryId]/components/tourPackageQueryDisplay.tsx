@@ -35,7 +35,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="mb-2">
           {/* Company Logo with Image component */}
           <div className="inline-block relative w-24 h-12">
-            <Image src="/path-to-your-logo.png" alt="Company Logo" layout="fill" objectFit="contain" />
+          <Image src="/vercel.svg" alt="Company Logo" fill className="object-contain" />
           </div>
         </div>
         <div className="font-semibold">Contact Us</div>

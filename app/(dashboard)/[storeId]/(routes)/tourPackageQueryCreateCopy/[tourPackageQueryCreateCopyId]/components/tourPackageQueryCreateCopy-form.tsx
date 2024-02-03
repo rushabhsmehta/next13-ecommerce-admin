@@ -42,12 +42,12 @@ const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string(),
   itineraryDescription: z.string(),
-  dayNumber : z.number(),
+  dayNumber: z.number(),
   days: z.string(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  roomCategory : z.string(),
+  roomCategory: z.string(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -71,11 +71,17 @@ const formSchema = z.object({
   tourPackageQueryName: z.string().min(1),
   customerName: z.string().min(1),
   numDaysNight: z.string().min(1),
-  period: z.string(),
-  numAdults: z.string(),
-  numChild5to12: z.string(),
-  numChild0to5: z.string(),
-  price: z.string().min(1),
+  period: z.string().optional(),
+  transport: z.string().optional(),
+  numAdults: z.string().optional(),
+  numChild5to12: z.string().optional(),
+  numChild0to5: z.string().optional(),
+  //price: z.string().optional(),
+  pricePerAdult: z.string().optional(),
+  pricePerChildOrExtraBed: z.string().optional(),
+  pricePerChild5to12YearsNoBed: z.string().optional(),
+  pricePerChildwithSeatBelow5Years: z.string().optional(),
+  totalPrice: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -130,8 +136,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const title = 'Create Tour Package Query';
   const description = 'Add a new Tour Package Query';
   const toastMessage = 'Tour Package Query created.';
-  const action =  'Create';
- // console.log("Initial Data : ", initialData?.itineraries)
+  const action = 'Create';
+  // console.log("Initial Data : ", initialData?.itineraries)
 
   const transformInitialData = (data: any) => {
     return {
@@ -153,13 +159,13 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       itineraries: data.itineraries.map((itinerary: any) => ({
 
         storeId: params.storeId,
-        dayNumber : itinerary.dayNumber ?? 0,
+        dayNumber: itinerary.dayNumber ?? 0,
         days: itinerary.days ?? '',
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
-        roomCategory : itinerary.roomCategory ?? '',
+        roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
@@ -179,10 +185,16 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     customerName: '',
     numDaysNight: '',
     period: '',
+    transport: '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
     price: '',
+    pricePerAdult: '',
+    pricePerChildOrExtraBed: '',
+    pricePerChild5to12YearsNoBed: '',
+    pricePerChildwithSeatBelow5Years: '',
+    totalPrice: '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -262,7 +274,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
     try {
       setLoading(true);
-      await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);     
+      await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);
       router.refresh();
       router.push(`/${params.storeId}/tourPackageQuery`);
       toast.success(toastMessage);
@@ -286,7 +298,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
         activityTitle: selectedActivityMaster.activityMasterTitle || '',
         activityDescription: selectedActivityMaster.activityMasterDescription || '',
-       // activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
+        // activityImages: selectedActivityMaster.activityMasterImages.map((image: { url: any }) => ({ url: image.url }))
       };
       form.setValue('itineraries', updatedItineraries);
     }
@@ -299,7 +311,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
   return (
     <>
-    
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="md:grid md:grid-cols-4 gap-8">
@@ -472,6 +484,20 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="transport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transport</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Transport" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* //add formfield for numAdults */}
             <FormField
               control={form.control}
@@ -519,14 +545,83 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
 
 
-            <FormField
+            {/*     <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="9.99" {...field} />
+                    <Textarea rows={5} disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+ */}
+            <FormField
+              control={form.control}
+              name="pricePerAdult"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Adult</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pricePerChildOrExtraBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child/Extra Bed</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pricePerChild5to12YearsNoBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pricePerChildwithSeatBelow5Years"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="totalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Price</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -693,10 +788,10 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <FormLabel>Create Itineraries</FormLabel>
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-3 gap-8">
-                     <FormItem>
+                    <FormItem>
                       <FormLabel>Day {index + 1}</FormLabel>
                       <FormControl>
-                        <Input                          
+                        <Input
                           disabled={loading}
                           value={itinerary.dayNumber}
                           onChange={(e) => {
@@ -887,8 +982,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                           </FormControl>
                           <SelectContent>
                             {activitiesMaster.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
-                              <SelectItem key={activityMaster.id} 
-                              value={activityMaster.id}>
+                              <SelectItem key={activityMaster.id}
+                                value={activityMaster.id}>
                                 {activityMaster.activityMasterTitle}
                               </SelectItem>
                             ))}
@@ -994,7 +1089,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber : 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory : '',locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

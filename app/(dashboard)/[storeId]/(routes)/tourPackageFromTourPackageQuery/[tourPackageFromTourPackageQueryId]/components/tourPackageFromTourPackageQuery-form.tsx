@@ -71,23 +71,29 @@ const formSchema = z.object({
   tourPackageName: z.string().min(1),
   customerName: z.string().min(1),
   numDaysNight: z.string().min(1),
-  period: z.string(),
-  numAdults: z.string(),
-  numChild5to12: z.string(),
-  numChild0to5: z.string(),
-  price: z.string().min(1),
+  period: z.string().optional(),
+  transport: z.string().optional(),
+  numAdults: z.string().optional(),
+  numChild5to12: z.string().optional(),
+  numChild0to5: z.string().optional(),
+ // price: z.string().min(1),
+  pricePerAdult: z.string().optional(),
+  pricePerChildOrExtraBed: z.string().optional(),
+  pricePerChild5to12YearsNoBed: z.string().optional(),
+  pricePerChildwithSeatBelow5Years: z.string().optional(),
+  totalPrice: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
-  inclusions: z.string(),
-  exclusions: z.string(),
-  paymentPolicy: z.string(),
-  usefulTip: z.string(),
-  cancellationPolicy: z.string(),
-  airlineCancellationPolicy: z.string(),
-  termsconditions: z.string(),
+  inclusions: z.string().optional(),
+  exclusions: z.string().optional(),
+  paymentPolicy: z.string().optional(),
+  usefulTip: z.string().optional(),
+  cancellationPolicy: z.string().optional(),
+  airlineCancellationPolicy: z.string().optional(),
+  termsconditions: z.string().optional(),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
@@ -180,10 +186,16 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     customerName: '',
     numDaysNight: '',
     period: '',
+    transport : '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
     price: '',
+    pricePerAdult: '',
+    pricePerChildOrExtraBed: '',
+    pricePerChild5to12YearsNoBed: '',
+    pricePerChildwithSeatBelow5Years: '',
+    totalPrice: '',    
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -379,19 +391,104 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
           {/* // add formfield for period */}
           <div className="md:grid md:grid-cols-5 gap-8">
 
-            <FormField
+             <FormField
+                control={form.control}
+                name="transport"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Transport</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Transport" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+           
+
+              {/*     <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="0" {...field} />
+                    <Textarea rows={5} disabled={loading} placeholder="0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+ */}
+              <FormField
+                control={form.control}
+                name="pricePerAdult"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Adult</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pricePerChildOrExtraBed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Child/Extra Bed</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="pricePerChild5to12YearsNoBed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="pricePerChildwithSeatBelow5Years"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="totalPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Price</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
           </div>
 
 

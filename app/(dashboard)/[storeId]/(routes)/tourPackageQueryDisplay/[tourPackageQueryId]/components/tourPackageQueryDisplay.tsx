@@ -70,7 +70,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div>
               <div className="font-semibold">Period : {initialData.period}</div>
             </div>
-            <div> 
+            <div>
               <div className="font-semibold">Transport  : {initialData.transport}</div>
             </div>
             <div>
@@ -82,11 +82,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div>
               <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
             </div>
-           {/*  <div>
+          </div>
+        </CardContent>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+
+            {/*  <div>
               <div className="font-semibold">Price : {initialData.price}</div>
             </div> */}
             <div>
-              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult }</div>
+              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
             </div>
             <div>
               <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
@@ -98,158 +103,162 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
             </div>
             <div>
-              <div className="font-semibold">Total Price : {initialData.totalPrice }</div>
+              <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
             </div>
           </div>
-        </CardContent>
+        </CardContent >
 
-      </Card>
+      </Card >
 
       {/* Flight Details */}
-      {initialData.flightDetails.length > 0 && (
+      {
+        initialData.flightDetails.length > 0 && (
 
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Flight Details</CardTitle>
-          </CardHeader>
-          {initialData.flightDetails.map((flight, index) => (
-            <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
-              <div className="flex items-center justify-between border-b pb-2 mb-2">
-                <span className="font-semibold text-sm">{flight.date}</span>
-                <div>
-                  <span className="font-semibold text-xs">{flight.flightName}</span> |
-                  <span className="text-xs ml-1">{flight.flightNumber}</span>
+          <Card className="break-inside-avoid">
+            <CardHeader>
+              <CardTitle>Flight Details</CardTitle>
+            </CardHeader>
+            {initialData.flightDetails.map((flight, index) => (
+              <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
+                <div className="flex items-center justify-between border-b pb-2 mb-2">
+                  <span className="font-semibold text-sm">{flight.date}</span>
+                  <div>
+                    <span className="font-semibold text-xs">{flight.flightName}</span> |
+                    <span className="text-xs ml-1">{flight.flightNumber}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="font-bold text-xs">{flight.from}</div>
-                  <div className="text-xs ml-2">{flight.departureTime}</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="font-bold text-xs">{flight.from}</div>
+                    <div className="text-xs ml-2">{flight.departureTime}</div>
+                  </div>
+                  <div className="mx-2 text-center">
+                    <span> <PlaneTakeoffIcon /> </span>
+                    <div className="text-xs">{flight.flightDuration}</div>
+                    <hr className="border-t-2 border-black mx-1" />
+                  </div>
+                  <div className="flex items-center">
+                    <div className="font-bold text-xs">{flight.to}</div>
+                    <div className="text-sm ml-2">{flight.arrivalTime}</div>
+                  </div>
                 </div>
-                <div className="mx-2 text-center">
-                  <span> <PlaneTakeoffIcon /> </span>
-                  <div className="text-xs">{flight.flightDuration}</div>
-                  <hr className="border-t-2 border-black mx-1" />
-                </div>
-                <div className="flex items-center">
-                  <div className="font-bold text-xs">{flight.to}</div>
-                  <div className="text-sm ml-2">{flight.arrivalTime}</div>
-                </div>
-              </div>
-            </CardContent>
-          ))}
-        </Card>
-      )}
+              </CardContent>
+            ))}
+          </Card>
+        )
+      }
 
 
       {/* Itineraries */}
-      {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-        <Card key={index} className="mb-4 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
-            <CardDescription>{itinerary.days}</CardDescription>
-          </CardHeader>
+      {
+        initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+          <Card key={index} className="mb-4 break-inside-avoid">
+            <CardHeader>
+              <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
+              <CardDescription>{itinerary.days}</CardDescription>
+            </CardHeader>
 
-          {/* Flex Container for Itinerary Image and Description */}
-          <div className="mb-4 flex items-start space-x-4 ml-6">
+            {/* Flex Container for Itinerary Image and Description */}
+            <div className="mb-4 flex items-start space-x-4 ml-6">
 
-            {/* Image Section */}
-            <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-                <Image
-                  key={imageIndex}
-                  src={image.url}
-                  alt={`Itinerary Image ${imageIndex + 1}`}
-                  width={200}
-                  height={200}
-                  className="rounded-lg object-cover mb-2"
-                />
+              {/* Image Section */}
+              <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
+                {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+                  <Image
+                    key={imageIndex}
+                    src={image.url}
+                    alt={`Itinerary Image ${imageIndex + 1}`}
+                    width={200}
+                    height={200}
+                    className="rounded-lg object-cover mb-2"
+                  />
+                ))}
+              </div>
+
+              {/* Description Section */}
+              <div className="flex-grow mx-2 my-2">
+                <div className="font-bold">{itinerary.itineraryTitle}</div>
+                <div>
+                  {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
+                </div>
+              </div>
+            </div>
+
+            <CardContent>
+
+
+
+              {/* Hotel Section */}
+              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
+                <div className="mb-4 flex items-start space-x-4">
+                  {/* Images Container */}
+                  <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
+                    {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                      <Image
+                        key={imgIndex}
+                        src={image.url}
+                        alt={`Hotel Image ${imgIndex + 1}`}
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-cover mb-2"
+                      />
+                    ))}
+                  </div>
+                  {/* Text Content */}
+                  <div className="flex-grow mx-2 my-2">
+                    <div className="font-bold">Hotel:</div>
+                    <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+
+                    {itinerary.roomCategory && (
+                      <>
+                        <div className="font-bold">Room Category :</div>
+                        <p className="text-sm mb-4">{itinerary.roomCategory}</p>
+                      </>
+                    )}
+
+                    {itinerary.mealsIncluded && (
+                      <>
+                        <div className="font-bold">Meal Plan:</div>
+                        <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Activities Section */}
+              {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
+                <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
+                  {/* Images Container */}
+                  <div className="flex-shrink-0 mx-2 my-2">
+                    {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
+                      <Image
+                        key={actImgIndex}
+                        src={image.url}
+                        alt={`Activity Image ${actImgIndex + 1}`}
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-cover mb-2"
+                      />
+                    ))}
+                  </div>
+                  {/* Text Content */}
+                  <div className="flex-grow mx-2 my-2">
+                    <div className="font-bold">{activity.activityTitle}</div>
+                    <p className="text-sm">{activity.activityDescription}</p>
+                  </div>
+                </div>
               ))}
-            </div>
-
-            {/* Description Section */}
-            <div className="flex-grow mx-2 my-2">
-              <div className="font-bold">{itinerary.itineraryTitle}</div>
-              <div>
-                {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
-              </div>
-            </div>
-          </div>
-
-          <CardContent>
-
-
-
-            {/* Hotel Section */}
-            {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-              <div className="mb-4 flex items-start space-x-4">
-                {/* Images Container */}
-                <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                    <Image
-                      key={imgIndex}
-                      src={image.url}
-                      alt={`Hotel Image ${imgIndex + 1}`}
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-cover mb-2"
-                    />
-                  ))}
-                </div>
-                {/* Text Content */}
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold">Hotel:</div>
-                  <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-
-                  {itinerary.roomCategory && (
-                    <>
-                      <div className="font-bold">Room Category :</div>
-                      <p className="text-sm mb-4">{itinerary.roomCategory}</p>
-                    </>
-                  )}
-
-                  {itinerary.mealsIncluded && (
-                    <>
-                      <div className="font-bold">Meal Plan:</div>
-                      <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Activities Section */}
-            {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
-              <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
-                {/* Images Container */}
-                <div className="flex-shrink-0 mx-2 my-2">
-                  {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
-                    <Image
-                      key={actImgIndex}
-                      src={image.url}
-                      alt={`Activity Image ${actImgIndex + 1}`}
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-cover mb-2"
-                    />
-                  ))}
-                </div>
-                {/* Text Content */}
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold">{activity.activityTitle}</div>
-                  <p className="text-sm">{activity.activityDescription}</p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        ))
+      }
 
 
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
@@ -259,7 +268,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Exclusions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
@@ -269,7 +278,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Payment Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
@@ -279,7 +288,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Useful Tips Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
@@ -289,7 +298,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Cancellation Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
@@ -299,7 +308,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Airline Cancellation Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
@@ -309,7 +318,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Terms and Conditions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>
@@ -319,6 +328,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
       </div>
 
-    </div>
+    </div >
   );
 };

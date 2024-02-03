@@ -84,6 +84,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </div>
         </CardContent>
+        </Card>
+        <Card className="break-inside-avoid">
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
 

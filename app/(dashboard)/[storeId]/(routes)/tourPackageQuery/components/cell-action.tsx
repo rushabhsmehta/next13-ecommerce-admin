@@ -59,7 +59,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
   const handleOptionConfirm = (selectedOption: string) => {
 
-    router.push(`/${params.storeId}/tourPackageQueryDisplay/${data.id}?option=${selectedOption}`);
+    router.push(`/${params.storeId}/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`);
   }
 
 

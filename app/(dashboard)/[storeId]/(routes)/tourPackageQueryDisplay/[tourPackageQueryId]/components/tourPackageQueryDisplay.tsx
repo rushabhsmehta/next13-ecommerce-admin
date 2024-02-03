@@ -78,13 +78,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 }) => {
 
 
-  if (!initialData) return <div>No data available</div>;
 
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('option') || 'Empty'; // 'option' is the name of your query parameter
+  const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
 
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
+  
+  if (!initialData) return <div>No data available</div>;
 
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">

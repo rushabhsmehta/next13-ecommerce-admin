@@ -76,7 +76,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  price: z.string().optional(),
+  //price: z.string().optional(),
   pricePerAdult: z.string().optional(),
   pricePerChildOrExtraBed: z.string().optional(),
   pricePerChild5to12YearsNoBed: z.string().optional(),
@@ -442,50 +442,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 )}
               />
 
-              {/* //add formfield for numAdults */}
-              <FormField
-                control={form.control}
-                name="numAdults"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Adults</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Adults" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* //add formfield for numChildren */}
-              <FormField
-                control={form.control}
-                name="numChild5to12"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Children 5 to 12</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* //add formfield for numChildren */}
-              <FormField
-                control={form.control}
-                name="numChild0to5"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Children 0 to 5</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
 
 

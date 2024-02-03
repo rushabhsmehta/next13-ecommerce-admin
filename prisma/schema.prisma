@@ -129,10 +129,16 @@ model TourPackageQuery {
   numDaysNight              String?
   locationId                String
   period                    String?
+  transport                 String?
   numAdults                 String?
   numChild5to12             String?
   numChild0to5              String?
   price                     String?
+  pricePerAdult             String?
+  pricePerChildOrExtraBed   String?
+  pricePerChild5to12YearsNoBed String?
+  pricePerChildwithSeatBelow5Years String?
+  totalPrice                String?
   inclusions                String? @db.Text
   exclusions                String? @db.Text
   paymentPolicy             String? @db.Text
@@ -186,10 +192,16 @@ model TourPackage {
   numDaysNight              String?
   locationId                String
   period                    String?
+  transport                 String?
   numAdults                 String?
   numChild5to12             String?
   numChild0to5              String?
   price                     String?
+  pricePerAdult             String?
+  pricePerChildOrExtraBed   String?
+  pricePerChild5to12YearsNoBed String?
+  pricePerChildwithSeatBelow5Years String?
+  totalPrice                String?
   inclusions                String? @db.Text
   exclusions                String? @db.Text
   paymentPolicy             String? @db.Text

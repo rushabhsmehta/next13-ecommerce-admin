@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  roomCategory : z.string(),
+  roomCategory: z.string(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -72,10 +72,16 @@ const formSchema = z.object({
   customerName: z.string().min(1),
   numDaysNight: z.string().min(1),
   period: z.string(),
+  transport: z.string(),
   numAdults: z.string(),
   numChild5to12: z.string(),
   numChild0to5: z.string(),
   price: z.string().min(1),
+  pricePerAdult: z.string().min(1),
+  pricePerChildOrExtraBed: z.string().min(1),
+  pricePerChild5to12YearsNoBed: z.string().min(1),
+  pricePerChildwithSeatBelow5Years: z.string().min(1),
+  totalPrice: z.string().min(1),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -114,8 +120,8 @@ interface TourPackageQueryFormProps {
     itineraryMasterImages: Images[];
     activities: (Activity & {
       activityImages: Images[];
-    }) [] | null;
-  
+    })[] | null;
+
   })[] | null;
 };
 
@@ -188,10 +194,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     customerName: '',
     numDaysNight: '',
     period: '',
+    transport: '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
     price: '',
+    pricePerAdult: '',
+    pricePerChildOrExtraBed: '',
+    pricePerChild5to12YearsNoBed: '',
+    pricePerChildwithSeatBelow5Years: '',
+    totalPrice: '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -526,6 +538,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="transport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transport</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Transport" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* //add formfield for numAdults */}
             <FormField
               control={form.control}
@@ -581,6 +607,75 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Price</FormLabel>
                   <FormControl>
                     <Textarea rows={5} disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pricePerAdult"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Adult</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pricePerChildOrExtraBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child/Extra Bed</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pricePerChild5to12YearsNoBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pricePerChildwithSeatBelow5Years"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="0" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="totalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Price</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -760,16 +855,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             ...updatedItineraries[index],
                             itineraryTitle: selectedItineraryMaster.itineraryMasterTitle || '',
                             itineraryDescription: selectedItineraryMaster.itineraryMasterDescription || '',
-                        //    hotelId : selectedItineraryMaster.hotelId || '',
-                       //     mealsIncluded: selectedItineraryMaster.mealsIncluded ? selectedItineraryMaster.mealsIncluded.split('-') : [],
+                            //    hotelId : selectedItineraryMaster.hotelId || '',
+                            //     mealsIncluded: selectedItineraryMaster.mealsIncluded ? selectedItineraryMaster.mealsIncluded.split('-') : [],
                             itineraryImages: selectedItineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
-                             activities: selectedItineraryMaster.activities?.map(activity => ({
-                            activityTitle: activity.activityTitle || '',
-                            activityDescription: activity.activityDescription || '',
-                            activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
-                            // Include other activity fields as necessary
-                          })) || [],
-      
+                            activities: selectedItineraryMaster.activities?.map(activity => ({
+                              activityTitle: activity.activityTitle || '',
+                              activityDescription: activity.activityDescription || '',
+                              activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                              // Include other activity fields as necessary
+                            })) || [],
+
                             // If itineraryMaster has images or any other properties you want to copy, do it here
                           };
                           form.setValue('itineraries', updatedItineraries);
@@ -1091,7 +1186,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory : '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

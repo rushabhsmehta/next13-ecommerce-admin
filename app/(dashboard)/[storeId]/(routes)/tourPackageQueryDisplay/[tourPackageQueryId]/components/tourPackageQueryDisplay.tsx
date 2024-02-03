@@ -70,6 +70,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div>
               <div className="font-semibold">Period : {initialData.period}</div>
             </div>
+            <div> 
+              <div className="font-semibold">Transport  : {initialData.transport}</div>
+            </div>
             <div>
               <div className="font-semibold">Adults : {initialData.numAdults}</div>
             </div>
@@ -79,8 +82,23 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div>
               <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
             </div>
-            <div>
+           {/*  <div>
               <div className="font-semibold">Price : {initialData.price}</div>
+            </div> */}
+            <div>
+              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult }</div>
+            </div>
+            <div>
+              <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Total Price : {initialData.totalPrice }</div>
             </div>
           </div>
         </CardContent>

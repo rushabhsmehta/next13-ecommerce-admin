@@ -620,7 +620,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Adult</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="0" {...field} />
+                    <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -634,7 +634,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Child/Extra Bed</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="0" {...field} />
+                    <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -647,7 +647,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="0" {...field} />
+                    <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -661,7 +661,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="0" {...field} />
+                    <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -675,7 +675,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Total Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="0" {...field} />
+                    <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

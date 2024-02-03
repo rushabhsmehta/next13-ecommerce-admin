@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 
 
-interface TourPackageQueryDisplayProps {
+interface TourPackageQueryVoucherDisplayProps {
   initialData: TourPackageQuery & {
     images: Images[];
     itineraries: (Itinerary & {
@@ -21,7 +21,7 @@ interface TourPackageQueryDisplayProps {
   })[];
 };
 
-export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
+export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
   initialData,
   locations,
   hotels,

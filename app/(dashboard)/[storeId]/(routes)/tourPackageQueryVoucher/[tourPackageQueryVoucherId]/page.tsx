@@ -1,16 +1,16 @@
 import prismadb from "@/lib/prismadb";
 
-import { TourPackageQueryDisplay } from "./components/tourPackageQueryDisplay";
+import { TourPackageQueryVoucherDisplay } from "./components/tourPackageQueryVoucherDisplay";
 import Navbar from "@/components/navbar";
 
-const tourPackageQueryPage = async ({
+const tourPackageQueryVoucherPage = async ({
   params
 }: {
-  params: { tourPackageQueryId: string, storeId: string }
+  params: { tourPackageQueryVoucherId: string, storeId: string }
 }) => {
-  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+  const tourPackageQueryVoucher = await prismadb.tourPackageQuery.findUnique({
     where: {
-      id: params.tourPackageQueryId,
+      id: params.tourPackageQueryVoucherId,
     },
     include: {
       images: true,
@@ -34,7 +34,7 @@ const tourPackageQueryPage = async ({
       }
     }
   });
-  console.log("Fetched tourPackage Query:", tourPackageQuery);
+  console.log("Fetched tourPackage Query Voucher:", tourPackageQueryVoucher);
 
   const locations = await prismadb.location.findMany({
     where: {
@@ -67,8 +67,8 @@ const tourPackageQueryPage = async ({
       </div>
  */}
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryDisplay
-          initialData={tourPackageQuery}
+        <TourPackageQueryVoucherDisplay
+          initialData={tourPackageQueryVoucher}
           locations={locations}
           hotels={hotels}
         //    itineraries={[]}
@@ -78,4 +78,4 @@ const tourPackageQueryPage = async ({
     </>
   );
 }
-export default tourPackageQueryPage;
+export default tourPackageQueryVoucherPage;

@@ -62,7 +62,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
+              <div className="font-semibold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
             <div>
               <div className="font-semibold">Duration : {initialData.numDaysNight}</div>

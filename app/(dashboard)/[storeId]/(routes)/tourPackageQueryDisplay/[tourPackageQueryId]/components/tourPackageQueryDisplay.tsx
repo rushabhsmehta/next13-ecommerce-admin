@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { PlaneTakeoffIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
@@ -30,63 +31,48 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
-
-<footer className="mt-8 bg-gray-100 text-center p-4 rounded-lg">
-      <div className="mb-2">
-          {/* Company Logo with Image component */}
-          <div className="inline-block relative w-24 h-12">
-          <Image src="/vercel.svg" alt="Company Logo" fill className="object-contain" />
+      <Card className = "border-b">
+        <CardDescription className="flex justify-between items-center px-4">
+          <div className="inline-block relative w-48 h-48">
+            <Image src="/aagamholidays.png" alt="Company Logo" fill className="object-contain" />
           </div>
-        </div>
-        <div className="font-semibold">Contact Us</div>
-        <ul className="text-sm space-y-1">
-          <li>1234 Company Address, City, Country</li>
-          <li>Phone: +1234567890</li>
-          <li>WhatsApp: +1234567890</li>
-          <li>Email: contact@yourcompany.com</li>
-          <li>Website: <a href="https://yourcompany.com" className="text-blue-600">yourcompany.com</a></li>
-        </ul>
-        <div className="flex justify-center space-x-4 mt-4">
-          {/* Social Media Icons */}
-          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-600">
-            <FaFacebookF />
-          </a>
-          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-blue-400">
-            <FaTwitter />
-          </a>
-          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-pink-600">
-            <FaInstagram />
-          </a>
-          <a href="https://api.whatsapp.com/send?phone=+1234567890" target="_blank" rel="noopener noreferrer" className="text-green-500">
-            <FaWhatsapp />
-          </a>
-        </div>
-      </footer>
-      {/* Tour Images */}
-      <Card className="break-inside-avoid">
-        <CardHeader>
-          <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
-          <CardDescription>
-            Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+            <ul>
+              <li>1203, PNTC, Times of India Press Road</li>
+              <li>Satellite, Ahmedabad - 380015, Gujarat, India</li>
+              <li>Phone : +91-97244 44701</li>
+              <li>WhatsApp : +91-97244 44701</li>
+              <li>Email :  <Link href="mailto:info@aagamholidays.com" className="text-blue-600 underline">info@aagamholidays.com</Link></li>
+              {/* Use Link for internal navigation */}
+              <li>Website : <Link href="https://aagamholidays.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">https://aagamholidays.com
+              </Link>
+              </li>
+            </ul>
           </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
-          {initialData.images.map((image, index) => (
-            <div key={index} className="flex justify-center items-center">
-              <Image
-                src={image.url}
-                alt={`Tour Image ${index + 1}`}
-                width={800}
-                height={300}
-                className="rounded-lg object-cover"
-                style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      </Card >
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
+      <CardDescription>
+        Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+      </CardDescription>
+    </CardHeader>
+    <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+      {initialData.images.map((image, index) => (
+        <div key={index} className="flex justify-center items-center">
+          <Image
+            src={image.url}
+            alt={`Tour Image ${index + 1}`}
+            width={800}
+            height={300}
+            className="rounded-lg object-cover"
+            style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
+          />
+        </div>
+      ))}
+    </CardContent>
+  </Card>
 
-      {/* Tour Package Details */}
+{/* Tour Package Details */ }
       <Card className="break-inside-avoid">
         <CardHeader>
 
@@ -147,242 +133,242 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       </Card >
 
-      {/* Flight Details */}
-      {
-        initialData.flightDetails.length > 0 && (
+{/* Flight Details */ }
+{
+  initialData.flightDetails.length > 0 && (
 
-          <Card className="break-inside-avoid">
-            <CardHeader>
-              <CardTitle>Flight Details</CardTitle>
-            </CardHeader>
-            {initialData.flightDetails.map((flight, index) => (
-              <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
-                <div className="flex items-center justify-between border-b pb-2 mb-2">
-                  <span className="font-semibold text-sm">{flight.date}</span>
-                  <div>
-                    <span className="font-semibold text-xs">{flight.flightName}</span> |
-                    <span className="text-xs ml-1">{flight.flightNumber}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="font-bold text-xs">{flight.from}</div>
-                    <div className="text-xs ml-2">{flight.departureTime}</div>
-                  </div>
-                  <div className="mx-2 text-center">
-                    <span> <PlaneTakeoffIcon /> </span>
-                    <div className="text-xs">{flight.flightDuration}</div>
-                    <hr className="border-t-2 border-black mx-1" />
-                  </div>
-                  <div className="flex items-center">
-                    <div className="font-bold text-xs">{flight.to}</div>
-                    <div className="text-sm ml-2">{flight.arrivalTime}</div>
-                  </div>
-                </div>
-              </CardContent>
-            ))}
-          </Card>
-        )
-      }
-
-
-      {/* Itineraries */}
-      {
-        initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-          <Card key={index} className="mb-4 break-inside-avoid">
-            <CardHeader>
-              <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
-              <CardDescription>{itinerary.days}</CardDescription>
-            </CardHeader>
-
-            {/* Flex Container for Itinerary Image and Description */}
-            <div className="mb-4 flex items-start space-x-4 ml-6">
-
-              {/* Image Section */}
-              <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-                {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-                  <Image
-                    key={imageIndex}
-                    src={image.url}
-                    alt={`Itinerary Image ${imageIndex + 1}`}
-                    width={200}
-                    height={200}
-                    className="rounded-lg object-cover mb-2"
-                  />
-                ))}
-              </div>
-
-              {/* Description Section */}
-              <div className="flex-grow mx-2 my-2">
-                <div className="font-bold">{itinerary.itineraryTitle}</div>
-                <div>
-                  {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
-                </div>
-              </div>
+    <Card className="break-inside-avoid">
+      <CardHeader>
+        <CardTitle>Flight Details</CardTitle>
+      </CardHeader>
+      {initialData.flightDetails.map((flight, index) => (
+        <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
+          <div className="flex items-center justify-between border-b pb-2 mb-2">
+            <span className="font-semibold text-sm">{flight.date}</span>
+            <div>
+              <span className="font-semibold text-xs">{flight.flightName}</span> |
+              <span className="text-xs ml-1">{flight.flightNumber}</span>
             </div>
-
-            <CardContent>
-
-
-
-              {/* Hotel Section */}
-              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-                <div className="mb-4 flex items-start space-x-4">
-                  {/* Images Container */}
-                  <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-                    {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                      <Image
-                        key={imgIndex}
-                        src={image.url}
-                        alt={`Hotel Image ${imgIndex + 1}`}
-                        width={200}
-                        height={200}
-                        className="rounded-lg object-cover mb-2"
-                      />
-                    ))}
-                  </div>
-                  {/* Text Content */}
-                  <div className="flex-grow mx-2 my-2">
-                    <div className="font-bold">Hotel:</div>
-                    <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-
-                    {itinerary.roomCategory && (
-                      <>
-                        <div className="font-bold">Room Category :</div>
-                        <p className="text-sm mb-4">{itinerary.roomCategory}</p>
-                      </>
-                    )}
-
-                    {itinerary.mealsIncluded && (
-                      <>
-                        <div className="font-bold">Meal Plan:</div>
-                        <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="font-bold text-xs">{flight.from}</div>
+              <div className="text-xs ml-2">{flight.departureTime}</div>
+            </div>
+            <div className="mx-2 text-center">
+              <span> <PlaneTakeoffIcon /> </span>
+              <div className="text-xs">{flight.flightDuration}</div>
+              <hr className="border-t-2 border-black mx-1" />
+            </div>
+            <div className="flex items-center">
+              <div className="font-bold text-xs">{flight.to}</div>
+              <div className="text-sm ml-2">{flight.arrivalTime}</div>
+            </div>
+          </div>
+        </CardContent>
+      ))}
+    </Card>
+  )
+}
 
 
-              {/* Activities Section */}
-              {itinerary.activities && itinerary.activities.length > 0 && (
-                <Card className="break-inside-avoid">
-                  <CardHeader>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4">
-                      {/* Title */}
-                      <div className="mb-4">
-                        <h2 className="font-bold text-xl">Activities</h2>
-                      </div>
-                      {/* Activities List */}
-                      {itinerary.activities.map((activity, activityIndex) => (
-                        <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
-                          {/* Images Container */}
-                          <div className="flex-shrink-0 mx-2 my-2">
-                            {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
-                              <Image
-                                key={actImgIndex}
-                                src={image.url}
-                                alt={`Activity Image ${actImgIndex + 1}`}
-                                width={200}
-                                height={200}
-                                className="rounded-lg object-cover mb-2"
-                              />
-                            ))}
-                          </div>
-                          {/* Text Content */}
-                          <div className="flex-grow mx-2 my-2">
-                            <div className="font-bold">{activity.activityTitle}</div>
-                            <p className="text-sm">{activity.activityDescription}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-        ))
-      }
+{/* Itineraries */ }
+{
+  initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+    <Card key={index} className="mb-4 break-inside-avoid">
+      <CardHeader>
+        <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
+        <CardDescription>{itinerary.days}</CardDescription>
+      </CardHeader>
 
+      {/* Flex Container for Itinerary Image and Description */}
+      <div className="mb-4 flex items-start space-x-4 ml-6">
 
+        {/* Image Section */}
+        <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
+          {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+            <Image
+              key={imageIndex}
+              src={image.url}
+              alt={`Itinerary Image ${imageIndex + 1}`}
+              width={200}
+              height={200}
+              className="rounded-lg object-cover mb-2"
+            />
+          ))}
+        </div>
 
-      <div className="grid gap-4">
-        {/* Inclusions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Inclusions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.inclusions}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Exclusions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Exclusions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Payment Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Payment Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Useful Tips Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Useful Tips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.usefulTip}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Airline Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Airline Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Terms and Conditions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Terms and Conditions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
-          </CardContent>
-        </Card>
+        {/* Description Section */}
+        <div className="flex-grow mx-2 my-2">
+          <div className="font-bold">{itinerary.itineraryTitle}</div>
+          <div>
+            {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
+          </div>
+        </div>
       </div>
 
-      {/* Footer Section with Company Details */}
-   
+      <CardContent>
+
+
+
+        {/* Hotel Section */}
+        {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
+          <div className="mb-4 flex items-start space-x-4">
+            {/* Images Container */}
+            <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
+              {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                <Image
+                  key={imgIndex}
+                  src={image.url}
+                  alt={`Hotel Image ${imgIndex + 1}`}
+                  width={200}
+                  height={200}
+                  className="rounded-lg object-cover mb-2"
+                />
+              ))}
+            </div>
+            {/* Text Content */}
+            <div className="flex-grow mx-2 my-2">
+              <div className="font-bold">Hotel:</div>
+              <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+
+              {itinerary.roomCategory && (
+                <>
+                  <div className="font-bold">Room Category :</div>
+                  <p className="text-sm mb-4">{itinerary.roomCategory}</p>
+                </>
+              )}
+
+              {itinerary.mealsIncluded && (
+                <>
+                  <div className="font-bold">Meal Plan:</div>
+                  <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+
+        {/* Activities Section */}
+        {itinerary.activities && itinerary.activities.length > 0 && (
+          <Card className="break-inside-avoid">
+            <CardHeader>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                {/* Title */}
+                <div className="mb-4">
+                  <h2 className="font-bold text-xl">Activities</h2>
+                </div>
+                {/* Activities List */}
+                {itinerary.activities.map((activity, activityIndex) => (
+                  <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
+                    {/* Images Container */}
+                    <div className="flex-shrink-0 mx-2 my-2">
+                      {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
+                        <Image
+                          key={actImgIndex}
+                          src={image.url}
+                          alt={`Activity Image ${actImgIndex + 1}`}
+                          width={200}
+                          height={200}
+                          className="rounded-lg object-cover mb-2"
+                        />
+                      ))}
+                    </div>
+                    {/* Text Content */}
+                    <div className="flex-grow mx-2 my-2">
+                      <div className="font-bold">{activity.activityTitle}</div>
+                      <p className="text-sm">{activity.activityDescription}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
+  ))
+}
+
+
+
+<div className="grid gap-4">
+  {/* Inclusions Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Inclusions</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap">{initialData.inclusions}</pre>
+    </CardContent>
+  </Card>
+
+  {/* Exclusions Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Exclusions</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
+    </CardContent>
+  </Card>
+
+  {/* Payment Policy Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Payment Policy</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
+    </CardContent>
+  </Card>
+
+  {/* Useful Tips Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Useful Tips</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap">{initialData.usefulTip}</pre>
+    </CardContent>
+  </Card>
+
+  {/* Cancellation Policy Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Cancellation Policy</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
+    </CardContent>
+  </Card>
+
+  {/* Airline Cancellation Policy Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Airline Cancellation Policy</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
+    </CardContent>
+  </Card>
+
+  {/* Terms and Conditions Card */}
+  <Card className="break-inside-avoid">
+    <CardHeader>
+      <CardTitle>Terms and Conditions</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
+    </CardContent>
+  </Card>
+</div>
+
+{/* Footer Section with Company Details */ }
+
 
     </div >
   );

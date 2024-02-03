@@ -599,7 +599,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
 
 
-            <FormField
+        {/*     <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
@@ -612,7 +612,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-
+ */}
             <FormField
               control={form.control}
               name="pricePerAdult"

@@ -1,8 +1,10 @@
+'use client'
 import Image from 'next/image';
+import Link from 'next/link';
 import { PlaneTakeoffIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
-
+import { useSearchParams } from 'next/navigation';
 
 interface TourPackageQueryVoucherDisplayProps {
   initialData: TourPackageQuery & {
@@ -19,31 +21,104 @@ interface TourPackageQueryVoucherDisplayProps {
   hotels: (Hotel & {
     images: Images[];
   })[];
+  selectedOption?: string; // Add this line to accept the selected option
+
 };
+
+// Define a type for the company information
+type CompanyInfo = {
+  [key: string]: {
+    logo: string;
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+};
+
+// Define the company data using the CompanyInfo type
+const companyInfo: CompanyInfo = {
+  Empty: { logo: '', name: '', address: '', phone: '', email: '', website: '' },
+  AH: {
+    logo: '/aagamholidays.png',
+    name: 'Aagam Holidays',
+    address: '1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India',
+    phone: '+91-97244 44701',
+    email: 'info@aagamholidays.com', // Add the missing fields
+    website: 'https://aagamholidays.com',
+  },
+  // Define KH and MT with their respective details
+  KH: {
+    logo: '/kobawala.png',
+    name: 'Kobawala Holidays',
+    address: 'Kobawala Holidays, Gandhinagar',
+    phone: '+91-97244 44701',
+    email: 'info@aagamholidays.com', // Add the missing fields
+    website: 'https://kobawala.com',
+  },
+  MT: {
+    logo: '/mahavirtravels.png',
+    name: 'Mahavir Tour and Travels',
+    address: 'Mahavir Travels, Ahmedabad',
+    phone: '+91-97244 44701',
+    email: 'info@aagamholidays.com', // Add the missing fields
+    website: 'https://mahavirtravels.com',
+  },
+};
+
+
 
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
   initialData,
   locations,
   hotels,
 }) => {
+
+  const searchParams = useSearchParams();
+  const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
+
+  // Now you can use selectedOption to get data from your companyInfo object
+  const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
+
+
   if (!initialData) return <div>No data available</div>;
 
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card>
-        <CardHeader className="text-center">Booking Voucher</CardHeader>
+        <CardHeader className="text-center text-2xl font-bold">Booking Voucher</CardHeader>
       </Card>
+
+      {selectedOption !== 'Empty' && (
+
+        <Card className="border-b">
+          <CardDescription className="flex justify-between items-center px-4">
+            <div className="inline-block relative w-48 h-48">
+              <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
+            </div>
+            <ul>
+              <li>{currentCompany.address}</li>
+              <li>Phone: {currentCompany.phone}</li>
+              <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
+              <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
+
+            </ul>
+          </CardDescription>
+        </Card >
+      )}
+
       <Card className="break-inside-avoid">
         <CardHeader>
-          
+
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
             Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
         </CardHeader>
 
-       {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+        {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
               <Image
@@ -75,7 +150,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <div>
               <div className="font-semibold">Period : {initialData.period}</div>
             </div>
-            <div> 
+            <div>
               <div className="font-semibold">Transport  : {initialData.transport}</div>
             </div>
             <div>
@@ -87,11 +162,11 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <div>
               <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
             </div>
-           {/*  <div>
+            {/*  <div>
               <div className="font-semibold">Price : {initialData.price}</div>
             </div> */}
             <div>
-              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult }</div>
+              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
             </div>
             <div>
               <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
@@ -103,7 +178,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
             </div>
             <div>
-              <div className="font-semibold">Total Price : {initialData.totalPrice }</div>
+              <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
             </div>
           </div>
         </CardContent>
@@ -156,7 +231,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <div className="mb-4 flex items-start space-x-4">
                 {/* Images Container */}
-             
+
                 {/* Text Content */}
                 <div className="flex-grow mx-2 my-2">
                   <div className="font-bold">Hotel:</div>
@@ -179,7 +254,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               </div>
             )}
 
-        
+
           </CardContent>
         </Card>
       ))}
@@ -188,7 +263,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
@@ -198,7 +273,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
 
         {/* Exclusions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
@@ -208,7 +283,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
 
         {/* Payment Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
@@ -218,7 +293,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
 
         {/* Useful Tips Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
@@ -228,7 +303,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
 
         {/* Cancellation Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
@@ -238,7 +313,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
 
         {/* Airline Cancellation Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
@@ -248,7 +323,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
 
         {/* Terms and Conditions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>

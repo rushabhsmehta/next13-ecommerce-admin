@@ -35,7 +35,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
-            Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+            Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
@@ -145,57 +145,13 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {/* Itineraries */}
       {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
         <Card key={index} className="mb-4 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
-            <CardDescription>{itinerary.days}</CardDescription>
-          </CardHeader>
-
-          {/* Flex Container for Itinerary Image and Description */}
-          <div className="mb-4 flex items-start space-x-4 ml-6">
-
-            {/* Image Section */}
-            <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-                <Image
-                  key={imageIndex}
-                  src={image.url}
-                  alt={`Itinerary Image ${imageIndex + 1}`}
-                  width={200}
-                  height={200}
-                  className="rounded-lg object-cover mb-2"
-                />
-              ))}
-            </div>
-
-            {/* Description Section */}
-            <div className="flex-grow mx-2 my-2">
-              <div className="font-bold">{itinerary.itineraryTitle}</div>
-              <div>
-                {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
-              </div>
-            </div>
-          </div>
-
           <CardContent>
-
-
 
             {/* Hotel Section */}
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <div className="mb-4 flex items-start space-x-4">
                 {/* Images Container */}
-                <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                    <Image
-                      key={imgIndex}
-                      src={image.url}
-                      alt={`Hotel Image ${imgIndex + 1}`}
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-cover mb-2"
-                    />
-                  ))}
-                </div>
+             
                 {/* Text Content */}
                 <div className="flex-grow mx-2 my-2">
                   <div className="font-bold">Hotel:</div>
@@ -218,29 +174,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               </div>
             )}
 
-            {/* Activities Section */}
-            {itinerary.activities && itinerary.activities.length > 0 && itinerary.activities.map((activity, activityIndex) => (
-              <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
-                {/* Images Container */}
-                <div className="flex-shrink-0 mx-2 my-2">
-                  {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
-                    <Image
-                      key={actImgIndex}
-                      src={image.url}
-                      alt={`Activity Image ${actImgIndex + 1}`}
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-cover mb-2"
-                    />
-                  ))}
-                </div>
-                {/* Text Content */}
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold">{activity.activityTitle}</div>
-                  <p className="text-sm">{activity.activityDescription}</p>
-                </div>
-              </div>
-            ))}
+        
           </CardContent>
         </Card>
       ))}

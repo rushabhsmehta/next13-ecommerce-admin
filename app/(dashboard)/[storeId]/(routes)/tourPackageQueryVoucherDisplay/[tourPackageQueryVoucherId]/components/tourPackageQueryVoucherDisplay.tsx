@@ -31,14 +31,18 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
+      <Card>
+        <CardHeader>Booking Voucher</CardHeader>
+      </Card>
       <Card className="break-inside-avoid">
         <CardHeader>
+          
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
             Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
         </CardHeader>
-        
+
        {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">

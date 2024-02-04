@@ -261,27 +261,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
 
 
-      <div className="grid gap-4">
-        {/* Inclusions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Inclusions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.inclusions}</pre>
-          </CardContent>
-        </Card>
-
-        {/* Exclusions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Exclusions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
-          </CardContent>
-        </Card>
-
+    
         {/* Payment Policy Card */}
         <Card className="break-inside-avoid">
           <CardHeader>
@@ -292,15 +272,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </CardContent>
         </Card>
 
-        {/* Useful Tips Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Useful Tips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.usefulTip}</pre>
-          </CardContent>
-        </Card>
+    
 
         {/* Cancellation Policy Card */}
         <Card className="break-inside-avoid">
@@ -320,19 +292,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <CardContent>
             <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
           </CardContent>
-        </Card>
-
-        {/* Terms and Conditions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Terms and Conditions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
-          </CardContent>
-        </Card>
+        </Card>   
       </div>
-
-    </div>
   );
 };

@@ -258,7 +258,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
         ...itinerary,
         storeId: params.storeId,
         locationId: data.locationId,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join('-') : 'none',
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join('-') : '',
         activities: itinerary.activities?.map((activity) => ({
           ...activity,
           // activityTitle : activity.activityTitle,

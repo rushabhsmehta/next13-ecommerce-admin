@@ -38,7 +38,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+       {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
               <Image
@@ -51,7 +51,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               />
             </div>
           ))}
-        </CardContent>
+        </CardContent> */}
       </Card>
 
       {/* Tour Package Details */}

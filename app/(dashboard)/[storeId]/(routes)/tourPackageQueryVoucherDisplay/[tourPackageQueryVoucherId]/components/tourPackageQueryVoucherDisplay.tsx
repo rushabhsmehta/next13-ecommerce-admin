@@ -116,6 +116,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <CardDescription>
             Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
+            <CardDescription>
+              Voucher Number : {initialData.id.slice(-12)}
+            </CardDescription>
         </CardHeader>
 
         {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
@@ -261,38 +264,38 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
 
 
-    
-        {/* Payment Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Payment Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
-          </CardContent>
-        </Card>
 
-    
+      {/* Payment Policy Card */}
+      <Card className="break-inside-avoid">
+        <CardHeader>
+          <CardTitle>Payment Policy</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
+        </CardContent>
+      </Card>
 
-        {/* Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
-          </CardContent>
-        </Card>
 
-        {/* Airline Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Airline Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
-          </CardContent>
-        </Card>   
-      </div>
+
+      {/* Cancellation Policy Card */}
+      <Card className="break-inside-avoid">
+        <CardHeader>
+          <CardTitle>Cancellation Policy</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
+        </CardContent>
+      </Card>
+
+      {/* Airline Cancellation Policy Card */}
+      <Card className="break-inside-avoid">
+        <CardHeader>
+          <CardTitle>Airline Cancellation Policy</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

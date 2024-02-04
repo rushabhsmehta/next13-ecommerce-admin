@@ -62,6 +62,12 @@ export const CellAction: React.FC<CellActionProps> = ({
     router.push(`/${params.storeId}/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`);
   }
 
+  
+  const handleOptionConfirmVoucher = (selectedOption: string) => {
+
+    router.push(`/${params.storeId}/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`);
+  }
+
 
   return (
     <>
@@ -127,13 +133,31 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuSub>
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem
-            onClick={() => router.push(`/${params.storeId}/tourPackageQueryVoucherDisplay/${data.id}`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Generate Voucher
-          </DropdownMenuItem>
 
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+            <Edit className="mr-2 h-4 w-4" />  Generate Voucher
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('MT')}>
+                  MT
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
 
+       
           <DropdownMenuItem
             onClick={() => setOpen(true)}
           >

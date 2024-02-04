@@ -32,7 +32,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card>
-        <CardHeader>Booking Voucher</CardHeader>
+        <CardHeader className="font-bold">Booking Voucher</CardHeader>
       </Card>
       <Card className="break-inside-avoid">
         <CardHeader>

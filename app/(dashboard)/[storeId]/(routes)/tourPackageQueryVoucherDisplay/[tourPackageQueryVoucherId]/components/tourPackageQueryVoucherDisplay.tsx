@@ -146,7 +146,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="font-bold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
+              <div className="font-semibold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
             <div>
               <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
@@ -166,65 +166,111 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <div>
               <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
             </div>
-            {/*  <div>
-              <div className="font-semibold">Price : {initialData.price}</div>
-            </div> */}
-            <div>
-              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
-            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="break-inside-avoid">
+        <CardHeader>
+
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            {initialData.pricePerAdult !== '' && (
+              <div>
+                <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
+              </div>
+            )}
+            {initialData.pricePerChildOrExtraBed !=='' && (
+              <div>
+                <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
+              </div>
+            )}
+            {initialData.pricePerChild5to12YearsNoBed !== '' && (
+              <div>
+                <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
+              </div>
+            )}
+            {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+              <div>
+                <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
+              </div>
+            )}
+            {initialData.totalPrice !== '' && (
+              <div>
+                <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
+              </div>
+            )}
           </div>
         </CardContent>
 
-      </Card>
+      </Card >
 
       {/* Flight Details */}
-      {initialData.flightDetails.length > 0 && (
-
+      {initialData.flightDetails && initialData.flightDetails.length > 0 && (
         <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Flight Details</CardTitle>
           </CardHeader>
-          {initialData.flightDetails.map((flight, index) => (
-            <CardContent key={index} className="flex flex-col rounded-lg shadow-lg p-4 my-4">
-              <div className="flex items-center justify-between border-b pb-2 mb-2">
-                <span className="font-semibold text-sm">{flight.date}</span>
-                <div>
-                  <span className="font-semibold text-xs">{flight.flightName}</span> |
-                  <span className="text-xs ml-1">{flight.flightNumber}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="font-bold text-xs">{flight.from}</div>
-                  <div className="text-xs ml-2">{flight.departureTime}</div>
-                </div>
-                <div className="mx-2 text-center">
-                  <span> <PlaneTakeoffIcon /> </span>
-                  <div className="text-xs">{flight.flightDuration}</div>
-                  <hr className="border-t-2 border-black mx-1" />
-                </div>
-                <div className="flex items-center">
-                  <div className="font-bold text-xs">{flight.to}</div>
-                  <div className="text-sm ml-2">{flight.arrivalTime}</div>
-                </div>
-              </div>
-            </CardContent>
-          ))}
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Flight
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      From
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Departure Time
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      To
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Arrival Time
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {initialData.flightDetails.map((flight, idx) => (
+                    <tr key={idx}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.date}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.flightName} | {flight.flightNumber}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.from}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.departureTime}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.flightDuration}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.to}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {flight.arrivalTime}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
         </Card>
       )}
-
 
 
       {/* Itineraries and Hotel Details */}
@@ -234,53 +280,48 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <CardTitle>Accommodation Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Day/Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Hotel Name
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Room Category
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Meal Plan
-                    </th>
-                    {/* Add more headers if needed */}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {initialData.itineraries.map((itinerary, idx) => {
-                    const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
-                    return (
-                      <tr key={idx}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {itinerary.days ? itinerary.days : itinerary.dayNumber}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {hotelDetails?.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {itinerary.roomCategory}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {itinerary.mealsIncluded}
-                        </td>
-                        {/* Add more cells if needed */}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Day/Date
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Hotel Name
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Room Category
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Meal Plan
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {initialData.itineraries.map((itinerary, idx) => {
+                  const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
+                  return (
+                    <tr key={idx}>
+                      <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
+                        {itinerary.days ? itinerary.days : itinerary.dayNumber}
+                      </td>
+                      <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
+                        {hotelDetails?.name}
+                      </td>
+                      <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
+                        {itinerary.roomCategory}
+                      </td>
+                      <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
+                        {itinerary.mealsIncluded}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}
-
 
 
 

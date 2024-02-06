@@ -190,23 +190,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
-    tourPackageQueryName: '',
-    customerName: '',
-    numDaysNight: '',
-    period: '',
-    transport: '',
-    numAdults: '',
-    numChild5to12: '',
-    numChild0to5: '',
-    price: '',
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
-    totalPrice: '',
-    assignedTo: '',
-    assignedToMobileNumber: '',
-    assignedToEmail: '',
+    tourPackageQueryName: ' ',
+    customerName: ' ',
+    numDaysNight: ' ',
+    period: ' ',
+    transport: ' ',
+    numAdults: ' ',
+    numChild5to12: ' ',
+    numChild0to5: ' ',
+    price: ' ',
+    pricePerAdult: ' ',
+    pricePerChildOrExtraBed: ' ',
+    pricePerChild5to12YearsNoBed: ' ',
+    pricePerChildwithSeatBelow5Years: ' ',
+    totalPrice: ' ',
+    assignedTo: ' ',
+    assignedToMobileNumber: ' ',
+    assignedToEmail: ' ',
     flightDetails: [],
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
@@ -620,7 +620,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Adult</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="" {...field} />
+                    <Input disabled={loading} placeholder="Price per Adult" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -634,7 +634,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Child/Extra Bed</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="" {...field} />
+                    <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -647,7 +647,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="" {...field} />
+                    <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -661,7 +661,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="" {...field} />
+                    <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -675,7 +675,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Total Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="" {...field} />
+                    <Input disabled={loading} placeholder="Total Price" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

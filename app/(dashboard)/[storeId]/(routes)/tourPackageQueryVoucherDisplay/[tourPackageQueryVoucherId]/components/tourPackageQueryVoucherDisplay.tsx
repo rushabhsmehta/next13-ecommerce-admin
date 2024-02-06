@@ -5,6 +5,7 @@ import { PlaneTakeoffIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
+import { table } from 'console';
 
 interface TourPackageQueryVoucherDisplayProps {
   initialData: TourPackageQuery & {
@@ -116,9 +117,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <CardDescription>
             Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
-            <CardDescription>
-              Voucher Number : {initialData.id.slice(-12)}
-            </CardDescription>
+          <CardDescription>
+            Voucher Number : {initialData.id.slice(-12)}
+          </CardDescription>
         </CardHeader>
 
         {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
@@ -225,42 +226,61 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       )}
 
 
-      {/* Itineraries */}
-      {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-        <Card key={index} className="mb-4 break-inside-avoid">
+
+      {/* Itineraries and Hotel Details */}
+      {initialData.itineraries && initialData.itineraries.length > 0 && (
+        <Card className="mb-4 break-inside-avoid">
+          <CardHeader>
+            <CardTitle>Accommodation Details</CardTitle>
+          </CardHeader>
           <CardContent>
-
-            {/* Hotel Section */}
-            {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-              <div className="mb-4 flex items-start space-x-4">
-                {/* Images Container */}
-
-                {/* Text Content */}
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold">Hotel:</div>
-                  <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-
-                  {itinerary.roomCategory && (
-                    <>
-                      <div className="font-bold">Room Category :</div>
-                      <p className="text-sm mb-4">{itinerary.roomCategory}</p>
-                    </>
-                  )}
-
-                  {itinerary.mealsIncluded && (
-                    <>
-                      <div className="font-bold">Meal Plan:</div>
-                      <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Day/Date
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hotel Name
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Room Category
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Meal Plan
+                    </th>
+                    {/* Add more headers if needed */}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {initialData.itineraries.map((itinerary, idx) => {
+                    const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
+                    return (
+                      <tr key={idx}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {itinerary.days ? itinerary.days : itinerary.dayNumber}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {hotelDetails?.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {itinerary.roomCategory}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {itinerary.mealsIncluded}
+                        </td>
+                        {/* Add more cells if needed */}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
-      ))}
+      )}
+
 
 
 

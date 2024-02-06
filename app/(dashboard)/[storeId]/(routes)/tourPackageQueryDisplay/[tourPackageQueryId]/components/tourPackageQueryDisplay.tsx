@@ -162,6 +162,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               {initialData.numChild5to12 !== ' ' && (
               <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
               )}
+              
             </div>
             <div>
               {initialData.numChild0to5 !== ' ' && (

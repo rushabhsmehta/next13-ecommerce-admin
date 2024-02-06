@@ -139,22 +139,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="font-semibold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
             <div>
+            {initialData.numDaysNight !==' ' && (
               <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
+            )}
             </div>
             <div>
-              <div className="font-semibold">Period : {initialData.period}</div>
+              { initialData.period !== ' ' && (
+                <div className="font-semibold">Period : {initialData.period}</div>
+                )}
             </div>
             <div>
+              {initialData.transport !== ' ' && (
               <div className="font-semibold">Transport  : {initialData.transport}</div>
+              )}
             </div>
             <div>
+              { initialData.numAdults !== ' ' && (
               <div className="font-semibold">Adults : {initialData.numAdults}</div>
+              )}
             </div>
             <div>
+              {initialData.numChild5to12 !== ' ' && (
               <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
+              )}
             </div>
             <div>
+              {initialData.numChild0to5 !== ' ' && (
               <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -165,27 +177,27 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            {initialData.pricePerAdult !== '' && (
+            {initialData.pricePerAdult !== ' ' && (
               <div>
                 <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
               </div>
             )}
-            {initialData.pricePerChildOrExtraBed !=='' && (
+            {initialData.pricePerChildOrExtraBed !==' ' && (
               <div>
                 <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
               </div>
             )}
-            {initialData.pricePerChild5to12YearsNoBed !== '' && (
+            {initialData.pricePerChild5to12YearsNoBed !== ' ' && (
               <div>
                 <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
               </div>
             )}
-            {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+            {initialData.pricePerChildwithSeatBelow5Years !== ' ' && (
               <div>
                 <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
               </div>
             )}
-            {initialData.totalPrice !== '' && (
+            {initialData.totalPrice !== ' ' && (
               <div>
                 <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
               </div>

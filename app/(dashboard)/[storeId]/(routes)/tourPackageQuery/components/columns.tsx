@@ -18,6 +18,10 @@ export type TourPackageQueryColumn = {
 }
 
 export const columns: ColumnDef<TourPackageQueryColumn>[] = [
+  {
+    accessorKey: "id",
+    header: "ID",
+  },
    {
     accessorKey: "customerName",
     header: "Customer Name",

@@ -118,7 +118,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
           <CardDescription>
-            Voucher Number : {initialData.id.slice(-12)}
+            Voucher Number : {initialData.tourPackageQueryNumber}
           </CardDescription>
         </CardHeader>
 

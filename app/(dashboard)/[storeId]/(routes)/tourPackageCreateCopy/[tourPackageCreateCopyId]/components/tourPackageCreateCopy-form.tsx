@@ -33,21 +33,22 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 
 
 const activitySchema = z.object({
-  activityTitle: z.string(),
-  activityDescription: z.string(),
+  activityTitle: z.string().optional(),
+  activityDescription: z.string().optional(),
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string(),
-  itineraryDescription: z.string(),
-  dayNumber: z.number(),
-  days: z.string(),
+  itineraryTitle: z.string().optional(),
+  itineraryDescription: z.string().optional(),
+  dayNumber: z.number().optional(),
+  days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  roomCategory: z.string(),
+  numberofRooms : z.string().optional(),
+  roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -165,6 +166,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
+        numberofRooms : itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -777,6 +779,24 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                     </FormItem>
 
                     <FormItem>
+                      <FormLabel>Number of Rooms</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Number of Rooms"
+                          disabled={loading}
+
+                          value={itinerary.numberofRooms}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+
+                    <FormItem>
                       <FormLabel>Room Category</FormLabel>
                       <FormControl>
                         <Input
@@ -953,7 +973,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

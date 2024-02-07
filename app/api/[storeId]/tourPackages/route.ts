@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs';
 
 import prismadb from '@/lib/prismadb';
 
-async function createItineraryAndActivities(itinerary: { storeId: string, itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageId: any) {
+async function createItineraryAndActivities(itinerary: { storeId: string, itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageId: any) {
     // First, create the itinerary and get its id
     const createdItinerary = await prismadb.itinerary.create({
         data: {
@@ -16,6 +16,7 @@ async function createItineraryAndActivities(itinerary: { storeId: string, itiner
             dayNumber : itinerary.dayNumber,
             days: itinerary.days,
             hotelId: itinerary.hotelId,
+            numberofRooms: itinerary.numberofRooms,
             roomCategory: itinerary.roomCategory,
             mealsIncluded: itinerary.mealsIncluded,
             itineraryImages: {

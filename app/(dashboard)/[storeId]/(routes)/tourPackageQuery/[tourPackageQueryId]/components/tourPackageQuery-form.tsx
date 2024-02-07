@@ -33,21 +33,22 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 
 
 const activitySchema = z.object({
-  activityTitle: z.string(),
-  activityDescription: z.string(),
+  activityTitle: z.string().optional(),
+  activityDescription: z.string().optional(),
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string(),
-  itineraryDescription: z.string(),
-  dayNumber: z.coerce.number(),
-  days: z.string(),
+  itineraryTitle: z.string().optional(),
+  itineraryDescription: z.string().optional(),
+  dayNumber: z.coerce.number().optional(),
+  days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  roomCategory: z.string(),
+  numberofRooms : z.string().optional(),
+  roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -56,21 +57,22 @@ const itinerarySchema = z.object({
 
 const flightDetailsSchema = z.object({
 
-  date: z.string(),
-  flightName: z.string(),
-  flightNumber: z.string(),
-  from: z.string(),
-  to: z.string(),
-  departureTime: z.string(),
-  arrivalTime: z.string(),
-  flightDuration: z.string(),
+  date: z.string().optional(),
+  flightName: z.string().optional(),
+  flightNumber: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  departureTime: z.string().optional(),
+  arrivalTime: z.string().optional(),
+  flightDuration: z.string().optional(),
 
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
+  tourPackageQueryNumber : z.string().optional(),
   tourPackageQueryName: z.string().min(1),
-  customerName: z.string().min(1),
-  numDaysNight: z.string().min(1),
+  customerName: z.string().optional(),
+  numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
   numAdults: z.string().optional(),
@@ -174,6 +176,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
+        numberofRooms : itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -188,8 +191,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       }))
     };
   };
+
+  const getCurrentDateTimeString = () => {
+    const now = new Date();
+    return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
+  };
+
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
+    tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: ' ',
     customerName: ' ',
     numDaysNight: ' ',
@@ -445,6 +455,26 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             )}
           />
           <div className="md:grid md:grid-cols-4 gap-8">
+
+          <FormField
+              control={form.control}
+              name="tourPackageQueryNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Query Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled
+                      placeholder="Tour Package Query Number"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
 
             {/* add formfield for TourPackageQueryName */}
             <FormField
@@ -1010,6 +1040,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     </FormItem>
 
                     <FormItem>
+                      <FormLabel>Number of Rooms</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Room Category"
+                          disabled={loading}
+
+                          value={itinerary.numberofRooms}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                    <FormItem>
                       <FormLabel>Room Category</FormLabel>
                       <FormControl>
                         <Input
@@ -1186,7 +1233,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

@@ -47,6 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
+  numberofRooms : z.string(),
   roomCategory: z.string(),
   locationId: z.string(), // Array of hotel IDs
 
@@ -166,6 +167,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
+        numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -813,6 +815,25 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     </FormItem>
 
                     <FormItem>
+                      <FormLabel>Number of Rooms</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Number of Rooms"
+                          disabled={loading}
+
+                          value={itinerary.numberofRooms}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+                 
+
+                    <FormItem>
                       <FormLabel>Room Category</FormLabel>
                       <FormControl>
                         <Input
@@ -988,7 +1009,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

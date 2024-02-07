@@ -33,21 +33,22 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 
 
 const activitySchema = z.object({
-  activityTitle: z.string(),
-  activityDescription: z.string(),
+  activityTitle: z.string().optional(),
+  activityDescription: z.string().optional(),
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string(),
-  itineraryDescription: z.string(),
-  dayNumber: z.number(),
-  days: z.string(),
+  itineraryTitle: z.string().optional(),
+  itineraryDescription: z.string().optional(),
+  dayNumber: z.number().optional(),
+  days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  roomCategory: z.string(),
+  numberofRooms : z.string().optional(),
+  roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
@@ -68,9 +69,10 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
+  tourPackageQueryNumber : z.string().optional(),
   tourPackageQueryName: z.string().min(1),
-  customerName: z.string().min(1),
-  numDaysNight: z.string().min(1),
+  customerName: z.string().optional(),
+  numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
   numAdults: z.string().optional(),
@@ -87,13 +89,13 @@ const formSchema = z.object({
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
-  inclusions: z.string(),
-  exclusions: z.string(),
-  paymentPolicy: z.string(),
-  usefulTip: z.string(),
-  cancellationPolicy: z.string(),
-  airlineCancellationPolicy: z.string(),
-  termsconditions: z.string(),
+  inclusions: z.string().optional(),
+  exclusions: z.string().optional(),
+  paymentPolicy: z.string().optional(),
+  usefulTip: z.string().optional(),
+  cancellationPolicy: z.string().optional(),
+  airlineCancellationPolicy: z.string().optional(),
+  termsconditions: z.string().optional(),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
@@ -165,6 +167,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
+        numberofRooms : itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -179,8 +182,15 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       }))
     };
   };
+
+  const getCurrentDateTimeString = () => {
+    const now = new Date();
+    return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
+  };
+  
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
+    tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
     customerName: '',
     numDaysNight: '',
@@ -392,7 +402,28 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
           />
           <div className="md:grid md:grid-cols-4 gap-8">
 
-            {/* add formfield for TourPackageQueryName */}
+            {/* add formfield for TourPackageQueryNumber */}
+
+            <FormField
+              control={form.control}
+              name="tourPackageQueryNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Query Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Query Number"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
             <FormField
               control={form.control}
               name="tourPackageQueryName"
@@ -913,6 +944,24 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                     </FormItem>
 
                     <FormItem>
+                      <FormLabel>Number of Rooms</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Number of Rooms"
+                          disabled={loading}
+
+                          value={itinerary.numberofRooms}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+
+
+                    <FormItem>
                       <FormLabel>Room Category</FormLabel>
                       <FormControl>
                         <Input
@@ -1089,7 +1138,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '' ,roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

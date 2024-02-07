@@ -37,6 +37,7 @@ export async function POST(req: Request, {params} : {params : { storeId : string
       dayNumber,
       days,
       hotelId,
+      numberofRooms,
       roomCategory,
       mealsIncluded,
     } = body;
@@ -87,6 +88,7 @@ export async function POST(req: Request, {params} : {params : { storeId : string
         dayNumber,
         days,
         hotelId,
+        numberofRooms,
         roomCategory,
         mealsIncluded,
         itineraryMasterImages: {

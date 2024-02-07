@@ -290,6 +290,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                     Hotel Name
                   </th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Number of Rooms
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Room Category
                   </th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -307,6 +310,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                       </td>
                       <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
                         {hotelDetails?.name}
+                      </td>
+                      <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
+                        {itinerary.numberofRooms}
                       </td>
                       <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
                         {itinerary.roomCategory}

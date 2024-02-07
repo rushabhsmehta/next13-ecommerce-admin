@@ -124,6 +124,7 @@ model Product {
 model TourPackageQuery {
   id                        String          @id @default(uuid())
   storeId                   String
+  tourPackageQueryNumber    String?
   tourPackageQueryName      String?
   customerName              String?
   numDaysNight              String?
@@ -293,6 +294,7 @@ model Itinerary {
   days               String?
   hotelId            String?
   hotel              Hotel?            @relation("ItineraryToHotel", fields: [hotelId], references: [id])
+  numberofRooms      String?
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
@@ -327,6 +329,7 @@ model ItineraryMaster {
   days               String?
   hotelId            String?
   hotel              Hotel?            @relation("ItineraryMasterToHotel", fields: [hotelId], references: [id])
+  numberofRooms      String?
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())

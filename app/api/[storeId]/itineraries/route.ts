@@ -24,6 +24,7 @@ export async function POST(
       dayNumber,
       days,
       hotelId,
+      numberofRooms,
       roomCategory,
       mealsIncluded,
     } = body;
@@ -74,6 +75,7 @@ export async function POST(
         dayNumber,
         days,
         hotelId,
+        numberofRooms,
         roomCategory,
         mealsIncluded,
         itineraryImages: {

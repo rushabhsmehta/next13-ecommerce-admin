@@ -45,6 +45,7 @@ const formSchema = z.object({
   itineraryMasterImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   hotelId: z.string().optional(),
+  numberofRooms : z.string().optional(),
   roomCategory: z.string().optional(),
   tourPackageId: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
@@ -129,6 +130,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
     dayNumber: 0,
     days: '',
     hotelId: '',
+    numberofRooms: '',
     roomCategory: '',
     mealsIncluded: '',
     activities: [],
@@ -307,6 +309,23 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 </FormItem>
               )}
             />
+
+<FormField
+              control={form.control}
+              name="numberofRooms"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Rooms</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Number of Rooms" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+           
+         
+
             <FormField
               control={form.control}
               name="roomCategory"

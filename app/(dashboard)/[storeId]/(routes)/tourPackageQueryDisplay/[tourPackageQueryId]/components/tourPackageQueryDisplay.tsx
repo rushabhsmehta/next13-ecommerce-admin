@@ -108,6 +108,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
+          <CardDescription>{initialData.tourPackageQueryNumber}</CardDescription>
+
           <CardDescription>
             Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
@@ -306,6 +308,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   <div className="flex-grow mx-2 my-2">
                     <div className="font-bold">Hotel:</div>
                     <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+
+                    {itinerary.numberofRooms && (
+                      <>
+                        <div className="font-bold">Number of Rooms :</div>
+                        <p className="text-sm mb-4">{itinerary.numberofRooms}</p>
+                      </>
+                    )}
 
                     {itinerary.roomCategory && (
                       <>

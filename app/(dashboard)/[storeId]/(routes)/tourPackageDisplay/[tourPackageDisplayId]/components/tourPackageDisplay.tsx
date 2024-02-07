@@ -150,6 +150,14 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                   <div className="font-bold">Hotel:</div>
                   <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
 
+                  {itinerary.numberofRooms && (
+                    <>
+                      <div className="font-bold">Number of Rooms  :</div>
+                      <p className="text-sm mb-4">{itinerary.numberofRooms}</p>
+                    </>
+                  )}
+
+
                   {itinerary.roomCategory && (
                     <>
                       <div className="font-bold">Room Category :</div>

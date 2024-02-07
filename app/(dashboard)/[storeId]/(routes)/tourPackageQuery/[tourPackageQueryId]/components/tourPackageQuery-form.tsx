@@ -1043,7 +1043,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <FormLabel>Number of Rooms</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Room Category"
+                          placeholder="Number of Rooms"
                           disabled={loading}
 
                           value={itinerary.numberofRooms}

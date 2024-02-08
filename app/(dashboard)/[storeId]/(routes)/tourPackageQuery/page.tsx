@@ -40,6 +40,7 @@ const tourPackageQueryPage = async ({
 
   const formattedtourPackageQuery : TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
     id: item.id,
+    tourPackageQueryNumber : item.tourPackageQueryNumber ?? '',
     tourPackageQueryName : item.tourPackageQueryName ?? '',
     customerName : item.customerName ?? '',
     assignedTo : item.assignedTo ?? '',

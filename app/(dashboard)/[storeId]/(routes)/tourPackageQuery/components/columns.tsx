@@ -6,6 +6,7 @@ import { CellAction } from "./cell-action"
 
 export type TourPackageQueryColumn = {
   id: string;
+  tourPackageQueryNumber : string;
   customerName: string;
   tourPackageQueryName : string;
   assignedTo : string;
@@ -19,8 +20,8 @@ export type TourPackageQueryColumn = {
 
 export const columns: ColumnDef<TourPackageQueryColumn>[] = [
   {
-    accessorKey: "id",
-    header: "ID",
+    accessorKey: "tourPackageQueryNumber",
+    header: "Query Number",
   },
    {
     accessorKey: "customerName",

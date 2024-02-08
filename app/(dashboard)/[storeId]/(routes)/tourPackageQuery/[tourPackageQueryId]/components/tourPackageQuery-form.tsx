@@ -153,6 +153,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const transformInitialData = (data: any) => {
     return {
       ...data,
+      tourPackageQueryNumber: data.tourPackageQueryNumber ?? getCurrentDateTimeString(), // Set the current date and time
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
@@ -454,7 +455,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="md:grid md:grid-cols-4 gap-8">
+          <div className="md:grid md:grid-cols-5 gap-8">
 
           <FormField
               control={form.control}
@@ -464,7 +465,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Tour Package Query Number</FormLabel>
                   <FormControl>
                     <Input
-                      disabled
+                      disabled = {loading}
                       placeholder="Tour Package Query Number"
                       value={field.value}
                       onChange={field.onChange}

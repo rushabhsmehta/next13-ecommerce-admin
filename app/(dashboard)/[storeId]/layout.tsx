@@ -12,6 +12,7 @@ export default async function DashboardLayout({
   params: { storeId: string }
 }) {
   const { userId } = auth();
+  
 
   if (!userId) {
     redirect('/sign-in');

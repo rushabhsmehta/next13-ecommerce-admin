@@ -47,6 +47,11 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
   //   accessorKey: "hotel",
   //   header: "Hotel",
   // },
+
+  {
+    accessorKey: "isFeatured",
+    header: "Confirmed",
+  },
   
   {
     accessorKey: "createdAt",

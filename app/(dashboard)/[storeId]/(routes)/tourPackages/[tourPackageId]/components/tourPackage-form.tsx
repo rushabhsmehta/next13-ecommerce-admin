@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  numberofRooms : z.string(),
+  numberofRooms: z.string(),
   roomCategory: z.string(),
   locationId: z.string(), // Array of hotel IDs
 
@@ -383,7 +383,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="md:grid md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-3 gap-8">
 
             {/* add formfield for TourPackageName */}
             <FormField
@@ -443,9 +443,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   </FormItem>
                 )}
               />
-
-
-
+            </div>
+            <div className="grid grid-cols-3 gap-8">
 
               {/*     <FormField
               control={form.control}
@@ -501,6 +500,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   </FormItem>
                 )}
               />
+            </div>
+            <div className="grid grid-cols-3 gap-8">
 
               <FormField
                 control={form.control}
@@ -533,7 +534,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           </div>
 
           {/* //add formfield for flightDetails */}
-          <div>
+          <div className="grid grid-cols-3 gap-8">
             <FormField
               control={form.control}
               name="flightDetails"
@@ -824,14 +825,14 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           value={itinerary.numberofRooms}
                           onChange={(e) => {
                             const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
                             onChange(newItineraries);
                           }}
                         />
                       </FormControl>
                     </FormItem>
 
-                 
+
 
                     <FormItem>
                       <FormLabel>Room Category</FormLabel>
@@ -1009,7 +1010,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

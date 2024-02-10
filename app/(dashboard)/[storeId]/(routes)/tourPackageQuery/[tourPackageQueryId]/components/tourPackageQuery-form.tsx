@@ -732,7 +732,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   {
                     value.map((flight, index) => (
 
-                      <div key={index} className="md:grid md:grid-cols-6 gap-8">
+                      <div key={index} className="grid grid-cols-3 gap-8">
                         <FormControl>
                           <Input
                             placeholder="Date"

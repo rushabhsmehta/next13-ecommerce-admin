@@ -51,15 +51,7 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
     accessorKey: "isFeatured",
     header: "Confirmed",
     cell: (info) => info.getValue() ? "Yes" : "No",
-    enableSorting: true, // Ensure that sorting is enabled for this column
-    
-    filterFn: (row, columnId, value, addMeta) => {
-      // Assuming value is either "Yes" or "No"
-      const filterValue = value === "Yes";
-      // Use row.getValue to get the cell value
-      const cellValue = row.getValue(columnId);
-      return cellValue === filterValue;
-    },
+    enableSorting: true, // Ensure that sorting is enabled for this column  
   }, 
   
   {

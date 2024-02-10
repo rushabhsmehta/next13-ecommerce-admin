@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  numberofRooms : z.string().optional(),
+  numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
@@ -69,7 +69,7 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  tourPackageQueryNumber : z.string().optional(),
+  tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   customerName: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -78,7 +78,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
- // price: z.string().min(1),
+  // price: z.string().min(1),
   pricePerAdult: z.string().optional(),
   pricePerChildOrExtraBed: z.string().optional(),
   pricePerChild5to12YearsNoBed: z.string().optional(),
@@ -177,7 +177,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
-        numberofRooms : itinerary.numberofRooms ?? '',
+        numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -379,8 +379,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <div className="md:grid md:grid-cols-4 gap-8">
-
+          <div className="grid grid-cols-3 gap-8">
             <FormField
               control={form.control}
               name="assignedTo"
@@ -455,9 +454,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </FormItem>
             )}
           />
-          <div className="md:grid md:grid-cols-5 gap-8">
+          <div className="grid grid-cols-3 gap-8">
 
-          <FormField
+            <FormField
               control={form.control}
               name="tourPackageQueryNumber"
               render={({ field }) => (
@@ -465,7 +464,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Tour Package Query Number</FormLabel>
                   <FormControl>
                     <Input
-                      disabled = {loading}
+                      disabled={loading}
                       placeholder="Tour Package Query Number"
                       value={field.value}
                       onChange={field.onChange}
@@ -512,6 +511,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
+          </div>
+          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
@@ -550,10 +551,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-          </div>
 
-          {/* // add formfield for period */}
-          <div className="md:grid md:grid-cols-5 gap-8">
+            {/* // add formfield for period */}
 
             <FormField
               control={form.control}
@@ -568,6 +567,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
+          </div>
+          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
@@ -612,6 +613,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
+          </div>
+          <div className="grid grid-cols-3 gap-8">
 
             {/* //add formfield for numChildren */}
             <FormField
@@ -630,7 +633,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
 
 
-        {/*     <FormField
+            {/*     <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
@@ -671,6 +674,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
+
+            </div>
+            <div className ="grid grid-cols-3 gap-8">
+
             <FormField
               control={form.control}
               name="pricePerChild5to12YearsNoBed"
@@ -713,9 +720,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
           </div>
-
-
-
+          
           {/* //add formfield for flightDetails */}
           <div>
             <FormField
@@ -1050,7 +1055,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           value={itinerary.numberofRooms}
                           onChange={(e) => {
                             const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
                             onChange(newItineraries);
                           }}
                         />
@@ -1234,7 +1239,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

@@ -428,8 +428,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               )}
             />
 
-            <div className="md:grid md:grid-cols-5 gap-8">
-
               <FormField
                 control={form.control}
                 name="transport"
@@ -444,6 +442,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 )}
               />
             </div>
+
             <div className="grid grid-cols-3 gap-8">
 
               {/*     <FormField
@@ -500,9 +499,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="grid grid-cols-3 gap-8">
 
+           
               <FormField
                 control={form.control}
                 name="pricePerChildwithSeatBelow5Years"
@@ -531,7 +529,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 )}
               />
             </div>
-          </div>
+          
 
           {/* //add formfield for flightDetails */}
           <div className="grid grid-cols-3 gap-8">

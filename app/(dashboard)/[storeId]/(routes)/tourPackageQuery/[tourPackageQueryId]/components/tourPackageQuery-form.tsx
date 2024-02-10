@@ -239,7 +239,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     locationId: '',
     //location : '',
     // hotelId: '',
-    isFeatured: true,
+    isFeatured: false,
     isArchived: false,
   };
 
@@ -454,6 +454,31 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="isFeatured"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    // @ts-ignore
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Confirmed
+                  </FormLabel>
+                  <FormDescription>
+                    Please Select Whether Query is confirmed or not ?
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
+
           <div className="grid grid-cols-3 gap-8">
 
             <FormField
@@ -675,8 +700,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
-            </div>
-            <div className ="grid grid-cols-3 gap-8">
+          </div>
+          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
@@ -720,7 +745,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
           </div>
-          
+
           {/* //add formfield for flightDetails */}
           <div>
             <FormField

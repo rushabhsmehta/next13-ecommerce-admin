@@ -441,10 +441,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   </FormItem>
                 )}
               />
-            </div>
-
-            <div className="grid grid-cols-3 gap-8">
-
               {/*     <FormField
               control={form.control}
               name="price"

@@ -51,6 +51,8 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
     accessorKey: "isFeatured",
     header: "Confirmed",
     cell: (info) => info.getValue() ? "Yes" : "No",
+    enableSorting: true, // Ensure that sorting is enabled for this column
+
   }, 
   
   {

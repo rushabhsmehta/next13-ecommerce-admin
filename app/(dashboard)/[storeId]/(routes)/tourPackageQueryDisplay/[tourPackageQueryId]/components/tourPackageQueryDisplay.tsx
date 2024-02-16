@@ -53,9 +53,8 @@ const companyInfo: CompanyInfo = {
     logo: '/kobawala.png',
     name: 'Kobawala Holidays',
     address: 'Kobawala Holidays, Gandhinagar',
-    phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
-    website: 'https://kobawala.com',
+    phone: '+91-99040 35277',
+    email: 'kobawala.holiday@gmail.com', // Add the missing fields
   },
   MT: {
     logo: '/mahavirtravels.png',

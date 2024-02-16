@@ -53,9 +53,10 @@ const companyInfo: CompanyInfo = {
   KH: {
     logo: '/kobawala.png',
     name: 'Kobawala Holidays',
-    address: 'Kobawala Holidays, Gandhinagar',
+    address: 'Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007',
     phone: '+91-99040 35277',
     email: 'kobawala.holiday@gmail.com', // Add the missing fields
+    website : 'http://kobawalaholidays.com'
   },
   MT: {
     logo: '/mahavirtravels.png',

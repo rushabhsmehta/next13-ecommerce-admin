@@ -55,7 +55,7 @@ const companyInfo: CompanyInfo = {
     address: 'Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007',
     phone: '+91-99040 35277',
     email: 'kobawala.holiday@gmail.com', // Add the missing fields
-    website : 'http://kobawalaholidays.com'
+    website: 'http://kobawalaholidays.com'
   },
   MT: {
     logo: '/mahavirtravels.png',
@@ -88,23 +88,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
 
-      {selectedOption !== 'Empty' && (
-
-        <Card className="border-b">
-          <CardDescription className="flex justify-between items-center px-4">
-            <div className="inline-block relative w-48 h-48">
-              <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
-            </div>
-            <ul>
-              <li>{currentCompany.address}</li>
-              <li>Phone: {currentCompany.phone}</li>
-              <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
-              <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
-
-            </ul>
-          </CardDescription>
-        </Card >
-      )}
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
@@ -141,34 +124,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="font-semibold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
             <div>
-            {initialData.numDaysNight !==' ' && (
-              <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
-            )}
-            </div>
-            <div>
-              { initialData.period !== ' ' && (
-                <div className="font-semibold">Period : {initialData.period}</div>
-                )}
-            </div>
-            <div>
-              {initialData.transport !== ' ' && (
-              <div className="font-semibold">Transport  : {initialData.transport}</div>
+              {initialData.numDaysNight !== ' ' && (
+                <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
               )}
             </div>
             <div>
-              { initialData.numAdults !== ' ' && (
-              <div className="font-semibold">Adults : {initialData.numAdults}</div>
+              {initialData.period !== ' ' && (
+                <div className="font-semibold">Period : {initialData.period}</div>
+              )}
+            </div>
+            <div>
+              {initialData.transport !== ' ' && (
+                <div className="font-semibold">Transport  : {initialData.transport}</div>
+              )}
+            </div>
+            <div>
+              {initialData.numAdults !== ' ' && (
+                <div className="font-semibold">Adults : {initialData.numAdults}</div>
               )}
             </div>
             <div>
               {initialData.numChild5to12 !== ' ' && (
-              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
+                <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
               )}
-              
+
             </div>
             <div>
               {initialData.numChild0to5 !== ' ' && (
-              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
+                <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
               )}
             </div>
           </div>
@@ -185,7 +168,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
               </div>
             )}
-            {initialData.pricePerChildOrExtraBed !==' ' && (
+            {initialData.pricePerChildOrExtraBed !== ' ' && (
               <div>
                 <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
               </div>
@@ -450,6 +433,24 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
       </div>
+
+      {selectedOption !== 'Empty' && (
+
+        <Card className="border-b">
+          <CardDescription className="flex justify-between items-center px-4">
+            <div className="inline-block relative w-48 h-48">
+              <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
+            </div>
+            <ul>
+              <li>{currentCompany.address}</li>
+              <li>Phone: {currentCompany.phone}</li>
+              <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
+              <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
+
+            </ul>
+          </CardDescription>
+        </Card >
+      )}
 
       {/* Footer Section with Company Details */}
 

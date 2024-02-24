@@ -17,10 +17,10 @@ const tourPackageQueryPage = async ({
     },
     include: {
       images: true,
-      location : true,
+      location: true,
       flightDetails: true,
       itineraries: {
-        
+
         include: {
           itineraryImages: true,
           activities:
@@ -35,15 +35,18 @@ const tourPackageQueryPage = async ({
           days: 'asc' // or 'desc', depending on the desired order
         }
       }
+    },
+    orderBy: {
+      updatedAt: 'desc'
     }
   });
 
-  const formattedtourPackageQuery : TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
+  const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
     id: item.id,
-    tourPackageQueryNumber : item.tourPackageQueryNumber ?? '',
-    tourPackageQueryName : item.tourPackageQueryName ?? '',
-    customerName : item.customerName ?? '',
-    assignedTo : item.assignedTo ?? '',
+    tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
+    tourPackageQueryName: item.tourPackageQueryName ?? '',
+    customerName: item.customerName ?? '',
+    assignedTo: item.assignedTo ?? '',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     price: item.price ?? '',
@@ -54,12 +57,12 @@ const tourPackageQueryPage = async ({
 
   return (
     <>
-    <Navbar />
+      <Navbar />
       <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryClient data={formattedtourPackageQuery} />
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryClient data={formattedtourPackageQuery} />
+        </div>
       </div>
-    </div>
     </>
   );
 };

@@ -6,10 +6,27 @@ import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, React
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Trash } from "lucide-react"
+import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
 import { Activity, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -30,6 +47,7 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { cn } from "@/lib/utils"
 
 
 const activitySchema = z.object({
@@ -1035,41 +1053,67 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       </FormControl>
                     </FormItem>
 
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Hotel</FormLabel>
-                      <Select
-                        disabled={loading}
-                        value={itinerary.hotelId}
-                        defaultValue={itinerary.hotelId}
-                        onValueChange={(selectedHotelId) => {
-                          const newItineraries = [...value];
-                          newItineraries[index] = {
-                            ...itinerary,
-                            hotelId: selectedHotelId
-                          };
-                          onChange(newItineraries); // Update the state with the new itineraries
-
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              defaultValue={itinerary.hotelId}
-                              placeholder="Select a Hotel"
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-[200px] justify-between",
+                                !itinerary.hotelId && "text-muted-foreground"
+                              )}
+                              disabled={loading}
+                            >
+                              {itinerary.hotelId
+                                ? hotels.find(
+                                    (hotel) => hotel.id === itinerary.hotelId
+                                  )?.name
+                                : "Select a Hotel"}                
+                              <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search hotel..."
+                              className="h-9"
                             />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
-                            <SelectItem key={hotel.id} value={hotel.id}>
-                              {hotel.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            <CommandEmpty>No hotel found.</CommandEmpty>
+                            <CommandGroup>
+                              {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
+                                <CommandItem
+                                  value={hotel.name}
+                                  key={hotel.id}
+                                  onSelect={() => {
+                                    const newItineraries = [...value];
+                                    newItineraries[index] = {
+                                      ...itinerary,
+                                      hotelId: hotel.id
+                                    };
+                                    onChange(newItineraries); // Update the state with the new itineraries
+                                  }}
+                                >
+                                  {hotel.name}
+                                  <CheckIcon
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      hotel.id === itinerary.hotelId
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
-
                     <FormItem>
                       <FormLabel>Number of Rooms</FormLabel>
                       <FormControl>

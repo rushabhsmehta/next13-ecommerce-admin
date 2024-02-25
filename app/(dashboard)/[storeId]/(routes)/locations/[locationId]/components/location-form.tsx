@@ -53,15 +53,26 @@ export const LocationForm: React.FC<LocationFormProps> = ({
   const toastMessage = initialData ? 'Location updated.' : 'Location created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const form = useForm<LocationFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      label: '',
-      imageUrl: '',
-      tags: '',
-      slug: '',
+  const transformInitialData = (data: any): LocationFormValues => {
+    return {
+      ...data,
+      tags: data.tags ??  '',
+      slug : data.slug ??  '',
     }
+  }
+
+  const defaultValues = initialData ? transformInitialData(initialData) : {
+    label: '',
+    imageUrl: '',
+    tags: '',
+    slug: ''
+  }
+
+   const form = useForm<LocationFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues
   });
+  
 
   // Function to convert label to slug
   const convertToSlug = (text: string) => {

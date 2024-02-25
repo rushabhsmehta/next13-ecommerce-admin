@@ -110,7 +110,7 @@ export async function PATCH(
       data: {
         label,
         imageUrl,
-        tags,
+        tags, // Add the 'tags' property here
         slug
       }
     });

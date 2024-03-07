@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string().optional(), // Array of hotel IDs
-  numberofRooms : z.string().optional(),
+  numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
@@ -69,9 +69,10 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  tourPackageQueryNumber : z.string().optional(),
+  tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
-  customerName: z.string().min(1),
+  customerName: z.string().optional(),
+  customerNumber : z.string().optional(),
   numDaysNight: z.string().min(1),
   period: z.string().optional(),
   transport: z.string().optional(),
@@ -91,6 +92,7 @@ const formSchema = z.object({
   //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
+  importantNotes: z.string(),
   paymentPolicy: z.string(),
   usefulTip: z.string(),
   cancellationPolicy: z.string(),
@@ -167,7 +169,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
-        numberofRooms : itinerary.numberofRooms ?? '',
+        numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -187,12 +189,13 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     const now = new Date();
     return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
-  
+
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
     customerName: '',
+    customerNumber: '',
     numDaysNight: '',
     period: '',
     transport: '',
@@ -212,6 +215,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
@@ -401,7 +405,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             )}
           />
           <div className="md:grid md:grid-cols-4 gap-8">
-          <FormField
+            <FormField
               control={form.control}
               name="tourPackageQueryNumber"
               render={({ field }) => (
@@ -449,6 +453,20 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormLabel>Customer Name</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Customer Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="customerNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Name</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Customer Number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1133,7 +1151,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>
@@ -1171,6 +1189,19 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormLabel>Exclusions</FormLabel>
                   <FormControl>
                     <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            <FormField
+              control={form.control}
+              name="importantNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

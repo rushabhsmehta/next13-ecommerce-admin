@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  numberofRooms : z.string().optional(),
+  numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
@@ -66,12 +66,14 @@ const flightDetailsSchema = z.object({
   arrivalTime: z.string(),
   flightDuration: z.string(),
 
+  
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  tourPackageQueryNumber : z.string().optional(),
+  tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   customerName: z.string().optional(),
+  customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
@@ -85,12 +87,13 @@ const formSchema = z.object({
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
   locationId: z.string().min(1),
-  //location : z.string(),
+  //location : z.string(),2
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.string().optional(),
   exclusions: z.string().optional(),
+  importantNotes: z.string().optional(),
   paymentPolicy: z.string().optional(),
   usefulTip: z.string().optional(),
   cancellationPolicy: z.string().optional(),
@@ -167,7 +170,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
-        numberofRooms : itinerary.numberofRooms ?? '',
+        numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -187,12 +190,13 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     const now = new Date();
     return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
-  
+
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
     customerName: '',
+    customerNumber: '',
     numDaysNight: '',
     period: '',
     transport: '',
@@ -212,6 +216,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
@@ -458,6 +463,21 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="customerNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Name</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Customer Number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
 
             <FormField
               control={form.control}
@@ -953,7 +973,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                           value={itinerary.numberofRooms}
                           onChange={(e) => {
                             const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
                             onChange(newItineraries);
                           }}
                         />
@@ -1138,7 +1158,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '' ,roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>
@@ -1180,6 +1200,20 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                   <FormMessage />
                 </FormItem>
               )} />
+
+            <FormField
+              control={form.control}
+              name="importantNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
           </div>
           {/* //add formfield for paymentPolicy */}
           <div className="md:grid md:grid-cols-2 gap-8">

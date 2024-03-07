@@ -71,6 +71,7 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   tourPackageName: z.string().optional(),
   customerName: z.string().optional(),
+  customerNumber: z.string().optional(),  
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
@@ -90,6 +91,7 @@ const formSchema = z.object({
   //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
+  importantNotes: z.string(),
   paymentPolicy: z.string(),
   usefulTip: z.string(),
   cancellationPolicy: z.string(),
@@ -185,6 +187,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
 
     tourPackageName: '',
     customerName: '',
+    customerNumber: '',
     numDaysNight: '',
     period: '',
     transport: '',
@@ -204,6 +207,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,

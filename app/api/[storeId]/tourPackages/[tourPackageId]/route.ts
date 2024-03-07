@@ -145,6 +145,7 @@ export async function PATCH(
     const {
       tourPackageName,
       customerName,
+      customerNumber,
       numDaysNight,
       locationId,
       period,
@@ -162,6 +163,7 @@ export async function PATCH(
       //   hotelDetails,
       inclusions,
       exclusions,
+      importantNotes,
       paymentPolicy,
       usefulTip,
       cancellationPolicy,
@@ -230,6 +232,7 @@ export async function PATCH(
       //    data: {
       tourPackageName,
       customerName,
+      customerNumber,
       numDaysNight,
       locationId,
       period,
@@ -245,6 +248,7 @@ export async function PATCH(
       totalPrice,
       inclusions,
       exclusions,
+      importantNotes,
       paymentPolicy,
       usefulTip,
       cancellationPolicy,

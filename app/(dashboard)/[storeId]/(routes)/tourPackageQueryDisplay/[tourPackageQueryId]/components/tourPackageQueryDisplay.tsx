@@ -94,7 +94,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardDescription>{initialData.tourPackageQueryNumber}</CardDescription>
 
           <CardDescription>
-            Customer: {initialData.customerName} | Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+            Customer: {initialData.customerName} | {initialData.customerNumber} |
+            Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
@@ -382,6 +383,17 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
           </CardContent>
         </Card>
+
+        <Card className="break-inside-avoid">
+          <CardHeader>
+            <CardTitle>Important Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap">{initialData.importantNotes}</pre>
+          </CardContent>
+        </Card>
+
+        
 
         {/* Payment Policy Card */}
         <Card className="break-inside-avoid">

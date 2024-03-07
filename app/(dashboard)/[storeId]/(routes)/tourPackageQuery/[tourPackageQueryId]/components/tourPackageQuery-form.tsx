@@ -1381,10 +1381,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
-          </div>
-          {/* //add formfield for paymentPolicy */}
-          <div className="md:grid md:grid-cols-2 gap-8">
-
+     
             <FormField
               control={form.control}
               name="paymentPolicy"
@@ -1411,10 +1408,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
-          </div>
-          {/* //add formfield for cancellationPolicy */}
-          <div className="md:grid md:grid-cols-2 gap-8">
-
+      
             <FormField
               control={form.control}
               name="cancellationPolicy"
@@ -1442,7 +1436,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
-          </div>
           {/* //add formfield for termsconditions */}
           <FormField
             control={form.control}
@@ -1456,6 +1449,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormMessage />
               </FormItem>
             )} />
+          </div>
 
 
           <Button disabled={loading} className="ml-auto" type="submit">

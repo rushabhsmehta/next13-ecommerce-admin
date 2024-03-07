@@ -1206,7 +1206,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               name="importantNotes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Exclusions</FormLabel>
+                  <FormLabel>Important Notes</FormLabel>
                   <FormControl>
                     <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
                   </FormControl>

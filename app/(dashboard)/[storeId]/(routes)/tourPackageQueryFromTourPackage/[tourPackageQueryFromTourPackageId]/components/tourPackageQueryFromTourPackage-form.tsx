@@ -464,7 +464,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
               name="customerNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Customer Name</FormLabel>
+                  <FormLabel>Customer Number</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Customer Number" {...field} />
                   </FormControl>

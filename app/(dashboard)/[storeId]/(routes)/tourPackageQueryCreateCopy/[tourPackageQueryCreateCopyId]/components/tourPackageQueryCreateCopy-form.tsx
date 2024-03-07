@@ -66,7 +66,7 @@ const flightDetailsSchema = z.object({
   arrivalTime: z.string(),
   flightDuration: z.string(),
 
-  
+
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
@@ -469,7 +469,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               name="customerNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Customer Name</FormLabel>
+                  <FormLabel>Customer Number</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Customer Number" {...field} />
                   </FormControl>

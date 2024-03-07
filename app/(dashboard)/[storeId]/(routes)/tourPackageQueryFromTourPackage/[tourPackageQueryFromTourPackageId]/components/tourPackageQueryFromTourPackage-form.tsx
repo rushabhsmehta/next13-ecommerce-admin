@@ -1161,7 +1161,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             )}
           />
 
-          <div className="md:grid md:grid-cols-2 gap-8">
+<div className="md:grid md:grid-cols-2 gap-8">
             {/* //add formfield for hotelDetails */}
 
 
@@ -1206,9 +1206,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormMessage />
                 </FormItem>
               )} />
-          </div>
-          {/* //add formfield for paymentPolicy */}
-          <div className="md:grid md:grid-cols-2 gap-8">
 
             <FormField
               control={form.control}
@@ -1236,9 +1233,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormMessage />
                 </FormItem>
               )} />
-          </div>
-          {/* //add formfield for cancellationPolicy */}
-          <div className="md:grid md:grid-cols-2 gap-8">
 
             <FormField
               control={form.control}
@@ -1267,20 +1261,20 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormMessage />
                 </FormItem>
               )} />
+            {/* //add formfield for termsconditions */}
+            <FormField
+              control={form.control}
+              name="termsconditions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Terms and Conditions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
           </div>
-          {/* //add formfield for termsconditions */}
-          <FormField
-            control={form.control}
-            name="termsconditions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Terms and Conditions</FormLabel>
-                <FormControl>
-                  <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
 
 
           <Button disabled={loading} className="ml-auto" type="submit">

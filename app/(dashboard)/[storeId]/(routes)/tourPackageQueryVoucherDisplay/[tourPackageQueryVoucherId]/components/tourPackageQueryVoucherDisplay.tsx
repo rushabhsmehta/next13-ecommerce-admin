@@ -115,7 +115,8 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>
-            Customer: {initialData.customerName} | Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+            Customer: {initialData.customerName} | {initialData.customerNumber} |
+            Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
           <CardDescription>
             
@@ -334,6 +335,18 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
 
       {/* Payment Policy Card */}
+
+      <Card className="break-inside-avoid">
+        <CardHeader>
+          <CardTitle>Important Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="whitespace-pre-wrap">{initialData.importantNotes}</pre>
+        </CardContent>
+      </Card>
+
+
+
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>Payment Policy</CardTitle>

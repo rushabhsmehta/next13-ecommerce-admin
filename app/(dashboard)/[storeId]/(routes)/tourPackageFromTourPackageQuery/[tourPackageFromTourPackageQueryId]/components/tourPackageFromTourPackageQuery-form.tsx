@@ -70,7 +70,8 @@ const flightDetailsSchema = z.object({
 
 const formSchema = z.object({
   tourPackageName: z.string().min(1),
-  customerName: z.string().min(1),
+  customerName: z.string().optional(),
+  customerNumber : z.string().optional(),
   numDaysNight: z.string().min(1),
   period: z.string().optional(),
   transport: z.string().optional(),
@@ -90,6 +91,7 @@ const formSchema = z.object({
   //  hotelDetails: z.string(),
   inclusions: z.string().optional(),
   exclusions: z.string().optional(),
+  importantNotes : z.string().optional(),
   paymentPolicy: z.string().optional(),
   usefulTip: z.string().optional(),
   cancellationPolicy: z.string().optional(),
@@ -186,6 +188,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
 
     tourPackageName: '',
     customerName: '',
+    customerNumber: '', 
     numDaysNight: '',
     period: '',
     transport : '',
@@ -205,6 +208,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,

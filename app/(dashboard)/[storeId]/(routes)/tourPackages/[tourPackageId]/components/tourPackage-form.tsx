@@ -71,6 +71,7 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   tourPackageName: z.string().optional(),
   customerName: z.string().optional(),
+  customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
@@ -90,6 +91,7 @@ const formSchema = z.object({
   //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
+  importantNotes: z.string(),
   paymentPolicy: z.string(),
   usefulTip: z.string(),
   cancellationPolicy: z.string(),
@@ -186,6 +188,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
     tourPackageName: '',
     customerName: '',
+    customerNumber: '',
     numDaysNight: '',
     period: '',
     transport: '',
@@ -205,6 +208,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
@@ -428,20 +432,20 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               )}
             />
 
-              <FormField
-                control={form.control}
-                name="transport"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transport</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Transport" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {/*     <FormField
+            <FormField
+              control={form.control}
+              name="transport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transport</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Transport" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/*     <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
@@ -455,77 +459,77 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               )}
             />
  */}
-              <FormField
-                control={form.control}
-                name="pricePerAdult"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Adult</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="pricePerAdult"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Adult</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="pricePerChildOrExtraBed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Child/Extra Bed</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="pricePerChild5to12YearsNoBed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="pricePerChildOrExtraBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child/Extra Bed</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pricePerChild5to12YearsNoBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-           
-              <FormField
-                control={form.control}
-                name="pricePerChildwithSeatBelow5Years"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
-              <FormField
-                control={form.control}
-                name="totalPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total Price</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          
+            <FormField
+              control={form.control}
+              name="pricePerChildwithSeatBelow5Years"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="totalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Price</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
 
           {/* //add formfield for flightDetails */}
           <div className="grid grid-cols-3 gap-8">
@@ -1046,6 +1050,20 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
+
+            <FormField
+              control={form.control}
+              name="importantNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
           </div>
           {/* //add formfield for paymentPolicy */}
           <div className="md:grid md:grid-cols-2 gap-8">

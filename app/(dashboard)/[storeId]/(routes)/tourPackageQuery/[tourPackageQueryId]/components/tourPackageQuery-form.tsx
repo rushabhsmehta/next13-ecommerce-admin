@@ -90,6 +90,7 @@ const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   customerName: z.string().optional(),
+  customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
@@ -109,6 +110,7 @@ const formSchema = z.object({
   //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
+  importantNotes: z.string(),
   paymentPolicy: z.string(),
   usefulTip: z.string(),
   cancellationPolicy: z.string(),
@@ -221,6 +223,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: ' ',
     customerName: ' ',
+    customerNumber: ' ',
     numDaysNight: ' ',
     period: ' ',
     transport: ' ',
@@ -240,6 +243,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
@@ -549,6 +553,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Customer Name</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Customer Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="customerNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Name</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Customer Number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1069,9 +1087,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             >
                               {itinerary.hotelId
                                 ? hotels.find(
-                                    (hotel) => hotel.id === itinerary.hotelId
-                                  )?.name
-                                : "Select a Hotel"}                
+                                  (hotel) => hotel.id === itinerary.hotelId
+                                )?.name
+                                : "Select a Hotel"}
                               <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
                           </FormControl>
@@ -1346,6 +1364,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Exclusions</FormLabel>
                   <FormControl>
                     <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+            <FormField
+              control={form.control}
+              name="importantNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

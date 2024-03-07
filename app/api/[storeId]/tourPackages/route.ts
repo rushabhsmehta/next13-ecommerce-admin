@@ -63,6 +63,7 @@ export async function POST(
         const {
             tourPackageName,
             customerName,
+            customerNumber,
             numDaysNight,
             locationId,
             period,
@@ -79,6 +80,7 @@ export async function POST(
             flightDetails,
             inclusions,
             exclusions,
+            importantNotes,
             paymentPolicy,
             usefulTip,
             cancellationPolicy,
@@ -135,6 +137,7 @@ export async function POST(
             data: {
                 tourPackageName,
                 customerName,
+                customerNumber,
                 numDaysNight,
                 locationId,
                 period,
@@ -151,6 +154,7 @@ export async function POST(
                 //  hotelDetails,
                 inclusions,
                 exclusions,
+                importantNotes,
                 paymentPolicy,
                 usefulTip,
                 cancellationPolicy,

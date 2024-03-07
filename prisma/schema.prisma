@@ -129,6 +129,7 @@ model TourPackageQuery {
   tourPackageQueryNumber    String?
   tourPackageQueryName      String?
   customerName              String?
+  customerNumber            String?
   numDaysNight              String?
   locationId                String
   period                    String?
@@ -144,11 +145,12 @@ model TourPackageQuery {
   totalPrice                String?
   inclusions                String? @db.Text
   exclusions                String? @db.Text
+  importantNotes            String? @db.Text
   paymentPolicy             String? @db.Text
   usefulTip                 String? @db.Text
   cancellationPolicy        String? @db.Text
   airlineCancellationPolicy String? @db.Text
-  termsconditions           String? @db.Text
+  termsconditions           String? @db.Text  
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
@@ -192,6 +194,7 @@ model TourPackage {
   storeId                  String
   tourPackageName           String?
   customerName              String?
+  customerNumber            String?
   numDaysNight              String?
   locationId                String
   period                    String?
@@ -207,6 +210,7 @@ model TourPackage {
   totalPrice                String?
   inclusions                String? @db.Text
   exclusions                String? @db.Text
+  importantNotes            String? @db.Text
   paymentPolicy             String? @db.Text
   usefulTip                 String? @db.Text
   cancellationPolicy        String? @db.Text

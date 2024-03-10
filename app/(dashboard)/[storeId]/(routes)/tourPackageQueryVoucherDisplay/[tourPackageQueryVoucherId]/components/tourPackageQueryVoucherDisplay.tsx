@@ -114,7 +114,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
 
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
-          <CardDescription>
+          <CardDescription className='font-bold text-black'>
             Customer: {initialData.customerName} | {initialData.customerNumber} |
             Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>

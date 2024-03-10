@@ -284,6 +284,8 @@ export async function PATCH(
       }
     }
 
+    console.log('tourPackageUpdateData:', tourPackageUpdateData);
+
     await prismadb.tourPackageQuery.update({
       where: { id: params.tourPackageQueryId },
       data: tourPackageUpdateData

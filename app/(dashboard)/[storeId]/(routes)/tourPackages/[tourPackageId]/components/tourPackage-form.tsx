@@ -48,7 +48,7 @@ const itinerarySchema = z.object({
   days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
-  hotelId: z.string(), // Array of hotel IDs
+  hotelId: z.string().optional(), // Array of hotel IDs
   numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
@@ -161,6 +161,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
+      customerNumber : data.customerNumber ?? '',
+      price : data.price ?? '',
+      importantNotes : data.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -270,7 +273,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const onSubmit = async (data: TourPackageFormValues) => {
 
-    const formattedData = {
+    console.log("Data Being Submitted is : ", data)
+   const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
@@ -289,7 +293,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       }))
     };
 
-    console.log("Data being Submitted is : ", formattedData)
 
 
     try {
@@ -314,7 +317,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       toast.error('Something went wrong.');
     } finally {
       setLoading(false);
-    }
+    } 
   };
 
   const onDelete = async () => {

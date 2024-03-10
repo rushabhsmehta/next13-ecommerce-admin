@@ -153,7 +153,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const description = initialData ? 'Edit a Tour Package .' : 'Add a new Tour Package ';
   const toastMessage = initialData ? 'Tour Package  updated.' : 'Tour Package  created.';
   const action = initialData ? 'Save changes' : 'Create';
-  console.log("Initial Data : ", initialData)
+  //console.log("Initial Data : ", initialData)
 
   const transformInitialData = (data: any) => {
     return {
@@ -273,7 +273,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const onSubmit = async (data: TourPackageFormValues) => {
 
-    console.log("Data Being Submitted is : ", data)
+   // console.log("Data Being Submitted is : ", data)
    const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
@@ -300,7 +300,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       if (initialData) {
         formattedData.itineraries.forEach((itinerary, index) => {
           itinerary.activities.forEach(activity => {
-            console.log("Activity Data Being Submitted is :", activity);
+        //    console.log("Activity Data Being Submitted is :", activity);
           }
           )
         })

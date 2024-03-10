@@ -88,7 +88,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
 
-      <Card className="break-inside-avoid">
+      <Card className="break-inside-avoid font-bold text-black">
         <CardHeader>
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>{initialData.tourPackageQueryNumber}</CardDescription>

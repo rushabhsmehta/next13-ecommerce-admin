@@ -6,8 +6,8 @@ import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, React
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Trash } from "lucide-react"
-import { Images } from "@prisma/client"
+import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
+import { Activity, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackage, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
@@ -29,44 +29,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
-
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 const activitySchema = z.object({
-  activityTitle: z.string(),
-  activityDescription: z.string(),
+  activityTitle: z.string().optional(),
+  activityDescription: z.string().optional(),
   activityImages: z.object({ url: z.string() }).array(),
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string(),
-  itineraryDescription: z.string(),
-  dayNumber: z.coerce.number(),
-  days: z.string(),
+  itineraryTitle: z.string().optional(),
+  itineraryDescription: z.string().optional(),
+  dayNumber: z.coerce.number().optional(),
+  days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  numberofRooms: z.string(),
-  roomCategory: z.string(),
+  numberofRooms: z.string().optional(),
+  roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
   // hotel : z.string(),
 });
 
 
+
 const flightDetailsSchema = z.object({
 
-  date: z.string(),
-  flightName: z.string(),
-  flightNumber: z.string(),
-  from: z.string(),
-  to: z.string(),
-  departureTime: z.string(),
-  arrivalTime: z.string(),
-  flightDuration: z.string(),
+  date: z.string().optional(),
+  flightName: z.string().optional(),
+  flightNumber: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  departureTime: z.string().optional(),
+  arrivalTime: z.string().optional(),
+  flightDuration: z.string().optional(),
 
-}); // Assuming an array of flight details
+});  // Assuming an array of flight details
 
 const formSchema = z.object({
   tourPackageName: z.string().optional(),
@@ -91,7 +94,7 @@ const formSchema = z.object({
   //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
-  importantNotes: z.string(),
+  importantNotes: z.string().optional(),
   paymentPolicy: z.string(),
   usefulTip: z.string(),
   cancellationPolicy: z.string(),
@@ -119,6 +122,13 @@ interface TourPackageFormProps {
   activitiesMaster: (ActivityMaster & {
     activityMasterImages: Images[];
   })[] | null;
+  itinerariesMaster: (ItineraryMaster & {
+    itineraryMasterImages: Images[];
+    activities: (Activity & {
+      activityImages: Images[];
+    })[] | null;
+
+  })[] | null;
 };
 
 export const TourPackageForm: React.FC<TourPackageFormProps> = ({
@@ -126,6 +136,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   locations,
   hotels,
   activitiesMaster,
+  itinerariesMaster,
+
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -141,7 +153,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const description = initialData ? 'Edit a Tour Package .' : 'Add a new Tour Package ';
   const toastMessage = initialData ? 'Tour Package  updated.' : 'Tour Package  created.';
   const action = initialData ? 'Save changes' : 'Create';
-  console.log("Initial Data : ", initialData?.itineraries)
+  console.log("Initial Data : ", initialData)
 
   const transformInitialData = (data: any) => {
     return {
@@ -186,24 +198,24 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
-    tourPackageName: '',
-    customerName: '',
-    customerNumber: '',
-    numDaysNight: '',
-    period: '',
-    transport: '',
-    numAdults: '',
-    numChild5to12: '',
-    numChild0to5: '',
-    price: '',
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
-    totalPrice: '',
-    assignedTo: '',
-    assignedToMobileNumber: '',
-    assignedToEmail: '',
+    tourPackageName: ' ',
+    customerName: ' ',
+    customerNumber: ' ',
+    numDaysNight: ' ',
+    period: ' ',
+    transport: ' ',
+    numAdults: ' ',
+    numChild5to12: ' ',
+    numChild0to5: ' ',
+    price: ' ',
+    pricePerAdult: ' ',
+    pricePerChildOrExtraBed: ' ',
+    pricePerChild5to12YearsNoBed: ' ',
+    pricePerChildwithSeatBelow5Years: ' ',
+    totalPrice: ' ',
+    assignedTo: ' ',
+    assignedToMobileNumber: ' ',
+    assignedToEmail: ' ',
     flightDetails: [],
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
@@ -213,7 +225,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
-    termsconditions: IMPORTANT_NOTES_DEFAULT,
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -258,9 +270,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const onSubmit = async (data: TourPackageFormValues) => {
 
-
-
-
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
@@ -280,6 +289,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       }))
     };
 
+    console.log("Data being Submitted is : ", formattedData)
 
 
     try {
@@ -680,14 +690,57 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             />
           </div>
 
+
           <FormField
             control={form.control}
             name="itineraries"
             render={({ field: { value = [], onChange } }) => (
               <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                 <FormLabel>Create Itineraries</FormLabel>
+
+
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-4 gap-8">
+
+                    <Select
+                      disabled={loading}
+                      onValueChange={(selectedItineraryMasterId) => {
+                        const selectedItineraryMaster = itinerariesMaster?.find(itineraryMaster => itineraryMaster.id === selectedItineraryMasterId);
+                        if (selectedItineraryMaster) {
+                          const updatedItineraries = [...form.getValues('itineraries')];
+                          updatedItineraries[index] = {
+                            ...updatedItineraries[index],
+                            itineraryTitle: selectedItineraryMaster.itineraryMasterTitle || '',
+                            itineraryDescription: selectedItineraryMaster.itineraryMasterDescription || '',
+                            //    hotelId : selectedItineraryMaster.hotelId || '',
+                            //     mealsIncluded: selectedItineraryMaster.mealsIncluded ? selectedItineraryMaster.mealsIncluded.split('-') : [],
+                            itineraryImages: selectedItineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
+                            activities: selectedItineraryMaster.activities?.map(activity => ({
+                              activityTitle: activity.activityTitle || '',
+                              activityDescription: activity.activityDescription || '',
+                              activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                              // Include other activity fields as necessary
+                            })) || [],
+
+                            // If itineraryMaster has images or any other properties you want to copy, do it here
+                          };
+                          form.setValue('itineraries', updatedItineraries);
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an Itinerary Master" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {itinerariesMaster?.map((itineraryMaster) => (
+                          <SelectItem key={itineraryMaster.id} value={itineraryMaster.id}>
+                            {itineraryMaster.itineraryMasterTitle}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormItem>
                       <FormLabel>Day {index + 1}</FormLabel>
                       <FormControl>
@@ -778,41 +831,67 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                       </FormControl>
                     </FormItem>
 
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Hotel</FormLabel>
-                      <Select
-                        disabled={loading}
-                        value={itinerary.hotelId}
-                        defaultValue={itinerary.hotelId}
-                        onValueChange={(selectedHotelId) => {
-                          const newItineraries = [...value];
-                          newItineraries[index] = {
-                            ...itinerary,
-                            hotelId: selectedHotelId
-                          };
-                          onChange(newItineraries); // Update the state with the new itineraries
-
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              defaultValue={itinerary.hotelId}
-                              placeholder="Select a Hotel"
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-[200px] justify-between",
+                                !itinerary.hotelId && "text-muted-foreground"
+                              )}
+                              disabled={loading}
+                            >
+                              {itinerary.hotelId
+                                ? hotels.find(
+                                  (hotel) => hotel.id === itinerary.hotelId
+                                )?.name
+                                : "Select a Hotel"}
+                              <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search hotel..."
+                              className="h-9"
                             />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
-                            <SelectItem key={hotel.id} value={hotel.id}>
-                              {hotel.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            <CommandEmpty>No hotel found.</CommandEmpty>
+                            <CommandGroup>
+                              {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
+                                <CommandItem
+                                  value={hotel.name}
+                                  key={hotel.id}
+                                  onSelect={() => {
+                                    const newItineraries = [...value];
+                                    newItineraries[index] = {
+                                      ...itinerary,
+                                      hotelId: hotel.id
+                                    };
+                                    onChange(newItineraries); // Update the state with the new itineraries
+                                  }}
+                                >
+                                  {hotel.name}
+                                  <CheckIcon
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      hotel.id === itinerary.hotelId
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
-
                     <FormItem>
                       <FormLabel>Number of Rooms</FormLabel>
                       <FormControl>
@@ -830,8 +909,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                       </FormControl>
                     </FormItem>
 
-
-
                     <FormItem>
                       <FormLabel>Room Category</FormLabel>
                       <FormControl>
@@ -848,6 +925,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                         />
                       </FormControl>
                     </FormItem>
+
 
                     <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                       <FormLabel>Meal Plan</FormLabel>
@@ -1018,7 +1096,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             )}
           />
 
-<div className="md:grid md:grid-cols-2 gap-8">
+          <div className="md:grid md:grid-cols-2 gap-8">
             {/* //add formfield for hotelDetails */}
 
 

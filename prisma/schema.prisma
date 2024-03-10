@@ -191,7 +191,7 @@ model FlightDetails {
 
 model TourPackage {
   id                        String      @id @default(uuid())
-  storeId                  String
+  storeId                   String
   tourPackageName           String?
   customerName              String?
   customerNumber            String?

@@ -11,6 +11,7 @@ import { ApiAlert } from "@/components/ui/api-alert";
 
 import { columns, ItineraryMasterColumn } from "./columns";
 import { ApiList } from "@/components/ui/api-list";
+import { DataTableMultiple } from "@/components/ui/data-tableMultiple";
 
 interface ItinerariesMasterClientProps {
   data: ItineraryMasterColumn[];
@@ -31,7 +32,7 @@ export const ItinerariesMasterClient: React.FC<ItinerariesMasterClientProps> = (
         </Button>
       </div>
       <Separator />
-      <DataTable searchKey="itineraryTitle" columns={columns} data={data} />
+      <DataTableMultiple searchKeys={["itineraryMasterTitle","locationLabel"]} columns={columns} data={data} />
       <Heading title="API" description="API Calls for Itineraries" />
       <Separator />
       <ApiList entityName="itineraries" entityIdName="itineraryMasterId" />

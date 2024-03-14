@@ -5,7 +5,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
 
 export type ItineraryColumn = {
-  id: string
+  id: string;
   itineraryTitle : string;
   locationLabel: string;
   createdAt: string;

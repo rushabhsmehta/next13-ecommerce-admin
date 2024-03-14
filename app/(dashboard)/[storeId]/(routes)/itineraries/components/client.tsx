@@ -2,15 +2,12 @@
 
 import { Plus } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { ApiAlert } from "@/components/ui/api-alert";
-
 import { columns, ItineraryColumn } from "./columns";
 import { ApiList } from "@/components/ui/api-list";
+import { DataTableMultiple } from "@/components/ui/data-tableMultiple";
 
 interface ItinerariesClientProps {
   data: ItineraryColumn[];
@@ -31,7 +28,7 @@ export const ItinerariesClient: React.FC<ItinerariesClientProps> = ({
         </Button>
       </div>
       <Separator />
-      <DataTable searchKey="itineraryTitle" columns={columns} data={data} />
+      <DataTableMultiple searchKeys={["itineraryTitle","location"]} columns={columns} data={data} />
       <Heading title="API" description="API Calls for Itineraries" />
       <Separator />
       <ApiList entityName="itineraries" entityIdName="itineraryId" />

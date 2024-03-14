@@ -941,7 +941,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-4 gap-8">
-
                     <Select
                       disabled={loading}
                       onValueChange={(selectedItineraryMasterId) => {
@@ -952,17 +951,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             ...updatedItineraries[index],
                             itineraryTitle: selectedItineraryMaster.itineraryMasterTitle || '',
                             itineraryDescription: selectedItineraryMaster.itineraryMasterDescription || '',
-                            //    hotelId : selectedItineraryMaster.hotelId || '',
-                            //     mealsIncluded: selectedItineraryMaster.mealsIncluded ? selectedItineraryMaster.mealsIncluded.split('-') : [],
                             itineraryImages: selectedItineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
                             activities: selectedItineraryMaster.activities?.map(activity => ({
                               activityTitle: activity.activityTitle || '',
                               activityDescription: activity.activityDescription || '',
                               activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
-                              // Include other activity fields as necessary
                             })) || [],
-
-                            // If itineraryMaster has images or any other properties you want to copy, do it here
                           };
                           form.setValue('itineraries', updatedItineraries);
                         }
@@ -974,11 +968,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {itinerariesMaster?.map((itineraryMaster) => (
-                          <SelectItem key={itineraryMaster.id} value={itineraryMaster.id}>
-                            {itineraryMaster.itineraryMasterTitle}
-                          </SelectItem>
-                        ))}
+                        {itinerariesMaster?.map((itineraryMaster) => {
+                          if (itineraryMaster.locationId === itinerary.locationId) {
+                            return (
+                              <SelectItem key={itineraryMaster.id} value={itineraryMaster.id}>
+                                {itineraryMaster.itineraryMasterTitle}
+                              </SelectItem>
+                            );
+                          }
+                          return null;
+                        })}
                       </SelectContent>
                     </Select>
                     <FormItem>

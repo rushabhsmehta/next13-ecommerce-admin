@@ -140,6 +140,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               )}
             </div>
             <div>
+              {initialData.pickup_location !== ' ' && (
+                <div className="font-semibold">Pickup  : {initialData.pickup_location}</div>
+              )}
+            </div>
+            <div>
+              {initialData.drop_location !== ' ' && (
+                <div className="font-semibold">Drop  : {initialData.drop_location}</div>
+              )}
+            </div>
+            <div>
               {initialData.numAdults !== ' ' && (
                 <div className="font-semibold">Adults : {initialData.numAdults}</div>
               )}

@@ -77,6 +77,8 @@ const formSchema = z.object({
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
@@ -200,6 +202,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     numDaysNight: '',
     period: '',
     transport: '',
+    pickup_location: '',
+    drop_location: '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
@@ -548,6 +552,36 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="pickup_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pickup Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
+            <FormField
+              control={form.control}
+              name="drop_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Drop Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Drop Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
 
             {/* //add formfield for numAdults */}
             <FormField

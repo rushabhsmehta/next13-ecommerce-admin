@@ -94,6 +94,8 @@ const formSchema = z.object({
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
@@ -227,6 +229,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numDaysNight: ' ',
     period: ' ',
     transport: ' ',
+    pickup_location: '',
+    drop_location: '',
     numAdults: ' ',
     numChild5to12: ' ',
     numChild0to5: ' ',
@@ -639,6 +643,34 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Transport</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Transport" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pickup_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pickup Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="drop_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Drop Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Drop Location" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1380,7 +1412,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
-     
+
             <FormField
               control={form.control}
               name="paymentPolicy"
@@ -1407,7 +1439,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
-      
+
             <FormField
               control={form.control}
               name="cancellationPolicy"
@@ -1435,19 +1467,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )} />
-          {/* //add formfield for termsconditions */}
-          <FormField
-            control={form.control}
-            name="termsconditions"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Terms and Conditions</FormLabel>
-                <FormControl>
-                  <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
+            {/* //add formfield for termsconditions */}
+            <FormField
+              control={form.control}
+              name="termsconditions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Terms and Conditions</FormLabel>
+                  <FormControl>
+                    <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
           </div>
 
 

@@ -127,13 +127,15 @@ model TourPackageQuery {
   id                        String          @id @default(uuid())
   storeId                   String
   tourPackageQueryNumber    String?
-  tourPackageQueryName      String?
+  tourPackageQueryName      String? 
   customerName              String?
   customerNumber            String?
   numDaysNight              String?
   locationId                String
   period                    String?
   transport                 String?
+  pickup_location           String?
+  drop_location             String?
   numAdults                 String?
   numChild5to12             String?
   numChild0to5              String?
@@ -199,6 +201,8 @@ model TourPackage {
   locationId                String
   period                    String?
   transport                 String?
+  pickup_location           String?
+  drop_location             String?
   numAdults                 String?
   numChild5to12             String?
   numChild0to5              String?

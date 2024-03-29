@@ -78,6 +78,8 @@ const formSchema = z.object({
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
@@ -161,9 +163,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
-      customerNumber : data.customerNumber ?? '',
-      price : data.price ?? '',
-      importantNotes : data.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
+      customerNumber: data.customerNumber ?? '',
+      price: data.price ?? '',
+      importantNotes: data.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -207,6 +209,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     numDaysNight: ' ',
     period: ' ',
     transport: ' ',
+    pickup_location: '',
+    drop_location: '',
     numAdults: ' ',
     numChild5to12: ' ',
     numChild0to5: ' ',
@@ -273,8 +277,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const onSubmit = async (data: TourPackageFormValues) => {
 
-   // console.log("Data Being Submitted is : ", data)
-   const formattedData = {
+    // console.log("Data Being Submitted is : ", data)
+    const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
@@ -300,7 +304,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       if (initialData) {
         formattedData.itineraries.forEach((itinerary, index) => {
           itinerary.activities.forEach(activity => {
-        //    console.log("Activity Data Being Submitted is :", activity);
+            //    console.log("Activity Data Being Submitted is :", activity);
           }
           )
         })
@@ -317,7 +321,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       toast.error('Something went wrong.');
     } finally {
       setLoading(false);
-    } 
+    }
   };
 
   const onDelete = async () => {
@@ -458,6 +462,35 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="pickup_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pickup Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="drop_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Drop Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Drop Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/*     <FormField
               control={form.control}
               name="price"

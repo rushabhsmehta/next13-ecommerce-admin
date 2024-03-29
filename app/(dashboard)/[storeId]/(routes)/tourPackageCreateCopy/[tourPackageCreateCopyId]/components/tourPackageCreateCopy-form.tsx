@@ -47,7 +47,7 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string(), // Array of hotel IDs
-  numberofRooms : z.string().optional(),
+  numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
 
@@ -71,10 +71,12 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   tourPackageName: z.string().optional(),
   customerName: z.string().optional(),
-  customerNumber: z.string().optional(),  
+  customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
   transport: z.string().optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
@@ -168,7 +170,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
         hotelId: itinerary.hotelId ?? '',
-        numberofRooms : itinerary.numberofRooms ?? '',
+        numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
@@ -191,6 +193,8 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     numDaysNight: '',
     period: '',
     transport: '',
+    pickup_location: '',
+    drop_location: '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
@@ -411,6 +415,36 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="pickup_location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pickup Location</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+
+              <FormField
+                control={form.control}
+                name="drop_location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Drop Location</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Drop Location" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
 
 
 
@@ -792,7 +826,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           value={itinerary.numberofRooms}
                           onChange={(e) => {
                             const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, numberofRooms : e.target.value };
+                            newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
                             onChange(newItineraries);
                           }}
                         />
@@ -977,7 +1011,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms : '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: '' }])}
                 >
                   Add Itinerary
                 </Button>

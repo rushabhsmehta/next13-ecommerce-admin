@@ -159,6 +159,12 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               <div className="font-semibold">Transport  : {initialData.transport}</div>
             </div>
             <div>
+              <div className="font-semibold">Pickup  : {initialData.pickup_location}</div>
+            </div>
+            <div>
+              <div className="font-semibold">Drop  : {initialData.drop_location}</div>
+            </div>
+            <div>
               <div className="font-semibold">Adults : {initialData.numAdults}</div>
             </div>
             <div>

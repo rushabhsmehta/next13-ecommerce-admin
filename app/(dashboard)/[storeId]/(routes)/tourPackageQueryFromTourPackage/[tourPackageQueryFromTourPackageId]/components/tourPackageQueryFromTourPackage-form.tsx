@@ -72,10 +72,12 @@ const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   customerName: z.string().optional(),
-  customerNumber : z.string().optional(),
+  customerNumber: z.string().optional(),
   numDaysNight: z.string().min(1),
   period: z.string().optional(),
   transport: z.string().optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
@@ -199,6 +201,8 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     numDaysNight: '',
     period: '',
     transport: '',
+    pickup_location: '',
+    drop_location: '',
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
@@ -537,6 +541,34 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormLabel>Transport</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Transport" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pickup_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pickup Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="drop_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Drop Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Drop Location" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1161,7 +1193,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             )}
           />
 
-<div className="md:grid md:grid-cols-2 gap-8">
+          <div className="md:grid md:grid-cols-2 gap-8">
             {/* //add formfield for hotelDetails */}
 
 

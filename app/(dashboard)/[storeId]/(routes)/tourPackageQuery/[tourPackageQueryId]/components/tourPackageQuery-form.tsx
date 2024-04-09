@@ -973,45 +973,72 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                 {value.map((itinerary, index) => (
                   <div key={index} className="md:grid md:grid-cols-4 gap-8">
-                    <Select
-                      disabled={loading}
-                      onValueChange={(selectedItineraryMasterId) => {
-                        const selectedItineraryMaster = itinerariesMaster?.find(itineraryMaster => itineraryMaster.id === selectedItineraryMasterId);
-                        if (selectedItineraryMaster) {
-                          const updatedItineraries = [...form.getValues('itineraries')];
-                          updatedItineraries[index] = {
-                            ...updatedItineraries[index],
-                            itineraryTitle: selectedItineraryMaster.itineraryMasterTitle || '',
-                            itineraryDescription: selectedItineraryMaster.itineraryMasterDescription || '',
-                            itineraryImages: selectedItineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
-                            activities: selectedItineraryMaster.activities?.map(activity => ({
-                              activityTitle: activity.activityTitle || '',
-                              activityDescription: activity.activityDescription || '',
-                              activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
-                            })) || [],
-                          };
-                          form.setValue('itineraries', updatedItineraries);
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select an Itinerary Master" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {itinerariesMaster?.map((itineraryMaster) => {
-                          if (itineraryMaster.locationId === itinerary.locationId) {
-                            return (
-                              <SelectItem key={itineraryMaster.id} value={itineraryMaster.id}>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-[200px] justify-between",
+                              !itinerary.itineraryTitle && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {itinerary.itineraryTitle
+                              ? (itinerariesMaster && itinerariesMaster.find(
+                                (itineraryMaster) => itineraryMaster.itineraryMasterTitle === itinerary.itineraryTitle
+                              )?.itineraryMasterTitle)
+                              : "Select an Itinerary Master"}
+                            <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search itinerary master..."
+                            className="h-9"
+                          />
+                          <CommandEmpty>No itinerary master found.</CommandEmpty>
+                          <CommandGroup>
+                            {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
+                              <CommandItem
+                                value={itineraryMaster.itineraryMasterTitle ?? ''}
+                                key={itineraryMaster.id}
+                                onSelect={() => {
+                                  const updatedItineraries = [...value];
+                                  updatedItineraries[index] = {
+                                    ...updatedItineraries[index],
+                                    itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
+                                    itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                    itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
+                                    activities: itineraryMaster.activities?.map(activity => ({
+                                      activityTitle: activity.activityTitle || '',
+                                      activityDescription: activity.activityDescription || '',
+                                      activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                                    })) || [],
+                                  };
+                                  onChange(updatedItineraries); // Update the state with the new itineraries
+                                }}
+                              >
                                 {itineraryMaster.itineraryMasterTitle}
-                              </SelectItem>
-                            );
-                          }
-                          return null;
-                        })}
-                      </SelectContent>
-                    </Select>
+                                <CheckIcon
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    itineraryMaster.locationId === itinerary.locationId
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
                     <FormItem>
                       <FormLabel>Day {index + 1}</FormLabel>
                       <FormControl>
@@ -1357,7 +1384,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => onChange([...value, { dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: '' }])}
+                  onClick={() => onChange([...value, {
+                    dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: ''
+                  }])}
                 >
                   Add Itinerary
                 </Button>

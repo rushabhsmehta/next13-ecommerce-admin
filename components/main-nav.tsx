@@ -53,18 +53,25 @@ export function MainNav({
       label: 'Tour Package Query',
       active: pathname === `/${params.storeId}/tourPackageQuery`,
     },
+
+    {
+      href: `/${params.storeId}/reports`,
+      label: 'Reports',
+      active: pathname === `/${params.storeId}/reports`,
+    },
+    
     /* {
       href: `/${params.storeId}/itineraries`,
       label: 'Itineraries',
       active: pathname === `/${params.storeId}/itineraries`,
-    }, */
+    },
 
     {
       href: `/${params.storeId}/categories`,
       label: 'Categories',
       active: pathname === `/${params.storeId}/categories`,
     },
-    /*  {
+     {
       href: `/${params.storeId}/sizes`,
       label: 'Sizes',
       active: pathname === `/${params.storeId}/sizes`,

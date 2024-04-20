@@ -13,7 +13,8 @@ const tourPackageQueryPage = async ({
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
     where: {
-      storeId: params.storeId
+      storeId: params.storeId,
+      isFeatured: true,
     },
     include: {
       images: true,

@@ -12,6 +12,7 @@ export type TourPackageQueryColumn = {
   assignedTo : string;
   customerNumber : string;
   location : string;
+  period : string;
   //hotel : string;
   createdAt: string;
   isFeatured: boolean;
@@ -53,6 +54,11 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
     cell: (info) => info.getValue() ? "Yes" : "No",
     enableSorting: true, // Ensure that sorting is enabled for this column  
   }, 
+
+  {
+    accessorKey: "period",
+    header: "Period",
+  },
   
   {
     accessorKey: "createdAt",

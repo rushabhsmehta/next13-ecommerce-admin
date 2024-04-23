@@ -48,6 +48,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { cn } from "@/lib/utils"
+import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 
 
 const activitySchema = z.object({
@@ -619,7 +620,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
             {/* // add formfield for period */}
 
-            <FormField
+            {/*  <FormField
               control={form.control}
               name="period"
               render={({ field }) => (
@@ -627,6 +628,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Period</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Period" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            /> */}
+
+            <FormField
+              control={form.control}
+              name="period"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Period</FormLabel>
+                  <FormControl>
+                    <DatePickerWithRange control={form.control} name="period" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

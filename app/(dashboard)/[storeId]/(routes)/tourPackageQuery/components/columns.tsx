@@ -4,6 +4,8 @@ import { ColumnDef } from "@tanstack/react-table"
 
 import { CellAction } from "./cell-action"
 
+import { format, parseISO } from 'date-fns';
+
 export type TourPackageQueryColumn = {
   id: string;
   tourPackageQueryNumber : string;
@@ -55,11 +57,22 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
     enableSorting: true, // Ensure that sorting is enabled for this column  
   }, 
 
-  {
-    accessorKey: "period",
-    header: "Period",
+
+{
+  accessorKey: "period",
+  header: "Period",
+  cell: (info) => {
+    try {
+      const { from, to } = JSON.parse(info.getValue() as string);
+      const fromDate = format(parseISO(from), 'dd-MM-yyyy');
+      const toDate = format(parseISO(to), 'dd-MM-yyyy');
+      return `${fromDate} To ${toDate}`;
+    } catch (error) {
+      console.error("Error parsing period:", error);
+      return info.getValue(); // Return the original value if parsing fails
+    }
   },
-  
+},
   {
     accessorKey: "createdAt",
     header: "Date",

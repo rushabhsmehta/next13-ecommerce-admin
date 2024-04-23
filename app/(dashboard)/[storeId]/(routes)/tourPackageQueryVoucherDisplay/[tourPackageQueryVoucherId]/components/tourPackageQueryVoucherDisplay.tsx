@@ -56,7 +56,7 @@ const companyInfo: CompanyInfo = {
     address: 'Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007',
     phone: '+91-99040 35277',
     email: 'kobawala.holiday@gmail.com', // Add the missing fields
-    website : 'http://kobawalaholidays.com'
+    website: 'http://kobawalaholidays.com'
   },
   MT: {
     logo: '/mahavirtravels.png',
@@ -118,12 +118,13 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             Customer: {initialData.customerName} | {initialData.customerNumber} |
             Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
-          <CardDescription className='font-bold text-black'>            
+          <CardDescription className='font-bold text-black'>
             Voucher Number : {initialData.tourPackageQueryNumber}
           </CardDescription>
         </CardHeader>
 
-        {/*  <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+
+        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
               <Image
@@ -136,7 +137,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               />
             </div>
           ))}
-        </CardContent> */}
+        </CardContent>
       </Card>
 
       {/* Tour Package Details */}
@@ -187,7 +188,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
               </div>
             )}
-            {initialData.pricePerChildOrExtraBed !=='' && (
+            {initialData.pricePerChildOrExtraBed !== '' && (
               <div>
                 <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
               </div>

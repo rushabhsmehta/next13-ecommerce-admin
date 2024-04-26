@@ -5,6 +5,8 @@ import { PlaneTakeoffIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
+import { format, parseISO } from 'date-fns';
+
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
@@ -129,9 +131,29 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
               )}
             </div>
+
             <div>
               {initialData.period !== '' && (
-                <div className="font-semibold">Period : {initialData.period}</div>
+                <div className="font-semibold">
+                  Period : {
+                    (() => {
+                      try {
+                        const periodData = initialData.period ? JSON.parse(initialData.period) : null;
+                        if (periodData) {
+                          const { from, to } = periodData;
+                          const fromDate = format(parseISO(from), 'dd-MM-yyyy');
+                          const toDate = format(parseISO(to), 'dd-MM-yyyy');
+                          return `${fromDate} To ${toDate}`;
+                        } else {
+                          return initialData.period;
+                        }
+                      } catch (error) {
+                        console.error("Error parsing period:", error);
+                        return initialData.period; // Return the original value if parsing fails
+                      }
+                    })()
+                  }
+                </div>
               )}
             </div>
             <div>
@@ -403,7 +425,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
 
-        
+
 
         {/* Payment Policy Card */}
         <Card className="break-inside-avoid">

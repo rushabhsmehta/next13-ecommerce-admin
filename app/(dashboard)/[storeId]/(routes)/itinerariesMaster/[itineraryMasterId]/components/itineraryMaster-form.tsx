@@ -48,6 +48,7 @@ import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { Value } from "@radix-ui/react-select"
 
 const activitySchema = z.object({
   activityTitle: z.string().min(2),
@@ -295,6 +296,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                               key={location.id}
                               onSelect={() => {
                                 field.onChange(location.id || '');
+                                
                               }}
                             >
                               {location.label}
@@ -350,22 +352,66 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               control={form.control}
               name="hotelId"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hotel </FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select Hotel" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {hotels.map((hotel) => (
-                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                <>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Hotel</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-[200px] justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {field.value
+                              ? hotels.find(
+                                (hotel) => hotel.id === field.value
+                              )?.name
+                              : "Select a Hotel"}
+                            <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search hotel..."
+                            className="h-9"
+                          />
+                          <CommandEmpty>No hotel found.</CommandEmpty>
+                          <CommandGroup>
+                            {hotels.filter(hotel => hotel.locationId === initialData?.locationId).map((hotel) => (
+                              <CommandItem
+                                value={hotel.name}
+                                key={hotel.id}
+                                onSelect={() => {
+                                  field.onChange(hotel.id);
+                                }}
+                              >
+                                {hotel.name}
+                                <CheckIcon
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    hotel.id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+
+                </>
               )}
             />
 
@@ -376,14 +422,16 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 <FormItem>
                   <FormLabel>Number of Rooms</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Number of Rooms" {...field} />
+                    <Input
+                      placeholder="Number of Rooms"
+                      disabled={loading}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-
 
             <FormField
               control={form.control}
@@ -392,14 +440,16 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 <FormItem>
                   <FormLabel>Room Category</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Room Category" {...field} />
+                    <Input
+                      placeholder="Room Category"
+                      disabled={loading}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-
 
             <FormField
               control={form.control}
@@ -429,97 +479,10 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               )}
             />
 
-          </div>
-
-          <FormField
-            control={form.control}
-            name="activities"
-            render={({ field: { value = [], onChange } }) => (
-              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                <FormLabel> Activities </FormLabel>
-                {value.map((activity, index) => (
-                  <div key={index} className="md:grid md:grid-cols-3 gap-8">
-                    <FormItem>
-                      <FormLabel>Activity {index + 1}</FormLabel>
-                      <FormControl>
-                        <Textarea rows={3}
-                          placeholder="Title"
-                          disabled={loading}
-
-                          value={activity.activityTitle}
-                          onChange={(e) => {
-                            const newActivities = [...value];
-                            newActivities[index] = { ...activity, activityTitle: e.target.value };
-                            onChange(newActivities);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                    <FormItem>
-                      <FormControl>
-                        <Textarea rows={10}
-                          placeholder="Description"
-                          disabled={loading}
-
-                          value={activity.activityDescription}
-                          onChange={(e) => {
-                            const newActivities = [...value];
-                            newActivities[index] = { ...activity, activityDescription: e.target.value };
-                            onChange(newActivities);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                    <FormItem>
-                      <ImageUpload
-                        value={activity.activityImages?.map((image) => image.url) || []}
-                        disabled={loading}
-                        onChange={(newActivityUrl) => {
-                          const updatedImages = [...activity.activityImages, { url: newActivityUrl }];
-                          // Update the itinerary with the new images array
-                          const updatedActivities = [...value];
-                          updatedActivities[index] = { ...activity, activityImages: updatedImages };
-                          onChange(updatedActivities);
-                        }}
-                        onRemove={(activityURLToRemove) => {
-                          // Filter out the image to remove
-                          const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
-                          // Update the itinerary with the new images array
-                          const updatedActivities = [...value];
-                          updatedActivities[index] = { ...activity, activityImages: updatedImages };
-                          onChange(updatedActivities);
-                        }}
-                      />
-                    </FormItem>
-
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        const newActivities = value.filter((_, i) => i !== index);
-                        onChange(newActivities);
-                      }}
-                    >
-                      Remove Activity
-
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '', itineraryMasterId: '', activityImages: [] }])}
-                >
-                  Add Activity
-                </Button>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button disabled={loading} className="ml-auto" type="submit">
-            {action}
-          </Button>
+         </div>
+            <Button disabled={loading} className="ml-auto" type="submit">
+              {action}
+            </Button>
 
         </form>
       </Form >

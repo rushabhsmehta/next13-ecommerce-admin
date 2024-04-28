@@ -6,9 +6,26 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Trash } from "lucide-react"
 import { Location, Hotel, ItineraryMaster, Activity } from "@prisma/client"
 import { Images } from "@prisma/client"
+import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 import { useParams, useRouter } from "next/navigation"
 
@@ -30,6 +47,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
 const activitySchema = z.object({
   activityTitle: z.string().min(2),
@@ -45,7 +63,7 @@ const formSchema = z.object({
   itineraryMasterImages: z.array(z.object({ url: z.string() })),
   locationId: z.string().min(1),
   hotelId: z.string().optional(),
-  numberofRooms : z.string().optional(),
+  numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   tourPackageId: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
@@ -239,25 +257,66 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               name="locationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location </FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Location</FormLabel>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[200px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={loading}
+                        >
+                          {field.value
+                            ? (locations && locations.find(
+                              (location) => location.id === field.value
+                            )?.label)
+                            : "Select a Location"}
+                          <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search location..."
+                          className="h-9"
+                        />
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations && locations.map((location) => (
+                            <CommandItem
+                              value={location.label ?? ''}
+                              key={location.id}
+                              onSelect={() => {
+                                field.onChange(location.id || '');
+                              }}
+                            >
+                              {location.label}
+                              <CheckIcon
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  location.id === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {/* ... */}
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-
 
             <FormField
               control={form.control}
@@ -310,7 +369,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               )}
             />
 
-<FormField
+            <FormField
               control={form.control}
               name="numberofRooms"
               render={({ field }) => (
@@ -323,8 +382,8 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 </FormItem>
               )}
             />
-           
-         
+
+
 
             <FormField
               control={form.control}
@@ -339,8 +398,8 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 </FormItem>
               )}
             />
-           
-         
+
+
 
             <FormField
               control={form.control}
@@ -463,7 +522,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
           </Button>
 
         </form>
-      </Form>
+      </Form >
     </>
   );
 };

@@ -4,9 +4,11 @@ import { useState } from "react"
 import {
   ColumnDef,
   ColumnFiltersState,
+  SortingState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getSortedRowModel,
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table"
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import React from "react"
 
 interface DataTableMultipleProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -34,6 +37,8 @@ export function DataTableMultiple<TData, TValue>({
   searchKeys,
 }: DataTableMultipleProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = React.useState<SortingState>([])
+
 
   const table = useReactTable({
     data,
@@ -41,8 +46,11 @@ export function DataTableMultiple<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
     state: {
       globalFilter,
+      sorting,
     },
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, columnIds, filterValue) => {

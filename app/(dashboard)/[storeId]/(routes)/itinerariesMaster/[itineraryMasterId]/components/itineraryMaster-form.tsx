@@ -2,11 +2,11 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Location, Hotel, ItineraryMaster, Activity } from "@prisma/client"
+import { Location, Hotel, ItineraryMaster, Activity, ActivityMaster } from "@prisma/client"
 import { Images } from "@prisma/client"
 import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
 import {
@@ -86,11 +86,15 @@ interface ItineraryMasterFormProps {
   // images: Images[];
   locations: Location[];
   hotels: Hotel[];
+  activitiesMaster: (ActivityMaster & {
+    activityMasterImages: Images[];
+  })[] | null;
 };
 
 export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
   initialData,
   locations,
+  activitiesMaster,
   hotels,
 }) => {
   const params = useParams();
@@ -296,7 +300,7 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                               key={location.id}
                               onSelect={() => {
                                 field.onChange(location.id || '');
-                                
+
                               }}
                             >
                               {location.label}
@@ -478,14 +482,133 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
                 </FormItem>
               )}
             />
+          </div>
 
-         </div>
-            <Button disabled={loading} className="ml-auto" type="submit">
-              {action}
-            </Button>
+          <FormField
+            control={form.control}
+            name="activities"
+            render={({ field: { value = [], onChange } }) => (
+              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                <FormLabel>Create Activities </FormLabel>
+                {value.map((activity, index) => (
+                  <><div key={index} className="flex items-center gap-4">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-[200px] justify-between",
+                              !activity.activityTitle && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {activity.activityTitle || "Select an Activity"}
+                            <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search activity..."
+                            className="h-9" />
+                          <CommandEmpty>No activity found.</CommandEmpty>
+                          <CommandGroup>
+                            {activitiesMaster?.map((activityMaster) => (
+                              <CommandItem 
+                              value={activityMaster.activityMasterTitle ?? ''}
+                              key={activityMaster.id}
+                                onSelect={() => {
+                                    
+                                  const updatedActivities = [...value]
+                                  updatedActivities[index].activityTitle = activityMaster.activityMasterTitle ?? ''
+                                  updatedActivities[index].activityDescription = activityMaster.activityMasterDescription ?? ''
+                                  updatedActivities[index].activityImages = activityMaster.activityMasterImages.map((image) => ({ url: image.url }))
+                                  onChange(updatedActivities)
+                                }
+                                }
+                                >
+                                {activityMaster.activityMasterTitle}
+                                <CheckIcon
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    activityMaster.locationId === activity.locationId
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )} />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </div>
 
+                    <FormItem>
+                      <Input
+                        placeholder="Activity Title"
+                        value={activity.activityTitle}
+                        onChange={(e) => {
+                          const updatedActivities = [...value]
+                          updatedActivities[index].activityTitle = e.target.value
+                          onChange(updatedActivities)
+                        }} />
+                      <Textarea
+                        rows={3}
+                        placeholder="Activity Description"
+                        value={activity.activityDescription}
+                        onChange={(e) => {
+                          const updatedActivities = [...value]
+                          updatedActivities[index].activityDescription = e.target.value
+                          onChange(updatedActivities)
+                        }} />
+                      <ImageUpload
+                        value={activity.activityImages.map((image) => image.url)}
+                        onChange={(url) => {
+                          const updatedActivities = [...value]
+                          updatedActivities[index].activityImages.push({ url })
+                          onChange(updatedActivities)
+                        }}
+                        onRemove={(url) => {
+                          const updatedActivities = [...value]
+                          updatedActivities[index].activityImages = updatedActivities[index].activityImages.filter((current) => current.url !== url)
+                          onChange(updatedActivities)
+                        }} />
+                      <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                          const updatedActivities = [...value];
+                          updatedActivities.splice(index, 1);
+                          onChange(updatedActivities);
+                        }}
+                      >
+                          Remove Activity
+                      </Button>
+
+                    </FormItem>
+                  </>)
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => onChange([...value, { activityTitle: '', activityDescription: '', activityImages: [] }])}
+                >
+                  Add Activity
+                </Button>
+              </FormItem>
+            )}
+          />
+          <Button disabled={loading} className="ml-auto" type="submit">
+            {action}
+          </Button>
         </form>
-      </Form >
+      </Form>
     </>
   );
-};
+}
+

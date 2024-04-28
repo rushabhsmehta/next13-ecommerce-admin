@@ -25,6 +25,16 @@ const ItineraryMasterPage = async ({
     }
   });
 
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    where: {
+      storeId: params.storeId,
+    },
+    include: {
+      activityMasterImages: true,
+    },
+  }
+  );
+
   const locations = await prismadb.location.findMany({
     where: {
       storeId: params.storeId
@@ -44,7 +54,9 @@ const ItineraryMasterPage = async ({
         <ItineraryMasterForm
           hotels={hotels}
           locations={locations}
-          initialData={itineraryMaster} />
+          activitiesMaster={activitiesMaster}
+          initialData={itineraryMaster}
+           />
       </div>
     </div></>
   );

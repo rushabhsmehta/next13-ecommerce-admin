@@ -17,7 +17,8 @@ export type TourPackageQueryColumn = {
   assignedTo: string;
   customerNumber: string;
   location: string;
-  period: string;
+ // period: string;
+  tourStartsFrom: string;
   //hotel : string;
   createdAt: string;
   isFeatured: boolean;
@@ -53,16 +54,15 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
   //   accessorKey: "hotel",
   //   header: "Hotel",
   // },
-  {
-    accessorKey: "isFeatured",
-    header: "Confirmed",
-    cell: (info) => info.getValue() ? "Yes" : "No",
-    enableSorting: true, // Ensure that sorting is enabled for this column  
-  },
+  // {
+  //   accessorKey: "isFeatured",
+  //   header: "Confirmed",
+  //   cell: (info) => info.getValue() ? "Yes" : "No",
+  //   enableSorting: true, // Ensure that sorting is enabled for this column  
+  // },
 
-
   {
-    accessorKey: "period",
+    accessorKey: "tourStartsFrom",
     header: ({ column }) => {
       return (
         <Button
@@ -74,23 +74,13 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
         </Button>
       )
     },
-    cell: (info) => {
-      try {
-        const { from, to } = JSON.parse(info.getValue() as string);
-        const fromDate = format(parseISO(from), 'dd-MM-yyyy');
-        const toDate = format(parseISO(to), 'dd-MM-yyyy');
-        return `${fromDate} To ${toDate}`;
-      } catch (error) {
-        console.error("Error parsing period:", error);
-        return info.getValue(); // Return the original value if parsing fails
-      }
-    },
   },
-  
-  {
+
+  /* {
     accessorKey: "createdAt",
     header: "Date",
-  },
+  }, */
+
   {
     id: "actions",
     cell: ({ row }) => <CellAction data={row.original} />

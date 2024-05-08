@@ -49,6 +49,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "@radix-ui/react-icons"
+import { format } from "date-fns"
 
 
 const activitySchema = z.object({
@@ -94,6 +97,8 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
+  tourStartsFrom: z.date().optional(),
+  tourEndsOn: z.date().optional(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
@@ -225,25 +230,27 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: ' ',
-    customerName: ' ',
-    customerNumber: ' ',
-    numDaysNight: ' ',
-    period: ' ',
-    transport: ' ',
+    customerName: '',
+    customerNumber: '',
+    numDaysNight: '',
+    period: '',
+    tourStartsFrom: '',
+    tourEndsOn: '',
+    transport: '',
     pickup_location: '',
     drop_location: '',
-    numAdults: ' ',
-    numChild5to12: ' ',
-    numChild0to5: ' ',
-    price: ' ',
-    pricePerAdult: ' ',
-    pricePerChildOrExtraBed: ' ',
-    pricePerChild5to12YearsNoBed: ' ',
-    pricePerChildwithSeatBelow5Years: ' ',
-    totalPrice: ' ',
-    assignedTo: ' ',
-    assignedToMobileNumber: ' ',
-    assignedToEmail: ' ',
+    numAdults: '',
+    numChild5to12: '',
+    numChild0to5: '',
+    price: '',
+    pricePerAdult: '',
+    pricePerChildOrExtraBed: '',
+    pricePerChild5to12YearsNoBed: '',
+    pricePerChildwithSeatBelow5Years: '',
+    totalPrice: '',
+    assignedTo: '',
+    assignedToMobileNumber: '',
+    assignedToEmail: '',
     flightDetails: [],
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
@@ -578,7 +585,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
           </div>
-          <div className="grid grid-cols-3 gap-8">
+          <div className="grid grid-cols-4 gap-8">
 
             <FormField
               control={form.control}
@@ -633,6 +640,90 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             /> */}
+
+            <FormField
+              control={form.control}
+              name="tourStartsFrom"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Tour Starts From</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tourEndsOn"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Tour Ends On</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
 
             <FormField
               control={form.control}

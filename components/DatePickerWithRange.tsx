@@ -54,19 +54,19 @@ export function DatePickerWithRange({ control, name }: { control: any, name: any
                   )}
                 </Button>
               </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-  <Calendar
-    initialFocus
-    mode="range"
-    defaultMonth={date?.from ? new Date(date.from) : undefined}
-    selected={date ? {from: new Date(date.from), to: date.to ? new Date(date.to) : undefined} : undefined}
-    onSelect={(value) => {
-      // Convert the DateRange object to a string when setting the field value
-      field.onChange(JSON.stringify(value));
-    }}
-    numberOfMonths={2}
-  />
-</PopoverContent>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from ? new Date(date.from) : undefined}
+                  selected={date ? { from: new Date(date.from), to: date.to ? new Date(date.to) : undefined } : undefined}
+                  onSelect={(value) => {
+                    // Convert the DateRange object to a string when setting the field value
+                    field.onChange(JSON.stringify(value));
+                  }}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
             </Popover>
           </div>
         );

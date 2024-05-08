@@ -133,6 +133,8 @@ model TourPackageQuery {
   numDaysNight              String?
   locationId                String
   period                    String?
+  tourStartsFrom            DateTime?
+  tourEndsOn                DateTime?
   transport                 String?
   pickup_location           String?
   drop_location             String?

@@ -53,9 +53,10 @@ const tourPackageQueryPage = async ({
     customerNumber : item.customerNumber ?? '',
     location: item.location.label,
     //hotel: item.hotel.name,
+    period: item.period ?? '',
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
-
+  
   return (
     <>
       <Navbar />

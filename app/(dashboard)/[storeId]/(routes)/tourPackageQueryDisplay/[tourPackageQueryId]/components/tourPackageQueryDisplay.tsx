@@ -196,30 +196,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            {initialData.pricePerAdult !== '' && (
-              <div>
-                <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
-              </div>
-            )}
-            {initialData.pricePerChildOrExtraBed !== '' && (
-              <div>
-                <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
-              </div>
-            )}
-            {initialData.pricePerChild5to12YearsNoBed !== '' && (
-              <div>
-                <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
-              </div>
-            )}
-            {initialData.pricePerChildwithSeatBelow5Years !== '' && (
-              <div>
-                <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
-              </div>
-            )}
-            {initialData.totalPrice !== '' && (
-              <div>
-                <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
-              </div>
+            {selectedOption !== 'Supplier' && (
+              <>
+                {initialData.pricePerAdult !== '' && (
+                  <div>
+                    <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
+                  </div>
+                )}
+                {initialData.pricePerChildOrExtraBed !== '' && (
+                  <div>
+                    <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
+                  </div>
+                )}
+                {initialData.pricePerChild5to12YearsNoBed !== '' && (
+                  <div>
+                    <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
+                  </div>
+                )}
+                {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+                  <div>
+                    <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
+                  </div>
+                )}
+                {initialData.totalPrice !== '' && (
+                  <div>
+                    <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </CardContent>

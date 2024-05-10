@@ -1,4 +1,4 @@
-import { format, isValid } from "date-fns";
+import { format, isValid, startOfMonth } from "date-fns";
 
 import prismadb from "@/lib/prismadb";
 import { formatter } from "@/lib/utils";
@@ -15,6 +15,9 @@ const tourPackageQueryPage = async ({
     where: {
       storeId: params.storeId,
       isFeatured: true,
+      tourStartsFrom: {
+        gte: startOfMonth(new Date()), // only include tours starting from the current month onwards
+      },
     },
     include: {
       images: true,
@@ -38,7 +41,7 @@ const tourPackageQueryPage = async ({
       }
     },
     orderBy: {
-      tourStartsFrom: 'desc'
+      tourStartsFrom: 'asc'
     }
   });
 

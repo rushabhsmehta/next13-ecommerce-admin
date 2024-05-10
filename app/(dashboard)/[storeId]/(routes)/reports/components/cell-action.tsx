@@ -152,6 +152,9 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('MT')}>
                   MT
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('Supplier')}>
+                  Supplier
+                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>

@@ -154,31 +154,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <div>
               <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
             </div>
-            <div>
-              {initialData.period !== '' && (
-                <div className="font-semibold">
-                  Period : {
-                    (() => {
-                      try {
-                        const periodData = initialData.period ? JSON.parse(initialData.period) : null;
-                        if (periodData) {
-                          const { from, to } = periodData;
-                          const fromDate = format(parseISO(from), 'dd-MM-yyyy');
-                          const toDate = format(parseISO(to), 'dd-MM-yyyy');
-                          return `${fromDate} To ${toDate}`;
-                        } else {
-                          return initialData.period;
-                        }
-                      } catch (error) {
-                        console.error("Error parsing period:", error);
-                        return initialData.period; // Return the original value if parsing fails
-                      }
-                    })()
-                  }
-                </div>
+            
+            <div className="flex">
+              {initialData.tourStartsFrom && (
+                <div className="font-semibold">Period : {format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</div>
+              )}
+              {initialData.tourEndsOn && (
+                <div className="font-semibold ml-2">To {format(initialData.tourEndsOn, 'dd-MM-yyyy')}</div>
               )}
             </div>
-         
+
             <div>
               <div className="font-semibold">Transport  : {initialData.transport}</div>
             </div>

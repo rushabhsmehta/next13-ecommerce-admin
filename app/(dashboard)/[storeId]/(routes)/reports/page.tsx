@@ -56,7 +56,7 @@ const tourPackageQueryPage = async ({
     customerNumber: item.customerNumber ?? '',
     location: item.location.label,
     tourStartsFrom: item.tourStartsFrom ? format(item.tourStartsFrom, 'dd-MM-yyyy') : '', 
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+   // createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 
   return (

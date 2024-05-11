@@ -20,7 +20,7 @@ export type TourPackageQueryColumn = {
  // period: string;
   tourStartsFrom: string;
   //hotel : string;
-  createdAt: string;
+ // createdAt: string;
   isFeatured: boolean;
   isArchived: boolean;
 }
@@ -69,7 +69,7 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Period
+          Tour Starts From
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )

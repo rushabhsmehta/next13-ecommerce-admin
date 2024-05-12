@@ -88,6 +88,7 @@ const formSchema = z.object({
   pricePerChild5to12YearsNoBed: z.string().optional(),
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
+  remarks : z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),2
   // hotelId: z.string().min(1),
@@ -213,6 +214,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
+    remarks : '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -712,6 +714,22 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </FormItem>
               )}
             />
+
+            
+          <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remarks</FormLabel>
+                  <FormControl>
+                    <Textarea rows = {5} disabled={loading} placeholder="" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
           </div>
 
 

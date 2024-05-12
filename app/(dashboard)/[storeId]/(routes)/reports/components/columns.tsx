@@ -63,17 +63,8 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
 
   {
     accessorKey: "tourStartsFrom",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Tour Starts From
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
+    header: "Tour Starts From",     
+    
   },
 
   /* {

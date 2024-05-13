@@ -405,6 +405,18 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
 
+        {/* Remarks Card */}
+        {initialData.remarks && (
+          <Card className="break-inside-avoid">
+            <CardHeader>
+              <CardTitle>Remarks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="whitespace-pre-wrap">{initialData.remarks}</pre>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Important Notes</CardTitle>
@@ -467,7 +479,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
       </div>
 
-      {selectedOption !== 'Empty' && (
+      {selectedOption !== 'Empty' && selectedOption !== 'Supplier' && (
 
         <Card className="border-b">
           <CardDescription className="flex justify-between items-center px-4">
@@ -483,6 +495,23 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </ul>
           </CardDescription>
         </Card >
+      )}
+
+      {selectedOption === 'Supplier' && (
+        <Card className="border-b">
+          <CardDescription className="flex justify-between items-center px-4">
+            <div className="inline-block relative w-48 h-48">
+              <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
+            </div>
+            <ul>
+
+              <li>{companyInfo.AH.address}</li>
+              <li>Phone: {companyInfo.AH.phone}</li>
+              <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
+              <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
+            </ul>
+          </CardDescription>
+        </Card>
       )}
 
       {/* Footer Section with Company Details */}

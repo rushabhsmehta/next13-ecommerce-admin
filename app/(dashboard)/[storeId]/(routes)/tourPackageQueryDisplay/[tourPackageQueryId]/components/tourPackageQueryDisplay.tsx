@@ -95,10 +95,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>{initialData.tourPackageQueryNumber}</CardDescription>
 
-          <CardDescription>
-            Customer: {initialData.customerName} | {initialData.customerNumber} |
-            Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
-          </CardDescription>
+          {selectedOption !== 'Supplier' && (
+            <CardDescription>
+              Customer: {initialData.customerName} | {initialData.customerNumber} |
+              Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (

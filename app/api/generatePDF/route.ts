@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import puppeteer from 'puppeteer';
 
-
-const generatePDF = async (req: NextApiRequest, res: NextApiResponse) => {
-
+// Handler for GET requests
+export async function GET(req: NextApiRequest, res: NextApiResponse) {
     console.log('PDF generation API called with URL:', req.query.url); // Log the API call with the URL parameter
 
     const url = req.query.url as string; // Get the URL to convert to PDF
@@ -17,12 +16,10 @@ const generatePDF = async (req: NextApiRequest, res: NextApiResponse) => {
         await browser.close();
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="report.pdf"`); // Set filename
+        res.setHeader('Content-Disposition', `attachment; filename="generated.pdf"`);
         res.send(pdfBuffer);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error generating PDF' });
+        res.status(500).json({ message: 'Failed to generate PDF' });
     }
-};
-
-export default generatePDF; // Export the function as the default export
+}

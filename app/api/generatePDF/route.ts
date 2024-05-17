@@ -4,7 +4,9 @@ import puppeteer from 'puppeteer';
 // Handler for GET requests
 export async function GET(req: NextApiRequest, res: NextApiResponse) {
     console.log('PDF generation API called with URL:', req.query.url); // Log the API call with the URL parameter
-
+    if (!req.query.url) {
+        return res.status(400).json({ message: 'Missing required parameter: url' });
+      }
     const url = req.query.url as string; // Get the URL to convert to PDF
 
     try {

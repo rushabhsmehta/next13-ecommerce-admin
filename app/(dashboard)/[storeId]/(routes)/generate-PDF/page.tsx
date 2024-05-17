@@ -1,40 +1,27 @@
-'use client'
+
 import { useState } from 'react';
+const puppeteer = require('puppeteer');
 
-const MyComponent = () => {
-    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+const url = 'https://aagamholidays.com/tourPackage/e44a13d2-27f8-4bbf-b872-5de03e31d417';
+const outputfile = 'generated.pdf';
 
-    const handleGeneratePDF = async () => {
-        setIsGeneratingPDF(true);
-        const url = 'https://aagamholidays.com'; // The URL you want to generate a PDF from
+export default function generateNewPDF() {
 
+    async function pdfGenFunction(url: any, outputfile: string) {
         try {
-            // Make a request to your API route, passing the URL as a query parameter
-            const response = await fetch(`/api/generatePDF?url=${encodeURIComponent(url)}`);
-            if (!response.ok) {
-                throw new Error('Failed to generate PDF');
-            }
-            const data = await response.json();
+            const browser = await puppeteer.launch({ headless: false });
+            const page = await browser.newPage();
 
-            // Handle successful PDF generation
-            console.log('PDF generated successfully!', data);
+            await page.goto(url, { waitUntil: 'networkidle0' });
 
-            // Optionally, if your API returns the path or URL to the generated PDF
-            window.location.href = data.pdfUrl; // Redirect user to the PDF URL
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsGeneratingPDF(false);
+            await page.pdf({ path: outputfile, format: 'A4', margin: { top: '2cm', right: '2cm', bottom: '2cm', left: '2cm' } });
+
+            await browser.close();
         }
-    };
+        catch (error) {
+            console.error(error);
+        }
 
-    return (
-        <div>
-            <button onClick={handleGeneratePDF} disabled={isGeneratingPDF}>
-                {isGeneratingPDF ? 'Generating PDF...' : 'Generate PDF'}
-            </button>
-        </div>
-    );
-};
-
-export default MyComponent;
+    }
+    pdfGenFunction(url, outputfile)
+}

@@ -1,4 +1,4 @@
-import { format, isValid, startOfMonth } from "date-fns";
+import { add, format, isValid, startOfMonth } from "date-fns";
 
 import prismadb from "@/lib/prismadb";
 import { formatter } from "@/lib/utils";
@@ -55,7 +55,7 @@ const tourPackageQueryPage = async ({
     isArchived: item.isArchived,
     customerNumber: item.customerNumber ?? '',
     location: item.location.label,
-    tourStartsFrom: item.tourStartsFrom ? format(item.tourStartsFrom, 'dd-MM-yyyy') : '', 
+    tourStartsFrom: item.tourStartsFrom ? format(add(item.tourStartsFrom, { hours: 5, minutes: 30 }), 'dd-MM-yyyy') : '',    //createdAt: format(item.createdAt, 'MMMM do, yyyy'),
    // createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 

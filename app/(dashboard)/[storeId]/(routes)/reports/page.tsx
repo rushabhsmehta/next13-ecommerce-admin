@@ -1,5 +1,5 @@
 import { format, isValid, startOfMonth } from "date-fns";
-
+import dayjs from 'dayjs';
 import prismadb from "@/lib/prismadb";
 import { formatter } from "@/lib/utils";
 import { TourPackageQueryClient } from "./components/client";
@@ -55,7 +55,7 @@ const tourPackageQueryPage = async ({
     isArchived: item.isArchived,
     customerNumber: item.customerNumber ?? '',
     location: item.location.label,
-    tourStartsFrom: item.tourStartsFrom ? format(item.tourStartsFrom, 'dd-MM-yyyy') : '', 
+    tourStartsFrom: item.tourStartsFrom ? dayjs(item.tourStartsFrom).format('DD-MM-YYYY') : '', 
    // createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 

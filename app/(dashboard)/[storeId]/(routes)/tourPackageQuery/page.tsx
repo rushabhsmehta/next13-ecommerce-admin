@@ -5,6 +5,7 @@ import { formatter } from "@/lib/utils";
 import { TourPackageQueryClient } from "./components/client";
 import { TourPackageQueryColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
+import dayjs from 'dayjs';
 
 const tourPackageQueryPage = async ({
   params
@@ -52,7 +53,7 @@ const tourPackageQueryPage = async ({
     customerNumber : item.customerNumber ?? '',
     location: item.location.label,
     //hotel: item.hotel.name,
-    tourStartsFrom: item.tourStartsFrom ? format(item.tourStartsFrom, 'dd-MM-yyyy') : '', 
+    tourStartsFrom: item.tourStartsFrom ? dayjs(item.tourStartsFrom).format('DD-MM-YYYY') : '', 
     //createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 

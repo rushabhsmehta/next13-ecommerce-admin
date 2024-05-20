@@ -98,7 +98,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           {selectedOption !== 'Supplier' && (
             <CardDescription>
               Customer: {initialData.customerName} | {initialData.customerNumber} |
-              Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
+              Assigned To: {initialData.assignedTo} | {initialData.assignedToMobileNumber} | {initialData.assignedToEmail}
             </CardDescription>
           )}
         </CardHeader>

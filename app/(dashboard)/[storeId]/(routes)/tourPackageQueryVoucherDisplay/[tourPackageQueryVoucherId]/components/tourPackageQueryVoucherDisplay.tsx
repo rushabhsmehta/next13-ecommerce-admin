@@ -154,7 +154,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <div>
               <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
             </div>
-            
+
             <div className="flex">
               {initialData.tourStartsFrom && (
                 <div className="font-semibold">Period : {format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</div>
@@ -216,6 +216,13 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
               </div>
             )}
+
+            {initialData.remarks !== '' && (
+              <div>
+                <div className="font-semibold">Remarks : {initialData.remarks}</div>
+              </div>
+            )}
+
           </div>
         </CardContent>
 

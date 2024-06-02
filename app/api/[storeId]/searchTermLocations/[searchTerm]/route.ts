@@ -5,7 +5,7 @@ import prismadb from "@/lib/prismadb";
 
 export async function GET(
   req: Request,
-  { params }: { params: { searchTerm: string } }
+  { params }: { params: { searchTerm : string } }
 ) {
   try {
     if (!params.searchTerm) {
@@ -16,15 +16,13 @@ export async function GET(
 
     const locations = await prismadb.location.findMany({
       where: {
-        tags: {
+        tags : {
           contains: searchTerm,
         },
       },
     });
-
-    const response = NextResponse.json(locations);
-    response.headers.set('Access-Control-Allow-Origin', '*');
-    return response;
+  
+    return NextResponse.json(locations);
   } catch (error) {
     console.log('[LOCATION_GET]', error);
     return new NextResponse("Internal error", { status: 500 });

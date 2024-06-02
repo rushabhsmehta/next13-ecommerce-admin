@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs";
 
 import prismadb from "@/lib/prismadb";
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(
   req: Request,
   { params }: { params: { searchTerm : string } }

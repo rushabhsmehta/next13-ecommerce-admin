@@ -4,8 +4,7 @@ import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
-export const maxDuration = 60; 
-export const dynamic = 'force-dynamic';
+
 
 
 export async function GET(

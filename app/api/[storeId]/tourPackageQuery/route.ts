@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 
 import prismadb from '@/lib/prismadb';
-export const maxDuration = 60; // This function can run for a maximum of 5 seconds
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 async function createItineraryAndActivities(itinerary: { storeId: string, itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber: any; days: any; hotelId: any; numberofRooms : any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageQueryId: any) {

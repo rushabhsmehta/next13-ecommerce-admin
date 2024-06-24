@@ -8,8 +8,7 @@ export const INCLUSIONS_DEFAULT  =
 "✔ Accomodation in preferred Hotel\n" +
 "✔ Meal As Per Plan\n" +
 "✔ All Transfers & Sightseeing By Private Vehicle\n" +
-"✔ All Toll, Tax, Parking, Driver’s Allowance\n" +
-"✔ Union Vehicle @ Pahalgam\n";
+"✔ All Toll, Tax, Parking, Driver’s Allowance\n";
 
 export const EXCLUSIONS_DEFAULT = 
 "➤ Air Fare / Train Fare\n" +
@@ -24,7 +23,6 @@ export const EXCLUSIONS_DEFAULT =
 "➤ Guide & Entrance Fees During Sightseeing\n" +
 "➤ Pony Ride Are Not Included In Your Package\n" +
 "➤ Any Other Union Vehicle Charges Other Than Mentioned\n" +
-"➤ Gondola Ride For Phase 2\n" +
 "➤ Union Vehicle Other Than Specified";
 
 export const IMPORTANT_NOTES_DEFAULT = 

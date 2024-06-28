@@ -118,7 +118,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
             {/* Description Section */}
             <div className="flex-grow mx-2 my-2">
-              <div className="font-bold">{itinerary.itineraryTitle}</div>
+              <div className="font-bold mb-2">{itinerary.itineraryTitle}</div>
               <div>
                 {itinerary.itineraryDescription && (
                   <pre className="text-sm mb-4">{itinerary.itineraryDescription}</pre>

@@ -32,12 +32,12 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card className="break-inside-avoid">
-      <CardHeader>
-        <CardTitle>{initialData.tourPackageName}</CardTitle>
-        <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
-        <CardDescription>Price : {initialData.price} </CardDescription>
+        <CardHeader>
+          <CardTitle>{initialData.tourPackageName}</CardTitle>
+          <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
+          <CardDescription>Price : {initialData.price} </CardDescription>
         </CardHeader>
-       
+
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
             <div key={index} className="flex justify-center items-center">
@@ -120,7 +120,9 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
             <div className="flex-grow mx-2 my-2">
               <div className="font-bold">{itinerary.itineraryTitle}</div>
               <div>
-                {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
+                {itinerary.itineraryDescription && (
+                  <pre className="text-sm mb-4">{itinerary.itineraryDescription}</pre>
+                )}
               </div>
             </div>
           </div>
@@ -206,7 +208,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
@@ -216,7 +218,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </Card>
 
         {/* Exclusions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
@@ -226,7 +228,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </Card>
 
         {/* Payment Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
@@ -236,7 +238,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </Card>
 
         {/* Useful Tips Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
@@ -246,7 +248,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </Card>
 
         {/* Cancellation Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
@@ -256,7 +258,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </Card>
 
         {/* Airline Cancellation Policy Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
@@ -266,7 +268,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </Card>
 
         {/* Terms and Conditions Card */}
-        <Card className = "break-inside-avoid">
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>

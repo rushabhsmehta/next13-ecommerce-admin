@@ -52,6 +52,7 @@ import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
+import RichTextEditor from "@/components/text-editor"
 
 
 const activitySchema = z.object({
@@ -111,7 +112,7 @@ const formSchema = z.object({
   pricePerChild5to12YearsNoBed: z.string().optional(),
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
-  remarks : z.string().optional(),
+  remarks: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -249,7 +250,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
-    remarks : '',
+    remarks: '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -921,15 +922,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
-            
-          <FormField
+
+            <FormField
               control={form.control}
               name="remarks"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
-                    <Textarea rows = {5} disabled={loading} placeholder="" {...field} />
+                    <Textarea rows={5} disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1222,14 +1223,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormItem>
                       <FormLabel>Title</FormLabel>
                       <FormControl>
-                        <Textarea rows={3}
+                        <RichTextEditor
                           placeholder="Title"
                           disabled={loading}
-
                           value={itinerary.itineraryTitle}
-                          onChange={(e) => {
+                          onChange={(htmlContent: string) => {
                             const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, itineraryTitle: e.target.value };
+                            newItineraries[index] = { ...itinerary, itineraryTitle: htmlContent };
                             onChange(newItineraries);
                           }}
                         />

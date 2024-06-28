@@ -1226,7 +1226,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <RichTextEditor
                           placeholder="Title"
                           disabled={loading}
-                          value={itinerary.itineraryTitle}
+                          value={itinerary.itineraryTitle || ''}
                           onChange={(htmlContent: string) => {
                             const newItineraries = [...value];
                             newItineraries[index] = { ...itinerary, itineraryTitle: htmlContent };

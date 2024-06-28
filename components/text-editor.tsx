@@ -94,7 +94,17 @@ const RichTextEditor = ({
               </Toggle>
             </>
           )}
-        </div>     
+        </div>
+        <div className="min-h-[150px] max-h-[150px] w-full rounded-md rounded-br-none rounded-bl-none border border-input bg-transparent px-3 py-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 overflow-auto">
+          {editor ? (
+            <EditorContent
+              editor={editor}             
+              onChange={() => {}}
+            />
+          ) : (
+            <div>Loading editor...</div>
+          )}
+        </div>
       </FormControl>
     </FormItem>
   );

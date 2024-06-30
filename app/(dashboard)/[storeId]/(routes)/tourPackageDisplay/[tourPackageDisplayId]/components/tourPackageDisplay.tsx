@@ -118,11 +118,13 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
             {/* Description Section */}
             <div className="flex-grow mx-2 my-2">
-              <div className="font-bold mb-2">{itinerary.itineraryTitle}</div>
+              <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
+              </div>
               <div>
-                {itinerary.itineraryDescription && (
-                  <pre className="text-sm mb-4">{itinerary.itineraryDescription}</pre>
-                )}
+
+                <div className="text-sm mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
+
+                </div>
               </div>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
@@ -10,6 +10,7 @@ import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
 import { Activity, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackage, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
+import JoditEditor from "jodit-react";
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,11 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+
+const editorConfig = {
+  readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
+};
+
 
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
@@ -149,6 +155,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
+
+  const editor = useRef(null)
 
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  ' : 'Create Tour Package ';
@@ -886,7 +894,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     <FormItem>
                       <FormLabel>Title</FormLabel>
                       <FormControl>
-                        <Textarea rows={3}
+                        {/*  <Textarea rows={3}
                           placeholder="Title"
                           disabled={loading}
 
@@ -896,6 +904,16 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             newItineraries[index] = { ...itinerary, itineraryTitle: e.target.value };
                             onChange(newItineraries);
                           }}
+                        /> */}
+
+                        <JoditEditor
+                          ref={editor}
+                          value={itinerary.itineraryTitle || ''}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, itineraryTitle: e };
+                            onChange(newItineraries);
+                          }}
                         />
                       </FormControl>
                     </FormItem>
@@ -903,7 +921,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea rows={10}
+                        {/* <Textarea rows={10}
                           placeholder="Description"
                           disabled={loading}
 
@@ -911,6 +929,16 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           onChange={(e) => {
                             const newItineraries = [...value];
                             newItineraries[index] = { ...itinerary, itineraryDescription: e.target.value };
+                            onChange(newItineraries);
+                          }}
+                        /> */}
+
+                        <JoditEditor
+                          ref={editor}
+                          value={itinerary.itineraryDescription || ''}
+                          onChange={(e) => {
+                            const newItineraries = [...value];
+                            newItineraries[index] = { ...itinerary, itineraryDescription: e };
                             onChange(newItineraries);
                           }}
                         />

@@ -196,9 +196,10 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                   ))}
                 </div>
                 {/* Text Content */}
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold">{activity.activityTitle}</div>
-                  <p className="text-sm">{activity.activityDescription}</p>
+                <div className="flex-grow mx-2 my-2">                
+
+                  <div className="font-bold" dangerouslySetInnerHTML = {{ __html : activity.activityTitle || '' }}></div>
+                  <p className="text-sm" dangerouslySetInnerHTML = {{ __html : activity.activityDescription || ''}}></p>
                 </div>
               </div>
             ))}
@@ -214,8 +215,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.inclusions}</pre>
+          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.inclusions || '' }} >
           </CardContent>
         </Card>
 
@@ -224,8 +224,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
+          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.exclusions || '' }}> 
           </CardContent>
         </Card>
 
@@ -234,8 +233,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
+          <CardContent dangerouslySetInnerHTML = {{ __html :  initialData.paymentPolicy || ''}} >
           </CardContent>
         </Card>
 
@@ -244,8 +242,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.usefulTip}</pre>
+          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.usefulTip || ''}} >
           </CardContent>
         </Card>
 
@@ -254,8 +251,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
+          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.cancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
@@ -264,8 +260,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
+          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.airlineCancellationPolicy || ''}}>
           </CardContent>
         </Card>
 
@@ -274,12 +269,10 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
+          <CardContent  dangerouslySetInnerHTML = {{ __html : initialData.termsconditions || '' }}>
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 };

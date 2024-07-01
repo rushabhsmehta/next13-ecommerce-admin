@@ -1083,8 +1083,21 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                   ))}
                                 </SelectContent>
                               </Select>
-                              <FormControl>
-                                <Textarea rows={3}
+
+                              <FormItem>
+                                <FormLabel>Activity Title</FormLabel>
+                                <FormControl>
+                                  <JoditEditor
+                                    ref={editor}
+                                    value={activity.activityTitle || ''}
+                                    onChange={(e) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
+                                      onChange(newItineraries)
+                                    }} />
+
+
+                                  {/*   <Textarea rows={3}
                                   disabled={loading}
                                   placeholder="Activity Title"
                                   value={activity.activityTitle}
@@ -1092,10 +1105,24 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                     const newItineraries = [...value]
                                     newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e.target.value }
                                     onChange(newItineraries)
-                                  }} />
-                              </FormControl>
-                              <FormControl>
-                                <Textarea rows={10}
+                                  }} /> */}
+                                </FormControl>
+                              </FormItem>
+
+                              <FormItem>
+                                <FormLabel>Activity Description</FormLabel>
+                                <FormControl>
+
+                                  <JoditEditor
+                                    ref={editor}
+                                    value={activity.activityDescription || ''}
+                                    onChange={(e) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
+                                      onChange(newItineraries)
+                                    }} />
+
+                                  {/* <Textarea rows={10}
                                   placeholder="Activity Description"
                                   disabled={loading}
                                   value={activity.activityDescription}
@@ -1103,8 +1130,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                     const newItineraries = [...value]
                                     newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e.target.value }
                                     onChange(newItineraries)
-                                  }} />
-                              </FormControl>
+                                  }} /> */}
+                                </FormControl>
+                              </FormItem>
 
                               <ImageUpload
                                 value={activity.activityImages?.map((image) => image.url)}
@@ -1204,16 +1232,23 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             <FormField
               control={form.control}
               name="inclusions"
-
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Inclusions</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Inclusions" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             {/* //add formfield for exclusions */}
             <FormField
@@ -1223,12 +1258,18 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Exclusions</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                        
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
-
+              )}
+            />
             <FormField
               control={form.control}
               name="importantNotes"
@@ -1236,11 +1277,18 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Important Notes</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -1249,11 +1297,18 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Payment Policy</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Payment Policy" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             {/* //add formfield for usefulTip */}
             <FormField
@@ -1263,12 +1318,18 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Useful Tip</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Useful Tip" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
-
+              )}
+            />
             <FormField
               control={form.control}
               name="cancellationPolicy"
@@ -1276,11 +1337,19 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Cancellation Policy</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Cancellation Policy" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading
+
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             {/* //add formfield for airlineCancellationPolicy */}
 
@@ -1291,24 +1360,38 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Airline Cancellation Policy</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                      
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
             {/* //add formfield for termsconditions */}
             <FormField
               control={form.control}
-              name="termsconditions"
+              name="termsconditions" // Ensure the name is lowercase with no spaces
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Terms and Conditions</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
           </div>
 
           <Button disabled={loading} className="ml-auto" type="submit">

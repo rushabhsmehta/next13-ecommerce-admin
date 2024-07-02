@@ -285,8 +285,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               {/* Description Section */}
               <div className="flex-grow mx-2 my-2">
                 <div className="font-bold">{itinerary.itineraryTitle}</div>
-                <div>
-                  {itinerary.itineraryDescription && <p className="text-sm mb-4">{itinerary.itineraryDescription}</p>}
+                <div className="flex-grow mx-2 my-2">
+                  <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
+                  </div>
+                  <div>
+                    <div className="text-sm mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -370,8 +375,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                           </div>
                           {/* Text Content */}
                           <div className="flex-grow mx-2 my-2">
-                            <div className="font-bold">{activity.activityTitle}</div>
-                            <p className="text-sm">{activity.activityDescription}</p>
+                            <div className="font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                            <p className="text-sm" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                           </div>
                         </div>
                       ))}
@@ -380,11 +385,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 </Card>
               )}
             </CardContent>
-          </Card>
+          </Card >
         ))
       }
-
-
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
@@ -392,8 +395,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.inclusions}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }} >
           </CardContent>
         </Card>
 
@@ -402,41 +404,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.exclusions}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}>
           </CardContent>
         </Card>
-
-        {/* Remarks Card */}
-        {initialData.remarks && (
-          <Card className="break-inside-avoid">
-            <CardHeader>
-              <CardTitle>Remarks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="whitespace-pre-wrap">{initialData.remarks}</pre>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Important Notes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.importantNotes}</pre>
-          </CardContent>
-        </Card>
-
-
 
         {/* Payment Policy Card */}
         <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }} >
           </CardContent>
         </Card>
 
@@ -445,8 +422,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.usefulTip}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.usefulTip || '' }} >
           </CardContent>
         </Card>
 
@@ -455,8 +431,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
@@ -465,8 +440,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
@@ -475,46 +449,49 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap ">{initialData.termsconditions}</pre>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}>
           </CardContent>
         </Card>
       </div>
 
-      {selectedOption !== 'Empty' && selectedOption !== 'Supplier' && (
+      {
+        selectedOption !== 'Empty' && selectedOption !== 'Supplier' && (
 
-        <Card className="border-b">
-          <CardDescription className="flex justify-between items-center px-4">
-            <div className="inline-block relative w-48 h-48">
-              <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
-            </div>
-            <ul>
-              <li>{currentCompany.address}</li>
-              <li>Phone: {currentCompany.phone}</li>
-              <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
-              <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
+          <Card className="border-b">
+            <CardDescription className="flex justify-between items-center px-4">
+              <div className="inline-block relative w-48 h-48">
+                <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
+              </div>
+              <ul>
+                <li>{currentCompany.address}</li>
+                <li>Phone: {currentCompany.phone}</li>
+                <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
+                <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
 
-            </ul>
-          </CardDescription>
-        </Card >
-      )}
+              </ul>
+            </CardDescription>
+          </Card >
+        )
+      }
 
-      {selectedOption === 'Supplier' && (
-        <Card className="border-b">
-          <CardDescription className="flex justify-between items-center px-4">
-            <div className="inline-block relative w-48 h-48">
-              <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
-            </div>
-            <ul>
+      {
+        selectedOption === 'Supplier' && (
+          <Card className="border-b">
+            <CardDescription className="flex justify-between items-center px-4">
+              <div className="inline-block relative w-48 h-48">
+                <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
+              </div>
+              <ul>
 
-              <li>{companyInfo.AH.address}</li>
-              <li>Phone: {companyInfo.AH.phone}</li>
-              <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
-              <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
-            </ul>
-          </CardDescription>
-        </Card>
-      )}
+                <li>{companyInfo.AH.address}</li>
+                <li>Phone: {companyInfo.AH.phone}</li>
+                <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
+                <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
+              </ul>
+            </CardDescription>
+          </Card>
+        )
+      }
 
       {/* Footer Section with Company Details */}
 

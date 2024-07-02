@@ -284,17 +284,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
               {/* Description Section */}
               <div className="flex-grow mx-2 my-2">
-                <div className="font-bold">{itinerary.itineraryTitle}</div>
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
-                  </div>
-                  <div>
-                    <div className="text-sm mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
-                    </div>
+                <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
+                </div>
+                <div>
+                  <div className="text-sm mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
                   </div>
                 </div>
               </div>
             </div>
+
 
             <CardContent>
 

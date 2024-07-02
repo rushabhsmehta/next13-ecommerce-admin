@@ -187,7 +187,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       </Card>
       <Card className="break-inside-avoid">
         <CardHeader>
-
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
@@ -225,7 +224,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
           </div>
         </CardContent>
-
       </Card >
 
       {/* Flight Details */}
@@ -352,40 +350,30 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
       )}
 
-
-
-
       {/* Payment Policy Card */}
 
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>Important Notes</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="whitespace-pre-wrap">{initialData.importantNotes}</pre>
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.importantNotes || ''}}>
         </CardContent>
       </Card>
-
-
 
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>Payment Policy</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="whitespace-pre-wrap">{initialData.paymentPolicy}</pre>
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.paymentPolicy}}>
         </CardContent>
       </Card>
-
-
 
       {/* Cancellation Policy Card */}
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>Cancellation Policy</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="whitespace-pre-wrap">{initialData.cancellationPolicy}</pre>
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.cancellationPolicy}} >
         </CardContent>
       </Card>
 
@@ -394,8 +382,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Airline Cancellation Policy</CardTitle>
         </CardHeader>
-        <CardContent>
-          <pre className="whitespace-pre-wrap">{initialData.airlineCancellationPolicy}</pre>
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.airlineCancellationPolicy}}>
         </CardContent>
       </Card>
     </div>

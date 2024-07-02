@@ -771,10 +771,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <><Accordion key={index} type="single" collapsible className="w-full">
                     <AccordionItem value="item-${index}">
                       <AccordionTrigger>
-                        <div className='flex items-center mb-2'>
-                          <div className="font-bold mr-2">Day {index + 1}:</div>
-                          <div dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}></div>
-                        </div>
+                        <div className="font-bold mb-2" dangerouslySetInnerHTML={{
+                          __html: `Day ${index + 1} : ${itinerary.itineraryTitle || ''}`,
+                        }}></div>
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="md:grid md:grid-cols-2 gap-8">

@@ -2,7 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
@@ -51,8 +51,13 @@ import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "@radix-ui/react-icons"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from "date-fns"
+import JoditEditor from "jodit-react";
 
+const editorConfig = {
+  readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
+};
 
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
@@ -111,7 +116,7 @@ const formSchema = z.object({
   pricePerChild5to12YearsNoBed: z.string().optional(),
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
-  remarks : z.string().optional(),
+  remarks: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
   // hotelId: z.string().min(1),
@@ -171,6 +176,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
+  const editor = useRef(null)
 
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
@@ -249,7 +255,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
-    remarks : '',
+    remarks: '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -921,15 +927,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
-            
-          <FormField
+
+            <FormField
               control={form.control}
               name="remarks"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
-                    <Textarea rows = {5} disabled={loading} placeholder="" {...field} />
+                    <Textarea rows={5} disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1096,414 +1102,424 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
 
                 {value.map((itinerary, index) => (
-                  <div key={index} className="md:grid md:grid-cols-4 gap-8">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-[200px] justify-between",
-                              !itinerary.itineraryTitle && "text-muted-foreground"
-                            )}
+                  <><Accordion key={index} type="single" collapsible className="w-full">
+                    <AccordionItem value="item-${index}">
+                      <AccordionTrigger>
+                        <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}></div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="md:grid md:grid-cols-2 gap-8">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "w-[200px] justify-between",
+                                    !itinerary.itineraryTitle && "text-muted-foreground"
+                                  )}
+                                  disabled={loading}
+                                >
+                                  {itinerary.itineraryTitle
+                                    ? (itinerariesMaster && itinerariesMaster.find(
+                                      (itineraryMaster) => itineraryMaster.itineraryMasterTitle === itinerary.itineraryTitle
+                                    )?.itineraryMasterTitle)
+                                    : "Select an Itinerary Master"}
+                                  <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                              <Command>
+                                <CommandInput
+                                  placeholder="Search itinerary master..."
+                                  className="h-9"
+                                />
+                                <CommandEmpty>No itinerary master found.</CommandEmpty>
+                                <CommandGroup>
+                                  {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
+                                    <CommandItem
+                                      value={itineraryMaster.itineraryMasterTitle ?? ''}
+                                      key={itineraryMaster.id}
+                                      onSelect={() => {
+                                        const updatedItineraries = [...value];
+                                        updatedItineraries[index] = {
+                                          ...updatedItineraries[index],
+                                          itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
+                                          itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                          itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
+                                          activities: itineraryMaster.activities?.map(activity => ({
+                                            activityTitle: activity.activityTitle || '',
+                                            activityDescription: activity.activityDescription || '',
+                                            activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                                          })) || [],
+                                        };
+                                        onChange(updatedItineraries); // Update the state with the new itineraries
+                                      }}
+                                    >
+                                      {itineraryMaster.itineraryMasterTitle}
+                                      <CheckIcon
+                                        className={cn(
+                                          "ml-auto h-4 w-4",
+                                          itineraryMaster.locationId === itinerary.locationId
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+
+                          <FormItem>
+                            <FormLabel>Day {index + 1}</FormLabel>
+                            <FormControl>
+                              <Input
+                                disabled={loading}
+                                type="number"
+                                value={itinerary.dayNumber}
+                                onChange={(e) => {
+                                  const dayNumber = Number(e.target.value);
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Day"
+                                disabled={loading}
+
+                                value={itinerary.days}
+                                onChange={(e) => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, days: e.target.value };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+
+                          <ImageUpload
+                            value={itinerary.itineraryImages?.map((image) => image.url) || []}
                             disabled={loading}
-                          >
-                            {itinerary.itineraryTitle
-                              ? (itinerariesMaster && itinerariesMaster.find(
-                                (itineraryMaster) => itineraryMaster.itineraryMasterTitle === itinerary.itineraryTitle
-                              )?.itineraryMasterTitle)
-                              : "Select an Itinerary Master"}
-                            <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search itinerary master..."
-                            className="h-9"
+                            onChange={(newItineraryUrl) => {
+                              const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
+                              // Update the itinerary with the new images array
+                              const updatedItineraries = [...value];
+                              updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                              onChange(updatedItineraries);
+                            }}
+                            onRemove={(itineraryURLToRemove) => {
+                              // Filter out the image to remove
+                              const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
+                              // Update the itinerary with the new images array
+                              const updatedItineraries = [...value];
+                              updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                              onChange(updatedItineraries);
+                            }}
                           />
-                          <CommandEmpty>No itinerary master found.</CommandEmpty>
-                          <CommandGroup>
-                            {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
-                              <CommandItem
-                                value={itineraryMaster.itineraryMasterTitle ?? ''}
-                                key={itineraryMaster.id}
-                                onSelect={() => {
+
+
+
+                          <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                              <JoditEditor
+                                ref={editor}
+                                value={itinerary.itineraryTitle || ''}
+                                onChange={(e) => {
+                                  const newItineraries = [...value]
+                                  newItineraries[index] = { ...itinerary, itineraryTitle: e }
+                                  onChange(newItineraries)
+                                }} />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <JoditEditor
+                                ref={editor}
+                                value={itinerary.itineraryDescription || ''}
+                                onChange={(e) => {
+                                  const newItineraries = [...value]
+                                  newItineraries[index] = { ...itinerary, itineraryDescription: e }
+                                  onChange(newItineraries)
+                                }} />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Hotel</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className={cn(
+                                      "w-[200px] justify-between",
+                                      !itinerary.hotelId && "text-muted-foreground"
+                                    )}
+                                    disabled={loading}
+                                  >
+                                    {itinerary.hotelId
+                                      ? hotels.find(
+                                        (hotel) => hotel.id === itinerary.hotelId
+                                      )?.name
+                                      : "Select a Hotel"}
+                                    <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                                <Command>
+                                  <CommandInput
+                                    placeholder="Search hotel..."
+                                    className="h-9"
+                                  />
+                                  <CommandEmpty>No hotel found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
+                                      <CommandItem
+                                        value={hotel.name}
+                                        key={hotel.id}
+                                        onSelect={() => {
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = {
+                                            ...itinerary,
+                                            hotelId: hotel.id
+                                          };
+                                          onChange(newItineraries); // Update the state with the new itineraries
+                                        }}
+                                      >
+                                        {hotel.name}
+                                        <CheckIcon
+                                          className={cn(
+                                            "ml-auto h-4 w-4",
+                                            hotel.id === itinerary.hotelId
+                                              ? "opacity-100"
+                                              : "opacity-0"
+                                          )}
+                                        />
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                          <FormItem>
+                            <FormLabel>Number of Rooms</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Number of Rooms"
+                                disabled={loading}
+
+                                value={itinerary.numberofRooms}
+                                onChange={(e) => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem>
+                            <FormLabel>Room Category</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Room Category"
+                                disabled={loading}
+
+                                value={itinerary.roomCategory}
+                                onChange={(e) => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+
+
+                          <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                            <FormLabel>Meal Plan</FormLabel>
+                            <FormControl>
+                              <div className="flex flex-col gap-2">
+                                <label className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={itinerary.mealsIncluded?.includes('Breakfast')}
+                                    onCheckedChange={(isChecked) =>
+                                      handleMealChange('Breakfast', !!isChecked, index)
+                                    }
+                                  />
+                                  Breakfast
+                                </label>
+                                <label className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={itinerary.mealsIncluded?.includes('Lunch')}
+                                    onCheckedChange={(isChecked) =>
+                                      handleMealChange('Lunch', !!isChecked, index)
+                                    }
+                                  />
+                                  Lunch
+                                </label>
+                                <label className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={itinerary.mealsIncluded?.includes('Dinner')}
+                                    onCheckedChange={(isChecked) =>
+                                      handleMealChange('Dinner', !!isChecked, index)
+                                    }
+                                  />
+                                  Dinner
+                                </label>
+                              </div>
+                            </FormControl>
+                          </FormItem>
+
+
+
+                          {itinerary.activities.map((activity, activityIndex) => (
+                            <div key={activityIndex} className="space-y-2">
+                              <Select
+                                disabled={loading}
+                                onValueChange={(selectedActivityId) =>
+                                  handleActivitySelection(selectedActivityId, index, activityIndex)
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select an Activity" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                                    <SelectItem key={activityMaster.id}
+                                      value={activityMaster.id}>
+                                      {activityMaster.activityMasterTitle}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormItem>
+                                <FormLabel>Activity Title</FormLabel>
+                                <FormControl>
+                                  <JoditEditor
+                                    ref={editor}
+                                    value={activity.activityTitle || ''}
+                                    onChange={(e) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
+                                      onChange(newItineraries)
+                                    }} />
+                                </FormControl>
+                              </FormItem>
+
+                              <FormItem>
+                                <FormLabel>Activity Description</FormLabel>
+                                <FormControl>
+
+                                  <JoditEditor
+                                    ref={editor}
+                                    value={activity.activityDescription || ''}
+                                    onChange={(e) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
+                                      onChange(newItineraries)
+                                    }} />
+
+                                </FormControl>
+                              </FormItem>
+
+
+                              <ImageUpload
+                                value={activity.activityImages?.map((image) => image.url)}
+                                disabled={loading}
+                                onChange={(newActivityURL) => {
+                                  // Add new image URL to the activity's images
+                                  const updatedImages = [...activity.activityImages, { url: newActivityURL }];
+                                  // Update the specific activity in the itinerary
+                                  const updatedActivities = [...itinerary.activities];
+                                  updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                                  // Update the specific itinerary in the itineraries array
                                   const updatedItineraries = [...value];
-                                  updatedItineraries[index] = {
-                                    ...updatedItineraries[index],
-                                    itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
-                                    itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
-                                    itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
-                                    activities: itineraryMaster.activities?.map(activity => ({
-                                      activityTitle: activity.activityTitle || '',
-                                      activityDescription: activity.activityDescription || '',
-                                      activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
-                                    })) || [],
-                                  };
-                                  onChange(updatedItineraries); // Update the state with the new itineraries
+                                  updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                                  onChange(updatedItineraries);
+                                }}
+                                onRemove={(activityURLToRemove) => {
+                                  // Filter out the image to remove
+                                  const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                                  // Update the specific activity in the itinerary
+                                  const updatedActivities = [...itinerary.activities];
+                                  updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                                  // Update the specific itinerary in the itineraries array
+                                  const updatedItineraries = [...value];
+                                  updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                                  onChange(updatedItineraries);
+                                }}
+                              />
+
+
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                                  onChange(newItineraries);
                                 }}
                               >
-                                {itineraryMaster.itineraryMasterTitle}
-                                <CheckIcon
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    itineraryMaster.locationId === itinerary.locationId
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-
-                    <FormItem>
-                      <FormLabel>Day {index + 1}</FormLabel>
-                      <FormControl>
-                        <Input
-                          disabled={loading}
-                          type="number"
-                          value={itinerary.dayNumber}
-                          onChange={(e) => {
-                            const dayNumber = Number(e.target.value);
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Day"
-                          disabled={loading}
-
-                          value={itinerary.days}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, days: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <ImageUpload
-                      value={itinerary.itineraryImages?.map((image) => image.url) || []}
-                      disabled={loading}
-                      onChange={(newItineraryUrl) => {
-                        const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
-                        // Update the itinerary with the new images array
-                        const updatedItineraries = [...value];
-                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                        onChange(updatedItineraries);
-                      }}
-                      onRemove={(itineraryURLToRemove) => {
-                        // Filter out the image to remove
-                        const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
-                        // Update the itinerary with the new images array
-                        const updatedItineraries = [...value];
-                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                        onChange(updatedItineraries);
-                      }}
-                    />
+                                Remove Activity
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              const newItineraries = [...value];
+                              newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
+                              onChange(newItineraries);
+                            }}
+                          >
+                            Add Activity
+                          </Button>
 
 
 
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Textarea rows={3}
-                          placeholder="Title"
-                          disabled={loading}
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              const newItineraries = value.filter((_, i) => i !== index);
+                              onChange(newItineraries);
+                            }}
+                          >
+                            Remove Itinerary for Day {index + 1}
 
-                          value={itinerary.itineraryTitle}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, itineraryTitle: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea rows={10}
-                          placeholder="Description"
-                          disabled={loading}
-
-                          value={itinerary.itineraryDescription}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, itineraryDescription: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Hotel</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-[200px] justify-between",
-                                !itinerary.hotelId && "text-muted-foreground"
-                              )}
-                              disabled={loading}
-                            >
-                              {itinerary.hotelId
-                                ? hotels.find(
-                                  (hotel) => hotel.id === itinerary.hotelId
-                                )?.name
-                                : "Select a Hotel"}
-                              <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search hotel..."
-                              className="h-9"
-                            />
-                            <CommandEmpty>No hotel found.</CommandEmpty>
-                            <CommandGroup>
-                              {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
-                                <CommandItem
-                                  value={hotel.name}
-                                  key={hotel.id}
-                                  onSelect={() => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = {
-                                      ...itinerary,
-                                      hotelId: hotel.id
-                                    };
-                                    onChange(newItineraries); // Update the state with the new itineraries
-                                  }}
-                                >
-                                  {hotel.name}
-                                  <CheckIcon
-                                    className={cn(
-                                      "ml-auto h-4 w-4",
-                                      hotel.id === itinerary.hotelId
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                    <FormItem>
-                      <FormLabel>Number of Rooms</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Number of Rooms"
-                          disabled={loading}
-
-                          value={itinerary.numberofRooms}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-                    <FormItem>
-                      <FormLabel>Room Category</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Room Category"
-                          disabled={loading}
-
-                          value={itinerary.roomCategory}
-                          onChange={(e) => {
-                            const newItineraries = [...value];
-                            newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
-                            onChange(newItineraries);
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-
-
-                    <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                      <FormLabel>Meal Plan</FormLabel>
-                      <FormControl>
-                        <div className="flex flex-col gap-2">
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('Breakfast')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('Breakfast', !!isChecked, index)
-                              }
-                            />
-                            Breakfast
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('Lunch')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('Lunch', !!isChecked, index)
-                              }
-                            />
-                            Lunch
-                          </label>
-                          <label className="flex items-center gap-2">
-                            <Checkbox
-                              checked={itinerary.mealsIncluded?.includes('Dinner')}
-                              onCheckedChange={(isChecked) =>
-                                handleMealChange('Dinner', !!isChecked, index)
-                              }
-                            />
-                            Dinner
-                          </label>
+                          </Button>
                         </div>
-                      </FormControl>
-                    </FormItem>
-
-
-
-                    {itinerary.activities.map((activity, activityIndex) => (
-                      <div key={activityIndex} className="space-y-2">
-                        <Select
-                          disabled={loading}
-                          onValueChange={(selectedActivityId) =>
-                            handleActivitySelection(selectedActivityId, index, activityIndex)
-                          }
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an Activity" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
-                              <SelectItem key={activityMaster.id}
-                                value={activityMaster.id}>
-                                {activityMaster.activityMasterTitle}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormControl>
-                          <Textarea rows={3}
-                            disabled={loading}
-                            placeholder="Activity Title"
-                            value={activity.activityTitle}
-                            onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e.target.value };
-                              onChange(newItineraries);
-                            }}
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <Textarea rows={10}
-                            placeholder="Activity Description"
-                            disabled={loading}
-                            value={activity.activityDescription}
-                            onChange={(e) => {
-                              const newItineraries = [...value];
-                              newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e.target.value };
-                              onChange(newItineraries);
-                            }}
-                          />
-                        </FormControl>
-
-                        <ImageUpload
-                          value={activity.activityImages?.map((image) => image.url)}
-                          disabled={loading}
-                          onChange={(newActivityURL) => {
-                            // Add new image URL to the activity's images
-                            const updatedImages = [...activity.activityImages, { url: newActivityURL }];
-                            // Update the specific activity in the itinerary
-                            const updatedActivities = [...itinerary.activities];
-                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                            // Update the specific itinerary in the itineraries array
-                            const updatedItineraries = [...value];
-                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                            onChange(updatedItineraries);
-                          }}
-                          onRemove={(activityURLToRemove) => {
-                            // Filter out the image to remove
-                            const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
-                            // Update the specific activity in the itinerary
-                            const updatedActivities = [...itinerary.activities];
-                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                            // Update the specific itinerary in the itineraries array
-                            const updatedItineraries = [...value];
-                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                            onChange(updatedItineraries);
-                          }}
-                        />
-
-
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            const newItineraries = [...value];
-                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
-                            onChange(newItineraries);
-                          }}
-                        >
-                          Remove Activity
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        const newItineraries = [...value];
-                        newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
-                        onChange(newItineraries);
-                      }}
-                    >
-                      Add Activity
-                    </Button>
-
-
-
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        const newItineraries = value.filter((_, i) => i !== index);
-                        onChange(newItineraries);
-                      }}
-                    >
-                      Remove Itinerary for Day {index + 1}
-
-                    </Button>
-                  </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion >
+                  </>
                 ))}
                 <Button
                   type="button"
@@ -1528,16 +1544,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             <FormField
               control={form.control}
               name="inclusions"
-
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Inclusions</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Inclusions" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             {/* //add formfield for exclusions */}
             <FormField
@@ -1547,12 +1570,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Exclusions</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Exclusions" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                        
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
-
+              )}
+            />
             <FormField
               control={form.control}
               name="importantNotes"
@@ -1560,11 +1589,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Important Notes</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Important Notes" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -1573,11 +1609,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Payment Policy</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Payment Policy" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             {/* //add formfield for usefulTip */}
             <FormField
@@ -1587,12 +1630,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Useful Tip</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Useful Tip" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
-
+              )}
+            />
             <FormField
               control={form.control}
               name="cancellationPolicy"
@@ -1600,11 +1649,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Cancellation Policy</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Cancellation Policy" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading
+
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
 
             {/* //add formfield for airlineCancellationPolicy */}
 
@@ -1615,27 +1672,39 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Airline Cancellation Policy</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Airline Cancellation Policy" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                      
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
             {/* //add formfield for termsconditions */}
             <FormField
               control={form.control}
-              name="termsconditions"
+              name="termsconditions" // Ensure the name is lowercase with no spaces
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Terms and Conditions</FormLabel>
                   <FormControl>
-                    <Textarea rows={10} disabled={loading} placeholder="Terms and Conditions" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
-              )} />
+              )}
+            />
           </div>
-
-
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>

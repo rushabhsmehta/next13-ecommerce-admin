@@ -364,7 +364,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Payment Policy</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.paymentPolicy}}>
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.paymentPolicy || ''}}>
         </CardContent>
       </Card>
 
@@ -373,7 +373,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Cancellation Policy</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.cancellationPolicy}} >
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.cancellationPolicy || ''}} >
         </CardContent>
       </Card>
 
@@ -382,7 +382,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Airline Cancellation Policy</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.airlineCancellationPolicy}}>
+        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.airlineCancellationPolicy || ''}}>
         </CardContent>
       </Card>
     </div>

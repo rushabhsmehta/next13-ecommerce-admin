@@ -1106,7 +1106,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <AccordionItem value="item-${index}">
                       <AccordionTrigger>
                         <div className="font-bold mb-2" dangerouslySetInnerHTML={{
-                          __html: `Day ${index + 1}: ${itineraryTitle || ''}`,
+                          __html: `Day ${index + 1}: ${itinerary.itineraryTitle || ''}`,
                         }}></div>
                       </AccordionTrigger>
                       <AccordionContent>

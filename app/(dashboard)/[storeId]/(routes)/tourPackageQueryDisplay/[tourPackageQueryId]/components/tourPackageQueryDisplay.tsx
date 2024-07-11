@@ -406,6 +406,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
 
+          {/* Important Notes Card */}
+          <Card className="break-inside-avoid">
+          <CardHeader>
+            <CardTitle>Important Notes</CardTitle>
+          </CardHeader>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}>
+          </CardContent>
+        </Card>
+
         {/* Payment Policy Card */}
         <Card className="break-inside-avoid">
           <CardHeader>

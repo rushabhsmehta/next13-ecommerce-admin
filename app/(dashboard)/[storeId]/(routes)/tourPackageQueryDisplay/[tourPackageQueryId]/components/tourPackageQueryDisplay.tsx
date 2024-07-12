@@ -217,7 +217,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <CardContent>
           {initialData.remarks !== '' && (
             <div>
-              <div className="font-semibold">Remarks : {initialData.remarks}</div>
+              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
             </div>
           )}
 

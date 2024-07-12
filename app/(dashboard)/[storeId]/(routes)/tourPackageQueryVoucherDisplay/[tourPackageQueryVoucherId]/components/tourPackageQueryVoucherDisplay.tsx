@@ -214,21 +214,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               <div>
                 <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
               </div>
-            )}
-
-            {initialData.remarks !== '' && (
-              <div>
-                <div className="font-semibold">Remarks : {initialData.remarks}</div>
-              </div>
-            )}
+            )}           
 
           </div>
         </CardContent>
 
-        <CardContent>
+        <CardContent>      
+
           {initialData.remarks !== '' && (
             <div>
-              <div className="font-semibold">Remarks : {initialData.remarks}</div>
+              <div dangerouslySetInnerHTML = {{ __html : initialData.remarks || ''}}></div>
             </div>
           )}
 

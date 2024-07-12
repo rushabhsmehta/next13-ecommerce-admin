@@ -214,6 +214,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             )}
           </div>
         </CardContent>
+        <CardContent>
+          {initialData.remarks !== '' && (
+            <div>
+              <div className="font-semibold">Remarks : {initialData.remarks}</div>
+            </div>
+          )}
+
+        </CardContent>
 
       </Card >
 
@@ -406,8 +414,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
 
-          {/* Important Notes Card */}
-          <Card className="break-inside-avoid">
+        {/* Important Notes Card */}
+        <Card className="break-inside-avoid">
           <CardHeader>
             <CardTitle>Important Notes</CardTitle>
           </CardHeader>

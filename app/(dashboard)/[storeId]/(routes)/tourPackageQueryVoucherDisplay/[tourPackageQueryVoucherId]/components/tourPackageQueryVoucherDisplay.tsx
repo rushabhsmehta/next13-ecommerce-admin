@@ -224,6 +224,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
           </div>
         </CardContent>
+
+        <CardContent>
+          {initialData.remarks !== '' && (
+            <div>
+              <div className="font-semibold">Remarks : {initialData.remarks}</div>
+            </div>
+          )}
+
+        </CardContent>
+
       </Card >
 
       {/* Flight Details */}

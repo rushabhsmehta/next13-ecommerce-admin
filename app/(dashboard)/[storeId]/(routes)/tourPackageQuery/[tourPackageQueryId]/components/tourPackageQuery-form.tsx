@@ -935,7 +935,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
-                    <Textarea rows={5} disabled={loading} placeholder="" {...field} />
+
+                  <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+
+                    {/* <Textarea rows={5} disabled={loading} placeholder="" {...field} /> */}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

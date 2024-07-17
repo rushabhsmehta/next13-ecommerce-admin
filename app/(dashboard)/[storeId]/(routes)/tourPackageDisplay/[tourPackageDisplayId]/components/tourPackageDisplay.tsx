@@ -38,7 +38,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
           {initialData.pricePerAdult !== '' && (
             <div>
-            <div className="font-semibold" dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
+            <div dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
           </div>
           )}
           {initialData.pricePerChildOrExtraBed !== '' && (

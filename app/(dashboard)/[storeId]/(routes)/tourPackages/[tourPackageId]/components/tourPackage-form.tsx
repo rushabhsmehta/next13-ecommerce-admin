@@ -545,17 +545,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Price Per Adult</FormLabel>
-                  <FormControl>
-                    <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      value={field.value || ''} // Set initial content from form field value
-                      config={{ // Configure Jodit options
-                        readonly: loading, // Disable editing if loading                
-                      }} // Type assertion (optional)
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                    />
-                    {/*                     <Input disabled={loading} placeholder="" {...field} />
- */}                  </FormControl>
+                  <FormControl>                    
+                    <Input disabled={loading} placeholder="" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

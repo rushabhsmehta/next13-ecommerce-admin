@@ -38,8 +38,8 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
           {initialData.pricePerAdult !== '' && (
             <div>
-              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
-            </div>
+            <div className="font-semibold" dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
+          </div>
           )}
           {initialData.pricePerChildOrExtraBed !== '' && (
             <div>
@@ -61,7 +61,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
             </div>
           )}
-          
+
         </CardHeader>
 
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">

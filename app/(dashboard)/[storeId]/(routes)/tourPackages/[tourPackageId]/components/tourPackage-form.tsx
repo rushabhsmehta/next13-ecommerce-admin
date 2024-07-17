@@ -554,7 +554,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                       }} // Type assertion (optional)
                       onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
                     />
-                    <Input disabled={loading} placeholder="" {...field} />
+                    {/* <Input disabled={loading} placeholder="" {...field} /> */}
                   </FormControl>
                   <FormMessage />
                 </FormItem>

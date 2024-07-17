@@ -35,7 +35,33 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         <CardHeader>
           <CardTitle>{initialData.tourPackageName}</CardTitle>
           <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
-          <CardDescription>Price : {initialData.price} </CardDescription>
+
+          {initialData.pricePerAdult !== '' && (
+            <div>
+              <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
+            </div>
+          )}
+          {initialData.pricePerChildOrExtraBed !== '' && (
+            <div>
+              <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
+            </div>
+          )}
+          {initialData.pricePerChild5to12YearsNoBed !== '' && (
+            <div>
+              <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
+            </div>
+          )}
+          {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+            <div>
+              <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
+            </div>
+          )}
+          {initialData.totalPrice !== '' && (
+            <div>
+              <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
+            </div>
+          )}
+          
         </CardHeader>
 
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
@@ -196,10 +222,10 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                   ))}
                 </div>
                 {/* Text Content */}
-                <div className="flex-grow mx-2 my-2">                
+                <div className="flex-grow mx-2 my-2">
 
-                  <div className="font-bold" dangerouslySetInnerHTML = {{ __html : activity.activityTitle || '' }}></div>
-                  <p className="text-sm" dangerouslySetInnerHTML = {{ __html : activity.activityDescription || ''}}></p>
+                  <div className="font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                  <p className="text-sm" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                 </div>
               </div>
             ))}
@@ -215,7 +241,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.inclusions || '' }} >
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }} >
           </CardContent>
         </Card>
 
@@ -224,7 +250,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.exclusions || '' }}> 
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}>
           </CardContent>
         </Card>
 
@@ -233,7 +259,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML = {{ __html :  initialData.paymentPolicy || ''}} >
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }} >
           </CardContent>
         </Card>
 
@@ -242,7 +268,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.usefulTip || ''}} >
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.usefulTip || '' }} >
           </CardContent>
         </Card>
 
@@ -251,7 +277,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.cancellationPolicy || '' }}>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
@@ -260,7 +286,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML = {{ __html : initialData.airlineCancellationPolicy || ''}}>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
@@ -269,7 +295,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>
-          <CardContent  dangerouslySetInnerHTML = {{ __html : initialData.termsconditions || '' }}>
+          <CardContent dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}>
           </CardContent>
         </Card>
       </div>

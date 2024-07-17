@@ -37,7 +37,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
 
           {initialData.pricePerAdult !== '' && (
-            <div>
+            <div> Price : 
             <div dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
           </div>
           )}

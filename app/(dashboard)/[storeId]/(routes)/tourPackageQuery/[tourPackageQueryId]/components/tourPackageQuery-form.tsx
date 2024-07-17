@@ -1309,20 +1309,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         key={hotel.id}
                                         onSelect={() => {
                                           const newItineraries = [...value];
-                                          // Update hotelId only if a hotel is selected
-                                          if (hotel.id) {
-                                            newItineraries[index] = {
-                                              ...itinerary,
-                                              hotelId: hotel.id,
-                                            };
-                                          } else {
-                                            // Clear hotelId if no hotel is selected (deselection)
-                                            newItineraries[index] = {
-                                              ...itinerary,
-                                              hotelId: "",
-                                            };
-                                          }
-                                          onChange(newItineraries);
+                                          newItineraries[index] = {
+                                            ...itinerary,
+                                            hotelId: hotel.id
+                                          };
+                                          onChange(newItineraries); // Update the state with the new itineraries
                                         }}
                                       >
                                         {hotel.name}

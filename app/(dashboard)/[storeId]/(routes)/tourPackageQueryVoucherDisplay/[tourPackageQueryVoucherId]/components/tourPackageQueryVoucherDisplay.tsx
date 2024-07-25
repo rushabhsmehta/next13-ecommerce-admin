@@ -214,22 +214,47 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               <div>
                 <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
               </div>
-            )}           
+            )}
 
           </div>
         </CardContent>
 
-        <CardContent>      
+       <CardContent>
 
           {initialData.remarks !== '' && (
             <div>
-              <div dangerouslySetInnerHTML = {{ __html : initialData.remarks || ''}}></div>
+              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
             </div>
           )}
 
         </CardContent>
 
       </Card >
+
+          {/* Itineraries */}
+          {
+          initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+            <Card key={index} className="mb-4 break-inside-avoid">
+              <CardHeader>
+                <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
+                <CardDescription>{itinerary.days}</CardDescription>
+              </CardHeader>
+
+              {/* Flex Container for Itinerary Image and Description */}
+              <div className="mb-4 flex items-start space-x-4 ml-6">
+
+                {/* Description Section */}
+                <div className="flex-grow mx-2 my-2">
+                  <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
+                  </div>
+
+                </div>
+              </div>
+            </Card >
+          ))
+        }
+
+     
 
       {/* Flight Details */}
       {initialData.flightDetails && initialData.flightDetails.length > 0 && (
@@ -361,7 +386,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Important Notes</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.importantNotes || ''}}>
+        <CardContent dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}>
         </CardContent>
       </Card>
 
@@ -369,7 +394,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Payment Policy</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.paymentPolicy || ''}}>
+        <CardContent dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}>
         </CardContent>
       </Card>
 
@@ -378,7 +403,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Cancellation Policy</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.cancellationPolicy || ''}} >
+        <CardContent dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }} >
         </CardContent>
       </Card>
 
@@ -387,7 +412,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         <CardHeader>
           <CardTitle>Airline Cancellation Policy</CardTitle>
         </CardHeader>
-        <CardContent dangerouslySetInnerHTML = {{ __html : initialData.airlineCancellationPolicy || ''}}>
+        <CardContent dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
         </CardContent>
       </Card>
     </div>

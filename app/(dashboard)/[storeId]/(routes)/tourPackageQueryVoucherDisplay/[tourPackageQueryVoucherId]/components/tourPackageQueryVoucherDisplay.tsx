@@ -232,23 +232,23 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       </Card >
 
       {/* Itineraries */}
-      <Card>
-        <CardTitle className='font-bold px-6 mt-6'>
-          Itinerary
+      <Card className = "bg-gray-100 text-gray-800">
+        <CardTitle className="font-bold px-6 m-6">
+          Itinerary Details
         </CardTitle>
         {
           initialData.itineraries && initialData.itineraries.map((itinerary, index) => {
             // Remove the initial <p> tag and any closing tags
             const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
-
-            return (             
-                <CardHeader key={index} className="d-flex align-items-center">
-                  <div className="flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
-                </CardHeader>             
+            return (
+              <CardHeader key={index} className="d-flex align-items-center border-b border-gray-300 px-4 py-2">
+                <div className="flex-grow-1 font-semibold" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
+              </CardHeader>
             );
           })
         }
       </Card>
+
 
 
 

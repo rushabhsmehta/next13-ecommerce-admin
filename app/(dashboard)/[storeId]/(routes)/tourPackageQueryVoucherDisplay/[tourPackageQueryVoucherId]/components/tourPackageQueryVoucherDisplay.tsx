@@ -219,7 +219,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </div>
         </CardContent>
 
-       <CardContent>
+        <CardContent>
 
           {initialData.remarks !== '' && (
             <div>
@@ -231,20 +231,19 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
       </Card >
 
-          {/* Itineraries */}
-          {
-          initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-            <Card key={index} className="mb-4 break-inside-avoid">
-              <CardHeader>
-                <CardTitle>Day : {itinerary.dayNumber} : {itinerary.days} : 
-                <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}/>
-                </CardTitle>                
-              </CardHeader>
-            </Card >
-          ))
-        }
+      {/* Itineraries */}
+      {
+        initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+          <Card key={index} className="mb-4 break-inside-avoid">
+            <CardHeader className="d-flex align-items-center">
+              <span>Day: {itinerary.dayNumber} : {itinerary.days} - </span>
+              <div className="font-bold flex-grow-1" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }} />
+            </CardHeader>
+          </Card>
+        ))
+      }
 
-     
+
 
       {/* Flight Details */}
       {initialData.flightDetails && initialData.flightDetails.length > 0 && (

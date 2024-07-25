@@ -233,9 +233,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
       {/* Itineraries */}
       <Card>
-        <CardHeader className='font-bold'>
+        <CardTitle className='font-bold'>
           Itinerary
-        </CardHeader>
+        </CardTitle>
         {
           initialData.itineraries && initialData.itineraries.map((itinerary, index) => {
             // Remove the initial <p> tag and any closing tags

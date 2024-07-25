@@ -234,13 +234,19 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {/* Itineraries */}
       <Card>
         {
-          initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-            <CardHeader key={index} className="d-flex align-items-center">
-              <div className="font-bold flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle || ''}` }} />
-            </CardHeader>
-          ))
+          initialData.itineraries && initialData.itineraries.map((itinerary, index) => {
+            // Remove the initial <p> tag and any closing tags
+            const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
+
+            return (
+              <CardHeader key={index} className="d-flex align-items-center">
+                <div className="font-bold flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
+              </CardHeader>
+            );
+          })
         }
       </Card>
+
 
 
       {/* Flight Details */}

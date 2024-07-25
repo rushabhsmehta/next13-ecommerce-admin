@@ -237,13 +237,11 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <Card key={index} className="mb-4 break-inside-avoid">
             <CardHeader className="d-flex align-items-center">
               <span>Day: {itinerary.dayNumber} : {itinerary.days} - </span>
-              <div className="font-bold flex-grow-1" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }} />
+              <div dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }} />
             </CardHeader>
           </Card>
         ))
       }
-
-
 
       {/* Flight Details */}
       {initialData.flightDetails && initialData.flightDetails.length > 0 && (

@@ -236,20 +236,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
             <Card key={index} className="mb-4 break-inside-avoid">
               <CardHeader>
-                <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
-                <CardDescription>{itinerary.days}</CardDescription>
+                <CardTitle>Day : {itinerary.dayNumber} : {itinerary.days} : 
+                <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}/>
+                </CardTitle>                
               </CardHeader>
-
-              {/* Flex Container for Itinerary Image and Description */}
-              <div className="mb-4 flex items-start space-x-4 ml-6">
-
-                {/* Description Section */}
-                <div className="flex-grow mx-2 my-2">
-                  <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
-                  </div>
-
-                </div>
-              </div>
             </Card >
           ))
         }

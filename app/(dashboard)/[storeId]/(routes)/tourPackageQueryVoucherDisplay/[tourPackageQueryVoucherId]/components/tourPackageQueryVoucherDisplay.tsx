@@ -242,11 +242,11 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
 
             return (
-              <CardHeader key={index} className="d-flex align-items-center">
-                <Card>
+              <Card>
+                <CardHeader key={index} className="d-flex align-items-center">
                   <div className="flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
-                </Card>
-              </CardHeader>
+                </CardHeader>
+              </Card>
             );
           })
         }

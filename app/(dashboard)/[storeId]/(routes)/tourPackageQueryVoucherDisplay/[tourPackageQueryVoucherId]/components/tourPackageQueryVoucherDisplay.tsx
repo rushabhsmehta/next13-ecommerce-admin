@@ -241,12 +241,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             // Remove the initial <p> tag and any closing tags
             const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
 
-            return (
-              <Card>
+            return (             
                 <CardHeader key={index} className="d-flex align-items-center">
                   <div className="flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
-                </CardHeader>
-              </Card>
+                </CardHeader>             
             );
           })
         }

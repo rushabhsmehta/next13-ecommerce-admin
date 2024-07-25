@@ -232,16 +232,17 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       </Card >
 
       {/* Itineraries */}
-      {
-        initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-          <Card key={index} className="mb-4 break-inside-avoid">
-            <CardHeader className="d-flex align-items-center">
+      <Card>
+        {
+          initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+            <CardHeader key={index} className="d-flex align-items-center">
               <span>Day: {itinerary.dayNumber} : {itinerary.days} - </span>
               <div className="font-bold flex-grow-1" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }} />
             </CardHeader>
-          </Card>
-        ))
-      }
+          ))
+        }
+      </Card>
+
 
       {/* Flight Details */}
       {initialData.flightDetails && initialData.flightDetails.length > 0 && (

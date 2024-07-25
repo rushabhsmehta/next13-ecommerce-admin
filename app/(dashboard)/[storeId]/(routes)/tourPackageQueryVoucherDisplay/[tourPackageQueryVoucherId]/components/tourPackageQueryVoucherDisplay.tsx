@@ -240,7 +240,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
             return (
               <CardHeader key={index} className="d-flex align-items-center">
-                <div className="font-bold flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
+                <div className="flex-grow-1" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
               </CardHeader>
             );
           })

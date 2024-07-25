@@ -233,7 +233,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
       {/* Itineraries */}
       <Card>
-        <CardTitle className='font-bold'>
+        <CardTitle className='font-bold px-6'>
           Itinerary
         </CardTitle>
         {

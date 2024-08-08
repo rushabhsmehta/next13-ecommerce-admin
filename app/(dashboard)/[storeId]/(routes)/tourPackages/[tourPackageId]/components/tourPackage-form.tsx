@@ -84,6 +84,7 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
+  tour_highlights : z.string().optional(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
@@ -174,6 +175,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedToEmail: data.assignedToEmail ?? '',
       customerNumber: data.customerNumber ?? '',
       price: data.price ?? '',
+      tour_highlights : data.tour_highlights ?? '',
       importantNotes: data.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
@@ -217,6 +219,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     customerNumber: ' ',
     numDaysNight: ' ',
     period: ' ',
+    tour_highlights : ' ',
     transport: ' ',
     pickup_location: ' ',
     drop_location: ' ',
@@ -617,6 +620,27 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               )}
             />
           </div>
+
+          <FormField
+              control={form.control}
+              name="tour_highlights"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Highlights</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
 
           {/* //add formfield for flightDetails */}

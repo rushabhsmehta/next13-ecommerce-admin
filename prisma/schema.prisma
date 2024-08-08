@@ -133,6 +133,7 @@ model TourPackageQuery {
   numDaysNight              String?
   locationId                String
   period                    String?
+  tour_highlights           String? @db.Text
   tourStartsFrom            DateTime?
   tourEndsOn                DateTime?
   transport                 String?
@@ -203,6 +204,7 @@ model TourPackage {
   numDaysNight              String?
   locationId                String
   period                    String?
+  tour_highlights           String? @db.Text
   transport                 String?
   pickup_location           String?
   drop_location             String?

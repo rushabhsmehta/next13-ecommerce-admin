@@ -102,6 +102,7 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
+  tour_highlights : z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
   transport: z.string().optional(),
@@ -241,6 +242,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     customerNumber: '',
     numDaysNight: '',
     period: '',
+    tour_highlights : '',
     tourStartsFrom: '',
     tourEndsOn: '',
     transport: '',
@@ -954,6 +956,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             />
 
           </div>
+
+          <FormField
+              control={form.control}
+              name="tour_highlights"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Highlights</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
 
           {/* //add formfield for flightDetails */}
           <div>

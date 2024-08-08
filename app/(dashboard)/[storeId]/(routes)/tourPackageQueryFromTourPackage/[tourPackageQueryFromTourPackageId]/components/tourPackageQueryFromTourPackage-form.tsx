@@ -75,6 +75,7 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().min(1),
   period: z.string().optional(),
+  tour_highlights : z.string().optional(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
@@ -201,6 +202,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     customerNumber: '',
     numDaysNight: '',
     period: '',
+    tour_highlights : '',
     transport: '',
     pickup_location: '',
     drop_location: '',
@@ -721,8 +723,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
               )}
             />
           </div>
-
-
 
 
           {/* //add formfield for flightDetails */}

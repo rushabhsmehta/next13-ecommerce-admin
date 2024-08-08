@@ -225,6 +225,20 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       </Card >
 
+    {/* Tour Highlights */}
+      <Card>
+        <CardContent>
+
+          {initialData.tour_highlights !== '' && (
+            <div>
+              <div dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || '' }}></div>
+            </div>
+          )}
+
+        </CardContent>
+
+      </Card>
+
       {/* Flight Details */}
       {
         initialData.flightDetails.length > 0 && (

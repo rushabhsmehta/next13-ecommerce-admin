@@ -159,6 +159,8 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               {initialData.tourStartsFrom && (
                 <div className="font-semibold">Period : {format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</div>
               )}
+
+
               {initialData.tourEndsOn && (
                 <div className="font-semibold ml-2">To {format(initialData.tourEndsOn, 'dd-MM-yyyy')}</div>
               )}
@@ -232,7 +234,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       </Card >
 
       {/* Itineraries */}
-      <Card className = "bg-gray-100 text-gray-800">
+      <Card className="bg-gray-100 text-gray-800">
         <CardTitle className="font-bold px-6 m-6">
           Itinerary Details
         </CardTitle>
@@ -247,6 +249,19 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             );
           })
         }
+      </Card>
+
+      <Card>
+        <CardContent>
+
+          {initialData.tour_highlights !== '' && (
+            <div>
+              <div dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || '' }}></div>
+            </div>
+          )}
+
+        </CardContent>
+
       </Card>
 
 

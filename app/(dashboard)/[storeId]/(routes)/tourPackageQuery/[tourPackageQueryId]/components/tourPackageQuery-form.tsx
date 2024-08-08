@@ -57,6 +57,16 @@ import JoditEditor from "jodit-react";
 
 const editorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
+  style: {
+    table: {
+      border: "1px solid black",
+      "border-collapse": "collapse", // to make the borders appear as a single line
+    },
+    "table td, table th": {
+      border: "1px solid black",
+      padding: "5px", // optional, for spacing inside cells
+    },
+  },
 };
 
 const activitySchema = z.object({

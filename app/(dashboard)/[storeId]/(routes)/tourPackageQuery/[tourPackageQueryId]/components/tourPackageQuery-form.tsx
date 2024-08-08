@@ -188,6 +188,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   const editor = useRef(null)
+  const editorConfig = useRef(null)
 
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
@@ -975,7 +976,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Tour Highlights</FormLabel>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
+                      ref={editorConfig} // Optional ref for programmatic access
                       value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options (optional)
                         readonly: loading, // Disable editing if loading                       

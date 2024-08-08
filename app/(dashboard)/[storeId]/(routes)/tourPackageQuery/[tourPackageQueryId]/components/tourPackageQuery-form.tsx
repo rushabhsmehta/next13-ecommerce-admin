@@ -56,6 +56,7 @@ import { format } from "date-fns"
 import JoditEditor from "jodit-react";
 
 const editorConfig = {
+  
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
   style: {
     table: {
@@ -188,7 +189,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   const editor = useRef(null)
-  const editorConfig = useRef(null)
 
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
@@ -976,11 +976,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Tour Highlights</FormLabel>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editorConfig} // Optional ref for programmatic access
+                      ref={editor} // Optional ref for programmatic access
+                      config = { editorConfig}
                       value={field.value || ''} // Set initial content from form field value
-                      config={{ // Configure Jodit options (optional)
+                      
+                     /*  config={{ // Configure Jodit options (optional)
                         readonly: loading, // Disable editing if loading                       
-                      }}
+                      }} */
                       onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
                     />
 

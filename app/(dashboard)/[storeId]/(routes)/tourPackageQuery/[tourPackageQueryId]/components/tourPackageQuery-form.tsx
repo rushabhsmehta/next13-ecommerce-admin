@@ -59,7 +59,7 @@ const editorConfig = {
   readonly: false, 
   contentStyle: `
     table {
-      border: 3px solid black;
+      border: 1px solid black;
       border-collapse: collapse;
     }
     table td, table th {

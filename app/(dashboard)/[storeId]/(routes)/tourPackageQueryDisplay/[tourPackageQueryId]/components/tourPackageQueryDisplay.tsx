@@ -218,7 +218,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </div>
         </CardContent >
 
-
         <CardContent>
           {initialData.totalPrice !== '' && (
             <div>
@@ -226,7 +225,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           )}
         </CardContent>
-
 
       </Card >
 

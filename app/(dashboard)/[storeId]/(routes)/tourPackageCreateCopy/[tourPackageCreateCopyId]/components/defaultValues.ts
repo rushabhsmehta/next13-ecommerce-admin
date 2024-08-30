@@ -37,11 +37,17 @@ export const IMPORTANT_NOTES_DEFAULT =
 "∎ In The Hills, AC Vehicles Will Not Work, So Kindly Do Not Expect An AC Vehicle In The Hills.";
 
 export const CANCELLATION_POLICY_DEFAULT  = 
-"∎ Air/Rail Fare: As Per Airlines/Rail Policy\n" +
-"∎ Land Package:\n" +
-"- Before 30 Days Of Departure 20% Will Be Refundable\n" +
-"- Before 29 To 14 Days Of Departure 10% Will Be Refundable\n" +
-"- Before 14 Days Of Departure No Refund.";
+"Cancellation by Customer\n\n" +
+"∎ More than 30 days before departure: Full refund minus a 2.30% processing fee\n" +
+"∎ 15 to 30 days before departure: 50% of the total amount refunded.\n" +
+"∎ Less than 15 days before departure: No refund.\n\n\n" +
+"Cancellation by Aagam Holidays\n\n" +
+"∎ Full refund or option to reschedule at no additional cost if Aagam Holidays cancels due to unforeseen circumstances\n" +
+"∎ Rescheduling: Requests must be made at least 30 before departure. Subject to availability; any cost difference is the customer’s responsibility\n" + 
+"∎ No-show Policy: No refund for failure to show up at the agreed time and location.\n" + 
+"Force Majeure:\n"+
+ "● In cases of circumstances beyond control (e.g., natural disasters, pandemics), refunds are subject to third-party policies (e.g., helicopter rides, airlines). Partial refunds or future credits may be offered depending on the situation.";
+
 
 export const ARILINE_CANCELLATION_POLICY_DEFAULT  = 
 "∎ As per Airline Policy\n";

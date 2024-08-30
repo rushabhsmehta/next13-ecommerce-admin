@@ -185,48 +185,54 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <div className="grid gap-4 md:grid-cols-2">
             {selectedOption !== 'Supplier' && (
               <>
+                {/* Price per Adult on the left side */}
                 {initialData.pricePerAdult !== '' && (
-                  <div>
-                    <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
+                  <div className="md:col-span-1">
+                    <div className="font-semibold">Price per Adult: {initialData.pricePerAdult}</div>
                   </div>
                 )}
-                {initialData.pricePerChildOrExtraBed !== '' && (
-                  <div>
-                    <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
-                  </div>
-                )}
-                {initialData.pricePerChild5to12YearsNoBed !== '' && (
-                  <div>
-                    <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
-                  </div>
-                )}
-                {initialData.pricePerChildwithSeatBelow5Years !== '' && (
-                  <div>
-                    <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
-                  </div>
-                )}
-                {initialData.totalPrice !== '' && (
-                  <div>
-                    <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
-                  </div>
-                )}
+
+                {/* Price for Children Section on the right side */}
+                <div className="md:col-span-1 space-y-4">
+                  {initialData.pricePerChildOrExtraBed !== '' && (
+                    <div>
+                      <div className="font-semibold">Price for Triple Occupancy : {initialData.pricePerChildOrExtraBed}</div>
+                    </div>
+                  )}
+                  {initialData.pricePerChild5to12YearsNoBed !== '' && (
+                    <div>
+                      <div className="font-semibold">Price per Child (5-12 Years - No bed): {initialData.pricePerChild5to12YearsNoBed}</div>
+                    </div>
+                  )}
+                  {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+                    <div>
+                      <div className="font-semibold">Price per Child with Seat (Below 5 Years): {initialData.pricePerChildwithSeatBelow5Years}</div>
+                    </div>
+                  )}
+
+                </div>
+
+                <Card>
+                  <CardContent>
+                    {initialData.totalPrice !== '' && (
+                      <div>
+                        <div className="font-semibold">Total Price: {initialData.totalPrice}</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </>
             )}
           </div>
-        </CardContent>
-        <CardContent>
-          {initialData.remarks !== '' && (
-            <div>
-              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-            </div>
-          )}
 
-        </CardContent>
+
+        </CardContent >
+
 
       </Card >
 
-    {/* Tour Highlights */}
-      <Card>
+      {/* Tour Highlights */}
+      < Card >
         <CardContent>
 
           {initialData.tour_highlights !== '' && (
@@ -237,7 +243,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
         </CardContent>
 
-      </Card>
+      </Card >
 
       {/* Flight Details */}
       {
@@ -409,7 +415,20 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         ))
       }
 
+
+
       <div className="grid gap-4">
+        {/* Inclusions Card */}
+        <Card className="break-inside-avoid">
+          <CardContent>
+            {initialData.remarks !== '' && (
+              <div>
+                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Inclusions Card */}
         <Card className="break-inside-avoid">
           <CardHeader>

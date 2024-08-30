@@ -218,6 +218,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </div>
         </CardContent >
 
+
+
+      </Card >
+      <Card>
         <CardContent>
           {initialData.totalPrice !== '' && (
             <div>
@@ -225,8 +229,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           )}
         </CardContent>
-
-      </Card >
+      </Card>
 
       {/* Tour Highlights */}
       < Card >

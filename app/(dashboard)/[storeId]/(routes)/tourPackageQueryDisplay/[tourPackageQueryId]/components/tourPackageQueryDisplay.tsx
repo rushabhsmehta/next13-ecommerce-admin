@@ -212,21 +212,20 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
                 </div>
 
-                <Card>
-                  <CardContent>
-                    {initialData.totalPrice !== '' && (
-                      <div>
-                        <div className="font-semibold">Total Price: {initialData.totalPrice}</div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+
               </>
             )}
           </div>
-
-
         </CardContent >
+
+
+        <CardContent>
+          {initialData.totalPrice !== '' && (
+            <div>
+              <div className="font-semibold">Total Price: {initialData.totalPrice}</div>
+            </div>
+          )}
+        </CardContent>
 
 
       </Card >

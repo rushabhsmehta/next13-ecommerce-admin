@@ -21,7 +21,7 @@ interface GenerateMyPDFProps {
   hotels: (Hotel & {
     images: Images[];
   })[] | null;
-  selectedOption : string;
+  selectedOption: string;
 };
 
 type CompanyInfo = {
@@ -302,7 +302,7 @@ const parseHTMLContent = (htmlString: string) => {
 // Create Document Component
 const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, selectedOption }) => {
 
-  
+
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
@@ -376,7 +376,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
 
 
         {/* Price Section  */}
-        { selectedOption !== 'Supplier' && (
+        {selectedOption !== 'Supplier' && (
           <View style={styles.section}>
             <View style={styles.textWrapper}>
               {data.pricePerAdult !== '' && (
@@ -398,7 +398,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         )}
 
         {/* Total Price */}
-        { selectedOption !== 'Supplier' && data.totalPrice !== '' && (
+        {selectedOption !== 'Supplier' && data.totalPrice !== '' && (
           <View style={styles.section}>
             <Text style={styles.text}>Total Price: {data.totalPrice}</Text>
           </View>
@@ -411,7 +411,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
             <Text style={styles.text}>{data.tour_highlights}</Text>
           </View>
         )}
- 
+
         {/* Flight Details */}
         {data.flightDetails.length > 0 && (
           <View style={styles.section}>
@@ -519,6 +519,11 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
             )}
           </View>
         ))}
+
+        {/* Remarks Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardContent}>{parseHTMLContent(data.remarks || '')}</Text>
+        </View>
 
         {/* Inclusions Card */}
         <View style={styles.card}>

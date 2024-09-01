@@ -407,7 +407,6 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {/* Tour Highlights */}
         {data.tour_highlights !== '' && (
           <View style={styles.section}>
-            <Text style={styles.text}>Tour Highlights:</Text>
             <Text style={styles.text}>{data.tour_highlights}</Text>
           </View>
         )}

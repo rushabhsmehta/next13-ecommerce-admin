@@ -211,8 +211,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   )}
 
                 </div>
-
-
               </>
             )}
           </div>

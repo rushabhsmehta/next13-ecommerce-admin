@@ -349,15 +349,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     try {
       setLoading(true);
-      if (initialData) {
-        // console.log({ formattedData })
-        formattedData.itineraries.forEach((itinerary, index) => {
-          itinerary.activities.forEach(activity => {
-            console.log("Activity Data Being Submitted is :", activity);
-          }
-          )
-        })
-
+      if (initialData) {      
         await axios.patch(`/api/${params.storeId}/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
       } else {
         await axios.post(`/api/${params.storeId}/tourPackageQuery`, formattedData);

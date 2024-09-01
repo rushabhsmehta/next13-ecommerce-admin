@@ -21,6 +21,7 @@ interface GenerateMyPDFProps {
   hotels: (Hotel & {
     images: Images[];
   })[] | null;
+  selectedOption : string;
 };
 
 type CompanyInfo = {
@@ -299,11 +300,9 @@ const parseHTMLContent = (htmlString: string) => {
 
 
 // Create Document Component
-const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels }) => {
+const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, selectedOption }) => {
 
-  const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
-
+  
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 

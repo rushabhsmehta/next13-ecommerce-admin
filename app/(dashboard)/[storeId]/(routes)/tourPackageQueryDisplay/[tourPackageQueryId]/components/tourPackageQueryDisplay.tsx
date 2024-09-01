@@ -217,13 +217,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             )}
           </div>
         </CardContent >
-
-
-
       </Card >
       <Card className="grid gap-4">
         <CardContent>
-          {initialData.totalPrice !== '' && (
+          {selectedOption !== 'Supplier' && initialData.totalPrice !== '' && (
             <div>
               <div className="font-semibold">Total Price: {initialData.totalPrice}</div>
             </div>

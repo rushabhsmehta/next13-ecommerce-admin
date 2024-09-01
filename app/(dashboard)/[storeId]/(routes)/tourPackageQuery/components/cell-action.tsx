@@ -62,7 +62,11 @@ export const CellAction: React.FC<CellActionProps> = ({
     router.push(`/${params.storeId}/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`);
   }
 
-  
+  const handleOptionConfirmPDF = (selectedOption: string) => {
+
+    router.push(`/${params.storeId}/viewpdfpage/${data.id}?search=${selectedOption}`);
+  }
+
   const handleOptionConfirmVoucher = (selectedOption: string) => {
 
     router.push(`/${params.storeId}/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`);
@@ -112,7 +116,35 @@ export const CellAction: React.FC<CellActionProps> = ({
 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-            <Edit className="mr-2 h-4 w-4" />  Generate PDF
+              <Edit className="mr-2 h-4 w-4" />  Download PDF
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('MT')}>
+                  MT
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('Supplier')}>
+                  Supplier
+                </DropdownMenuItem>
+
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <Edit className="mr-2 h-4 w-4" />  Generate PDF
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-56">
@@ -131,6 +163,7 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <DropdownMenuItem onSelect={() => handleOptionConfirm('Supplier')}>
                   Supplier
                 </DropdownMenuItem>
+
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
@@ -139,7 +172,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-            <Edit className="mr-2 h-4 w-4" />  Generate Voucher
+              <Edit className="mr-2 h-4 w-4" />  Generate Voucher
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-56">
@@ -160,14 +193,14 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuSub>
           <DropdownMenuSeparator />
 
-       
+
           <DropdownMenuItem
             onClick={() => setOpen(true)}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu >
     </>
   );
 };

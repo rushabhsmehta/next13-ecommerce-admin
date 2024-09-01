@@ -32,19 +32,20 @@ const PDFViewer = dynamic(
   },
 );
 
-const searchParams = useSearchParams();
-const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
-
 
 const ViewMyPDF: React.FC<ViewMyPDFProps> = ({
   data,
   locations,
   hotels,
-}) => (
+}) => {
+  const searchParams = useSearchParams();
+  const selectedOption = searchParams.get('search') || 'Empty'; // 'search' is the name of your query parameter
 
-  <PDFViewer style={{ width: "100%", height: "100vh" }}>
-    <GenerateMyPDF data={data} locations={locations} hotels={hotels} selectedOption = { selectedOption} />
-  </PDFViewer>
-)
+  return (
+    <PDFViewer style={{ width: "100%", height: "100vh" }}>
+      <GenerateMyPDF data={data} locations={locations} hotels={hotels} selectedOption={selectedOption} />
+    </PDFViewer>
+  );
+}
 
 export default ViewMyPDF;

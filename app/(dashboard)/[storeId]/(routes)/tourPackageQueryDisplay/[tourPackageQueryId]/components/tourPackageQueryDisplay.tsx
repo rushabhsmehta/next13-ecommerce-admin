@@ -92,7 +92,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       <Card className="break-inside-avoid font-bold">
         <CardHeader>
-          <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
+          <CardTitle className = "text-2xl">{initialData.tourPackageQueryName}</CardTitle>
           <CardDescription>{initialData.tourPackageQueryNumber}</CardDescription>
 
           {selectedOption !== 'Supplier' && (
@@ -286,8 +286,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
           <Card key={index} className="mb-4 break-inside-avoid">
             <CardHeader>
-              <CardTitle>Day : {itinerary.dayNumber} </CardTitle>
-              <CardDescription>{itinerary.days}</CardDescription>
+              <CardTitle className='text-2xl'>Day : {itinerary.dayNumber} </CardTitle>
+              <CardDescription className='text-2xl'>{itinerary.days}</CardDescription>
             </CardHeader>
 
             {/* Flex Container for Itinerary Image and Description */}
@@ -309,10 +309,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
               {/* Description Section */}
               <div className="flex-grow mx-2 my-2">
-                <div className="font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
+                <div className="text-2xl font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
                 </div>
                 <div>
-                  <div className="text-sm mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
+                  <div className="text-2xl mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
                   </div>
                 </div>
               </div>
@@ -341,27 +341,27 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   </div>
                   {/* Text Content */}
                   <div className="flex-grow mx-2 my-2">
-                    <div className="font-bold">Hotel:</div>
-                    <p className="text-sm mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                    <div className="text-2xl font-bold">Hotel:</div>
+                    <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
 
                     {itinerary.numberofRooms && (
                       <>
-                        <div className="font-bold">Number of Rooms :</div>
-                        <p className="text-sm mb-4">{itinerary.numberofRooms}</p>
+                        <div className="text-2xl font-bold">Number of Rooms :</div>
+                        <p className="text-2xl mb-4">{itinerary.numberofRooms}</p>
                       </>
                     )}
 
                     {itinerary.roomCategory && (
                       <>
-                        <div className="font-bold">Room Category :</div>
-                        <p className="text-sm mb-4">{itinerary.roomCategory}</p>
+                        <div className="text-2xl font-bold">Room Category :</div>
+                        <p className="text-2xl mb-4">{itinerary.roomCategory}</p>
                       </>
                     )}
 
                     {itinerary.mealsIncluded && (
                       <>
-                        <div className="font-bold">Meal Plan:</div>
-                        <p className="text-sm mb-4">{itinerary.mealsIncluded}</p>
+                        <div className="text-2xl font-bold">Meal Plan:</div>
+                        <p className="text-2xl mb-4">{itinerary.mealsIncluded}</p>
                       </>
                     )}
                   </div>
@@ -378,7 +378,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     <div className="grid gap-4">
                       {/* Title */}
                       <div className="mb-4">
-                        <h2 className="font-bold text-xl">Activities</h2>
+                        <h2 className="font-bold text-2xl">Activities</h2>
                       </div>
                       {/* Activities List */}
                       {itinerary.activities.map((activity, activityIndex) => (
@@ -398,8 +398,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                           </div>
                           {/* Text Content */}
                           <div className="flex-grow mx-2 my-2">
-                            <div className="font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                            <p className="text-sm" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                            <div className="text-2xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                            <p className="text-2xl" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                           </div>
                         </div>
                       ))}
@@ -416,7 +416,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardContent>
             {initialData.remarks !== '' && (
               <div>
@@ -427,7 +427,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Inclusions Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Inclusions</CardTitle>
           </CardHeader>
@@ -436,7 +436,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Exclusions Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Exclusions</CardTitle>
           </CardHeader>
@@ -445,7 +445,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Important Notes Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Important Notes</CardTitle>
           </CardHeader>
@@ -454,7 +454,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Payment Policy Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Payment Policy</CardTitle>
           </CardHeader>
@@ -463,7 +463,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Useful Tips Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Useful Tips</CardTitle>
           </CardHeader>
@@ -472,7 +472,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Cancellation Policy</CardTitle>
           </CardHeader>
@@ -481,7 +481,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Airline Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Airline Cancellation Policy</CardTitle>
           </CardHeader>
@@ -490,7 +490,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
 
         {/* Terms and Conditions Card */}
-        <Card className="break-inside-avoid">
+        <Card className="break-inside-avoid text-2xl">
           <CardHeader>
             <CardTitle>Terms and Conditions</CardTitle>
           </CardHeader>

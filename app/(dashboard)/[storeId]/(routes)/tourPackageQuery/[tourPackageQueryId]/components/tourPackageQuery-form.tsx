@@ -1332,7 +1332,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   />
                                   <CommandEmpty>No hotel found.</CommandEmpty>
                                   <CommandGroup>
-                                    {hotels.filter(hotel => hotel.locationId === itinerary.locationId).map((hotel) => (
+                                  {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.locationId === 'fffefc5b-739f-4a80-b607-c01aa1d8eefc')
+                                ].map((hotel) => (
                                       <CommandItem
                                         value={hotel.name}
                                         key={hotel.id}

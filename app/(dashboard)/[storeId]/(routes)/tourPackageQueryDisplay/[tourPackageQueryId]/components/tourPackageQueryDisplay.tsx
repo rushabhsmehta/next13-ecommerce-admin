@@ -370,7 +370,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
               {/* Hotel Section */}
-              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
+              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId)?.name === "No Hotel" && (
                 <div className="mb-4 flex items-start space-x-4">
                   {/* Images Container */}
                   {itinerary.mealsIncluded && (

@@ -324,7 +324,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
               {/* Hotel Section */}
-              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId)?.name !== "No Hotel" && (
+              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
                 <div className="mb-4 flex items-start space-x-4">
                   {/* Images Container */}
                   <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
@@ -367,22 +367,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   </div>
                 </div>
               )}
-
-
-              {/* Hotel Section */}
-              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId)?.name === "No Hotel" && (
-                <div className="mb-4 flex items-start space-x-4">
-                  {/* Images Container */}
-                  {itinerary.mealsIncluded && (
-                    <>
-                      <div className="text-2xl font-bold">Meal Plan:</div>
-                      <p className="text-2xl mb-4">{itinerary.mealsIncluded}</p>
-                    </>
-                  )}
-                </div>
-              )}
-
-
+            
 
               {/* Activities Section */}
               {itinerary.activities && itinerary.activities.length > 0 && (

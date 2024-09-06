@@ -229,18 +229,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {/* Tour Highlights */}
-      < Card >
-        <CardContent>
-
-          {initialData.tour_highlights !== '' && (
+      {initialData.tour_highlights !== '' && (
+        < Card >
+          <CardContent>
             <div>
               <div dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || '' }}></div>
             </div>
-          )}
-
-        </CardContent>
-
-      </Card >
+          </CardContent>
+        </Card >
+      )}
 
       {/* Flight Details */}
       {
@@ -491,7 +488,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {
         selectedOption !== 'Empty' && selectedOption !== 'Supplier' && (
 
-          <Card className="border-b">
+          <Card className="border-b break-inside-avoid m-2">
             <CardDescription className="flex justify-between items-center px-4">
               <div className="inline-block relative w-48 h-48">
                 <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
@@ -510,7 +507,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {
         selectedOption === 'Supplier' && (
-          <Card className="border-b">
+          <Card className="border-b break-inside-avoid">
             <CardDescription className="flex justify-between items-center px-4">
               <div className="inline-block relative w-48 h-48">
                 <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />

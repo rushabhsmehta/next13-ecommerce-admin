@@ -280,7 +280,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )
       }
 
-
       {/* Itineraries */}
       {
         initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
@@ -290,52 +289,44 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <CardDescription className='text-2xl'>{itinerary.days}</CardDescription>
             </CardHeader>
 
-            {/* Flex Container for Itinerary Image and Description */}
-            <div className="mb-4 flex items-start space-x-4 ml-6">
+            {/* Image Section */}
+            <div className="flex justify-center items-center mx-2 my-2 break-inside-avoid">
+              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+                <Image
+                  key={imageIndex}
+                  src={image.url}
+                  alt={`Itinerary Image ${imageIndex + 1}`}
+                  width={600}
+                  height={300} // Ensure the height is the same as width to make it square
+                  className="rounded-lg object-cover mb-2"
+                  style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
+                />
+              ))}
+            </div>
 
-              {/* Image Section */}
-              <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
-                {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-                  <Image
-                    key={imageIndex}
-                    src={image.url}
-                    alt={`Itinerary Image ${imageIndex + 1}`}
-                    width={200}
-                    height={200}
-                    className="rounded-lg object-cover mb-2"
-                  />
-                ))}
-              </div>
-
-              {/* Description Section */}
-              <div className="flex-grow mx-2 my-2">
-                <div className="text-2xl font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}>
-                </div>
-                <div>
-                  <div className="text-2xl mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}>
-                  </div>
-                </div>
+            {/* Description Section */}
+            <div className="flex-grow mx-2 my-2">
+              <div className="text-2xl font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}></div>
+              <div>
+                <div className="text-2xl mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
               </div>
             </div>
 
-
             <CardContent>
-
-
-
               {/* Hotel Section */}
               {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-                <div className="mb-4 flex items-start space-x-4">
-                  {/* Images Container */}
-                  <div className="flex-shrink-0 mx-2 my-2 break-inside-avoid">
+                <div className="mb-4">
+                  {/* Image Section */}
+                  <div className="flex justify-center items-center mx-2 my-2 break-inside-avoid">
                     {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
                       <Image
                         key={imgIndex}
                         src={image.url}
                         alt={`Hotel Image ${imgIndex + 1}`}
-                        width={200}
-                        height={200}
+                        width={300}
+                        height={300} // Square image
                         className="rounded-lg object-cover mb-2"
+                        style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
                       />
                     ))}
                   </div>
@@ -367,13 +358,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   </div>
                 </div>
               )}
-            
 
               {/* Activities Section */}
               {itinerary.activities && itinerary.activities.length > 0 && (
                 <Card className="break-inside-avoid">
-                  <CardHeader>
-                  </CardHeader>
+                  <CardHeader></CardHeader>
                   <CardContent>
                     <div className="grid gap-4">
                       {/* Title */}
@@ -382,17 +371,18 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       </div>
                       {/* Activities List */}
                       {itinerary.activities.map((activity, activityIndex) => (
-                        <div key={activityIndex} className="mb-4 flex items-start space-x-4 break-inside-avoid">
-                          {/* Images Container */}
-                          <div className="flex-shrink-0 mx-2 my-2">
+                        <div key={activityIndex} className="mb-4">
+                          {/* Image Section */}
+                          <div className="flex justify-center items-center mx-2 my-2">
                             {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
                               <Image
                                 key={actImgIndex}
                                 src={image.url}
                                 alt={`Activity Image ${actImgIndex + 1}`}
-                                width={200}
-                                height={200}
+                                width={300}
+                                height={300} // Square image
                                 className="rounded-lg object-cover mb-2"
+                                style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
                               />
                             ))}
                           </div>
@@ -408,10 +398,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 </Card>
               )}
             </CardContent>
-          </Card >
+          </Card>
         ))
       }
-
 
 
       <div className="grid gap-4">

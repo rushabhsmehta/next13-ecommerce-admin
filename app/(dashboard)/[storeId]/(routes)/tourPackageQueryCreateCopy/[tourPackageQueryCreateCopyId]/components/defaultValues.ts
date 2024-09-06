@@ -8,8 +8,7 @@ export const INCLUSIONS_DEFAULT  =
 "✔ Accomodation in preferred Hotel\n" +
 "✔ Meal As Per Plan\n" +
 "✔ All Transfers & Sightseeing By Private Vehicle\n" +
-"✔ All Toll, Tax, Parking, Driver’s Allowance\n" +
-"✔ Union Vehicle @ Pahalgam\n";
+"✔ All Toll, Tax, Parking, Driver’s Allowance";
 
 export const EXCLUSIONS_DEFAULT = 
 "➤ Air Fare / Train Fare\n" +

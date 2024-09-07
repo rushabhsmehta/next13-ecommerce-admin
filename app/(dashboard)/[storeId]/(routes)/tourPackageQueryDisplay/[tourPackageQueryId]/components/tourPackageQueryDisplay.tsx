@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
-
+import { Separator } from '@radix-ui/react-separator';
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
@@ -126,52 +126,52 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <div className="font-semibold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
+              <div className="font-semibold text-2xl">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
             </div>
             <div>
               {initialData.numDaysNight !== '' && (
-                <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
+                <div className="font-semibold text-2xl">Duration : {initialData.numDaysNight}</div>
               )}
             </div>
 
             <div className="flex">
               {initialData.tourStartsFrom && (
-                <div className="font-semibold">Period : {format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</div>
+                <div className="font-semibold text-2xl">Period : {format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</div>
               )}
               {initialData.tourEndsOn && (
-                <div className="font-semibold ml-2">To {format(initialData.tourEndsOn, 'dd-MM-yyyy')}</div>
+                <div className="font-semibold text-2xl ml-2">To {format(initialData.tourEndsOn, 'dd-MM-yyyy')}</div>
               )}
             </div>
 
             <div>
               {initialData.transport !== '' && (
-                <div className="font-semibold">Transport  : {initialData.transport}</div>
+                <div className="font-semibold text-2xl">Transport  : {initialData.transport}</div>
               )}
             </div>
             <div>
               {initialData.pickup_location !== '' && (
-                <div className="font-semibold">Pickup  : {initialData.pickup_location}</div>
+                <div className="font-semibold text-2xl">Pickup  : {initialData.pickup_location}</div>
               )}
             </div>
             <div>
               {initialData.drop_location !== '' && (
-                <div className="font-semibold">Drop  : {initialData.drop_location}</div>
+                <div className="font-semibold text-2xl">Drop  : {initialData.drop_location}</div>
               )}
             </div>
             <div>
               {initialData.numAdults !== '' && (
-                <div className="font-semibold">Adults : {initialData.numAdults}</div>
+                <div className="font-semibold text-2xl">Adults : {initialData.numAdults}</div>
               )}
             </div>
             <div>
               {initialData.numChild5to12 !== '' && (
-                <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
+                <div className="font-semibold text-2xl">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
               )}
 
             </div>
             <div>
               {initialData.numChild0to5 !== '' && (
-                <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
+                <div className="font-semibold text-2xl">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
               )}
             </div>
           </div>
@@ -181,14 +181,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <CardHeader>
 
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            {selectedOption !== 'Supplier' && (
+
+        {selectedOption !== 'Supplier' && (
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
               <>
                 {/* Price per Adult on the left side */}
                 {initialData.pricePerAdult !== '' && (
                   <div className="md:col-span-1">
-                    <div className="font-semibold">Price per Adult: {initialData.pricePerAdult}</div>
+                    <div className="font-semibold text-2xl">Price per Adult: {initialData.pricePerAdult}</div>
                   </div>
                 )}
 
@@ -196,32 +197,32 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <div className="md:col-span-1 space-y-4">
                   {initialData.pricePerChildOrExtraBed !== '' && (
                     <div>
-                      <div className="font-semibold">Price for Triple Occupancy : {initialData.pricePerChildOrExtraBed}</div>
+                      <div className="font-semibold text-2xl">Price for Triple Occupancy : {initialData.pricePerChildOrExtraBed}</div>
                     </div>
                   )}
                   {initialData.pricePerChild5to12YearsNoBed !== '' && (
                     <div>
-                      <div className="font-semibold">Price per Child (5-12 Years - No bed): {initialData.pricePerChild5to12YearsNoBed}</div>
+                      <div className="font-semibold text-2xl">Price per Child (5-12 Years - No bed): {initialData.pricePerChild5to12YearsNoBed}</div>
                     </div>
                   )}
                   {initialData.pricePerChildwithSeatBelow5Years !== '' && (
                     <div>
-                      <div className="font-semibold">Price per Child with Seat (Below 5 Years): {initialData.pricePerChildwithSeatBelow5Years}</div>
+                      <div className="font-semibold text-2xl">Price per Child with Seat (Below 5 Years): {initialData.pricePerChildwithSeatBelow5Years}</div>
                     </div>
                   )}
 
                 </div>
               </>
-            )}
-          </div>
-        </CardContent >
+            </div>
+          </CardContent >
+        )}
       </Card >
 
       {selectedOption !== 'Supplier' && initialData.totalPrice !== '' && (
         <Card className="grid gap-4">
           <CardContent>
             <div>
-              <div className="font-semibold">Total Price: {initialData.totalPrice}</div>
+              <div className="font-semibold text-2xl">Total Price: {initialData.totalPrice}</div>
             </div>
           </CardContent>
         </Card>
@@ -233,7 +234,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         < Card >
           <CardContent>
             <div>
-              <div dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || '' }}></div>
+              <div className="font-semibold text-2xl" dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || '' }}></div>
             </div>
           </CardContent>
         </Card >
@@ -287,7 +288,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardHeader>
 
             {/* Image Section */}
-            <div className="flex justify-center items-center mx-2 my-2 break-inside-avoid">
+            <div className="flex justify-center items-center break-inside-avoid">
               {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
                 <Image
                   key={imageIndex}
@@ -302,94 +303,168 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
 
             {/* Description Section */}
-            <div className="flex-grow mx-2 my-2">
+            <div className="flex-grow ml-8 mr-8 mt-4">
               <div className="text-2xl font-bold mb-2" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || '' }}></div>
               <div>
-                <div className="text-2xl mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
+                <div className="text-2xl mb-2 text-justify" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
               </div>
             </div>
 
-            <CardContent>
+            <CardContent className="p-12">
+
               {/* Hotel Section */}
               {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-                <div className="mb-4">
-                  {/* Image Section */}
-                  <div className="flex justify-center items-center mx-2 my-2 break-inside-avoid">
-                    {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                      <Image
-                        key={imgIndex}
-                        src={image.url}
-                        alt={`Hotel Image ${imgIndex + 1}`}
-                        width={300}
-                        height={300} // Square image
-                        className="rounded-lg object-cover mb-2"
-                        style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
-                      />
-                    ))}
+                <Card>
+                  <CardHeader className="p-4 text-2xl font-bold text-center"> 🆂🆃🅰🆈 </CardHeader>
+                  <div className="mb-4 ml-4">
+                    {/* Image Section */}
+                    {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
+                      <div className="flex items-start mx-2 my-2 break-inside-avoid">
+                        <div className="relative w-[250px] h-[250px] flex-shrink-0">
+                          <Image
+                            src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
+                            alt="Hotel Image"
+                            className="rounded-lg object-cover"
+                            fill={true} // Automatically fills the container
+                          />
+                        </div>
+                        {/* Text Content - Displayed on the right side */}
+                        <div className="flex-grow mx-4">
+                          <div className="text-2xl font-bold">Hotel:</div>
+                          <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+
+                          {itinerary.numberofRooms && (
+                            <>
+                              <div className="text-2xl font-bold">Number of Rooms :</div>
+                              <p className="text-2xl mb-4">{itinerary.numberofRooms}</p>
+                            </>
+                          )}
+
+                          {itinerary.roomCategory && (
+                            <>
+                              <div className="text-2xl font-bold">Room Category :</div>
+                              <p className="text-2xl mb-4">{itinerary.roomCategory}</p>
+                            </>
+                          )}
+
+                          {itinerary.mealsIncluded && (
+                            <>
+                              <div className="text-2xl font-bold">Meal Plan:</div>
+                              <p className="text-2xl mb-4">{itinerary.mealsIncluded}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        {/* Multiple Images Grid */}
+                        <div className="grid grid-cols-3 gap-4 mx-2 my-2 break-inside-avoid">
+                          {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                            <div key={imgIndex} className="relative w-[250px] h-[250px]">
+                              <Image
+                                src={image.url}
+                                alt={`Hotel Image ${imgIndex + 1}`}
+                                className="rounded-lg object-cover"
+                                fill={true} // Automatically fills the container
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Text Content - Displayed below the images */}
+                        <div className="flex-grow mx-2 my-2">
+                          <div className="text-2xl font-bold">Hotel:</div>
+                          <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+
+                          {itinerary.numberofRooms && (
+                            <>
+                              <div className="text-2xl font-bold">Number of Rooms :</div>
+                              <p className="text-2xl mb-4">{itinerary.numberofRooms}</p>
+                            </>
+                          )}
+
+                          {itinerary.roomCategory && (
+                            <>
+                              <div className="text-2xl font-bold">Room Category :</div>
+                              <p className="text-2xl mb-4">{itinerary.roomCategory}</p>
+                            </>
+                          )}
+
+                          {itinerary.mealsIncluded && (
+                            <>
+                              <div className="text-2xl font-bold">Meal Plan:</div>
+                              <p className="text-2xl mb-4">{itinerary.mealsIncluded}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {/* Text Content */}
-                  <div className="flex-grow mx-2 my-2">
-                    <div className="text-2xl font-bold">Hotel:</div>
-                    <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-
-                    {itinerary.numberofRooms && (
-                      <>
-                        <div className="text-2xl font-bold">Number of Rooms :</div>
-                        <p className="text-2xl mb-4">{itinerary.numberofRooms}</p>
-                      </>
-                    )}
-
-                    {itinerary.roomCategory && (
-                      <>
-                        <div className="text-2xl font-bold">Room Category :</div>
-                        <p className="text-2xl mb-4">{itinerary.roomCategory}</p>
-                      </>
-                    )}
-
-                    {itinerary.mealsIncluded && (
-                      <>
-                        <div className="text-2xl font-bold">Meal Plan:</div>
-                        <p className="text-2xl mb-4">{itinerary.mealsIncluded}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
+                </Card>
               )}
 
               {/* Activities Section */}
               {itinerary.activities && itinerary.activities.length > 0 && (
                 <Card className="break-inside-avoid">
-                  <CardHeader></CardHeader>
+                  <CardHeader className="p-4 text-2xl font-bold text-center"> 🅰🅲🆃🅸🆅🅸🆃🅸🅴🆂 </CardHeader>
                   <CardContent>
                     <div className="grid gap-4">
-                      {/* Title */}
-                      <div className="mb-4">
-                        <h2 className="font-bold text-2xl">Activities</h2>
-                      </div>
                       {/* Activities List */}
-                      {itinerary.activities.map((activity, activityIndex) => (
-                        <div key={activityIndex} className="mb-4">
-                          {/* Image Section */}
-                          <div className="flex justify-center items-center mx-2 my-2">
-                            {activity.activityImages && activity.activityImages.length > 0 && activity.activityImages.map((image, actImgIndex) => (
-                              <Image
-                                key={actImgIndex}
-                                src={image.url}
-                                alt={`Activity Image ${actImgIndex + 1}`}
-                                width={300}
-                                height={300} // Square image
-                                className="rounded-lg object-cover mb-2"
-                                style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
-                              />
-                            ))}
-                          </div>
-                          {/* Text Content */}
-                          <div className="flex-grow mx-2 my-2">
-                            <div className="text-2xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                            <p className="text-2xl" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
-                          </div>
-                        </div>
-                      ))}
+                      {/* Activities Section */}
+                      {itinerary.activities && itinerary.activities.length > 0 && (
+                        <Card className="break-inside-avoid">
+                          <CardHeader className="p-4 text-2xl font-bold text-center">Activities</CardHeader>
+                          <CardContent>
+                            <div className="grid gap-4">
+                              {/* Activities List */}
+                              {itinerary.activities.map((activity, activityIndex) => (
+                                <div key={activityIndex} className="mb-4">
+                                  {activity.activityImages && activity.activityImages.length === 1 ? (
+                                    // Single image layout
+                                    <div className="flex items-start mx-2 my-2 break-inside-avoid">
+                                      <div className="relative w-[250px] h-[250px] flex-shrink-0">
+                                        <Image
+                                          src={activity.activityImages[0].url}
+                                          alt={`Activity Image ${activityIndex + 1}`}
+                                          className="rounded-lg object-cover"
+                                          fill={true}
+                                        />
+                                      </div>
+                                      {/* Text Content - Displayed on the right side */}
+                                      <div className="flex-grow mx-4">
+                                        <div className="text-2xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                                        <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    // Multiple images layout
+                                    <div>
+                                      <div className="flex justify-center items-center mx-2 my-2">
+                                        {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
+                                          <div key={actImgIndex} className="relative w-[250px] h-[250px]">
+                                            <Image
+                                              src={image.url}
+                                              alt={`Activity Image ${actImgIndex + 1}`}
+                                              className="rounded-lg object-cover"
+                                              fill={true}
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {/* Text Content - Displayed below the images */}
+                                      <div className="flex-grow mx-2 my-2">
+                                        <div className="text-2xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                                        <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
                     </div>
                   </CardContent>
                 </Card>
@@ -402,85 +477,86 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card className="break-inside-avoid text-2xl">
-          <CardContent>
-            {initialData.remarks !== '' && (
+
+        {initialData.remarks !== '' && (
+          <Card className="break-inside-avoid text-2xl">
+            <CardContent>
               <div>
                 <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Inclusions Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Inclusions</CardTitle>
+            <CardTitle className='text-2xl'>Inclusions</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }} >
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }} >
           </CardContent>
         </Card>
 
         {/* Exclusions Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Exclusions</CardTitle>
+            <CardTitle className='text-2xl'>Exclusions</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}>
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}>
           </CardContent>
         </Card>
 
         {/* Important Notes Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Important Notes</CardTitle>
+            <CardTitle className='text-2xl'>Important Notes</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}>
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}>
           </CardContent>
         </Card>
 
         {/* Payment Policy Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Payment Policy</CardTitle>
+            <CardTitle className='text-2xl'>Payment Policy</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }} >
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }} >
           </CardContent>
         </Card>
 
         {/* Useful Tips Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Useful Tips</CardTitle>
+            <CardTitle className='text-2xl'>Useful Tips</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.usefulTip || '' }} >
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.usefulTip || '' }} >
           </CardContent>
         </Card>
 
         {/* Cancellation Policy Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Cancellation Policy</CardTitle>
+            <CardTitle className='text-2xl'>Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}>
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
         {/* Airline Cancellation Policy Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Airline Cancellation Policy</CardTitle>
+            <CardTitle className='text-2xl'>Airline Cancellation Policy</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
           </CardContent>
         </Card>
 
         {/* Terms and Conditions Card */}
-        <Card className="break-inside-avoid text-2xl">
+        <Card className="break-inside-avoid">
           <CardHeader>
-            <CardTitle>Terms and Conditions</CardTitle>
+            <CardTitle className='text-2xl'>Terms and Conditions</CardTitle>
           </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}>
+          <CardContent className='text-2xl' dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}>
           </CardContent>
         </Card>
       </div>

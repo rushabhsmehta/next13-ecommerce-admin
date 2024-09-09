@@ -516,7 +516,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
 
         {/* Itineraries */}
         {data.itineraries && data.itineraries.map((itinerary, index) => (
-          <View style={styles.card} >
+          <View key = {index} style={styles.card} >
             <View key={index} style={styles.cardContainer}>
               <Text style={styles.cardTitle}>Day : {itinerary.dayNumber}</Text>
               <Text style={styles.cardText}>{itinerary.days}</Text>

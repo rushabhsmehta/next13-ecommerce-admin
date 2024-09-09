@@ -132,10 +132,12 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('MT')}>
                   MT
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('Supplier')}>
-                  Supplier
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierA')}>
+                  Supplier - Title only
                 </DropdownMenuItem>
-
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
@@ -160,10 +162,12 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <DropdownMenuItem onSelect={() => handleOptionConfirm('MT')}>
                   MT
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirm('Supplier')}>
-                  Supplier
+                <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierA')}>
+                  Supplier - Title only
                 </DropdownMenuItem>
-
+                <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>

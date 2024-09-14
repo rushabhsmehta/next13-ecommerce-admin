@@ -5,6 +5,7 @@ import htmlReactParser, { DOMNode, Element, Text as HtmlTextNode } from 'html-re
 import { TourPackageQuery, Images, Itinerary, Activity, FlightDetails, Location, Hotel } from "@prisma/client"
 import { format, parseISO } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
+import { MailIcon, PhoneCallIcon, PhoneIcon } from 'lucide-react';
 
 interface GenerateMyPDFProps {
   data: TourPackageQuery & {
@@ -78,12 +79,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 5,
+    textAlign: 'center',
   },
   text: {
     fontSize: 12,
-    textAlign : 'justify',
-    textJustify : 'inter-word',
-    padding : 4,
+    textAlign: 'justify',
+    textJustify: 'inter-word',
+    padding: 4,
   },
   section: {
     marginBottom: 10,
@@ -103,6 +105,11 @@ const styles = StyleSheet.create({
   column: {
     width: '48%', // Adjust as needed for spacing
   },
+
+  row: {
+    flexDirection: 'row', // Set the row layout
+    alignItems: 'center', // Align items in the center vertically
+  },
   marginLeft: {
     marginLeft: 5,
   },
@@ -116,27 +123,47 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
+    height: 250,
+    resizeMode: 'cover',
+    marginBottom: 10,
+    borderRadius: 10,
+  },
+  itineraryImage: {
+    width: '80%',
+    height: 250,
+    resizeMode: 'cover',
+    marginBottom: 10,
+    borderRadius: 10, // Use borderRadius for rounded corners
+  },
+  hotelImage: {
+    width: 100,
+    height: 100,
+    resizeMode: 'cover',
+    marginBottom: 10,
+    borderRadius: 10, // Use borderRadius for rounded corners
+  },
+  singleImageContainer: {
+    flexDirection: 'row', // Display the image and details side by side for single image
+    alignItems: 'center',
+  },
+  hotelImageSingle: {
+    width: 150,
+    height: 150,
+    borderRadius: 8,
+    marginRight: 10, // Adds space between the image and the text
+  },
+  hotelDetails: {
+    flex: 1, // Let the description take up the remaining space
+  },
+
+
+  activityImage: {
+    width: 150,
     height: 150,
     resizeMode: 'cover',
     marginBottom: 10,
-  },
-  itineraryImage: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'cover',
-    marginBottom: 10,
-  },
-  hotelImage: {
-    width: 250,
-    height: 250,
-    resizeMode: 'cover',
-    marginBottom: 10,
-  },
-  activityImage: {
-    width: 250,
-    height: 250,
-    resizeMode: 'cover',
-    marginBottom: 10,
+    borderRadius: 10, // Use borderRadius for rounded corners
+
   },
 
   // Card Styles
@@ -148,7 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   cardContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   cardHeader: {
     marginBottom: 10,
@@ -156,18 +183,20 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
   },
   cardItem: {
     width: '48%',
     marginBottom: 10,
   },
   cardTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
+    marginBottom: 10,
   },
   cardText: {
     fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 10,
   },
 
   // Specific Card Styles
@@ -205,6 +234,7 @@ const styles = StyleSheet.create({
   priceItem: {
     width: '48%',
     marginBottom: 10,
+    flexDirection: 'row',
   },
   flightDetails: {
     marginBottom: 20,
@@ -221,6 +251,17 @@ const styles = StyleSheet.create({
   hotelContainer: {
     marginBottom: 20,
   },
+
+  hotelTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    padding: 4,
+  },
+  hotelText: {
+    fontSize: 12,
+    padding: 4,
+
+  },
   activitiesContainer: {
     marginBottom: 20,
   },
@@ -231,6 +272,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ccc',
   },
+  tableRow: {
+    flexDirection: 'row',       // Ensures label and value are in a row
+    justifyContent: 'flex-start',
+    marginBottom: 10,           // Adds spacing between rows
+    alignItems: 'center',       // Aligns content vertically
+  },
+  tableLabel: {
+    fontWeight: 'bold',         // Makes the label bold
+    fontSize: 12,
+    width: '30%',               // Ensures the label takes up 40% of the width
+    textAlign: 'left',          // Aligns the label text to the left
+  },
+  tableValue: {
+    fontSize: 12,
+    width: '60%',               // Ensures the value takes up the remaining 60% of the width
+    textAlign: 'left',         // Aligns the value text to the right
+  },
+  icon: {
+    marginRight: 5, // Add space between the icon and the text
+  },
+
 });
 
 
@@ -350,136 +412,166 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{data?.tourPackageQueryName}</Text>
-          <Text style={styles.text}>
-            {locations?.find(location => location.id === data.locationId)?.label}
-          </Text>
-          <Text style={styles.text}>
-            {data?.numDaysNight} - {parseHTMLContent(locations?.find(location => location.id === data.locationId)?.label ?? '')}
-          </Text>
-        </View>
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{data?.tourPackageQueryName}</Text>
+          </View>
 
+
+          {selectedOption !== 'Supplier' && (
+            <View>
+              {/* Customer Information */}
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Customer: </Text>
+                <Text style={styles.tableValue}>
+                  {data?.customerName} |
+                  {data?.customerNumber} | 
+                      {data?.customerNumber} |
+                </Text>
+              </View>
+
+              {/* Assigned To Information */}
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Assigned To: </Text>
+                <Text style={styles.tableValue}>
+                  {data?.assignedTo} |
+                  {data?.assignedToMobileNumber && (
+                    <>
+                      <PhoneIcon size={16} color="#000" style={styles.icon} />
+                      {data?.assignedToMobileNumber} |
+                    </>
+                  )}
+                  {data?.assignedToEmail && (
+                    <>
+                      <MailIcon size={16} color="#000" style={styles.icon} />
+                      {data?.assignedToEmail}
+                    </>
+                  )}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <View style={styles.imagesContainer}>
+            {data?.images.map((image, index) => (
+              <Image
+                key={index}
+                src={image.url}
+                style={styles.image}
+              />
+            ))}
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.tableLabel}>Location:</Text>
+            <Text style={styles.tableValue}>{locations?.find(location => location.id === data.locationId)?.label}</Text>
+          </View>
+
+          {data.numDaysNight !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Duration:</Text>
+              <Text style={styles.tableValue}>{data.numDaysNight}</Text>
+            </View>
+          )}
+
+          <View style={styles.tableRow}>
+            {data.tourStartsFrom && data.tourEndsOn && (
+              <>
+                <Text style={styles.tableLabel}>Period:</Text>
+                <Text style={styles.tableValue}>
+                  {format(new Date(data.tourStartsFrom), 'dd-MM-yyyy')} To {format(new Date(data.tourEndsOn), 'dd-MM-yyyy')}
+                </Text>
+              </>
+            )}
+          </View>
+
+
+          {data.transport !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Transport:</Text>
+              <Text style={styles.tableValue}>{data.transport}</Text>
+            </View>
+          )}
+
+          {data.pickup_location !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Pickup:</Text>
+              <Text style={styles.tableValue}>{data.pickup_location}</Text>
+            </View>
+          )}
+
+          {data.drop_location !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Drop:</Text>
+              <Text style={styles.tableValue}>{data.drop_location}</Text>
+            </View>
+          )}
+
+          {data.numAdults !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Adults:</Text>
+              <Text style={styles.tableValue}>{data.numAdults}</Text>
+            </View>
+          )}
+
+          {data.numChild5to12 !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Children (5 - 12 Years):</Text>
+              <Text style={styles.tableValue}>{data.numChild5to12}</Text>
+            </View>
+          )}
+
+          {data.numChild0to5 !== '' && (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableLabel}>Children (0 - 5 Years):</Text>
+              <Text style={styles.tableValue}>{data.numChild0to5}</Text>
+            </View>
+          )}
+        </View>
         {selectedOption !== 'Supplier' && (
-          <View style={styles.customerInfo}>
-            <Text>Customer: {data?.customerName} | {data?.customerNumber} |</Text>
-            <Text>Assigned To: {data?.assignedTo} | {data?.assignedToMobileNumber} | {data?.assignedToEmail}</Text>
-          </View>
-        )}
-        <View style={styles.imagesContainer}>
-          {data?.images.map((image, index) => (
-            <Image
-              key={index}
-              src={image.url}
-              style={styles.image}
-            />
-          ))}
-        </View>
-        <View style={styles.card} >
-          <View style={styles.section}>
-            <Text style={styles.title}>Location</Text>
-            <Text style={styles.text}>{locations?.find(location => location.id === data.locationId)?.label}</Text>
-          </View>
-
-          <View style={styles.section}>
-            {data.numDaysNight !== '' && (
-              <><Text style={styles.title}>Duration</Text><Text style={styles.text}>{data.numDaysNight}</Text></>
-            )}
-          </View>
-
-          <View style={styles.flexRow}>
-            {data.tourStartsFrom && (
-              <Text style={styles.text}>Period: {format(new Date(data.tourStartsFrom), 'dd-MM-yyyy')}</Text>
-            )}
-            {data.tourEndsOn && (
-              <Text style={[styles.text, styles.marginLeft]}>To {format(new Date(data.tourEndsOn), 'dd-MM-yyyy')}</Text>
-            )}
-          </View>
-
-          <View style={styles.grid}>
-            {data.transport !== '' && (
-              <View style={styles.column}>
-                <Text style={styles.title}>Transport</Text>
-                <Text style={styles.text}>{data.transport}</Text>
-              </View>
-            )}
-            {data.pickup_location !== '' && (
-              <View style={styles.column}>
-                <Text style={styles.title}>Pickup</Text>
-                <Text style={styles.text}>{data.pickup_location}</Text>
-              </View>
-            )}
-            {data.drop_location !== '' && (
-              <View style={styles.column}>
-                <Text style={styles.title}>Drop</Text>
-                <Text style={styles.text}>{data.drop_location}</Text>
-              </View>
-            )}
-            {data.numAdults !== '' && (
-              <View style={styles.column}>
-                <Text style={styles.title}>Adults</Text>
-                <Text style={styles.text}>{data.numAdults}</Text>
-              </View>
-            )}
-            {data.numChild5to12 !== '' && (
-              <View style={styles.column}>
-                <Text style={styles.title}>Children (5 - 12 Years)</Text>
-                <Text style={styles.text}>{data.numChild5to12}</Text>
-              </View>
-            )}
-            {data.numChild0to5 !== '' && (
-              <View style={styles.column}>
-                <Text style={styles.title}>Children (0 - 5 Years)</Text>
-                <Text style={styles.text}>{data.numChild0to5}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {selectedOption !== 'Supplier' && (
-          <View style={styles.card} >
+          <View style={styles.card}>
             <View style={styles.cardContainer}>
               <View style={styles.cardContent}>
-                {/* Price per Adult on the left side */}
+                {/* Price Details in Tabular Format */}
+                {/* Price per Adult */}
                 {data.pricePerAdult !== '' && (
-                  <View style={styles.priceItem}>
-                    <Text style={styles.cardTitle}>Price per Adult:</Text>
-                    <Text style={styles.cardText}>{data.pricePerAdult}</Text>
+                  <View style={styles.tableRow}>
+                    <Text style={styles.tableLabel}>Price per Adult:</Text>
+                    <Text style={styles.tableValue}>{data.pricePerAdult}</Text>
                   </View>
                 )}
 
-                {/* Price for Children Section on the right side */}
-                <View style={styles.priceSection}>
-                  {data.pricePerChildOrExtraBed !== '' && (
-                    <View style={styles.priceItem}>
-                      <Text style={styles.cardTitle}>Price for Triple Occupancy:</Text>
-                      <Text style={styles.cardText}>{data.pricePerChildOrExtraBed}</Text>
-                    </View>
-                  )}
-                  {data.pricePerChild5to12YearsNoBed !== '' && (
-                    <View style={styles.priceItem}>
-                      <Text style={styles.cardTitle}>Price per Child (5-12 Years - No bed):</Text>
-                      <Text style={styles.cardText}>{data.pricePerChild5to12YearsNoBed}</Text>
-                    </View>
-                  )}
-                  {data.pricePerChildwithSeatBelow5Years !== '' && (
-                    <View style={styles.priceItem}>
-                      <Text style={styles.cardTitle}>Price per Child with Seat (Below 5 Years):</Text>
-                      <Text style={styles.cardText}>{data.pricePerChildwithSeatBelow5Years}</Text>
-                    </View>
-                  )}
-                </View>
+                {/* Price for Children Section */}
+                {data.pricePerChildOrExtraBed !== '' && (
+                  <View style={styles.tableRow}>
+                    <Text style={styles.tableLabel}>Price for Triple Occupancy:</Text>
+                    <Text style={styles.tableValue}>{data.pricePerChildOrExtraBed}</Text>
+                  </View>
+                )}
+
+                {data.pricePerChild5to12YearsNoBed !== '' && (
+                  <View style={styles.tableRow}>
+                    <Text style={styles.tableLabel}>Price per Child (5-12 Years - No bed):</Text>
+                    <Text style={styles.tableValue}>{data.pricePerChild5to12YearsNoBed}</Text>
+                  </View>
+                )}
+
+                {data.pricePerChildwithSeatBelow5Years !== '' && (
+                  <View style={styles.tableRow}>
+                    <Text style={styles.tableLabel}>Price per Child with Seat (Below 5 Years):</Text>
+                    <Text style={styles.tableValue}>{data.pricePerChildwithSeatBelow5Years}</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
         )}
 
         {selectedOption !== 'Supplier' && data.totalPrice !== '' && (
-          <View style={styles.card} >
+          <View style={styles.card}>
             <View style={styles.cardContainer}>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>Total Price:</Text>
-                <Text style={styles.cardText}>{data.totalPrice}</Text>
+              <View style={styles.tableRow}>
+                <Text style={styles.tableLabel}>Total Price:</Text>
+                <Text style={styles.tableValue}>{data.totalPrice}</Text>
               </View>
             </View>
           </View>
@@ -489,7 +581,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           <View style={styles.card} >
             <View style={styles.cardContainer}>
               <Text style={styles.cardTitle}>Tour Highlights</Text>
-              <Text style={styles.cardText}>{parseHTMLContent(data.tour_highlights)} </Text>
+              <Text style={styles.cardText}>{renderHTML(data.tour_highlights)} </Text>
             </View>
           </View>
         )}
@@ -516,7 +608,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
 
         {/* Itineraries */}
         {data.itineraries && data.itineraries.map((itinerary, index) => (
-          <View key = {index} style={styles.card} >
+          <View wrap={false} key={index} style={styles.card} >
             <View key={index} style={styles.cardContainer}>
               <Text style={styles.cardTitle}>Day : {itinerary.dayNumber}</Text>
               <Text style={styles.cardText}>{itinerary.days}</Text>
@@ -535,47 +627,46 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
               )}
 
               {/* Description Section */}
-              <Text style={styles.cardTitle}>{parseHTMLContent(itinerary.itineraryTitle || '')} </Text>
-              <Text style={styles.cardText}>{parseHTMLContent(itinerary.itineraryDescription || '')} </Text>
+              <Text style={styles.cardTitle}>{renderHTML(itinerary.itineraryTitle || '')} </Text>
+              <Text style={styles.cardText}>{renderHTML(itinerary.itineraryDescription || '')} </Text>
 
               {/* Hotel Section */}
               {itinerary.hotelId && hotels?.find(hotel => hotel.id === itinerary.hotelId) && (
-                <View style={styles.card} >
+                <View style={styles.card}>
                   <View style={styles.hotelContainer}>
                     <Text style={styles.cardTitle}>Stay</Text>
+
                     {hotels?.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
-                      <View style={styles.cardContent}>
+                      // Layout for one image: Image on the left and description on the right
+                      <View style={styles.singleImageContainer}>
                         <Image
                           src={hotels?.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
-                          style={styles.hotelImage}
+                          style={styles.hotelImageSingle}
                         />
-                        <View>
-                          <Text style={styles.cardTitle}>Hotel:</Text>
-                          <Text style={styles.cardText}>{hotels?.find(hotel => hotel.id === itinerary.hotelId)?.name}</Text>
+                        <View style={styles.hotelDetails}>
+                          <Text style={styles.hotelTitle}>Hotel : {hotels?.find(hotel => hotel.id === itinerary.hotelId)?.name}</Text>
 
                           {itinerary.numberofRooms && (
-                            <>
-                              <Text style={styles.cardTitle}>Number of Rooms:</Text>
-                              <Text style={styles.cardText}>{itinerary.numberofRooms}</Text>
-                            </>
+                            <Text style={styles.hotelText}>Number of Rooms : {itinerary.numberofRooms}</Text>
                           )}
 
                           {itinerary.roomCategory && (
-                            <>
-                              <Text style={styles.cardTitle}>Room Category:</Text>
-                              <Text style={styles.cardText}>{itinerary.roomCategory}</Text>
-                            </>
+                            <View style={styles.flexRow}>
+                              <Text style={styles.hotelText}>Room Category : </Text>
+                              <Text style={styles.hotelText}>{itinerary.roomCategory}</Text>
+                            </View>
                           )}
 
                           {itinerary.mealsIncluded && (
-                            <>
-                              <Text style={styles.cardTitle}>Meal Plan:</Text>
-                              <Text style={styles.cardText}>{itinerary.mealsIncluded}</Text>
-                            </>
+                            <View style={styles.flexRow}>
+                              <Text style={styles.hotelText}>Meal Plan : </Text>
+                              <Text style={styles.hotelText}>{itinerary.mealsIncluded}</Text>
+                            </View>
                           )}
                         </View>
                       </View>
                     ) : (
+                      // Layout for multiple images: Images on top, description below
                       <View>
                         {/* Multiple Images Grid */}
                         <View style={styles.imagesContainer}>
@@ -587,30 +678,27 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                             />
                           ))}
                         </View>
+
                         {/* Text Content - Displayed below the images */}
                         <View>
-                          <Text style={styles.cardTitle}>Hotel:</Text>
-                          <Text style={styles.cardText}>{hotels?.find(hotel => hotel.id === itinerary.hotelId)?.name}</Text>
+                          <Text style={styles.hotelTitle}>Hotel: {hotels?.find(hotel => hotel.id === itinerary.hotelId)?.name}</Text>
 
                           {itinerary.numberofRooms && (
-                            <>
-                              <Text style={styles.cardTitle}>Number of Rooms:</Text>
-                              <Text style={styles.cardText}>{itinerary.numberofRooms}</Text>
-                            </>
+                            <Text style={styles.hotelText}>Number of Rooms: {itinerary.numberofRooms}</Text>
                           )}
 
                           {itinerary.roomCategory && (
-                            <>
-                              <Text style={styles.cardTitle}>Room Category:</Text>
-                              <Text style={styles.cardText}>{itinerary.roomCategory}</Text>
-                            </>
+                            <View style={styles.flexRow}>
+                              <Text style={styles.hotelText}>Room Category: </Text>
+                              <Text style={styles.hotelText}>{itinerary.roomCategory}</Text>
+                            </View>
                           )}
 
                           {itinerary.mealsIncluded && (
-                            <>
-                              <Text style={styles.cardTitle}>Meal Plan:</Text>
-                              <Text style={styles.cardText}>{itinerary.mealsIncluded}</Text>
-                            </>
+                            <View style={styles.flexRow}>
+                              <Text style={styles.hotelText}>Meal Plan: </Text>
+                              <Text style={styles.hotelText}>{itinerary.mealsIncluded}</Text>
+                            </View>
                           )}
                         </View>
                       </View>
@@ -621,7 +709,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
 
               {/* Activities Section */}
               {itinerary.activities && itinerary.activities.length > 0 && (
-                <View style={styles.card} >
+                <View wrap={false} style={styles.card} >
                   <View style={styles.activitiesContainer}>
                     <Text style={styles.cardTitle}>Activities</Text>
                     {itinerary.activities.map((activity, activityIndex) => (
@@ -665,82 +753,80 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           </View>
         ))}
 
-        <View style={styles.grid}>
-          {/* Remarks Section */}
-          {data.remarks !== '' && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Remarks</Text>
-              <Text style={styles.text}> {parseHTMLContent(data.remarks || '')} </Text>
-            </View>
-          )}
+        {/* Remarks Section */}
+        {data.remarks !== '' && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Remarks</Text>
+            <Text style={styles.text}> {parseHTMLContent(data.remarks || '')} </Text>
+          </View>
+        )}
 
-          {/* Inclusions Section */}
-          {data.inclusions && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Inclusions</Text>
-              <Text style={styles.text}> {parseHTMLContent(data.inclusions || '')} </Text>
-            </View>
-          )}
+        {/* Inclusions Section */}
+        {data.inclusions && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Inclusions</Text>
+            <Text style={styles.text}> {parseHTMLContent(data.inclusions || '')} </Text>
+          </View>
+        )}
 
-          {/* Exclusions Section */}
-          {data.exclusions && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Exclusions</Text>
-              <Text style={styles.text}> {parseHTMLContent(data.exclusions || '')} </Text>
-            </View>
-          )}
+        {/* Exclusions Section */}
+        {data.exclusions && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Exclusions</Text>
+            <Text style={styles.text}> {parseHTMLContent(data.exclusions || '')} </Text>
+          </View>
+        )}
 
-          {/* Important Notes Section */}
-          {data.importantNotes && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Important Notes</Text>
-              <Text style={styles.text} > {parseHTMLContent(data.importantNotes || '')} </Text>
-            </View>
-          )}
+        {/* Important Notes Section */}
+        {data.importantNotes && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Important Notes</Text>
+            <Text style={styles.text} > {parseHTMLContent(data.importantNotes || '')} </Text>
+          </View>
+        )}
 
-          {/* Payment Policy Section */}
-          {data.paymentPolicy && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Payment Policy</Text>
-              <Text style={styles.text} > {parseHTMLContent(data.paymentPolicy || '')} </Text>
-            </View>
-          )}
+        {/* Payment Policy Section */}
+        {data.paymentPolicy && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Payment Policy</Text>
+            <Text style={styles.text} > {parseHTMLContent(data.paymentPolicy || '')} </Text>
+          </View>
+        )}
 
-          {/* Useful Tips Section */}
-          {data.usefulTip && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Useful Tips</Text>
-              <Text style={styles.text} > {parseHTMLContent(data.usefulTip || '')} </Text>
-            </View>
-          )}
+        {/* Useful Tips Section */}
+        {data.usefulTip && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Useful Tips</Text>
+            <Text style={styles.text} > {parseHTMLContent(data.usefulTip || '')} </Text>
+          </View>
+        )}
 
-          {/* Cancellation Policy Section */}
-          {data.cancellationPolicy && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Cancellation Policy</Text>
-              <Text style={styles.text} > {parseHTMLContent(data.cancellationPolicy || '')} </Text>
-            </View>
-          )}
+        {/* Cancellation Policy Section */}
+        {data.cancellationPolicy && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Cancellation Policy</Text>
+            <Text style={styles.text} > {parseHTMLContent(data.cancellationPolicy || '')} </Text>
+          </View>
+        )}
 
-          {/* Airline Cancellation Policy Section */}
-          {data.airlineCancellationPolicy && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Airline Cancellation Policy</Text>
-              <Text style={styles.text} > {parseHTMLContent(data.airlineCancellationPolicy || '')} </Text>
-            </View>
-          )}
+        {/* Airline Cancellation Policy Section */}
+        {data.airlineCancellationPolicy && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Airline Cancellation Policy</Text>
+            <Text style={styles.text} > {parseHTMLContent(data.airlineCancellationPolicy || '')} </Text>
+          </View>
+        )}
 
-          {/* Terms and Conditions Section */}
-          {data.termsconditions && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Terms and Conditions</Text>
-              <Text style={styles.text}> {parseHTMLContent(data.termsconditions || '')} </Text>
-            </View>
-          )}
-        </View>
+        {/* Terms and Conditions Section */}
+        {data.termsconditions && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Terms and Conditions</Text>
+            <Text style={styles.text}> {parseHTMLContent(data.termsconditions || '')} </Text>
+          </View>
+        )}
 
         {selectedOption !== 'Empty' && selectedOption !== 'Supplier' && (
-          <View style={styles.card}>
+          <View wrap={false} style={styles.card}>
             <View style={styles.cardDescription}>
               <View style={styles.imageContainer}>
                 <Image src={currentCompany.logo} style={styles.image} />
@@ -760,7 +846,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         )}
 
         {selectedOption === 'Supplier' && (
-          <View style={styles.card}>
+          <View wrap={false} style={styles.card}>
             <View style={styles.cardDescription}>
               <View style={styles.imageContainer}>
                 <Image src={companyInfo.AH.logo} style={styles.image} />
@@ -780,7 +866,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         )}
 
       </Page>
-    </Document>
+    </Document >
   )
 }
 export default GenerateMyPDF;

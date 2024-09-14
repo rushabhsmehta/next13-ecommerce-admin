@@ -581,7 +581,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           <View style={styles.card} >
             <View style={styles.cardContainer}>
               <Text style={styles.cardTitle}>Tour Highlights</Text>
-              <Text style={styles.cardText}>{renderHTML(data.tour_highlights)} </Text>
+              <Text style={styles.cardText}>{parseHTMLContent(data.tour_highlights)} </Text>
             </View>
           </View>
         )}
@@ -627,8 +627,8 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
               )}
 
               {/* Description Section */}
-              <Text style={styles.cardTitle}>{renderHTML(itinerary.itineraryTitle || '')} </Text>
-              <Text style={styles.cardText}>{renderHTML(itinerary.itineraryDescription || '')} </Text>
+              <Text style={styles.cardTitle}>{parseHTMLContent(itinerary.itineraryTitle || '')} </Text>
+              <Text style={styles.cardText}>{parseHTMLContent(itinerary.itineraryDescription || '')} </Text>
 
               {/* Hotel Section */}
               {itinerary.hotelId && hotels?.find(hotel => hotel.id === itinerary.hotelId) && (

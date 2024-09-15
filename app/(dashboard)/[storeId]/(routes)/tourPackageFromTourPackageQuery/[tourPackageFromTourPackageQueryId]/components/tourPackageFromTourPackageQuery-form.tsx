@@ -2,7 +2,7 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
@@ -109,6 +109,7 @@ const formSchema = z.object({
   assignedTo: z.string().optional(),
   assignedToMobileNumber: z.string().optional(),
   assignedToEmail: z.string().optional(),
+  slug: z.string().optional(),
 });
 
 type TourPackageFromTourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -164,6 +165,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
+      slug: data.slug ?? '',
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -222,6 +224,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
+    slug : '',
     flightDetails: [],
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
@@ -273,6 +276,21 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     updatedItineraries[itineraryIndex].mealsIncluded = currentMeals;
     form.setValue('itineraries', updatedItineraries);
   };
+
+  const convertToSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/ /g, '-')
+      .replace(/[^\w-]+/g, '');
+  }
+
+  // Update slug when label changes
+  useEffect(() => {
+    const tourPackageName = form.getValues('tourPackageName');
+    const slug = convertToSlug(tourPackageName || '');
+    form.setValue('slug', slug);
+  }, [form.watch('tourPackageName')]);
+
 
   const onSubmit = async (data: TourPackageFromTourPackageQueryFormValues) => {
 
@@ -1246,6 +1264,20 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                 <FormMessage />
               </FormItem>
             )} />
+
+          <FormField
+            control={form.control}
+            name="slug"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Slug</FormLabel>
+                <FormControl>
+                  <Input disabled={loading} placeholder="Tour Package Slug" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
 
           <Button disabled={loading} className="ml-auto" type="submit">

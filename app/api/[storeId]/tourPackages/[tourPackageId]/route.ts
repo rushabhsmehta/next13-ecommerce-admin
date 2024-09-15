@@ -180,6 +180,7 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
+      slug,
     } = body;
 
     console.log(flightDetails);
@@ -265,7 +266,8 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-
+      slug,
+      
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {

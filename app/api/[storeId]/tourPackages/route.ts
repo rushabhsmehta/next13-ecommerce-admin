@@ -95,6 +95,7 @@ export async function POST(
             assignedTo,
             assignedToMobileNumber,
             assignedToEmail,
+            slug,
             isFeatured,
             isArchived } = body;
 
@@ -170,6 +171,7 @@ export async function POST(
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
+                slug,
                 //   hotelId,
                 storeId: params.storeId,
                 images: {

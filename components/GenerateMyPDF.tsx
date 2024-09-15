@@ -322,7 +322,6 @@ const parseHTMLContent = (htmlString: string): string => {
     .replace(/<\/li>/g, '\n')                // Replace </li> with newline
     .replace(/<br\s*\/?>/g, '\n')            // Replace <br> tags with newline
     .replace(/<\/?p>/g, '\n')                 // Replace <p> and </p> tags with newline
-    .replace(/➔/g, '')                       // Remove specific character
     .replace(/”/g, '')                       // Remove specific character
     .trim();                                // Trim any leading or trailing whitespace/newlines
 

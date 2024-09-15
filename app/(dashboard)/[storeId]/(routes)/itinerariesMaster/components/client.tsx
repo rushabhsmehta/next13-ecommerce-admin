@@ -32,10 +32,10 @@ export const ItinerariesMasterClient: React.FC<ItinerariesMasterClientProps> = (
         </Button>
       </div>
       <Separator />
-      <DataTableMultiple searchKeys={["itineraryMasterTitle","locationLabel"]} columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Itineraries" />
+       <DataTableMultiple searchKeys={["itineraryMasterTitle","locationLabel"]} columns={columns} data={data} />
+    {/*     <Heading title="API" description="API Calls for Itineraries" />
       <Separator />
-      <ApiList entityName="itineraries" entityIdName="itineraryMasterId" />
+      <ApiList entityName="itineraries" entityIdName="itineraryMasterId" /> */}
     </>
   );
 };

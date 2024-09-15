@@ -32,9 +32,9 @@ export const ActivitiesClient: React.FC<ActivitiesClientProps> = ({
       </div>
       <Separator />
       <DataTable searchKey="activityTitle" columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Activities" />
+      {/* <Heading title="API" description="API Calls for Activities" />
       <Separator />
-      <ApiList entityName="activities" entityIdName="activityId" />
+      <ApiList entityName="activities" entityIdName="activityId" /> */}
     </>
   );
 };

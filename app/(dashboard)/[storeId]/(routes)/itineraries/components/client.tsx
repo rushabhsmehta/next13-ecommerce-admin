@@ -28,10 +28,10 @@ export const ItinerariesClient: React.FC<ItinerariesClientProps> = ({
         </Button>
       </div>
       <Separator />
-      <DataTableMultiple searchKeys={["itineraryTitle","location"]} columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Itineraries" />
+       <DataTableMultiple searchKeys={["itineraryTitle","location"]} columns={columns} data={data} />
+    {/*     <Heading title="API" description="API Calls for Itineraries" />
       <Separator />
-      <ApiList entityName="itineraries" entityIdName="itineraryId" />
+      <ApiList entityName="itineraries" entityIdName="itineraryId" /> */}
     </>
   );
 };

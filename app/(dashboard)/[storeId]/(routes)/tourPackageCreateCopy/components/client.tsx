@@ -31,9 +31,9 @@ export const TourPackageClient: React.FC<TourPackageClientProps> = ({
       </div>
       <Separator />
       <DataTable searchKey="name" columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Tour Package " />
+    {/*     <Heading title="API" description="API Calls for Tour Package " />
       <Separator />
-      <ApiList entityName="tourPackage" entityIdName="tourPackageId" />
+      <ApiList entityName="tourPackage" entityIdName="tourPackageId" /> */}
     </>
   );
 };

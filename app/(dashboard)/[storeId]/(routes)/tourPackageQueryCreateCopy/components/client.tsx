@@ -30,10 +30,10 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
         </Button>
       </div>
       <Separator />
-      <DataTable searchKey="name" columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Tour Package Query" />
+       <DataTable searchKey="name" columns={columns} data={data} />
+     {/*    <Heading title="API" description="API Calls for Tour Package Query" />
       <Separator />
-      <ApiList entityName="tourPackageQuery" entityIdName="tourPackageQueryId" />
+      <ApiList entityName="tourPackageQuery" entityIdName="tourPackageQueryId" /> */}
     </>
   );
 };

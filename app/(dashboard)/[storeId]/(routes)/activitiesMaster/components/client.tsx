@@ -37,10 +37,10 @@ export const ActivitiesMasterClient: React.FC<ActivitiesMasterClientProps> = ({
         </Button>
       </div>
       <Separator />
-      <DataTable searchKey="activityMasterTitle" columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Activities" />
+    <DataTable searchKey="activityMasterTitle" columns={columns} data={data} />
+      {/*   <Heading title="API" description="API Calls for Activities" />
       <Separator />
-      <ApiList entityName="activitiesMaster" entityIdName="activityMasterId" />
+      <ApiList entityName="activitiesMaster" entityIdName="activityMasterId" /> */}
     </>
   );
 };

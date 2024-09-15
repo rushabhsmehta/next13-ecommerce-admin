@@ -31,10 +31,10 @@ export const HotelsClient: React.FC<HotelsClientProps> = ({
         </Button>
       </div>
       <Separator />
-      <DataTable searchKey="name" columns={columns} data={data} />
-      <Heading title="API" description="API Calls for Hotels" />
+       <DataTable searchKey="name" columns={columns} data={data} />
+      {/*   <Heading title="API" description="API Calls for Hotels" />
       <Separator />
-      <ApiList entityName="hotels" entityIdName="hotelId" />
+      <ApiList entityName="hotels" entityIdName="hotelId" /> */}
     </>
   );
 };

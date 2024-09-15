@@ -239,7 +239,7 @@ model TourPackage {
   assignedTo                 String?
   assignedToMobileNumber     String?
   assignedToEmail            String?
- 
+  slug                       String?
   @@index([storeId])
 }
 

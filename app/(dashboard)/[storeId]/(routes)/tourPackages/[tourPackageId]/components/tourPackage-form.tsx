@@ -84,7 +84,7 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
-  tour_highlights : z.string().optional(),
+  tour_highlights: z.string().optional(),
   transport: z.string().optional(),
   pickup_location: z.string().optional(),
   drop_location: z.string().optional(),
@@ -117,6 +117,7 @@ const formSchema = z.object({
   assignedTo: z.string().optional(),
   assignedToMobileNumber: z.string().optional(),
   assignedToEmail: z.string().optional(),
+  slug: z.string().optional(),
 });
 
 type TourPackageFormValues = z.infer<typeof formSchema>
@@ -167,6 +168,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const action = initialData ? 'Save changes' : 'Create';
   //console.log("Initial Data : ", initialData)
 
+
   const transformInitialData = (data: any) => {
     return {
       ...data,
@@ -175,7 +177,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedToEmail: data.assignedToEmail ?? '',
       customerNumber: data.customerNumber ?? '',
       price: data.price ?? '',
-      tour_highlights : data.tour_highlights ?? '',
+      tour_highlights: data.tour_highlights ?? '',
+      slug: data.slug ?? '',
       importantNotes: data.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
@@ -186,6 +189,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         departureTime: flightDetail.departureTime ?? '',
         arrivalTime: flightDetail.arrivalTime ?? '',
         flightDuration: flightDetail.flightDuration ?? '',
+
       })),
 
       itineraries: data.itineraries.map((itinerary: any) => ({
@@ -219,7 +223,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     customerNumber: ' ',
     numDaysNight: ' ',
     period: ' ',
-    tour_highlights : ' ',
+    tour_highlights: ' ',
     transport: ' ',
     pickup_location: ' ',
     drop_location: ' ',
@@ -235,6 +239,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     assignedTo: ' ',
     assignedToMobileNumber: ' ',
     assignedToEmail: ' ',
+    slug: '',
     flightDetails: [],
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
@@ -286,6 +291,20 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     updatedItineraries[itineraryIndex].mealsIncluded = currentMeals;
     form.setValue('itineraries', updatedItineraries);
   };
+
+  const convertToSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/ /g, '-')
+      .replace(/[^\w-]+/g, '');
+  }
+
+  // Update slug when label changes
+  useEffect(() => {
+    const tourPackageName = form.getValues('tourPackageName');
+    const slug = convertToSlug(tourPackageName || '');
+    form.setValue('slug', slug);
+  }, [form.watch('tourPackageName')]);
 
   const onSubmit = async (data: TourPackageFormValues) => {
 
@@ -549,7 +568,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Adult</FormLabel>
                   <FormControl>
-                  {/*   <JoditEditor // Replace Textarea with JoditEditor
+                    {/*   <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
                       value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
@@ -622,25 +641,25 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           </div>
 
           <FormField
-              control={form.control}
-              name="tour_highlights"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tour Highlights</FormLabel>
-                  <FormControl>
-                    <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      value={field.value || ''} // Set initial content from form field value
-                      config={{ // Configure Jodit options (optional)
-                        readonly: loading, // Disable editing if loading                       
-                      }}
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                    />
+            control={form.control}
+            name="tour_highlights"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tour Highlights</FormLabel>
+                <FormControl>
+                  <JoditEditor // Replace Textarea with JoditEditor
+                    ref={editor} // Optional ref for programmatic access
+                    value={field.value || ''} // Set initial content from form field value
+                    config={{ // Configure Jodit options (optional)
+                      readonly: loading, // Disable editing if loading                       
+                    }}
+                    onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                  />
 
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
 
           {/* //add formfield for flightDetails */}
@@ -1423,6 +1442,20 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                       onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Slug</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Tour Package Slug" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />

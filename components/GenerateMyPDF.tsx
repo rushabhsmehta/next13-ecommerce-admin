@@ -76,6 +76,12 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 10,
   },
+  tourPackageTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
   title: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -297,7 +303,6 @@ const styles = StyleSheet.create({
 });
 
 
-
 const customStyles = {
   b: { fontWeight: 700 },
   i: { fontStyle: 'italic' },
@@ -308,11 +313,25 @@ const customStyles = {
   lineBreak: { height: 10 }  // Add more custom styles as needed
 };
 
-const parseHTMLContent = (htmlString: string) => {
-  const parser = new DOMParser();
-  const parsedHTML = parser.parseFromString(htmlString, 'text/html');
-  return parsedHTML.body.textContent || "";
+const parseHTMLContent = (htmlString: string): string => {
+  // Replace <li> tags first, as they may be removed or altered by other replacements
+  let parsedString = htmlString
+    .replace(/<\/?ul>/g, '')                 // Remove <ul> and </ul>
+    .replace(/<\/?strong>/g, '')             // Remove <strong> and </strong>
+    .replace(/<li>/g, '-> ')                 // Replace <li> with '-> '
+    .replace(/<\/li>/g, '\n')                // Replace </li> with newline
+    .replace(/<br\s*\/?>/g, '\n')            // Replace <br> tags with newline
+    .replace(/<\/?p>/g, '\n')                 // Replace <p> and </p> tags with newline
+    .replace(/➔/g, '')                       // Remove specific character
+    .replace(/”/g, '')                       // Remove specific character
+    .trim();                                // Trim any leading or trailing whitespace/newlines
+
+  // Ensure multiple newlines are not collapsed
+  parsedString = parsedString.replace(/\n{2,}/g, '\n\n');
+
+  return parsedString;
 };
+
 
 
 // Create Document Component
@@ -339,7 +358,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
       <Page size="A4" style={styles.page}>
         <View style={styles.card}>
           <View style={styles.header}>
-            <Text style={styles.title}>{data?.tourPackageQueryName}</Text>
+            <Text style={styles.tourPackageTitle}>{data?.tourPackageQueryName}</Text>
           </View>
 
 
@@ -350,8 +369,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 <Text style={styles.tableLabel}>Customer: </Text>
                 <Text style={styles.tableValue}>
                   {data?.customerName} |
-                  {data?.customerNumber} |
-                  {data?.customerNumber} |
+                  {data?.customerNumber} 
                 </Text>
               </View>
 
@@ -558,7 +576,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                   ?.replace(/<\/?ul>/g, '')               // Remove <ul> and </ul>
                   .replace(/<\/li>/g, '\n')              // Replace </li> with newline
                   .replace(/<br\s*\/?>/g, '\n')               // Replace <br> tags with newline
-                  .replace(/<li>/g, '➤  ')               // Replace <li> with "-> "
+                  .replace(/<li>/g, '➔  ')               // Replace <li> with "-> "
                   .replace(/<\/?strong>/g, '')           // Remove <strong> and </strong>
                   .replace(/➔/g, '')
                   .replace(/”/g, '')                       // Remove ”

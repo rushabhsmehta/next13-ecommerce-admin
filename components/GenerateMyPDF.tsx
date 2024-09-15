@@ -6,6 +6,7 @@ import { TourPackageQuery, Images, Itinerary, Activity, FlightDetails, Location,
 import { format, parseISO } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import { MailIcon, PhoneCallIcon, PhoneIcon } from 'lucide-react';
+import parse from 'html-react-parser'; // Assuming you have this installed
 
 interface GenerateMyPDFProps {
   data: TourPackageQuery & {
@@ -303,86 +304,10 @@ const customStyles = {
   ul: { marginLeft: 10, marginBottom: 5 },  // Unordered list
   li: { marginLeft: 10, fontSize: 12 },  // List item
   p: { marginBottom: 10, fontSize: 12 },  // Paragraph
-  separator: { borderBottomWidth: 1, borderBottomColor: '#ddd', marginVertical: 10 }, // Separator line
-  // Add more custom styles as needed
+  separator: { height: 1, backgroundColor: '#ccc' },
+  lineBreak: { height: 10 }  // Add more custom styles as needed
 };
 
-// Define custom styles for parsed HTML content
-const renderHTML = (htmlString: string) => {
-  return htmlReactParser(htmlString, {
-    replace: (node: DOMNode) => {
-      // Handle bold text
-      if (node instanceof Element && node.name === 'b') {
-        return (
-          <Text style={customStyles.b}>
-            {node.children.map((child, index) => {
-              if (child instanceof HtmlTextNode) {
-                return child.data; // Access data for text nodes
-              }
-              return renderHTML(child as any); // Recursively render HTML for other child elements
-            })}
-          </Text>
-        );
-      }
-
-      // Handle italic text
-      if (node instanceof Element && node.name === 'i') {
-        return (
-          <Text style={customStyles.i}>
-            {node.children.map((child, index) => {
-              if (child instanceof HtmlTextNode) {
-                return child.data;
-              }
-              return renderHTML(child as any);
-            })}
-          </Text>
-        );
-      }
-      // Handle unordered list (ul)
-      if (node instanceof Element && node.name === 'ul') {
-        return (
-          <View style={customStyles.ul}>
-            {node.children.map((child, index) => renderHTML(child as any))}
-          </View>
-        );
-      }
-
-      // Handle list item (li)
-      if (node instanceof Element && node.name === 'li') {
-        return (
-          <Text style={customStyles.li}>
-            {node.children.map((child, index) => {
-              if (child instanceof HtmlTextNode) {
-                return child.data;
-              }
-              return renderHTML(child as any);
-            })}
-          </Text>
-        );
-      }
-
-
-      // Handle paragraph (p)
-      if (node instanceof Element && node.name === 'p') {
-        return (
-          <View key={node.name}>
-            <Text style={customStyles.p}>
-              {node.children.map((child, index) => {
-                if (child instanceof HtmlTextNode) {
-                  return child.data;
-                }
-                return renderHTML(child as any);
-              })}
-            </Text>
-            <Text style={styles.lineBreak}></Text>
-            <View style={customStyles.separator} />
-
-          </View>
-        );
-      } return null;
-    },
-  });
-};
 const parseHTMLContent = (htmlString: string) => {
   const parser = new DOMParser();
   const parsedHTML = parser.parseFromString(htmlString, 'text/html');
@@ -425,8 +350,8 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 <Text style={styles.tableLabel}>Customer: </Text>
                 <Text style={styles.tableValue}>
                   {data?.customerName} |
-                  {data?.customerNumber} | 
-                      {data?.customerNumber} |
+                  {data?.customerNumber} |
+                  {data?.customerNumber} |
                 </Text>
               </View>
 
@@ -628,7 +553,20 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
 
               {/* Description Section */}
               <Text style={styles.cardTitle}>{parseHTMLContent(itinerary.itineraryTitle || '')} </Text>
-              <Text style={styles.cardText}>{parseHTMLContent(itinerary.itineraryDescription || '')} </Text>
+              <Text style={styles.cardText}>
+                {itinerary.itineraryDescription
+                  ?.replace(/<\/?ul>/g, '')               // Remove <ul> and </ul>
+                  .replace(/<\/li>/g, '\n')              // Replace </li> with newline
+                  .replace(/<br\s*\/?>/g, '\n')               // Replace <br> tags with newline
+                  .replace(/<li>/g, '➤  ')               // Replace <li> with "-> "
+                  .replace(/<\/?strong>/g, '')           // Remove <strong> and </strong>
+                  .replace(/➔/g, '')
+                  .replace(/”/g, '')                       // Remove ”
+                  .trim()                                // Trim any leading or trailing whitespace/newlines
+                  || ''
+                }
+              </Text>
+
 
               {/* Hotel Section */}
               {itinerary.hotelId && hotels?.find(hotel => hotel.id === itinerary.hotelId) && (

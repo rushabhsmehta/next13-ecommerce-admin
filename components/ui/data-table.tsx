@@ -43,7 +43,12 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       columnFilters,
-    }
+    },
+    initialState: {
+      pagination: {
+        pageSize: 100, // Set the number of rows per page to 10
+      },
+    },
   });
 
   return (

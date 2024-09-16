@@ -5,45 +5,85 @@ import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
 
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs";
+
+import prismadb from "@/lib/prismadb";
+
 export async function GET(
   req: Request,
-  { params }: { params: { tourPackageId: string } }
+  { params }: { params: { tourPackageId?: string, slug?: string } }  // Added optional slug parameter
 ) {
   try {
-    if (!params.tourPackageId) {
-      return new NextResponse("Tour Pacakge  id is required", { status: 400 });
+    // Check if we are fetching by tourPackageId or slug
+    if (!params.tourPackageId && !params.slug) {
+      return new NextResponse("Tour Package ID or slug is required", { status: 400 });
     }
 
-    const tourPackage = await prismadb.tourPackage.findUnique({
-      where: {
-        id: params.tourPackageId
-      },
-      include: {
-        flightDetails: true,
-        images: true,
-        location: true,
-        //hotel: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            activities: {
-              include: {
-                activityImages: true,
-              }
-            }
-          },
-          orderBy: {
-            createdAt: 'asc',
+    let tourPackage;
+    
+    if (params.tourPackageId) {
+      // Fetch tour package by ID
+      tourPackage = await prismadb.tourPackage.findUnique({
+        where: {
+          id: params.tourPackageId,
+        },
+        include: {
+          flightDetails: true,
+          images: true,
+          location: true,
+          itineraries: {
+            include: {
+              itineraryImages: true,
+              activities: {
+                include: {
+                  activityImages: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
           },
         },
-      },
-    },)
+      });
+    } else if (params.slug) {
+      // Fetch tour package by slug
+      tourPackage = await prismadb.tourPackage.findUnique({
+        where: {
+          slug: params.slug,  // Fetch by slug
+        },
+        include: {
+          flightDetails: true,
+          images: true,
+          location: true,
+          itineraries: {
+            include: {
+              itineraryImages: true,
+              activities: {
+                include: {
+                  activityImages: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+      });
+    }
+
+    if (!tourPackage) {
+      return new NextResponse("Tour Package not found", { status: 404 });
+    }
+
     return NextResponse.json(tourPackage);
   } catch (error) {
-    console.log('[TOUR_PACKAGE__GET]', error);
+    console.log('[TOUR_PACKAGE_GET]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
-};
+}
 
 export async function DELETE(
   req: Request,

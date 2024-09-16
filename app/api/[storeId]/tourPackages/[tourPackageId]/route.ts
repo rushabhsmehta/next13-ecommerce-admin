@@ -266,8 +266,7 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-      slug,
-      
+      slug,      
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {

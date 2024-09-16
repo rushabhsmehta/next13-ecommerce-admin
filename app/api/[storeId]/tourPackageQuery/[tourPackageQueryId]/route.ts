@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     if (!params.tourPackageQueryId) {
-      return new NextResponse("Tour Pacakge Query id is required", { status: 400 });
+      return new NextResponse("Tour Package Query id is required", { status: 400 });
     }
 
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({

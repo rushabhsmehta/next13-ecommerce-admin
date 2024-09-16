@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     if (!params.tourPackageId) {
-      return new NextResponse("Tour Pacakge  id is required", { status: 400 });
+      return new NextResponse("Tour Package  id is required", { status: 400 });
     }
 
     const tourPackage = await prismadb.tourPackage.findUnique({

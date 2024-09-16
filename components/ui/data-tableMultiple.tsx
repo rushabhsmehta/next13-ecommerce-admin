@@ -35,6 +35,7 @@ export function DataTableMultiple<TData, TValue>({
   columns,
   data,
   searchKeys,
+  
 }: DataTableMultipleProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -51,6 +52,11 @@ export function DataTableMultiple<TData, TValue>({
     state: {
       globalFilter,
       sorting,
+    },
+    initialState: {
+      pagination: {
+        pageSize: 100, // Set the number of rows per page to 10
+      },
     },
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, columnIds, filterValue) => {

@@ -120,7 +120,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
           </CardDescription>
           <CardDescription className='font-bold text-black'>
-            Voucher Number : {initialData.tourPackageQueryNumber}
+            Voucher Number - {initialData.tourPackageQueryNumber}
           </CardDescription>
         </CardHeader>
 

@@ -506,7 +506,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
     
         {/* Itineraries */}
         {selectedOption === 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-          <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+          <div key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
             <div className="flex items-center justify-between p-4 rounded-t-lg">
               {/* Day and Title grouped */}
               <div>
@@ -516,7 +516,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   }} />
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </Card>
 

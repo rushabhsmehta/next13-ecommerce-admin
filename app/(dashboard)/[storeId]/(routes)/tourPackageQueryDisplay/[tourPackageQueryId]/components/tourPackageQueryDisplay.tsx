@@ -507,7 +507,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         {/* Itineraries */}
         {selectedOption === 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
           <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
+            <div className="flex items-center justify-between p-4 rounded-t-lg">
               {/* Day and Title grouped */}
               <div>
                 <CardTitle className="text-xl font-bold"

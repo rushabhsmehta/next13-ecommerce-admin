@@ -248,7 +248,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
-    tourPackageQueryName: ' ',
+    tourPackageQueryName: '',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',

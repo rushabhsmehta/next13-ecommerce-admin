@@ -335,7 +335,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {selectedOption !== 'SupplierA' && initialData.itineraries && (
-        <Card className="break-inside-avoid border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
+        <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
           <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
         </Card>
       )}
@@ -536,7 +536,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Inclusions Card */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <CheckCircleIcon className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Inclusions</h3>
@@ -552,7 +552,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
       {/* Exclusions Card */}
       {/* Example for Exclusions Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <XCircleIcon className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Exclusions</h3>
@@ -568,7 +568,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Important Notes Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <InfoIcon className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Important Notes</h3>
@@ -579,7 +579,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Payment Policy Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <CreditCardIcon className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Payment Policy</h3>
@@ -590,7 +590,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Terms and Conditions Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <Shield className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Terms and Conditions</h3>
@@ -601,7 +601,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Cancellation Policy Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <XCircleIcon className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Cancellation Policy</h3>
@@ -612,7 +612,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Airline Cancellation Policy Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <PlaneIcon className="w-6 h-6 text-white" />
           <h3 className="text-2xl font-semibold">Airline Cancellation Policy</h3>

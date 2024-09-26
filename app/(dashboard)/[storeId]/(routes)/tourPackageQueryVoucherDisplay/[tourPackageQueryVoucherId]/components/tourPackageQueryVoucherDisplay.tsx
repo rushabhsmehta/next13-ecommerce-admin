@@ -1,7 +1,7 @@
 'use client'
 import Image from 'next/image';
 import Link from 'next/link';
-import { PlaneTakeoffIcon } from "lucide-react";
+import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
@@ -89,8 +89,12 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
-      <Card>
-        <CardHeader className="text-center text-2xl font-bold">Booking Voucher</CardHeader>
+      <Card className="break-inside-avoid font-bold">
+        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
+          <CardTitle className="flex items-center justify-between text-2xl font-bold">
+            <span>Booking Voucher</span>
+          </CardTitle>
+        </CardHeader>
       </Card>
 
       {selectedOption !== 'Empty' && (
@@ -113,131 +117,211 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
       <Card className="break-inside-avoid">
         <CardHeader>
+          <div>
+            <CardDescription className="text-2xl font-bold  mb-4">
+              {initialData.tourPackageQueryNumber}
+            </CardDescription>
+            <CardDescription className="text-xl font-bold  mb-4">
+              {initialData.tourPackageQueryName}
+            </CardDescription>
 
-          <CardTitle>{initialData.tourPackageQueryName}</CardTitle>
-          <CardDescription className='font-bold text-black'>
-            Customer: {initialData.customerName} | {initialData.customerNumber} |
-            Confirmed By: {initialData.assignedTo} | {initialData.assignedToMobileNumber}
-          </CardDescription>
-          <CardDescription className='font-bold text-black'>
-            Voucher Number - {initialData.tourPackageQueryNumber}
-          </CardDescription>
+            {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
+              <CardDescription className="text-xl">
+                <div className="mb-2">
+                  <span className="font-bold">Customer:</span> {initialData.customerName} | {initialData.customerNumber}
+                </div>
+                <div>
+                  <span className="font-bold">Assigned To:</span> {initialData.assignedTo} | {initialData.assignedToMobileNumber} | {initialData.assignedToEmail}
+                </div>
+              </CardDescription>
+            )}
+          </div>
         </CardHeader>
 
 
-        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
-          {initialData.images.map((image, index) => (
-            <div key={index} className="flex justify-center items-center">
-              <Image
-                src={image.url}
-                alt={`Tour Image ${index + 1}`}
-                width={800}
-                height={300}
-                className="rounded-lg object-cover"
-                style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
-              />
-            </div>
-          ))}
-        </CardContent>
+        {initialData.images.map((image, index) => (
+          <div key={index} className="w-full h-[500px]">
+            <Image
+              src={image.url}
+              alt={`Tour Image ${index + 1}`}
+              width={1200}
+              height={500}
+              className="object-cover w-full h-full"// Ensures images are responsive and maintain aspect ratio
+            />
+          </div>
+        ))}
       </Card>
 
       {/* Tour Package Details */}
-      <Card className="break-inside-avoid">
-        <CardHeader>
-
+      <Card className="break-inside-avoid border shadow-lg rounded-lg">
+        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+          <h2 className="text-2xl font-bold">Tour Information</h2>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <div className="font-semibold">Location : {locations.find(location => location.id === initialData.locationId)?.label}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Duration : {initialData.numDaysNight}</div>
+
+        <CardContent className="p-6">
+          <div className="grid gap-6 md:grid-cols-1 text-gray-700">
+            <div className="mb-4">
+              <div className="font-semibold text-xl">
+                Location:
+                <span className="ml-2 text-2xl text-gray-900">
+                  {locations.find(location => location.id === initialData.locationId)?.label}
+                </span>
+              </div>
             </div>
 
-            <div className="flex">
+            {initialData.numDaysNight && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Duration:
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numDaysNight}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex mb-4">
               {initialData.tourStartsFrom && (
-                <div className="font-semibold">Period : {format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</div>
+                <div className="font-semibold text-xl">
+                  Period:
+                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
+                </div>
               )}
-
-
               {initialData.tourEndsOn && (
-                <div className="font-semibold ml-2">To {format(initialData.tourEndsOn, 'dd-MM-yyyy')}</div>
+                <div className="ml-4 font-semibold text-xl">
+                  To:
+                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
+                </div>
               )}
             </div>
 
-            <div>
-              <div className="font-semibold">Transport  : {initialData.transport}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Pickup  : {initialData.pickup_location}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Drop  : {initialData.drop_location}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Adults : {initialData.numAdults}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Children (5 - 12 Years) : {initialData.numChild5to12}</div>
-            </div>
-            <div>
-              <div className="font-semibold">Children (0 - 5 Years) : {initialData.numChild0to5}</div>
-            </div>
+            {initialData.transport && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Transport:
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.transport}</span>
+                </div>
+              </div>
+            )}
+
+            {initialData.pickup_location && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Pickup:
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.pickup_location}</span>
+                </div>
+              </div>
+            )}
+
+            {initialData.drop_location && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Drop:
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.drop_location}</span>
+                </div>
+              </div>
+            )}
+
+            {initialData.numAdults && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Adults:
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numAdults}</span>
+                </div>
+              </div>
+            )}
+
+            {initialData.numChild5to12 && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Children (5 - 12 Years):
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild5to12}</span>
+                </div>
+              </div>
+            )}
+
+            {initialData.numChild0to5 && (
+              <div className="mb-4">
+                <div className="font-semibold text-xl">
+                  Children (0 - 5 Years):
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild0to5}</span>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
-      <Card className="break-inside-avoid">
-        <CardHeader>
+
+      <Card className="break-inside-avoid border shadow-lg rounded-lg">
+        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+          <h2 className="text-2xl font-bold">Tour Pricing</h2>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            {initialData.pricePerAdult !== '' && (
-              <div>
-                <div className="font-semibold">Price per Adult : {initialData.pricePerAdult}</div>
-              </div>
-            )}
-            {initialData.pricePerChildOrExtraBed !== '' && (
-              <div>
-                <div className="font-semibold">Price per Child/Extra Bed : {initialData.pricePerChildOrExtraBed}</div>
-              </div>
-            )}
-            {initialData.pricePerChild5to12YearsNoBed !== '' && (
-              <div>
-                <div className="font-semibold">Price per Child (5-12 Years - No bed) : {initialData.pricePerChild5to12YearsNoBed}</div>
-              </div>
-            )}
-            {initialData.pricePerChildwithSeatBelow5Years !== '' && (
-              <div>
-                <div className="font-semibold">Price per Child with Seat (Below 5 Years) : {initialData.pricePerChildwithSeatBelow5Years}</div>
-              </div>
-            )}
-            {initialData.totalPrice !== '' && (
-              <div>
-                <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
-              </div>
-            )}
 
-          </div>
-        </CardContent>
+        {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+          <CardContent className="p-6">
+            <div className="grid gap-6 md:grid-cols-2 text-gray-700">
+              {/* Price per Adult Section */}
+              {initialData.pricePerAdult !== '' && (
+                <div className="md:col-span-1">
+                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                    <span className="block text-gray-900">Price per Adult:</span>
+                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerAdult}</span>
+                  </div>
+                </div>
+              )}
 
-        <CardContent>
-
-          {initialData.remarks !== '' && (
-            <div>
-              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+              {/* Price for Children Section */}
+              <div className="md:col-span-1 space-y-4">
+                {initialData.pricePerChildOrExtraBed !== '' && (
+                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                    <span className="block text-gray-900">Price for Triple Occupancy:</span>
+                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildOrExtraBed}</span>
+                  </div>
+                )}
+                {initialData.pricePerChild5to12YearsNoBed !== '' && (
+                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                    <span className="block text-gray-900">Price per Child (5-12 Years - No bed):</span>
+                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChild5to12YearsNoBed}</span>
+                  </div>
+                )}
+                {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                    <span className="block text-gray-900">Price per Child with Seat (Below 5 Years):</span>
+                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildwithSeatBelow5Years}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </CardContent>
+        )}
 
-        </CardContent>
+        {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+            <CardContent>
+              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+                Total Price: <span className="text-orange-500">{initialData.totalPrice}</span>
+              </div>
+          </CardContent>
+        )}
+      </Card>
 
-      </Card >
+
+
+      {/* Tour Highlights */}
+      {initialData.tour_highlights && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.tour_highlights !== '' && (
+        <Card className="border rounded-lg shadow-lg p-6">
+          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+            <h2 className="text-2xl font-bold">Tour Highlights</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || ' ' }}></div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Itineraries */}
-      <Card className="bg-gray-100 text-gray-800">
-        <CardTitle className="font-bold px-6 m-6">
-          Itinerary Details
-        </CardTitle>
+      <Card className="break-inside-avoid border shadow-lg rounded-lg">
+        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+          <h2 className="text-2xl font-bold">Short Itinerary</h2>
+        </CardHeader>
+
         {
           initialData.itineraries && initialData.itineraries.map((itinerary, index) => {
             // Remove the initial <p> tag and any closing tags
@@ -251,113 +335,65 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         }
       </Card>
 
-      <Card>
-        <CardContent>
-
-          {initialData.tour_highlights !== '' && (
-            <div>
-              <div dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || '' }}></div>
-            </div>
-          )}
-
-        </CardContent>
-
-      </Card>
-
-
-
-
       {/* Flight Details */}
-      {initialData.flightDetails && initialData.flightDetails.length > 0 && (
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Flight Details</CardTitle>
+      {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
+        <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
+          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+            <CardTitle className="text-2xl font-bold">Flight Details</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Flight
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      From
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Departure Time
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      To
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Arrival Time
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {initialData.flightDetails.map((flight, idx) => (
-                    <tr key={idx}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.flightName} | {flight.flightNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.from}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.departureTime}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.flightDuration}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.to}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {flight.arrivalTime}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
+          {initialData.flightDetails.map((flight, index) => (
+            <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
+              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
+                <div className="text-xl text-gray-700">
+                  <span className="font-semibold">{flight.flightName}</span> |
+                  <span className="ml-1">{flight.flightNumber}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="font-bold text-xs text-gray-700">{flight.from}</div>
+                  <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
+                </div>
+                <div className="mx-2 text-center">
+                  <span className="text-gray-600"><PlaneTakeoffIcon /></span>
+                  <div className="text-xs text-gray-600">{flight.flightDuration}</div>
+                  <hr className="border-t-2 border-gray-400 mx-1" />
+                </div>
+                <div className="flex items-center">
+                  <div className="font-bold text-xs text-gray-700">{flight.to}</div>
+                  <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
+                </div>
+              </div>
+            </CardContent>
+          ))}
         </Card>
       )}
 
 
       {/* Itineraries and Hotel Details */}
       {initialData.itineraries && initialData.itineraries.length > 0 && (
-        <Card className="mb-4 break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Accommodation Details</CardTitle>
+        <Card className="break-inside-avoid border shadow-lg rounded-lg">
+          <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+            <h2 className="text-2xl font-bold">Accomodation Details</h2>
           </CardHeader>
           <CardContent>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 mt-2">
+              <thead className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Day/Date
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Hotel Name
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Number of Rooms
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Room Category
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Meal Plan
                   </th>
                 </tr>
@@ -390,42 +426,108 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </CardContent>
         </Card>
       )}
-
       {/* Payment Policy Card */}
 
-      <Card className="break-inside-avoid">
-        <CardHeader>
-          <CardTitle>Important Notes</CardTitle>
-        </CardHeader>
-        <CardContent dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4">
+        {/* Inclusions Card */}
 
-      <Card className="break-inside-avoid">
-        <CardHeader>
-          <CardTitle>Payment Policy</CardTitle>
-        </CardHeader>
-        <CardContent dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}>
-        </CardContent>
-      </Card>
+        {initialData.remarks !== '' && (
+          <Card className="break-inside-avoid text-3xl">
+            <CardContent>
+              <div>
+                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
-      {/* Cancellation Policy Card */}
-      <Card className="break-inside-avoid">
-        <CardHeader>
-          <CardTitle>Cancellation Policy</CardTitle>
-        </CardHeader>
-        <CardContent dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }} >
-        </CardContent>
-      </Card>
+      {/* Inclusions Card */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <CheckCircleIcon className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Inclusions</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700">
+          <div className="max-w-full overflow-hidden">
+            <div
+              dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }}
+              className="whitespace-normal break-words text-2xl"
+            ></div>
+          </div>
+        </div>
+      </div>
+      {/* Exclusions Card */}
+      {/* Example for Exclusions Section */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <XCircleIcon className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Exclusions</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700">
+          <div className="max-w-full overflow-hidden">
+            <div
+              dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}
+              className="whitespace-normal break-words text-2xl"
+            ></div>
+          </div>
+        </div>
+      </div>
 
-      {/* Airline Cancellation Policy Card */}
-      <Card className="break-inside-avoid">
-        <CardHeader>
-          <CardTitle>Airline Cancellation Policy</CardTitle>
-        </CardHeader>
-        <CardContent dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
-        </CardContent>
-      </Card>
+      {/* Important Notes Section */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <InfoIcon className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Important Notes</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700 w-full">
+          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}></div>
+        </div>
+      </div>
+
+      {/* Payment Policy Section */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <CreditCardIcon className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Payment Policy</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700 w-full">
+          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}></div>
+        </div>
+      </div>
+
+      {/* Terms and Conditions Section */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <Shield className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Terms and Conditions</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700 w-full">
+          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}></div>
+        </div>
+      </div>
+
+      {/* Cancellation Policy Section */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <XCircleIcon className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Cancellation Policy</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700 w-full">
+          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}></div>
+        </div>
+      </div>
+
+      {/* Airline Cancellation Policy Section */}
+      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+        <div className="flex items-center space-x-2 p-4">
+          <PlaneIcon className="w-6 h-6 text-white" />
+          <h3 className="text-2xl font-semibold">Airline Cancellation Policy</h3>
+        </div>
+        <div className="p-4 bg-white text-gray-700 w-full">
+          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}></div>
+        </div>
+      </div>
     </div>
   );
 };

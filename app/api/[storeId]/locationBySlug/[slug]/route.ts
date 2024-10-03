@@ -5,16 +5,16 @@ import prismadb from "@/lib/prismadb";
 
 export async function GET(
   req: Request,
-  { params }: { params: { tags : string } }
+  { params }: { params: { slug : string } }
 ) {
   try {
-    if (!params.tags) {
-      return new NextResponse("Location Tag is required", { status: 400 });
+    if (!params.slug) {
+      return new NextResponse("Location Slug is required", { status: 400 });
     }
 
     const location = await prismadb.location.findFirst({
       where: {
-        tags : params.tags
+        slug : params.slug
       }
     });
   

@@ -12,7 +12,7 @@ export async function GET(
       return new NextResponse("Location Tag is required", { status: 400 });
     }
 
-    const location = await prismadb.location.findUnique({
+    const location = await prismadb.location.findFirst({
       where: {
         tags : params.tags
       }

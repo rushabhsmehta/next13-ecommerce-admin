@@ -14,88 +14,88 @@ export function MainNav({
 
   const routes = [
     {
-      href: `/${params.storeId}`,
+      href: ``,
       label: 'Overview',
-      active: pathname === `/${params.storeId}`,
+      active: pathname === ``,
     },
     /*  {
-      href: `/${params.storeId}/billboards`,
+      href: `/billboards`,
       label: 'Billboards',
-      active: pathname === `/${params.storeId}/bill boards`,
+      active: pathname === `/bill boards`,
     },  */   
     {
-      href: `/${params.storeId}/locations`,
+      href: `/locations`,
       label: 'Locations',
-      active: pathname === `/${params.storeId}/locations`,
+      active: pathname === `/locations`,
     },
     {
-      href: `/${params.storeId}/hotels`,
+      href: `/hotels`,
       label: 'Hotels',
-      active: pathname === `/${params.storeId}/hotels`,
+      active: pathname === `/hotels`,
     },
     {
-      href: `/${params.storeId}/itinerariesMaster`,
+      href: `/itinerariesMaster`,
       label: 'Itineraries',
-      active: pathname === `/${params.storeId}/itinerariesMaster`,
+      active: pathname === `/itinerariesMaster`,
     },
     {
-      href: `/${params.storeId}/activitiesMaster`,
+      href: `/activitiesMaster`,
       label: 'Activities',
-      active: pathname === `/${params.storeId}/activitiesMaster`,
+      active: pathname === `/activitiesMaster`,
     },
     {
-      href: `/${params.storeId}/tourPackages`,
+      href: `/tourPackages`,
       label: 'Tour Packages',
-      active: pathname === `/${params.storeId}/tourPackages`,
+      active: pathname === `/tourPackages`,
     },
     {
-      href: `/${params.storeId}/tourPackageQuery`,
+      href: `/tourPackageQuery`,
       label: 'Tour Package Query',
-      active: pathname === `/${params.storeId}/tourPackageQuery`,
+      active: pathname === `/tourPackageQuery`,
     },
 
     {
-      href: `/${params.storeId}/reports`,
+      href: `/reports`,
       label: 'Reports',
-      active: pathname === `/${params.storeId}/reports`,
+      active: pathname === `/reports`,
     },
     
     /* {
-      href: `/${params.storeId}/itineraries`,
+      href: `/itineraries`,
       label: 'Itineraries',
-      active: pathname === `/${params.storeId}/itineraries`,
+      active: pathname === `/itineraries`,
     },
 
     {
-      href: `/${params.storeId}/categories`,
+      href: `/categories`,
       label: 'Categories',
-      active: pathname === `/${params.storeId}/categories`,
+      active: pathname === `/categories`,
     },
      {
-      href: `/${params.storeId}/sizes`,
+      href: `/sizes`,
       label: 'Sizes',
-      active: pathname === `/${params.storeId}/sizes`,
+      active: pathname === `/sizes`,
     },
     {
-      href: `/${params.storeId}/colors`,
+      href: `/colors`,
       label: 'Colors',
-      active: pathname === `/${params.storeId}/colors`,
+      active: pathname === `/colors`,
     },
     {
-      href: `/${params.storeId}/products`,
+      href: `/products`,
       label: 'Products',
-      active: pathname === `/${params.storeId}/products`,
+      active: pathname === `/products`,
     }, 
     
     {
-      href: `/${params.storeId}/orders`,
+      href: `/orders`,
       label: 'Orders',
-      active: pathname === `/${params.storeId}/orders`,
+      active: pathname === `/orders`,
     }, */
     {
-      href: `/${params.storeId}/settings`,
+      href: `/settings`,
       label: 'Settings',
-      active: pathname === `/${params.storeId}/settings`,
+      active: pathname === `/settings`,
     },
   ]
 

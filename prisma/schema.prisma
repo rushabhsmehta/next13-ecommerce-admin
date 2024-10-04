@@ -8,51 +8,14 @@ datasource db {
   relationMode = "prisma"
 }
 
-model Store {
-  id               String             @id @default(uuid())
-  name             String
-  userId           String
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  billboards       Billboard[]        @relation("StoreToBillboard")
-  locations        Location[]         @relation("StoreToLocation")
-  hotels           Hotel[]            @relation("StoreToHotel")
-  activities       Activity[]         @relation("StoreToActivity")
-  activitiesMaster ActivityMaster[]   @relation("StoreToActivityMaster")
-  itineraries      Itinerary[]        @relation("StoreToItinerary")
-  itinerariesMaster      ItineraryMaster[]        @relation("StoreToItineraryMaster")
-  categories       Category[]         @relation("StoreToCategory")
-  products         Product[]          @relation("StoreToProduct")
-  sizes            Size[]             @relation("StoreToSize")
-  colors           Color[]            @relation("StoreToColor")
-  orders           Order[]            @relation("StoreToOrder")
-  tourPackages     TourPackage[]      @relation("StoreTotourPackage")
-  tourPackageQuery TourPackageQuery[] @relation("StoreTotourPackageQuery")
-}
-
-model Billboard {
-  id         String     @id @default(uuid())
-  storeId    String
-  label      String
-  imageUrl   String
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  store      Store      @relation("StoreToBillboard", fields: [storeId], references: [id])
-  categories Category[]
-
-  @@index([storeId])
-}
-
 model Location {
   id               String             @id @default(uuid())
-  storeId          String
   label            String
   imageUrl         String
   tags             String?            @db.Text
   slug             String?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
-  store            Store              @relation("StoreToLocation", fields: [storeId], references: [id])
   hotels           Hotel[]
   activities       Activity[]
   activitiesMaster ActivityMaster[]
@@ -62,70 +25,25 @@ model Location {
   tourPackages     TourPackage[]      @relation("LocationTotourPackage")
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
 
-  @@index([storeId])
+  @@index([id])
 }
 
 model Hotel {
   id           String        @id @default(uuid())
-  storeId      String
   locationId   String
   name         String
   images       Images[]
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  store        Store         @relation("StoreToHotel", fields: [storeId], references: [id])
+  updatedAt    DateTime      @default(now())
   location     Location      @relation(fields: [locationId], references: [id])
   itineraries  Itinerary[]   @relation("ItineraryToHotel")
   itinerariesMaster  ItineraryMaster[]   @relation("ItineraryMasterToHotel")
 
-
-  @@index([storeId])
   @@index([locationId])
-}
-
-model Category {
-  id          String    @id @default(uuid())
-  storeId     String
-  billboardId String
-  name        String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  store       Store     @relation("StoreToCategory", fields: [storeId], references: [id])
-  billboard   Billboard @relation(fields: [billboardId], references: [id])
-  products    Product[] @relation("CategoryToProduct")
-
-  @@index([storeId])
-  @@index([billboardId])
-}
-
-model Product {
-  id         String      @id @default(uuid())
-  storeId    String
-  categoryId String
-  name       String
-  price      Decimal
-  isFeatured Boolean     @default(false)
-  isArchived Boolean     @default(false)
-  sizeId     String
-  colorId    String
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  store      Store       @relation("StoreToProduct", fields: [storeId], references: [id])
-  category   Category    @relation("CategoryToProduct", fields: [categoryId], references: [id])
-  size       Size        @relation(fields: [sizeId], references: [id])
-  color      Color       @relation(fields: [colorId], references: [id])
-  images     Images[]
-  orderItems OrderItem[]
-
-  @@index([storeId])
-  @@index([categoryId])
-  @@index([sizeId])
-  @@index([colorId])
 }
 
 model TourPackageQuery {
   id                        String          @id @default(uuid())
-  storeId                   String
   tourPackageQueryNumber    String?
   tourPackageQueryName      String? 
   customerName              String?
@@ -160,8 +78,7 @@ model TourPackageQuery {
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
-  store                     Store           @relation("StoreTotourPackageQuery", fields: [storeId], references: [id])
+  updatedAt                 DateTime        @default(now())
   location                  Location        @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
@@ -171,7 +88,7 @@ model TourPackageQuery {
   assignedTo                 String?
   assignedToMobileNumber     String?
   assignedToEmail            String?
-  @@index([storeId])
+  @@index([locationId])
 }
 
 model FlightDetails {
@@ -197,7 +114,6 @@ model FlightDetails {
 
 model TourPackage {
   id                        String      @id @default(uuid())
-  storeId                   String
   tourPackageName           String?
   customerName              String?
   customerNumber            String?
@@ -228,8 +144,7 @@ model TourPackage {
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @updatedAt
-  store                     Store           @relation("StoreTotourPackage", fields: [storeId], references: [id])
+  updatedAt                 DateTime        @default(now())
   location                  Location        @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
@@ -240,62 +155,51 @@ model TourPackage {
   assignedToMobileNumber     String?
   assignedToEmail            String?
   slug                       String?
-  @@index([storeId])
+  @@index([locationId])
 }
 
 model Activity {
   id           String     @id @default(uuid())
-  storeId      String
   locationId   String
 
-  store        Store         @relation("StoreToActivity", fields: [storeId], references: [id])
   location     Location      @relation(fields: [locationId], references: [id])
   
   activityImages      Images[]
   activityTitle       String?     @db.Text
   activityDescription String?     @db.Text
   createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  updatedAt   DateTime   @default(now())
   itineraryId String?
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   itineraryMasterId String?
   itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
 
-
-  @@index([storeId])
   @@index([locationId])
   @@index([itineraryId])
   @@index([itineraryMasterId])
-
 }
 
 model ActivityMaster {
   id          String     @id @default(uuid())
-  storeId      String
   locationId   String
 
-  store        Store         @relation("StoreToActivityMaster", fields: [storeId], references: [id])
   location     Location      @relation(fields: [locationId], references: [id])
   
   activityMasterImages      Images[]
   activityMasterTitle       String?     @db.Text
   activityMasterDescription String?     @db.Text
   createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  updatedAt   DateTime   @default(now())
   itineraryId String?
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
-  @@index([storeId])
   @@index([locationId])
   @@index([itineraryId])
 }
 
 model Itinerary {
   id          String            @id @default(uuid())
-
-  storeId     String
-  store       Store         @relation("StoreToItinerary", fields: [storeId], references: [id])
 
   locationId   String
   location     Location      @relation(fields: [locationId], references: [id])
@@ -313,24 +217,19 @@ model Itinerary {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
   activitiesMaster   ActivityMaster[]
 
-  @@index([storeId])
   @@index([locationId])
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
 }
 
-
 model ItineraryMaster {
   id          String            @id @default(uuid())
-
-  storeId     String
-  store       Store         @relation("StoreToItineraryMaster", fields: [storeId], references: [id])
 
   locationId   String
   location     Location      @relation(fields: [locationId], references: [id])
@@ -348,78 +247,23 @@ model ItineraryMaster {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
 
-  @@index([storeId])
   @@index([locationId])
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
 }
 
-
-model Order {
-  id         String      @id @default(uuid())
-  storeId    String
-  isPaid     Boolean     @default(false)
-  phone      String      @default("")
-  address    String      @default("")
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  store      Store       @relation("StoreToOrder", fields: [storeId], references: [id])
-  orderItems OrderItem[]
-
-  @@index([storeId])
-}
-
-model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  productId String
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
-
-  @@index([orderId])
-  @@index([productId])
-}
-
-model Size {
-  id        String    @id @default(uuid())
-  storeId   String
-  name      String
-  value     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  store     Store     @relation("StoreToSize", fields: [storeId], references: [id])
-  products  Product[]
-
-  @@index([storeId])
-}
-
-model Color {
-  id        String    @id @default(uuid())
-  storeId   String
-  name      String
-  value     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  store     Store     @relation("StoreToColor", fields: [storeId], references: [id])
-  products  Product[]
-
-  @@index([storeId])
-}
-
 model Images {
   id                 String            @id @default(uuid())
-  productId          String?
   tourPackageId      String?
   tourPackageQueryId String?
   url                String
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  product            Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  updatedAt          DateTime          @default(now())
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   hotelId            String?
@@ -437,7 +281,6 @@ model Images {
   activitiesMasterId String?
   activitiesMaster   ActivityMaster?    @relation(fields: [activitiesMasterId], references: [id], onDelete: Cascade) 
   
-  @@index([productId])
   @@index([hotelId])
   @@index([itinerariesId])
   @@index([itinerariesMasterId])

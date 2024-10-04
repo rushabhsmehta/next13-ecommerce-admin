@@ -4,7 +4,8 @@ import { TourPackageQueryVoucherDisplay } from "./components/tourPackageQueryVou
 import Navbar from "@/components/navbar";
 
 const tourPackageQueryVoucherPage = async ({
-
+  params
+}: {
   params: { tourPackageQueryVoucherId: string }
 }) => {
   const tourPackageQueryVoucher = await prismadb.tourPackageQuery.findUnique({
@@ -36,15 +37,11 @@ const tourPackageQueryVoucherPage = async ({
   console.log("Fetched tourPackage Query Voucher:", tourPackageQueryVoucher);
 
   const locations = await prismadb.location.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       images: true,
     }

@@ -3,7 +3,8 @@ import prismadb from "@/lib/prismadb";
 
 
 const ViewPDFPage = async ({
-
+  params
+}: {
   params: { PDFPageID: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
@@ -35,15 +36,11 @@ const ViewPDFPage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       images: true,
     }

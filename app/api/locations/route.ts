@@ -52,9 +52,7 @@ export async function GET(
   try {
   
     const locations = await prismadb.location.findMany({
-      where: {
-        storeId: params.storeId
-      }
+     
     });
   
     return NextResponse.json(locations);

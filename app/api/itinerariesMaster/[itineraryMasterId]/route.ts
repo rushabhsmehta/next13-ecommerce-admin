@@ -5,7 +5,7 @@ import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
 // GET method to retrieve a specific itinerary master
-export async function GET(req: Request, { params }: {params : { itineraryMasterId : string}}) {
+export async function GET(req: Request, { params }: { params: { itineraryMasterId: string } }) {
   try {
     if (!params.itineraryMasterId) {
       return new NextResponse("Itinerary id is required", { status: 400 });
@@ -37,7 +37,7 @@ export async function GET(req: Request, { params }: {params : { itineraryMasterI
 };
 
 // DELETE method to delete a specific itinerary master
-export async function DELETE(req: Request, { params }: { params : {itineraryMasterId : string, storeId : string }}) {
+export async function DELETE(req: Request, { params }: { params: { itineraryMasterId: string } }) {
   try {
     const { userId } = auth();
 
@@ -49,9 +49,9 @@ export async function DELETE(req: Request, { params }: { params : {itineraryMast
       return new NextResponse("Itinerary id is required", { status: 400 });
     }
 
-   
 
-    
+
+
 
     const itineraryMaster = await prismadb.itineraryMaster.delete({
       where: {
@@ -67,7 +67,7 @@ export async function DELETE(req: Request, { params }: { params : {itineraryMast
 };
 
 // PATCH method to update a specific itinerary master
-export async function PATCH(req: Request, { params }: { params : {itineraryMasterId : string, storeId : string }}) {
+export async function PATCH(req: Request, { params }: { params: { itineraryMasterId: string } }) {
   try {
     const { userId } = auth();
     const body = await req.json();
@@ -107,87 +107,71 @@ export async function PATCH(req: Request, { params }: { params : {itineraryMaste
       return new NextResponse("Description is required", { status: 400 });
     }
 
-    if (!params.storeId) {
-      return new NextResponse("Store id is required", { status: 400 });
-}
 
-
-const storeByUserId = await prismadb.store.findFirst({
-  where: {
-    id: params.storeId,
-    userId,
-  }
-});
-
-if (!storeByUserId) {
-  return new NextResponse("Unauthorized", { status: 405 });
-}
-
-const operations = [];
-const itineraryMasterUpdateData = {
-  locationId,
-  tourPackageId,
-  tourPackageQueryId,
-  itineraryMasterTitle,
-  itineraryMasterDescription,
-  dayNumber,
-  days,
-  hotelId,
-  numberofRooms,
-  roomCategory,
-  mealsIncluded,
-  itineraryMasterImages: {
-    deleteMany: {},
-    createMany: {
-      data: itineraryMasterImages.map((image: { url: any; }) => ({ url: image.url })),
-    },
-  },
-  activities: {
-    deleteMany: {},
-  },
-};
-
-operations.push(prismadb.itineraryMaster.update({
-  where: { id: params.itineraryMasterId },
-  data: itineraryMasterUpdateData,
-}));
-
-activities.forEach((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-  const activityData = {
-    storeId: params.storeId,
-    itineraryMasterId: params.itineraryMasterId,
-    activityTitle: activity.activityTitle,
-    activityDescription: activity.activityDescription,
-    locationId: activity.locationId,
-    activityImages: {
-      createMany: {
-        data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+    const operations = [];
+    const itineraryMasterUpdateData = {
+      locationId,
+      tourPackageId,
+      tourPackageQueryId,
+      itineraryMasterTitle,
+      itineraryMasterDescription,
+      dayNumber,
+      days,
+      hotelId,
+      numberofRooms,
+      roomCategory,
+      mealsIncluded,
+      itineraryMasterImages: {
+        deleteMany: {},
+        createMany: {
+          data: itineraryMasterImages.map((image: { url: any; }) => ({ url: image.url })),
+        },
       },
-    },
-  };
+      activities: {
+        deleteMany: {},
+      },
+    };
 
-  operations.push(prismadb.activity.create({ data: activityData }));
-});
+    operations.push(prismadb.itineraryMaster.update({
+      where: { id: params.itineraryMasterId },
+      data: itineraryMasterUpdateData,
+    }));
 
-await prismadb.$transaction(operations);
+    activities.forEach((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+      const activityData = {
+        itineraryMasterId: params.itineraryMasterId,
+        activityTitle: activity.activityTitle,
+        activityDescription: activity.activityDescription,
+        locationId: activity.locationId,
+        activityImages: {
+          createMany: {
+            data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
+          },
+        },
+      };
 
-const updatedItineraryMaster = await prismadb.itineraryMaster.findUnique({
-  where: { id: params.itineraryMasterId },
-  include: {
-    location: true,
-    itineraryMasterImages: true,
-    activities: {
+      operations.push(prismadb.activity.create({ data: activityData }));
+    });
+
+    await prismadb.$transaction(operations);
+
+    const updatedItineraryMaster = await prismadb.itineraryMaster.findUnique({
+      where: { id: params.itineraryMasterId },
       include: {
-        activityImages: true,
+        location: true,
+        itineraryMasterImages: true,
+        activities: {
+          include: {
+            activityImages: true,
+          },
+        },
       },
-    },
-  },
-});
+    });
 
-return NextResponse.json(updatedItineraryMaster);
-} catch (error) {
-console.log('[ITINERARY_PATCH]', error);
-return new NextResponse("Internal error", { status: 500 });
-}
+    return NextResponse.json(updatedItineraryMaster);
+  } catch (error) {
+    console.log('[ITINERARY_PATCH]', error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
 };
-    
+

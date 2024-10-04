@@ -13,12 +13,12 @@ export function MainNav({
   const params = useParams();
 
   const routes = [
-    {
+   /* {
       href: ``,
       label: 'Overview',
       active: pathname === ``,
     },
-    /*  {
+      {
       href: `/billboards`,
       label: 'Billboards',
       active: pathname === `/bill boards`,

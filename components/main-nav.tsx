@@ -91,12 +91,12 @@ export function MainNav({
       href: `/orders`,
       label: 'Orders',
       active: pathname === `/orders`,
-    }, */
+    }, 
     {
       href: `/settings`,
       label: 'Settings',
       active: pathname === `/settings`,
-    },
+    },*/
   ]
 
   return (

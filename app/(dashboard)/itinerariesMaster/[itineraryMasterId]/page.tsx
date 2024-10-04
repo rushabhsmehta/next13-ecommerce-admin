@@ -4,8 +4,9 @@ import { ItineraryMasterForm } from "./components/itineraryMaster-form";
 import Navbar from "@/components/navbar";
 
 const ItineraryMasterPage = async ({
-
-  params: { itineraryMasterId: string }
+  params
+}: {
+  params: { itineraryMasterId: string, storeId: string }
 }) => {
   const itineraryMaster = await prismadb.itineraryMaster.findUnique({
     where: {
@@ -25,9 +26,7 @@ const ItineraryMasterPage = async ({
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       activityMasterImages: true,
     },
@@ -39,9 +38,7 @@ const ItineraryMasterPage = async ({
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
 

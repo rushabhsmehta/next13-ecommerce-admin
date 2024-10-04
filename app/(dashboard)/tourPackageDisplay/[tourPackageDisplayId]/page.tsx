@@ -4,7 +4,8 @@ import { TourPackageDisplay } from "./components/tourPackageDisplay";
 import Navbar from "@/components/navbar";
 
 const tourPackageDisplayPage = async ({
-
+  params
+}: {
   params: { tourPackageDisplayId: string }
 }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
@@ -36,15 +37,11 @@ const tourPackageDisplayPage = async ({
   console.log("Fetched tourPackage :", tourPackage);
 
   const locations = await prismadb.location.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+   
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       images: true,
     }

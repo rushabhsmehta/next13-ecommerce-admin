@@ -4,8 +4,7 @@ import Navbar from "@/components/navbar";
 
 
 const tourPackageQueryFromTourPackagePage = async ({
-  params
-}: {
+
   params: { tourPackageQueryFromTourPackageId: string }
 }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({

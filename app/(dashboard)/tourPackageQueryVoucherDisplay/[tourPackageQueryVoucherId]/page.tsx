@@ -4,8 +4,7 @@ import { TourPackageQueryVoucherDisplay } from "./components/tourPackageQueryVou
 import Navbar from "@/components/navbar";
 
 const tourPackageQueryVoucherPage = async ({
-  params
-}: {
+
   params: { tourPackageQueryVoucherId: string }
 }) => {
   const tourPackageQueryVoucher = await prismadb.tourPackageQuery.findUnique({

@@ -7,8 +7,7 @@ import { ActivitiesMasterClient } from "./components/client";
 import Navbar from "@/components/navbar";
 
 const ActivitiesMasterPage = async ({
-  params
-}: {
+
 }) => {
   const activitiesMaster = await prismadb.activityMaster.findMany({
     

@@ -7,8 +7,7 @@ import { TourPackageColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
 
 const tourPackagePage = async ({
-  params
-}: {
+
 }) => {
   const tourPackage = await prismadb.tourPackage.findMany({
     

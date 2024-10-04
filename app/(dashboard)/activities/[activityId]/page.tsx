@@ -3,8 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { ActivityForm } from "./components/activity-form";
 
 const ActivityPage = async ({
-  params
-}: {
+
   params: { activityId: string }
 }) => {
   const activity = await prismadb.activity.findUnique({

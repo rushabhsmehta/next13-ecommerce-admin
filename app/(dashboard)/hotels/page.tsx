@@ -6,9 +6,8 @@ import { HotelColumn } from "./components/columns"
 import { HotelsClient } from "./components/client";
 import Navbar from "@/components/navbar";
 
-const HotelsPage = async ({
-  params
-}: {
+const HotelsPage = async ({  
+
 }) => {
   const hotels = await prismadb.hotel.findMany({
     

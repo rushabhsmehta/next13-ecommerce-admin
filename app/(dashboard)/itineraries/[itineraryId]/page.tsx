@@ -4,8 +4,9 @@ import { ItineraryForm } from "./components/itinerary-form";
 import Navbar from "@/components/navbar";
 
 const ItineraryPage = async ({
-
-  params: { itineraryId: string }
+  params
+}: {
+  params: { itineraryId: string, storeId: string }
 }) => {
   const itinerary = await prismadb.itinerary.findUnique({
     where: {
@@ -29,9 +30,7 @@ const ItineraryPage = async ({
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
 

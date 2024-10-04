@@ -3,7 +3,8 @@ import prismadb from "@/lib/prismadb";
 import { LocationForm } from "./components/location-form";
 
 const LocationPage = async ({
-
+  params
+}: {
   params: { locationId: string }
 }) => {
   const location = await prismadb.location.findUnique({

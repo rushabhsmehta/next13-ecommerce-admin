@@ -4,7 +4,8 @@ import Navbar from "@/components/navbar";
 
 
 const tourPackageQueryFromTourPackagePage = async ({
-
+  params
+}: {
   params: { tourPackageQueryFromTourPackageId: string }
 }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
@@ -34,21 +35,15 @@ const tourPackageQueryFromTourPackagePage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       activityMasterImages: true,
     },
@@ -56,9 +51,7 @@ const tourPackageQueryFromTourPackagePage = async ({
   );
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       itineraryMasterImages: true,
       activities: {

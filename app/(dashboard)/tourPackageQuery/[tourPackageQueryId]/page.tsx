@@ -5,7 +5,8 @@ import { Turret_Road } from "next/font/google";
 import Navbar from "@/components/navbar";
 
 const tourPackageQueryPage = async ({
-
+  params
+}: {
   params: { tourPackageQueryId: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
@@ -35,21 +36,15 @@ const tourPackageQueryPage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       activityMasterImages: true,
     },
@@ -57,9 +52,7 @@ const tourPackageQueryPage = async ({
   );
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       itineraryMasterImages: true,
       activities: {

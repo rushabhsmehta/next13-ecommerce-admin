@@ -4,7 +4,8 @@ import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCre
 import Navbar from "@/components/navbar";
 
 const tourPackageQueryPage = async ({
-
+  params
+}: {
   params: { tourPackageQueryCreateCopyId: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
@@ -34,21 +35,15 @@ const tourPackageQueryPage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const hotels = await prismadb.hotel.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    where: {
-      storeId: params.storeId,
-    },
+    
     include: {
       activityMasterImages: true,
     },

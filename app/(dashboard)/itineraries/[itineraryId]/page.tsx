@@ -4,8 +4,7 @@ import { ItineraryForm } from "./components/itinerary-form";
 import Navbar from "@/components/navbar";
 
 const ItineraryPage = async ({
-  params
-}: {
+
   params: { itineraryId: string }
 }) => {
   const itinerary = await prismadb.itinerary.findUnique({

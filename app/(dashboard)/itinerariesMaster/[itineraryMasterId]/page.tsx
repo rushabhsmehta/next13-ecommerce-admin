@@ -4,8 +4,7 @@ import { ItineraryMasterForm } from "./components/itineraryMaster-form";
 import Navbar from "@/components/navbar";
 
 const ItineraryMasterPage = async ({
-  params
-}: {
+
   params: { itineraryMasterId: string }
 }) => {
   const itineraryMaster = await prismadb.itineraryMaster.findUnique({

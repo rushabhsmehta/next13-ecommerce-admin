@@ -3,8 +3,7 @@ import prismadb from "@/lib/prismadb";
 
 
 const ViewPDFPage = async ({
-  params
-}: {
+
   params: { PDFPageID: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({

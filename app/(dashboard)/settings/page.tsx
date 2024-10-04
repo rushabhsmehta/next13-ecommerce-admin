@@ -7,8 +7,7 @@ import { SettingsForm } from "./components/settings-form";
 import Navbar from "@/components/navbar";
 
 const SettingsPage = async ({
-  params
-}: {
+
 }) => {
   const { userId } = auth();
 

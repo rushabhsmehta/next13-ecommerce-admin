@@ -7,8 +7,7 @@ import { LocationClient } from "./components/client";
 import Navbar from "@/components/navbar";
 
 const LocationsPage = async ({
-  params
-}: {
+
 }) => {
   const locations = await prismadb.location.findMany({
     

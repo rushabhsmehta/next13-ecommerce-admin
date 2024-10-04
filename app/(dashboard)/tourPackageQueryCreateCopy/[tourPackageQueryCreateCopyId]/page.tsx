@@ -4,8 +4,7 @@ import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCre
 import Navbar from "@/components/navbar";
 
 const tourPackageQueryPage = async ({
-  params
-}: {
+
   params: { tourPackageQueryCreateCopyId: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({

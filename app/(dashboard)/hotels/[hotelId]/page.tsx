@@ -4,8 +4,7 @@ import { HotelForm } from "./components/hotel-form";
 import Navbar from "@/components/navbar";
 
 const HotelPage = async ({
-  params
-}: {
+
   params: { hotelId: string }
 }) => {
   const hotel = await prismadb.hotel.findUnique({

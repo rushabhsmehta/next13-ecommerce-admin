@@ -7,8 +7,7 @@ import { ItinerariesMasterClient } from "./components/client";
 import Navbar from "@/components/navbar";
 
 const ItinerariesMasterPage = async ({
-  params
-}: {
+
 }) => {
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
     

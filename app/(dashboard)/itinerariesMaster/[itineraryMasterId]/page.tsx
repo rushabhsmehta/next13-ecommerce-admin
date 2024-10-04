@@ -6,7 +6,7 @@ import Navbar from "@/components/navbar";
 const ItineraryMasterPage = async ({
   params
 }: {
-  params: { itineraryMasterId: string, storeId: string }
+  params: { itineraryMasterId: string }
 }) => {
   const itineraryMaster = await prismadb.itineraryMaster.findUnique({
     where: {

@@ -4,11 +4,10 @@ import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 export const dynamic = 'force-dynamic';
 
-async function createItineraryAndActivities(itinerary: { storeId: string, itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageId: any) {
+async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
     // First, create the itinerary and get its id
     const createdItinerary = await prismadb.itinerary.create({
         data: {
-            storeId: storeId,
             itineraryTitle: itinerary.itineraryTitle,
             itineraryDescription: itinerary.itineraryDescription,
             locationId: itinerary.locationId,
@@ -30,11 +29,10 @@ async function createItineraryAndActivities(itinerary: { storeId: string, itiner
 
     // Next, create activities linked to this itinerary
     if (itinerary.activities && itinerary.activities.length > 0) {
-        await Promise.all(itinerary.activities.map((activity: { storeId: string, activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+        await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
             console.log("Received Activities is ", activity);
             return prismadb.activity.create({
                 data: {
-                    storeId: storeId,
                     itineraryId: createdItinerary.id, // Link to the created itinerary
                     activityTitle: activity.activityTitle,
                     activityDescription: activity.activityDescription,
@@ -122,20 +120,8 @@ export async function POST(
                return new NextResponse("Hotel id is required", { status: 400 });
            }
     */
-        if (!params.storeId) {
-            return new NextResponse("Store id is required", { status: 400 });
-        }
+       
 
-        const storeByUserId = await prismadb.store.findFirst({
-            where: {
-                id: params.storeId,
-                userId
-            }
-        });
-
-        if (!storeByUserId) {
-            return new NextResponse("Unauthorized", { status: 405 });
-        }
 
         const newTourPackage = await prismadb.tourPackage.create({
             data: {
@@ -191,7 +177,7 @@ export async function POST(
 
         if (itineraries && itineraries.length > 0) {
             for (const itinerary of itineraries) {
-                await createItineraryAndActivities(itinerary, params.storeId, newTourPackage.id);
+                await createItineraryAndActivities(itinerary, newTourPackage.id);
             }
         }
 
@@ -212,7 +198,6 @@ export async function POST(
 
 export async function GET(
     req: Request,
-    { params }: { params: { storeId: string } },
 ) {
     try {
         const { searchParams } = new URL(req.url)
@@ -220,9 +205,7 @@ export async function GET(
         //  const hotelId = searchParams.get('hotelId') || undefined;
         const isFeatured = searchParams.get('isFeatured');
 
-        if (!params.storeId) {
-            return new NextResponse("Store id is required", { status: 400 });
-        }
+      
 
         const tourPackage = await prismadb.tourPackage.findMany({
             where: {

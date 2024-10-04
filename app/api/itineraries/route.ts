@@ -48,10 +48,10 @@ export async function POST(
       return new NextResponse("Description is required", { status: 400 });
     }
 
-  
-   
 
-    
+
+
+
 
     const itinerary = await prismadb.itinerary.create({
       data: {
@@ -74,9 +74,9 @@ export async function POST(
         // Create activities for this itinerary
         activities: {
           createMany: {
-            data: activities.map((activity: { storeId : string, locationId : string, itineraryId : string,activityTitle: string; activityDescription: string; activityImages: { url : string }[]; }) => ({
-                    locationId: activity.locationId,
-              itineraryId : activity.itineraryId,
+            data: activities.map((activity: { locationId: string, itineraryId: string, activityTitle: string; activityDescription: string; activityImages: { url: string }[]; }) => ({
+              locationId: activity.locationId,
+              itineraryId: activity.itineraryId,
               activityTitle: activity.activityTitle,
               activityDescription: activity.activityDescription,
               // Consider defining activityImages inside the map function
@@ -103,24 +103,24 @@ export async function GET(
   req: Request,
 ) {
   try {
-  
+
     const itineraries = await prismadb.itinerary.findMany({
-   
+
       include: {
-        location : true,
-      /*   activities :
-        {
-        include : 
-        {
-          activityImages : true,
-        },
-      }, */
-   },
-    orderBy: {
+        location: true,
+        /*   activities :
+          {
+          include : 
+          {
+            activityImages : true,
+          },
+        }, */
+      },
+      orderBy: {
         createdAt: 'desc',
-    }
+      }
     });
-  
+
     return NextResponse.json(itineraries);
   } catch (error) {
     console.log('[ITINERARIES_GET]', error);

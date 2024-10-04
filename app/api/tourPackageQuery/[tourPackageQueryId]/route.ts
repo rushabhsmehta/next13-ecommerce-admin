@@ -62,14 +62,9 @@ export async function DELETE(
       return new NextResponse("Tour Package Query Id is required", { status: 400 });
     }
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId
-      }
-    });
 
-    
+
+
 
     const tourPackageQuery = await prismadb.tourPackageQuery.delete({
       where: {
@@ -84,17 +79,16 @@ export async function DELETE(
   }
 };
 
-async function createItineraryAndActivities(itinerary: { storeId : string,  itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageQueryId: any) {
+async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber: any; days: any; hotelId: any; numberofRooms: any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageQueryId: any) {
   // First, create the itinerary and get its id
   const createdItinerary = await prismadb.itinerary.create({
     data: {
-      storeId: storeId,
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
       locationId: itinerary.locationId,
       tourPackageId: itinerary.tourPackageId,
       tourPackageQueryId: tourPackageQueryId,
-      dayNumber : itinerary.dayNumber,
+      dayNumber: itinerary.dayNumber,
       days: itinerary.days,
       hotelId: itinerary.hotelId,
       numberofRooms: itinerary.numberofRooms,
@@ -110,11 +104,10 @@ async function createItineraryAndActivities(itinerary: { storeId : string,  itin
 
   // Next, create activities linked to this itinerary
   if (itinerary.activities && itinerary.activities.length > 0) {
-    await Promise.all(itinerary.activities.map((activity: { storeId : string, activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+    await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
       console.log("Received Activities is ", activity);
       return prismadb.activity.create({
         data: {
-          storeId: storeId,          
           itineraryId: createdItinerary.id, // Link to the created itinerary
           activityTitle: activity.activityTitle,
           activityDescription: activity.activityDescription,
@@ -146,7 +139,7 @@ export async function PATCH(
       tourPackageQueryNumber,
       tourPackageQueryName,
       customerName,
-      customerNumber,  
+      customerNumber,
       numDaysNight,
       locationId,
       period,
@@ -196,17 +189,17 @@ export async function PATCH(
       return new NextResponse("Tour Package id is required", { status: 400 });
     }
 
- /*    if (!tourPackageQueryName) {
-      return new NextResponse("Tour Package Query Name is required", { status: 400 });
-    }
-
-    if (!images || !images.length) {
-      return new NextResponse("Images are required", { status: 400 });
-    }
-
-    if (!price) {
-      return new NextResponse("Price is required", { status: 400 });
-    } */
+    /*    if (!tourPackageQueryName) {
+         return new NextResponse("Tour Package Query Name is required", { status: 400 });
+       }
+   
+       if (!images || !images.length) {
+         return new NextResponse("Images are required", { status: 400 });
+       }
+   
+       if (!price) {
+         return new NextResponse("Price is required", { status: 400 });
+       } */
 
     if (!locationId) {
       return new NextResponse("Location id is required", { status: 400 });
@@ -217,14 +210,7 @@ export async function PATCH(
     } */
 
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId
-      }
-    });
 
-    
 
 
     const tourPackageUpdateData =
@@ -285,12 +271,12 @@ export async function PATCH(
         deleteMany: {},
       },
 
-      flightDetails : {
-        deleteMany : {},
+      flightDetails: {
+        deleteMany: {},
         createMany: {
           data: [
-              ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
-      }
+            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
+        }
       }
     }
 
@@ -302,30 +288,30 @@ export async function PATCH(
     });
 
 
-   /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageQueryId: string; }) => {
-      const flightDetailData =
-      {
-        date: flightDetail.date,
-        flightName: flightDetail.flightName,
-        flightNumber: flightDetail.flightNumber,
-        from: flightDetail.from,
-        to: flightDetail.to,
-        departureTime: flightDetail.departureTime,
-        arrivalTime: flightDetail.arrivalTime,
-        flightDuration: flightDetail.flightDuration,
-        tourPackageQueryId: params.tourPackageQueryId,
-      }
+    /*  flightDetails.forEach((flightDetail: { date: string; flightName: string; flightNumber: string; from: string; to: string; departureTime: string; arrivalTime: string; flightDuration: string; tourPackageQueryId: string; }) => {
+       const flightDetailData =
+       {
+         date: flightDetail.date,
+         flightName: flightDetail.flightName,
+         flightNumber: flightDetail.flightNumber,
+         from: flightDetail.from,
+         to: flightDetail.to,
+         departureTime: flightDetail.departureTime,
+         arrivalTime: flightDetail.arrivalTime,
+         flightDuration: flightDetail.flightDuration,
+         tourPackageQueryId: params.tourPackageQueryId,
+       }
+ 
+       operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
+     }
+     );
+  */
 
-      operations.push(prismadb.flightDetails.create({ data: flightDetailData }));
-    }
-    );
- */
 
-    
     if (itineraries && itineraries.length > 0) {
       // Map each itinerary to a promise to create the itinerary and its activities
-      const itineraryPromises = itineraries.map((itinerary : any)=> 
-        createItineraryAndActivities(itinerary, params.storeId, params.tourPackageQueryId)
+      const itineraryPromises = itineraries.map((itinerary: any) =>
+        createItineraryAndActivities(itinerary, params.tourPackageQueryId)
       );
 
       // Wait for all itinerary promises to resolve

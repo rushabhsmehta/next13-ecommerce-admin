@@ -4,10 +4,9 @@ import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
 // First, create the itinerary and get its id
-async function createActivities(activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }, storeId: any, itineraryMasterId: string) {
+async function createActivities(activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }, itineraryMasterId: string) {
   return prismadb.activity.create({
     data: {
-      storeId: storeId,
       itineraryId: itineraryMasterId,
       activityTitle: activity.activityTitle,
       activityDescription: activity.activityDescription,
@@ -22,7 +21,7 @@ async function createActivities(activity: { activityTitle: any; activityDescript
 }
 
 // POST function to create itinerary and activities
-export async function POST(req: Request, {params} : {params : { storeId : string}}) {
+export async function POST(req: Request) {
   try {
     const { userId } = auth();
     const body = await req.json();
@@ -62,15 +61,6 @@ export async function POST(req: Request, {params} : {params : { storeId : string
       return new Response("Description is required", { status: 400 });
     }
 
-    if (!params.storeId) {
-      return new Response("Store id is required", { status: 400 });
-    }
-
-   
-
-    if (!storeByUserId) {
-      return new Response("Unauthorized", { status: 405 });
-    }
 
     const itineraryMaster = await prismadb.itineraryMaster.create({
       data: {
@@ -95,7 +85,7 @@ export async function POST(req: Request, {params} : {params : { storeId : string
 
     if (activities && activities.length > 0) {
       const activityPromises = activities.map((activity: any) =>
-        createActivities(activity, params.storeId, itineraryMaster.id)
+        createActivities(activity, itineraryMaster.id)
       );
       await Promise.all(activityPromises);
     }

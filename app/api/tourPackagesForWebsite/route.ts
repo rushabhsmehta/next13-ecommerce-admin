@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
     req: Request,
-    { params }: { params: { storeId: string } },
 ) {
     try {
         const { searchParams } = new URL(req.url)
@@ -15,9 +14,7 @@ export async function GET(
         //  const hotelId = searchParams.get('hotelId') || undefined;
         const isFeatured = searchParams.get('isFeatured');
 
-        if (!params.storeId) {
-            return new NextResponse("Store id is required", { status: 400 });
-        }
+    
 
         const tourPackage = await prismadb.tourPackage.findMany({
             where: {

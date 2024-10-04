@@ -60,13 +60,6 @@ export async function DELETE(
       return new NextResponse("Tour Package  Id is required", { status: 400 });
     }
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId
-      }
-    });
-
     
 
     const tourPackage = await prismadb.tourPackage.delete({
@@ -82,11 +75,10 @@ export async function DELETE(
   }
 };
 
-async function createItineraryAndActivities(itinerary: { storeId : string,  itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any;  roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, storeId: any, tourPackageId: any) {
+async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any;  roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
   // First, create the itinerary and get its id
   const createdItinerary = await prismadb.itinerary.create({
     data: {
-      storeId: storeId,
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
       locationId: itinerary.locationId,
@@ -108,12 +100,11 @@ async function createItineraryAndActivities(itinerary: { storeId : string,  itin
 
   // Next, create activities linked to this itinerary
   if (itinerary.activities && itinerary.activities.length > 0) {
-    await Promise.all(itinerary.activities.map((activity: { storeId : string, activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+    await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
       console.log("Received Activities is ", activity);
       return prismadb.activity.create({
         data: {
-          storeId: storeId,          
-          itineraryId: createdItinerary.id, // Link to the created itinerary
+                    itineraryId: createdItinerary.id, // Link to the created itinerary
           activityTitle: activity.activityTitle,
           activityDescription: activity.activityDescription,
           locationId: activity.locationId,
@@ -212,13 +203,6 @@ export async function PATCH(
     } */
 
 
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId
-      }
-    });
-
     
 
 
@@ -314,7 +298,7 @@ export async function PATCH(
     if (itineraries && itineraries.length > 0) {
       // Map each itinerary to a promise to create the itinerary and its activities
       const itineraryPromises = itineraries.map((itinerary : any)=> 
-        createItineraryAndActivities(itinerary, params.storeId, params.tourPackageId)
+        createItineraryAndActivities(itinerary, params.tourPackageId)
       );
 
       // Wait for all itinerary promises to resolve

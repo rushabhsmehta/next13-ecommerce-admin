@@ -564,21 +564,13 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Price Per Adult</FormLabel>
                   <FormControl>
-                    {/*   <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      value={field.value || ''} // Set initial content from form field value
-                      config={{ // Configure Jodit options
-                        readonly: loading, // Disable editing if loading                
-                      }} // Type assertion (optional)
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                    /> */}
                     <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            {/* 
             <FormField
               control={form.control}
               name="pricePerChildOrExtraBed"
@@ -619,7 +611,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
             <FormField
               control={form.control}
@@ -644,7 +636,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               )}
             />
 
-          {/*   <FormField
+            {/*   <FormField
               control={form.control}
               name="totalPrice"
               render={({ field }) => (

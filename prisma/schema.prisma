@@ -65,7 +65,7 @@ model TourPackageQuery {
   pricePerChildOrExtraBed   String?
   pricePerChild5to12YearsNoBed String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                String?
+  totalPrice                String? @db.Text
   remarks                   String? @db.Text
   inclusions                String? @db.Text
   exclusions                String? @db.Text
@@ -132,7 +132,7 @@ model TourPackage {
   pricePerChildOrExtraBed   String?
   pricePerChild5to12YearsNoBed String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                String?
+  totalPrice                String? @db.Text
   inclusions                String? @db.Text
   exclusions                String? @db.Text
   importantNotes            String? @db.Text

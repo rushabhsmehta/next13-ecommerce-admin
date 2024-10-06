@@ -206,7 +206,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
-            locationId: activity.locationId ?? '',
+          locationId: activity.locationId ?? '',
           activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
@@ -226,7 +226,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     pickup_location: '',
     drop_location: '',
     numAdults: '',
-    numChild5to12:  '',
+    numChild5to12: '',
     numChild0to5: '',
     price: '',
     pricePerAdult: '',
@@ -317,7 +317,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           ...activity,
           // activityTitle : activity.activityTitle,
           // activityDescription : activity.activityDescription,
-            locationId: data.locationId,
+          locationId: data.locationId,
 
           //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
         }))
@@ -628,12 +628,35 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormItem>
                   <FormLabel>Total Price</FormLabel>
                   <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      config={editorConfig}
+                      value={field.value || ''} // Set initial content from form field value
+
+                      /*  config={{ // Configure Jodit options (optional)
+                         readonly: loading, // Disable editing if loading                       
+                       }} */
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+          {/*   <FormField
+              control={form.control}
+              name="totalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Price</FormLabel>
+                  <FormControl>
                     <Input disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
           </div>
 
           <FormField

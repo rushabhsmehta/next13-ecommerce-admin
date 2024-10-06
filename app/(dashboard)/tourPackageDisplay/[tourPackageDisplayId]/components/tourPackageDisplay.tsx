@@ -58,8 +58,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           )}
           {initialData.totalPrice !== '' && (
             <div>
-              <div className="font-semibold">Total Price : {initialData.totalPrice}</div>
-            </div>
+              <div className="font-semibold"  dangerouslySetInnerHTML={{ __html: initialData.totalPrice || '' }} /></div>
           )}
 
         </CardHeader>

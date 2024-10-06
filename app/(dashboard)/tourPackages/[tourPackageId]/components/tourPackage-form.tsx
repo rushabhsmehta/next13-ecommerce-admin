@@ -503,6 +503,20 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
             <FormField
               control={form.control}
+              name="numDaysNight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Days/Night</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="transport"
               render={({ field }) => (
                 <FormItem>

@@ -612,7 +612,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 </FormItem>
               )}
             /> */}
-
+          </div>
+          <div>
             <FormField
               control={form.control}
               name="totalPrice"

@@ -1,30 +1,32 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const htmlContent = `
-<html><body><!--StartFragment--><p><br></p><table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; background-color: #f9f9f9;">
+const htmlContent = 
+`<html>
+<body>
+<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; height: 266px;">
     <caption style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #333;">Pricing Details</caption>
     <thead>
-        <tr style="background: linear-gradient(to right, #FF0000, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px;">
-            <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Criteria</th>
-            <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Price</th>
+        <tr>
+            <th style="width: 50%; background: linear-gradient(to right, #FF0000, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Criteria</th>
+            <th style="width: 50%; background: linear-gradient(to right, #FF0000, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Price</th>
         </tr>
     </thead>
     <tbody>
         <tr style="background-color: #f2f2f2;">
-            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Per Couple Cost</strong></td>
+            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Per Person Cost (For 2 Persons Travelling Together)</strong></td>
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
-            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Per Person Cost (On Twin Sharing)</strong></td>
+            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Per Person Cost (For 4 Persons Travelling Together)</strong></td>
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
-            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Single Person in Room</strong></td>
+            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Per Person Cost (For 6 Persons Travelling Together)</strong></td>
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
-            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Third Person in Same Room</strong></td>
+            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Per Person With Extra Bed/Mattress</strong></td>
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
@@ -35,14 +37,12 @@ const htmlContent = `
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Child without Mattress (5 to 11)</strong></td>
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ </td>
         </tr>
-        <tr style="background-color: #f9f9f9;">
+         <tr style="background-color: #f2f2f2;">
             <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Child below 5 years</strong></td>
-            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ </td>
+            <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">₹ Complimentary With Parents Sharing Bed</td>
         </tr>
     </tbody>
 </table>
-<p><br></p>
-<p></p><!--EndFragment-->
 </body>
 </html>
 `;

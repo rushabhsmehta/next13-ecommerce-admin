@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT } from "./defaultValues"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -177,7 +177,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedToEmail: data.assignedToEmail ?? '',
       customerNumber: data.customerNumber ?? '',
       price: data.price ?? '',
-      tour_highlights: data.tour_highlights ?? '',
+      tour_highlights: data.tour_highlights ?? TOUR_HIGHLIGHTS_DEFAULT,
       slug: data.slug ?? '',
       importantNotes: data.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
@@ -675,7 +675,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <FormControl>
                   <JoditEditor // Replace Textarea with JoditEditor
                     ref={editor} // Optional ref for programmatic access
-                    value={field.value || ''} // Set initial content from form field value
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value
                     config={{ // Configure Jodit options (optional)
                       readonly: loading, // Disable editing if loading                       
                     }}

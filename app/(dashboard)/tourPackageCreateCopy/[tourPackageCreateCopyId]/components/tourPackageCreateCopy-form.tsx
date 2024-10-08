@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover"
@@ -222,7 +222,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
-    totalPrice: '',
+    totalPrice: TOTAL_PRICE_DEFAULT,
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -582,7 +582,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
                       config={editorConfig}
-                      value={field.value || ''} // Set initial content from form field value
+                      value={field.value || TOTAL_PRICE_DEFAULT} // Set initial content from form field value
 
                       /*  config={{ // Configure Jodit options (optional)
                          readonly: loading, // Disable editing if loading                       
@@ -619,7 +619,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 <FormControl>
                   <JoditEditor // Replace Textarea with JoditEditor
                     ref={editor} // Optional ref for programmatic access
-                    value={field.value || ''} // Set initial content from form field value
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT } // Set initial content from form field value
                     config={{ // Configure Jodit options (optional)
                       readonly: loading, // Disable editing if loading                       
                     }}

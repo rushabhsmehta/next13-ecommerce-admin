@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT } from "./defaultValues"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT } from "./defaultValues"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -233,7 +233,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
-    totalPrice: '',
+    totalPrice: TOTAL_PRICE_DEFAULT,
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -638,7 +638,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
                       config={editorConfig}
-                      value={field.value || ''} // Set initial content from form field value
+                      value={field.value || TOTAL_PRICE_DEFAULT} // Set initial content from form field value
 
                       /*  config={{ // Configure Jodit options (optional)
                          readonly: loading, // Disable editing if loading                       

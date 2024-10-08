@@ -31,20 +31,34 @@ const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: 
   // console.log("Fetched tourPackage :", tourPackage);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-   
+
     include: {
       activityMasterImages: true,
     },
   }
   );
+
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true,
+        }
+      },
+    }
+  });
+
+
 
   return (
     <><Navbar /><div className="flex-col">
@@ -53,7 +67,8 @@ const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: 
           initialData={tourPackage}
           locations={locations}
           hotels={hotels}
-          activitiesMaster={activitiesMaster} />
+          activitiesMaster={activitiesMaster}
+          itinerariesMaster={itinerariesMaster} />
       </div>
     </div></>
   );

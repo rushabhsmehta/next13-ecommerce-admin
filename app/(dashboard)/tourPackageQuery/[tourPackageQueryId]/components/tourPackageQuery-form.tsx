@@ -56,7 +56,7 @@ import { format } from "date-fns"
 import JoditEditor from "jodit-react";
 
 const editorConfig = {
-  readonly: false, 
+  readonly: false,
   contentStyle: `
     table {
       border: 1px solid black;
@@ -113,7 +113,7 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
-  tour_highlights : z.string().optional(),
+  tour_highlights: z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
   transport: z.string().optional(),
@@ -229,7 +229,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
-            locationId: activity.locationId ?? '',
+          locationId: activity.locationId ?? '',
           activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
@@ -251,7 +251,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     customerNumber: '',
     numDaysNight: '',
     period: '',
-    tour_highlights : '',
+    tour_highlights: '',
     tourStartsFrom: '',
     tourEndsOn: '',
     transport: '',
@@ -334,7 +334,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           ...activity,
           // activityTitle : activity.activityTitle,
           // activityDescription : activity.activityDescription,
-            locationId: data.locationId,
+          locationId: data.locationId,
 
           //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
         }))
@@ -345,7 +345,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     try {
       setLoading(true);
-      if (initialData) {      
+      if (initialData) {
         await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
       } else {
         await axios.post(`/api/tourPackageQuery`, formattedData);
@@ -937,7 +937,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
 
-                  <JoditEditor // Replace Textarea with JoditEditor
+                    <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
                       value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options (optional)
@@ -957,27 +957,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           </div>
 
           <FormField
-              control={form.control}
-              name="tour_highlights"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tour Highlights</FormLabel>
-                  <FormControl>
-                    <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      config = { editorConfig}
-                      value={field.value || ''} // Set initial content from form field value
-                      
-                     /*  config={{ // Configure Jodit options (optional)
-                        readonly: loading, // Disable editing if loading                       
-                      }} */
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                    />
+            control={form.control}
+            name="tour_highlights"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tour Highlights</FormLabel>
+                <FormControl>
+                  <JoditEditor // Replace Textarea with JoditEditor
+                    ref={editor} // Optional ref for programmatic access
+                    config={{ // Configure Jodit options (optional)
+                      readonly: loading, // Disable editing if loading                       
+                    }}
+                    value={field.value || ''} // Set initial content from form field value                      
+                    /*  config={{ // Configure Jodit options (optional)
+                       readonly: loading, // Disable editing if loading                       
+                     }} */
+                    onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                  />
 
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
 
           {/* //add formfield for flightDetails */}
@@ -1328,8 +1329,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   />
                                   <CommandEmpty>No hotel found.</CommandEmpty>
                                   <CommandGroup>
-                                  {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
-                                ].map((hotel) => (
+                                    {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
+                                    ].map((hotel) => (
                                       <CommandItem
                                         value={hotel.name}
                                         key={hotel.id}

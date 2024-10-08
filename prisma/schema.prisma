@@ -78,7 +78,7 @@ model TourPackageQuery {
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
   location                  Location        @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]

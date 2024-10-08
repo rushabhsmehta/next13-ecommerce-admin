@@ -17,7 +17,7 @@ const tourPackagesPage = async ({
    
     },
     orderBy: {
-      createdAt: 'desc'
+      updatedAt : 'desc'
     }
   });
 

@@ -221,7 +221,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     customerNumber: '',
     numDaysNight: '',
     period: '',
-    tour_highlights: '',
+    tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
     transport: '',
     pickup_location: '',
     drop_location: '',

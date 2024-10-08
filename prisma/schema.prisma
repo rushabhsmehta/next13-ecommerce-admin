@@ -34,7 +34,7 @@ model Hotel {
   name         String
   images       Images[]
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   location     Location      @relation(fields: [locationId], references: [id])
   itineraries  Itinerary[]   @relation("ItineraryToHotel")
   itinerariesMaster  ItineraryMaster[]   @relation("ItineraryMasterToHotel")
@@ -144,7 +144,7 @@ model TourPackage {
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
   location                  Location        @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
@@ -168,7 +168,7 @@ model Activity {
   activityTitle       String?     @db.Text
   activityDescription String?     @db.Text
   createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   itineraryId String?
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
@@ -217,7 +217,7 @@ model Itinerary {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
@@ -247,7 +247,7 @@ model ItineraryMaster {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
@@ -263,7 +263,7 @@ model Images {
   tourPackageQueryId String?
   url                String
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   hotelId            String?

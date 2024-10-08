@@ -12,25 +12,25 @@ const tourPackageQueryPage = async ({
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
     
     include: {
-      images: true,
+   //   images: true,
       location: true,
-      flightDetails: true,
-      itineraries: {
-
-        include: {
-          itineraryImages: true,
-          activities:
-          {
-            include:
-            {
-              activityImages: true,
-            }
-          }
-        },
-        orderBy: {
-          days: 'asc' // or 'desc', depending on the desired order
-        }
-      }
+  //    flightDetails: true,
+  //    itineraries: {
+//
+   //     include: {
+   //       itineraryImages: true,
+   //       activities:
+   //       {
+   //         include:
+   //         {
+    //          activityImages: true,
+  //          }
+   //       }
+  //      },
+ //       orderBy: {
+   //       days: 'asc' // or 'desc', depending on the desired order
+   //     }
+   //   }
     },
     orderBy: {
       updatedAt: 'desc'

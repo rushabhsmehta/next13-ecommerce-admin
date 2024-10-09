@@ -34,7 +34,7 @@ import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLU
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover"
-import { CommandInput, CommandEmpty, CommandGroup, CommandItem } from "cmdk"
+import { CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 
 const editorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
@@ -100,14 +100,14 @@ const formSchema = z.object({
   // hotelId: z.string().min(1),
   flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
-  inclusions: z.string(),
-  exclusions: z.string(),
-  importantNotes: z.string(),
-  paymentPolicy: z.string(),
-  usefulTip: z.string(),
-  cancellationPolicy: z.string(),
-  airlineCancellationPolicy: z.string(),
-  termsconditions: z.string(),
+  inclusions: z.string().optional(),
+  exclusions: z.string().optional(),
+  importantNotes: z.string().optional(),
+  paymentPolicy: z.string().optional(),
+  usefulTip: z.string().optional(),
+  cancellationPolicy: z.string().optional(),
+  airlineCancellationPolicy: z.string().optional(),
+  termsconditions: z.string().optional(),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
@@ -211,6 +211,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     customerNumber: '',
     numDaysNight: '',
     period: '',
+    tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
     transport: '',
     pickup_location: '',
     drop_location: '',
@@ -1261,7 +1262,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options (optional)
                         readonly: loading, // Disable editing if loading                       
                       }}
@@ -1283,7 +1284,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                        
                       }} // Type assertion (optional)
@@ -1322,7 +1323,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                
                       }} // Type assertion (optional)
@@ -1343,7 +1344,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                
                       }} // Type assertion (optional)
@@ -1362,7 +1363,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading
 
@@ -1385,7 +1386,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                      
                       }} // Type assertion (optional)
@@ -1405,7 +1406,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                
                       }} // Type assertion (optional)

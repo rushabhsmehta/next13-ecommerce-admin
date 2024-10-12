@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { PlaneTakeoffIcon } from "lucide-react";
+import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackage, Itinerary, FlightDetails, Activity } from "@prisma/client";
 
@@ -36,10 +36,25 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardTitle>{initialData.tourPackageName}</CardTitle>
           <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
 
+          <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+            {initialData.images.map((image, index) => (
+              <div key={index} className="flex justify-center items-center">
+                <Image
+                  src={image.url}
+                  alt={`Tour Image ${index + 1}`}
+                  width={800}
+                  height={300}
+                  className="rounded-lg object-cover"
+                  style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
+                />
+              </div>
+            ))}
+          </CardContent>
+
           {initialData.pricePerAdult !== '' && (
-            <div> Price : 
-            <div dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
-          </div>
+            <div> Price :
+              <div dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
+            </div>
           )}
           {initialData.pricePerChildOrExtraBed !== '' && (
             <div>
@@ -58,25 +73,12 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           )}
           {initialData.totalPrice !== '' && (
             <div>
-              <div className="font-semibold"  dangerouslySetInnerHTML={{ __html: initialData.totalPrice || '' }} /></div>
+              <div className="font-semibold" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || '' }} /></div>
           )}
 
         </CardHeader>
 
-        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
-          {initialData.images.map((image, index) => (
-            <div key={index} className="flex justify-center items-center">
-              <Image
-                src={image.url}
-                alt={`Tour Image ${index + 1}`}
-                width={800}
-                height={300}
-                className="rounded-lg object-cover"
-                style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
-              />
-            </div>
-          ))}
-        </CardContent>
+
       </Card>
 
       {/* Tour Highlights */}
@@ -251,67 +253,93 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
       <div className="grid gap-4">
         {/* Inclusions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Inclusions</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }} >
-          </CardContent>
-        </Card>
-
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <CheckCircleIcon className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Inclusions</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700">
+            <div className="max-w-full overflow-hidden">
+              <div
+                dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }}
+                className="whitespace-normal break-words text-2xl"
+              ></div>
+            </div>
+          </div>
+        </div>
         {/* Exclusions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Exclusions</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}>
-          </CardContent>
-        </Card>
+        {/* Example for Exclusions Section */}
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <XCircleIcon className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Exclusions</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700">
+            <div className="max-w-full overflow-hidden">
+              <div
+                dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}
+                className="whitespace-normal break-words text-2xl"
+              ></div>
+            </div>
+          </div>
+        </div>
 
-        {/* Payment Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Payment Policy</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }} >
-          </CardContent>
-        </Card>
+        {/* Important Notes Section */}
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <InfoIcon className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Important Notes</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700 w-full">
+            <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}></div>
+          </div>
+        </div>
 
-        {/* Useful Tips Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Useful Tips</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.usefulTip || '' }} >
-          </CardContent>
-        </Card>
+        {/* Payment Policy Section */}
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <CreditCardIcon className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Payment Policy</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700 w-full">
+            <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}></div>
+          </div>
+        </div>
 
-        {/* Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}>
-          </CardContent>
-        </Card>
+        {/* Terms and Conditions Section */}
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <Shield className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Terms and Conditions</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700 w-full">
+            <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}></div>
+          </div>
+        </div>
 
-        {/* Airline Cancellation Policy Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Airline Cancellation Policy</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}>
-          </CardContent>
-        </Card>
+        {/* Cancellation Policy Section */}
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <XCircleIcon className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Cancellation Policy</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700 w-full">
+            <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}></div>
+          </div>
+        </div>
 
-        {/* Terms and Conditions Card */}
-        <Card className="break-inside-avoid">
-          <CardHeader>
-            <CardTitle>Terms and Conditions</CardTitle>
-          </CardHeader>
-          <CardContent dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}>
-          </CardContent>
-        </Card>
+        {/* Airline Cancellation Policy Section */}
+        <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
+          <div className="flex items-center space-x-2 p-4">
+            <PlaneIcon className="w-6 h-6 text-white" />
+            <h3 className="text-2xl font-semibold">Airline Cancellation Policy</h3>
+          </div>
+          <div className="p-4 bg-white text-gray-700 w-full">
+            <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}></div>
+          </div>
+        </div>
+
+
       </div>
     </div>
   );

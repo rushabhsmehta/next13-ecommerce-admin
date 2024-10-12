@@ -171,6 +171,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
       slug: data.slug ?? '',
+      price: data.price ?? '',
+      pricePerAdult: data.pricePerAdult ?? '',
+      pricePerChildOrExtraBed: data.pricePerChildOrExtraBed ?? '',
+      pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed ?? '',
+      pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years ?? '',
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -620,7 +625,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 <FormControl>
                   <JoditEditor // Replace Textarea with JoditEditor
                     ref={editor} // Optional ref for programmatic access
-                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT } // Set initial content from form field value
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value
                     config={{ // Configure Jodit options (optional)
                       readonly: loading, // Disable editing if loading                       
                     }}

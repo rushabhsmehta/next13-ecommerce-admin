@@ -38,20 +38,19 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
           <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
             {initialData.images.map((image, index) => (
-              <div key={index} className="flex justify-center items-center">
+              <div key={index} className="w-full h-[500px]">
                 <Image
                   src={image.url}
                   alt={`Tour Image ${index + 1}`}
-                  width={800}
-                  height={300}
-                  className="rounded-lg object-cover"
-                  style={{ maxWidth: '100%', height: 'auto' }} // Ensures images are responsive and maintain aspect ratio
+                  width={1200}
+                  height={500}
+                  className="object-cover w-full h-full"// Ensures images are responsive and maintain aspect ratio
                 />
               </div>
             ))}
           </CardContent>
 
-        {/*   {initialData.pricePerAdult !== '' && (
+          {/*   {initialData.pricePerAdult !== '' && (
             <div> Price :
               <div dangerouslySetInnerHTML={{ __html: initialData.pricePerAdult || '' }}></div>
             </div>

@@ -1,39 +1,36 @@
 const { PrismaClient } = require('@prisma/client');
+
 const prisma = new PrismaClient();
 
-async function updateTotalPriceStyling() {
+async function updateLocationsToTitleCase() {
   try {
-    // Retrieve all TourPackages
-    const tourPackages = await prisma.tourPackage.findMany();
+    // Retrieve all locations
+    const locations = await prisma.location.findMany();
 
-    // Loop through each package and update totalPrice styling
-    for (const pkg of tourPackages) {
-      let updatedContent = pkg.totalPrice;
+    // Function to convert a string to Title Case
+    const toTitleCase = (str) => {
+      return str.replace(/\w\S*/g, (txt) => {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+      });
+    };
 
-      // Add border-right to the relevant <td> elements
-      updatedContent = updatedContent.replace(
-        /<td([^>]*)>([^<]*)<\/td>/g,
-        (match, p1, p2) => {
-          if (p2.includes('₹')) {
-            return `<td${p1} style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">${p2}</td>`;
-          } else {
-            return `<td${p1} style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd;">${p2}</td>`;
-          }
-        }
-      );
+    // Loop through each location and update the label to Title Case
+    for (const location of locations) {
+      const updatedLabel = toTitleCase(location.label);
 
-      // Update the tourPackage with the modified content
-      await prisma.tourPackage.update({
-        where: { id: pkg.id },
-        data: { totalPrice: updatedContent },
+      // Update the location in the database
+      await prisma.location.update({
+        where: { id: location.id },
+        data: { label: updatedLabel },
       });
     }
-    console.log('TotalPrice styling updated successfully.');
+
+    console.log('Location labels updated successfully.');
   } catch (error) {
-    console.error('Error updating totalPrice styling:', error);
+    console.error('Error updating location labels:', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-updateTotalPriceStyling();
+updateLocationsToTitleCase();

@@ -31,6 +31,8 @@ export const LocationClient: React.FC<LocationClientProps> = ({
       </div>
       <Separator />
      <DataTable searchKey="label" columns={columns} data={data} />
+     
+     
     {/*     <Heading title="API" description="API Calls for Locations" />
       <Separator />
       <ApiList entityName="locations" entityIdName="locationId" /> */}

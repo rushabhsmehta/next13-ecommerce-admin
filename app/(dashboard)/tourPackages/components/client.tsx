@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { ApiList } from "@/components/ui/api-list";
 
 import { TourPackageColumn, columns } from "./columns";
+import { DataTableMultiple } from "@/components/ui/data-tableMultiple";
 
 interface TourPackagesClientProps {
   data: TourPackageColumn[];
@@ -30,7 +31,8 @@ export const TourPackagesClient: React.FC<TourPackagesClientProps> = ({
         </Button>
       </div>
       <Separator />
-     <DataTable searchKey="tourPackageName" columns={columns} data={data} />
+     <DataTableMultiple searchKeys={["tourPackageName", "location"]} columns={columns} data={data} />
+
     {/*     <Heading title="API" description="API Calls for Tour Packages" />
       <Separator />
       <ApiList entityName="tourPackages" entityIdName="tourPackageId" /> */}

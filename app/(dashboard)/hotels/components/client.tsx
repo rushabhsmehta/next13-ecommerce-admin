@@ -11,6 +11,7 @@ import { ApiAlert } from "@/components/ui/api-alert";
 
 import { columns, HotelColumn } from "./columns";
 import { ApiList } from "@/components/ui/api-list";
+import { DataTableMultiple } from "@/components/ui/data-tableMultiple";
 
 interface HotelsClientProps {
   data: HotelColumn[];
@@ -31,7 +32,8 @@ export const HotelsClient: React.FC<HotelsClientProps> = ({
         </Button>
       </div>
       <Separator />
-       <DataTable searchKey="name" columns={columns} data={data} />
+       <DataTableMultiple searchKeys={["name", "location"]} columns={columns} data={data} />
+
       {/*   <Heading title="API" description="API Calls for Hotels" />
       <Separator />
       <ApiList entityName="hotels" entityIdName="hotelId" /> */}

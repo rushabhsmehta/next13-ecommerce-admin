@@ -236,3 +236,11 @@ export const TOTAL_PRICE_DEFAULT = `
   </body>
 </html>
 `;
+
+export const TOUR_PACKAGE_TYPE_DEFAULT = 
+[
+    "Luxury",
+    "Deluxe",
+    "Premium",
+    "Superior",  
+]

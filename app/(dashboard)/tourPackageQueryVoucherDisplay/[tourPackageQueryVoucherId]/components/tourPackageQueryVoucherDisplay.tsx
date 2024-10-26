@@ -124,6 +124,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <CardDescription className="text-xl font-bold  mb-4">
               {initialData.tourPackageQueryName}
             </CardDescription>
+            <CardDescription className="text-xl font-bold  mb-4">
+              {initialData.tourPackageQueryType}
+            </CardDescription>
 
             {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
               <CardDescription className="text-xl">

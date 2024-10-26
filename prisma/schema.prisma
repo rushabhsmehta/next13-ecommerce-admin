@@ -45,7 +45,8 @@ model Hotel {
 model TourPackageQuery {
   id                        String          @id @default(uuid())
   tourPackageQueryNumber    String?
-  tourPackageQueryName      String? 
+  tourPackageQueryName      String?
+  tourPackageQueryType      String? 
   customerName              String?
   customerNumber            String?
   numDaysNight              String?
@@ -115,6 +116,7 @@ model FlightDetails {
 model TourPackage {
   id                        String      @id @default(uuid())
   tourPackageName           String?
+  tourPackageType           String?
   customerName              String?
   customerNumber            String?
   numDaysNight              String?

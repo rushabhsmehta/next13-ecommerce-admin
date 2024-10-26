@@ -39,7 +39,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 
 const editorConfig = {
-  readonly: false, 
+  readonly: false,
   contentStyle: `
     table {
       border: 1px solid black;
@@ -91,11 +91,12 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
+  tourPackageQueryType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
-  tour_highlights : z.string().optional(),
+  tour_highlights: z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
   transport: z.string().optional(),
@@ -183,6 +184,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
   const transformInitialData = (data: any) => {
     return {
       ...data,
+      tourPackageQueryType: data.tourPackageType ?? '', // Fallback to empty string if null
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
@@ -211,7 +213,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
-            locationId: activity.locationId ?? '',
+          locationId: activity.locationId ?? '',
           activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
@@ -229,11 +231,12 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
+    tourPackageQueryType: '',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
     period: '',
-    tour_highlights : '',
+    tour_highlights: '',
     tourStartsFrom: '',
     tourEndsOn: '',
     transport: '',
@@ -263,8 +266,8 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: IMPORTANT_NOTES_DEFAULT,
     images: [],
-    itineraries: [],   
-    locationId: '',  
+    itineraries: [],
+    locationId: '',
     isFeatured: false,
     isArchived: false,
   };
@@ -307,7 +310,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
           ...activity,
           // activityTitle : activity.activityTitle,
           // activityDescription : activity.activityDescription,
-            locationId: data.locationId,
+          locationId: data.locationId,
 
           //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
         }))
@@ -355,7 +358,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
 
   return (
     <>
- <Form {...form}>
+      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="grid grid-cols-3 gap-8">
             <FormField
@@ -490,6 +493,25 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                     <Input
                       disabled={loading}
                       placeholder="Tour Package Query Name"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tourPackageQueryType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Query Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Query Type"
                       value={field.value}
                       onChange={field.onChange}
                     />
@@ -872,7 +894,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
 
-                  <JoditEditor // Replace Textarea with JoditEditor
+                    <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
                       value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options (optional)
@@ -892,27 +914,27 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
           </div>
 
           <FormField
-              control={form.control}
-              name="tour_highlights"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tour Highlights</FormLabel>
-                  <FormControl>
-                    <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      config = { editorConfig}
-                      value={field.value || ''} // Set initial content from form field value
-                      
-                     /*  config={{ // Configure Jodit options (optional)
-                        readonly: loading, // Disable editing if loading                       
-                      }} */
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                    />
+            control={form.control}
+            name="tour_highlights"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tour Highlights</FormLabel>
+                <FormControl>
+                  <JoditEditor // Replace Textarea with JoditEditor
+                    ref={editor} // Optional ref for programmatic access
+                    config={editorConfig}
+                    value={field.value || ''} // Set initial content from form field value
 
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                    /*  config={{ // Configure Jodit options (optional)
+                       readonly: loading, // Disable editing if loading                       
+                     }} */
+                    onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                  />
+
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
 
           {/* //add formfield for flightDetails */}

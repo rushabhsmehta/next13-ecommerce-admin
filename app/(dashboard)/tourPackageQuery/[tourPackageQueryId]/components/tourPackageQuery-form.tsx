@@ -109,6 +109,7 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
+  tourPackageQueryType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -247,6 +248,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
+    tourPackageQueryType: '',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
@@ -555,6 +557,25 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <Input
                       disabled={loading}
                       placeholder="Tour Package Query Name"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tourPackageQueryType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Query Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Query Type"
                       value={field.value}
                       onChange={field.onChange}
                     />

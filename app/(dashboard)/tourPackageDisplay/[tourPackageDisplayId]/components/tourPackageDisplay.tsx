@@ -34,6 +34,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
       <Card className="break-inside-avoid">
         <CardHeader>
           <CardTitle>{initialData.tourPackageName}</CardTitle>
+          <CardDescription>{initialData.tourPackageType}</CardDescription>
           <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
 
           <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">

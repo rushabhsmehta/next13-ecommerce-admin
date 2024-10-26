@@ -35,6 +35,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { cn } from "@/lib/utils"
 import JoditEditor from "jodit-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import tourPackageDisplayPage from "@/app/(dashboard)/tourPackageDisplay/[tourPackageDisplayId]/page"
 
 const editorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
@@ -78,6 +79,7 @@ const flightDetailsSchema = z.object({
 
 const formSchema = z.object({
   tourPackageName: z.string().min(1),
+  tourPackageType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -169,6 +171,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     return {
       ...data,
       tourPackageName: data.tourPackageQueryName ?? '',
+      tourPackageType: data.tourPackageQueryType ?? '',
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
@@ -210,6 +213,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
     tourPackageName: '',
+    tourPackageType: '',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
@@ -426,6 +430,26 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="tourPackageType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Type"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
 
             <FormField
               control={form.control}

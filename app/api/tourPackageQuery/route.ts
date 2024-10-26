@@ -61,6 +61,7 @@ export async function POST(
         const {
             tourPackageQueryNumber,
             tourPackageQueryName,
+            tourPackageQueryType,
             customerName,
             customerNumber,  
             numDaysNight,
@@ -129,6 +130,7 @@ export async function POST(
             data: {
                 tourPackageQueryNumber,
                 tourPackageQueryName,
+                tourPackageQueryType,
                 customerName,
                 customerNumber, 
                 numDaysNight,

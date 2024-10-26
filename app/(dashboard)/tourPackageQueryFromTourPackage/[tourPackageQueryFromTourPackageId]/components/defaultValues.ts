@@ -70,3 +70,11 @@ export const USEFUL_TIPS_DEFAULT =
 "∎ SUV will be Sumo/ Innova as per availability.\n" +
 "∎ Disputes, if any, shall be subject to the exclusive jurisdiction of the courts in Kullu/ Manali.\n" +
 "∎ We reserve the right to issue a full refund in case we believe that we are unable to fulfil the services for any technical reasons.";
+
+
+export const TOUR_PACKAGE_QUERY_TYPE_DEFAULT = [
+    "Luxury",
+    "Deluxe",
+    "Premium",
+    "Superior"
+  ];

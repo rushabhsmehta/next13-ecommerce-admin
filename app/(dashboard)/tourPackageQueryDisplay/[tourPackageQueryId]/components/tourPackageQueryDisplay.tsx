@@ -94,6 +94,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <CardTitle className="flex items-center justify-between text-2xl font-bold">
             <span>{initialData.tourPackageQueryName}</span>
           </CardTitle>
+          <CardDescription className="flex items-center justify-between text-2xl font-bold">
+            <span>{initialData.tourPackageQueryType}</span>
+          </CardDescription>
         </CardHeader>
 
         {initialData.images.map((image, index) => (

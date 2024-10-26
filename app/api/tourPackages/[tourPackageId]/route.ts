@@ -133,6 +133,7 @@ export async function PATCH(
 
     const {
       tourPackageName,
+      tourPackageType,
       customerName,
       customerNumber,
       numDaysNight,
@@ -215,6 +216,7 @@ export async function PATCH(
       //  },
       //    data: {
       tourPackageName,
+      tourPackageType,
       customerName,
       customerNumber,
       numDaysNight,

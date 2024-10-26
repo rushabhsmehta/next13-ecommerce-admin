@@ -14,6 +14,7 @@ export type TourPackageQueryColumn = {
   tourPackageQueryNumber: string;
   customerName: string;
   tourPackageQueryName: string;
+  tourPackageQueryType: string;
   assignedTo: string;
   customerNumber: string;
   location: string;
@@ -28,6 +29,10 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
   {
     accessorKey: "tourPackageQueryNumber",
     header: "Query Number",
+  },
+  {
+    accessorKey: "tourPackageQueryType",
+    header: "Type",
   },
   {
     accessorKey: "customerName",

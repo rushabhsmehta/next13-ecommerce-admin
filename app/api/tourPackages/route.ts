@@ -60,6 +60,7 @@ export async function POST(
 
         const {
             tourPackageName,
+            tourPackageType,
             customerName,
             customerNumber,
             numDaysNight,
@@ -126,6 +127,7 @@ export async function POST(
         const newTourPackage = await prismadb.tourPackage.create({
             data: {
                 tourPackageName,
+                tourPackageType,
                 customerName,
                 customerNumber,
                 numDaysNight,

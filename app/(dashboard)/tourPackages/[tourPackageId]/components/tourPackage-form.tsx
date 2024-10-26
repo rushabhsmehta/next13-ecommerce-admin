@@ -80,6 +80,7 @@ const flightDetailsSchema = z.object({
 
 const formSchema = z.object({
   tourPackageName: z.string().optional(),
+  tourPackageType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -217,6 +218,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const defaultValues = initialData ? transformInitialData(initialData) : {
 
     tourPackageName: '',
+    tourPackageType: '',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
@@ -469,6 +471,25 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     <Input
                       disabled={loading}
                       placeholder="Tour Package  Name"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tourPackageType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package  Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Type"
                       value={field.value}
                       onChange={field.onChange}
                     />

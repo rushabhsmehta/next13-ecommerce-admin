@@ -72,6 +72,7 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
+  tourPackageQueryType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -88,7 +89,7 @@ const formSchema = z.object({
   pricePerChild5to12YearsNoBed: z.string().optional(),
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
-  remarks : z.string().optional(),
+  remarks: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),2
   // hotelId: z.string().min(1),
@@ -178,7 +179,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
-            locationId: activity.locationId ?? '',
+          locationId: activity.locationId ?? '',
           activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
@@ -196,6 +197,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
+    tourPackageQueryType: '',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
@@ -212,7 +214,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
-    remarks : '',
+    remarks: '',
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
@@ -280,7 +282,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
           ...activity,
           // activityTitle : activity.activityTitle,
           // activityDescription : activity.activityDescription,
-            locationId: data.locationId,
+          locationId: data.locationId,
 
           //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
         }))
@@ -433,14 +435,33 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
             <FormField
               control={form.control}
-              name="tourPackageQueryName"
+              name="tourPackageQueryNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tour Package Query Name</FormLabel>
+                  <FormLabel>Tour Package Query Number</FormLabel>
                   <FormControl>
                     <Input
                       disabled={loading}
-                      placeholder="Tour Package Query Name"
+                      placeholder="Tour Package Query Number"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tourPackageQueryType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Query Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Query Type"
                       value={field.value}
                       onChange={field.onChange}
                     />
@@ -711,21 +732,21 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               )}
             />
 
-            
-          <FormField
+
+            <FormField
               control={form.control}
               name="remarks"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
-                    <Textarea rows = {5} disabled={loading} placeholder="" {...field} />
+                    <Textarea rows={5} disabled={loading} placeholder="" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
           </div>
 
 

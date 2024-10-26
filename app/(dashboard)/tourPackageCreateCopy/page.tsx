@@ -37,6 +37,7 @@ const tourPackagePage = async ({
   const formattedtourPackage : TourPackageColumn[] = tourPackage.map((item) => ({
     id: item.id,
     tourPackageName : item.tourPackageName ?? '',
+    tourPackageType : item.tourPackageType ?? '',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     price: item.price ?? '',

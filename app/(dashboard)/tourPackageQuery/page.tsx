@@ -41,6 +41,7 @@ const tourPackageQueryPage = async ({
     id: item.id,
     tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
     tourPackageQueryName: item.tourPackageQueryName ?? '',
+    tourPackageQueryType: item.tourPackageQueryType ?? '',
     customerName: item.customerName ?? '',
     assignedTo: item.assignedTo ?? '',
     isFeatured: item.isFeatured,

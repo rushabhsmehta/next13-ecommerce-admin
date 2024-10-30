@@ -242,5 +242,5 @@ export const TOUR_PACKAGE_TYPE_DEFAULT =
     "Luxury",
     "Deluxe",
     "Premium",
-    "Superior",  
+    "Premium Plus",  
 ]

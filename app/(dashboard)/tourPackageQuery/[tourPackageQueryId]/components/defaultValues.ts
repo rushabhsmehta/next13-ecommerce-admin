@@ -76,5 +76,5 @@ export const TOUR_PACKAGE_QUERY_TYPE_DEFAULT =
     "Luxury",
     "Deluxe",
     "Premium",
-    "Superior",  
+    "Premium Plus",  
 ]

@@ -289,7 +289,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {/* Tour Highlights */}
-      {initialData.tour_highlights && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.tour_highlights !== ' ' && (
+      {initialData.tour_highlights  && initialData.tour_highlights !== ' ' && (
         <Card className="border rounded-lg shadow-lg p-6">
           <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-2xl font-bold">Tour Highlights</h2>

@@ -289,7 +289,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {/* Tour Highlights */}
-      {initialData.tour_highlights  && initialData.tour_highlights !== ' ' && (
+      {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
         <Card className="border rounded-lg shadow-lg p-6">
           <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-2xl font-bold">Tour Highlights</h2>
@@ -423,18 +423,45 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-4">
-                      {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                        <div key={imgIndex} className="w-[250px] h-[250px]">
-                          <Image
-                            src={image.url}
-                            alt={`Hotel Image ${imgIndex + 1}`}
-                            className="rounded-lg object-cover w-full h-full"
-                            width={250}
-                            height={250}
-                          />
-                        </div>
-                      ))}
+                    <div>
+                      <div className="grid grid-cols-3 gap-4">
+                        {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                          <div key={imgIndex} className="w-[250px] h-[250px]">
+                            <Image
+                              src={image.url}
+                              alt={`Hotel Image ${imgIndex + 1}`}
+                              className="rounded-lg object-cover w-full h-full"
+                              width={250}
+                              height={250}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-2xl font-bold">Hotel Name:</div>
+                        <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+
+                        {itinerary.numberofRooms && (
+                          <>
+                            <div className="text-2xl font-bold">Number of Rooms:</div>
+                            <p className="text-2xl mb-2">{itinerary.numberofRooms}</p>
+                          </>
+                        )}
+
+                        {itinerary.roomCategory && (
+                          <>
+                            <div className="text-2xl font-bold">Room Category:</div>
+                            <p className="text-2xl mb-2">{itinerary.roomCategory}</p>
+                          </>
+                        )}
+
+                        {itinerary.mealsIncluded && (
+                          <>
+                            <div className="text-2xl font-bold">Meal Plan:</div>
+                            <p className="text-2xl mb-2">{itinerary.mealsIncluded}</p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -506,7 +533,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )}
 
       <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
-    
+
         {/* Itineraries */}
         {selectedOption === 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
           <div key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">

@@ -951,12 +951,22 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Total Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Total Price" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      config={editorConfig}
+                      value={field.value || TOTAL_PRICE_DEFAULT} // Set initial content from form field value
+
+                      /*  config={{ // Configure Jodit options (optional)
+                         readonly: loading, // Disable editing if loading                       
+                       }} */
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
+
 
 
             <FormField
@@ -998,7 +1008,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     config={{ // Configure Jodit options (optional)
                       readonly: loading, // Disable editing if loading                       
                     }}
-                    value={field.value || ''} // Set initial content from form field value                      
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value                      
                     /*  config={{ // Configure Jodit options (optional)
                        readonly: loading, // Disable editing if loading                       
                      }} */

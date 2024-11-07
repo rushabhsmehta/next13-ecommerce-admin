@@ -35,20 +35,32 @@ const tourPackageQueryPage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    
+
     include: {
       activityMasterImages: true,
     },
   }
   );
+
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true,
+        }
+      },
+    }
+  });
 
   return (
     <>
@@ -59,7 +71,8 @@ const tourPackageQueryPage = async ({
             initialData={tourPackageQuery}
             locations={locations}
             hotels={hotels}
-            activitiesMaster={activitiesMaster} />
+            activitiesMaster={activitiesMaster}
+            itinerariesMaster={itinerariesMaster} /> 
         </div>
       </div></>
   );

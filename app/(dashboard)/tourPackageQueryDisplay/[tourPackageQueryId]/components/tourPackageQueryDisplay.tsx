@@ -232,61 +232,61 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </Card>
 
 
-
-      {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
-        <Card className="break-inside-avoid border shadow-lg rounded-lg">
-          <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <h2 className="text-2xl font-bold">Tour Pricing</h2>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid gap-6 md:grid-cols-2 text-gray-700">
-              {/* Price per Adult Section */}
-              {initialData.pricePerAdult !== '' && (
-                <div className="md:col-span-1">
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price per Adult:</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerAdult}</span>
+      <div className="break-inside-avoid">
+        {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+          <Card className= "border shadow-lg rounded-lg">
+            <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+              <h2 className="text-2xl font-bold">Tour Pricing</h2>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid gap-6 md:grid-cols-2 text-gray-700">
+                {/* Price per Adult Section */}
+                {initialData.pricePerAdult !== '' && (
+                  <div className="md:col-span-1">
+                    <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                      <span className="block text-gray-900">Price per Adult:</span>
+                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerAdult}</span>
+                    </div>
                   </div>
+                )}
+
+                {/* Price for Children Section */}
+                <div className="md:col-span-1 space-y-4">
+                  {initialData.pricePerChildOrExtraBed !== '' && (
+                    <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                      <span className="block text-gray-900">Price for Triple Occupancy:</span>
+                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildOrExtraBed}</span>
+                    </div>
+                  )}
+                  {initialData.pricePerChild5to12YearsNoBed !== '' && (
+                    <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                      <span className="block text-gray-900">Price per Child (5-12 Years - No bed):</span>
+                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChild5to12YearsNoBed}</span>
+                    </div>
+                  )}
+                  {initialData.pricePerChildwithSeatBelow5Years !== '' && (
+                    <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
+                      <span className="block text-gray-900">Price per Child with Seat (Below 5 Years):</span>
+                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildwithSeatBelow5Years}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {/* Price for Children Section */}
-              <div className="md:col-span-1 space-y-4">
-                {initialData.pricePerChildOrExtraBed !== '' && (
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price for Triple Occupancy:</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildOrExtraBed}</span>
-                  </div>
-                )}
-                {initialData.pricePerChild5to12YearsNoBed !== '' && (
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price per Child (5-12 Years - No bed):</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChild5to12YearsNoBed}</span>
-                  </div>
-                )}
-                {initialData.pricePerChildwithSeatBelow5Years !== '' && (
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price per Child with Seat (Below 5 Years):</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildwithSeatBelow5Years}</span>
-                  </div>
-                )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
 
 
-      {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
-        <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-          <CardContent>
-            <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
+        {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+          <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
+            <CardContent>
+              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+                Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Tour Highlights */}
       {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
@@ -344,7 +344,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )}
       {/* Itineraries */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-        <Card key={index} className="mb-4 bg-white shadow-lg rounded-lg overflow-hidden">
+        <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
           <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
             {/* Day and Title grouped */}
             <div>

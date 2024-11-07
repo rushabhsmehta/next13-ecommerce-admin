@@ -234,7 +234,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       <div className="break-inside-avoid">
         {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
-          <Card className= "border shadow-lg rounded-lg">
+          <Card className="border shadow-lg rounded-lg">
             <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
               <h2 className="text-2xl font-bold">Tour Pricing</h2>
             </CardHeader>
@@ -344,9 +344,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )}
       {/* Itineraries */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+
         <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
           <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
             {/* Day and Title grouped */}
+            if(index === 0){
+              <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
+            }
+
             <div>
               <CardTitle className="text-2xl font-bold"
                 dangerouslySetInnerHTML={{

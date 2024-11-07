@@ -878,8 +878,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </FormItem>
               )}
             />
-          </div>
-          <div>
+          
             <FormField
               control={form.control}
               name="totalPrice"

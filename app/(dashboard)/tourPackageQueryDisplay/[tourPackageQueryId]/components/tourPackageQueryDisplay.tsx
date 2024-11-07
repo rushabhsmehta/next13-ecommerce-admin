@@ -336,21 +336,18 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
       )}
 
-
-      {selectedOption !== 'SupplierA' && initialData.itineraries && (
-        <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
-          <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
-        </Card>
-      )}
+     
       {/* Itineraries */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
 
         <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+          {index === 0 &&
+            <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
+              <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
+            </Card>}
           <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
             {/* Day and Title grouped */}
-             { index === 0 &&
-              <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
-            }
+
 
             <div>
               <CardTitle className="text-2xl font-bold"

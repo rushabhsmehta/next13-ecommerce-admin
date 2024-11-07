@@ -878,7 +878,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </FormItem>
               )}
             />
-
+          </div>
+          <div>
             <FormField
               control={form.control}
               name="totalPrice"
@@ -941,7 +942,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                     config={{ // Configure Jodit options (optional)
                       readonly: loading, // Disable editing if loading                       
                     }}
-                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT } // Set initial content from form field value                      
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value                      
                     /*  config={{ // Configure Jodit options (optional)
                        readonly: loading, // Disable editing if loading                       
                      }} */

@@ -281,7 +281,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
           <CardContent>
             <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} /> 
+              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
             </div>
           </CardContent>
         </Card>
@@ -290,8 +290,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Tour Highlights */}
       {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
-        <Card className="border rounded-lg shadow-lg p-6">
-          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+        <Card className="break-inside-avoid border shadow-lg rounded-lg">
+          <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-2xl font-bold">Tour Highlights</h2>
           </CardHeader>
           <CardContent>

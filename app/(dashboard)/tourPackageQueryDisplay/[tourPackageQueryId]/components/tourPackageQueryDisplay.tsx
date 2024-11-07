@@ -95,7 +95,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <span>{initialData.tourPackageQueryName}</span>
           </CardTitle>
           <CardTitle className="flex items-center justify-between text-2xl font-bold">
-            <span>{initialData.tourPackageQueryType}</span>
+            <span>{initialData.tourPackageQueryType + "Package"} </span>
           </CardTitle>
         </CardHeader>
 

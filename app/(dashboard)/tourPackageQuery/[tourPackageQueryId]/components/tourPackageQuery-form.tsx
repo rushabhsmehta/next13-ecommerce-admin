@@ -267,7 +267,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
-    totalPrice: TOTAL_PRICE_DEFAULT,
+    totalPrice: '',
     remarks: '',
     assignedTo: '',
     assignedToMobileNumber: '',
@@ -955,7 +955,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
                       config={editorConfig}
-                      value={field.value || TOTAL_PRICE_DEFAULT} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
 
                       /*  config={{ // Configure Jodit options (optional)
                          readonly: loading, // Disable editing if loading                       

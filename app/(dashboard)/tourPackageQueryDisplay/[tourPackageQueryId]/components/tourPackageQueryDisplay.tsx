@@ -281,7 +281,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
           <CardContent>
             <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-              Total Price: <span className="text-orange-500">{initialData.totalPrice}</span>
+              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} /> 
             </div>
           </CardContent>
         </Card>

@@ -338,7 +338,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {selectedOption !== 'SupplierA' && initialData.itineraries && (
-        <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
+        <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
           <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
         </Card>
       )}

@@ -38,7 +38,12 @@ import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { format } from "date-fns"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT } from "@/app/(dashboard)/tourPackageCreateCopy/[tourPackageCreateCopyId]/components/defaultValues"
 
+
+const editorConfig = {
+  readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
+};
 
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
@@ -234,7 +239,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
-    totalPrice: '',
+    totalPrice: TOTAL_PRICE_DEFAULT,
     remarks: '',
     assignedTo: '',
     assignedToMobileNumber: '',
@@ -352,7 +357,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   return (
     <>
 
-<Form {...form}>
+      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="grid grid-cols-3 gap-8">
             <FormField
@@ -881,13 +886,21 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <FormItem>
                   <FormLabel>Total Price</FormLabel>
                   <FormControl>
-                    <Input disabled={loading} placeholder="Total Price" {...field} />
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      config={editorConfig}
+                      value={field.value || TOTAL_PRICE_DEFAULT} // Set initial content from form field value
+
+                      /*  config={{ // Configure Jodit options (optional)
+                         readonly: loading, // Disable editing if loading                       
+                       }} */
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
                   </FormControl>
-                  <FormMessage />
                 </FormItem>
               )}
             />
-
 
             <FormField
               control={form.control}
@@ -928,7 +941,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                     config={{ // Configure Jodit options (optional)
                       readonly: loading, // Disable editing if loading                       
                     }}
-                    value={field.value || ''} // Set initial content from form field value                      
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT } // Set initial content from form field value                      
                     /*  config={{ // Configure Jodit options (optional)
                        readonly: loading, // Disable editing if loading                       
                      }} */

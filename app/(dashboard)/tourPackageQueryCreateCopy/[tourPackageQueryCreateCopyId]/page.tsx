@@ -52,6 +52,10 @@ const tourPackageQueryPage = async ({
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
 
+    where : {
+      locationId : tourPackageQuery?.locationId ?? '',
+    },
+    
     include: {
       itineraryMasterImages: true,
       activities: {

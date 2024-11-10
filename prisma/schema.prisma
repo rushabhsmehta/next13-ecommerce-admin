@@ -92,9 +92,9 @@ model TourPackageQuery {
 
   purchaseDetails           String?  @db.Text
   saleDetails               String?  @db.Text
-  paymentDetails            String?   @db.Text
-  receiptDetails            String?   @db.Text
-  expenseDetails            String?   @db.Text  
+  paymentDetails            String?  @db.Text
+  receiptDetails            String?  @db.Text
+  expenseDetails            String?  @db.Text  
 
   @@index([locationId])
 }

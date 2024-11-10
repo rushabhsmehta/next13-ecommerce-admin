@@ -51,7 +51,6 @@ const tourPackageQueryPage = async ({
   }
   );
 
-  console.log("Tour Package Query Location ID : ", tourPackageQuery?.locationId);
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({   
     
     where : {

@@ -6,29 +6,10 @@ import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, React
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
 import { Activity, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from "@/components/ui/command"
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -39,32 +20,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Separator } from "@/components/ui/separator"
-import { Heading } from "@/components/ui/heading"
-import { AlertModal } from "@/components/modals/alert-modal"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import ImageUpload from "@/components/ui/image-upload"
-import { Checkbox } from "@/components/ui/checkbox"
+
 import { Textarea } from "@/components/ui/textarea"
 import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
-import { cn } from "@/lib/utils"
-import { DatePickerWithRange } from "@/components/DatePickerWithRange"
-import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon } from "@radix-ui/react-icons"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { format } from "date-fns"
-import JoditEditor from "jodit-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 
 
@@ -85,11 +45,8 @@ const itinerarySchema = z.object({
   hotelId: z.string(), // Array of hotel IDs
   numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
-  locationId: z.string(), // Array of hotel IDs
-
-  // hotel : z.string(),
+  locationId: z.string(),
 });
-
 
 const flightDetailsSchema = z.object({
 
@@ -104,50 +61,16 @@ const flightDetailsSchema = z.object({
 
 }); // Assuming an array of flight details
 
+
 const formSchema = z.object({
-  tourPackageQueryNumber: z.string().optional(),
-  tourPackageQueryName: z.string().min(1),
-  tourPackageQueryType: z.string().optional(),
-  customerName: z.string().optional(),
-  customerNumber: z.string().optional(),
-  numDaysNight: z.string().optional(),
-  period: z.string().optional(),
-  tour_highlights: z.string().optional(),
-  tourStartsFrom: z.date().optional(),
-  tourEndsOn: z.date().optional(),
-  transport: z.string().optional(),
-  pickup_location: z.string().optional(),
-  drop_location: z.string().optional(),
-  numAdults: z.string().optional(),
-  numChild5to12: z.string().optional(),
-  numChild0to5: z.string().optional(),
-  // price: z.string().min(1),
-  pricePerAdult: z.string().optional(),
-  pricePerChildOrExtraBed: z.string().optional(),
-  pricePerChild5to12YearsNoBed: z.string().optional(),
-  pricePerChildwithSeatBelow5Years: z.string().optional(),
-  totalPrice: z.string().optional(),
-  remarks: z.string().optional(),
+
   locationId: z.string().min(1),
-  //location : z.string(),
-  // hotelId: z.string().min(1),
+
   flightDetails: flightDetailsSchema.array(),
-  //  hotelDetails: z.string(),
-  inclusions: z.string(),
-  exclusions: z.string(),
-  importantNotes: z.string(),
-  paymentPolicy: z.string(),
-  usefulTip: z.string(),
-  cancellationPolicy: z.string(),
-  airlineCancellationPolicy: z.string(),
-  termsconditions: z.string(),
+
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
-  isFeatured: z.boolean().default(false).optional(),
-  isArchived: z.boolean().default(false).optional(),
-  assignedTo: z.string().optional(),
-  assignedToMobileNumber: z.string().optional(),
-  assignedToEmail: z.string().optional(),
+
   purchaseDetails: z.string().optional(),
   saleDetails: z.string().optional(),
   paymentDetails: z.string().optional(),
@@ -158,59 +81,21 @@ const formSchema = z.object({
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
-  initialData: TourPackageQuery & {
-    images: Images[];
-    itineraries: Itinerary[];
-    flightDetails: FlightDetails[];
-  } | null;
-  locations: Location[];
-  hotels: Hotel[];
-  activitiesMaster: (ActivityMaster & {
-    activityMasterImages: Images[];
-  })[] | null;
-  itinerariesMaster: (ItineraryMaster & {
-    itineraryMasterImages: Images[];
-    activities: (Activity & {
-      activityImages: Images[];
-    })[] | null;
-
-  })[] | null;
+  initialData: TourPackageQuery | null;
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   initialData,
-  locations,
-  hotels,
-  activitiesMaster,
-  itinerariesMaster,
 }) => {
   const params = useParams();
   const router = useRouter();
 
-  //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
 
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [flightDetails, setFlightDetails] = useState([]);
-  const editor = useRef(null)
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
 
 
-  //console.log(initialData);
-  const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
-  const description = initialData ? 'Edit a Tour Package Query.' : 'Add a new Tour Package Query';
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
   const action = initialData ? 'Save changes' : 'Create';
-  console.log("Initial Data : ", initialData?.itineraries)
 
   const transformInitialData = (data: any) => {
     return {
@@ -219,6 +104,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
+      purchaseDetails: data.purchaseDetails ?? '',
+      saleDetails: data.saleDetails ?? '',
+      paymentDetails: data.paymentDetails ?? '',
+      receiptDetails: data.receiptDetails ?? '',
+      expenseDetails: data.expenseDetails ?? '',
+
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -287,11 +178,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     assignedToMobileNumber: '',
     assignedToEmail: '',
 
-    purchaseDetails: ' ',
-    saleDetails: ' ',
-    paymentDetails: ' ',
-    receiptDetails: ' ',
-    expenseDetails: ' ',
+    purchaseDetails: '',
+    saleDetails: '',
+    paymentDetails: '',
+    receiptDetails: '',
+    expenseDetails: '',
 
     flightDetails: [],
 
@@ -306,16 +197,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: IMPORTANT_NOTES_DEFAULT,
     images: [],
     itineraries: [],
-    /* itineraries: [{
-      days: '',
-      activities: [],
-      mealsIncluded: [],
-      hotelId: '',
-    }],
-     */
-    locationId: '',
-    //location : '',
-    // hotelId: '',
+    locationId: '', 
     isFeatured: false,
     isArchived: false,
   };
@@ -325,9 +207,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     defaultValues
   });
 
- 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
 
+    
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
@@ -345,17 +227,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       }))
     };
 
-
-
     try {
       setLoading(true);
-      if (initialData) {
-        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
-      } else {
-        await axios.post(`/api/tourPackageQuery`, formattedData);
-      }
+      await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
       router.refresh();
-      router.push(`/tourPackageQuery`);
+      router.push(`/accounts`);
       toast.success(toastMessage);
     } catch (error: any) {
       console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
@@ -365,150 +241,126 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
-  const onDelete = async () => {
-    try {
-      setLoading(true);
-      await axios.delete(`/api/tourPackageQuery/${params.tourPackageQueryId}`);
-      router.refresh();
-      router.push(`/tourPackageQuery`);
-      toast.success('Tour Package Query deleted.');
-    } catch (error: any) {
-      toast.error('Something went wrong.');
-    } finally {
-      setLoading(false);
-      setOpen(false);
-    }
-  }
-
-
- 
-
-
-  // Function to handle meal checkbox changes
-
-
 
   return (
     <>
-      <AlertModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onConfirm={onDelete}
-        loading={loading}
-      />
-      <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
-        {initialData && (
-          <Button
-            disabled={loading}
-            variant="destructive"
-            size="sm"
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-        
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleOpenModal}>Accounts</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Account Details</DialogTitle>              
-              </DialogHeader>
-              <Tabs defaultValue="purchaseDetails">
-                <TabsList>
-                  <TabsTrigger value="purchaseDetails">Purchase</TabsTrigger>
-                  <TabsTrigger value="saleDetails">Sale</TabsTrigger>
-                  <TabsTrigger value="paymentDetails">Payment</TabsTrigger>
-                  <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
-                  <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
-                </TabsList>
-                <TabsContent value="purchaseDetails">
-                  <FormField
-                    name="purchaseDetails"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Purchase Details</FormLabel>
-                        <FormControl>
-                        <Textarea rows={5} disabled={loading} placeholder="" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-                <TabsContent value="saleDetails">
-                  <FormField
-                    name="saleDetails"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sales Details</FormLabel>
-                        <FormControl>
-                        <Textarea rows={5} disabled={loading} placeholder="" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-                <TabsContent value="paymentDetails">
-                  <FormField
-                    name="paymentDetails"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Payment Details</FormLabel>
-                        <FormControl>
-                        <Textarea rows={5} disabled={loading} placeholder="" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-                <TabsContent value="receiptDetails">
-                  <FormField
-                    name="receiptDetails"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Receipt Details</FormLabel>
-                        <FormControl>
-                        <Textarea rows={5} disabled={loading} placeholder="" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-                <TabsContent value="expenseDetails">
-                  <FormField
-                    name="expenseDetails"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Expense Details</FormLabel>
-                        <FormControl>
-                        <Textarea rows={5} disabled={loading} placeholder="" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-              </Tabs>
-              <DialogFooter>
-                <Button onClick={handleCloseModal}>Close</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-   
+
+          <Tabs defaultValue="purchaseDetails">
+            <TabsList>
+              <TabsTrigger value="purchaseDetails">Purchase</TabsTrigger>
+              <TabsTrigger value="saleDetails">Sale</TabsTrigger>
+              <TabsTrigger value="paymentDetails">Payment</TabsTrigger>
+              <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
+              <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
+            </TabsList>
+            <TabsContent value="purchaseDetails">
+              <FormField
+                control={form.control}
+                name="purchaseDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Purchase Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Purchase Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="saleDetails">
+              <FormField
+                control={form.control}
+                name="saleDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sales Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Sales Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="paymentDetails">
+              <FormField
+                control={form.control}
+                name="paymentDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Payment Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="receiptDetails">
+              <FormField
+                control={form.control}
+                name="receiptDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Receipt Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Receipt Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="expenseDetails">
+              <FormField
+                control={form.control}
+                name="expenseDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expense Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Expense Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+          </Tabs>
+
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>
+
         </form >
       </Form >
     </>

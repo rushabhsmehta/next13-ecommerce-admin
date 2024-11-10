@@ -15,25 +15,7 @@ const tourPackageQueryPage = async ({
       isFeatured : true,
     },
     include: {
-   //   images: true,
       location: true,
-  //    flightDetails: true,
-  //    itineraries: {
-//
-   //     include: {
-   //       itineraryImages: true,
-   //       activities:
-   //       {
-   //         include:
-   //         {
-    //          activityImages: true,
-  //          }
-   //       }
-  //      },
- //       orderBy: {
-   //       days: 'asc' // or 'desc', depending on the desired order
-   //     }
-   //   }
     },
     orderBy: {
       updatedAt: 'desc'
@@ -46,7 +28,8 @@ const tourPackageQueryPage = async ({
     tourPackageQueryName: item.tourPackageQueryName ?? '',
     tourPackageQueryType: item.tourPackageQueryType ?? '',
     customerName: item.customerName ?? '',
-    assignedTo: item.assignedTo ?? '',
+    assignedTo: item.assignedTo ?? '',   
+
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     customerNumber: item.customerNumber ?? '',

@@ -55,6 +55,12 @@ export function MainNav({
     },
 
     {
+      href: `/accounts`,
+      label: 'Accounts',
+      active: pathname === `/accounts`,
+    },
+
+    {
       href: `/reports`,
       label: 'Reports',
       active: pathname === `/reports`,

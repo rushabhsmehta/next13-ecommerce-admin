@@ -71,7 +71,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
     router.push(`/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`);
   }
-
+ 
 
   return (
     <>
@@ -113,7 +113,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Edit className="mr-2 h-4 w-4" /> Create Tour Package
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-
+      
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Edit className="mr-2 h-4 w-4" />  Download PDF

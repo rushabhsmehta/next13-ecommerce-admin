@@ -54,6 +54,16 @@ import { CalendarIcon } from "@radix-ui/react-icons"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from "date-fns"
 import JoditEditor from "jodit-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const editorConfig = {
   readonly: false,
@@ -150,6 +160,11 @@ const formSchema = z.object({
   assignedTo: z.string().optional(),
   assignedToMobileNumber: z.string().optional(),
   assignedToEmail: z.string().optional(),
+  purchaseDetails: z.string().optional(),
+  saleDetails: z.string().optional(),
+  paymentDetails: z.string().optional(),
+  receiptDetails: z.string().optional(),
+  expenseDetails: z.string().optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -190,6 +205,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   const editor = useRef(null)
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
 
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
@@ -272,7 +298,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
+
+    purchaseDetails: '',
+    saleDetails: '',
+    paymentDetails: '',
+    receiptDetails: '',
+    expenseDetails: '',
+
     flightDetails: [],
+
     // hotelDetails: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
@@ -522,7 +556,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </div>
               </FormItem>
             )}
-          />
+          />    
 
           <div className="grid grid-cols-4 gap-8">
 
@@ -943,7 +977,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-         
+
             <FormField
               control={form.control}
               name="totalPrice"

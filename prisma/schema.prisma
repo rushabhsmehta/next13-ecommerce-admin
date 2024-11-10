@@ -89,6 +89,13 @@ model TourPackageQuery {
   assignedTo                 String?
   assignedToMobileNumber     String?
   assignedToEmail            String?
+
+  purchaseDetails           String?  @db.Text
+  saleDetails               String?  @db.Text
+  paymentDetails            String?   @db.Text
+  receiptDetails            String?   @db.Text
+  expenseDetails            String?   @db.Text  
+
   @@index([locationId])
 }
 

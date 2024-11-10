@@ -97,6 +97,11 @@ export async function POST(
             assignedTo,
             assignedToMobileNumber,
             assignedToEmail,
+            purchaseDetails,
+            saleDetails,
+            paymentDetails,
+            receiptDetails,
+            expenseDetails,    
             isFeatured,
             isArchived } = body;
 
@@ -164,6 +169,11 @@ export async function POST(
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
+                purchaseDetails,
+                saleDetails,
+                paymentDetails,
+                receiptDetails,
+                expenseDetails,    
                 //   hotelId,
                         images: {
                     createMany: {

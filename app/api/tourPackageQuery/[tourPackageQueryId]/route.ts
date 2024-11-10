@@ -178,6 +178,11 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
+      purchaseDetails,
+      saleDetails,
+      paymentDetails,
+      receiptDetails,
+      expenseDetails,    
     } = body;
 
     console.log(flightDetails);
@@ -259,6 +264,11 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
+      purchaseDetails,
+      saleDetails,
+      paymentDetails,
+      receiptDetails,
+      expenseDetails,    
 
       images: images && images.length > 0 ? {
         deleteMany: {},

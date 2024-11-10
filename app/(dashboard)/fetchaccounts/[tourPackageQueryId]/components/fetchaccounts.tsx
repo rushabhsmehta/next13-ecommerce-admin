@@ -27,49 +27,6 @@ interface TourPackageQueryDisplayProps {
 
 };
 
-// Define a type for the company information
-type CompanyInfo = {
-  [key: string]: {
-    logo: string;
-    name?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    website?: string;
-  };
-};
-
-// Define the company data using the CompanyInfo type
-const companyInfo: CompanyInfo = {
-  Empty: { logo: '', name: '', address: '', phone: '', email: '', website: '' },
-  AH: {
-    logo: '/aagamholidays.png',
-    name: 'Aagam Holidays',
-    address: '1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India',
-    phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
-    website: 'https://aagamholidays.com',
-  },
-  // Define KH and MT with their respective details
-  KH: {
-    logo: '/kobawala.png',
-    name: 'Kobawala Holidays',
-    address: 'Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007',
-    phone: '+91-99040 35277',
-    email: 'kobawala.holiday@gmail.com', // Add the missing fields
-    website: 'http://kobawalaholidays.com'
-  },
-  MT: {
-    logo: '/mahavirtravels.png',
-    name: 'Mahavir Tour and Travels',
-    address: 'Mahavir Travels, Ahmedabad',
-    phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
-    website: 'https://mahavirtravels.com',
-  },
-};
-
-// ...rest of your component
 
 
 export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
@@ -83,7 +40,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
 
   // Now you can use selectedOption to get data from your companyInfo object
-  const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
   if (!initialData) return <div>No data available</div>;
 

@@ -53,13 +53,6 @@ export function MainNav({
       label: 'Tour Package Query',
       active: pathname === `/tourPackageQuery`,
     },
-
-    {
-      href: `/accounts`,
-      label: 'Accounts',
-      active: pathname === `/accounts`,
-    },
-
     {
       href: `/reports`,
       label: 'Reports',

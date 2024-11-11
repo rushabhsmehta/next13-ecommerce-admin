@@ -160,11 +160,11 @@ const formSchema = z.object({
   assignedTo: z.string().optional(),
   assignedToMobileNumber: z.string().optional(),
   assignedToEmail: z.string().optional(),
-  purchaseDetails: z.string().optional(),
+ /*  purchaseDetails: z.string().optional(),
   saleDetails: z.string().optional(),
   paymentDetails: z.string().optional(),
   receiptDetails: z.string().optional(),
-  expenseDetails: z.string().optional(),
+  expenseDetails: z.string().optional(), */
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -299,11 +299,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     assignedToMobileNumber: '',
     assignedToEmail: '',
 
-    purchaseDetails: '',
+  /*   purchaseDetails: '',
     saleDetails: '',
     paymentDetails: '',
     receiptDetails: '',
-    expenseDetails: '',
+    expenseDetails: '', */
 
     flightDetails: [],
 

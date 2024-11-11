@@ -160,11 +160,11 @@ const formSchema = z.object({
   assignedTo: z.string().optional(),
   assignedToMobileNumber: z.string().optional(),
   assignedToEmail: z.string().optional(),
- /*  purchaseDetails: z.string().optional(),
+  purchaseDetails: z.string().optional(),
   saleDetails: z.string().optional(),
   paymentDetails: z.string().optional(),
   receiptDetails: z.string().optional(),
-  expenseDetails: z.string().optional(), */
+  expenseDetails: z.string().optional(), 
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -231,6 +231,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
+
+      purchaseDetails: data.purchaseDetails ?? '',
+      saleDetails: data.saleDetails ?? '',
+      paymentDetails: data.paymentDetails ?? '',
+      receiptDetails: data.receiptDetails ?? '',
+      expenseDetails: data.expenseDetails ?? '',
+
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -299,11 +306,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     assignedToMobileNumber: '',
     assignedToEmail: '',
 
-  /*   purchaseDetails: '',
+    purchaseDetails: '',
     saleDetails: '',
     paymentDetails: '',
     receiptDetails: '',
-    expenseDetails: '', */
+    expenseDetails: '', 
 
     flightDetails: [],
 
@@ -1810,6 +1817,117 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
           </div>
+
+          <Tabs hidden defaultValue="purchaseDetails">
+            <TabsList>
+              <TabsTrigger value="purchaseDetails">Purchase</TabsTrigger>
+              <TabsTrigger value="saleDetails">Sale</TabsTrigger>
+              <TabsTrigger value="paymentDetails">Payment</TabsTrigger>
+              <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
+              <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
+            </TabsList>
+            <TabsContent value="purchaseDetails">
+              <FormField
+                control={form.control}
+                name="purchaseDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Purchase Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Purchase Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="saleDetails">
+              <FormField
+                control={form.control}
+                name="saleDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sales Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Sales Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="paymentDetails">
+              <FormField
+                control={form.control}
+                name="paymentDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Payment Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="receiptDetails">
+              <FormField
+                control={form.control}
+                name="receiptDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Receipt Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Receipt Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="expenseDetails">
+              <FormField
+                control={form.control}
+                name="expenseDetails"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expense Details</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Expense Details"
+                        value={field.value || '0'}
+                        onChange={field.onChange} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+          </Tabs>
+
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>

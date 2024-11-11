@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 
 
 
@@ -197,7 +199,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: IMPORTANT_NOTES_DEFAULT,
     images: [],
     itineraries: [],
-    locationId: '', 
+    locationId: '',
     isFeatured: false,
     isArchived: false,
   };
@@ -209,7 +211,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
 
-    
+
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
@@ -245,7 +247,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full max-w-md mx-auto">
+
+          <Card className="break-inside-avoid font-bold">
+            <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
+              <CardTitle className="flex items-center justify-between text-xl font-bold">
+                <span>{initialData?.tourPackageQueryName}</span>
+              </CardTitle>
+              <CardTitle className="text-xl font-bold  mb-4">
+                {initialData?.tourPackageQueryNumber}
+              </CardTitle>
+              <CardTitle className="flex items-center justify-between text-xl font-bold">
+                <span>{initialData?.tourPackageQueryType + " Package"} </span>
+              </CardTitle>
+            </CardHeader>
+          </Card>
+         
+          <Separator />
 
           <Tabs defaultValue="purchaseDetails">
             <TabsList>

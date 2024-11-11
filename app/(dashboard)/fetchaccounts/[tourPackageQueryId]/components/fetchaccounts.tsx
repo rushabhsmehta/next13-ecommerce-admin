@@ -44,53 +44,78 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   if (!initialData) return <div>No data available</div>;
 
   return (
-    <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
+    <>
+      <div className="space-y-8 w-full max-w-md mx-auto">
+        <Card className="break-inside-avoid font-bold">
+          <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
+            <CardTitle className="flex items-center justify-between text-xl font-bold">
+              <span>{initialData?.tourPackageQueryName}</span>
+            </CardTitle>
+            <CardTitle className="text-xl font-bold  mb-4">
+              {initialData?.tourPackageQueryNumber}
+            </CardTitle>
+            <CardTitle className="flex items-center justify-between text-xl font-bold">
+              <span>{initialData?.tourPackageQueryType + " Package"} </span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
-      {initialData.purchaseDetails && (
-        <div className="mb-4">
-          <div className="font-semibold text-xl">
-            Purchase Details
-            <span className="ml-2 text-2xl text-gray-900">{initialData.purchaseDetails}</span>
-          </div>
-        </div>
-      )}
+        <Separator />
+        {initialData.purchaseDetails && (
+          <Card className="shadow-lg rounded-lg">
+            <CardHeader>
+            <CardTitle className="text-xl font-bold">Purchase Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-gray-900 text-lg">{initialData.purchaseDetails}</div>
+            </CardContent>
+          </Card>
+        )}
 
-      {initialData.saleDetails && (
-        <div className="mb-4">
-          <div className="font-semibold text-xl">
-            Sale Details
-            <span className="ml-2 text-2xl text-gray-900">{initialData.saleDetails}</span>
-          </div>
-        </div>
-      )}
+        {initialData.saleDetails && (
+          <Card className="shadow-lg rounded-lg">
+            <CardHeader>
+            <CardTitle className="text-xl font-bold">Sale Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-gray-900 text-lg">{initialData.saleDetails}</div>
+            </CardContent>
+          </Card>
+        )}
 
-      {initialData.paymentDetails && (
-        <div className="mb-4">
-          <div className="font-semibold text-xl">
-            Payment Details
-            <span className="ml-2 text-2xl text-gray-900">{initialData.paymentDetails}</span>
-          </div>
-        </div>
-      )}
+        {initialData.paymentDetails && (
+          <Card className="shadow-lg rounded-lg">
+            <CardHeader>
+            <CardTitle className="text-xl font-bold">Payment Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-gray-900 text-lg">{initialData.paymentDetails}</div>
+            </CardContent>
+          </Card>
+        )}
 
-      {initialData.receiptDetails && (
-        <div className="mb-4">
-          <div className="font-semibold text-xl">
-            Receipt Details
-            <span className="ml-2 text-2xl text-gray-900">{initialData.receiptDetails}</span>
-          </div>
-        </div>
-      )}
+        {initialData.receiptDetails && (
+          <Card className="shadow-lg rounded-lg">
+            <CardHeader>
+            <CardTitle className="text-xl font-bold">Receipt Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-gray-900 text-lg">{initialData.receiptDetails}</div>
+            </CardContent>
+          </Card>
+        )}
 
-      {initialData.expenseDetails && (
-        <div className="mb-4">
-          <div className="font-semibold text-xl">
-            Expense Details
-            <span className="ml-2 text-2xl text-gray-900">{initialData.expenseDetails}</span>
-          </div>
-        </div>
-      )}
-
-    </div >
+        {initialData.expenseDetails && (
+          <Card className="shadow-lg rounded-lg">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold">Expense Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-gray-900 text-lg">{initialData.expenseDetails}</div>
+            </CardContent>
+          </Card>
+        )}
+      </div >
+    </>
   );
 };

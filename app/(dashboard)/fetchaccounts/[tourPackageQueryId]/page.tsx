@@ -29,7 +29,7 @@ const tourPackageQueryPage = async ({
           },
         },
         orderBy: {
-          dayNumber : 'asc',
+          dayNumber: 'asc',
         }
       }
     }
@@ -37,11 +37,11 @@ const tourPackageQueryPage = async ({
   console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
     include: {
       images: true,
     }
@@ -51,9 +51,10 @@ const tourPackageQueryPage = async ({
 
   return (
     <>
-    
+      <Navbar />
+
       <div className="flex-col">
-      {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+        {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
@@ -62,15 +63,15 @@ const tourPackageQueryPage = async ({
         />
       </div>
  */}
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryDisplay
-          initialData={tourPackageQuery}
-          locations={locations}
-          hotels={hotels}
-        //    itineraries={[]}
-        />
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryDisplay
+            initialData={tourPackageQuery}
+            locations={locations}
+            hotels={hotels}
+          //    itineraries={[]}
+          />
+        </div>
       </div>
-    </div>
     </>
   );
 }

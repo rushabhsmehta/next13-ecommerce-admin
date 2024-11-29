@@ -67,7 +67,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardTitle className="text-xl font-bold">Purchase Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-900 text-lg">{initialData.purchaseDetails}</div>
+              <div className="text-gray-900 text-lg whitespace-pre-line">{initialData.purchaseDetails}</div>
             </CardContent>
           </Card>
         )}
@@ -78,7 +78,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardTitle className="text-xl font-bold">Sale Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-900 text-lg">{initialData.saleDetails}</div>
+              <div className="text-gray-900 text-lg whitespace-pre-line">{initialData.saleDetails}</div>
             </CardContent>
           </Card>
         )}
@@ -89,7 +89,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardTitle className="text-xl font-bold">Payment Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-900 text-lg">{initialData.paymentDetails}</div>
+              <div className="text-gray-900 text-lg whitespace-pre-line">{initialData.paymentDetails}</div>
             </CardContent>
           </Card>
         )}
@@ -100,7 +100,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardTitle className="text-xl font-bold">Receipt Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-900 text-lg">{initialData.receiptDetails}</div>
+              <div className="text-gray-900 text-lg whitespace-pre-line">{initialData.receiptDetails}</div>
             </CardContent>
           </Card>
         )}
@@ -111,7 +111,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <CardTitle className="text-xl font-bold">Expense Details</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-gray-900 text-lg">{initialData.expenseDetails}</div>
+              <div className="text-gray-900 text-lg whitespace-pre-line">{initialData.expenseDetails}</div>
             </CardContent>
           </Card>
         )}

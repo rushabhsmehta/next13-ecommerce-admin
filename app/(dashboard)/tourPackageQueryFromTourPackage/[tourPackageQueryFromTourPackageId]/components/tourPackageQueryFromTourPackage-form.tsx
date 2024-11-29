@@ -1767,7 +1767,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         rows={5}
                         disabled={loading}
                         placeholder="Purchase Details"
-                        value={field.value || '0'}
+                        value={field.value || ''}
                         onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
@@ -1787,7 +1787,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         rows={5}
                         disabled={loading}
                         placeholder="Sales Details"
-                        value={field.value || '0'}
+                        value={field.value || ''}
                         onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
@@ -1807,7 +1807,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         rows={5}
                         disabled={loading}
                         placeholder="Payment Details"
-                        value={field.value || '0'}
+                        value={field.value || ''}
                         onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
@@ -1827,7 +1827,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         rows={5}
                         disabled={loading}
                         placeholder="Receipt Details"
-                        value={field.value || '0'}
+                        value={field.value || ''}
                         onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
@@ -1847,7 +1847,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         rows={5}
                         disabled={loading}
                         placeholder="Expense Details"
-                        value={field.value || '0'}
+                        value={field.value || ''}
                         onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />

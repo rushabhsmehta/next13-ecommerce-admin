@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import JoditEditor from "jodit-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -120,6 +120,7 @@ const formSchema = z.object({
   cancellationPolicy: z.string().optional(),
   airlineCancellationPolicy: z.string().optional(),
   termsconditions: z.string().optional(),
+  disclaimer: z.string().optional(),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
@@ -131,7 +132,7 @@ const formSchema = z.object({
   saleDetails: z.string().optional(),
   paymentDetails: z.string().optional(),
   receiptDetails: z.string().optional(),
-  expenseDetails: z.string().optional(), 
+  expenseDetails: z.string().optional(),
 });
 
 type TourPackageQueryCreateCopyFormValues = z.infer<typeof formSchema>
@@ -186,13 +187,13 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
-      
+
       purchaseDetails: data.purchaseDetails ?? '',
       saleDetails: data.saleDetails ?? '',
       paymentDetails: data.paymentDetails ?? '',
       receiptDetails: data.receiptDetails ?? '',
       expenseDetails: data.expenseDetails ?? '',
-      
+
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -257,23 +258,25 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     assignedTo: '',
     assignedToMobileNumber: '',
     assignedToEmail: '',
-    
+
     purchaseDetails: '',
     saleDetails: '',
     paymentDetails: '',
     receiptDetails: '',
-    expenseDetails: '', 
+    expenseDetails: '',
 
     flightDetails: [],
     // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT,
-    exclusions: EXCLUSIONS_DEFAULT,
-    importantNotes: IMPORTANT_NOTES_DEFAULT,
-    paymentPolicy: PAYMENT_TERMS_DEFAULT,
-    usefulTip: USEFUL_TIPS_DEFAULT,
-    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
-    termsconditions: IMPORTANT_NOTES_DEFAULT,
+    inclusions: INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'),
+    exclusions: EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'),
+    importantNotes: IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'),
+    paymentPolicy: PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'),
+    usefulTip: USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'),
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
+    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
+    disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
+   
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -898,7 +901,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </FormItem>
               )}
             />
-          
+
             <FormField
               control={form.control}
               name="totalPrice"
@@ -910,7 +913,32 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )}              
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="disclaimer"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Disclaimer</FormLabel>
+                  <FormControl>
+
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+
+                    {/* <Textarea rows={5} disabled={loading} placeholder="" {...field} /> */}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField

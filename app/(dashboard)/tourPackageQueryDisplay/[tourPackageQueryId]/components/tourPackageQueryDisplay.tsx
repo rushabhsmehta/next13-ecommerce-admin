@@ -286,6 +286,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardContent>
           </Card>
         )}
+
+        {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+          <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
+            <CardContent>
+              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+                <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.disclaimer || ' ' }} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Tour Highlights */}
@@ -336,7 +346,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
       )}
 
-     
+
       {/* Itineraries */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
 

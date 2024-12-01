@@ -76,6 +76,8 @@ model TourPackageQuery {
   cancellationPolicy        String? @db.Text
   airlineCancellationPolicy String? @db.Text
   termsconditions           String? @db.Text  
+  disclaimer                String? @db.Text
+
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
@@ -150,6 +152,8 @@ model TourPackage {
   cancellationPolicy        String? @db.Text
   airlineCancellationPolicy String? @db.Text
   termsconditions           String? @db.Text
+  disclaimer                String? @db.Text
+
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())

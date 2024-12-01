@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
@@ -110,6 +110,7 @@ const formSchema = z.object({
   cancellationPolicy: z.string().optional(),
   airlineCancellationPolicy: z.string().optional(),
   termsconditions: z.string().optional(),
+  disclaimer : z.string().optional(),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
@@ -237,14 +238,16 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     slug: '',
     flightDetails: [],
     // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT,
-    exclusions: EXCLUSIONS_DEFAULT,
-    importantNotes: IMPORTANT_NOTES_DEFAULT,
-    paymentPolicy: PAYMENT_TERMS_DEFAULT,
-    usefulTip: USEFUL_TIPS_DEFAULT,
-    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
-    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+    inclusions: INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'),
+    exclusions: EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'),
+    importantNotes: IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'),
+    paymentPolicy: PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'),
+    usefulTip: USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'),
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
+    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
+    disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
+   
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -648,6 +651,26 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
               )}
             /> */}
           </div>
+          <FormField
+              control={form.control}
+              name="disclaimer" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Disclaimer</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
 
           <FormField
             control={form.control}

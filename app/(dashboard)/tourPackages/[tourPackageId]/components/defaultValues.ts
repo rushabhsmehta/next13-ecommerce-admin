@@ -59,8 +59,7 @@ export const TERMS_AND_CONDITIONS_DEFAULT =
     "∎ The price does not include expenses of personal nature, such as laundry, telephone calls, room service, alcoholic beverages, mini bar charges, tips, portage, camera fees etc.\n" +
     "∎ Travelling Bee reserves the right to modify the itinerary at any point, due to reasons including but not limited to: Force Majeure events, strikes, fairs, festivals, weather conditions, traffic problems, overbooking of hotels/flights, cancellation/re-routing of flights, closure of/entry restrictions at a place of visit, etc. While we will do our best to make suitable alternate arrangements, we would not be held liable for any refunds/compensation claims arising out of this.\n" +
     "∎ In case a flight gets cancelled, AAGAM HOLIDAYS will not be liable to provide any alternate flights within the same cost, any additional cost incurred for the same shall be borne by the traveler.\n" +
-    "∎ In Case of any Health AAGAM HOLIDAYS Bee will not be liable to provide any refunds and in case of Medical Emergencies all the medical expenses will be liable by the customer.";
-
+    "∎ In Case of any Health/Medical emergency, AAGAM HOLIDAYS will not be liable to provide any refunds and all the medical expenses will be borne by the customer.";
 export const USEFUL_TIPS_DEFAULT =
     "∎ If your flights involve a combination of different airlines, you may have to collect your luggage on arrival at the connecting hub and register it again while checking in for the return journey to your origin.\n" +
     "∎ For queries regarding cancellations and refunds, please refer to our Cancellation Policy.\n" +
@@ -71,6 +70,11 @@ export const USEFUL_TIPS_DEFAULT =
     "∎ Disputes, if any, shall be subject to the exclusive jurisdiction of the courts in Kullu/ Manali.\n" +
     "∎ We reserve the right to issue a full refund in case we believe that we are unable to fulfil the services for any technical reasons.";
 
+
+    export const DISCLAIMER_DEFAULT =
+    "∎ Prices are subject to change at the time of booking.\n" +
+    "∎ Prices are available for one week.\n";
+    
 export const TOUR_HIGHLIGHTS_DEFAULT = `
     <html>
       <body>

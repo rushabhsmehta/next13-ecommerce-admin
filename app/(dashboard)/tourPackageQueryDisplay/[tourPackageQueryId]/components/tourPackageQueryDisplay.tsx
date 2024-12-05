@@ -239,7 +239,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <h2 className="text-2xl font-bold">Tour Pricing</h2>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="grid gap-6 md:grid-cols-2 text-gray-700">
+              <div className="grid gap-6 text-gray-700">
                 {/* Price per Adult Section */}
                 {initialData.pricePerAdult !== '' && (
                   <div className="md:col-span-1">

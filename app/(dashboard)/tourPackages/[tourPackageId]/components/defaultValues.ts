@@ -73,9 +73,10 @@ export const USEFUL_TIPS_DEFAULT =
 
 
     export const DISCLAIMER_DEFAULT =
-    "∎ Prices are subject to change at the time of booking.\n" +
-    "∎ Prices are available for one week.\n";
-    
+    "∎ The Prices mentioned are subject to availability at the time of confirmation.\n" +
+    "∎ Flight rates will be provided separately, as they are dynamic and may impact the total package cost\n" +
+    "∎ The raes quoted are valid for 7 days only";
+  
 export const TOUR_HIGHLIGHTS_DEFAULT = `
     <html>
       <body>

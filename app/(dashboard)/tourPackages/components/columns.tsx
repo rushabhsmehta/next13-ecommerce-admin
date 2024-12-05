@@ -12,6 +12,7 @@ export type TourPackageColumn = {
   location : string;
   //hotel : string;
   createdAt: string;
+  updatedAt : string;
   isFeatured: boolean;
   isArchived: boolean;
 }
@@ -48,7 +49,11 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
   
   {
     accessorKey: "createdAt",
-    header: "Date",
+    header: "Created Date",
+  },
+  {
+    accessorKey: "updatedAt",
+    header: "Updated Date",
   },
   {
     id: "actions",

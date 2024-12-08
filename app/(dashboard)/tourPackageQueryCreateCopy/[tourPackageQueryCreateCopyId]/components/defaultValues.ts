@@ -82,5 +82,5 @@ export const TOUR_PACKAGE_QUERY_TYPE_DEFAULT =
     export const DISCLAIMER_DEFAULT =
     "∎ The Prices mentioned are subject to availability at the time of confirmation.\n" +
     "∎ Flight rates will be provided separately, as they are dynamic and may impact the total package cost\n" +
-    "∎ The raes quoted are valid for 7 days only";
+    "∎ The rates quoted are valid for 7 days only";
   

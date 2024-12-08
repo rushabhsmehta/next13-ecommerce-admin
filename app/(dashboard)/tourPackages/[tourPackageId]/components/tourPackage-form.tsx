@@ -690,7 +690,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value} // Set initial content from form field value
+                      value={field.value || ''} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                
                       }} // Type assertion (optional)

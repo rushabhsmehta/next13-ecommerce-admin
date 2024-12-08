@@ -120,7 +120,7 @@ const formSchema = z.object({
   cancellationPolicy: z.string().optional(),
   airlineCancellationPolicy: z.string().optional(),
   termsconditions: z.string().optional(),
-  disclaimer: z.string().optional(),
+  disclaimer: z.string().optional().optional(),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),

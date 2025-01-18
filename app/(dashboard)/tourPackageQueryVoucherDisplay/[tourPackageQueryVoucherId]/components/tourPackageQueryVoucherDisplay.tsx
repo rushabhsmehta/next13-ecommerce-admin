@@ -258,7 +258,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <h2 className="text-2xl font-bold">Tour Pricing</h2>
         </CardHeader>
 
-        {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+        {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'empty' && (
           <CardContent className="p-6">
             <div className="grid gap-6 md:grid-cols-2 text-gray-700">
               {/* Price per Adult Section */}
@@ -296,7 +296,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </CardContent>
         )}
 
-        {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+        {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'empty' && initialData.totalPrice !== ' ' && (
             <CardContent>
               <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
                 Total Price: <span className="text-orange-500">{initialData.totalPrice}</span>

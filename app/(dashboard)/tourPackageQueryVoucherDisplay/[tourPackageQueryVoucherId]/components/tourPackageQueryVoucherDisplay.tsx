@@ -253,12 +253,13 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </CardContent>
       </Card>
 
-      <Card className="break-inside-avoid border shadow-lg rounded-lg">
-        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <h2 className="text-2xl font-bold">Tour Pricing</h2>
-        </CardHeader>
 
-        {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && (
+
+      {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && (
+        <Card className="break-inside-avoid border shadow-lg rounded-lg">
+          <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+            <h2 className="text-2xl font-bold">Tour Pricing</h2>
+          </CardHeader>
           <CardContent className="p-6">
             <div className="grid gap-6 md:grid-cols-2 text-gray-700">
               {/* Price per Adult Section */}
@@ -294,18 +295,18 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               </div>
             </div>
           </CardContent>
-        )}
+        </Card>
+      )}
 
-        {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && initialData.totalPrice !== ' ' && (
-            <CardContent>
-              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-                Total Price: <span className="text-orange-500">{initialData.totalPrice}</span>
-              </div>
+      {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && initialData.totalPrice !== ' ' && (
+        <Card>
+          <CardContent>
+            <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+              Total Price: <span className="text-orange-500">{initialData.totalPrice}</span>
+            </div>
           </CardContent>
-        )}
-      </Card>
-
-
+        </Card>
+      )}
 
       {/* Tour Highlights */}
       {initialData.tour_highlights && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.tour_highlights !== '' && (

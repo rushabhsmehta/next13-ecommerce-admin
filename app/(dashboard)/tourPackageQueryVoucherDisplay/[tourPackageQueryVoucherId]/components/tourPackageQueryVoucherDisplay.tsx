@@ -308,6 +308,19 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
       )}
 
+
+
+        {initialData.remarks !== '' && (
+          <Card className="break-inside-avoid text-3xl">
+            <CardContent>
+              <div>
+                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+     
+
       {/* Tour Highlights */}
       {initialData.tour_highlights && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.tour_highlights !== '' && (
         <Card className="border rounded-lg shadow-lg p-6">
@@ -432,20 +445,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       )}
       {/* Payment Policy Card */}
 
-      <div className="grid gap-4">
-        {/* Inclusions Card */}
-
-        {initialData.remarks !== '' && (
-          <Card className="break-inside-avoid text-3xl">
-            <CardContent>
-              <div>
-                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
+   
       {/* Inclusions Card */}
       <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">

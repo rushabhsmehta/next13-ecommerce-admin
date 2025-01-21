@@ -218,6 +218,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )}
       </Card >
 
+
       {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== '' && (
         <Card className="grid gap-4">
           <CardContent>
@@ -238,6 +239,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </CardContent>
         </Card >
+      )}
+
+      {initialData.remarks !== '' && (
+        <Card className="break-inside-avoid text-2xl">
+          <CardContent>
+            <div>
+              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Flight Details */}
@@ -485,7 +496,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     __html: `Day ${itinerary.dayNumber}: ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
                   }}
                 />
-              
+
               </div>
             ))}
           </CardContent>
@@ -496,15 +507,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="grid gap-4">
         {/* Inclusions Card */}
 
-        {initialData.remarks !== '' && (
-          <Card className="break-inside-avoid text-2xl">
-            <CardContent>
-              <div>
-                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Inclusions Card */}
         <Card className="break-inside-avoid">

@@ -1002,7 +1002,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             />
 
 
-        {/*     <FormField
+            <FormField
               control={form.control}
               name="disclaimer" // Ensure the name is lowercase with no spaces
               render={({ field }) => (
@@ -1021,7 +1021,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
- */}
+
             <FormField
               control={form.control}
               name="remarks"

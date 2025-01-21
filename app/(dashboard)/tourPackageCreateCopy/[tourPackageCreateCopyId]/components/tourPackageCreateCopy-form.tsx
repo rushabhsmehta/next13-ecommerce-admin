@@ -651,7 +651,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
             /> */}
           </div>
 
-          <FormField
+       {/*    <FormField
               control={form.control}
               name="disclaimer" // Ensure the name is lowercase with no spaces
               render={({ field }) => (
@@ -670,7 +670,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 </FormItem>
               )}
             />
-
+ */}
           <FormField
             control={form.control}
             name="tour_highlights"

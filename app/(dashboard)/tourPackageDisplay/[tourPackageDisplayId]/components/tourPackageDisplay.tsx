@@ -76,10 +76,10 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               <div className="font-semibold" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || '' }} /></div>
           )}
 
-          {initialData.disclaimer !== '' && (
+      {/*     {initialData.disclaimer !== '' && (
             <div>
               <div className="font-semibold" dangerouslySetInnerHTML={{ __html: initialData.disclaimer || '' }} /></div>
-          )}
+          )} */}
 
         </CardHeader>
 

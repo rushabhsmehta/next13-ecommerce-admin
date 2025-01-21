@@ -287,7 +287,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </Card>
         )}
 
-        {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+       {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
           <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
             <CardContent>
               <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -295,7 +295,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               </div>
             </CardContent>
           </Card>
-        )}
+        )} */}
       </div>
 
       {/* Tour Highlights */}

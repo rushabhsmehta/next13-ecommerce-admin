@@ -231,15 +231,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardContent>
       </Card>
 
-      {initialData.price && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.price !== ' ' && (
-          <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-            <CardContent>
-              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-                <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.price || '' }} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
+
 
       <div className="break-inside-avoid">
         {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
@@ -247,6 +240,17 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
               <h2 className="text-2xl font-bold">Tour Pricing</h2>
             </CardHeader>
+
+            {initialData.price && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.price !== ' ' && (
+              <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
+                <CardContent>
+                  <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+                    <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.price || '' }} />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <CardContent className="p-6">
               <div className="grid gap-6 text-gray-700">
                 {/* Price per Adult Section */}
@@ -297,16 +301,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )}
 
 
-          {initialData.remarks !== '' && (
-            <Card className="break-inside-avoid text-3xl">
-              <CardContent>
-                <div>
-                  <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-     
+        {initialData.remarks !== '' && (
+          <Card className="break-inside-avoid text-3xl">
+            <CardContent>
+              <div>
+                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
           <Card className="grid gap-4 border rounded-lg shadow-lg p-6">

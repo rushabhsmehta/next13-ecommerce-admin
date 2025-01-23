@@ -46,7 +46,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Calendar } from "@/components/ui/calendar"
@@ -133,7 +133,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  // price: z.string().min(1),
+  price: z.string().optional(),
   pricePerAdult: z.string().optional(),
   pricePerChildOrExtraBed: z.string().optional(),
   pricePerChild5to12YearsNoBed: z.string().optional(),
@@ -296,7 +296,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: '',
+    price: PRICE_DEFAULT,
     pricePerAdult: '',
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
@@ -913,8 +913,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             />
 
 
+            <FormField
+              control={form.control}
+              name="price" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pricing Table</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || PRICE_DEFAULT } // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-            {/*     <FormField
+
+            {/*             <FormField
               control={form.control}
               name="price"
               render={({ field }) => (

@@ -249,73 +249,73 @@ export const PRICE_DEFAULT = `
     <!--StartFragment-->
     <p><br></p>
     <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; height: 266px;">
-      <caption style="margin-bottom: 10px; font-weight: bold; color: #333; font-size: 18px;">
+      <caption style="margin-bottom: 10px; font-weight: bold; color: #333; font-size: 22px;">
         Pricing Details
       </caption>
       <thead>
         <tr>
-          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 14px;">
+          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px;">
             Criteria
           </th>
-          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 14px;" colspan="2">
+          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px;" colspan="2">
             Price
           </th>
         </tr>
       </thead>
       <tbody>
         <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Per Person Cost&nbsp;</strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             ₹24,800
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Per Couple Cost&nbsp;</strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             ₹49,600
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Per Person With Extra Bed/Mattress<br></strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             ₹17,060
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Child with Mattress (5 to 11)<br></strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             ₹17,060
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Child without Mattress (5 to 11)<br></strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             ₹14,550
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Child below 5 years (With Seat - Parents Sharing Bed)<br></strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             ₹14,550
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
             <strong>Child below 5 years Without Seat (Parents Sharing Bed)</strong>
           </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 13px;" colspan="2">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             Complimentary With Parents Sharing Bed
           </td>
         </tr>
@@ -326,6 +326,7 @@ export const PRICE_DEFAULT = `
   </body>
 </html>
 `;
+
 export const TOUR_PACKAGE_QUERY_TYPE_DEFAULT =
   [
     "Luxury",

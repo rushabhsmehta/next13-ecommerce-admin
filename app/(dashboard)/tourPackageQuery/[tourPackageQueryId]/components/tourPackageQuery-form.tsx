@@ -567,7 +567,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             )}
           />
 
-          <div className="grid grid-cols-4 gap-8">
+          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
@@ -666,8 +666,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-          </div>
-          <div className="grid grid-cols-4 gap-8">
 
             <FormField
               control={form.control}
@@ -805,22 +803,21 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
-
-
-            <FormField
-              control={form.control}
-              name="period"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Period</FormLabel>
-                  <FormControl>
-                    <DatePickerWithRange control={form.control} name="period" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
+          {/* 
+          <FormField
+            control={form.control}
+            name="period"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Period</FormLabel>
+                <FormControl>
+                  <DatePickerWithRange control={form.control} name="period" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          /> */}
           <div className="grid grid-cols-3 gap-8">
 
             <FormField
@@ -894,8 +891,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-          </div>
-          <div className="grid grid-cols-3 gap-8">
 
             {/* //add formfield for numChildren */}
             <FormField
@@ -912,6 +907,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
+          </div>
+          <div className="grid grid-cols-1 gap-8">
 
             <FormField
               control={form.control}
@@ -922,7 +919,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value || PRICE_DEFAULT } // Set initial content from form field value
+                      value={field.value || PRICE_DEFAULT} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                
                       }} // Type assertion (optional)
@@ -948,6 +945,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
  */}
+
+          </div>
+          <div className="grid grid-cols-3 gap-8">
+
             <FormField
               control={form.control}
               name="pricePerAdult"
@@ -976,8 +977,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
-          </div>
-          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
@@ -1021,6 +1020,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             />
 
+          </div>
+          <div className="grid grid-cols-2 gap-8">
 
             <FormField
               control={form.control}

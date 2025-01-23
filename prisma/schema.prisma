@@ -61,7 +61,7 @@ model TourPackageQuery {
   numAdults                 String?
   numChild5to12             String?
   numChild0to5              String?
-  price                     String?
+  price                     String? @db.Text
   pricePerAdult             String?
   pricePerChildOrExtraBed   String?
   pricePerChild5to12YearsNoBed String?

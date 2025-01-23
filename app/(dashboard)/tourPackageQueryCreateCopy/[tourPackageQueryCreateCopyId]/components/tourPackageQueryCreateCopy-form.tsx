@@ -40,6 +40,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT } from "@/app/(dashboard)/tourPackageCreateCopy/[tourPackageCreateCopyId]/components/defaultValues"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PRICE_DEFAULT } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/defaultValues"
 
 
 const editorConfig = {
@@ -100,7 +101,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  //price: z.string().optional(),
+  price: z.string().optional(),
   pricePerAdult: z.string().optional(),
   pricePerChildOrExtraBed: z.string().optional(),
   pricePerChild5to12YearsNoBed: z.string().optional(),
@@ -248,7 +249,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: '',
+    price: PRICE_DEFAULT,
     pricePerAdult: '',
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
@@ -276,7 +277,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
     disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
-   
+
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -827,6 +828,25 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="price" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pricing Table</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || PRICE_DEFAULT} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
 
             {/*     <FormField

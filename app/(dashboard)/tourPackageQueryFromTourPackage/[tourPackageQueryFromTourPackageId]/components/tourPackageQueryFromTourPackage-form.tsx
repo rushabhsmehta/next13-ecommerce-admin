@@ -38,6 +38,7 @@ import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PRICE_DEFAULT } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/defaultValues"
 
 const editorConfig = {
   readonly: false,
@@ -106,7 +107,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  // price: z.string().min(1),
+  price: z.string().optional(),
   pricePerAdult: z.string().optional(),
   pricePerChildOrExtraBed: z.string().optional(),
   pricePerChild5to12YearsNoBed: z.string().optional(),
@@ -259,7 +260,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: '',
+    price: PRICE_DEFAULT,
     pricePerAdult: '',
     pricePerChildOrExtraBed: '',
     pricePerChild5to12YearsNoBed: '',
@@ -845,6 +846,26 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
               )}
             />
 
+
+<FormField
+              control={form.control}
+              name="price" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pricing Table</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || PRICE_DEFAULT } // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
 
             {/*     <FormField

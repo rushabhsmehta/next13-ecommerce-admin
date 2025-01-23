@@ -288,7 +288,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
     disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
-   
+
     images: [],
     itineraries: [],
     locationId: '',
@@ -847,7 +847,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             />
 
 
-<FormField
+            <FormField
               control={form.control}
               name="price" // Ensure the name is lowercase with no spaces
               render={({ field }) => (
@@ -856,7 +856,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
-                      value={field.value || PRICE_DEFAULT } // Set initial content from form field value
+                      value={field.value || PRICE_DEFAULT} // Set initial content from form field value
                       config={{ // Configure Jodit options
                         readonly: loading, // Disable editing if loading                
                       }} // Type assertion (optional)
@@ -974,7 +974,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                 </FormItem>
               )}
             />
- 
+
 
             <FormField
               control={form.control}

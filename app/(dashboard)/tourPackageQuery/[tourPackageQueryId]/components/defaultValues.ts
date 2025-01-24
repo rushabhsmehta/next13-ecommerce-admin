@@ -247,7 +247,6 @@ export const PRICE_DEFAULT = `
 <html>
   <body>
     <!--StartFragment-->
-    <p><br></p>
     <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; height: 266px;">
       <caption style="margin-bottom: 10px; font-weight: bold; color: #333; font-size: 22px;">
         Pricing Details
@@ -329,7 +328,6 @@ export const PRICE_DEFAULT = `
         </tr>
       </tbody>
     </table>
-    <p><br></p>
     <!--EndFragment-->
   </body>
 </html>

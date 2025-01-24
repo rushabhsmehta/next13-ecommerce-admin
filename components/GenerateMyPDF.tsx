@@ -339,7 +339,6 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
 
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
-  const parsedPrice = parse (data?.price || '');
 
   if (!data) {
     return (
@@ -369,7 +368,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
                 <Text style={styles.tableLabel}>Customer: </Text>
                 <Text style={styles.tableValue}>
                   {data?.customerName} |
-                  {data?.customerNumber}
+                  {data?.customerNumber} 
                 </Text>
               </View>
 
@@ -475,15 +474,6 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
             <View style={styles.cardContainer}>
               <View style={styles.cardContent}>
                 {/* Price Details in Tabular Format */}
-
-                {data.price && (
-                  <View style={styles.card} >
-                    <View style={styles.cardContainer}>
-                      <Text style={styles.cardText}>{parsedPrice} </Text>
-                    </View>
-                  </View>
-                )}
-
                 {/* Price per Adult */}
                 {data.pricePerAdult !== '' && (
                   <View style={styles.tableRow}>

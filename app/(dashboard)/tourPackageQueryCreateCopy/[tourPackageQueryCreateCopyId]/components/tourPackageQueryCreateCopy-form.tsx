@@ -209,7 +209,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       itineraries: data.itineraries.map((itinerary: any) => ({
 
         dayNumber: itinerary.dayNumber ?? 0,
-        days: itinerary.days ?? '',
+        // days: itinerary.days ?? '',
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',

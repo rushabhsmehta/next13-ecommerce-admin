@@ -268,7 +268,7 @@ export const PRICE_DEFAULT = `
             <strong>Per Person Cost&nbsp;</strong>
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹24,800
+            ₹
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
@@ -276,39 +276,39 @@ export const PRICE_DEFAULT = `
             <strong>Per Couple Cost&nbsp;</strong>
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹49,600
+            ₹
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Per Person With Extra Bed/Mattress<br></strong>
+            <strong>Per Person With Extra Bed/Mattress</strong>
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹17,060
+            ₹
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child with Mattress (5 to 11)<br></strong>
+            <strong>Child with Mattress (5 to 11)</strong>
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹17,060
+            ₹
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child without Mattress (5 to 11)<br></strong>
+            <strong>Child without Mattress (5 to 11)</strong>
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹14,550
+            ₹
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child below 5 years (With Seat - Parents Sharing Bed)<br></strong>
+            <strong>Child below 5 years (With Seat - Parents Sharing Bed)</strong>
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹14,550
+            ₹
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
@@ -317,6 +317,14 @@ export const PRICE_DEFAULT = `
           </td>
           <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
             Complimentary With Parents Sharing Bed
+          </td>
+        </tr>
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Air Fare</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
           </td>
         </tr>
       </tbody>

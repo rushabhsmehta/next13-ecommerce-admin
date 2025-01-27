@@ -399,11 +399,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         ${initialData.itineraries
           .map(
             (itinerary, index) => `
-          <div style="margin-bottom: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
-            <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">
+            <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">
               Day ${itinerary.dayNumber}: ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '') || ''}
             </h3>
-            <p>${itinerary.itineraryDescription || 'No description provided.'}</p>
+            </div>
+            <p>${itinerary.itineraryDescription || ''}</p>
 
             <!-- Itinerary Images -->
             ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0

@@ -77,6 +77,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 }) => {
   const searchParams = useSearchParams();
   const selectedOption = searchParams.get("search") || "Empty";
+  const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
 
@@ -84,7 +85,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     return <div>No data available</div>;
   }
 
-  const [loading, setLoading] = useState(false);
 
   const generatePDF = async () => {
     setLoading(true);

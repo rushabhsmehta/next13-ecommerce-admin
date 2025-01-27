@@ -680,31 +680,32 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         : ''
       }
   
-  ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') &&
-      `
-    <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-      <div style="width: 120px; height: 120px; position: relative;">
-        <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-      </div>
-      <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
-        <li>${companyInfo.AH.address}</li>
-        <li>Phone: ${companyInfo.AH.phone}</li>
-        <li>
-          Email: 
-          <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">
-            ${companyInfo.AH.email}
-          </a>
-        </li>
-        <li>
-          Website: 
-          <a href="${companyInfo.AH.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
-            ${companyInfo.AH.website}
-          </a>
-        </li>
-      </ul>
-    </div>
-        `      
-      } : ''
+      ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') 
+        ? `
+          <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="width: 120px; height: 120px; position: relative;">
+              <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+            </div>
+            <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
+              <li>${companyInfo.AH.address}</li>
+              <li>Phone: ${companyInfo.AH.phone}</li>
+              <li>
+                Email: 
+                <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">
+                  ${companyInfo.AH.email}
+                </a>
+              </li>
+              <li>
+                Website: 
+                <a href="${companyInfo.AH.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
+                  ${companyInfo.AH.website}
+                </a>
+              </li>
+            </ul>
+          </div>
+        `
+        : ``
+      }  
     </div>
   `;
 

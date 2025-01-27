@@ -75,6 +75,7 @@ const GenertePDF: React.FC<GeneratePDFProps> = ({
 }) => {
   const searchParams = useSearchParams();
   const selectedOption = searchParams.get("search") || "Empty";
+  const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
 
@@ -82,7 +83,6 @@ const GenertePDF: React.FC<GeneratePDFProps> = ({
     return <div>No data available</div>;
   }
 
-  const [loading, setLoading] = useState(false);
 
   const generatePDF = async () => {
     setLoading(true);

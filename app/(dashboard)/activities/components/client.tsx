@@ -1,3 +1,4 @@
+'use client'
 import { Plus } from "lucide-react";
 import { useParams } from "next/navigation";
 

@@ -90,20 +90,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     setLoading(true);
 
     const htmlContent = `
-
     <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; font-family: Arial, sans-serif;">
-
     <!-- Tour Package Header Section -->
     <div style="break-inside: avoid; font-weight: bold; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+      <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0; justify-content: space-between; align-items: center;">
         <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
           ${initialData.tourPackageQueryName}
-        </h1>
-        </div>
-        <div>
-        <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+        </h1>       
+        <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
           ${initialData.tourPackageQueryType} Package
-        </h1>
+        </h2>
       </div>
       ${initialData.images
         .map(
@@ -243,36 +239,100 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
     </div>
 
+
     <!-- Tour Pricing Section -->
-    ${initialData.price || initialData.totalPrice
+    ${selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
         ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); margin-top: 16px;">
+      <div style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Tour Pricing</h2>
         </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1rem;">
-          ${initialData.price
+  
+        ${initialData.price && initialData.price.trim() !== ''
           ? `
-            <div style="margin-bottom: 16px; font-size: 1.25rem; color: #1a202c;">
-              <strong>Price:</strong> ${initialData.price}
+          <div style="padding: 16px;">
+            <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
+              <span style="color: #f97316;">${initialData.price}</span>
             </div>
+          </div>
           `
           : ''
         }
-          ${initialData.totalPrice
+  
+        <div style="padding: 16px; background: #ffffff;">
+          <!-- Price per Adult Section -->
+          ${initialData.pricePerAdult !== ''
           ? `
-            <div style="margin-bottom: 16px; font-size: 1.25rem; color: #1a202c;">
-              <strong>Total Price:</strong> ${initialData.totalPrice}
+            <div style="margin-bottom: 16px;">
+              <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+                <span style="color: #1a202c;">Price per Adult:</span> ${initialData.pricePerAdult}
+              </div>
             </div>
-          `
+            `
           : ''
         }
+  
+          <!-- Price for Children Section -->
+          <div>
+            ${initialData.pricePerChildOrExtraBed !== ''
+          ? `
+              <div style="margin-bottom: 16px;">
+                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+                  <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData.pricePerChildOrExtraBed}
+                </div>
+              </div>
+              `
+          : ''
+        }
+            ${initialData.pricePerChild5to12YearsNoBed !== ''
+          ? `
+              <div style="margin-bottom: 16px;">
+                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+                  <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData.pricePerChild5to12YearsNoBed}
+                </div>
+              </div>
+              `
+          : ''
+        }
+            ${initialData.pricePerChildwithSeatBelow5Years !== ''
+          ? `
+              <div style="margin-bottom: 16px;">
+                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+                  <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData.pricePerChildwithSeatBelow5Years}
+                </div>
+              </div>
+              `
+          : ''
+        }
+          </div>
         </div>
       </div>
-    `
+      `
         : ''
       }
-
+  
+    <!-- Total Price Section -->
+    ${initialData.totalPrice && initialData.totalPrice.trim() !== ''
+        ? `
+      <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); padding: 16px;">
+        <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
+          Total Price: <span style="color: #f97316;">${initialData.totalPrice}</span>
+        </div>
+      </div>
+      `
+        : ''
+      }
+  
+    <!-- Remarks Section -->
+    ${initialData.remarks !== ''
+        ? `
+      <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); padding: 16px;">
+        <div>${initialData.remarks}</div>
+      </div>
+      `
+        : ''
+      }
+  
           <!-- Tour Highlights Section -->
     ${initialData.tour_highlights && initialData.tour_highlights.trim() !== ''
         ? `
@@ -591,6 +651,60 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     </div>
+     ${selectedOption !== 'Empty' &&
+        selectedOption !== 'SupplierA' &&
+        selectedOption !== 'SupplierB'
+        ? `
+      <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="width: 120px; height: 120px; position: relative;">
+          <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
+          <li>${currentCompany.address}</li>
+          <li>Phone: ${currentCompany.phone}</li>
+          <li>
+            Email: 
+            <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">
+              ${currentCompany.email}
+            </a>
+          </li>
+          <li>
+            Website: 
+            <a href="${currentCompany.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
+              ${currentCompany.website}
+            </a>
+          </li>
+        </ul>
+      </div>
+      `
+        : ''
+      }
+  
+  ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') &&
+      `
+    <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="width: 120px; height: 120px; position: relative;">
+        <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+      </div>
+      <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
+        <li>${companyInfo.AH.address}</li>
+        <li>Phone: ${companyInfo.AH.phone}</li>
+        <li>
+          Email: 
+          <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">
+            ${companyInfo.AH.email}
+          </a>
+        </li>
+        <li>
+          Website: 
+          <a href="${companyInfo.AH.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
+            ${companyInfo.AH.website}
+          </a>
+        </li>
+      </ul>
+    </div>
+        `
+  }
     </div>
   `;
 

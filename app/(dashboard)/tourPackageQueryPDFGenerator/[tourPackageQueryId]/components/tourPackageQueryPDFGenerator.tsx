@@ -43,7 +43,7 @@ type CompanyInfo = {
 const companyInfo: CompanyInfo = {
   Empty: { logo: "", name: "", address: "", phone: "", email: "", website: "" },
   AH: {
-    logo: "/aagamholidays.png",
+    logo: "https://next13-ecommerce-admin-zeta.vercel.app/aagamholidays.png",
     name: "Aagam Holidays",
     address:
       "1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India",
@@ -52,7 +52,7 @@ const companyInfo: CompanyInfo = {
     website: "https://aagamholidays.com",
   },
   KH: {
-    logo: "/kobawala.png",
+    logo: "https://next13-ecommerce-admin-zeta.vercel.app/kobawala.png",
     name: "Kobawala Holidays",
     address:
       "Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007",
@@ -61,7 +61,7 @@ const companyInfo: CompanyInfo = {
     website: "http://kobawalaholidays.com",
   },
   MT: {
-    logo: "/mahavirtravels.png",
+    logo: "https://next13-ecommerce-admin-zeta.vercel.app/mahavirtravels.png",
     name: "Mahavir Tour and Travels",
     address: "Mahavir Travels, Ahmedabad",
     phone: "+91-97244 44701",

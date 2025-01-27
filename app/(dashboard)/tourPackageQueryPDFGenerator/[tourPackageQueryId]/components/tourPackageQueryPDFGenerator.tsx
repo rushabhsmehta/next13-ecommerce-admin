@@ -453,21 +453,19 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   </p>
                   ${itinerary.numberofRooms
                     ? `
-                  <h4 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms:</h4>
-                  <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.numberofRooms}</p>
+                  <h5 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms: ${itinerary.numberofRooms}</h4>
                   `
                     : ""
                   }
                   ${itinerary.roomCategory
                     ? `
-                  <h4 style="font-weight: bold; font-size: 1.25rem;">Room Category:</h4>
-                  <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.roomCategory}</p>
+                  <h5 style="font-weight: bold; font-size: 1.25rem;">Room Category : ${itinerary.roomCategory}</p>
                   `
                     : ""
                   }
                   ${itinerary.mealsIncluded
                     ? `
-                  <h4 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h4>
+                  <h5 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h4>
                   <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>
                   `
                     : ""
@@ -544,8 +542,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `
         : ''
       }
-
-
 
  <!-- Inclusions Section -->
     ${initialData.inclusions

@@ -28,6 +28,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-toggle": "^1.1.0",
     "@react-pdf/renderer": "^3.4.4",
+    "@sparticuz/chromium-min": "^131.0.1",
     "@tanstack/react-table": "^8.9.2",
     "@tiptap/pm": "^2.4.0",
     "@tiptap/react": "^2.4.0",

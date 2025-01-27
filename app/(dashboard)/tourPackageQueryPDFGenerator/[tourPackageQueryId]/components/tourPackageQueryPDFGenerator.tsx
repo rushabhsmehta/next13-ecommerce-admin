@@ -650,7 +650,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         : ""
       }
 
-    </div>
+  
      ${selectedOption !== 'Empty' &&
         selectedOption !== 'SupplierA' &&
         selectedOption !== 'SupplierB'

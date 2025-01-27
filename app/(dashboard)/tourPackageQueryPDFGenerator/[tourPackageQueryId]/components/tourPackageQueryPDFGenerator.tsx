@@ -446,27 +446,27 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 </div>
                 <div style="margin-left: 16px;">
                   <h3 style="font-weight: bold; font-size: 1.25rem;">Hotel Name:</h3>
-                  <p style="font-size: 1.25rem; margin-bottom: 8px;">
+                  <p style="font-size: 1.25rem; margin-bottom: 4px;">
                     ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
                   </p>
                   ${itinerary.numberofRooms
                     ? `
                   <h4 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms:</h4>
-                  <p style="font-size: 1.25rem; margin-bottom: 8px;">${itinerary.numberofRooms}</p>
+                  <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.numberofRooms}</p>
                   `
                     : ""
                   }
                   ${itinerary.roomCategory
                     ? `
                   <h4 style="font-weight: bold; font-size: 1.25rem;">Room Category:</h4>
-                  <p style="font-size: 1.25rem; margin-bottom: 8px;">${itinerary.roomCategory}</p>
+                  <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.roomCategory}</p>
                   `
                     : ""
                   }
                   ${itinerary.mealsIncluded
                     ? `
                   <h4 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h4>
-                  <p style="font-size: 1.25rem; margin-bottom: 8px;">${itinerary.mealsIncluded}</p>
+                  <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>
                   `
                     : ""
                   }

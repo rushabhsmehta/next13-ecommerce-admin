@@ -64,7 +64,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
   const handleOptionConfirmPDF = (selectedOption: string) => {
 
-    router.push(`/viewpdfpage/${data.id}?search=${selectedOption}`);
+    router.push(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`);
   }
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {

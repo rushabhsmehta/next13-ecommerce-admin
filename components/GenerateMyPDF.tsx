@@ -469,6 +469,23 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
             </View>
           )}
         </View>
+
+        {selectedOption !== 'Supplier' && (
+          <View style={styles.card}>
+            <View style={styles.cardContainer}>
+              <View style={styles.cardContent}>
+                {/* Price Details in Tabular Format */}
+                {/* Price per Adult */}
+                {data.price !== '' && (
+                  <View style={styles.tableRow}>              
+                    <Text style={styles.tableValue}>{data.price}</Text>
+                  </View>
+                )}
+                </View>
+            </View>
+          </View>
+        )}
+
         {selectedOption !== 'Supplier' && (
           <View style={styles.card}>
             <View style={styles.cardContainer}>

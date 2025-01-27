@@ -1,123 +1,134 @@
 "use client";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  Activity,
+  FlightDetails,
+  Hotel,
+  Images,
+  Itinerary,
+  TourPackageQuery,
+} from "@prisma/client";
 
-export default function GeneratePDF() {
+interface GeneratePDFProps {
+  initialData: TourPackageQuery & {
+    images: Images[];
+    itineraries: (Itinerary & {
+      itineraryImages: Images[];
+      activities: (Activity & {
+        activityImages: Images[];
+      })[];
+    })[];
+    flightDetails: FlightDetails[];
+  } | null;
+  locations: Location[];
+  hotels: (Hotel & {
+    images: Images[];
+  })[];
+}
+
+type CompanyInfo = {
+  [key: string]: {
+    logo: string;
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+};
+
+const companyInfo: CompanyInfo = {
+  Empty: { logo: "", name: "", address: "", phone: "", email: "", website: "" },
+  AH: {
+    logo: "/aagamholidays.png",
+    name: "Aagam Holidays",
+    address:
+      "1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India",
+    phone: "+91-97244 44701",
+    email: "info@aagamholidays.com",
+    website: "https://aagamholidays.com",
+  },
+  KH: {
+    logo: "/kobawala.png",
+    name: "Kobawala Holidays",
+    address:
+      "Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007",
+    phone: "+91-99040 35277",
+    email: "kobawala.holiday@gmail.com",
+    website: "http://kobawalaholidays.com",
+  },
+  MT: {
+    logo: "/mahavirtravels.png",
+    name: "Mahavir Tour and Travels",
+    address: "Mahavir Travels, Ahmedabad",
+    phone: "+91-97244 44701",
+    email: "info@aagamholidays.com",
+    website: "https://mahavirtravels.com",
+  },
+};
+
+const GenertePDF: React.FC<GeneratePDFProps> = ({
+  initialData,
+  locations,
+  hotels,
+}) => {
+  const searchParams = useSearchParams();
+  const selectedOption = searchParams.get("search") || "Empty";
+
+  const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
+
+  if (!initialData) {
+    return <div>No data available</div>;
+  }
+
   const [loading, setLoading] = useState(false);
 
   const generatePDF = async () => {
     setLoading(true);
-    const htmlContent =
-      `
-<html>
-  <body>
-    <!--StartFragment-->
-    <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; height: 266px;">
-      <caption style="margin-bottom: 10px; font-weight: bold; color: #333; font-size: 22px;">
-        Pricing Details
-      </caption>
-      <thead>
-        <tr>
-          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px;">
-            Criteria
-          </th>
-          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px;" colspan="2">
-            Price
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Per Person Cost&nbsp;</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Per Couple Cost&nbsp;</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Per Person With Extra Bed/Mattress</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child with Mattress (5 to 11)</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child without Mattress (5 to 11)</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child below 5 years (With Seat - Parents Sharing Bed)</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f2f2f2;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Child below 5 years Without Seat (Parents Sharing Bed)</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            Complimentary With Parents Sharing Bed
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
-            <strong>Air Fare</strong>
-          </td>
-          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
-            ₹
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <!--EndFragment-->
-  </body>
-</html>
-`;
 
-    const response = await fetch("/api/generate-pdf", {
-      method: "POST",
-      body: JSON.stringify({ htmlContent }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const htmlContent = `
+      <div style="padding: 16px; font-family: Arial, sans-serif;">
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+          <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+              ${initialData.tourPackageQueryName}
+            </h1>
+            <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+              ${initialData.tourPackageQueryType} Package
+            </h1>
+          </div>
+        </div>
+      </div>
+    `;
 
-    if (response.ok) {
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "generated.pdf";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      alert("Failed to generate PDF");
+    try {
+      const response = await fetch("/api/generate-pdf", {
+        method: "POST",
+        body: JSON.stringify({ htmlContent }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "generated.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        alert("Failed to generate PDF");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("An error occurred while generating the PDF.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -131,4 +142,6 @@ export default function GeneratePDF() {
       </button>
     </div>
   );
-}
+};
+
+export default GenertePDF;

@@ -703,8 +703,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         </li>
       </ul>
     </div>
-        `
-  }
+        `      
+      } : ''
     </div>
   `;
 

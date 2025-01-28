@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -81,11 +81,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
 
-  if (!initialData) {
+ /*  if (!initialData) {
     return <div>No data available</div>;
   }
-
-
+ */
   const generatePDF = async () => {
     setLoading(true);
 
@@ -95,13 +94,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     <div style="break-inside: avoid; font-weight: bold; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
       <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0; justify-content: space-between; align-items: center;">
         <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-          ${initialData.tourPackageQueryName}
+          ${initialData?.tourPackageQueryName}
         </h1>       
         <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-          ${initialData.tourPackageQueryType} Package
+          ${initialData?.tourPackageQueryType} Package
         </h2>
       </div>
-      ${initialData.images
+      ${initialData?.images
         .map(
           (image, index) => `
           <div style="width: 100%; height: 500px; overflow: hidden;">
@@ -119,16 +118,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     <!-- Customer Details Section -->
     <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 1rem;">
       <div style="margin-bottom: 16px; font-size: 1.25rem; font-weight: bold; color: #1a202c;">
-        ${initialData.tourPackageQueryNumber}
+        ${initialData?.tourPackageQueryNumber}
       </div>
       ${selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
         ? `
         <div style="font-size: 1rem; color: #4a5568;">
           <div style="margin-bottom: 8px;">
-            <span style="font-weight: bold;">Customer:</span> ${initialData.customerName} | ${initialData.customerNumber}
+            <span style="font-weight: bold;">Customer:</span> ${initialData?.customerName} | ${initialData?.customerNumber}
           </div>
           <div>
-            <span style="font-weight: bold;">Assigned To:</span> ${initialData.assignedTo} | ${initialData.assignedToMobileNumber} | ${initialData.assignedToEmail}
+            <span style="font-weight: bold;">Assigned To:</span> ${initialData?.assignedTo} | ${initialData?.assignedToMobileNumber} | ${initialData?.assignedToEmail}
           </div>
         </div>
       `
@@ -145,35 +144,35 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <div style="margin-bottom: 16px;">
           <span style="font-weight: bold; font-size: 1.125rem;">Location:</span>
           <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">
-            ${locations.find(location => location.id === initialData.locationId)?.label || ''}
+            ${locations.find(location => location.id === initialData?.locationId)?.label || ''}
           </span>
         </div>
-        ${initialData.numDaysNight
+        ${initialData?.numDaysNight
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Duration:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.numDaysNight}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numDaysNight}</span>
           </div>
         `
         : ''
       }
-        ${initialData.tourStartsFrom || initialData.tourEndsOn
+        ${initialData?.tourStartsFrom || initialData?.tourEndsOn
         ? `
           <div style="display: flex; margin-bottom: 16px;">
-            ${initialData.tourStartsFrom
+            ${initialData?.tourStartsFrom
           ? `
               <div>
                 <span style="font-weight: bold; font-size: 1.125rem;">Period:</span>
-                <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
+                <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${format(initialData?.tourStartsFrom, 'dd-MM-yyyy')}</span>
               </div>
             `
           : ''
         }
-            ${initialData.tourEndsOn
+            ${initialData?.tourEndsOn
           ? `
               <div style="margin-left: 16px;">
                 <span style="font-weight: bold; font-size: 1.125rem;">To:</span>
-                <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
+                <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${format(initialData?.tourEndsOn, 'dd-MM-yyyy')}</span>
               </div>
             `
           : ''
@@ -182,56 +181,56 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         `
         : ''
       }
-        ${initialData.transport
+        ${initialData?.transport
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Transport:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.transport}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.transport}</span>
           </div>
         `
         : ''
       }
-        ${initialData.pickup_location
+        ${initialData?.pickup_location
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Pickup:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.pickup_location}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.pickup_location}</span>
           </div>
         `
         : ''
       }
-        ${initialData.drop_location
+        ${initialData?.drop_location
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Drop:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.drop_location}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.drop_location}</span>
           </div>
         `
         : ''
       }
-        ${initialData.numAdults
+        ${initialData?.numAdults
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Adults:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.numAdults}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numAdults}</span>
           </div>
         `
         : ''
       }
-        ${initialData.numChild5to12
+        ${initialData?.numChild5to12
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Children (5 - 12 Years):</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.numChild5to12}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numChild5to12}</span>
           </div>
         `
         : ''
       }
-        ${initialData.numChild0to5
+        ${initialData?.numChild0to5
         ? `
           <div style="margin-bottom: 16px;">
             <span style="font-weight: bold; font-size: 1.125rem;">Children (0 - 5 Years):</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData.numChild0to5}</span>
+            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numChild0to5}</span>
           </div>
         `
         : ''
@@ -248,11 +247,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Tour Pricing</h2>
         </div>
   
-        ${initialData.price && initialData.price.trim() !== ''
+        ${initialData?.price && initialData?.price.trim() !== ''
           ? `
           <div style="padding: 16px;">
             <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
-              <span style="color: #f97316;">${initialData.price}</span>
+              <span style="color: #f97316;">${initialData?.price}</span>
             </div>
           </div>
           `
@@ -261,11 +260,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   
         <div style="padding: 16px; background: #ffffff;">
           <!-- Price per Adult Section -->
-          ${initialData.pricePerAdult !== ''
+          ${initialData?.pricePerAdult !== ''
           ? `
             <div style="margin-bottom: 16px;">
               <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                <span style="color: #1a202c;">Price per Adult:</span> ${initialData.pricePerAdult}
+                <span style="color: #1a202c;">Price per Adult:</span> ${initialData?.pricePerAdult}
               </div>
             </div>
             `
@@ -274,31 +273,31 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   
           <!-- Price for Children Section -->
           <div>
-            ${initialData.pricePerChildOrExtraBed !== ''
+            ${initialData?.pricePerChildOrExtraBed !== ''
           ? `
               <div style="margin-bottom: 16px;">
                 <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData.pricePerChildOrExtraBed}
+                  <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData?.pricePerChildOrExtraBed}
                 </div>
               </div>
               `
           : ''
         }
-            ${initialData.pricePerChild5to12YearsNoBed !== ''
+            ${initialData?.pricePerChild5to12YearsNoBed !== ''
           ? `
               <div style="margin-bottom: 16px;">
                 <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData.pricePerChild5to12YearsNoBed}
+                  <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData?.pricePerChild5to12YearsNoBed}
                 </div>
               </div>
               `
           : ''
         }
-            ${initialData.pricePerChildwithSeatBelow5Years !== ''
+            ${initialData?.pricePerChildwithSeatBelow5Years !== ''
           ? `
               <div style="margin-bottom: 16px;">
                 <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData.pricePerChildwithSeatBelow5Years}
+                  <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData?.pricePerChildwithSeatBelow5Years}
                 </div>
               </div>
               `
@@ -312,11 +311,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
   
     <!-- Total Price Section -->
-    ${initialData.totalPrice && initialData.totalPrice.trim() !== ''
+    ${initialData?.totalPrice && initialData?.totalPrice.trim() !== ''
         ? `
       <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); padding: 16px;">
         <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
-          Total Price: <span style="color: #f97316;">${initialData.totalPrice}</span>
+          Total Price: <span style="color: #f97316;">${initialData?.totalPrice}</span>
         </div>
       </div>
       `
@@ -324,24 +323,24 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
   
     <!-- Remarks Section -->
-    ${initialData.remarks !== ''
+    ${initialData?.remarks !== ''
         ? `
       <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); padding: 16px;">
-        <div>${initialData.remarks}</div>
+        <div>${initialData?.remarks}</div>
       </div>
       `
         : ''
       }
   
           <!-- Tour Highlights Section -->
-    ${initialData.tour_highlights && initialData.tour_highlights.trim() !== ''
+    ${initialData?.tour_highlights && initialData?.tour_highlights.trim() !== ''
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
           <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Tour Highlights</h2>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.tour_highlights}
+          ${initialData?.tour_highlights}
         </div>
       </div>
     `
@@ -350,13 +349,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
   
  <!-- Flight Details Section -->
-    ${initialData.flightDetails && initialData.flightDetails.length > 0 && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
+    ${initialData?.flightDetails && initialData?.flightDetails.length > 0 && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Flight Details</h3>
         </div>
-        ${initialData.flightDetails
+        ${initialData?.flightDetails
           .map(
             (flight, index) => `
           <div style="padding: 16px; background: #f7fafc; border-bottom: 1px solid #ddd;">
@@ -392,11 +391,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     <!-- Itineraries Section -->
-    ${initialData.itineraries && initialData.itineraries.length > 0
+    ${initialData?.itineraries && initialData?.itineraries.length > 0
         ? `
       <div style="padding: 16px; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px;">
         <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 16px; text-align: center;">Itinerary</h2>
-        ${initialData.itineraries
+        ${initialData?.itineraries
           .map(
             (itinerary, index) => `
             <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
@@ -544,14 +543,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
  <!-- Inclusions Section -->
-    ${initialData.inclusions
+    ${initialData?.inclusions
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Inclusions</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.inclusions}
+          ${initialData?.inclusions}
         </div>
       </div>
     `
@@ -559,14 +558,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     <!-- Exclusions Section -->
-    ${initialData.exclusions
+    ${initialData?.exclusions
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Exclusions</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.exclusions}
+          ${initialData?.exclusions}
         </div>
       </div>
     `
@@ -574,14 +573,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
   
     <!-- Important Notes Section -->
-    ${initialData.importantNotes
+    ${initialData?.importantNotes
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Important Notes</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.importantNotes}
+          ${initialData?.importantNotes}
         </div>
       </div>
     `
@@ -589,14 +588,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     <!-- Payment Policy Section -->
-    ${initialData.paymentPolicy
+    ${initialData?.paymentPolicy
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Payment Policy</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.paymentPolicy}
+          ${initialData?.paymentPolicy}
         </div>
       </div>
     `
@@ -604,14 +603,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     <!-- Terms and Conditions Section -->
-    ${initialData.termsconditions
+    ${initialData?.termsconditions
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Terms and Conditions</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.termsconditions}
+          ${initialData?.termsconditions}
         </div>
       </div>
     `
@@ -619,14 +618,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     <!-- Cancellation Policy Section -->
-    ${initialData.cancellationPolicy
+    ${initialData?.cancellationPolicy
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Cancellation Policy</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.cancellationPolicy}
+          ${initialData?.cancellationPolicy}
         </div>
       </div>
     `
@@ -634,14 +633,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
 
     <!-- Airline Cancellation Policy Section -->
-    ${initialData.airlineCancellationPolicy
+    ${initialData?.airlineCancellationPolicy
         ? `
       <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
           <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Airline Cancellation Policy</h3>
         </div>
         <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData.airlineCancellationPolicy}
+          ${initialData?.airlineCancellationPolicy}
         </div>
       </div>
     `
@@ -733,17 +732,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   };
 
-  return (
-    <div className="p-4">
-      <button
-        onClick={generatePDF}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-        disabled={loading}
-      >
-        {loading ? "Generating..." : "Download PDF"}
-      </button>
-    </div>
-  );
-};
+  useEffect(() => {
+    generatePDF();
+  }, [initialData]); // Empty dependency array ensures this runs only once
 
+  if (!initialData) {
+    return <div>No data available</div>;
+  }
+  return null; // Return nothing as the component is only for generating the PDF
+};
 export default TourPackageQueryPDFGenerator;

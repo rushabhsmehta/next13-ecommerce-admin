@@ -213,8 +213,6 @@ export const CellAction: React.FC<CellActionProps> = ({
             </DropdownMenuPortal>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
-
-
           <DropdownMenuItem
             onClick={() => setOpen(true)}
           >

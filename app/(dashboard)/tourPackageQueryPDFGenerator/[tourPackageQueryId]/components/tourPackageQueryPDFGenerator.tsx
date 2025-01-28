@@ -719,7 +719,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
         window.location.href = url; // Open PDF in a new tab
       } else {
         alert("Failed to generate PDF");

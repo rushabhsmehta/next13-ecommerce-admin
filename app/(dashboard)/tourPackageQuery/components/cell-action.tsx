@@ -59,17 +59,17 @@ export const CellAction: React.FC<CellActionProps> = ({
 
   const handleOptionConfirm = (selectedOption: string) => {
 
-    router.push(`/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`);
+    window.open(`/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmPDF = (selectedOption: string) => {
 
-    router.push(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`);
+    window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {
 
-    router.push(`/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`);
+    window.open(`/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`,"_blank");
   }
 
 

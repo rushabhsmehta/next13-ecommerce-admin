@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -678,7 +678,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         : ''
       }
   
-      ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') 
+      ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB')
         ? `
           <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
             <div style="width: 120px; height: 120px; position: relative;">
@@ -720,9 +720,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        window.open(url, "_blank");
+        const link = document.createElement("a");
+        window.open(url, "_blank"); // Open PDF in a new tab
       } else {
-        console.error("Failed to generate PDF");
         alert("Failed to generate PDF");
       }
     } catch (error) {
@@ -733,13 +733,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   };
 
-  useEffect(() => {
-    generatePDF();
-  }, []); // Automatically trigger the PDF generation when the component mounts
-
   return (
     <div className="p-4">
-      {loading && <p className="text-gray-500">Generating PDF...</p>}
+      <button
+        onClick={generatePDF}
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+        disabled={loading}
+      >
+        {loading ? "Generating..." : "Download PDF"}
+      </button>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -453,7 +453,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   </p>
                   ${itinerary.numberofRooms
                     ? `
-                  <h5 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms: ${itinerary.numberofRooms}</h4>
+                  <h5 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms: ${itinerary.numberofRooms}</h5>
                   `
                     : ""
                   }
@@ -465,7 +465,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   }
                   ${itinerary.mealsIncluded
                     ? `
-                  <h5 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h4>
+                  <h5 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h5>
                   <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>
                   `
                     : ""
@@ -720,13 +720,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "generated.pdf";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        window.open(url, "_blank");
       } else {
+        console.error("Failed to generate PDF");
         alert("Failed to generate PDF");
       }
     } catch (error) {
@@ -737,15 +733,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   };
 
+  useEffect(() => {
+    generatePDF();
+  }, []); // Automatically trigger the PDF generation when the component mounts
+
   return (
     <div className="p-4">
-      <button
-        onClick={generatePDF}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-        disabled={loading}
-      >
-        {loading ? "Generating..." : "Download PDF"}
-      </button>
+      {loading && <p className="text-gray-500">Generating PDF...</p>}
     </div>
   );
 };

@@ -81,10 +81,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
 
- /*  if (!initialData) {
-    return <div>No data available</div>;
-  }
- */
+  /*  if (!initialData) {
+     return <div>No data available</div>;
+   }
+  */
   const generatePDF = async () => {
     setLoading(true);
 
@@ -92,15 +92,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; font-family: Arial, sans-serif;">
     <!-- Tour Package Header Section -->
     <div style="break-inside: avoid; font-weight: bold; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0; justify-content: space-between; align-items: center;">
-        <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-          ${initialData?.tourPackageQueryName}
-        </h1>       
-        <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-          ${initialData?.tourPackageQueryType} Package
-        </h2>
-      </div>
-      ${initialData?.images
+  <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; align-items: center; text-align: center;">
+    <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+      ${initialData?.tourPackageQueryName}
+    </h1>       
+    <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+      ${initialData?.tourPackageQueryType} Package
+    </h2>
+  </div>
+
+  ${initialData?.images
         .map(
           (image, index) => `
           <div style="width: 100%; height: 500px; overflow: hidden;">
@@ -243,13 +244,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ${selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
         ? `
       <div style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Tour Pricing</h2>
-        </div>
   
         ${initialData?.price && initialData?.price.trim() !== ''
           ? `
-          <div style="padding: 16px;">
+          <div style="padding: 8px;">
             <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
               <span style="color: #f97316;">${initialData?.price}</span>
             </div>
@@ -390,20 +388,33 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         : ''
       }
 
-    <!-- Itineraries Section -->
-    ${initialData?.itineraries && initialData?.itineraries.length > 0
-        ? `
-      <div style="padding: 16px; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px;">
-        <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 16px; text-align: center;">Itinerary</h2>
-        ${initialData?.itineraries
-          .map(
-            (itinerary, index) => `
-            <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-                    <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">
-              Day ${itinerary.dayNumber}: ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '') || ''}
-            </h3>
+  <!-- Itineraries Section -->
+${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itineraries.length > 0
+    ? `
+    <div style="page-break-before: always; border: 1px solid #ddd; border-radius: 8px; 
+                margin-top: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+
+      <!-- Itinerary Heading -->
+      <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); 
+                  color: white; padding: 8px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h2 style="font-size: 2rem; font-weight: bold; margin: 0;">Itinerary</h2>
+      </div>
+
+ <!-- Individual Itineraries -->
+      ${initialData.itineraries
+        .map(
+          (itinerary, index) => `
+          <div style="border: 1px solid #ddd; border-radius: 8px; margin-top: 8px;
+                      background: #ffffff; padding: 16px;">
+
+            <!-- Day Number and Title -->
+            <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15);
+                        color: white; padding: 8px; border-radius: 8px 8px 0 0;">
+              <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+                Day ${itinerary.dayNumber}: ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}
+              </h3>
             </div>
+            
             <p>${itinerary.itineraryDescription || ''}</p>
 
             <!-- Itinerary Images -->
@@ -429,14 +440,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   ${itinerary.hotelId &&
                 hotels.find((hotel) => hotel.id === itinerary.hotelId)
                 ? `
-      <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+      <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center; font-weight: bold; font-size: 1.5rem;">
           Hotel Details
         </div>
         <div style="padding: 16px;">
           ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
                   ? `
-              <div style="display: flex; align-items: flex-start; margin-bottom: 16px;">
+              <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
                 <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
                   <img
                     src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url || ""

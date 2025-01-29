@@ -718,30 +718,44 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
   `;
 
 
-    try {
-      const response = await fetch("/api/generate-pdf", {
-        method: "POST",
-        body: JSON.stringify({ htmlContent }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        window.location.href = url; // Open PDF in a new tab
-      } else {
-        alert("Failed to generate PDF");
-      }
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("An error occurred while generating the PDF.");
-    } finally {
-      setLoading(false);
+  try {
+    const response = await fetch("/api/generate-pdf", {
+      method: "POST",
+      body: JSON.stringify({ htmlContent }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+  
+      // Ensure tourPackageQueryName is a valid filename (remove special characters)
+      const fileName = initialData?.tourPackageQueryName
+        ? initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_") + ".pdf"
+        : "Tour_Package.pdf";
+  
+      // Create an anchor element
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName; // Set the dynamic file name
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+  
+      // Revoke object URL after download
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } else {
+      alert("Failed to generate PDF");
     }
-  };
-
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("An error occurred while generating the PDF.");
+  } finally {
+    setLoading(false);
+  }
+}
   useEffect(() => {
     generatePDF();
   }, [initialData]); // Empty dependency array ensures this runs only once
@@ -749,6 +763,6 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
   if (!initialData) {
     return <div>No data available</div>;
   }
-  return null; // Return nothing as the component is only for generating the PDF
+  return <div>PDF Generated Sucessfully</div>;; // Return nothing as the component is only for generating the PDF
 };
 export default TourPackageQueryPDFGenerator;

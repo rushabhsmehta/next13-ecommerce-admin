@@ -386,172 +386,171 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
     `
         : ''
-      }
-
-  <!-- Itineraries Section -->
+      }  
+      <div style="page-break-after: always; break-after: page;"></div>
+<!-- Itineraries Section -->
 ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itineraries.length > 0
     ? `
-    <div style="page-break-before: always; border: 1px solid #ddd; border-radius: 8px; 
-                margin-top: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
 
-      <!-- Itinerary Heading -->
+    <!-- Itinerary Heading (Appears Only Once) -->
+    <div style="border: 1px solid #ddd; border-radius: 8px; margin-top: 8px; 
+                box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+
       <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); 
                   color: white; padding: 8px; border-radius: 8px 8px 0 0; text-align: center;">
         <h2 style="font-size: 2rem; font-weight: bold; margin: 0;">Itinerary</h2>
       </div>
 
- <!-- Individual Itineraries -->
-      ${initialData.itineraries
-        .map(
-          (itinerary, index) => `
-          <div style="border: 1px solid #ddd; border-radius: 8px; margin-top: 8px;
-                      background: #ffffff; padding: 16px;">
+    </div>
 
-            <!-- Day Number and Title -->
-            <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15);
-                        color: white; padding: 8px; border-radius: 8px 8px 0 0;">
-              <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-                Day ${itinerary.dayNumber}: ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}
-              </h3>
-            </div>
-            
-            <p>${itinerary.itineraryDescription || ''}</p>
+    <!-- Individual Itineraries -->
+    ${initialData.itineraries
+      .map(
+        (itinerary, index) => `
+        <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; 
+                    margin-top: 8px; background: #ffffff; padding: 16px;">
 
-            <!-- Itinerary Images -->
-            ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-                ? itinerary.itineraryImages
-                  .map(
-                    (image, imageIndex) => `
-                <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
-                  <img 
-                    src="${image.url}" 
-                    alt="Itinerary Image ${imageIndex + 1}" 
-                    style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
-                  />
-                </div>
-              `
-                  )
-                  .join('')
-                : ''
-              }
+          <!-- Day Number and Title -->
+          <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15);
+                      color: white; padding: 8px; border-radius: 8px 8px 0 0;">
+            <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
+              Day ${itinerary.dayNumber}: ${itinerary.days} - 
+              ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}
+            </h3>
+          </div>
 
-            <!-- Hotel Section -->
-<div style="padding: 16px; font-family: Arial, sans-serif;">
-  ${itinerary.hotelId &&
-                hotels.find((hotel) => hotel.id === itinerary.hotelId)
-                ? `
-      <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center; font-weight: bold; font-size: 1.5rem;">
-          Hotel Details
-        </div>
-        <div style="padding: 16px;">
-          ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
-                  ? `
-              <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
-                <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                  <img
-                    src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url || ""
-                  }"
-                    alt="Hotel Image"
-                    style="width: 100%; height: 100%; object-fit: cover;"
-                  />
+          <p>${itinerary.itineraryDescription || ''}</p>
+
+          <!-- Itinerary Images -->
+          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
+              ? itinerary.itineraryImages
+                .map(
+                  (image, imageIndex) => `  
+                  <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
+                    <img 
+                      src="${image.url}" 
+                      alt="Itinerary Image ${imageIndex + 1}" 
+                      style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
+                    />
+                  </div>
+                `
+                )
+                .join('')
+              : ''
+          }
+
+          <!-- Hotel Section -->
+          <div style="padding: 16px; font-family: Arial, sans-serif;">
+            ${itinerary.hotelId &&
+              hotels.find((hotel) => hotel.id === itinerary.hotelId)
+              ? `
+                <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center; font-weight: bold; font-size: 1.5rem;">
+                    Hotel Details
+                  </div>
+                  <div style="padding: 16px;">
+                    ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
+                        ? `
+                        <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
+                          <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
+                            <img
+                              src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url || ""}"
+                              alt="Hotel Image"
+                              style="width: 100%; height: 100%; object-fit: cover;"
+                            />
+                          </div>
+                          <div style="margin-left: 16px;">
+                            <h3 style="font-weight: bold; font-size: 1.25rem;">Hotel Name:</h3>
+                            <p style="font-size: 1.25rem; margin-bottom: 4px;">
+                              ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
+                            </p>
+                            ${itinerary.numberofRooms
+                              ? `<h5 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms: ${itinerary.numberofRooms}</h5>`
+                              : ""
+                            }
+                            ${itinerary.roomCategory
+                              ? `<h5 style="font-weight: bold; font-size: 1.25rem;">Room Category: ${itinerary.roomCategory}</h5>`
+                              : ""
+                            }
+                            ${itinerary.mealsIncluded
+                              ? `<h5 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h5>
+                                <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>`
+                              : ""
+                            }
+                          </div>
+                        </div>
+                        `
+                        : `
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                          ${hotels
+                              .find((hotel) => hotel.id === itinerary.hotelId)
+                              ?.images.map(
+                                (image) => `
+                              <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
+                                <img
+                                  src="${image.url}"
+                                  alt="Hotel Image"
+                                  style="width: 100%; height: 100%; object-fit: cover;"
+                                />
+                              </div>
+                            `
+                              )
+                              .join("")}
+                        </div>
+                        `
+                      }
+                  </div>
                 </div>
-                <div style="margin-left: 16px;">
-                  <h3 style="font-weight: bold; font-size: 1.25rem;">Hotel Name:</h3>
-                  <p style="font-size: 1.25rem; margin-bottom: 4px;">
-                    ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
-                  </p>
-                  ${itinerary.numberofRooms
-                    ? `
-                  <h5 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms: ${itinerary.numberofRooms}</h5>
-                  `
-                    : ""
-                  }
-                  ${itinerary.roomCategory
-                    ? `
-                  <h5 style="font-weight: bold; font-size: 1.25rem;">Room Category : ${itinerary.roomCategory}</p>
-                  `
-                    : ""
-                  }
-                  ${itinerary.mealsIncluded
-                    ? `
-                  <h5 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h5>
-                  <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>
-                  `
-                    : ""
-                  }
-                </div>
-              </div>
-              `
-                  : `
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-                ${hotels
-                    .find((hotel) => hotel.id === itinerary.hotelId)
-                    ?.images.map(
-                      (image) => `
-                    <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                      <img
-                        src="${image.url}"
-                        alt="Hotel Image"
-                        style="width: 100%; height: 100%; object-fit: cover;"
-                      />
+                `
+              : ""
+            }
+          </div>
+
+          <!-- Activities Section -->
+          ${itinerary.activities && itinerary.activities.length > 0
+              ? `
+                <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
+                  <h4 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">Activities</h4>
+                  ${itinerary.activities
+                    .map(
+                      (activity, activityIndex) => `
+                    <div style="margin-bottom: 16px;">
+                      <h5 style="font-size: 1rem; font-weight: bold;">${activity.activityTitle || 'Activity'}</h5>
+                      <p>${activity.activityDescription || 'No description provided.'}</p>
+                      ${activity.activityImages && activity.activityImages.length > 0
+                          ? activity.activityImages
+                            .map(
+                              (activityImage, activityImgIndex) => `
+                        <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
+                          <img 
+                            src="${activityImage.url}" 
+                            alt="Activity Image ${activityImgIndex + 1}" 
+                            style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
+                          />
+                        </div>
+                      `
+                            )
+                            .join('')
+                          : ''
+                        }
                     </div>
                   `
                     )
-                    .join("")}
-              </div>
+                    .join('')}
+                </div>
               `
-                }
-        </div>
-      </div>
-      `
-                : ""
-              }
-</div>
+              : ''
+          }
 
-            <!-- Activities Section -->
-            ${itinerary.activities && itinerary.activities.length > 0
-                ? `
-              <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
-                <h4 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">Activities</h4>
-                ${itinerary.activities
-                  .map(
-                    (activity, activityIndex) => `
-                  <div style="margin-bottom: 16px;">
-                    <h5 style="font-size: 1rem; font-weight: bold;">${activity.activityTitle || 'Activity'}</h5>
-                    <p>${activity.activityDescription || 'No description provided.'}</p>
-                    ${activity.activityImages && activity.activityImages.length > 0
-                        ? activity.activityImages
-                          .map(
-                            (activityImage, activityImgIndex) => `
-                      <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
-                        <img 
-                          src="${activityImage.url}" 
-                          alt="Activity Image ${activityImgIndex + 1}" 
-                          style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
-                        />
-                      </div>
-                    `
-                          )
-                          .join('')
-                        : ''
-                      }
-                  </div>
-                `
-                  )
-                  .join('')}
-              </div>
-            `
-                : ''
-              }
-          </div>
+        </div> 
+
+        <!-- Page Break After Each Itinerary Day -->
+        <div style="page-break-after: always; break-after: page;"></div>
+
         `
-          )
-          .join('')}
-      </div>
-    `
-        : ''
-      }
+      ).join('')}
+  `
+  : ''}
 
  <!-- Inclusions Section -->
     ${initialData?.inclusions

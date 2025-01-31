@@ -419,7 +419,7 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
             </h3>
           </div>
 
-          <p>${itinerary.itineraryDescription || ''}</p>
+          <p>${itinerary.itineraryDescription?.replace(/^<p>/, '').replace(/<\/p>$/, '') || ''}</p>
 
           <!-- Itinerary Images -->
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0

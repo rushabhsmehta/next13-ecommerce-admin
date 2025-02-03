@@ -89,52 +89,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     setLoading(true);
 
     const htmlContent = `
-
- <head>
-  <!-- Load Unicode-Compatible Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
-
-  <style>
-    /* Apply Font Globally to Ensure Symbols Render */
-    * {
-      font-family: 'Noto Color Emoji', 'Arial Unicode MS', Arial, sans-serif !important;
-    }
-
-    /* Styling for All Sections */
-    .section-container {
-      break-inside: avoid;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-top: 16px;
-      box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
-      font-family: 'Noto Color Emoji', 'Arial Unicode MS', Arial, sans-serif !important;
-    }
-
-    .section-header {
-      background: linear-gradient(to right, #ef4444, #f97316);
-      color: white;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-    }
-
-    .section-title {
-      font-size: 1.75rem;
-      font-weight: bold;
-      margin: 0;
-    }
-
-    .section-content {
-      padding: 16px;
-      background: #ffffff;
-      color: #4a5568;
-      font-size: 1.2rem;
-      white-space: pre-wrap; /* Preserves spaces & line breaks */
-    }
-
-  </style>
-</head>
-
     <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; font-family: Arial, sans-serif;">
     <!-- Tour Package Header Section -->
     <div style="break-inside: avoid; font-weight: bold; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
@@ -605,97 +559,110 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
   `
         : ''}
 
-<!-- Inclusions Section -->
-${initialData?.inclusions
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Inclusions</h3>
-    </div>
-    <div class="section-content">${initialData?.inclusions}</div>
-  </div>
-  `
-  : ""
-}
+ <!-- Inclusions Section -->
+    ${initialData?.inclusions
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Inclusions</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.inclusions}
+        </div>
+      </div>
+    `
+        : ""
+      }
 
-<!-- Exclusions Section -->
-${initialData?.exclusions
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Exclusions</h3>
-    </div>
-    <div class="section-content">${initialData?.exclusions}</div>
-  </div>
-  `
-  : ""
-}
+    <!-- Exclusions Section -->
+    ${initialData?.exclusions
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Exclusions</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.exclusions}
+        </div>
+      </div>
+    `
+        : ""
+      }
+  
+    <!-- Important Notes Section -->
+    ${initialData?.importantNotes
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Important Notes</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.importantNotes}
+        </div>
+      </div>
+    `
+        : ""
+      }
 
-<!-- Important Notes Section -->
-${initialData?.importantNotes
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Important Notes</h3>
-    </div>
-    <div class="section-content">${initialData?.importantNotes}</div>
-  </div>
-  `
-  : ""
-}
+    <!-- Payment Policy Section -->
+    ${initialData?.paymentPolicy
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Payment Policy</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.paymentPolicy}
+        </div>
+      </div>
+    `
+        : ""
+      }
 
-<!-- Payment Policy Section -->
-${initialData?.paymentPolicy
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Payment Policy</h3>
-    </div>
-    <div class="section-content">${initialData?.paymentPolicy}</div>
-  </div>
-  `
-  : ""
-}
+    <!-- Terms and Conditions Section -->
+    ${initialData?.termsconditions
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Terms and Conditions</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.termsconditions}
+        </div>
+      </div>
+    `
+        : ""
+      }
 
-<!-- Terms and Conditions Section -->
-${initialData?.termsconditions
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Terms and Conditions</h3>
-    </div>
-    <div class="section-content">${initialData?.termsconditions}</div>
-  </div>
-  `
-  : ""
-}
+    <!-- Cancellation Policy Section -->
+    ${initialData?.cancellationPolicy
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Cancellation Policy</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.cancellationPolicy}
+        </div>
+      </div>
+    `
+        : ""
+      }
 
-<!-- Cancellation Policy Section -->
-${initialData?.cancellationPolicy
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Cancellation Policy</h3>
-    </div>
-    <div class="section-content">${initialData?.cancellationPolicy}</div>
-  </div>
-  `
-  : ""
-}
-
-<!-- Airline Cancellation Policy Section -->
-${initialData?.airlineCancellationPolicy
-  ? `
-  <div class="section-container">
-    <div class="section-header">
-      <h3 class="section-title">Airline Cancellation Policy</h3>
-    </div>
-    <div class="section-content">${initialData?.airlineCancellationPolicy}</div>
-  </div>
-  `
-  : ""
-}
-
+    <!-- Airline Cancellation Policy Section -->
+    ${initialData?.airlineCancellationPolicy
+        ? `
+      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Airline Cancellation Policy</h3>
+        </div>
+        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
+          ${initialData?.airlineCancellationPolicy}
+        </div>
+      </div>
+    `
+        : ""
+      }
 
   
       ${selectedOption !== 'Empty' &&

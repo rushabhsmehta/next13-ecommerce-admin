@@ -169,74 +169,77 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     </div>
 
 
-    <!-- Tour Pricing Section -->
-    ${selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
-        ? `
-      <div style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+  <!-- Tour Pricing Section -->
+${initialData?.price || initialData?.pricePerAdult || initialData?.pricePerChildOrExtraBed ||
+initialData?.pricePerChild5to12YearsNoBed || initialData?.pricePerChildwithSeatBelow5Years
+  ? `
+  <div style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
   
-        ${initialData?.price && initialData?.price.trim() !== ''
-          ? `
-          <div style="padding: 8px;">
-            <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
-              <span style="color: #f97316;">${initialData?.price}</span>
-            </div>
-          </div>
-          `
-          : ''
-        }
-  
-        <div style="padding: 16px; background: #ffffff;">
-          <!-- Price per Adult Section -->
-          ${initialData?.pricePerAdult !== ''
-          ? `
-            <div style="margin-bottom: 16px;">
-              <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                <span style="color: #1a202c;">Price per Adult:</span> ${initialData?.pricePerAdult}
-              </div>
-            </div>
-            `
-          : ''
-        }
-  
-          <!-- Price for Children Section -->
-          <div>
-            ${initialData?.pricePerChildOrExtraBed !== ''
-          ? `
-              <div style="margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData?.pricePerChildOrExtraBed}
-                </div>
-              </div>
-              `
-          : ''
-        }
-            ${initialData?.pricePerChild5to12YearsNoBed !== ''
-          ? `
-              <div style="margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData?.pricePerChild5to12YearsNoBed}
-                </div>
-              </div>
-              `
-          : ''
-        }
-            ${initialData?.pricePerChildwithSeatBelow5Years !== ''
-          ? `
-              <div style="margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData?.pricePerChildwithSeatBelow5Years}
-                </div>
-              </div>
-              `
-          : ''
-        }
-          </div>
+    ${initialData?.price?.trim()
+      ? `
+      <div style="padding: 8px;">
+        <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
+          <span style="color: #f97316;">${initialData?.price}</span>
         </div>
       </div>
       `
-        : ''
-      }
-  
+      : ''
+    }
+
+    <div style="padding: 16px; background: #ffffff;">
+      
+      <!-- Price per Adult Section -->
+      ${initialData?.pricePerAdult?.trim()
+      ? `
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+            <span style="color: #1a202c;">Price per Adult:</span> ${initialData?.pricePerAdult}
+          </div>
+        </div>
+        `
+      : ''
+    }
+
+      <!-- Price for Children Section -->
+      ${initialData?.pricePerChildOrExtraBed?.trim()
+      ? `
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+            <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData?.pricePerChildOrExtraBed}
+          </div>
+        </div>
+        `
+      : ''
+    }
+
+      ${initialData?.pricePerChild5to12YearsNoBed?.trim()
+      ? `
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+            <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData?.pricePerChild5to12YearsNoBed}
+          </div>
+        </div>
+        `
+      : ''
+    }
+
+      ${initialData?.pricePerChildwithSeatBelow5Years?.trim()
+      ? `
+        <div style="margin-bottom: 16px;">
+          <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
+            <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData?.pricePerChildwithSeatBelow5Years}
+          </div>
+        </div>
+        `
+      : ''
+    }
+
+    </div>
+  </div>
+  `
+  : ''
+}
+
     <!-- Total Price Section -->
     ${initialData?.totalPrice && initialData?.totalPrice.trim() !== ''
         ? `

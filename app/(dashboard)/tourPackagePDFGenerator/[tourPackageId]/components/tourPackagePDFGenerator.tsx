@@ -385,13 +385,7 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
                   <p style="font-weight: bold; font-size: 1rem;">Hotel Name:</p>
                   <p style="font-size: 1rem; margin-bottom: 2px;">${hotel.name || ""}</p>
 
-                  ${
-                    itinerary.numberofRooms
-                      ? `<p style="font-weight: bold; font-size: 1rem;">Number of Rooms:</p>
-                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.numberofRooms}</p>`
-                      : ""
-                  }
-
+                
                   ${
                     itinerary.roomCategory
                       ? `<p style="font-weight: bold; font-size: 1rem;">Room Category:</p>

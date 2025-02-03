@@ -450,7 +450,7 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 4px; text-align: center; font-weight: bold; font-size: 1.5rem;">
           Hotel Details
         </div>
-        <div style="padding: 4px;">
+        <div style="padding: 16px;">
           ${
             hotel.images.length === 1
               ? `
@@ -463,27 +463,27 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
                   />
                 </div>
                 <div style="margin-left: 16px;">
-                  <h3 style="font-weight: bold; font-size: 1rem;">Hotel Name:</h3>
-                  <p style="font-size: 1rem; margin-bottom: 4px;">${hotel.name || ""}</p>
+                  <p style="font-weight: bold; font-size: 1rem;">Hotel Name:</p>
+                  <p style="font-size: 1rem; margin-bottom: 2px;">${hotel.name || ""}</p>
 
                   ${
                     itinerary.numberofRooms
-                      ? `<h3 style="font-weight: bold; font-size: 1rem;">Number of Rooms:</h3>
-                         <p style="font-size: 1rem; margin-bottom: 4px;">${itinerary.numberofRooms}</p>`
+                      ? `<p style="font-weight: bold; font-size: 1rem;">Number of Rooms:</p>
+                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.numberofRooms}</p>`
                       : ""
                   }
 
                   ${
                     itinerary.roomCategory
-                      ? `<h3 style="font-weight: bold; font-size: 1rem;">Room Category:</h3>
-                         <p style="font-size: 1rem; margin-bottom: 4px;">${itinerary.roomCategory}</p>`
+                      ? `<p style="font-weight: bold; font-size: 1rem;">Room Category:</p>
+                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.roomCategory}</p>`
                       : ""
                   }
 
                   ${
                     itinerary.mealsIncluded
-                      ? `<h3 style="font-weight: bold; font-size: 1rem;">Meal Plan:</h3>
-                         <p style="font-size: 1rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>`
+                      ? `<p style="font-weight: bold; font-size: 1rem;">Meal Plan:</p>
+                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.mealsIncluded}</p>`
                       : ""
                   }
                 </div>

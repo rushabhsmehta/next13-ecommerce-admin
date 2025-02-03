@@ -390,7 +390,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       <div style="page-break-after: always; break-after: page;"></div>
 <!-- Itineraries Section -->
 ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itineraries.length > 0
-    ? `
+        ? `
 
     <!-- Itinerary Heading (Appears Only Once) -->
     <div style="border: 1px solid #ddd; border-radius: 8px; margin-top: 8px; 
@@ -405,8 +405,8 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
 
     <!-- Individual Itineraries -->
     ${initialData.itineraries
-      .map(
-        (itinerary, index) => `
+          .map(
+            (itinerary, index) => `
         <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; 
                     margin-top: 8px; background: #ffffff; padding: 16px;">
 
@@ -423,9 +423,9 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
 
           <!-- Itinerary Images -->
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-              ? itinerary.itineraryImages
-                .map(
-                  (image, imageIndex) => `  
+                ? itinerary.itineraryImages
+                  .map(
+                    (image, imageIndex) => `  
                   <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
                     <img 
                       src="${image.url}" 
@@ -434,93 +434,100 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
                     />
                   </div>
                 `
-                )
-                .join('')
-              : ''
-          }
+                  )
+                  .join('')
+                : ''
+              }
 
-          <!-- Hotel Section -->
-          <div style="padding: 16px; font-family: Arial, sans-serif;">
-            ${itinerary.hotelId &&
-              hotels.find((hotel) => hotel.id === itinerary.hotelId)
+       <!-- Hotel Section -->
+<div style="padding: 16px; font-family: Arial, sans-serif;">
+  ${(() => {
+    const hotel = hotels.find((hotel) => hotel.id === itinerary.hotelId);
+    if (!itinerary.hotelId || !hotel) return "";
+
+    return `
+      <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 4px; text-align: center; font-weight: bold; font-size: 1.5rem;">
+          Hotel Details
+        </div>
+        <div style="padding: 4px;">
+          ${
+            hotel.images.length === 1
               ? `
-                <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-                  <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center; font-weight: bold; font-size: 1.5rem;">
-                    Hotel Details
-                  </div>
-                  <div style="padding: 16px;">
-                    ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
-                        ? `
-                        <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
-                          <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                            <img
-                              src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url || ""}"
-                              alt="Hotel Image"
-                              style="width: 100%; height: 100%; object-fit: cover;"
-                            />
-                          </div>
-                          <div style="margin-left: 16px;">
-                            <h3 style="font-weight: bold; font-size: 1.25rem;">Hotel Name:</h3>
-                            <p style="font-size: 1.25rem; margin-bottom: 4px;">
-                              ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
-                            </p>
-                            ${itinerary.numberofRooms
-                              ? `<h5 style="font-weight: bold; font-size: 1.25rem;">Number of Rooms: ${itinerary.numberofRooms}</h5>`
-                              : ""
-                            }
-                            ${itinerary.roomCategory
-                              ? `<h5 style="font-weight: bold; font-size: 1.25rem;">Room Category: ${itinerary.roomCategory}</h5>`
-                              : ""
-                            }
-                            ${itinerary.mealsIncluded
-                              ? `<h5 style="font-weight: bold; font-size: 1.25rem;">Meal Plan:</h5>
-                                <p style="font-size: 1.25rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>`
-                              : ""
-                            }
-                          </div>
-                        </div>
-                        `
-                        : `
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-                          ${hotels
-                              .find((hotel) => hotel.id === itinerary.hotelId)
-                              ?.images.map(
-                                (image) => `
-                              <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                                <img
-                                  src="${image.url}"
-                                  alt="Hotel Image"
-                                  style="width: 100%; height: 100%; object-fit: cover;"
-                                />
-                              </div>
-                            `
-                              )
-                              .join("")}
-                        </div>
-                        `
-                      }
-                  </div>
+              <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
+                <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
+                  <img
+                    src="${hotel.images[0].url || ""}"
+                    alt="Hotel Image"
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                  />
                 </div>
-                `
-              : ""
-            }
-          </div>
+                <div style="margin-left: 16px;">
+                  <h3 style="font-weight: bold; font-size: 1rem;">Hotel Name:</h3>
+                  <p style="font-size: 1rem; margin-bottom: 4px;">${hotel.name || ""}</p>
+
+                  ${
+                    itinerary.numberofRooms
+                      ? `<h3 style="font-weight: bold; font-size: 1rem;">Number of Rooms:</h3>
+                         <p style="font-size: 1rem; margin-bottom: 4px;">${itinerary.numberofRooms}</p>`
+                      : ""
+                  }
+
+                  ${
+                    itinerary.roomCategory
+                      ? `<h3 style="font-weight: bold; font-size: 1rem;">Room Category:</h3>
+                         <p style="font-size: 1rem; margin-bottom: 4px;">${itinerary.roomCategory}</p>`
+                      : ""
+                  }
+
+                  ${
+                    itinerary.mealsIncluded
+                      ? `<h3 style="font-weight: bold; font-size: 1rem;">Meal Plan:</h3>
+                         <p style="font-size: 1rem; margin-bottom: 4px;">${itinerary.mealsIncluded}</p>`
+                      : ""
+                  }
+                </div>
+              </div>
+            `
+              : `
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                ${hotel.images
+                  .map(
+                    (image) => `
+                      <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
+                        <img
+                          src="${image.url}"
+                          alt="Hotel Image"
+                          style="width: 100%; height: 100%; object-fit: cover;"
+                        />
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            `
+          }
+        </div>
+      </div>
+    `;
+  })()}
+</div>
 
           <!-- Activities Section -->
           ${itinerary.activities && itinerary.activities.length > 0
-              ? `
+                ? `
                 <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
                   <h4 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">Activities</h4>
                   ${itinerary.activities
-                    .map(
-                      (activity, activityIndex) => `
+                  .map(
+                    (activity, activityIndex) => `
                     <div style="margin-bottom: 16px;">
                       <h5 style="font-size: 1rem; font-weight: bold;">${activity.activityTitle || 'Activity'}</h5>
                       <p>${activity.activityDescription || 'No description provided.'}</p>
                       ${activity.activityImages && activity.activityImages.length > 0
-                          ? activity.activityImages
-                            .map(
-                              (activityImage, activityImgIndex) => `
+                        ? activity.activityImages
+                          .map(
+                            (activityImage, activityImgIndex) => `
                         <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
                           <img 
                             src="${activityImage.url}" 
@@ -529,18 +536,18 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
                           />
                         </div>
                       `
-                            )
-                            .join('')
-                          : ''
-                        }
+                          )
+                          .join('')
+                        : ''
+                      }
                     </div>
                   `
-                    )
-                    .join('')}
+                  )
+                  .join('')}
                 </div>
               `
-              : ''
-          }
+                : ''
+              }
 
         </div> 
 
@@ -548,9 +555,9 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
         <div style="page-break-after: always; break-after: page;"></div>
 
         `
-      ).join('')}
+          ).join('')}
   `
-  : ''}
+        : ''}
 
  <!-- Inclusions Section -->
     ${initialData?.inclusions
@@ -717,45 +724,44 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
   `;
 
 
-  try {
-    const response = await fetch("/api/generate-pdf", {
-      method: "POST",
-      body: JSON.stringify({ htmlContent }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-  
-    if (response.ok) {
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-  
-      // Ensure tourPackageQueryName is a valid filename (remove special characters)
-      const fileName = initialData?.tourPackageQueryName && initialData?.tourPackageQueryType
-      ? `${initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_")}_${initialData.tourPackageQueryType.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`
-      : "Tour_Package.pdf";
-    
-  
-      // Create an anchor element
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName; // Set the dynamic file name
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-  
-      // Revoke object URL after download
-      setTimeout(() => window.URL.revokeObjectURL(url), 100);
-    } else {
-      alert("Failed to generate PDF");
+    try {
+      const response = await fetch("/api/generate-pdf", {
+        method: "POST",
+        body: JSON.stringify({ htmlContent }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Ensure tourPackageQueryName is a valid filename (remove special characters)
+        const fileName = initialData?.tourPackageQueryName && initialData?.tourPackageQueryType
+          ? `${initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_")}_${initialData.tourPackageQueryType.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`
+          : "Tour_Package.pdf";
+
+        // Create an anchor element
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName; // Set the dynamic file name
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Revoke object URL after download
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      } else {
+        alert("Failed to generate PDF");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("An error occurred while generating the PDF.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    alert("An error occurred while generating the PDF.");
-  } finally {
-    setLoading(false);
   }
-}
   useEffect(() => {
     generatePDF();
   }, [initialData]); // Empty dependency array ensures this runs only once

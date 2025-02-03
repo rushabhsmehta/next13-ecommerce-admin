@@ -93,7 +93,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
           
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackagPDFGenerator/${data.id}`)}
+            onClick={() => router.push(`/tourPackagePDFGenerator/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Download PDF
           </DropdownMenuItem>

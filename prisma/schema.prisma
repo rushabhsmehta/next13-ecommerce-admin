@@ -25,6 +25,15 @@ model Location {
   tourPackages     TourPackage[]      @relation("LocationTotourPackage")
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
 
+  inclusions                String? @db.Text
+  exclusions                String? @db.Text
+  importantNotes            String? @db.Text
+  paymentPolicy             String? @db.Text
+  usefulTip                 String? @db.Text
+  cancellationPolicy        String? @db.Text
+  airlineCancellationPolicy String? @db.Text
+  termsconditions           String? @db.Text  
+
   @@index([id])
 }
 

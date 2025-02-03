@@ -731,9 +731,10 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
       const url = window.URL.createObjectURL(blob);
   
       // Ensure tourPackageQueryName is a valid filename (remove special characters)
-      const fileName = initialData?.tourPackageQueryName
-        ? initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_") + ".pdf"
-        : "Tour_Package.pdf";
+      const fileName = initialData?.tourPackageQueryName && initialData?.tourPackageQueryType
+      ? `${initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_")}_${initialData.tourPackageQueryType.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`
+      : "Tour_Package.pdf";
+    
   
       // Create an anchor element
       const a = document.createElement("a");

@@ -89,6 +89,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     setLoading(true);
 
     const htmlContent = `
+
+ <head>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+    <style>
+      .airline-policy {
+        font-family: 'Noto Color Emoji', Arial, sans-serif !important;
+      }
+    </style>
+  </head>
+
     <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; font-family: Arial, sans-serif;">
     <!-- Tour Package Header Section -->
     <div style="break-inside: avoid; font-weight: bold; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
@@ -649,20 +659,21 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
         : ""
       }
 
-    <!-- Airline Cancellation Policy Section -->
-    ${initialData?.airlineCancellationPolicy
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Airline Cancellation Policy</h3>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.airlineCancellationPolicy}
-        </div>
+  <!-- Airline Cancellation Policy Section -->
+${initialData?.airlineCancellationPolicy
+  ? `
+    <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); font-family: 'Arial', 'Noto Color Emoji', sans-serif;">
+      <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
+        <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Airline Cancellation Policy</h3>
       </div>
-    `
-        : ""
-      }
+      <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem; white-space: pre-wrap;">
+        ${initialData?.airlineCancellationPolicy}
+      </div>
+    </div>
+  `
+  : ""
+}
+
 
   
       ${selectedOption !== 'Empty' &&

@@ -665,12 +665,12 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
       }
 
   
-     ${selectedOption !== 'Empty' &&
+      ${selectedOption !== 'Empty' &&
         selectedOption !== 'SupplierA' &&
         selectedOption !== 'SupplierB'
         ? `
-      <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-        <div style="width: 120px; height: 120px; position: relative;">
+      <div style="border-bottom: 1px solid #ddd; margin: 16px; padding: 16px; display: flex; align-items: center;">
+        <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
           <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
         <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
@@ -693,11 +693,11 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
       `
         : ''
       }
-  
+    
       ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB')
         ? `
-          <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="width: 120px; height: 120px; position: relative;">
+          <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+            <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
               <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
             </div>
             <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
@@ -721,8 +721,8 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
         : ``
       }  
     </div>
-  `;
-
+    `;
+    
 
     try {
       const response = await fetch("/api/generate-pdf", {

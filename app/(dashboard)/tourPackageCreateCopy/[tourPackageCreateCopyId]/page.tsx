@@ -2,8 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageCreateCopyForm } from "./components/tourPackageCreateCopy-form";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: string } }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
@@ -68,8 +68,8 @@ const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: 
 
   return (
     <>{/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <TourPackageCreateCopyForm
@@ -80,7 +80,7 @@ const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: 
               itinerariesMaster={itinerariesMaster} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 }

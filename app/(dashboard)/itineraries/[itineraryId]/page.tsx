@@ -2,8 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { ItineraryForm } from "./components/itinerary-form";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const ItineraryPage = async ({
   params
@@ -39,8 +39,8 @@ const ItineraryPage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />ઇ
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <ItineraryForm
@@ -49,7 +49,7 @@ const ItineraryPage = async ({
               initialData={itinerary} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 }

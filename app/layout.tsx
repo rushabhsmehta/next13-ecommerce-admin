@@ -6,6 +6,8 @@ import { ToastProvider } from '@/providers/toast-provider'
 import { ThemeProvider } from '@/providers/theme-provider'
 
 import './globals.css'
+import { SidebarProvider } from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,14 +25,19 @@ export default async function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body className={inter.className}>
-          <ThemeProvider 
-            attribute="class" 
-            defaultTheme="system" 
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
             enableSystem
           >
             <ToastProvider />
             <ModalProvider />
-            {children}
+            <SidebarProvider>
+              {/* Render the sidebar */}
+              <AppSidebar />
+              {/* Render the main content */}
+              {children}
+            </SidebarProvider>
           </ThemeProvider>
         </body>
       </html>

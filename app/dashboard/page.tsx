@@ -15,8 +15,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
 import React from "react";
+import { AppSidebar } from "@/components/app-sidebar";
 
 // Utility function to generate breadcrumbs dynamically
 function getBreadcrumbs(pathname: string) {

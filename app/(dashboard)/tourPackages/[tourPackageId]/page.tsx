@@ -2,6 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageForm } from "./components/tourPackage-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const tourPackagePage = async ({
   params
@@ -27,26 +29,26 @@ const tourPackagePage = async ({
           }
         },
         orderBy: {
-          dayNumber : 'asc' // or 'desc', depending on the desired order
+          dayNumber: 'asc' // or 'desc', depending on the desired order
         }
       }
     }
   }
   );
-      
-  
- // console.log("Fetched tourPackage:", tourPackage);
+
+
+  // console.log("Fetched tourPackage:", tourPackage);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    
+
     include: {
       activityMasterImages: true,
     },
@@ -54,9 +56,9 @@ const tourPackagePage = async ({
   );
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    
-    where : {
-      locationId : tourPackage?.locationId ?? '',
+
+    where: {
+      locationId: tourPackage?.locationId ?? '',
     },
 
     include: {
@@ -70,16 +72,21 @@ const tourPackagePage = async ({
   });
 
   return (
-    <>{/*       <Navbar /> */}<div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageForm
-          initialData={tourPackage}
-          locations={locations}
-          hotels={hotels}
-          activitiesMaster={activitiesMaster} 
-          itinerariesMaster={itinerariesMaster}/>
-      </div>
-    </div></>
+    <>{/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageForm
+              initialData={tourPackage}
+              locations={locations}
+              hotels={hotels}
+              activitiesMaster={activitiesMaster}
+              itinerariesMaster={itinerariesMaster} />
+          </div>
+        </div>
+      </SidebarProvider>
+    </>
   );
 }
 

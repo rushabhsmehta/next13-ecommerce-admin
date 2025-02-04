@@ -2,6 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { ItineraryMasterForm } from "./components/itineraryMaster-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const ItineraryMasterPage = async ({
   params
@@ -26,7 +28,7 @@ const ItineraryMasterPage = async ({
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    
+
     include: {
       activityMasterImages: true,
     },
@@ -34,25 +36,30 @@ const ItineraryMasterPage = async ({
   );
 
   const locations = await prismadb.location.findMany({
-   
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
 
   return (
-    <>{/*       <Navbar /> */}<div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <ItineraryMasterForm
-          hotels={hotels}
-          locations={locations}
-          activitiesMaster={activitiesMaster}
-          initialData={itineraryMaster}
-           />
-      </div>
-    </div></>
+    <>{/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <ItineraryMasterForm
+              hotels={hotels}
+              locations={locations}
+              activitiesMaster={activitiesMaster}
+              initialData={itineraryMaster}
+            />
+          </div>
+        </div>
+      </SidebarProvider>
+    </>
   );
 }
 

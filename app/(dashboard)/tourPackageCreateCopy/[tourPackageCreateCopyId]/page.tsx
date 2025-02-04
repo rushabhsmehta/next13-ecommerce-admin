@@ -2,6 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageCreateCopyForm } from "./components/tourPackageCreateCopy-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: string } }) => {
   const tourPackage = await prismadb.tourPackage.findUnique({
@@ -48,8 +50,8 @@ const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: 
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
 
-    where : {
-      locationId : tourPackage?.locationId ?? '',
+    where: {
+      locationId: tourPackage?.locationId ?? '',
     },
 
     include: {
@@ -65,16 +67,21 @@ const tourPackagePage = async ({ params }: { params: { tourPackageCreateCopyId: 
 
 
   return (
-    <>{/*       <Navbar /> */}<div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageCreateCopyForm
-          initialData={tourPackage}
-          locations={locations}
-          hotels={hotels}
-          activitiesMaster={activitiesMaster}
-          itinerariesMaster={itinerariesMaster} />
-      </div>
-    </div></>
+    <>{/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageCreateCopyForm
+              initialData={tourPackage}
+              locations={locations}
+              hotels={hotels}
+              activitiesMaster={activitiesMaster}
+              itinerariesMaster={itinerariesMaster} />
+          </div>
+        </div>
+      </SidebarProvider>
+    </>
   );
 }
 export default tourPackagePage;

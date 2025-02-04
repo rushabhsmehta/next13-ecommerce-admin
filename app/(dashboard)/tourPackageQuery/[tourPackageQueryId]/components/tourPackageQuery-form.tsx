@@ -64,8 +64,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+
 
 const editorConfig = {
   readonly: false,
@@ -447,100 +446,165 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   return (
     <>
-      <SidebarProvider>
-        <AppSidebar />
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+      <AlertModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={onDelete}
+        loading={loading}
+      />
+      <div className="flex items-center justify-between">
+        <Heading title={title} description={description} />
+        {initialData && (
+          <Button
+            disabled={loading}
+            variant="destructive"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      <Separator />
 
-            <AlertModal
-              isOpen={open}
-              onClose={() => setOpen(false)}
-              onConfirm={onDelete}
-              loading={loading}
-            />
-            <div className="flex items-center justify-between">
-              <Heading title={title} description={description} />
-              {initialData && (
-                <Button
-                  disabled={loading}
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setOpen(true)}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+
+          <div className="grid grid-cols-3 gap-8">
+            <FormField
+              control={form.control}
+              name="assignedTo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned To</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Assigned To"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-            <Separator />
-            <div className="grid grid-cols-3 gap-8">
-              <FormField
-                control={form.control}
-                name="assignedTo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Assigned To"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assignedToMobileNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number (Assigned To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Mobile Number (Assigned To)"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assignedToEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email ID (Assinged To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Email ID"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            />
+            <FormField
+              control={form.control}
+              name="assignedToMobileNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mobile Number (Assigned To)</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Mobile Number (Assigned To)"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="assignedToEmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email ID (Assinged To)</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Email ID"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="images"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Images</FormLabel>
+                <FormControl>
+                  <ImageUpload
+                    value={field.value.map((image) => image.url)}
+                    disabled={loading}
+                    onChange={(url) => field.onChange([...field.value, { url }])}
+                    onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="isFeatured"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    // @ts-ignore
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>
+                    Confirmed
+                  </FormLabel>
+                  <FormDescription>
+                    Please Select Whether Query is confirmed or not ?
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
-              name="images"
+              name="tourPackageQueryNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Images</FormLabel>
+                  <FormLabel>Tour Package Query Number</FormLabel>
                   <FormControl>
-                    <ImageUpload
-                      value={field.value.map((image) => image.url)}
+                    <Input
                       disabled={loading}
-                      onChange={(url) => field.onChange([...field.value, { url }])}
-                      onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                      placeholder="Tour Package Query Number"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
+            {/* add formfield for TourPackageQueryName */}
+            <FormField
+              control={form.control}
+              name="tourPackageQueryName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tour Package Query Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Tour Package Query Name"
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
@@ -550,169 +614,103 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
             <FormField
               control={form.control}
-              name="isFeatured"
+              name="tourPackageQueryType"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormItem>
+                  <FormLabel>Tour Package Query Type</FormLabel>
                   <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      // @ts-ignore
-                      onCheckedChange={field.onChange}
-                    />
+                    <Select
+                      disabled={loading}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger>
+                        {field.value || 'Select Tour Package Query Type'}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TOUR_PACKAGE_QUERY_TYPE_DEFAULT.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      Confirmed
-                    </FormLabel>
-                    <FormDescription>
-                      Please Select Whether Query is confirmed or not ?
-                    </FormDescription>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-3 gap-8">
+            {/* //add formfield for customerName */}
+            <FormField
+              control={form.control}
+              name="customerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Name</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Customer Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="tourPackageQueryNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tour Package Query Number</FormLabel>
+            <FormField
+              control={form.control}
+              name="customerNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer Number</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Customer Number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="locationId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Tour Package Query Number"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
+                      <SelectTrigger>
+                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            {/* //add formfield for numDaysNight */}
+            <FormField
+              control={form.control}
+              name="numDaysNight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Days/Night</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* add formfield for TourPackageQueryName */}
-              <FormField
-                control={form.control}
-                name="tourPackageQueryName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tour Package Query Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Tour Package Query Name"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* // add formfield for period */}
 
-              <FormField
-                control={form.control}
-                name="tourPackageQueryType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tour Package Query Type</FormLabel>
-                    <FormControl>
-                      <Select
-                        disabled={loading}
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          {field.value || 'Select Tour Package Query Type'}
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TOUR_PACKAGE_QUERY_TYPE_DEFAULT.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* //add formfield for customerName */}
-              <FormField
-                control={form.control}
-                name="customerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Name</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Customer Name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="customerNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Number</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Customer Number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="locationId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* //add formfield for numDaysNight */}
-              <FormField
-                control={form.control}
-                name="numDaysNight"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Days/Night</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* // add formfield for period */}
-
-              {/*  <FormField
+            {/*  <FormField
               control={form.control}
               name="period"
               render={({ field }) => (
@@ -726,90 +724,90 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               )}
             /> */}
 
-              <FormField
-                control={form.control}
-                name="tourStartsFrom"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Tour Starts From</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-[240px] pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
+            <FormField
+              control={form.control}
+              name="tourStartsFrom"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Tour Starts From</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
 
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
 
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="tourEndsOn"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Tour Ends On</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-[240px] pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
+            <FormField
+              control={form.control}
+              name="tourEndsOn"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Tour Ends On</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
 
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
 
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            </div>
-            {/* 
+          </div>
+          {/* 
           <FormField
             control={form.control}
             name="period"
@@ -823,120 +821,120 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </FormItem>
             )}
           /> */}
-            <div className="grid grid-cols-3 gap-8">
+          <div className="grid grid-cols-3 gap-8">
 
-              <FormField
-                control={form.control}
-                name="transport"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transport</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Transport" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="transport"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transport</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Transport" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="pickup_location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pickup Location</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Pickup Location" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="pickup_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pickup Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="drop_location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Drop Location</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Drop Location" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="drop_location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Drop Location</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Drop Location" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* //add formfield for numAdults */}
-              <FormField
-                control={form.control}
-                name="numAdults"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Adults</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Adults" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* //add formfield for numAdults */}
+            <FormField
+              control={form.control}
+              name="numAdults"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Adults</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Number of Adults" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* //add formfield for numChildren */}
-              <FormField
-                control={form.control}
-                name="numChild5to12"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Children 5 to 12</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* //add formfield for numChildren */}
+            <FormField
+              control={form.control}
+              name="numChild5to12"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Children 5 to 12</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              {/* //add formfield for numChildren */}
-              <FormField
-                control={form.control}
-                name="numChild0to5"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Children 0 to 5</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* //add formfield for numChildren */}
+            <FormField
+              control={form.control}
+              name="numChild0to5"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Children 0 to 5</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            </div>
-            <div className="grid grid-cols-1 gap-8">
+          </div>
+          <div className="grid grid-cols-1 gap-8">
 
-              <FormField
-                control={form.control}
-                name="price" // Ensure the name is lowercase with no spaces
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pricing Table</FormLabel>
-                    <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value || PRICE_DEFAULT} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="price" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pricing Table</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || PRICE_DEFAULT} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
 
-              {/*             <FormField
+            {/*             <FormField
               control={form.control}
               name="price"
               render={({ field }) => (
@@ -951,322 +949,474 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             />
  */}
 
-            </div>
-            <div className="grid grid-cols-3 gap-8">
-
-              <FormField
-                control={form.control}
-                name="pricePerAdult"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Adult</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Price per Adult" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="pricePerChildOrExtraBed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Child/Extra Bed</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-
-              <FormField
-                control={form.control}
-                name="pricePerChild5to12YearsNoBed"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="pricePerChildwithSeatBelow5Years"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="totalPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total Price</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} placeholder="Total Price" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-            </div>
-            <div className="grid grid-cols-2 gap-8">
-
-              <FormField
-                control={form.control}
-                name="disclaimer" // Ensure the name is lowercase with no spaces
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Disclaimer</FormLabel>
-                    <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value || ''} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="remarks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Remarks</FormLabel>
-                    <FormControl>
-
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value || ''} // Set initial content from form field value
-                        config={{ // Configure Jodit options (optional)
-                          readonly: loading, // Disable editing if loading                       
-                        }}
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-
-
-                      {/* <Textarea rows={5} disabled={loading} placeholder="" {...field} /> */}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-8">
 
             <FormField
               control={form.control}
-              name="tour_highlights"
+              name="pricePerAdult"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tour Highlights</FormLabel>
+                  <FormLabel>Price Per Adult</FormLabel>
                   <FormControl>
-                    <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      config={{ // Configure Jodit options (optional)
-                        readonly: loading, // Disable editing if loading                       
-                      }}
-                      value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value                      
-                      /*  config={{ // Configure Jodit options (optional)
-                         readonly: loading, // Disable editing if loading                       
-                       }} */
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                    />
-
+                    <Input disabled={loading} placeholder="Price per Adult" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pricePerChildOrExtraBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child/Extra Bed</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field} />
+                  </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
 
-            {/* //add formfield for flightDetails */}
-            <div>
-              <FormField
-                control={form.control}
-                name="flightDetails"
-                render={({ field: { value = [], onChange } }) => (
-                  <FormItem>
-                    <FormLabel>Create Flight Plan</FormLabel>
-                    {
-                      value.map((flight, index) => (
-
-                        <div key={index} className="grid grid-cols-3 gap-8">
-                          <FormControl>
-                            <Input
-                              placeholder="Date"
-                              disabled={loading}
-                              value={flight.date}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, date: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-                          <FormControl>
-                            <Input
-                              placeholder="Flight Name"
-                              disabled={loading}
-                              value={flight.flightName}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, flightName: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-                          <FormControl>
-                            <Input
-                              placeholder="Flight Number"
-                              disabled={loading}
-                              value={flight.flightNumber}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-                          <FormControl>
-                            <Input
-                              placeholder="From"
-                              disabled={loading}
-                              value={flight.from}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, from: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-                          <FormControl>
-
-                            <Input
-                              placeholder="To"
-                              disabled={loading}
-                              value={flight.to}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, to: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-                          <FormControl>
-
-                            <Input
-                              placeholder="Departure Time"
-                              disabled={loading}
-                              value={flight.departureTime}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value]; // Ensure this is your state array
-                                newFlightDetails[index] = { ...flight, departureTime: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-
-                          </FormControl>
-                          <FormControl>
-
-                            <Input
-                              placeholder="Arrival Time"
-                              disabled={loading}
-                              value={flight.arrivalTime}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-                          <FormControl>
-                            <Input
-                              placeholder="Flight Duration"
-                              disabled={loading}
-                              value={flight.flightDuration}
-                              onChange={(e) => {
-                                const newFlightDetails = [...value];
-                                newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
-                                onChange(newFlightDetails);
-                              }}
-                            />
-                          </FormControl>
-
-
-                          <FormControl>
-                            <Button
-
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              disabled={loading}
-                              onClick={() => {
-                                const newFlightDetails = value.filter((_, i) => i != index);
-                                onChange(newFlightDetails);
-                              }}>
-                              Remove Flight
-                            </Button>
-                          </FormControl>
-                        </div>
-                      ))}
-                    <FormControl>
-                      <Button type="button" size="sm"
-                        disabled={loading}
-                        onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
-                      >
-                        Add Flight
-                      </Button>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="pricePerChild5to12YearsNoBed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
-              name="itineraries"
+              name="pricePerChildwithSeatBelow5Years"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="totalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Price</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Total Price" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+          </div>
+          <div className="grid grid-cols-2 gap-8">
+
+            <FormField
+              control={form.control}
+              name="disclaimer" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Disclaimer</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remarks</FormLabel>
+                  <FormControl>
+
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+
+                    {/* <Textarea rows={5} disabled={loading} placeholder="" {...field} /> */}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+          </div>
+
+          <FormField
+            control={form.control}
+            name="tour_highlights"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tour Highlights</FormLabel>
+                <FormControl>
+                  <JoditEditor // Replace Textarea with JoditEditor
+                    ref={editor} // Optional ref for programmatic access
+                    config={{ // Configure Jodit options (optional)
+                      readonly: loading, // Disable editing if loading                       
+                    }}
+                    value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value                      
+                    /*  config={{ // Configure Jodit options (optional)
+                       readonly: loading, // Disable editing if loading                       
+                     }} */
+                    onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                  />
+
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+
+          {/* //add formfield for flightDetails */}
+          <div>
+            <FormField
+              control={form.control}
+              name="flightDetails"
               render={({ field: { value = [], onChange } }) => (
-                <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                  <FormLabel>Create Itineraries</FormLabel>
+                <FormItem>
+                  <FormLabel>Create Flight Plan</FormLabel>
+                  {
+                    value.map((flight, index) => (
+
+                      <div key={index} className="grid grid-cols-3 gap-8">
+                        <FormControl>
+                          <Input
+                            placeholder="Date"
+                            disabled={loading}
+                            value={flight.date}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, date: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="Flight Name"
+                            disabled={loading}
+                            value={flight.flightName}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, flightName: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="Flight Number"
+                            disabled={loading}
+                            value={flight.flightNumber}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, flightNumber: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="From"
+                            disabled={loading}
+                            value={flight.from}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, from: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="To"
+                            disabled={loading}
+                            value={flight.to}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, to: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+
+                          <Input
+                            placeholder="Departure Time"
+                            disabled={loading}
+                            value={flight.departureTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value]; // Ensure this is your state array
+                              newFlightDetails[index] = { ...flight, departureTime: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+
+                        </FormControl>
+                        <FormControl>
+
+                          <Input
+                            placeholder="Arrival Time"
+                            disabled={loading}
+                            value={flight.arrivalTime}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
+
+                        <FormControl>
+                          <Input
+                            placeholder="Flight Duration"
+                            disabled={loading}
+                            value={flight.flightDuration}
+                            onChange={(e) => {
+                              const newFlightDetails = [...value];
+                              newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </FormControl>
 
 
-                  {value.map((itinerary, index) => (
-                    <><Accordion key={index} type="single" collapsible className="w-full">
-                      <AccordionItem value="item-${index}">
-                        <AccordionTrigger>
-                          <div className="font-bold mb-2" dangerouslySetInnerHTML={{
-                            __html: `Day ${index + 1}: ${itinerary.itineraryTitle || ''}`,
-                          }}></div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="md:grid md:grid-cols-2 gap-8">
+                        <FormControl>
+                          <Button
+
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={loading}
+                            onClick={() => {
+                              const newFlightDetails = value.filter((_, i) => i != index);
+                              onChange(newFlightDetails);
+                            }}>
+                            Remove Flight
+                          </Button>
+                        </FormControl>
+                      </div>
+                    ))}
+                  <FormControl>
+                    <Button type="button" size="sm"
+                      disabled={loading}
+                      onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
+                    >
+                      Add Flight
+                    </Button>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="itineraries"
+            render={({ field: { value = [], onChange } }) => (
+              <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                <FormLabel>Create Itineraries</FormLabel>
+
+
+                {value.map((itinerary, index) => (
+                  <><Accordion key={index} type="single" collapsible className="w-full">
+                    <AccordionItem value="item-${index}">
+                      <AccordionTrigger>
+                        <div className="font-bold mb-2" dangerouslySetInnerHTML={{
+                          __html: `Day ${index + 1}: ${itinerary.itineraryTitle || ''}`,
+                        }}></div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="md:grid md:grid-cols-2 gap-8">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "w-[200px] justify-between",
+                                    !itinerary.itineraryTitle && "text-muted-foreground"
+                                  )}
+                                  disabled={loading}
+                                >
+                                  {itinerary.itineraryTitle
+                                    ? (itinerariesMaster && itinerariesMaster.find(
+                                      (itineraryMaster) => itineraryMaster.itineraryMasterTitle === itinerary.itineraryTitle
+                                    )?.itineraryMasterTitle)
+                                    : "Select an Itinerary Master"}
+                                  <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                              <Command>
+                                <CommandInput
+                                  placeholder="Search itinerary master..."
+                                  className="h-9"
+                                />
+                                <CommandEmpty>No itinerary master found.</CommandEmpty>
+                                <CommandGroup>
+                                  {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
+                                    <CommandItem
+                                      value={itineraryMaster.itineraryMasterTitle ?? ''}
+                                      key={itineraryMaster.id}
+                                      onSelect={() => {
+                                        const updatedItineraries = [...value];
+                                        updatedItineraries[index] = {
+                                          ...updatedItineraries[index],
+                                          itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
+                                          itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
+                                          itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
+                                          activities: itineraryMaster.activities?.map(activity => ({
+                                            activityTitle: activity.activityTitle || '',
+                                            activityDescription: activity.activityDescription || '',
+                                            activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
+                                          })) || [],
+                                        };
+                                        onChange(updatedItineraries); // Update the state with the new itineraries
+                                      }}
+                                    >
+                                      {itineraryMaster.itineraryMasterTitle}
+                                      <CheckIcon
+                                        className={cn(
+                                          "ml-auto h-4 w-4",
+                                          itineraryMaster.locationId === itinerary.locationId
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+
+                          <FormItem>
+                            <FormLabel>Day {index + 1}</FormLabel>
+                            <FormControl>
+                              <Input
+                                disabled={loading}
+                                type="number"
+                                value={itinerary.dayNumber}
+                                onChange={(e) => {
+                                  const dayNumber = Number(e.target.value);
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Day"
+                                disabled={loading}
+
+                                value={itinerary.days}
+                                onChange={(e) => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, days: e.target.value };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+
+                          <ImageUpload
+                            value={itinerary.itineraryImages?.map((image) => image.url) || []}
+                            disabled={loading}
+                            onChange={(newItineraryUrl) => {
+                              const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
+                              // Update the itinerary with the new images array
+                              const updatedItineraries = [...value];
+                              updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                              onChange(updatedItineraries);
+                            }}
+                            onRemove={(itineraryURLToRemove) => {
+                              // Filter out the image to remove
+                              const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
+                              // Update the itinerary with the new images array
+                              const updatedItineraries = [...value];
+                              updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
+                              onChange(updatedItineraries);
+                            }}
+                          />
+
+
+
+                          <FormItem>
+                            <FormLabel>Title</FormLabel>
+                            <FormControl>
+                              <JoditEditor
+                                ref={editor}
+                                value={itinerary.itineraryTitle || ''}
+                                onChange={(e) => {
+                                  const newItineraries = [...value]
+                                  newItineraries[index] = { ...itinerary, itineraryTitle: e }
+                                  onChange(newItineraries)
+                                }} />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <JoditEditor
+                                ref={editor}
+                                value={itinerary.itineraryDescription || ''}
+                                onChange={(e) => {
+                                  const newItineraries = [...value]
+                                  newItineraries[index] = { ...itinerary, itineraryDescription: e }
+                                  onChange(newItineraries)
+                                }} />
+                            </FormControl>
+                          </FormItem>
+
+                          <FormItem className="flex flex-col">
+                            <FormLabel>Hotel</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -1275,53 +1425,46 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                     role="combobox"
                                     className={cn(
                                       "w-[200px] justify-between",
-                                      !itinerary.itineraryTitle && "text-muted-foreground"
+                                      !itinerary.hotelId && "text-muted-foreground"
                                     )}
                                     disabled={loading}
                                   >
-                                    {itinerary.itineraryTitle
-                                      ? (itinerariesMaster && itinerariesMaster.find(
-                                        (itineraryMaster) => itineraryMaster.itineraryMasterTitle === itinerary.itineraryTitle
-                                      )?.itineraryMasterTitle)
-                                      : "Select an Itinerary Master"}
+                                    {itinerary.hotelId
+                                      ? hotels.find(
+                                        (hotel) => hotel.id === itinerary.hotelId
+                                      )?.name
+                                      : "Select a Hotel"}
                                     <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                  </Button>
+                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
                                 </FormControl>
                               </PopoverTrigger>
                               <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
                                 <Command>
                                   <CommandInput
-                                    placeholder="Search itinerary master..."
+                                    placeholder="Search hotel..."
                                     className="h-9"
                                   />
-                                  <CommandEmpty>No itinerary master found.</CommandEmpty>
+                                  <CommandEmpty>No hotel found.</CommandEmpty>
                                   <CommandGroup>
-                                    {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
+                                    {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
+                                    ].map((hotel) => (
                                       <CommandItem
-                                        value={itineraryMaster.itineraryMasterTitle ?? ''}
-                                        key={itineraryMaster.id}
+                                        value={hotel.name}
+                                        key={hotel.id}
                                         onSelect={() => {
-                                          const updatedItineraries = [...value];
-                                          updatedItineraries[index] = {
-                                            ...updatedItineraries[index],
-                                            itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
-                                            itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
-                                            itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
-                                            activities: itineraryMaster.activities?.map(activity => ({
-                                              activityTitle: activity.activityTitle || '',
-                                              activityDescription: activity.activityDescription || '',
-                                              activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
-                                            })) || [],
+                                          const newItineraries = [...value];
+                                          newItineraries[index] = {
+                                            ...itinerary,
+                                            hotelId: hotel.id
                                           };
-                                          onChange(updatedItineraries); // Update the state with the new itineraries
+                                          onChange(newItineraries); // Update the state with the new itineraries
                                         }}
                                       >
-                                        {itineraryMaster.itineraryMasterTitle}
+                                        {hotel.name}
                                         <CheckIcon
                                           className={cn(
                                             "ml-auto h-4 w-4",
-                                            itineraryMaster.locationId === itinerary.locationId
+                                            hotel.id === itinerary.hotelId
                                               ? "opacity-100"
                                               : "opacity-0"
                                           )}
@@ -1332,656 +1475,510 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 </Command>
                               </PopoverContent>
                             </Popover>
+                            <FormMessage />
+                          </FormItem>
+                          <FormItem>
+                            <FormLabel>Number of Rooms</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Number of Rooms"
+                                disabled={loading}
 
-                            <FormItem>
-                              <FormLabel>Day {index + 1}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  disabled={loading}
-                                  type="number"
-                                  value={itinerary.dayNumber}
-                                  onChange={(e) => {
-                                    const dayNumber = Number(e.target.value);
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
-                                    onChange(newItineraries);
-                                  }}
-                                />
-                              </FormControl>
-                            </FormItem>
+                                value={itinerary.numberofRooms}
+                                onChange={(e) => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
 
-                            <FormItem>
-                              <FormLabel>Date</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Day"
-                                  disabled={loading}
+                          <FormItem>
+                            <FormLabel>Room Category</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Room Category"
+                                disabled={loading}
 
-                                  value={itinerary.days}
-                                  onChange={(e) => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = { ...itinerary, days: e.target.value };
-                                    onChange(newItineraries);
-                                  }}
-                                />
-                              </FormControl>
-                            </FormItem>
-
-                            <ImageUpload
-                              value={itinerary.itineraryImages?.map((image) => image.url) || []}
-                              disabled={loading}
-                              onChange={(newItineraryUrl) => {
-                                const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
-                                // Update the itinerary with the new images array
-                                const updatedItineraries = [...value];
-                                updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                                onChange(updatedItineraries);
-                              }}
-                              onRemove={(itineraryURLToRemove) => {
-                                // Filter out the image to remove
-                                const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
-                                // Update the itinerary with the new images array
-                                const updatedItineraries = [...value];
-                                updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                                onChange(updatedItineraries);
-                              }}
-                            />
+                                value={itinerary.roomCategory}
+                                onChange={(e) => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
+                                  onChange(newItineraries);
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
 
 
-
-                            <FormItem>
-                              <FormLabel>Title</FormLabel>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={itinerary.itineraryTitle || ''}
-                                  onChange={(e) => {
-                                    const newItineraries = [...value]
-                                    newItineraries[index] = { ...itinerary, itineraryTitle: e }
-                                    onChange(newItineraries)
-                                  }} />
-                              </FormControl>
-                            </FormItem>
-
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={itinerary.itineraryDescription || ''}
-                                  onChange={(e) => {
-                                    const newItineraries = [...value]
-                                    newItineraries[index] = { ...itinerary, itineraryDescription: e }
-                                    onChange(newItineraries)
-                                  }} />
-                              </FormControl>
-                            </FormItem>
-
-                            <FormItem className="flex flex-col">
-                              <FormLabel>Hotel</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      role="combobox"
-                                      className={cn(
-                                        "w-[200px] justify-between",
-                                        !itinerary.hotelId && "text-muted-foreground"
-                                      )}
-                                      disabled={loading}
-                                    >
-                                      {itinerary.hotelId
-                                        ? hotels.find(
-                                          (hotel) => hotel.id === itinerary.hotelId
-                                        )?.name
-                                        : "Select a Hotel"}
-                                      <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />                            </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
-                                  <Command>
-                                    <CommandInput
-                                      placeholder="Search hotel..."
-                                      className="h-9"
-                                    />
-                                    <CommandEmpty>No hotel found.</CommandEmpty>
-                                    <CommandGroup>
-                                      {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
-                                      ].map((hotel) => (
-                                        <CommandItem
-                                          value={hotel.name}
-                                          key={hotel.id}
-                                          onSelect={() => {
-                                            const newItineraries = [...value];
-                                            newItineraries[index] = {
-                                              ...itinerary,
-                                              hotelId: hotel.id
-                                            };
-                                            onChange(newItineraries); // Update the state with the new itineraries
-                                          }}
-                                        >
-                                          {hotel.name}
-                                          <CheckIcon
-                                            className={cn(
-                                              "ml-auto h-4 w-4",
-                                              hotel.id === itinerary.hotelId
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </Command>
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                            <FormItem>
-                              <FormLabel>Number of Rooms</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Number of Rooms"
-                                  disabled={loading}
-
-                                  value={itinerary.numberofRooms}
-                                  onChange={(e) => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = { ...itinerary, numberofRooms: e.target.value };
-                                    onChange(newItineraries);
-                                  }}
-                                />
-                              </FormControl>
-                            </FormItem>
-
-                            <FormItem>
-                              <FormLabel>Room Category</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Room Category"
-                                  disabled={loading}
-
-                                  value={itinerary.roomCategory}
-                                  onChange={(e) => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
-                                    onChange(newItineraries);
-                                  }}
-                                />
-                              </FormControl>
-                            </FormItem>
-
-
-                            <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                              <FormLabel>Meal Plan</FormLabel>
-                              <FormControl>
-                                <div className="flex flex-col gap-2">
-                                  <label className="flex items-center gap-2">
-                                    <Checkbox
-                                      checked={itinerary.mealsIncluded?.includes('Breakfast')}
-                                      onCheckedChange={(isChecked) =>
-                                        handleMealChange('Breakfast', !!isChecked, index)
-                                      }
-                                    />
-                                    Breakfast
-                                  </label>
-                                  <label className="flex items-center gap-2">
-                                    <Checkbox
-                                      checked={itinerary.mealsIncluded?.includes('Lunch')}
-                                      onCheckedChange={(isChecked) =>
-                                        handleMealChange('Lunch', !!isChecked, index)
-                                      }
-                                    />
-                                    Lunch
-                                  </label>
-                                  <label className="flex items-center gap-2">
-                                    <Checkbox
-                                      checked={itinerary.mealsIncluded?.includes('Dinner')}
-                                      onCheckedChange={(isChecked) =>
-                                        handleMealChange('Dinner', !!isChecked, index)
-                                      }
-                                    />
-                                    Dinner
-                                  </label>
-                                </div>
-                              </FormControl>
-                            </FormItem>
-
-
-
-                            {itinerary.activities.map((activity, activityIndex) => (
-                              <div key={activityIndex} className="space-y-2">
-                                <Select
-                                  disabled={loading}
-                                  onValueChange={(selectedActivityId) =>
-                                    handleActivitySelection(selectedActivityId, index, activityIndex)
-                                  }
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select an Activity" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
-                                      <SelectItem key={activityMaster.id}
-                                        value={activityMaster.id}>
-                                        {activityMaster.activityMasterTitle}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormItem>
-                                  <FormLabel>Activity Title</FormLabel>
-                                  <FormControl>
-                                    <JoditEditor
-                                      ref={editor}
-                                      value={activity.activityTitle || ''}
-                                      onChange={(e) => {
-                                        const newItineraries = [...value]
-                                        newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
-                                        onChange(newItineraries)
-                                      }} />
-                                  </FormControl>
-                                </FormItem>
-
-                                <FormItem>
-                                  <FormLabel>Activity Description</FormLabel>
-                                  <FormControl>
-
-                                    <JoditEditor
-                                      ref={editor}
-                                      value={activity.activityDescription || ''}
-                                      onChange={(e) => {
-                                        const newItineraries = [...value]
-                                        newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
-                                        onChange(newItineraries)
-                                      }} />
-
-                                  </FormControl>
-                                </FormItem>
-
-
-                                <ImageUpload
-                                  value={activity.activityImages?.map((image) => image.url)}
-                                  disabled={loading}
-                                  onChange={(newActivityURL) => {
-                                    // Add new image URL to the activity's images
-                                    const updatedImages = [...activity.activityImages, { url: newActivityURL }];
-                                    // Update the specific activity in the itinerary
-                                    const updatedActivities = [...itinerary.activities];
-                                    updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                                    // Update the specific itinerary in the itineraries array
-                                    const updatedItineraries = [...value];
-                                    updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                                    onChange(updatedItineraries);
-                                  }}
-                                  onRemove={(activityURLToRemove) => {
-                                    // Filter out the image to remove
-                                    const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
-                                    // Update the specific activity in the itinerary
-                                    const updatedActivities = [...itinerary.activities];
-                                    updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                                    // Update the specific itinerary in the itineraries array
-                                    const updatedItineraries = [...value];
-                                    updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                                    onChange(updatedItineraries);
-                                  }}
-                                />
-
-
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newItineraries = [...value];
-                                    newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
-                                    onChange(newItineraries);
-                                  }}
-                                >
-                                  Remove Activity
-                                </Button>
+                          <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
+                            <FormLabel>Meal Plan</FormLabel>
+                            <FormControl>
+                              <div className="flex flex-col gap-2">
+                                <label className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={itinerary.mealsIncluded?.includes('Breakfast')}
+                                    onCheckedChange={(isChecked) =>
+                                      handleMealChange('Breakfast', !!isChecked, index)
+                                    }
+                                  />
+                                  Breakfast
+                                </label>
+                                <label className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={itinerary.mealsIncluded?.includes('Lunch')}
+                                    onCheckedChange={(isChecked) =>
+                                      handleMealChange('Lunch', !!isChecked, index)
+                                    }
+                                  />
+                                  Lunch
+                                </label>
+                                <label className="flex items-center gap-2">
+                                  <Checkbox
+                                    checked={itinerary.mealsIncluded?.includes('Dinner')}
+                                    onCheckedChange={(isChecked) =>
+                                      handleMealChange('Dinner', !!isChecked, index)
+                                    }
+                                  />
+                                  Dinner
+                                </label>
                               </div>
-                            ))}
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                const newItineraries = [...value];
-                                newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
-                                onChange(newItineraries);
-                              }}
-                            >
-                              Add Activity
-                            </Button>
+                            </FormControl>
+                          </FormItem>
 
 
 
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => {
-                                const newItineraries = value.filter((_, i) => i !== index);
-                                onChange(newItineraries);
-                              }}
-                            >
-                              Remove Itinerary for Day {index + 1}
+                          {itinerary.activities.map((activity, activityIndex) => (
+                            <div key={activityIndex} className="space-y-2">
+                              <Select
+                                disabled={loading}
+                                onValueChange={(selectedActivityId) =>
+                                  handleActivitySelection(selectedActivityId, index, activityIndex)
+                                }
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select an Activity" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                                    <SelectItem key={activityMaster.id}
+                                      value={activityMaster.id}>
+                                      {activityMaster.activityMasterTitle}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormItem>
+                                <FormLabel>Activity Title</FormLabel>
+                                <FormControl>
+                                  <JoditEditor
+                                    ref={editor}
+                                    value={activity.activityTitle || ''}
+                                    onChange={(e) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
+                                      onChange(newItineraries)
+                                    }} />
+                                </FormControl>
+                              </FormItem>
 
-                            </Button>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion >
-                    </>
-                  ))}
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => onChange([...value, {
-                      dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: ''
-                    }])}
-                  >
-                    Add Itinerary
-                  </Button>
+                              <FormItem>
+                                <FormLabel>Activity Description</FormLabel>
+                                <FormControl>
+
+                                  <JoditEditor
+                                    ref={editor}
+                                    value={activity.activityDescription || ''}
+                                    onChange={(e) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
+                                      onChange(newItineraries)
+                                    }} />
+
+                                </FormControl>
+                              </FormItem>
 
 
+                              <ImageUpload
+                                value={activity.activityImages?.map((image) => image.url)}
+                                disabled={loading}
+                                onChange={(newActivityURL) => {
+                                  // Add new image URL to the activity's images
+                                  const updatedImages = [...activity.activityImages, { url: newActivityURL }];
+                                  // Update the specific activity in the itinerary
+                                  const updatedActivities = [...itinerary.activities];
+                                  updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                                  // Update the specific itinerary in the itineraries array
+                                  const updatedItineraries = [...value];
+                                  updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                                  onChange(updatedItineraries);
+                                }}
+                                onRemove={(activityURLToRemove) => {
+                                  // Filter out the image to remove
+                                  const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                                  // Update the specific activity in the itinerary
+                                  const updatedActivities = [...itinerary.activities];
+                                  updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                                  // Update the specific itinerary in the itineraries array
+                                  const updatedItineraries = [...value];
+                                  updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                                  onChange(updatedItineraries);
+                                }}
+                              />
+
+
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  const newItineraries = [...value];
+                                  newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                                  onChange(newItineraries);
+                                }}
+                              >
+                                Remove Activity
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              const newItineraries = [...value];
+                              newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
+                              onChange(newItineraries);
+                            }}
+                          >
+                            Add Activity
+                          </Button>
+
+
+
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                              const newItineraries = value.filter((_, i) => i !== index);
+                              onChange(newItineraries);
+                            }}
+                          >
+                            Remove Itinerary for Day {index + 1}
+
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion >
+                  </>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => onChange([...value, {
+                    dayNumber: 0, days: '', itineraryImages: [], itineraryTitle: '', itineraryDescription: '', activities: [], mealsIncluded: [], hotelId: '', numberofRooms: '', roomCategory: '', locationId: ''
+                  }])}
+                >
+                  Add Itinerary
+                </Button>
+
+
+              </FormItem>
+            )}
+          />
+
+          <div className="md:grid md:grid-cols-2 gap-8">
+            {/* //add formfield for hotelDetails */}
+
+
+            {/* //add formfield for inclusions */}
+            <FormField
+              control={form.control}
+              name="inclusions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Inclusions</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options (optional)
+                        readonly: loading, // Disable editing if loading                       
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+
+                  </FormControl>
                 </FormItem>
               )}
             />
 
-            <div className="md:grid md:grid-cols-2 gap-8">
-              {/* //add formfield for hotelDetails */}
+            {/* //add formfield for exclusions */}
+            <FormField
+              control={form.control}
+              name="exclusions"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exclusions</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                        
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="importantNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Important Notes</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value || ''} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
+            <FormField
+              control={form.control}
+              name="paymentPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Policy</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
-              {/* //add formfield for inclusions */}
+            {/* //add formfield for usefulTip */}
+            <FormField
+              control={form.control}
+              name="usefulTip"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Useful Tip</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cancellationPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cancellation Policy</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading
+
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* //add formfield for airlineCancellationPolicy */}
+
+            <FormField
+              control={form.control}
+              name="airlineCancellationPolicy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Airline Cancellation Policy</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                      
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            {/* //add formfield for termsconditions */}
+            <FormField
+              control={form.control}
+              name="termsconditions" // Ensure the name is lowercase with no spaces
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Terms and Conditions</FormLabel>
+                  <FormControl>
+                    <JoditEditor // Replace Textarea with JoditEditor
+                      ref={editor} // Optional ref for programmatic access
+                      value={field.value} // Set initial content from form field value
+                      config={{ // Configure Jodit options
+                        readonly: loading, // Disable editing if loading                
+                      }} // Type assertion (optional)
+                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Tabs hidden defaultValue="purchaseDetails">
+            <TabsList>
+              <TabsTrigger value="purchaseDetails">Purchase</TabsTrigger>
+              <TabsTrigger value="saleDetails">Sale</TabsTrigger>
+              <TabsTrigger value="paymentDetails">Payment</TabsTrigger>
+              <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
+              <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
+            </TabsList>
+            <TabsContent value="purchaseDetails">
               <FormField
                 control={form.control}
-                name="inclusions"
+                name="purchaseDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Inclusions</FormLabel>
+                    <FormLabel>Purchase Details</FormLabel>
                     <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options (optional)
-                          readonly: loading, // Disable editing if loading                       
-                        }}
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Purchase Details"
+                        value={field.value || ''}
+                        onChange={field.onChange} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* //add formfield for exclusions */}
+            </TabsContent>
+            <TabsContent value="saleDetails">
               <FormField
                 control={form.control}
-                name="exclusions"
+                name="saleDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Exclusions</FormLabel>
+                    <FormLabel>Sales Details</FormLabel>
                     <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                        
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Sales Details"
+                        value={field.value || ''}
+                        onChange={field.onChange} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
+            </TabsContent>
+            <TabsContent value="paymentDetails">
               <FormField
                 control={form.control}
-                name="importantNotes"
+                name="paymentDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Important Notes</FormLabel>
+                    <FormLabel>Payment Details</FormLabel>
                     <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value || ''} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Payment Details"
+                        value={field.value || ''}
+                        onChange={field.onChange} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-
+            </TabsContent>
+            <TabsContent value="receiptDetails">
               <FormField
                 control={form.control}
-                name="paymentPolicy"
+                name="receiptDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Policy</FormLabel>
+                    <FormLabel>Receipt Details</FormLabel>
                     <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Receipt Details"
+                        value={field.value || ''}
+                        onChange={field.onChange} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* //add formfield for usefulTip */}
+            </TabsContent>
+            <TabsContent value="expenseDetails">
               <FormField
                 control={form.control}
-                name="usefulTip"
+                name="expenseDetails"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Useful Tip</FormLabel>
+                    <FormLabel>Expense Details</FormLabel>
                     <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
+                      <Textarea
+                        rows={5}
+                        disabled={loading}
+                        placeholder="Expense Details"
+                        value={field.value || ''}
+                        onChange={field.onChange} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="cancellationPolicy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cancellation Policy</FormLabel>
-                    <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading
+            </TabsContent>
+          </Tabs>
 
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+          <Button disabled={loading} className="ml-auto" type="submit">
+            {action}
+          </Button>
 
-              {/* //add formfield for airlineCancellationPolicy */}
-
-              <FormField
-                control={form.control}
-                name="airlineCancellationPolicy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Airline Cancellation Policy</FormLabel>
-                    <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                      
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              {/* //add formfield for termsconditions */}
-              <FormField
-                control={form.control}
-                name="termsconditions" // Ensure the name is lowercase with no spaces
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Terms and Conditions</FormLabel>
-                    <FormControl>
-                      <JoditEditor // Replace Textarea with JoditEditor
-                        ref={editor} // Optional ref for programmatic access
-                        value={field.value} // Set initial content from form field value
-                        config={{ // Configure Jodit options
-                          readonly: loading, // Disable editing if loading                
-                        }} // Type assertion (optional)
-                        onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <Tabs hidden defaultValue="purchaseDetails">
-              <TabsList>
-                <TabsTrigger value="purchaseDetails">Purchase</TabsTrigger>
-                <TabsTrigger value="saleDetails">Sale</TabsTrigger>
-                <TabsTrigger value="paymentDetails">Payment</TabsTrigger>
-                <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
-                <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
-              </TabsList>
-              <TabsContent value="purchaseDetails">
-                <FormField
-                  control={form.control}
-                  name="purchaseDetails"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Purchase Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={5}
-                          disabled={loading}
-                          placeholder="Purchase Details"
-                          value={field.value || ''}
-                          onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-              <TabsContent value="saleDetails">
-                <FormField
-                  control={form.control}
-                  name="saleDetails"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sales Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={5}
-                          disabled={loading}
-                          placeholder="Sales Details"
-                          value={field.value || ''}
-                          onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-              <TabsContent value="paymentDetails">
-                <FormField
-                  control={form.control}
-                  name="paymentDetails"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={5}
-                          disabled={loading}
-                          placeholder="Payment Details"
-                          value={field.value || ''}
-                          onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-              <TabsContent value="receiptDetails">
-                <FormField
-                  control={form.control}
-                  name="receiptDetails"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Receipt Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={5}
-                          disabled={loading}
-                          placeholder="Receipt Details"
-                          value={field.value || ''}
-                          onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-              <TabsContent value="expenseDetails">
-                <FormField
-                  control={form.control}
-                  name="expenseDetails"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Expense Details</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          rows={5}
-                          disabled={loading}
-                          placeholder="Expense Details"
-                          value={field.value || ''}
-                          onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-            </Tabs>
-
-            <Button disabled={loading} className="ml-auto" type="submit">
-              {action}
-            </Button>
-
-          </form >
-        </Form >
-      </SidebarProvider>
+        </form >
+      </Form >
     </>
   )
 } 

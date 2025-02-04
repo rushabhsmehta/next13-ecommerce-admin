@@ -43,6 +43,8 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
 
     // Set the HTML content for the page
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+  
+    await page.evaluateHandle('document.fonts.ready');
 
     // Generate the PDF
     const pdfBuffer = (await page.pdf({

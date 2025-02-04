@@ -4,14 +4,16 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryClient } from "./components/client";
 import { TourPackageQueryColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const tourPackageQueryPage = async ({
 
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
-    
-    where : {
-      isFeatured : true,
+
+    where: {
+      isFeatured: true,
     },
     include: {
       location: true,
@@ -27,7 +29,7 @@ const tourPackageQueryPage = async ({
     tourPackageQueryName: item.tourPackageQueryName ?? '',
     tourPackageQueryType: item.tourPackageQueryType ?? '',
     customerName: item.customerName ?? '',
-    assignedTo: item.assignedTo ?? '',   
+    assignedTo: item.assignedTo ?? '',
 
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
@@ -39,14 +41,17 @@ const tourPackageQueryPage = async ({
 
   return (
     <>
-      <Navbar />
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageQueryClient data={formattedtourPackageQuery} />
+      {/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageQueryClient data={formattedtourPackageQuery} />
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
+
     </>
   );
 };
-
 export default tourPackageQueryPage;

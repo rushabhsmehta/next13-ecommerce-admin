@@ -15,7 +15,7 @@ export default async function SetupLayout({
   }
  
   else {
-    redirect(`/dashboard`);
+    redirect(`/tourPackageQuery`);
   };
 
   return (

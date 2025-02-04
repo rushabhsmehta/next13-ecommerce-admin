@@ -4,18 +4,20 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageClient } from "./components/client";
 import { TourPackageColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const tourPackagePage = async ({
 
 }) => {
   const tourPackage = await prismadb.tourPackage.findMany({
-    
+
     include: {
       images: true,
-      location : true,
+      location: true,
       flightDetails: true,
       itineraries: {
-        
+
         include: {
           itineraryImages: true,
           activities:
@@ -33,10 +35,10 @@ const tourPackagePage = async ({
     }
   });
 
-  const formattedtourPackage : TourPackageColumn[] = tourPackage.map((item) => ({
+  const formattedtourPackage: TourPackageColumn[] = tourPackage.map((item) => ({
     id: item.id,
-    tourPackageName : item.tourPackageName ?? '',
-    tourPackageType : item.tourPackageType ?? '',
+    tourPackageName: item.tourPackageName ?? '',
+    tourPackageType: item.tourPackageType ?? '',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     price: item.price ?? '',
@@ -47,12 +49,15 @@ const tourPackagePage = async ({
 
   return (
     <>
-    <Navbar />
-      <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageClient data={formattedtourPackage} />
-      </div>
-    </div>
+      {/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageClient data={formattedtourPackage} />
+          </div>
+        </div>
+      </SidebarProvider>
     </>
   );
 };

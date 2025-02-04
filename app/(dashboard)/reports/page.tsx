@@ -4,6 +4,8 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryClient } from "./components/client";
 import { TourPackageQueryColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const tourPackageQueryPage = async ({
 
@@ -52,17 +54,20 @@ const tourPackageQueryPage = async ({
     customerNumber: item.customerNumber ?? '',
     location: item.location.label,
     tourStartsFrom: item.tourStartsFrom ? format(add(item.tourStartsFrom, { hours: 5, minutes: 30 }), 'dd-MM-yyyy') : '',    //createdAt: format(item.createdAt, 'MMMM do, yyyy'),
-   // createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    // createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 
   return (
     <>
-      <Navbar />
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageQueryClient data={formattedtourPackageQuery} />
+      {/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageQueryClient data={formattedtourPackageQuery} />
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     </>
   );
 };

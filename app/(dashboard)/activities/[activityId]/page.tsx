@@ -1,6 +1,8 @@
 import prismadb from "@/lib/prismadb";
 
 import { ActivityForm } from "./components/activity-form";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const ActivityPage = async ({ params }: { params: { activityId: string } }) => {
   const activity = await prismadb.activity.findUnique({
@@ -8,24 +10,29 @@ const ActivityPage = async ({ params }: { params: { activityId: string } }) => {
       id: params.activityId
     },
     include: {
-      activityImages: true,      
-    },    
+      activityImages: true,
+    },
   });
 
   const locations = await prismadb.location.findMany({
-   
+
   });
 
   const itineraries = await prismadb.itinerary.findMany({
-   
+
   });
 
-  return ( 
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <ActivityForm locations ={locations } itineraries = { itineraries } initialData={activity} />
-      </div>
-    </div>
+  return (
+    <>
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <ActivityForm locations={locations} itineraries={itineraries} initialData={activity} />
+          </div>
+        </div>
+      </SidebarProvider>
+    </>
   );
 }
 

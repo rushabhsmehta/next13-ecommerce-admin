@@ -5,15 +5,17 @@ import prismadb from "@/lib/prismadb";
 import { ActivityColumn } from "./components/columns"
 import { ActivitiesClient } from "./components/client";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const ActivitiesPage = async ({
-  
+
 }: {
-}) => {
+  }) => {
   const activities = await prismadb.activity.findMany({
-    
+
     include: {
-      location : true,
+      location: true,
     },
     orderBy: {
       createdAt: 'desc'
@@ -23,18 +25,23 @@ const ActivitiesPage = async ({
   const formattedActivities: ActivityColumn[] = activities.map((item) => ({
     id: item.id,
     //assign item.activityTitle to activityTitle or null
-    activityTitle : item.activityTitle ?? null,
+    activityTitle: item.activityTitle ?? null,
     locationLabel: item.location.label,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 
   return (
-    <><Navbar />
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <ActivitiesClient data={formattedActivities} />
-      </div>
-    </div></>
+    <>
+      {/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <ActivitiesClient data={formattedActivities} />
+          </div>
+        </div>
+      </SidebarProvider>
+    </>
   );
 };
 

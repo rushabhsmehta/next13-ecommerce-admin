@@ -1,6 +1,8 @@
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryFromTourPackageForm } from "./components/tourPackageQueryFromTourPackage-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 
 const tourPackageQueryFromTourPackagePage = async ({
@@ -35,15 +37,15 @@ const tourPackageQueryFromTourPackagePage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    
+
     include: {
       activityMasterImages: true,
     },
@@ -51,8 +53,8 @@ const tourPackageQueryFromTourPackagePage = async ({
   );
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    where : {
-      locationId : tourPackage?.locationId ?? '',
+    where: {
+      locationId: tourPackage?.locationId ?? '',
     },
 
     include: {
@@ -66,17 +68,21 @@ const tourPackageQueryFromTourPackagePage = async ({
   });
 
   return (
-    <><Navbar />
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageQueryFromTourPackageForm
-            initialData={tourPackage}
-            locations={locations}
-            hotels={hotels}
-            activitiesMaster={activitiesMaster}
-            itinerariesMaster={itinerariesMaster} />
+    <>{/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageQueryFromTourPackageForm
+              initialData={tourPackage}
+              locations={locations}
+              hotels={hotels}
+              activitiesMaster={activitiesMaster}
+              itinerariesMaster={itinerariesMaster} />
+          </div>
         </div>
-      </div></>
+      </SidebarProvider>
+    </>
   );
 }
 export default tourPackageQueryFromTourPackagePage;

@@ -1,6 +1,8 @@
 import prismadb from "@/lib/prismadb";
 import { TourPackageFromTourPackageQueryForm } from "./components/tourPackageFromTourPackageQuery-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 
 const tourPackageFromTourPackageQueryPage = async ({
@@ -35,15 +37,15 @@ const tourPackageFromTourPackageQueryPage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-    
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
-    
+
     include: {
       activityMasterImages: true,
     },
@@ -51,11 +53,11 @@ const tourPackageFromTourPackageQueryPage = async ({
   );
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    
-    where : {
-      locationId : tourPackageQuery?.locationId ?? '',
+
+    where: {
+      locationId: tourPackageQuery?.locationId ?? '',
     },
-    
+
     include: {
       itineraryMasterImages: true,
       activities: {
@@ -67,17 +69,21 @@ const tourPackageFromTourPackageQueryPage = async ({
   });
 
   return (
-    <><Navbar />
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageFromTourPackageQueryForm
-            initialData={tourPackageQuery}
-            locations={locations}
-            hotels={hotels}
-            activitiesMaster={activitiesMaster}
-            itinerariesMaster={itinerariesMaster} />
+    <>{/*       <Navbar /> */}
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageFromTourPackageQueryForm
+              initialData={tourPackageQuery}
+              locations={locations}
+              hotels={hotels}
+              activitiesMaster={activitiesMaster}
+              itinerariesMaster={itinerariesMaster} />
+          </div>
         </div>
-      </div></>
+      </SidebarProvider>
+    </>
   );
 }
 export default tourPackageFromTourPackageQueryPage;

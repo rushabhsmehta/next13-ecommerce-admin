@@ -2,6 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCreateCopy-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const tourPackageQueryPage = async ({
   params
@@ -52,10 +54,10 @@ const tourPackageQueryPage = async ({
 
   const itinerariesMaster = await prismadb.itineraryMaster.findMany({
 
-    where : {
-      locationId : tourPackageQuery?.locationId ?? '',
+    where: {
+      locationId: tourPackageQuery?.locationId ?? '',
     },
-    
+
     include: {
       itineraryMasterImages: true,
       activities: {
@@ -69,16 +71,20 @@ const tourPackageQueryPage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackageQueryCreateCopyForm
-            initialData={tourPackageQuery}
-            locations={locations}
-            hotels={hotels}
-            activitiesMaster={activitiesMaster}
-            itinerariesMaster={itinerariesMaster} /> 
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <TourPackageQueryCreateCopyForm
+              initialData={tourPackageQuery}
+              locations={locations}
+              hotels={hotels}
+              activitiesMaster={activitiesMaster}
+              itinerariesMaster={itinerariesMaster} />
+          </div>
         </div>
-      </div></>
+      </SidebarProvider>
+    </>
   );
 }
 export default tourPackageQueryPage;

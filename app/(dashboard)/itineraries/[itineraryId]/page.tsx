@@ -2,6 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { ItineraryForm } from "./components/itinerary-form";
 import Navbar from "@/components/navbar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const ItineraryPage = async ({
   params
@@ -26,25 +28,29 @@ const ItineraryPage = async ({
   });
 
   const locations = await prismadb.location.findMany({
-   
+
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
+
   });
 
 
   return (
     <>
       {/*       <Navbar /> */}
-      <div className="flex-col">
-        <div className="flex-1 space-y-4 p-8 pt-6">
-          <ItineraryForm
-            hotels={hotels}
-            locations={locations}
-            initialData={itinerary} />
+      <SidebarProvider>
+        <AppSidebar />ઇ
+        <div className="flex-col">
+          <div className="flex-1 space-y-4 p-8 pt-6">
+            <ItineraryForm
+              hotels={hotels}
+              locations={locations}
+              initialData={itinerary} />
+          </div>
         </div>
-      </div></>
+      </SidebarProvider>
+    </>
   );
 }
 

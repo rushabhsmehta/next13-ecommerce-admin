@@ -47,6 +47,7 @@
     "dayjs": "^1.11.11",
     "eslint": "8.42.0",
     "eslint-config-next": "13.4.5",
+    "he": "^1.2.0",
     "html-react-parser": "^5.2.2",
     "jodit-react": "^4.1.2",
     "lucide-react": "^0.474.0",
@@ -74,6 +75,7 @@
     "zustand": "^4.3.8"
   },
   "devDependencies": {
+    "@types/he": "^1.2.3",
     "prisma": "^5.5.0"
   }
 }

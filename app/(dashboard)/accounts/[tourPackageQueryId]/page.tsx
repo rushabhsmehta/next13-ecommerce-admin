@@ -3,8 +3,8 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryForm } from "./components/accounts-form";
 import { Turret_Road } from "next/font/google";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const tourPackageQueryPage = async ({
   params
@@ -41,8 +41,8 @@ const tourPackageQueryPage = async ({
 
   return (
     <>{/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <TourPackageQueryForm
@@ -50,7 +50,7 @@ const tourPackageQueryPage = async ({
             />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 }

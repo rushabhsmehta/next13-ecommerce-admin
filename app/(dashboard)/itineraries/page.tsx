@@ -5,8 +5,8 @@ import prismadb from "@/lib/prismadb";
 import { ItineraryColumn } from "./components/columns"
 import { ItinerariesClient } from "./components/client";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const ItinerariesPage = async ({
 
@@ -32,14 +32,14 @@ const ItinerariesPage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <ItinerariesClient data={formattedItineraries} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 };

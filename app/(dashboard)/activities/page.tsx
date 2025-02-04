@@ -5,8 +5,8 @@ import prismadb from "@/lib/prismadb";
 import { ActivityColumn } from "./components/columns"
 import { ActivitiesClient } from "./components/client";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const ActivitiesPage = async ({
 
@@ -33,14 +33,14 @@ const ActivitiesPage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <ActivitiesClient data={formattedActivities} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 };

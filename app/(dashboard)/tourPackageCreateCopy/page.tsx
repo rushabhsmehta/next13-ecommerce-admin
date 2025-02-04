@@ -4,8 +4,8 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageClient } from "./components/client";
 import { TourPackageColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const tourPackagePage = async ({
 
@@ -50,14 +50,14 @@ const tourPackagePage = async ({
   return (
     <>
       {/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <TourPackageClient data={formattedtourPackage} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 };

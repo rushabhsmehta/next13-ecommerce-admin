@@ -47,8 +47,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
   return (
     <>
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="space-y-8 w-full max-w-md mx-auto">
           <Card className="break-inside-avoid font-bold">
             <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
@@ -120,7 +120,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </Card>
           )}
         </div >
-      </SidebarProvider>
+      
     </>
   );
 };

@@ -1,8 +1,8 @@
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryFromTourPackageForm } from "./components/tourPackageQueryFromTourPackage-form";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 
 const tourPackageQueryFromTourPackagePage = async ({
@@ -69,8 +69,8 @@ const tourPackageQueryFromTourPackagePage = async ({
 
   return (
     <>{/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <TourPackageQueryFromTourPackageForm
@@ -81,7 +81,7 @@ const tourPackageQueryFromTourPackagePage = async ({
               itinerariesMaster={itinerariesMaster} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 }

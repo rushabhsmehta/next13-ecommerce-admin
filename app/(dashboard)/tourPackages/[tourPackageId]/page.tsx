@@ -2,8 +2,8 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageForm } from "./components/tourPackage-form";
 import Navbar from "@/components/navbar";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+
+
 
 const tourPackagePage = async ({
   params
@@ -73,8 +73,8 @@ const tourPackagePage = async ({
 
   return (
     <>{/*       <Navbar /> */}
-      <SidebarProvider>
-        <AppSidebar />
+      
+        
         <div className="flex-col">
           <div className="flex-1 space-y-4 p-8 pt-6">
             <TourPackageForm
@@ -85,7 +85,7 @@ const tourPackagePage = async ({
               itinerariesMaster={itinerariesMaster} />
           </div>
         </div>
-      </SidebarProvider>
+      
     </>
   );
 }

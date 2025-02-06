@@ -59,7 +59,7 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
 
     return pdfBuffer;
   } catch (error) {
-    console.error("Error in PDF generation:", error);
+    alert(`Error in PDF generation: ${error}`);
     throw error;
   } finally {
     if (browser) {

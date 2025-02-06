@@ -1,11 +1,11 @@
 import puppeteer, { type Browser } from "puppeteer";
+// import puppeteerCore, { type Browser as BrowserCore } from "puppeteer-core";
 import chromium from "@sparticuz/chromium-min";
-import sharp from "sharp"; // Import Sharp for image compression
 
 /**
- * Generates a compressed PDF from the provided HTML content.
+ * Generates a PDF from the provided HTML content.
  * @param htmlContent - The HTML content to render into a PDF.
- * @returns A buffer containing the optimized PDF file.
+ * @returns A buffer containing the PDF file.
  * @throws Error if the PDF generation fails.
  */
 export async function generatePDF(htmlContent: string): Promise<Buffer> {
@@ -13,9 +13,11 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
     throw new Error("HTML content is required to generate a PDF.");
   }
 
-  let browser: Browser | null = null;
+  // Initialize the `browser` variable
+  let browser: Browser |  null = null;
 
   try {
+    // Check if we are in production or local environment
     const isProduction =
       process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
@@ -39,14 +41,11 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
 
     const page = await browser.newPage();
 
-    // Inject optimized images into the HTML content before rendering
-    const optimizedHtml = await optimizeImagesInHtml(htmlContent);
-    await page.setContent(optimizedHtml, { waitUntil: "networkidle0" });
+    // Set the HTML content for the page
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-    await page.evaluateHandle("document.fonts.ready"); // Ensure fonts are fully loaded
-
-    // Generate the compressed PDF
-    const pdfBuffer = await page.pdf({
+    // Generate the PDF
+    const pdfBuffer = (await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
@@ -55,52 +54,16 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
         bottom: "10px",
         left: "10px",
       },
-    });
+    })) as Buffer; // Explicitly cast the result to Buffer
 
     return pdfBuffer;
   } catch (error) {
     console.error("Error in PDF generation:", error);
     throw error;
   } finally {
+    // Ensure the browser is closed, even if an error occurs
     if (browser) {
       await browser.close();
     }
   }
-}
-
-/**
- * Optimizes images in the provided HTML content before rendering in Puppeteer.
- * Converts images to WebP and embeds them as Base64.
- */
-async function optimizeImagesInHtml(htmlContent: string): Promise<string> {
-  const imageRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
-  const imageUrls = Array.from(htmlContent.matchAll(imageRegex)).map((match) => match[1]);
-
-  const optimizedImages: { [url: string]: string } = {};
-
-  for (const imageUrl of imageUrls) {
-    try {
-      const response = await fetch(imageUrl);
-      const buffer = await response.arrayBuffer();
-      const optimizedBuffer = await sharp(Buffer.from(buffer))
-        .resize({ width: 800 }) // Resize to 800px width
-        .webp({ quality: 75 }) // Convert to WebP with 75% quality
-        .toBuffer();
-
-      // Convert optimized image to Base64 for embedding
-      const base64Image = `data:image/webp;base64,${optimizedBuffer.toString("base64")}`;
-      optimizedImages[imageUrl] = base64Image;
-    } catch (error) {
-      console.error("Error optimizing image:", imageUrl, error);
-      optimizedImages[imageUrl] = imageUrl; // Fallback to original image
-    }
-  }
-
-  // Replace images in HTML content
-  let optimizedHtml = htmlContent;
-  for (const [originalUrl, optimizedUrl] of Object.entries(optimizedImages)) {
-    optimizedHtml = optimizedHtml.replace(new RegExp(originalUrl, "g"), optimizedUrl);
-  }
-
-  return optimizedHtml;
 }

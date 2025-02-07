@@ -91,10 +91,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       <Card className="break-inside-avoid font-bold">
         <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
-          <CardTitle className="flex items-center justify-between text-2xl font-bold">
+          <CardTitle className="flex items-center justify-between text-xl font-bold">
             <span>{initialData.tourPackageQueryName}</span>
           </CardTitle>
-          <CardTitle className="flex items-center justify-between text-2xl font-bold">
+          <CardTitle className="flex items-center justify-between text-xl font-bold">
             <span>{initialData.tourPackageQueryType + " Package"} </span>
           </CardTitle>
         </CardHeader>
@@ -114,7 +114,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <Card>
         <CardHeader>
           <div>
-            <CardDescription className="text-2xl font-bold  mb-4">
+            <CardDescription className="text-xl font-bold  mb-4">
               {initialData.tourPackageQueryNumber}
             </CardDescription>
 
@@ -136,7 +136,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Tour Package Details */}
       <Card className="break-inside-avoid border shadow-lg rounded-lg">
         <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <h2 className="text-2xl font-bold">Tour Information</h2>
+          <h2 className="text-xl font-bold">Tour Information</h2>
         </CardHeader>
 
         <CardContent className="p-6">
@@ -144,7 +144,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div className="mb-4">
               <div className="font-semibold text-xl">
                 Location:
-                <span className="ml-2 text-2xl text-gray-900">
+                <span className="ml-2 text-xl text-gray-900">
                   {locations.find(location => location.id === initialData.locationId)?.label}
                 </span>
               </div>
@@ -154,7 +154,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Duration:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numDaysNight}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.numDaysNight}</span>
                 </div>
               </div>
             )}
@@ -163,13 +163,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               {initialData.tourStartsFrom && (
                 <div className="font-semibold text-xl">
                   Period:
-                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
                 </div>
               )}
               {initialData.tourEndsOn && (
                 <div className="ml-4 font-semibold text-xl">
                   To:
-                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
                 </div>
               )}
             </div>
@@ -178,7 +178,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Transport:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.transport}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.transport}</span>
                 </div>
               </div>
             )}
@@ -187,7 +187,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Pickup:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.pickup_location}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.pickup_location}</span>
                 </div>
               </div>
             )}
@@ -196,7 +196,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Drop:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.drop_location}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.drop_location}</span>
                 </div>
               </div>
             )}
@@ -205,7 +205,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Adults:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numAdults}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.numAdults}</span>
                 </div>
               </div>
             )}
@@ -214,7 +214,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Children (5 - 12 Years):
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild5to12}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.numChild5to12}</span>
                 </div>
               </div>
             )}
@@ -223,7 +223,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <div className="mb-4">
                 <div className="font-semibold text-xl">
                   Children (0 - 5 Years):
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild0to5}</span>
+                  <span className="ml-2 text-xl text-gray-900">{initialData.numChild0to5}</span>
                 </div>
               </div>
             )}
@@ -238,13 +238,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
           <Card className="border shadow-lg rounded-lg">
             <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-              <h2 className="text-2xl font-bold">Tour Pricing</h2>
+              <h2 className="text-xl font-bold">Tour Pricing</h2>
             </CardHeader>
 
             {initialData.price && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.price !== ' ' && (
               <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
                 <CardContent>
-                  <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+                  <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
                     <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.price || '' }} />
                   </div>
                 </CardContent>
@@ -258,7 +258,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   <div className="md:col-span-1">
                     <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
                       <span className="block text-gray-900">Price per Adult:</span>
-                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerAdult}</span>
+                      <span className="text-xl font-normal text-gray-700">{initialData.pricePerAdult}</span>
                     </div>
                   </div>
                 )}
@@ -268,19 +268,19 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   {initialData.pricePerChildOrExtraBed !== '' && (
                     <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
                       <span className="block text-gray-900">Price for Triple Occupancy:</span>
-                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildOrExtraBed}</span>
+                      <span className="text-xl font-normal text-gray-700">{initialData.pricePerChildOrExtraBed}</span>
                     </div>
                   )}
                   {initialData.pricePerChild5to12YearsNoBed !== '' && (
                     <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
                       <span className="block text-gray-900">Price per Child (5-12 Years - No bed):</span>
-                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChild5to12YearsNoBed}</span>
+                      <span className="text-xl font-normal text-gray-700">{initialData.pricePerChild5to12YearsNoBed}</span>
                     </div>
                   )}
                   {initialData.pricePerChildwithSeatBelow5Years !== '' && (
                     <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
                       <span className="block text-gray-900">Price per Child with Seat (Below 5 Years):</span>
-                      <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildwithSeatBelow5Years}</span>
+                      <span className="text-xl font-normal text-gray-700">{initialData.pricePerChildwithSeatBelow5Years}</span>
                     </div>
                   )}
                 </div>
@@ -293,7 +293,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
           <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
             <CardContent>
-              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+              <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
                 Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
               </div>
             </CardContent>
@@ -302,7 +302,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
         {initialData.remarks !== '' && (
-          <Card className="break-inside-avoid text-3xl">
+          <Card className="break-inside-avoid text-xl">
             <CardContent>
               <div>
                 <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
@@ -315,7 +315,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
           <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
             <CardContent>
-              <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+              <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
                 <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.disclaimer || ' ' }} />
               </div>
             </CardContent>
@@ -327,7 +327,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
         <Card className="break-inside-avoid border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <h2 className="text-2xl font-bold">Tour Highlights</h2>
+            <h2 className="text-xl font-bold">Tour Highlights</h2>
           </CardHeader>
           <CardContent>
             <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || ' ' }}></div>
@@ -340,7 +340,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
         <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
           <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <CardTitle className="text-2xl font-bold">Flight Details</CardTitle>
+            <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
           </CardHeader>
           {initialData.flightDetails.map((flight, index) => (
             <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
@@ -385,7 +385,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
             <div>
-              <CardTitle className="text-2xl font-bold"
+              <CardTitle className="text-xl font-bold"
                 dangerouslySetInnerHTML={{
                   __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
                 }} />
@@ -409,14 +409,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
           {/* Description Section */}
           <div className="flex-grow p-8">
-            <div className="text-3xl text-justify mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
+            <div className="text-xl text-justify mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
           </div>
 
           <CardContent className="p-8">
             {/* Hotel Section */}
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <Card className="my-4">
-                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-2xl font-bold text-center rounded-t-lg">
+                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
                   Hotel Details
                 </CardHeader>
                 <div className="p-4">
@@ -434,27 +434,27 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       </div>
                       {/* Hotel Text Content */}
                       <div className="ml-4">
-                        <div className="text-2xl font-bold">Hotel Name:</div>
-                        <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                        <div className="text-xl font-bold">Hotel Name:</div>
+                        <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
 
                         {itinerary.numberofRooms && (
                           <>
-                            <div className="text-2xl font-bold">Number of Rooms:</div>
-                            <p className="text-2xl mb-2">{itinerary.numberofRooms}</p>
+                            <div className="text-xl font-bold">Number of Rooms:</div>
+                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
                           </>
                         )}
 
                         {itinerary.roomCategory && (
                           <>
-                            <div className="text-2xl font-bold">Room Category:</div>
-                            <p className="text-2xl mb-2">{itinerary.roomCategory}</p>
+                            <div className="text-xl font-bold">Room Category:</div>
+                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
                           </>
                         )}
 
                         {itinerary.mealsIncluded && (
                           <>
-                            <div className="text-2xl font-bold">Meal Plan:</div>
-                            <p className="text-2xl mb-2">{itinerary.mealsIncluded}</p>
+                            <div className="text-xl font-bold">Meal Plan:</div>
+                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
                           </>
                         )}
                       </div>
@@ -475,27 +475,27 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         ))}
                       </div>
                       <div className="ml-4">
-                        <div className="text-2xl font-bold">Hotel Name:</div>
-                        <p className="text-2xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                        <div className="text-xl font-bold">Hotel Name:</div>
+                        <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
 
                         {itinerary.numberofRooms && (
                           <>
-                            <div className="text-2xl font-bold">Number of Rooms:</div>
-                            <p className="text-2xl mb-2">{itinerary.numberofRooms}</p>
+                            <div className="text-xl font-bold">Number of Rooms:</div>
+                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
                           </>
                         )}
 
                         {itinerary.roomCategory && (
                           <>
-                            <div className="text-2xl font-bold">Room Category:</div>
-                            <p className="text-2xl mb-2">{itinerary.roomCategory}</p>
+                            <div className="text-xl font-bold">Room Category:</div>
+                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
                           </>
                         )}
 
                         {itinerary.mealsIncluded && (
                           <>
-                            <div className="text-2xl font-bold">Meal Plan:</div>
-                            <p className="text-2xl mb-2">{itinerary.mealsIncluded}</p>
+                            <div className="text-xl font-bold">Meal Plan:</div>
+                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
                           </>
                         )}
                       </div>
@@ -508,7 +508,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             {/* Activities Section */}
             {itinerary.activities && itinerary.activities.length > 0 && (
               <Card className="my-4">
-                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-2xl font-bold text-center rounded-t-lg">
+                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
                   Activities
                 </CardHeader>
                 <CardContent className="p-4">
@@ -528,7 +528,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             </div>
                             <div className="ml-4 w-full">
                               <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                              <p className="text-3xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                              <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                             </div>
                           </div>
                         ) : (
@@ -547,7 +547,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                               ))}
                             </div>
                             <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                            <p className="text-3xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                            <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                           </div>
                         )}
                       </div>
@@ -593,13 +593,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <CheckCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Inclusions</h3>
+          <h3 className="text-xl font-semibold">Inclusions</h3>
         </div>
         <div className="p-4 bg-white text-gray-700">
           <div className="max-w-full overflow-hidden">
             <div
               dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }}
-              className="whitespace-normal break-words text-2xl"
+              className="whitespace-normal break-words text-xl"
             ></div>
           </div>
         </div>
@@ -609,13 +609,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <XCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Exclusions</h3>
+          <h3 className="text-xl font-semibold">Exclusions</h3>
         </div>
         <div className="p-4 bg-white text-gray-700">
           <div className="max-w-full overflow-hidden">
             <div
               dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}
-              className="whitespace-normal break-words text-2xl"
+              className="whitespace-normal break-words text-xl"
             ></div>
           </div>
         </div>
@@ -625,10 +625,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <InfoIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Important Notes</h3>
+          <h3 className="text-xl font-semibold">Important Notes</h3>
         </div>
         <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}></div>
+          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}></div>
         </div>
       </div>
 
@@ -636,10 +636,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <CreditCardIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Payment Policy</h3>
+          <h3 className="text-xl font-semibold">Payment Policy</h3>
         </div>
         <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}></div>
+          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}></div>
         </div>
       </div>
 
@@ -647,10 +647,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <Shield className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Terms and Conditions</h3>
+          <h3 className="text-xl font-semibold">Terms and Conditions</h3>
         </div>
         <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}></div>
+          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}></div>
         </div>
       </div>
 
@@ -658,10 +658,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <XCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Cancellation Policy</h3>
+          <h3 className="text-xl font-semibold">Cancellation Policy</h3>
         </div>
         <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}></div>
+          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}></div>
         </div>
       </div>
 
@@ -669,10 +669,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
         <div className="flex items-center space-x-2 p-4">
           <PlaneIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Airline Cancellation Policy</h3>
+          <h3 className="text-xl font-semibold">Airline Cancellation Policy</h3>
         </div>
         <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}></div>
+          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}></div>
         </div>
       </div>
 

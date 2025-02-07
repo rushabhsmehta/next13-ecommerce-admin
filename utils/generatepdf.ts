@@ -34,6 +34,8 @@ export async function generatePDF(url: string): Promise<Buffer> {
     }
 
     const page = await browser.newPage();
+    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 8000)));
+
 
     // Navigate to the provided URL
     await page.goto(url, { waitUntil: "networkidle2" }); // Waits until most network requests are done
@@ -59,7 +61,6 @@ export async function generatePDF(url: string): Promise<Buffer> {
 
     // ✅ Scroll the page multiple times to force load all content
     await autoScroll(page);
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3000)));
 
     // Generate the PDF
     const pdfBuffer = (await page.pdf({

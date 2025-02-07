@@ -39,7 +39,7 @@ export async function generatePDF(url: string): Promise<Buffer> {
     const page = await browser.newPage();
 
     // Navigate to the provided URL
-    await page.goto(url, { waitUntil: "networkidle0" }); // Waits until no more than 2 requests are pending
+    await page.goto(url, { waitUntil: "networkidle2" }); // Waits until no more than 2 requests are pending
 
     // Ensure fonts are fully loaded before PDF generation
     await page.evaluateHandle("document.fonts.ready");

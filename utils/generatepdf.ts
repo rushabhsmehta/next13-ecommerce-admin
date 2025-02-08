@@ -39,11 +39,11 @@ export async function generatePDF(url: string): Promise<Buffer> {
     const page = await browser.newPage();
 
     // Navigate to the provided URL
-    await page.goto(url, { waitUntil: "networkidle2" }); // Waits until no more than 2 requests are pending
+    await page.goto(url, { waitUntil: "networkidle0" }); // Waits until no more than 2 requests are pending
 
     // Ensure fonts are fully loaded before PDF generation
     await page.evaluateHandle("document.fonts.ready");
-
+    await autoScroll(page);
     // Generate the PDF
     const pdfBuffer = (await page.pdf({
       format: "A4",
@@ -65,4 +65,27 @@ export async function generatePDF(url: string): Promise<Buffer> {
       await browser.close();
     }
   }
+}
+
+/**
+ * Scrolls the page to ensure all images and elements are loaded.
+ * @param page - Puppeteer Page instance
+ */
+async function autoScroll(page : any) {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => {
+      let totalHeight = 0;
+      const distance = 200; // Scroll step
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+
+        if (totalHeight >= scrollHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 100); // Adjust scroll speed
+    });
+  });
 }

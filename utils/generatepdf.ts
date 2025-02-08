@@ -36,7 +36,7 @@ export async function generatePDF(url: string): Promise<Buffer> {
     const page = await browser.newPage();
 
     // Navigate to the provided URL
-    await page.goto(url, { waitUntil: "networkidle2" }); // Waits until most network requests are done
+    await page.goto(url, { waitUntil: "networkidle0" }); // Waits until most network requests are done
 
     // ✅ Wait for 10 seconds to ensure all elements are fully loaded
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 10000)));

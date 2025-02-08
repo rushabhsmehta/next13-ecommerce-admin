@@ -69,10 +69,11 @@ export const CellAction: React.FC<CellActionProps> = ({
     }
   
     // Construct the URL dynamically with `encodeURIComponent` for safety
-    const url = `https://next13-ecommerce-admin-zeta.vercel.app/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`;
+//    const url = `https://next13-ecommerce-admin-zeta.vercel.app/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`;
+    const url = `https://next13-ecommerce-admin-zeta.vercel.app`;
     
     // Open `generatePDFfromURL` with the provided URL as a query parameter
-    router.push(`/generatePDFfromURL?url=${encodeURIComponent(url)}`);
+    window.open(`/generatePDFfromURL?url=${encodeURIComponent(url)}`);
   };
   
 

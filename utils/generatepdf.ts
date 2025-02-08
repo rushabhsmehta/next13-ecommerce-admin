@@ -1,20 +1,23 @@
 import puppeteer, { type Browser } from "puppeteer";
+// import puppeteerCore, { type Browser as BrowserCore } from "puppeteer-core";
 import chromium from "@sparticuz/chromium-min";
 
 /**
- * Generates a PDF from the provided URL.
- * @param url - The URL to capture as a PDF.
+ * Generates a PDF from the provided HTML content.
+ * @param htmlContent - The HTML content to render into a PDF.
  * @returns A buffer containing the PDF file.
  * @throws Error if the PDF generation fails.
  */
-export async function generatePDF(url: string): Promise<Buffer> {
-  if (!url) {
-    throw new Error("A valid URL is required to generate a PDF.");
+export async function generatePDF(htmlContent: string): Promise<Buffer> {
+  if (!htmlContent) {
+    throw new Error("HTML content is required to generate a PDF.");
   }
 
-  let browser: Browser | null = null;
+  // Initialize the `browser` variable
+  let browser: Browser |  null = null;
 
   try {
+    // Check if we are in production or local environment
     const isProduction =
       process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
@@ -38,44 +41,20 @@ export async function generatePDF(url: string): Promise<Buffer> {
 
     const page = await browser.newPage();
 
-    // Navigate to the provided URL
-    await page.goto(url, { waitUntil: "networkidle0" }); // Waits until no more than 2 requests are pending
-    await page.emulateMediaType('screen');
+    // Set the HTML content for the page
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+  
+    await page.evaluateHandle('document.fonts.ready');
 
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 5000))); // 5-second wait
-
-    // Ensure fonts are fully loaded before PDF generation
-    await page.evaluateHandle("document.fonts.ready");
-    await page.evaluate(async () => {
-      const images = Array.from(document.images);
-      await Promise.all(
-        images.map((img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) {
-              resolve();
-            } else {
-              img.onload = img.onerror = () => resolve();
-            }
-          })
-        )
-      );
-    });
-
-    // ✅ Scroll the page multiple times to force load all content
-    await autoScroll(page);
-
-    // ✅ Add another delay to ensure page renders completely before PDF capture
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3000))); // 3-second wait
-
-    // ✅ Generate the PDF
+    // Generate the PDF
     const pdfBuffer = (await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
         top: "10px",
-        right: "0px",
+        right: "10px",
         bottom: "10px",
-        left: "0px",
+        left: "10px",
       },
     })) as Buffer; // Explicitly cast the result to Buffer
 
@@ -84,30 +63,9 @@ export async function generatePDF(url: string): Promise<Buffer> {
     console.error("Error in PDF generation:", error);
     throw error;
   } finally {
+    // Ensure the browser is closed, even if an error occurs
     if (browser) {
       await browser.close();
     }
   }
-}
-
-/**
- * Scrolls the page multiple times to ensure all images and elements are loaded.
- * @param page - Puppeteer Page instance
- */
-async function autoScroll(page: any) {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0;
-      const distance = 200; // Scroll step
-      const timer = setInterval(() => {
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-
-        if (totalHeight >= document.body.scrollHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 200); // Slower scroll speed for better rendering
-    });
-  });
 }

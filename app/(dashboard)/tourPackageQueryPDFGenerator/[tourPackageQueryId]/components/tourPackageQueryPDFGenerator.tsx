@@ -70,26 +70,6 @@ const companyInfo: CompanyInfo = {
   },
 };
 
-function convertToPDFFriendlyText(text: string): string {
-  if (!text) return "";
-
-  // ✅ Explicitly define type for symbol map
-  const symbolMap: Record<string, string> = {
-    "✔": "&#10004;",  // Check mark
-    "✖": "&#10008;",  // Cross mark
-    "★": "&#9733;",   // Star
-    "•": "&#8226;",   // Bullet point
-    "▶": "&#9654;",   // Play symbol
-    "➤": "&#10148;",  // Arrow symbol
-    "✓": "&#10003;",  // Alternative checkmark
-  };
-
-  return text
-    .replace(/✔|✖|★|•|▶|➤|✓/g, match => symbolMap[match] || match) // ✅ Ensures TypeScript knows the key exists
-    .replace(/\n/g, "<br/>") // ✅ Preserve line breaks
-    .trim();
-}
-
 
 const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> = ({
   initialData,
@@ -101,8 +81,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const [loading, setLoading] = useState(false);
 
   const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
-  const inclusionsFormatted = convertToPDFFriendlyText(initialData?.inclusions || "");
-
+  
   /*  if (!initialData) {
      return <div>No data available</div>;
    }
@@ -464,17 +443,18 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
        <!-- Hotel Section -->
 <div style="padding: 16px; font-family: Arial, sans-serif;">
   ${(() => {
-                const hotel = hotels.find((hotel) => hotel.id === itinerary.hotelId);
-                if (!itinerary.hotelId || !hotel) return "";
+    const hotel = hotels.find((hotel) => hotel.id === itinerary.hotelId);
+    if (!itinerary.hotelId || !hotel) return "";
 
-                return `
+    return `
       <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
         <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 4px; text-align: center; font-weight: bold; font-size: 1.5rem;">
           Hotel Details
         </div>
         <div style="padding: 16px;">
-          ${hotel.images.length === 1
-                    ? `
+          ${
+            hotel.images.length === 1
+              ? `
               <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
                 <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
                   <img
@@ -487,31 +467,34 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
                   <p style="font-weight: bold; font-size: 1rem;">Hotel Name:</p>
                   <p style="font-size: 1rem; margin-bottom: 2px;">${hotel.name || ""}</p>
 
-                  ${itinerary.numberofRooms
+                  ${
+                    itinerary.numberofRooms
                       ? `<p style="font-weight: bold; font-size: 1rem;">Number of Rooms:</p>
                          <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.numberofRooms}</p>`
                       : ""
-                    }
+                  }
 
-                  ${itinerary.roomCategory
+                  ${
+                    itinerary.roomCategory
                       ? `<p style="font-weight: bold; font-size: 1rem;">Room Category:</p>
                          <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.roomCategory}</p>`
                       : ""
-                    }
+                  }
 
-                  ${itinerary.mealsIncluded
+                  ${
+                    itinerary.mealsIncluded
                       ? `<p style="font-weight: bold; font-size: 1rem;">Meal Plan:</p>
                          <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.mealsIncluded}</p>`
                       : ""
-                    }
+                  }
                 </div>
               </div>
             `
-                    : `
+              : `
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
                 ${hotel.images
-                      .map(
-                        (image) => `
+                  .map(
+                    (image) => `
                       <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
                         <img
                           src="${image.url}"
@@ -520,15 +503,15 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
                         />
                       </div>
                     `
-                      )
-                      .join("")}
+                  )
+                  .join("")}
               </div>
             `
-                  }
+          }
         </div>
       </div>
     `;
-              })()}
+  })()}
 </div>
 
           <!-- Activities Section -->
@@ -577,18 +560,19 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
   `
         : ''}
 
- ${inclusionsFormatted
-        ? `
+ <!-- Inclusions Section -->
+ ${initialData?.inclusions
+  ? `
     <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
       <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
         <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Inclusions</h3>
       </div>
       <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-        ${inclusionsFormatted}
+        ${initialData?.inclusions.replace(/->/g, '&#10004;')}
       </div>
     </div>
   `
-        : ""}
+  : ""}
 
 
     <!-- Exclusions Section -->
@@ -740,7 +724,7 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
       }  
     </div>
     `;
-
+    
 
     try {
       const response = await fetch("/api/generate-pdf", {

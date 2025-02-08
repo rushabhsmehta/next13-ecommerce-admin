@@ -19,7 +19,10 @@ export async function generatePDF(url: string): Promise<Buffer> {
       process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
 
     if (isProduction) {
-      const executablePath = await chromium.executablePath();
+      const executablePath = await chromium.executablePath(
+        "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar"
+      );
+
       browser = await puppeteer.launch({
         executablePath,
         args: chromium.args,
@@ -35,46 +38,21 @@ export async function generatePDF(url: string): Promise<Buffer> {
 
     const page = await browser.newPage();
 
-    // ✅ Navigate to the provided URL and wait for full load
-    await page.goto(url, { waitUntil: "networkidle2" });
+    // Navigate to the provided URL
+    await page.goto(url, { waitUntil: "networkidle2" }); // Waits until no more than 2 requests are pending
 
-    // ✅ Add a delay to allow JavaScript-rendered elements to load
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 5000))); // 5-second wait
-
-    // ✅ Ensure fonts are fully loaded before PDF generation
+    // Ensure fonts are fully loaded before PDF generation
     await page.evaluateHandle("document.fonts.ready");
 
-    // ✅ Ensure all images are fully loaded before generating the PDF
-    await page.evaluate(async () => {
-      const images = Array.from(document.images);
-      await Promise.all(
-        images.map((img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) {
-              resolve();
-            } else {
-              img.onload = img.onerror = () => resolve();
-            }
-          })
-        )
-      );
-    });
-
-    // ✅ Scroll the page multiple times to force load all content
-    await autoScroll(page);
-
-    // ✅ Add another delay to ensure page renders completely before PDF capture
-    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3000))); // 3-second wait
-
-    // ✅ Generate the PDF
+    // Generate the PDF
     const pdfBuffer = (await page.pdf({
       format: "A4",
       printBackground: true,
       margin: {
         top: "10px",
-        right: "0px",
+        right: "10px",
         bottom: "10px",
-        left: "0px",
+        left: "10px",
       },
     })) as Buffer; // Explicitly cast the result to Buffer
 
@@ -87,26 +65,4 @@ export async function generatePDF(url: string): Promise<Buffer> {
       await browser.close();
     }
   }
-}
-
-/**
- * Scrolls the page multiple times to ensure all images and elements are loaded.
- * @param page - Puppeteer Page instance
- */
-async function autoScroll(page: any) {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve) => {
-      let totalHeight = 0;
-      const distance = 200; // Scroll step
-      const timer = setInterval(() => {
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-
-        if (totalHeight >= document.body.scrollHeight) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 200); // Slower scroll speed for better rendering
-    });
-  });
 }

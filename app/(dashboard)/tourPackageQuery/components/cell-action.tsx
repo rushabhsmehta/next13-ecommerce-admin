@@ -63,18 +63,10 @@ export const CellAction: React.FC<CellActionProps> = ({
   }
 
   const handleOptionConfirmPDF = (selectedOption: string) => {
-    if (!data?.id) {
-      console.error("Error: Missing `data.id` for PDF generation");
-      return;
-    }
-  
-    // Construct the URL dynamically with `encodeURIComponent` for safety
-//    const url = `https://next13-ecommerce-admin-zeta.vercel.app/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`;
-    const url = `https://next13-ecommerce-admin-zeta.vercel.app`;
-    
-    // Open `generatePDFfromURL` with the provided URL as a query parameter
-    window.open(`/generatePDFfromURL?url=${encodeURIComponent(url)}`);
-  };
+
+    window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`, "_blank");
+  }
+
   
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {

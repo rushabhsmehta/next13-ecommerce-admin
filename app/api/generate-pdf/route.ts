@@ -1,24 +1,38 @@
-import { NextResponse } from "next/server";
 import { generatePDF } from "@/utils/generatepdf";
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   try {
-    const { url } = await req.json();
-    if (!url) {
-      return NextResponse.json({ error: "A valid URL is required" }, { status: 400 });
+    const { htmlContent }: { htmlContent: string } = await req.json();
+
+    if (!htmlContent) {
+      return new Response(
+        JSON.stringify({ error: "htmlContent is required" }),
+        { status: 400 }
+      );
     }
 
-    const pdfBuffer = await generatePDF(url);
+    const pdfBuffer = await generatePDF(htmlContent);
 
-    return new NextResponse(pdfBuffer, {
-      status: 200,
+    return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="generated.pdf"`,
+        "Content-Disposition": "attachment; filename=generated.pdf",
       },
     });
   } catch (error) {
     console.error("Error generating PDF:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unknown error occurred";
+
+    return new Response(
+      JSON.stringify({
+        error: "PDF generation failed",
+        details: errorMessage,
+      }),
+      { status: 500 }
+    );
   }
 }

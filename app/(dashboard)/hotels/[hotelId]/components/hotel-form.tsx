@@ -34,6 +34,7 @@ const formSchema = z.object({
   name: z.string().min(2),
   images: z.object({ url: z.string() }).array(),
   locationId: z.string().min(1),
+  link: z.string().url().optional(), // Added link field
 });
 
 type HotelFormValues = z.infer<typeof formSchema>
@@ -59,13 +60,13 @@ export const HotelForm: React.FC<HotelFormProps> = ({
   const toastMessage = initialData ? 'Hotel updated.' : 'Hotel created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const form = useForm<HotelFormValues>({
+    const form = useForm<HotelFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      name: '',
-      images: [],
-      locationId: '',
-    }
+    defaultValues: {
+      name: initialData?.name || '',
+      locationId: initialData?.locationId || '',
+      link: initialData?.link || '', // Added link field
+    },
   });
 
   const onSubmit = async (data: HotelFormValues) => {
@@ -180,6 +181,19 @@ export const HotelForm: React.FC<HotelFormProps> = ({
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="link"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link</FormLabel>
+                    <FormControl>
+                      <Input disabled={loading} placeholder="Hotel link" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <Button disabled={loading} className="ml-auto" type="submit">
               {action}
@@ -190,3 +204,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
     </>
   );
 };
+
+
+
+

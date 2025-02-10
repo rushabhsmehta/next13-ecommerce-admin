@@ -73,7 +73,7 @@ export async function PATCH(
 
     const body = await req.json();
     
-    const { name, images, locationId } = body;
+    const { name, images, locationId, link } = body; // Added link to destructuring
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -94,10 +94,6 @@ export async function PATCH(
       return new NextResponse("Hotel id is required", { status: 400 });
     }
 
-   
-
-    
-
     await prismadb.hotel.update({
       where: {
         id: params.hotelId,
@@ -105,6 +101,7 @@ export async function PATCH(
       data: {
         name,
         locationId,
+        link, // Added link to update data
         images: {
           deleteMany: {},
         },
@@ -123,12 +120,8 @@ export async function PATCH(
             ],
           },
         },
-     
-       
       }
-    }
-    )
- 
+    });
   
     return NextResponse.json(hotel);
   } catch (error) {

@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -12,23 +13,23 @@ import {
 } from "@prisma/client";
 import { format } from "date-fns";
 
+// Define the props interface.
 interface TourPackageQueryPDFGeneratorProps {
-  initialData: TourPackageQuery & {
-    images: Images[];
-    itineraries: (Itinerary & {
-      itineraryImages: Images[];
-      activities: (Activity & {
-        activityImages: Images[];
-      })[];
-    })[];
-    flightDetails: FlightDetails[];
-  } | null;
+  initialData:
+    | (TourPackageQuery & {
+        images: Images[];
+        itineraries: (Itinerary & {
+          itineraryImages: Images[];
+          activities: (Activity & { activityImages: Images[] })[];
+        })[];
+        flightDetails: FlightDetails[];
+      })
+    | null;
   locations: Location[];
-  hotels: (Hotel & {
-    images: Images[];
-  })[];
+  hotels: (Hotel & { images: Images[] })[];
 }
 
+// Define a type for company information.
 type CompanyInfo = {
   [key: string]: {
     logo: string;
@@ -40,6 +41,7 @@ type CompanyInfo = {
   };
 };
 
+// Company info object.
 const companyInfo: CompanyInfo = {
   Empty: { logo: "", name: "", address: "", phone: "", email: "", website: "" },
   AH: {
@@ -70,7 +72,6 @@ const companyInfo: CompanyInfo = {
   },
 };
 
-
 const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> = ({
   initialData,
   locations,
@@ -80,679 +81,705 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const selectedOption = searchParams.get("search") || "Empty";
   const [loading, setLoading] = useState(false);
 
-  const currentCompany = companyInfo[selectedOption] ?? companyInfo["Empty"];
-  
-  /*  if (!initialData) {
-     return <div>No data available</div>;
-   }
-  */
-  const generatePDF = async () => {
-    setLoading(true);
+  // Determine the company info based on the selected option.
+  const currentCompany =
+    companyInfo[selectedOption] ?? companyInfo["Empty"];
 
-    const htmlContent = `
-    <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; font-family: Arial, sans-serif;">
-    <!-- Tour Package Header Section -->
-    <div style="break-inside: avoid; font-weight: bold; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-  <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0; display: flex; flex-direction: column; align-items: center; text-align: center;">
-    <h1 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-      ${initialData?.tourPackageQueryName}
-    </h1>       
-    <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-      ${initialData?.tourPackageQueryType} Package
-    </h2>
-  </div>
+  // --- Helper styles (converted from your Tailwind classes) ---
+  const containerStyle =
+    "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto;";
+  const cardStyle =
+    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden;";
+  const headerStyle =
+    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center;";
+  const contentStyle =
+    "padding: 16px; background: #ffffff; color: #4a5568; font-size: 16px;";
+  const sectionTitleStyle =
+    "font-size: 24px; font-weight: bold; margin: 0;";
+  const subTitleStyle =
+    "font-size: 18px; font-weight: bold; margin-right: 8px;";
+  const textStyle = "font-size: 16px; color: #1a202c;";
+  const gradientFooter =
+    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px;";
 
-  ${initialData?.images
-        .map(
-          (image, index) => `
-          <div style="width: 100%; height: 500px; overflow: hidden;">
-            <img 
-              src="${image.url}" 
-              alt="Tour Image ${index + 1}" 
-              style="object-fit: cover; width: 100%; height: 100%;" 
-            />
-          </div>
-        `
-        )
-        .join('')}
-    </div>
+  // --- Build HTML content ---
+  const buildHtmlContent = (): string => {
+    if (!initialData) return "";
 
-    <!-- Customer Details Section -->
-    <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 1rem;">
-      <div style="margin-bottom: 16px; font-size: 1.25rem; font-weight: bold; color: #1a202c;">
-        ${initialData?.tourPackageQueryNumber}
-      </div>
-      ${selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
-        ? `
-        <div style="font-size: 1rem; color: #4a5568;">
-          <div style="margin-bottom: 8px;">
-            <span style="font-weight: bold;">Customer:</span> ${initialData?.customerName} | ${initialData?.customerNumber}
-          </div>
-          <div>
-            <span style="font-weight: bold;">Assigned To:</span> ${initialData?.assignedTo} | ${initialData?.assignedToMobileNumber} | ${initialData?.assignedToEmail}
-          </div>
+    // 1. Header Section (Tour Name, Type and Images)
+    const headerSection = `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}">
+          <h1 style="font-size: 28px; margin: 0;">${initialData.tourPackageQueryName}</h1>
+          <h2 style="font-size: 24px; margin: 0;">${initialData.tourPackageQueryType} Package</h2>
         </div>
-      `
-        : ''
-      }
-    </div>
-      
-    <!-- Tour Package Details Section -->
-    <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
-        <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Tour Information</h2>
+        ${initialData.images
+          .map(
+            (image, index) => `
+            <div style="width: 100%; height: 500px; overflow: hidden;">
+              <img src="${image.url}" alt="Tour Image ${index + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+          `
+          )
+          .join("")}
       </div>
-      <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1rem;">
-        <div style="margin-bottom: 16px;">
-          <span style="font-weight: bold; font-size: 1.125rem;">Location:</span>
-          <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">
-            ${locations.find(location => location.id === initialData?.locationId)?.label || ''}
-          </span>
+    `;
+
+    // 2. Customer Details Section
+    const customerSection = `
+      <div style="${cardStyle}; padding: 16px;">
+        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">
+          ${initialData.tourPackageQueryNumber}
         </div>
-        ${initialData?.numDaysNight
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Duration:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numDaysNight}</span>
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.tourStartsFrom || initialData?.tourEndsOn
-        ? `
-          <div style="display: flex; margin-bottom: 16px;">
-            ${initialData?.tourStartsFrom
-          ? `
-              <div>
-                <span style="font-weight: bold; font-size: 1.125rem;">Period:</span>
-                <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${format(initialData?.tourStartsFrom, 'dd-MM-yyyy')}</span>
-              </div>
-            `
-          : ''
-        }
-            ${initialData?.tourEndsOn
-          ? `
-              <div style="margin-left: 16px;">
-                <span style="font-weight: bold; font-size: 1.125rem;">To:</span>
-                <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${format(initialData?.tourEndsOn, 'dd-MM-yyyy')}</span>
-              </div>
-            `
-          : ''
-        }
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.transport
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Transport:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.transport}</span>
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.pickup_location
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Pickup:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.pickup_location}</span>
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.drop_location
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Drop:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.drop_location}</span>
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.numAdults
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Adults:</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numAdults}</span>
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.numChild5to12
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Children (5 - 12 Years):</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numChild5to12}</span>
-          </div>
-        `
-        : ''
-      }
-        ${initialData?.numChild0to5
-        ? `
-          <div style="margin-bottom: 16px;">
-            <span style="font-weight: bold; font-size: 1.125rem;">Children (0 - 5 Years):</span>
-            <span style="margin-left: 8px; font-size: 1.25rem; color: #1a202c;">${initialData?.numChild0to5}</span>
-          </div>
-        `
-        : ''
-      }
-      </div>
-    </div>
-
-
-    <!-- Tour Pricing Section -->
-    ${selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
-        ? `
-      <div style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-  
-        ${initialData?.price && initialData?.price.trim() !== ''
-          ? `
-          <div style="padding: 8px;">
-            <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
-              <span style="color: #f97316;">${initialData?.price}</span>
+        ${
+          selectedOption !== "SupplierA" && selectedOption !== "SupplierB"
+            ? `
+          <div style="font-size: 16px; color: #4a5568;">
+            <div style="margin-bottom: 8px;">
+              <span style="font-weight: bold;">Customer:</span> ${initialData.customerName} | ${initialData.customerNumber}
+            </div>
+            <div>
+              <span style="font-weight: bold;">Assigned To:</span> ${initialData.assignedTo} | ${initialData.assignedToMobileNumber} | ${initialData.assignedToEmail}
             </div>
           </div>
           `
-          : ''
+            : ""
         }
-  
-        <div style="padding: 16px; background: #ffffff;">
-          <!-- Price per Adult Section -->
-          ${initialData?.pricePerAdult !== ''
-          ? `
-            <div style="margin-bottom: 16px;">
-              <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                <span style="color: #1a202c;">Price per Adult:</span> ${initialData?.pricePerAdult}
-              </div>
-            </div>
-            `
-          : ''
-        }
-  
-          <!-- Price for Children Section -->
-          <div>
-            ${initialData?.pricePerChildOrExtraBed !== ''
-          ? `
-              <div style="margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData?.pricePerChildOrExtraBed}
-                </div>
-              </div>
-              `
-          : ''
-        }
-            ${initialData?.pricePerChild5to12YearsNoBed !== ''
-          ? `
-              <div style="margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData?.pricePerChild5to12YearsNoBed}
-                </div>
-              </div>
-              `
-          : ''
-        }
-            ${initialData?.pricePerChildwithSeatBelow5Years !== ''
-          ? `
-              <div style="margin-bottom: 16px;">
-                <div style="font-weight: bold; font-size: 1.125rem; background: #f7fafc; padding: 8px; border-radius: 8px;">
-                  <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData?.pricePerChildwithSeatBelow5Years}
-                </div>
-              </div>
-              `
-          : ''
-        }
+      </div>
+    `;
+
+    // 3. Tour Information Section
+    const tourInfoSection = `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}">
+          <h2 style="${sectionTitleStyle}">Tour Information</h2>
+        </div>
+        <div style="${contentStyle}">
+          <div style="margin-bottom: 12px;">
+            <span style="${subTitleStyle}">Location:</span>
+            <span style="${textStyle}">${locations.find((loc) => loc.id === initialData.locationId)?.label || ""}</span>
           </div>
+          ${
+            initialData.numDaysNight
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Duration:</span>
+                   <span style="${textStyle}">${initialData.numDaysNight}</span>
+                 </div>`
+              : ""
+          }
+          <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+            ${
+              initialData.tourStartsFrom
+                ? `<div>
+                     <span style="${subTitleStyle}">Period:</span>
+                     <span style="${textStyle}">${format(
+                       initialData.tourStartsFrom,
+                       "dd-MM-yyyy"
+                     )}</span>
+                   </div>`
+                : ""
+            }
+            ${
+              initialData.tourEndsOn
+                ? `<div>
+                     <span style="${subTitleStyle}">To:</span>
+                     <span style="${textStyle}">${format(
+                       initialData.tourEndsOn,
+                       "dd-MM-yyyy"
+                     )}</span>
+                   </div>`
+                : ""
+            }
+          </div>
+          ${
+            initialData.transport
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Transport:</span>
+                   <span style="${textStyle}">${initialData.transport}</span>
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.pickup_location
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Pickup:</span>
+                   <span style="${textStyle}">${initialData.pickup_location}</span>
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.drop_location
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Drop:</span>
+                   <span style="${textStyle}">${initialData.drop_location}</span>
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.numAdults
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Adults:</span>
+                   <span style="${textStyle}">${initialData.numAdults}</span>
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.numChild5to12
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Children (5-12 Years):</span>
+                   <span style="${textStyle}">${initialData.numChild5to12}</span>
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.numChild0to5
+              ? `<div style="margin-bottom: 12px;">
+                   <span style="${subTitleStyle}">Children (0-5 Years):</span>
+                   <span style="${textStyle}">${initialData.numChild0to5}</span>
+                 </div>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+
+    // 4. Tour Pricing Section (if applicable)
+    const pricingSection =
+      selectedOption !== "Empty" &&
+      selectedOption !== "SupplierA" &&
+      selectedOption !== "SupplierB"
+        ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}">
+          <h2 style="${sectionTitleStyle}">Tour Pricing</h2>
+        </div>
+        ${
+          initialData.price && initialData.price.trim() !== ""
+            ? `
+          <div style="padding: 16px;">
+            <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
+              ${initialData.price}
+            </div>
+          </div>
+          `
+            : ""
+        }
+        <div style="padding: 16px; background: #ffffff;">
+          ${
+            initialData.pricePerAdult !== ""
+              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+                   <span style="color: #1a202c;">Price per Adult:</span> ${initialData.pricePerAdult}
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.pricePerChildOrExtraBed !== ""
+              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+                   <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData.pricePerChildOrExtraBed}
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.pricePerChild5to12YearsNoBed !== ""
+              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+                   <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData.pricePerChild5to12YearsNoBed}
+                 </div>`
+              : ""
+          }
+          ${
+            initialData.pricePerChildwithSeatBelow5Years !== ""
+              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+                   <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData.pricePerChildwithSeatBelow5Years}
+                 </div>`
+              : ""
+          }
         </div>
       </div>
       `
-        : ''
-      }
-  
-    <!-- Total Price Section -->
-    ${initialData?.totalPrice && initialData?.totalPrice.trim() !== ''
+        : "";
+
+    // 5. Total Price Section
+    const totalPriceSection =
+      initialData.totalPrice && initialData.totalPrice.trim() !== ""
         ? `
-      <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); padding: 16px;">
-        <div style="font-weight: bold; font-size: 1.25rem; color: #4a5568; background: #f7fafc; padding: 8px; border-radius: 8px;">
-          Total Price: <span style="color: #f97316;">${initialData?.totalPrice}</span>
-        </div>
-      </div>
-      `
-        : ''
-      }
-  
-    <!-- Remarks Section -->
-    ${initialData?.remarks !== ''
-        ? `
-      <div style="margin-bottom: 16px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); padding: 16px;">
-        <div>${initialData?.remarks}</div>
-      </div>
-      `
-        : ''
-      }
-  
-          <!-- Tour Highlights Section -->
-    ${initialData?.tour_highlights && initialData?.tour_highlights.trim() !== ''
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
-          <h2 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Tour Highlights</h2>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.tour_highlights}
+      <div style="${cardStyle}; padding: 16px;">
+        <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
+          Total Price: ${initialData.totalPrice}
         </div>
       </div>
     `
-        : ''
-      }
+        : "";
 
-  
- <!-- Flight Details Section -->
-    ${initialData?.flightDetails && initialData?.flightDetails.length > 0 && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB'
+    // 6. Remarks Section
+    const remarksSection =
+      initialData.remarks !== ""
         ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; border-radius: 8px 8px 0 0;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Flight Details</h3>
+      <div style="${cardStyle}; padding: 16px;">
+        <div style="font-size: 16px;">${initialData.remarks}</div>
+      </div>
+    `
+        : "";
+
+        const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
+        ? `
+          <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
+            <!-- Section Header -->
+            <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
+              Tour Highlights
+            </h2>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
+                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                    Day
+                  </th>
+                  <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                    Itinerary Title
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                ${initialData.itineraries
+                  .map(
+                    (itinerary) => `
+                  <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
+                    <td style="width: 30%; padding: 12px; vertical-align: middle; text-align: center; font-size: 20px; font-weight: bold;">
+                      Day ${itinerary.dayNumber}: ${itinerary.days}
+                    </td>
+                    <td style="width: 70%; padding: 12px; vertical-align: middle; font-size: 20px; font-weight: bold;">
+                      ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
+                    </td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `
+        : "";
+      
+       
+
+
+    // 7. Tour Highlights Section
+    const highlightsSection2 =
+      initialData.tour_highlights && initialData.tour_highlights.trim() !== ""
+        ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}">
+          <h2 style="${sectionTitleStyle}">Tour Highlights</h2>
         </div>
-        ${initialData?.flightDetails
+        <div style="${contentStyle}; font-size: 18px;">
+          ${initialData.tour_highlights}
+        </div>
+      </div>
+    `
+        : "";
+
+    // 8. Flight Details Section (if applicable)
+    const flightSection =
+      initialData.flightDetails &&
+      initialData.flightDetails.length > 0 &&
+      selectedOption !== "SupplierA" &&
+      selectedOption !== "SupplierB"
+        ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}">
+          <h2 style="${sectionTitleStyle}">Flight Details</h2>
+        </div>
+        ${initialData.flightDetails
           .map(
-            (flight, index) => `
+            (flight) => `
           <div style="padding: 16px; background: #f7fafc; border-bottom: 1px solid #ddd;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-              <span style="font-size: 1.25rem; font-weight: bold; color: #4a5568;">${flight.date}</span>
-              <div style="font-size: 1.25rem; color: #4a5568;">
-                <span style="font-weight: bold;">${flight.flightName}</span> |
-                <span>${flight.flightNumber}</span>
+              <span style="font-weight: bold; font-size: 20px; color: #4a5568;">${flight.date}</span>
+              <div style="font-size: 20px; color: #4a5568;">
+                <span style="font-weight: bold;">${flight.flightName}</span> | ${flight.flightNumber}
               </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; color: #4a5568;">
               <div>
-                <div style="font-weight: bold; font-size: 0.875rem;">${flight.from}</div>
-                <div style="font-size: 0.875rem; margin-top: 4px;">${flight.departureTime}</div>
+                <div style="font-weight: bold; font-size: 14px;">${flight.from}</div>
+                <div style="font-size: 14px; margin-top: 4px;">${flight.departureTime}</div>
               </div>
-              <div style="text-align: center; font-size: 0.875rem; color: #718096;">
-                <div style="margin-bottom: 4px;">&#9992;</div> <!-- Airplane Icon -->
+              <div style="text-align: center; font-size: 14px; color: #718096;">
+                <div style="margin-bottom: 4px;">&#9992;</div>
                 <div>${flight.flightDuration}</div>
                 <hr style="border-top: 2px solid #cbd5e0; margin: 4px 0;" />
               </div>
               <div>
-                <div style="font-weight: bold; font-size: 0.875rem;">${flight.to}</div>
-                <div style="font-size: 0.875rem; margin-top: 4px;">${flight.arrivalTime}</div>
+                <div style="font-weight: bold; font-size: 14px;">${flight.to}</div>
+                <div style="font-size: 14px; margin-top: 4px;">${flight.arrivalTime}</div>
               </div>
             </div>
           </div>
         `
           )
-          .join('')}
+          .join("")}
       </div>
     `
-        : ''
-      }  
-      <div style="page-break-after: always; break-after: page;"></div>
-<!-- Itineraries Section -->
-${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itineraries.length > 0
-        ? `
+        : "";
 
-    <!-- Itinerary Heading (Appears Only Once) -->
-    <div style="border: 1px solid #ddd; border-radius: 8px; margin-top: 8px; 
-                box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+// Example snippet inside your buildHtmlContent() function:
 
-      <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); 
-                  color: white; padding: 8px; border-radius: 8px 8px 0 0; text-align: center;">
-        <h2 style="font-size: 2rem; font-weight: bold; margin: 0;">Itinerary</h2>
+// 9. Itineraries Section
+let itinerariesSection = "";
+
+if (
+  selectedOption !== "SupplierA" &&
+  initialData.itineraries &&
+  initialData.itineraries.length > 0
+) {
+  // Render the Itinerary header once.
+  itinerariesSection += `
+    <div style="${cardStyle} page-break-before: always">
+      <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center;">
+        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Itinerary</h2>
       </div>
-
     </div>
-
-    <!-- Individual Itineraries -->
-    ${initialData.itineraries
-          .map(
-            (itinerary, index) => `
-        <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; 
-                    margin-top: 8px; background: #ffffff; padding: 16px;">
-
-          <!-- Day Number and Title -->
-          <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15);
-                      color: white; padding: 8px; border-radius: 8px 8px 0 0;">
-            <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">
-              Day ${itinerary.dayNumber}: ${itinerary.days} - 
-              ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}
-            </h3>
-          </div>
-
-          <p>${itinerary.itineraryDescription?.replace(/^<p>/, '').replace(/<\/p>$/, '') || ''}</p>
-
-          <!-- Itinerary Images -->
-          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-                ? itinerary.itineraryImages
-                  .map(
-                    (image, imageIndex) => `  
-                  <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
-                    <img 
-                      src="${image.url}" 
-                      alt="Itinerary Image ${imageIndex + 1}" 
-                      style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
-                    />
-                  </div>
-                `
-                  )
-                  .join('')
-                : ''
-              }
-
-       <!-- Hotel Section -->
-<div style="padding: 16px; font-family: Arial, sans-serif;">
-  ${(() => {
-    const hotel = hotels.find((hotel) => hotel.id === itinerary.hotelId);
-    if (!itinerary.hotelId || !hotel) return "";
-
-    return `
-      <div style="margin-bottom: 4px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 4px; text-align: center; font-weight: bold; font-size: 1.5rem;">
-          Hotel Details
-        </div>
-        <div style="padding: 16px;">
-          ${
-            hotel.images.length === 1
-              ? `
-              <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
-                <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                  <img
-                    src="${hotel.images[0].url || ""}"
-                    alt="Hotel Image"
-                    style="width: 100%; height: 100%; object-fit: cover;"
-                  />
-                </div>
-                <div style="margin-left: 16px;">
-                  <p style="font-weight: bold; font-size: 1rem;">Hotel Name:</p>
-                  <p style="font-size: 1rem; margin-bottom: 2px;">${hotel.name || ""}</p>
-
-                  ${
-                    itinerary.numberofRooms
-                      ? `<p style="font-weight: bold; font-size: 1rem;">Number of Rooms:</p>
-                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.numberofRooms}</p>`
-                      : ""
-                  }
-
-                  ${
-                    itinerary.roomCategory
-                      ? `<p style="font-weight: bold; font-size: 1rem;">Room Category:</p>
-                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.roomCategory}</p>`
-                      : ""
-                  }
-
-                  ${
-                    itinerary.mealsIncluded
-                      ? `<p style="font-weight: bold; font-size: 1rem;">Meal Plan:</p>
-                         <p style="font-size: 1rem; margin-bottom: 2px;">${itinerary.mealsIncluded}</p>`
-                      : ""
-                  }
-                </div>
-              </div>
-            `
-              : `
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-                ${hotel.images
-                  .map(
-                    (image) => `
-                      <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                        <img
-                          src="${image.url}"
-                          alt="Hotel Image"
-                          style="width: 100%; height: 100%; object-fit: cover;"
-                        />
-                      </div>
-                    `
-                  )
-                  .join("")}
-              </div>
-            `
-          }
-        </div>
-      </div>
-    `;
-  })()}
+  `;
+  // Map over each itinerary.
+  itinerariesSection += initialData.itineraries
+    .map((itinerary) => `
+      <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
+        <!-- Itinerary Header -->
+     <div style="display: flex; margin-bottom: 8px;">
+  <!-- Left Box: Day and Days -->
+ <div style="flex: 0 0 20%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; align-items: center; justify-content: center;">
+  <p style="font-size: 24px; font-weight: bold; margin: 0;">
+    Day ${itinerary.dayNumber}: ${itinerary.days}
+  </p>
 </div>
 
-          <!-- Activities Section -->
-          ${itinerary.activities && itinerary.activities.length > 0
-                ? `
-                <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
-                  <h4 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">Activities</h4>
-                  ${itinerary.activities
+  <!-- Right Box: Itinerary Title -->
+  <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
+    <p style="font-size: 24px; font-weight: bold; margin: 0;">
+      ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
+    </p>
+  </div>
+</div>
+   <!-- Itinerary Description & Images -->
+        <div style="padding: 8px;">
+          <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
+            ${itinerary.itineraryDescription || ""}
+          </div>
+          ${
+            itinerary.itineraryImages && itinerary.itineraryImages.length > 0
+              ? itinerary.itineraryImages
                   .map(
-                    (activity, activityIndex) => `
-                    <div style="margin-bottom: 16px;">
-                      <h5 style="font-size: 1rem; font-weight: bold;">${activity.activityTitle || 'Activity'}</h5>
-                      <p>${activity.activityDescription || 'No description provided.'}</p>
-                      ${activity.activityImages && activity.activityImages.length > 0
-                        ? activity.activityImages
-                          .map(
-                            (activityImage, activityImgIndex) => `
-                        <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
-                          <img 
-                            src="${activityImage.url}" 
-                            alt="Activity Image ${activityImgIndex + 1}" 
-                            style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
-                          />
+                    (img, idx) => `
+                    <div style="width: 100%; height: 300px; overflow: hidden; margin-bottom: 16px;">
+                      <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    </div>
+                  `
+                  )
+                  .join("")
+              : ""
+          }
+          <!-- Hotel Details Section -->
+          ${
+            itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
+              ? `
+              <div style="${cardStyle}">
+                <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
+                  <h2 style="font-size: 32px; font-weight: bold; margin: 0;">Hotel Details</h2>
+                </div>
+                <div style="padding: 16px;">
+                  ${
+                    hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
+                      ? `
+                        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                          <div style="width: 250px; height: 250px;">
+                            <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
+                              <img src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url}" 
+                                   alt="Hotel Image" 
+                                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                            </a>
+                          </div>
+                          <div>
+                            <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
+                            <div style="font-size: 16px; margin-bottom: 8px;">
+                              <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
+                                ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
+                              </a>
+                            </div>
+                            ${
+                              itinerary.numberofRooms
+                                ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
+                                   <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
+                                : ""
+                            }
+                            ${
+                              itinerary.roomCategory
+                                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
+                                   <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
+                                : ""
+                            }
+                            ${
+                              itinerary.mealsIncluded
+                                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
+                                   <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
+                                : ""
+                            }
+                          </div>
                         </div>
                       `
-                          )
-                          .join('')
-                        : ''
+                      : `
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                          ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
+                            .map(
+                              (img) => `
+                              <div style="width: 250px; height: 250px;">
+                                <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
+                                  <img src="${img.url}" alt="Hotel Image" 
+                                       style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                                </a>
+                              </div>
+                            `
+                            )
+                            .join("")}
+                        </div>
+                      `
+                  }
+                </div>
+              </div>
+              `
+              : ""
+          }
+          <!-- Activities Section -->
+          ${
+            itinerary.activities && itinerary.activities.length > 0
+              ? `
+              <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
+                <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
+                ${itinerary.activities
+                  .map(
+                    (activity) => `
+                    <div style="margin-bottom: 16px;">
+                      <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
+                      <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
+                      ${
+                        activity.activityImages && activity.activityImages.length > 0
+                          ? activity.activityImages
+                              .map(
+                                (actImg, idx) => `
+                                <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
+                                  <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                                </div>
+                              `
+                              )
+                              .join("")
+                          : ""
                       }
                     </div>
                   `
                   )
-                  .join('')}
-                </div>
+                  .join("")}
+              </div>
               `
-                : ''
-              }
-
-        </div> 
-
-        <!-- Page Break After Each Itinerary Day -->
-        <div style="page-break-after: always; break-after: page;"></div>
-
-        `
-          ).join('')}
-  `
-        : ''}
-
- <!-- Inclusions Section -->
- ${initialData?.inclusions
-  ? `
-    <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-        <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Inclusions</h3>
+              : ""
+          }
+        </div>
       </div>
-      <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-        ${initialData?.inclusions.replace(/->/g, '&#10004;')}
-      </div>
+    `)
+    .join("");
+} else if (
+  (selectedOption === "SupplierA" || selectedOption === "SupplierB") &&
+  initialData.itineraries &&
+  initialData.itineraries.length > 0
+) {
+  // For SupplierA/B, render a simpler itinerary section.
+  itinerariesSection = `
+    <div style="${cardStyle}; padding: 16px;">
+      ${initialData.itineraries
+        .map((itinerary) => `
+          <div style="margin-bottom: 16px; padding: 12px; border-bottom: 1px solid #ddd;">
+            <div style="font-size: 20px; font-weight: bold;">
+              Day ${itinerary.dayNumber}: ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
+            </div>
+          </div>
+        `)
+        .join("")}
     </div>
-  `
-  : ""}
+  `;
+}
 
-
-    <!-- Exclusions Section -->
-    ${initialData?.exclusions
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Exclusions</h3>
+    // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
+    const inclusionsSection = initialData.inclusions
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
         </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.exclusions}
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.inclusions.replace(/->/g, "&#10004;")}
         </div>
-      </div>
-    `
-        : ""
-      }
-  
-    <!-- Important Notes Section -->
-    ${initialData?.importantNotes
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Important Notes</h3>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.importantNotes}
-        </div>
-      </div>
-    `
-        : ""
-      }
-
-    <!-- Payment Policy Section -->
-    ${initialData?.paymentPolicy
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Payment Policy</h3>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.paymentPolicy}
-        </div>
-      </div>
-    `
-        : ""
-      }
-
-
-    <!-- Terms and Conditions Section -->
-    ${initialData?.termsconditions
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Terms and Conditions</h3>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.termsconditions}
-        </div>
-      </div>
-    `
-        : ""
-      }
-
-    <!-- Cancellation Policy Section -->
-    ${initialData?.cancellationPolicy
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Cancellation Policy</h3>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.cancellationPolicy}
-        </div>
-      </div>
-    `
-        : ""
-      }
-
-    <!-- Airline Cancellation Policy Section -->
-    ${initialData?.airlineCancellationPolicy
-        ? `
-      <div style="break-inside: avoid; border: 1px solid #ddd; border-radius: 8px; margin-top: 16px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
-        <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; display: flex; align-items: center;">
-          <h3 style="font-size: 1.5rem; font-weight: bold; margin: 0;">Airline Cancellation Policy</h3>
-        </div>
-        <div style="padding: 16px; background: #ffffff; color: #4a5568; font-size: 1.25rem;">
-          ${initialData?.airlineCancellationPolicy}
-        </div>
-      </div>
-    `
-        : ""
-      }
-
-  
-      ${selectedOption !== 'Empty' &&
-        selectedOption !== 'SupplierA' &&
-        selectedOption !== 'SupplierB'
-        ? `
-      <div style="border-bottom: 1px solid #ddd; margin: 16px; padding: 16px; display: flex; align-items: center;">
-        <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
-          <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-        </div>
-        <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
-          <li>${currentCompany.address}</li>
-          <li>Phone: ${currentCompany.phone}</li>
-          <li>
-            Email: 
-            <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">
-              ${currentCompany.email}
-            </a>
-          </li>
-          <li>
-            Website: 
-            <a href="${currentCompany.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
-              ${currentCompany.website}
-            </a>
-          </li>
-        </ul>
       </div>
       `
-        : ''
-      }
-    
-      ${(selectedOption === 'SupplierA' || selectedOption === 'SupplierB')
-        ? `
-          <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
-            <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
-              <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-            </div>
-            <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
-              <li>${companyInfo.AH.address}</li>
-              <li>Phone: ${companyInfo.AH.phone}</li>
-              <li>
-                Email: 
-                <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">
-                  ${companyInfo.AH.email}
-                </a>
-              </li>
-              <li>
-                Website: 
-                <a href="${companyInfo.AH.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
-                  ${companyInfo.AH.website}
-                </a>
-              </li>
-            </ul>
-          </div>
-        `
-        : ``
-      }  
-    </div>
+      : "";
+    const exclusionsSection = initialData.exclusions
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.exclusions}
+        </div>
+      </div>
+      `
+      : "";
+    const importantNotesSection = initialData.importantNotes
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.importantNotes}
+        </div>
+      </div>
+      `
+      : "";
+    const paymentPolicySection = initialData.paymentPolicy
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.paymentPolicy}
+        </div>
+      </div>
+      `
+      : "";
+    const termsConditionsSection = initialData.termsconditions
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.termsconditions}
+        </div>
+      </div>
+      `
+      : "";
+    const cancellationPolicySection = initialData.cancellationPolicy
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.cancellationPolicy}
+        </div>
+      </div>
+      `
+      : "";
+    const airlineCancellationSection = initialData.airlineCancellationPolicy
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.airlineCancellationPolicy}
+        </div>
+      </div>
+      `
+      : "";
+
+    // 11. Footer / Company Details
+    let companySection = "";
+    if (
+      selectedOption !== "Empty" &&
+      selectedOption !== "SupplierA" &&
+      selectedOption !== "SupplierB"
+    ) {
+      companySection = `
+      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+        <div style="width: 120px; height: 120px; margin-right: 16px;">
+          <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+          <div>${currentCompany.address}</div>
+          <div>Phone: ${currentCompany.phone}</div>
+          <div>Email: <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">${currentCompany.email}</a></div>
+          <div>Website: <a href="${currentCompany.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${currentCompany.website}</a></div>
+        </div>
+      </div>
+      `;
+    } else if (selectedOption === "SupplierA" || selectedOption === "SupplierB") {
+      companySection = `
+      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+        <div style="width: 120px; height: 120px; margin-right: 16px;">
+          <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+          <div>${companyInfo.AH.address}</div>
+          <div>Phone: ${companyInfo.AH.phone}</div>
+          <div>Email: <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.email}</a></div>
+          <div>Website: <a href="${companyInfo.AH.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.website}</a></div>
+        </div>
+      </div>
+      `;
+    }
+
+    // Assemble all sections.
+    const fullHtml = `
+      <div style="${containerStyle}">
+        ${headerSection}
+        ${customerSection}
+        ${tourInfoSection}
+        ${pricingSection}
+        ${totalPriceSection}
+        ${remarksSection}
+        ${highlightsSection}
+        ${flightSection}
+        ${itinerariesSection}
+        ${inclusionsSection}
+        ${exclusionsSection}
+        ${importantNotesSection}
+        ${paymentPolicySection}
+        ${termsConditionsSection}
+        ${cancellationPolicySection}
+        ${airlineCancellationSection}
+        ${companySection}
+      </div>
     `;
-    
+    return fullHtml;
+  };
+
+  // --- Function to generate the PDF via the API ---
+  const generatePDF = async () => {
+    setLoading(true);
+    const htmlContent = buildHtmlContent();
 
     try {
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
-        body: JSON.stringify({ htmlContent }),
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ htmlContent }),
       });
 
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
+        const fileName =
+          initialData?.tourPackageQueryName && initialData?.tourPackageQueryType
+            ? `${initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_")}_${initialData.tourPackageQueryType.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`
+            : "Tour_Package.pdf";
 
-        // Ensure tourPackageQueryName is a valid filename (remove special characters)
-        const fileName = initialData?.tourPackageQueryName && initialData?.tourPackageQueryType
-          ? `${initialData.tourPackageQueryName.replace(/[^a-zA-Z0-9-_]/g, "_")}_${initialData.tourPackageQueryType.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`
-          : "Tour_Package.pdf";
-
-        // Create an anchor element
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName; // Set the dynamic file name
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Revoke object URL after download
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
         setTimeout(() => window.URL.revokeObjectURL(url), 100);
       } else {
         alert("Failed to generate PDF");
@@ -763,15 +790,16 @@ ${selectedOption !== 'SupplierA' && initialData?.itineraries && initialData.itin
     } finally {
       setLoading(false);
     }
-  }
+  };
+
   useEffect(() => {
-    generatePDF();
-  }, [initialData]); // Empty dependency array ensures this runs only once
+    if (initialData) {
+      generatePDF();
+    }
+  }, [initialData]);
 
-  if (!initialData) {
-    return <div>No data available</div>;
-  }
-  return <div>PDF Generated Sucessfully</div>;; // Return nothing as the component is only for generating the PDF
+  if (!initialData) return <div>No data available</div>;
+  return <div>{loading ? <p>Generating PDF...</p> : <p>PDF Generated Successfully</p>}</div>;
 };
-export default TourPackageQueryPDFGenerator;
 
+export default TourPackageQueryPDFGenerator;

@@ -11,7 +11,7 @@ export async function POST(
 
     const body = await req.json();
 
-    const { name, images, locationId } = body;
+    const { name, images, locationId, link } = body; // Added link to destructuring
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -21,32 +21,26 @@ export async function POST(
       return new NextResponse("Name is required", { status: 400 });
     }
  
-    
     if (!locationId) {
       return new NextResponse("Location ID is required", { status: 400 });
     }
 
     if (!images || !images.length) {
       return new NextResponse("Images are required", { status: 400 });
-  }
-
-  
-   
-
-    
+    }
 
     const hotel = await prismadb.hotel.create({
       data: {
         name,
         locationId,
-
+        link, // Added link to create data
         images: {
           createMany: {
-              data: [
-                  ...images.map((image: { url: string }) => image),
-              ],
+            data: [
+              ...images.map((image: { url: string }) => image),
+            ],
           },
-      },
+        },
       }
     });
   

@@ -30,7 +30,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
     // Next, create activities linked to this itinerary
     if (itinerary.activities && itinerary.activities.length > 0) {
         await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-            console.log("Received Activities is ", activity);
+           // console.log("Received Activities is ", activity);
             return prismadb.activity.create({
                 data: {
                     itineraryId: createdItinerary.id, // Link to the created itinerary

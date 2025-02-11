@@ -1753,10 +1753,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="inclusions"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3">
                     <FormLabel>Inclusions</FormLabel>
                     <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
-                  </div>
+                    </div>
+                    <FormDescription>Paste Inclusions as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access

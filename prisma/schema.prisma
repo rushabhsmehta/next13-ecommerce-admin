@@ -41,7 +41,7 @@ model Hotel {
   id           String        @id @default(uuid())
   locationId   String
   name         String
-  link         String?       // Added link field
+  link         String? @db.Text       // Added link field
   images       Images[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

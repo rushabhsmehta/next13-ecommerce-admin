@@ -327,13 +327,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
               Tour Highlights
             </h2>
-            <table style="width: 100%; border-collapse: collapse;">
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
               <thead>
                 <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
-                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
                     Day
                   </th>
-                  <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                  <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
                     Itinerary Title
                   </th>
                 </tr>
@@ -342,11 +342,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 ${initialData.itineraries
                   .map(
                     (itinerary) => `
-                  <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
-                    <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold;">
+                  <tr style="border: 1px solid #ddd; background: #fff; color: #333;">
+                    <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
                       Day ${itinerary.dayNumber}: ${itinerary.days}
                     </td>
-                    <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold;">
+                    <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
                       ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
                     </td>
                   </tr>
@@ -599,10 +599,10 @@ if (
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
                 <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
-                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                  <th style="width: 10%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
                     Day
                   </th>
-                  <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                  <th style="width: 90%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
                     Itinerary Title
                   </th>
                 </tr>
@@ -612,7 +612,7 @@ if (
                   .map(
                     (itinerary) => `
                   <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
-                    <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold;">
+                    <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: left; font-size: 16px; font-weight: bold;">
                       Day ${itinerary.dayNumber}: ${itinerary.days}
                     </td>
                     <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold;">

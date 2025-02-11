@@ -334,7 +334,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     Day
                   </th>
                   <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
-                    Itinerary Title
+                    Description
                   </th>
                 </tr>
               </thead>
@@ -452,7 +452,7 @@ if (
   </p>
 </div>
 
-  <!-- Right Box: Itinerary Title -->
+  <!-- Right Box: Description -->
   <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
     <p style="font-size: 24px; font-weight: bold; margin: 0;">
       ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
@@ -603,7 +603,7 @@ if (
                     Day
                   </th>
                   <th style="width: 90%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
-                    Itinerary Title
+                    Description
                   </th>
                 </tr>
               </thead>

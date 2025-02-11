@@ -331,7 +331,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                   Day ${itinerary.dayNumber}: ${itinerary.days}
                 </p>
               </div>
-              <!-- Right Box: Itinerary Title -->
+              <!-- Right Box: Description -->
               <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
                 <p style="font-size: 24px; font-weight: bold; margin: 0;">
                   ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}

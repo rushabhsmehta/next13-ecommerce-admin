@@ -343,10 +343,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   .map(
                     (itinerary) => `
                   <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
-                    <td style="width: 30%; padding: 12px; vertical-align: middle; text-align: center; font-size: 20px; font-weight: bold;">
+                    <td style="width: 20%; padding: 12px; vertical-align: middle; text-align: center; font-size: 20px; font-weight: bold;">
                       Day ${itinerary.dayNumber}: ${itinerary.days}
                     </td>
-                    <td style="width: 70%; padding: 12px; vertical-align: middle; font-size: 20px; font-weight: bold;">
+                    <td style="width: 80%; padding: 12px; vertical-align: middle; font-size: 20px; font-weight: bold;">
                       ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
                     </td>
                   </tr>

@@ -60,35 +60,34 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
   const action = initialData ? "Save changes" : "Create";
 
   const defaultValues = initialData
-  ? {
-      label: initialData.label,
-      imageUrl: initialData.imageUrl,
-      tags: initialData.tags ?? undefined,
-      slug: initialData.slug ?? undefined,
-      inclusions: initialData.inclusions ?? undefined,
-      exclusions: initialData.exclusions ?? undefined,
-      importantNotes: initialData.importantNotes ?? undefined,
-      paymentPolicy: initialData.paymentPolicy ?? undefined,
-      usefulTip: initialData.usefulTip ?? undefined,
-      cancellationPolicy: initialData.cancellationPolicy ?? undefined,
-      airlineCancellationPolicy: initialData.airlineCancellationPolicy ?? undefined,
-      termsconditions: initialData.termsconditions ?? undefined,
-    }
-  : {
-      label: "",
-      imageUrl: "",
-      tags: undefined,
-      slug: undefined,
-      inclusions: undefined,
-      exclusions: undefined,
-      importantNotes: undefined,
-      paymentPolicy: undefined,
-      usefulTip: undefined,
-      cancellationPolicy: undefined,
-      airlineCancellationPolicy: undefined,
-      termsconditions: undefined,
-    };
-
+    ? {
+        label: initialData.label,
+        imageUrl: initialData.imageUrl,
+        tags: initialData.tags ?? undefined,
+        slug: initialData.slug ?? undefined,
+        inclusions: initialData.inclusions ?? undefined,
+        exclusions: initialData.exclusions ?? undefined,
+        importantNotes: initialData.importantNotes ?? undefined,
+        paymentPolicy: initialData.paymentPolicy ?? undefined,
+        usefulTip: initialData.usefulTip ?? undefined,
+        cancellationPolicy: initialData.cancellationPolicy ?? undefined,
+        airlineCancellationPolicy: initialData.airlineCancellationPolicy ?? undefined,
+        termsconditions: initialData.termsconditions ?? undefined,
+      }
+    : {
+        label: "",
+        imageUrl: "",
+        tags: undefined,
+        slug: undefined,
+        inclusions: undefined,
+        exclusions: undefined,
+        importantNotes: undefined,
+        paymentPolicy: undefined,
+        usefulTip: undefined,
+        cancellationPolicy: undefined,
+        airlineCancellationPolicy: undefined,
+        termsconditions: undefined,
+      };
 
   const form = useForm<LocationFormValues>({
     resolver: zodResolver(formSchema),
@@ -112,6 +111,18 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
       setLoading(false);
     }
   };
+
+  const renderFormField = (name: keyof LocationFormValues, label: string, placeholder: string) => (
+    <FormField control={form.control} name={name} render={({ field }) => (
+      <FormItem>
+        <FormLabel>{label}</FormLabel>
+        <FormControl>
+          <Textarea rows={3} disabled={loading} placeholder={placeholder} {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )} />
+  );
 
   return (
     <>
@@ -156,17 +167,17 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
           )} />
 
           <div className="grid md:grid-cols-2 gap-6">
-            {["label", "tags", "slug", "inclusions", "exclusions", "importantNotes", "paymentPolicy", "usefulTip", "cancellationPolicy", "airlineCancellationPolicy", "termsconditions"].map((field) => (
-              <FormField key={field} control={form.control} name={field as keyof LocationFormValues} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{field.name.replace(/([A-Z])/g, " $1")}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={3} disabled={loading} placeholder={`Enter ${field.name}`} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            ))}
+            {renderFormField("label", "Label", "Enter label")}
+            {renderFormField("tags", "Tags", "Enter tags")}
+            {renderFormField("slug", "Slug", "Enter slug")}
+            {renderFormField("inclusions", "Inclusions", "Enter inclusions")}
+            {renderFormField("exclusions", "Exclusions", "Enter exclusions")}
+            {renderFormField("importantNotes", "Important Notes", "Enter important notes")}
+            {renderFormField("paymentPolicy", "Payment Policy", "Enter payment policy")}
+            {renderFormField("usefulTip", "Useful Tip", "Enter useful tip")}
+            {renderFormField("cancellationPolicy", "Cancellation Policy", "Enter cancellation policy")}
+            {renderFormField("airlineCancellationPolicy", "Airline Cancellation Policy", "Enter airline cancellation policy")}
+            {renderFormField("termsconditions", "Terms & Conditions", "Enter terms & conditions")}
           </div>
 
           <Button disabled={loading} className="ml-auto" type="submit">

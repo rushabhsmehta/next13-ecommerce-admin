@@ -363,19 +363,19 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
 
     // 7. Tour Highlights Section
-    const highlightsSection2 =
-      initialData.tour_highlights && initialData.tour_highlights.trim() !== ""
-        ? `
-      <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Tour Highlights</h2>
-        </div>
-        <div style="${contentStyle}; font-size: 18px;">
-          ${initialData.tour_highlights}
-        </div>
-      </div>
-    `
-        : "";
+    // const highlightsSection2 =
+    //   initialData.tour_highlights && initialData.tour_highlights.trim() !== ""
+    //     ? `
+    //   <div style="${cardStyle}">
+    //     <div style="${headerStyle}">
+    //       <h2 style="${sectionTitleStyle}">Tour Highlights</h2>
+    //     </div>
+    //     <div style="${contentStyle}; font-size: 18px;">
+    //       ${initialData.tour_highlights}
+    //     </div>
+    //   </div>
+    // `
+    //     : "";
 
     // 8. Flight Details Section (if applicable)
     const flightSection =

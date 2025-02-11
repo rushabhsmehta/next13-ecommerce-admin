@@ -25,7 +25,7 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   return (
     <> 
       <div className="flex items-center justify-between">
-        <Heading title={`Confirmed Tour Package Quaries (${data.length})`} description="To filter the queries by assignment, use Search" />
+        <Heading title={`Unconfirmed Tour Package Quaries (${data.length})`} description="To filter the queries by assignment, use Search" />
         <Button onClick={() => router.push(`/tourPackageQuery/new`)}>
           <Plus className="mr-2 h-4 w-4" /> Add New
         </Button>

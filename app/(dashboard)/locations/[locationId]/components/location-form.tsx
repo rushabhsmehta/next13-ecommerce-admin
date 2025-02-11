@@ -156,7 +156,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
             </FormItem>
           )} />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+          <div className="grid grid-cols-1 gap-6 w-full">
             <LabelField control={form.control} loading={loading} />
             <TagsField control={form.control} loading={loading} />
             <SlugField control={form.control} loading={loading} />

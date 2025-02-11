@@ -392,26 +392,24 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                                 ${
                                   itinerary.mealsIncluded
                                     ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
-                                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div
-                                }`
+                                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
                                     : ""
                                 }
                               </div>
                             </div>
                           `
                           : `
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
                               ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
                                 .map(
-                                  (image) => `
-                                    <div style="width: 250px; height: 250px; overflow: hidden; border-radius: 8px;">
-                                      <img
-                                        src="${image.url}"
-                                        alt="Hotel Image"
-                                        style="width: 100%; height: 100%; object-fit: cover;"
-                                      />
-                                    </div>
-                                  `
+                                  (img) => `
+                                  <div style="width: 250px; height: 250px;">
+                                    <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
+                                      <img src="${img.url}" alt="Hotel Image" 
+                                           style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                                    </a>
+                                  </div>
+                                `
                                 )
                                 .join("")}
                             </div>
@@ -419,7 +417,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                       }
                     </div>
                   </div>
-                `
+                  `
                   : ""
               }
               <!-- Activities Section -->
@@ -427,36 +425,33 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                 itinerary.activities && itinerary.activities.length > 0
                   ? `
                   <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
-                    <h4 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 8px;">Activities</h4>
+                    <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
                     ${itinerary.activities
                       .map(
-                        (activity, activityIndex) => `
+                        (activity) => `
                         <div style="margin-bottom: 16px;">
-                          <h5 style="font-size: 1rem; font-weight: bold;">${activity.activityTitle || 'Activity'}</h5>
-                          <p>${activity.activityDescription || 'No description provided.'}</p>
-                          ${activity.activityImages && activity.activityImages.length > 0
-                            ? activity.activityImages
-                              .map(
-                                (activityImage, activityImgIndex) => `
-                              <div style="width: 100%; height: 300px; overflow: hidden; margin-top: 16px;">
-                                <img 
-                                  src="${activityImage.url}" 
-                                  alt="Activity Image ${activityImgIndex + 1}" 
-                                  style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"
-                                />
-                              </div>
-                            `
-                              )
-                              .join('')
-                            : ''
+                          <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
+                          <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
+                          ${
+                            activity.activityImages && activity.activityImages.length > 0
+                              ? activity.activityImages
+                                  .map(
+                                    (actImg, idx) => `
+                                    <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
+                                      <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                                    </div>
+                                  `
+                                  )
+                                  .join("")
+                              : ""
                           }
                         </div>
                       `
                       )
-                      .join('')}
+                      .join("")}
                   </div>
-                `
-                  : ''
+                  `
+                  : ""
               }
             </div>
           </div>

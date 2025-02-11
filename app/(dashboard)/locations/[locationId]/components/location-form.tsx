@@ -25,7 +25,7 @@ import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { LabelField, TagsField, SlugField, InclusionsField, ExclusionsField, ImportantNotesField, PaymentPolicyField, UsefulTipField, CancellationPolicyField, AirlineCancellationPolicyField, TermsConditionsField } from "./form-fields";
+import { AirlineCancellationPolicyField, CancellationPolicyField, ExclusionsField, ImportantNotesField, InclusionsField, LabelField, PaymentPolicyField, SlugField, TagsField, TermsConditionsField, UsefulTipField } from "./form-fields";
 
 const formSchema = z.object({
   label: z.string().min(1),

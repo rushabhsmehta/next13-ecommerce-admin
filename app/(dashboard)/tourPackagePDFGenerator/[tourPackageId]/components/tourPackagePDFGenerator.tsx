@@ -194,25 +194,17 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
 
     // 3. Tour Pricing Section (if applicable)
     const pricingSection =
-      selectedOption !== "Empty" &&
-      selectedOption !== "SupplierA" &&
-      selectedOption !== "SupplierB"
+      initialData.price && initialData.price.trim() !== ""
         ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}">
           <h2 style="${sectionTitleStyle}">Tour Pricing</h2>
         </div>
-        ${
-          initialData.price && initialData.price.trim() !== ""
-            ? `
-          <div style="padding: 16px;">
-            <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
-              ${initialData.price}
-            </div>
+        <div style="padding: 16px;">
+          <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
+            ${initialData.price}
           </div>
-          `
-            : ""
-        }
+        </div>
         <div style="padding: 16px; background: #ffffff;">
           ${
             initialData.pricePerAdult !== ""
@@ -259,8 +251,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     `
         : "";
 
- 
-
     // 6. Tour Highlights Section
     const highlightsSection =
       initialData.tour_highlights && initialData.tour_highlights.trim() !== ""
@@ -278,10 +268,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
 
     // 7. Flight Details Section (if applicable)
     const flightSection =
-      initialData.flightDetails &&
-      initialData.flightDetails.length > 0 &&
-      selectedOption !== "SupplierA" &&
-      selectedOption !== "SupplierB"
+      initialData.flightDetails && initialData.flightDetails.length > 0
         ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}">
@@ -323,11 +310,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     // 8. Itineraries Section
     let itinerariesSection = "";
 
-    if (
-      selectedOption !== "SupplierA" &&
-      initialData.itineraries &&
-      initialData.itineraries.length > 0
-    ) {
+    if (initialData.itineraries && initialData.itineraries.length > 0) {
       // Render the Itinerary header once.
       itinerariesSection += `
         <div style="${cardStyle} page-break-before: always">
@@ -400,12 +383,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                                     ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
                                   </a>
                                 </div>
-                                ${
-                                  itinerary.numberofRooms
-                                    ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
-                                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
-                                    : ""
-                                }
                                 ${
                                   itinerary.roomCategory
                                     ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>

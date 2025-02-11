@@ -591,17 +591,40 @@ if (
 ) {
   // For SupplierA/B, render a simpler itinerary section.
   itinerariesSection = `
-    <div style="${cardStyle}; padding: 16px;">
-      ${initialData.itineraries
-        .map((itinerary) => `
-          <div style="margin-bottom: 16px; padding: 12px; border-bottom: 1px solid #ddd;">
-            <div style="font-size: 20px; font-weight: bold;">
-              Day ${itinerary.dayNumber}: ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
-            </div>
+     <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
+            <!-- Section Header -->
+            <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
+              Tour Highlights
+            </h2>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
+                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                    Day
+                  </th>
+                  <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
+                    Itinerary Title
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                ${initialData.itineraries
+                  .map(
+                    (itinerary) => `
+                  <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
+                    <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold;">
+                      Day ${itinerary.dayNumber}: ${itinerary.days}
+                    </td>
+                    <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold;">
+                      ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
+                    </td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
           </div>
-        `)
-        .join("")}
-    </div>
   `;
 }
 

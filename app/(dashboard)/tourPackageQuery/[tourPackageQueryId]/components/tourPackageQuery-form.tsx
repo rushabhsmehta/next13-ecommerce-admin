@@ -218,21 +218,48 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     setIsModalOpen(false);
   };
 
-  const [useLocationDefaults, setUseLocationDefaults] = useState(false);
+  const [useLocationDefaults, setUseLocationDefaults] = useState({
+    inclusions: false,
+    exclusions: false,
+    importantNotes: false,
+    paymentPolicy: false,
+    usefulTip: false,
+    cancellationPolicy: false,
+    airlineCancellationPolicy: false,
+    termsconditions: false,
+  });
 
-  const handleUseLocationDefaultsChange = (checked: boolean) => {
-    setUseLocationDefaults(checked);
+  const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
+    setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
     if (checked) {
       const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
       if (selectedLocation) {
-        form.setValue('inclusions', selectedLocation.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('exclusions', selectedLocation.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('importantNotes', selectedLocation.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('paymentPolicy', selectedLocation.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('usefulTip', selectedLocation.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
-        form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+        switch (field) {
+          case 'inclusions':
+            form.setValue('inclusions', selectedLocation.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'exclusions':
+            form.setValue('exclusions', selectedLocation.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'importantNotes':
+            form.setValue('importantNotes', selectedLocation.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'paymentPolicy':
+            form.setValue('paymentPolicy', selectedLocation.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'usefulTip':
+            form.setValue('usefulTip', selectedLocation.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'cancellationPolicy':
+            form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'airlineCancellationPolicy':
+            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'termsconditions':
+            form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+        }
       }
     }
   };
@@ -490,7 +517,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
           <div className="flex items-center space-x-3">
             <FormLabel>Use Location Defaults</FormLabel>
-            <Switch checked={useLocationDefaults} onCheckedChange={handleUseLocationDefaultsChange} />
+            <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
           </div>
 
           <div className="grid grid-cols-3 gap-8">
@@ -1726,7 +1753,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="inclusions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Inclusions</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Inclusions</FormLabel>
+                    <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1748,7 +1778,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="exclusions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Exclusions</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Exclusions</FormLabel>
+                    <Switch checked={useLocationDefaults.exclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1767,7 +1800,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="importantNotes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Important Notes</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Important Notes</FormLabel>
+                    <Switch checked={useLocationDefaults.importantNotes} onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1787,7 +1823,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="paymentPolicy"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Policy</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Payment Policy</FormLabel>
+                    <Switch checked={useLocationDefaults.paymentPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1808,7 +1847,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="usefulTip"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Useful Tip</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Useful Tip</FormLabel>
+                    <Switch checked={useLocationDefaults.usefulTip} onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1827,7 +1869,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="cancellationPolicy"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Cancellation Policy</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Cancellation Policy</FormLabel>
+                    <Switch checked={useLocationDefaults.cancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1850,7 +1895,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="airlineCancellationPolicy"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Airline Cancellation Policy</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Airline Cancellation Policy</FormLabel>
+                    <Switch checked={useLocationDefaults.airlineCancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1870,7 +1918,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="termsconditions" // Ensure the name is lowercase with no spaces
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Terms and Conditions</FormLabel>
+                  <div className="flex items-center space-x-3">
+                    <FormLabel>Terms and Conditions</FormLabel>
+                    <Switch checked={useLocationDefaults.termsconditions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} />
+                  </div>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access

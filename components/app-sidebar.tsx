@@ -36,8 +36,8 @@ const NAV_ITEMS = [
   {
     title: "Reports",
     items: [
-      { title: "Confirmed Queries", url: "/reports/confirmed-queries" },
-      { title: "Unconfirmed Queries", url: "/reports/unconfirmed-queries" },
+      { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
+      { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
     ],
   },
 ];

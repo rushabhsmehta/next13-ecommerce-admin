@@ -514,12 +514,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-
-          <div className="flex items-center space-x-3">
-            <FormLabel>Use Location Defaults</FormLabel>
-            <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
-          </div>
-
+      
           <div className="grid grid-cols-3 gap-8">
             <FormField
               control={form.control}

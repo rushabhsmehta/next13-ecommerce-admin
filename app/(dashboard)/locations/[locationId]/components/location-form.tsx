@@ -65,8 +65,8 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
   ? {
       label: initialData.label,
       imageUrl: initialData.imageUrl,
-      tags: initialData.tags ?? undefined,
-      slug: initialData.slug ?? undefined,
+      tags: initialData.tags ?? '',
+      slug: initialData.slug ?? '',
       inclusions: initialData.inclusions ?? INCLUSIONS_DEFAULT,
       exclusions: initialData.exclusions ?? EXCLUSIONS_DEFAULT,
       importantNotes: initialData.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
@@ -79,8 +79,8 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
   : {
       label: "",
       imageUrl: "",
-      tags: undefined,
-      slug: undefined,
+      tags: "",
+      slug: "",
       inclusions: INCLUSIONS_DEFAULT,
       exclusions: EXCLUSIONS_DEFAULT,
       importantNotes: IMPORTANT_NOTES_DEFAULT,

@@ -1757,7 +1757,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Inclusions</FormLabel>
                     <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
                     </div>
-                    <FormDescription>Paste Inclusions as per the Selected Location</FormDescription>
+                    <FormDescription>Use above Switch to Paste Inclusions as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1783,6 +1783,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Exclusions</FormLabel>
                     <Switch checked={useLocationDefaults.exclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Exclusions as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1805,6 +1806,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Important Notes</FormLabel>
                     <Switch checked={useLocationDefaults.importantNotes} onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Important Notes as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1828,6 +1830,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Payment Policy</FormLabel>
                     <Switch checked={useLocationDefaults.paymentPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Payment Policy as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1852,6 +1855,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Useful Tip</FormLabel>
                     <Switch checked={useLocationDefaults.usefulTip} onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Useful Tip as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1874,6 +1878,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Cancellation Policy</FormLabel>
                     <Switch checked={useLocationDefaults.cancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Cancellation Policy as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1900,6 +1905,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Airline Cancellation Policy</FormLabel>
                     <Switch checked={useLocationDefaults.airlineCancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Airline Cancellation Policy as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access
@@ -1923,6 +1929,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Terms and Conditions</FormLabel>
                     <Switch checked={useLocationDefaults.termsconditions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} />
                   </div>
+                  <FormDescription>Use above Switch to Paste Terms and Conditions as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access

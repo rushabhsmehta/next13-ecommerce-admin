@@ -64,7 +64,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
+import { Switch } from "@/components/ui/switch"
 
 const editorConfig = {
   readonly: false,
@@ -218,6 +218,24 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     setIsModalOpen(false);
   };
 
+  const [useLocationDefaults, setUseLocationDefaults] = useState(false);
+
+  const handleUseLocationDefaultsChange = (checked: boolean) => {
+    setUseLocationDefaults(checked);
+    if (checked) {
+      const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
+      if (selectedLocation) {
+        form.setValue('inclusions', selectedLocation.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('exclusions', selectedLocation.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('importantNotes', selectedLocation.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('paymentPolicy', selectedLocation.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('usefulTip', selectedLocation.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+        form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+      }
+    }
+  };
 
   //console.log(initialData);
   const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
@@ -469,6 +487,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+
+          <div className="flex items-center space-x-3">
+            <FormLabel>Use Location Defaults</FormLabel>
+            <Switch checked={useLocationDefaults} onCheckedChange={handleUseLocationDefaultsChange} />
+          </div>
 
           <div className="grid grid-cols-3 gap-8">
             <FormField
@@ -1981,4 +2004,4 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       </Form >
     </>
   )
-} 
+}

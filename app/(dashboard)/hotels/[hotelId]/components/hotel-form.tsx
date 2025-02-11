@@ -40,7 +40,7 @@ const formSchema = z.object({
 type HotelFormValues = z.infer<typeof formSchema>
 
 interface HotelFormProps {
-  initialData: Hotel | null;
+  initialData: (Hotel & { images: Images[] }) | null;
   // images: Images[];
   locations: Location[];
 };
@@ -64,9 +64,10 @@ export const HotelForm: React.FC<HotelFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || '',
+      images: initialData?.images || [],
       locationId: initialData?.locationId || '',
-      link: initialData?.link || '', // Added link field
-    },
+      link: initialData?.link || ''
+    }
   });
 
   const onSubmit = async (data: HotelFormValues) => {

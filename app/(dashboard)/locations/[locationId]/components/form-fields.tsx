@@ -1,4 +1,5 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Control } from "react-hook-form";
 
@@ -12,7 +13,7 @@ export const LabelField: React.FC<FieldProps> = ({ control, loading }) => (
     <FormItem>
       <FormLabel>Label</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter label" {...field} />
+        <input disabled={loading} placeholder="Enter label" {...field} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -24,7 +25,7 @@ export const TagsField: React.FC<FieldProps> = ({ control, loading }) => (
     <FormItem>
       <FormLabel>Tags</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter tags" {...field} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter tags" {...field} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -36,7 +37,7 @@ export const SlugField: React.FC<FieldProps> = ({ control, loading }) => (
     <FormItem>
       <FormLabel>Slug</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter slug" {...field} />
+        <Input disabled placeholder="Enter slug" {...field} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -48,7 +49,7 @@ export const InclusionsField: React.FC<FieldProps> = ({ control, loading }) => (
     <FormItem>
       <FormLabel>Inclusions</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter inclusions" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter inclusions" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -60,7 +61,7 @@ export const ExclusionsField: React.FC<FieldProps> = ({ control, loading }) => (
     <FormItem>
       <FormLabel>Exclusions</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter exclusions" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter exclusions" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -72,7 +73,7 @@ export const ImportantNotesField: React.FC<FieldProps> = ({ control, loading }) 
     <FormItem>
       <FormLabel>Important Notes</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter important notes" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter important notes" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -84,7 +85,7 @@ export const PaymentPolicyField: React.FC<FieldProps> = ({ control, loading }) =
     <FormItem>
       <FormLabel>Payment Policy</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter payment policy" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter payment policy" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -96,7 +97,7 @@ export const UsefulTipField: React.FC<FieldProps> = ({ control, loading }) => (
     <FormItem>
       <FormLabel>Useful Tip</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter useful tip" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter useful tip" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -108,7 +109,7 @@ export const CancellationPolicyField: React.FC<FieldProps> = ({ control, loading
     <FormItem>
       <FormLabel>Cancellation Policy</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter cancellation policy" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter cancellation policy" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -120,7 +121,7 @@ export const AirlineCancellationPolicyField: React.FC<FieldProps> = ({ control, 
     <FormItem>
       <FormLabel>Airline Cancellation Policy</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter airline cancellation policy" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter airline cancellation policy" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>
@@ -132,7 +133,7 @@ export const TermsConditionsField: React.FC<FieldProps> = ({ control, loading })
     <FormItem>
       <FormLabel>Terms and Conditions</FormLabel>
       <FormControl>
-        <Textarea rows={3} disabled={loading} placeholder="Enter terms and conditions" {...field} style={{ width: '100%' }} />
+        <Textarea rows={6} disabled={loading} placeholder="Enter terms and conditions" {...field} style={{ width: '100%' }} />
       </FormControl>
       <FormMessage />
     </FormItem>

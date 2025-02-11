@@ -7,7 +7,7 @@ import Navbar from "@/components/navbar";
 
 
 
-const tourPackageQueryPage = async ({
+const confirmedTourPackageQueryPage = async ({
 
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
@@ -72,4 +72,4 @@ const tourPackageQueryPage = async ({
   );
 };
 
-export default tourPackageQueryPage;
+export default confirmedTourPackageQueryPage;

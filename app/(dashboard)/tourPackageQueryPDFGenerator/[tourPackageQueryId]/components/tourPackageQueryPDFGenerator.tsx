@@ -330,7 +330,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
               <thead>
                 <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
-                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
+                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #ddd;">
                     Day
                   </th>
                   <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">

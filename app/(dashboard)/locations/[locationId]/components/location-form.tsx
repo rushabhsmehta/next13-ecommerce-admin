@@ -26,6 +26,7 @@ import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { AirlineCancellationPolicyField, CancellationPolicyField, ExclusionsField, ImportantNotesField, InclusionsField, LabelField, PaymentPolicyField, SlugField, TagsField, TermsConditionsField, UsefulTipField } from "./form-fields";
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, CANCELLATION_POLICY_DEFAULT, ARILINE_CANCELLATION_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues";
 
 const formSchema = z.object({
   label: z.string().min(1),
@@ -66,28 +67,28 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
       imageUrl: initialData.imageUrl,
       tags: initialData.tags ?? undefined,
       slug: initialData.slug ?? undefined,
-      inclusions: initialData.inclusions ?? undefined,
-      exclusions: initialData.exclusions ?? undefined,
-      importantNotes: initialData.importantNotes ?? undefined,
-      paymentPolicy: initialData.paymentPolicy ?? undefined,
-      usefulTip: initialData.usefulTip ?? undefined,
-      cancellationPolicy: initialData.cancellationPolicy ?? undefined,
-      airlineCancellationPolicy: initialData.airlineCancellationPolicy ?? undefined,
-      termsconditions: initialData.termsconditions ?? undefined,
+      inclusions: initialData.inclusions ?? INCLUSIONS_DEFAULT,
+      exclusions: initialData.exclusions ?? EXCLUSIONS_DEFAULT,
+      importantNotes: initialData.importantNotes ?? IMPORTANT_NOTES_DEFAULT,
+      paymentPolicy: initialData.paymentPolicy ?? PAYMENT_TERMS_DEFAULT,
+      usefulTip: initialData.usefulTip ?? USEFUL_TIPS_DEFAULT,
+      cancellationPolicy: initialData.cancellationPolicy ?? CANCELLATION_POLICY_DEFAULT,
+      airlineCancellationPolicy: initialData.airlineCancellationPolicy ?? ARILINE_CANCELLATION_POLICY_DEFAULT,
+      termsconditions: initialData.termsconditions ?? TERMS_AND_CONDITIONS_DEFAULT,
     }
   : {
       label: "",
       imageUrl: "",
       tags: undefined,
       slug: undefined,
-      inclusions: undefined,
-      exclusions: undefined,
-      importantNotes: undefined,
-      paymentPolicy: undefined,
-      usefulTip: undefined,
-      cancellationPolicy: undefined,
-      airlineCancellationPolicy: undefined,
-      termsconditions: undefined,
+      inclusions: INCLUSIONS_DEFAULT,
+      exclusions: EXCLUSIONS_DEFAULT,
+      importantNotes: IMPORTANT_NOTES_DEFAULT,
+      paymentPolicy: PAYMENT_TERMS_DEFAULT,
+      usefulTip: USEFUL_TIPS_DEFAULT,
+      cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+      airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
+      termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
     };
 
 

@@ -25,6 +25,7 @@ import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { LabelField, TagsField, SlugField, InclusionsField, ExclusionsField, ImportantNotesField, PaymentPolicyField, UsefulTipField, CancellationPolicyField, AirlineCancellationPolicyField, TermsConditionsField } from "./form-fields";
 
 const formSchema = z.object({
   label: z.string().min(1),
@@ -129,7 +130,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
         }}
         loading={loading}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between w-full">
         <Heading title={title} description={description} />
         {initialData && (
           <Button disabled={loading} variant="destructive" size="sm" onClick={() => setOpen(true)}>
@@ -155,18 +156,18 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
             </FormItem>
           )} />
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {["label", "tags", "slug", "inclusions", "exclusions", "importantNotes", "paymentPolicy", "usefulTip", "cancellationPolicy", "airlineCancellationPolicy", "termsconditions"].map((field) => (
-              <FormField key={field} control={form.control} name={field as keyof LocationFormValues} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{field.name.replace(/([A-Z])/g, " $1")}</FormLabel>
-                  <FormControl>
-                    <Textarea rows={3} disabled={loading} placeholder={`Enter ${field.name}`} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            <LabelField control={form.control} loading={loading} />
+            <TagsField control={form.control} loading={loading} />
+            <SlugField control={form.control} loading={loading} />
+            <InclusionsField control={form.control} loading={loading} />
+            <ExclusionsField control={form.control} loading={loading} />
+            <ImportantNotesField control={form.control} loading={loading} />
+            <PaymentPolicyField control={form.control} loading={loading} />
+            <UsefulTipField control={form.control} loading={loading} />
+            <CancellationPolicyField control={form.control} loading={loading} />
+            <AirlineCancellationPolicyField control={form.control} loading={loading} />
+            <TermsConditionsField control={form.control} loading={loading} />
           </div>
 
           <Button disabled={loading} className="ml-auto" type="submit">

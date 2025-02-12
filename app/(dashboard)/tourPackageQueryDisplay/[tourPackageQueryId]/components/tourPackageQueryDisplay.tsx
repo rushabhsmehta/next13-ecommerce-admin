@@ -85,7 +85,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
-  
+
   if (!initialData) return <div>No data available</div>;
 
   return (
@@ -251,7 +251,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 </CardContent>
               </Card>
             )}
-            
+
             <CardContent className="p-6">
               <div className="grid gap-6 text-gray-700">
                 {/* Price per Adult Section */}
@@ -326,7 +326,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Tour Highlights */}
 
-        <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
+      <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
         <CardTitle className="text-xl font-bold">Tour Highlights</CardTitle>
         {/* Itineraries */}
         {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
@@ -344,7 +344,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         ))}
       </Card>
 
-     /*  {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
+  
+      {/* {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
         <Card className="break-inside-avoid border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-xl font-bold">Tour Highlights</h2>
@@ -353,8 +354,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || ' ' }}></div>
           </CardContent>
         </Card>
-      )}
- */
+      )} */}
+      
 
       {/* Flight Details */}
       {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (

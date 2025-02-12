@@ -438,98 +438,98 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             {/* Hotel Section */}
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <Card className="my-4">
-                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
-                  Hotel Details
-                </CardHeader>
-                <div className="p-4">
-                  {/* Hotel Images */}
-                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
-                    <div className="flex items-start mb-4">
-                      <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer">
-                        <div className="w-[250px] h-[250px]">
-                          <Image
-                            src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
-                            alt="Hotel Image"
-                            className="rounded-lg object-cover w-full h-full"
-                            width={250}
-                            height={250}
-                          />
-                        </div>
-                      </Link>
-                      {/* Hotel Text Content */}
-                      <div className="ml-4">
-                        <div className="text-xl font-bold">Hotel Name:</div>
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer">
-                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                        </Link>
-                        {itinerary.numberofRooms && (
-                          <>
-                            <div className="text-xl font-bold">Number of Rooms:</div>
-                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                          </>
-                        )}
-
-                        {itinerary.roomCategory && (
-                          <>
-                            <div className="text-xl font-bold">Room Category:</div>
-                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                          </>
-                        )}
-
-                        {itinerary.mealsIncluded && (
-                          <>
-                            <div className="text-xl font-bold">Meal Plan:</div>
-                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="grid grid-cols-3 gap-4">
-                        {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                          <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer">
-                            <div className="w-[250px] h-[250px]">
-                              <Image
-                                src={image.url}
-                                alt={`Hotel Image ${imgIndex + 1}`}
-                                className="rounded-lg object-cover w-full h-full"
-                                width={250}
-                                height={250}
-                              />
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-xl font-bold">Hotel Name:</div>
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer">
-                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                        </Link>
-                        {itinerary.numberofRooms && (
-                          <>
-                            <div className="text-xl font-bold">Number of Rooms:</div>
-                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                          </>
-                        )}
-
-                        {itinerary.roomCategory && (
-                          <>
-                            <div className="text-xl font-bold">Room Category:</div>
-                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                          </>
-                        )}
-
-                        {itinerary.mealsIncluded && (
-                          <>
-                            <div className="text-xl font-bold">Meal Plan:</div>
-                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
+              <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
+                Hotel Details
+              </CardHeader>
+              <div className="p-4">
+                {/* Hotel Images */}
+                {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
+                <div className="flex items-start mb-4">
+                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                  <div className="w-[250px] h-[250px]">
+                    <Image
+                    src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
+                    alt="Hotel Image"
+                    className="rounded-lg object-cover w-full h-full"
+                    width={250}
+                    height={250}
+                    />
+                  </div>
+                  </Link>
+                  {/* Hotel Text Content */}
+                  <div className="ml-4">
+                  <div className="text-xl font-bold">Hotel Name:</div>
+                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                  </Link>
+                  {itinerary.numberofRooms && (
+                    <>
+                    <div className="text-xl font-bold">Number of Rooms:</div>
+                    <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                    </>
                   )}
+
+                  {itinerary.roomCategory && (
+                    <>
+                    <div className="text-xl font-bold">Room Category:</div>
+                    <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                    </>
+                  )}
+
+                  {itinerary.mealsIncluded && (
+                    <>
+                    <div className="text-xl font-bold">Meal Plan:</div>
+                    <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                    </>
+                  )}
+                  </div>
                 </div>
+                ) : (
+                <div>
+                  <div className="grid grid-cols-3 gap-4">
+                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                    <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    <div className="w-[250px] h-[250px]">
+                      <Image
+                      src={image.url}
+                      alt={`Hotel Image ${imgIndex + 1}`}
+                      className="rounded-lg object-cover w-full h-full"
+                      width={250}
+                      height={250}
+                      />
+                    </div>
+                    </Link>
+                  ))}
+                  </div>
+                  <div className="ml-4">
+                  <div className="text-xl font-bold">Hotel Name:</div>
+                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                    <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                  </Link>
+                  {itinerary.numberofRooms && (
+                    <>
+                    <div className="text-xl font-bold">Number of Rooms:</div>
+                    <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                    </>
+                  )}
+
+                  {itinerary.roomCategory && (
+                    <>
+                    <div className="text-xl font-bold">Room Category:</div>
+                    <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                    </>
+                  )}
+
+                  {itinerary.mealsIncluded && (
+                    <>
+                    <div className="text-xl font-bold">Meal Plan:</div>
+                    <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                    </>
+                  )}
+                  </div>
+                </div>
+                )}
+              </div>
               </Card>
             )}
 

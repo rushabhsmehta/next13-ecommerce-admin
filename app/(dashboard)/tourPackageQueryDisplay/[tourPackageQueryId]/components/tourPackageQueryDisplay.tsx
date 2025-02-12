@@ -325,7 +325,26 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </div>
 
       {/* Tour Highlights */}
-      {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
+
+        <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
+        <CardTitle className="text-xl font-bold">Tour Highlights</CardTitle>
+        {/* Itineraries */}
+        {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+          <div key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between p-4 rounded-t-lg">
+              {/* Day and Title grouped */}
+              <div>
+                <CardTitle className="text-xl font-bold"
+                  dangerouslySetInnerHTML={{
+                    __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                  }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </Card>
+
+     /*  {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
         <Card className="break-inside-avoid border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-xl font-bold">Tour Highlights</h2>
@@ -335,7 +354,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
       )}
-
+ */
 
       {/* Flight Details */}
       {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (

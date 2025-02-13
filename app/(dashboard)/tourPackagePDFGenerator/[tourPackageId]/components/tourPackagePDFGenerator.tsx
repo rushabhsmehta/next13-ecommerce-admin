@@ -164,30 +164,6 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
          </div>`
         : ""
       }
-      ${
-      initialData.numAdults
-        ? `<div style="margin-bottom: 12px;">
-         <span style="${subTitleStyle}">Adults:</span>
-         <span style="${textStyle}">${initialData.numAdults}</span>
-         </div>`
-        : ""
-      }
-      ${
-      initialData.numChild5to12
-        ? `<div style="margin-bottom: 12px;">
-         <span style="${subTitleStyle}">Children (5-12 Years):</span>
-         <span style="${textStyle}">${initialData.numChild5to12}</span>
-         </div>`
-        : ""
-      }
-      ${
-      initialData.numChild0to5
-        ? `<div style="margin-bottom: 12px;">
-         <span style="${subTitleStyle}">Children (0-5 Years):</span>
-         <span style="${textStyle}">${initialData.numChild0to5}</span>
-         </div>`
-        : ""
-      }
       </div>
       </div>
     `;
@@ -347,248 +323,236 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       `;
       // Map over each itinerary.
       itinerariesSection += initialData.itineraries
-        .map((itinerary) => `
-          <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
-            <!-- Itinerary Header -->
-            <div style="display: flex; margin-bottom: 8px;">
-              <!-- Left Box: Day and Days -->
-              <div style="flex: 0 0 20%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; align-items: center; justify-content: center;">
-                <p style="font-size: 24px; font-weight: bold; margin: 0;">
-                  Day ${itinerary.dayNumber}: ${itinerary.days}
-                </p>
-              </div>
-              <!-- Right Box: Description -->
-              <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
-                <p style="font-size: 24px; font-weight: bold; margin: 0;">
-                  ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
-                </p>
-              </div>
+      .map((itinerary) => `
+        <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
+          <!-- Itinerary Header -->
+       <div style="display: flex; margin-bottom: 8px;">
+    <!-- Left Box: Day and Days -->
+   <div style="flex: 0 0 20%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; align-items: center; justify-content: center;">
+    <p style="font-size: 24px; font-weight: bold; margin: 0;">
+      Day ${itinerary.dayNumber}: ${itinerary.days}
+    </p>
+  </div>
+  
+    <!-- Right Box: Description -->
+    <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
+      <p style="font-size: 24px; font-weight: bold; margin: 0;">
+        ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
+      </p>
+    </div>
+  </div>
+     <!-- Itinerary Description & Images -->
+          <div style="padding: 8px;">
+            <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
+              ${itinerary.itineraryDescription || ""}
             </div>
-            <!-- Itinerary Description & Images -->
-            <div style="padding: 8px;">
-              <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
-                ${itinerary.itineraryDescription || ""}
-              </div>
-              ${
-                itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-                  ? itinerary.itineraryImages
-                      .map(
-                        (img, idx) => `
-                        <div style="width: 100%; height: 300px; overflow: hidden; margin-bottom: 16px;">
-                          <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
-                        </div>
-                      `
-                      )
-                      .join("")
-                  : ""
-              }
-              <!-- Hotel Details Section -->
-              ${
-                itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
-                  ? `
-                  <div style="${cardStyle}">
-                    <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
-                      <h2 style="font-size: 32px; font-weight: bold; margin: 0;">Hotel Details</h2>
-                    </div>
-                    <div style="padding: 16px;">
-                      ${
-                        hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
-                          ? `
-                            <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-                              <div style="width: 250px; height: 250px;">
+            ${
+              itinerary.itineraryImages && itinerary.itineraryImages.length > 0
+                ? itinerary.itineraryImages
+                    .map(
+                      (img, idx) => `
+                      <div style="width: 100%; height: 300px; overflow: hidden; margin-bottom: 16px;">
+                        <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+                      </div>
+                    `
+                    )
+                    .join("")
+                : ""
+            }
+            <!-- Hotel Details Section -->
+            ${
+              itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
+                ? `
+                <div style="${cardStyle}">
+                  <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
+                    <h2 style="font-size: 32px; font-weight: bold; margin: 0;">Hotel Details</h2>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${
+                      hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
+                        ? `
+                          <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+                            <div style="width: 250px; height: 250px;">
+                              <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
+                                <img src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url}" 
+                                     alt="Hotel Image" 
+                                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                              </a>
+                            </div>
+                            <div>
+                              <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
+                              <div style="font-size: 16px; margin-bottom: 8px;">
                                 <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                                  <img src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url}" 
-                                       alt="Hotel Image" 
-                                       style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
+                                  ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
                                 </a>
                               </div>
-                              <div>
-                                <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
-                                <div style="font-size: 16px; margin-bottom: 8px;">
+                              ${
+                                itinerary.numberofRooms
+                                  ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
+                                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
+                                  : ""
+                              }
+                              ${
+                                itinerary.roomCategory
+                                  ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
+                                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
+                                  : ""
+                              }
+                              ${
+                                itinerary.mealsIncluded
+                                  ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
+                                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
+                                  : ""
+                              }
+                            </div>
+                          </div>
+                        `
+                        : `
+                          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                            ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
+                              .map(
+                                (img) => `
+                                <div style="width: 250px; height: 250px;">
                                   <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                                    ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
+                                    <img src="${img.url}" alt="Hotel Image" 
+                                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
                                   </a>
                                 </div>
-                                ${
-                                  itinerary.roomCategory
-                                    ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
-                                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
-                                    : ""
-                                }
-                                ${
-                                  itinerary.mealsIncluded
-                                    ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
-                                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
-                                    : ""
-                                }
-                              </div>
-                            </div>
-                          `
-                          : `
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
-                              ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
+                              `
+                              )
+                              .join("")}
+                          </div>
+                        `
+                    }
+                  </div>
+                </div>
+                `
+                : ""
+            }
+            <!-- Activities Section -->
+            ${
+              itinerary.activities && itinerary.activities.length > 0
+                ? `
+                <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
+                  <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
+                  ${itinerary.activities
+                    .map(
+                      (activity) => `
+                      <div style="margin-bottom: 16px;">
+                        <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
+                        <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
+                        ${
+                          activity.activityImages && activity.activityImages.length > 0
+                            ? activity.activityImages
                                 .map(
-                                  (img) => `
-                                  <div style="width: 250px; height: 250px;">
-                                    <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                                      <img src="${img.url}" alt="Hotel Image" 
-                                           style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                                    </a>
+                                  (actImg, idx) => `
+                                  <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
+                                    <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
                                   </div>
                                 `
                                 )
-                                .join("")}
-                            </div>
-                          `
-                      }
-                    </div>
-                  </div>
-                  `
-                  : ""
-              }
-              <!-- Activities Section -->
-              ${
-                itinerary.activities && itinerary.activities.length > 0
-                  ? `
-                  <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
-                    <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
-                    ${itinerary.activities
-                      .map(
-                        (activity) => `
-                        <div style="margin-bottom: 16px;">
-                          <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
-                          <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
-                          ${
-                            activity.activityImages && activity.activityImages.length > 0
-                              ? activity.activityImages
-                                  .map(
-                                    (actImg, idx) => `
-                                    <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
-                                      <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                                    </div>
-                                  `
-                                  )
-                                  .join("")
-                              : ""
-                          }
-                        </div>
-                      `
-                      )
-                      .join("")}
-                  </div>
-                  `
-                  : ""
-              }
-            </div>
+                                .join("")
+                            : ""
+                        }
+                      </div>
+                    `
+                    )
+                    .join("")}
+                </div>
+                `
+                : ""
+            }
           </div>
-        `)
-        .join("");
-    }
+        </div>
+      `)
+      .join("");
+  }
 
     // 9. Inclusions Section
-    const inclusionsSection =
-      initialData.inclusions
-        ? `
+   const inclusionsSection = initialData.inclusions
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Inclusions</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
         </div>
-        <div style="${contentStyle}">
-          ${initialData.inclusions}
+        <div style="${contentStyle}; font-size: 16px;">
+          ${initialData.inclusions.replace(/->/g, "&#10004;")}
         </div>
       </div>
-    `
-        : "";
-
-    // 10. Exclusions Section
-    const exclusionsSection =
-      initialData.exclusions
-        ? `
+      `
+      : "";
+    const exclusionsSection = initialData.exclusions
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Exclusions</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
         </div>
-        <div style="${contentStyle}">
+        <div style="${contentStyle}; font-size: 16px;">
           ${initialData.exclusions}
         </div>
       </div>
-    `
-        : "";
-
-    // 11. Important Notes Section
-    const importantNotesSection =
-      initialData.importantNotes
-        ? `
+      `
+      : "";
+    const importantNotesSection = initialData.importantNotes
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Important Notes</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
         </div>
-        <div style="${contentStyle}">
+        <div style="${contentStyle}; font-size: 16px;">
           ${initialData.importantNotes}
         </div>
       </div>
-    `
-        : "";
-
-    // 12. Payment Policy Section
-    const paymentPolicySection =
-      initialData.paymentPolicy
-        ? `
+      `
+      : "";
+    const paymentPolicySection = initialData.paymentPolicy
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Payment Policy</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
         </div>
-        <div style="${contentStyle}">
+        <div style="${contentStyle}; font-size: 16px;">
           ${initialData.paymentPolicy}
         </div>
       </div>
-    `
-        : "";
-
-    // 13. Terms and Conditions Section
-    const termsConditionsSection =
-      initialData.termsconditions
-        ? `
+      `
+      : "";
+    const termsConditionsSection = initialData.termsconditions
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Terms and Conditions</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
         </div>
-        <div style="${contentStyle}">
+        <div style="${contentStyle}; font-size: 16px;">
           ${initialData.termsconditions}
         </div>
       </div>
-    `
-        : "";
-
-    // 14. Cancellation Policy Section
-    const cancellationPolicySection =
-      initialData.cancellationPolicy
-        ? `
+      `
+      : "";
+    const cancellationPolicySection = initialData.cancellationPolicy
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Cancellation Policy</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
         </div>
-        <div style="${contentStyle}">
+        <div style="${contentStyle}; font-size: 16px;">
           ${initialData.cancellationPolicy}
         </div>
       </div>
-    `
-        : "";
-
-    // 15. Airline Cancellation Policy Section
-    const airlineCancellationPolicySection =
-      initialData.airlineCancellationPolicy
-        ? `
+      `
+      : "";
+    const airlineCancellationSection = initialData.airlineCancellationPolicy
+      ? `
       <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Airline Cancellation Policy</h2>
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
         </div>
-        <div style="${contentStyle}">
+        <div style="${contentStyle}; font-size: 16px;">
           ${initialData.airlineCancellationPolicy}
         </div>
       </div>
-    `
-        : "";
+      `
+      : "";
 
     // 16. Company Information Section
     const companyInfoSection = `
@@ -631,7 +595,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         ${paymentPolicySection}
         ${termsConditionsSection}
         ${cancellationPolicySection}
-        ${airlineCancellationPolicySection}
+        ${airlineCancellationSection}
         ${companyInfoSection}
       </div>
     `;

@@ -252,19 +252,45 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         : "";
 
     // 6. Tour Highlights Section
-    const highlightsSection =
-      initialData.tour_highlights && initialData.tour_highlights.trim() !== ""
-        ? `
-      <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Tour Highlights</h2>
-        </div>
-        <div style="${contentStyle}; font-size: 18px;">
-          ${initialData.tour_highlights}
-        </div>
+    const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
+    ? `
+      <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
+        <!-- Section Header -->
+        <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
+          Tour Highlights
+        </h2>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+          <thead>
+            <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
+              <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #ddd;">
+                Day
+              </th>
+              <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
+                Description
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            ${initialData.itineraries
+              .map(
+                (itinerary) => `
+              <tr style="border: 1px solid #ddd; background: #fff; color: #333;">
+                <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
+                  Day ${itinerary.dayNumber}: ${itinerary.days}
+                </td>
+                <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
+                  ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
+                </td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
       </div>
     `
-        : "";
+    : "";
+  
 
     // 7. Flight Details Section (if applicable)
     const flightSection =

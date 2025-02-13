@@ -50,7 +50,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
             {initialData.tourPackageType}
           </CardTitle>
           <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
-
+          </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
             {initialData.images.map((image, index) => (
               <div key={index} className="w-full h-[500px]">
@@ -64,7 +64,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
               </div>
             ))}
           </CardContent>
-        </CardHeader>
       </Card>
 
       {/* Tour Package Details */}

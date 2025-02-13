@@ -232,9 +232,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardContent>
       </Card>
 
-
-
-
       <div className="break-inside-avoid">
         {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
           <Card className="border shadow-lg rounded-lg">

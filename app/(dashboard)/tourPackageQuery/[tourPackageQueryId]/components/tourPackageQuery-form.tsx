@@ -514,7 +514,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-      
+
           <div className="grid grid-cols-3 gap-8">
             <FormField
               control={form.control}
@@ -1078,13 +1078,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FormItem>
                   <FormLabel>Disclaimer</FormLabel>
                   <FormControl>
-                    <JoditEditor // Replace Textarea with JoditEditor
-                      ref={editor} // Optional ref for programmatic access
-                      value={field.value || ''} // Set initial content from form field value
-                      config={{ // Configure Jodit options
-                        readonly: loading, // Disable editing if loading                
-                      }} // Type assertion (optional)
-                      onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
+                    <JoditEditor
+                      ref={editor}
+                      value={field.value || ''} // Should use DISCLAIMER_DEFAULT as fallback
+                      config={{
+                        readonly: loading,
+                      }}
+                      onBlur={(newContent) => field.onChange(newContent)}
                     />
                   </FormControl>
                 </FormItem>
@@ -1748,11 +1748,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               name="inclusions"
               render={({ field }) => (
                 <FormItem>
-                    <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3">
                     <FormLabel>Inclusions</FormLabel>
                     <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
-                    </div>
-                    <FormDescription>Use above Switch to Paste Inclusions as per the Selected Location</FormDescription>
+                  </div>
+                  <FormDescription>Use above Switch to Paste Inclusions as per the Selected Location</FormDescription>
                   <FormControl>
                     <JoditEditor // Replace Textarea with JoditEditor
                       ref={editor} // Optional ref for programmatic access

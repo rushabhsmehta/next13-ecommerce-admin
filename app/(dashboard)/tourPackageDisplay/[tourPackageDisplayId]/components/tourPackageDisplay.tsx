@@ -43,7 +43,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       <Card className="break-inside-avoid font-bold">
         <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <div className="flex items-center justify-between space-x-4">
             <CardTitle className="text-xl font-bold">
               {initialData.tourPackageName}
             </CardTitle>
@@ -53,7 +52,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
             <CardTitle className="text-xl font-bold">
               Location: {locations.find(location => location.id === initialData.locationId)?.label}
             </CardTitle>
-          </div>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (

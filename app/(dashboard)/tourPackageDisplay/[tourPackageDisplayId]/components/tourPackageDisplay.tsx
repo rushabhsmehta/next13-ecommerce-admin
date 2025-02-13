@@ -49,21 +49,23 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
           <CardTitle className="flex items-center justify-between text-xl font-bold">
             {initialData.tourPackageType}
           </CardTitle>
-          <CardDescription>Location : {locations.find(location => location.id === initialData.locationId)?.label}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
-            {initialData.images.map((image, index) => (
-              <div key={index} className="w-full h-[500px]">
-                <Image
-                  src={image.url}
-                  alt={`Tour Image ${index + 1}`}
-                  width={1200}
-                  height={500}
-                  className="object-cover w-full h-full"// Ensures images are responsive and maintain aspect ratio
-                />
-              </div>
-            ))}
-          </CardContent>
+          <CardTitle className="flex items-center justify-between text-xl font-bold">
+            Location : {locations.find(location => location.id === initialData.locationId)?.label}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
+          {initialData.images.map((image, index) => (
+            <div key={index} className="w-full h-[500px]">
+              <Image
+                src={image.url}
+                alt={`Tour Image ${index + 1}`}
+                width={1200}
+                height={500}
+                className="object-cover w-full h-full"// Ensures images are responsive and maintain aspect ratio
+              />
+            </div>
+          ))}
+        </CardContent>
       </Card>
 
       {/* Tour Package Details */}

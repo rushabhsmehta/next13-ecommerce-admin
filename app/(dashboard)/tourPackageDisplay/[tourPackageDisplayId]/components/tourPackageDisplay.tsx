@@ -42,16 +42,18 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
   return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       <Card className="break-inside-avoid font-bold">
-        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <CardTitle className="text-xl font-bold">
+        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg text-center">
+          <div className="flex flex-col items-center space-y-2">
+            <CardTitle className="text-3xl font-bold">
               {initialData.tourPackageName}
             </CardTitle>
-            <CardTitle className="text-xl font-bold">
+            <CardTitle className="text-2xl font-bold">
               {initialData.tourPackageType}
             </CardTitle>
             <CardTitle className="text-xl font-bold">
               Location: {locations.find(location => location.id === initialData.locationId)?.label}
             </CardTitle>
+          </div>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-1 justify-center items-center">
           {initialData.images.map((image, index) => (
@@ -288,10 +290,10 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                     {/* Hotel Images */}
                     {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
                       <div className="flex items-start mb-4">
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                           <div className="w-[250px] h-[250px]">
                             <Image
-                              src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
+                              src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || 'https://www.google.com'}
                               alt="Hotel Image"
                               className="rounded-lg object-cover w-full h-full"
                               width={250}
@@ -302,7 +304,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                         {/* Hotel Text Content */}
                         <div className="ml-4">
                           <div className="text-xl font-bold">Hotel Name:</div>
-                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
 
@@ -340,7 +342,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                         </div>
                         <div className="ml-4">
                           <div className="text-xl font-bold">Hotel Name:</div>
-                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
                           {itinerary.numberofRooms && (

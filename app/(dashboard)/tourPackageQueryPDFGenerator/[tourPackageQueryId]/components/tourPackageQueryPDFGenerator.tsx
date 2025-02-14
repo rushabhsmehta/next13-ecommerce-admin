@@ -87,20 +87,20 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
   // --- Helper styles (converted from your Tailwind classes) ---
   const containerStyle =
-    "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto;";
+    "font-family: Arial, sans-serif; padding: 8px; max-width: 1200px; margin: auto;";
   const cardStyle =
-    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden;";
+    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 8px; overflow: hidden;";
   const headerStyle =
-    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center;";
+    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 8px; text-align: center;";
   const contentStyle =
-    "padding: 16px; background: #ffffff; color: #4a5568; font-size: 16px;";
+    "padding: 8px; background: #ffffff; color: #4a5568; font-size: 16px;";
   const sectionTitleStyle =
     "font-size: 24px; font-weight: bold; margin: 0;";
   const subTitleStyle =
     "font-size: 18px; font-weight: bold; margin-right: 8px;";
   const textStyle = "font-size: 16px; color: #1a202c;";
   const gradientFooter =
-    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px;";
+    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 8px;";
 
   // --- Build HTML content ---
   const buildHtmlContent = (): string => {
@@ -127,7 +127,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     // 2. Customer Details Section
     const customerSection = `
-      <div style="${cardStyle}; padding: 16px;">
+      <div style="${cardStyle}; padding: 8px;">
         <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">
           ${initialData.tourPackageQueryNumber}
         </div>
@@ -256,7 +256,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         ${
           initialData.price && initialData.price.trim() !== ""
             ? `
-          <div style="padding: 16px;">
+          <div style="padding: 8px;">
             <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
               ${initialData.price}
             </div>
@@ -264,7 +264,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           `
             : ""
         }
-        <div style="padding: 16px; background: #ffffff;">
+        <div style="padding: 8px; background: #ffffff;">
           ${
             initialData.pricePerAdult !== ""
               ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
@@ -302,7 +302,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const totalPriceSection =
       initialData.totalPrice && initialData.totalPrice.trim() !== ""
         ? `
-      <div style="${cardStyle}; padding: 16px;">
+      <div style="${cardStyle}; padding: 8px;">
         <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
           Total Price: ${initialData.totalPrice}
         </div>
@@ -314,7 +314,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const remarksSection =
       initialData.remarks !== ""
         ? `
-      <div style="${cardStyle}; padding: 16px;">
+      <div style="${cardStyle}; padding: 8px;">
         <div style="font-size: 16px;">${initialData.remarks}</div>
       </div>
     `
@@ -322,7 +322,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
         const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
         ? `
-          <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
+          <div style="${cardStyle}; page-break-before: always; padding: 8px; background: #fff;">
             <!-- Section Header -->
             <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
               Tour Highlights
@@ -391,7 +391,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         ${initialData.flightDetails
           .map(
             (flight) => `
-          <div style="padding: 16px; background: #f7fafc; border-bottom: 1px solid #ddd;">
+          <div style="padding: 8px; background: #f7fafc; border-bottom: 1px solid #ddd;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
               <span style="font-weight: bold; font-size: 20px; color: #4a5568;">${flight.date}</span>
               <div style="font-size: 20px; color: #4a5568;">
@@ -442,7 +442,7 @@ if (
   // Map over each itinerary.
   itinerariesSection += initialData.itineraries
     .map((itinerary) => `
-      <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
+      <div style="${cardStyle}; background: #fff; padding: 8px; page-break-after: always;">
         <!-- Itinerary Header -->
      <div style="display: flex; margin-bottom: 8px;">
   <!-- Left Box: Day and Days -->
@@ -453,7 +453,7 @@ if (
 </div>
 
   <!-- Right Box: Description -->
-  <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
+  <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: left;">
     <p style="font-size: 24px; font-weight: bold; margin: 0;">
       ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
     </p>
@@ -482,10 +482,10 @@ if (
             itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
               ? `
               <div style="${cardStyle}">
-                <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
+                <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center;">
                   <h2 style="font-size: 32px; font-weight: bold; margin: 0;">Hotel Details</h2>
                 </div>
-                <div style="padding: 16px;">
+                <div style="padding: 8px;">
                   ${
                     hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
                       ? `
@@ -551,7 +551,7 @@ if (
           ${
             itinerary.activities && itinerary.activities.length > 0
               ? `
-              <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
+              <div style="margin-top: 16px; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
                 <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
                 ${itinerary.activities
                   .map(
@@ -591,7 +591,7 @@ if (
 ) {
   // For SupplierA/B, render a simpler itinerary section.
   itinerariesSection = `
-     <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
+     <div style="${cardStyle}; page-break-before: always; padding: 8px; background: #fff;">
             <!-- Section Header -->
             <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
               Tour Highlights
@@ -722,7 +722,7 @@ if (
       selectedOption !== "SupplierB"
     ) {
       companySection = `
-      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 8px; display: flex; align-items: center;">
         <div style="width: 120px; height: 120px; margin-right: 16px;">
           <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>
@@ -736,7 +736,7 @@ if (
       `;
     } else if (selectedOption === "SupplierA" || selectedOption === "SupplierB") {
       companySection = `
-      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 8px; display: flex; align-items: center;">
         <div style="width: 120px; height: 120px; margin-right: 16px;">
           <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
         </div>

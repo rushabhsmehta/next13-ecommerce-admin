@@ -290,10 +290,10 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                     {/* Hotel Images */}
                     {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
                       <div className="flex items-start mb-4">
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                           <div className="w-[250px] h-[250px]">
                             <Image
-                              src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || 'https://www.google.com'}
+                              src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
                               alt="Hotel Image"
                               className="rounded-lg object-cover w-full h-full"
                               width={250}
@@ -304,7 +304,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                         {/* Hotel Text Content */}
                         <div className="ml-4">
                           <div className="text-xl font-bold">Hotel Name:</div>
-                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
 
@@ -342,7 +342,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                         </div>
                         <div className="ml-4">
                           <div className="text-xl font-bold">Hotel Name:</div>
-                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
                           {itinerary.numberofRooms && (

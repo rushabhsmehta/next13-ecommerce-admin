@@ -454,7 +454,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   {/* Hotel Text Content */}
                   <div className="ml-4">
                   <div className="text-xl font-bold">Hotel Name:</div>
-                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                     <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                   </Link>
                   {itinerary.numberofRooms && (

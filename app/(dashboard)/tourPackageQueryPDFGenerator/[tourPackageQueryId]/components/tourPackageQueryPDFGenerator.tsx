@@ -447,16 +447,28 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
    <!-- Itinerary Description & Images -->
         <div style="padding: 8px;">
       <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
-  ${(itinerary.itineraryDescription || "")
-            // Replace both opening and closing <p> tags with <br>
-            .replace(/<\/?p>/gi, "<br>")
-            // Collapse multiple <br> tags into a single <br>
-            .replace(/(<br>\s*)+/gi, "<br>")
-            // Remove extra whitespace characters
-            .replace(/\s+/g, " ")
-            // Trim any leading/trailing whitespace
-            .trim()
-          }
+  ${ (itinerary.itineraryDescription || "")
+      // Replace both opening and closing <p> tags with <br>
+      .replace(/<\/?p>/gi, "<br>")
+      // Collapse multiple <br> tags into a single <br>
+      .replace(/(<br>\s*)+/gi, "<br>")
+      // Remove extra whitespace characters
+      .replace(/\s+/g, " ")
+      // Trim any leading/trailing whitespace
+      .trim().replace(/<\/?(html|body)>/gi, '')
+      .replace(/<!--StartFragment-->/gi, '')
+      .replace(/<!--EndFragment-->/gi, '')
+      // Replace opening <p> tags with <br> and remove closing </p> tags
+      .replace(/<p>/gi, '<br>')
+      .replace(/<\/p>/gi, '')
+      // Normalize any <br> tag (remove extra attributes)
+      .replace(/<br\s*[^>]*>/gi, '<br>')
+      // Replace multiple consecutive <br> tags with a single <br>
+      .replace(/(<br>\s*){2,}/gi, '<br>')
+      // Remove extra whitespace and newlines
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
 </div>
 
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0

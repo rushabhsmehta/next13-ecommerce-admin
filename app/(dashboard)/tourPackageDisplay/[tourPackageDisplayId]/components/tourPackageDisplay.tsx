@@ -327,7 +327,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                       <div>
                         <div className="grid grid-cols-3 gap-4">
                           {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                            <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://wwww.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                               <div className="w-[250px] h-[250px]">
                                 <Image
                                   src={image.url}

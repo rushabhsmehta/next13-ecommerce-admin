@@ -332,18 +332,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       )}
 
 
-      {/* Tour Highlights */}
-      {initialData.tour_highlights && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.tour_highlights !== '' && (
-        <Card className="border rounded-lg shadow-lg p-6">
-          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <h2 className="text-2xl font-bold">Tour Highlights</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || ' ' }}></div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Itineraries */}
       <Card className="break-inside-avoid border shadow-lg rounded-lg">
         <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">

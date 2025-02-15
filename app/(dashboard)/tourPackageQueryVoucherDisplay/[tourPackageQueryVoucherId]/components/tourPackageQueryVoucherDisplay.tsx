@@ -422,9 +422,13 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                       <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
                         {itinerary.days ? itinerary.days : itinerary.dayNumber}
                       </td>
+
                       <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
-                        {hotelDetails?.name}
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || 'https://www.google.com'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          {hotelDetails?.name}
+                        </Link>
                       </td>
+
                       <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
                         {itinerary.numberofRooms}
                       </td>

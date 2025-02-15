@@ -16,15 +16,15 @@ import { format } from "date-fns";
 // Define the props interface.
 interface TourPackageQueryPDFGeneratorProps {
   initialData:
-    | (TourPackageQuery & {
-        images: Images[];
-        itineraries: (Itinerary & {
-          itineraryImages: Images[];
-          activities: (Activity & { activityImages: Images[] })[];
-        })[];
-        flightDetails: FlightDetails[];
-      })
-    | null;
+  | (TourPackageQuery & {
+    images: Images[];
+    itineraries: (Itinerary & {
+      itineraryImages: Images[];
+      activities: (Activity & { activityImages: Images[] })[];
+    })[];
+    flightDetails: FlightDetails[];
+  })
+  | null;
   locations: Location[];
   hotels: (Hotel & { images: Images[] })[];
 }
@@ -114,14 +114,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           <h2 style="font-size: 24px; margin: 0;">${initialData.tourPackageQueryType} Package</h2>
         </div>
         ${initialData.images
-          .map(
-            (image, index) => `
+        .map(
+          (image, index) => `
             <div style="width: 100%; height: 500px; overflow: hidden;">
               <img src="${image.url}" alt="Tour Image ${index + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
             </div>
           `
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `;
 
@@ -131,9 +131,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">
           ${initialData.tourPackageQueryNumber}
         </div>
-        ${
-          selectedOption !== "SupplierA" && selectedOption !== "SupplierB"
-            ? `
+        ${selectedOption !== "SupplierA" && selectedOption !== "SupplierB"
+        ? `
           <div style="font-size: 16px; color: #4a5568;">
             <div style="margin-bottom: 8px;">
               <span style="font-weight: bold;">Customer:</span> ${initialData.customerName} | ${initialData.customerNumber}
@@ -143,8 +142,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
           </div>
           `
-            : ""
-        }
+        : ""
+      }
       </div>
     `;
 
@@ -159,86 +158,77 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <span style="${subTitleStyle}">Location:</span>
             <span style="${textStyle}">${locations.find((loc) => loc.id === initialData.locationId)?.label || ""}</span>
           </div>
-          ${
-            initialData.numDaysNight
-              ? `<div style="margin-bottom: 12px;">
+          ${initialData.numDaysNight
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Duration:</span>
                    <span style="${textStyle}">${initialData.numDaysNight}</span>
                  </div>`
-              : ""
-          }
+        : ""
+      }
           <div style="display: flex; gap: 16px; margin-bottom: 12px;">
-            ${
-              initialData.tourStartsFrom
-                ? `<div>
+            ${initialData.tourStartsFrom
+        ? `<div>
                      <span style="${subTitleStyle}">Period:</span>
                      <span style="${textStyle}">${format(
-                       initialData.tourStartsFrom,
-                       "dd-MM-yyyy"
-                     )}</span>
+          initialData.tourStartsFrom,
+          "dd-MM-yyyy"
+        )}</span>
                    </div>`
-                : ""
-            }
-            ${
-              initialData.tourEndsOn
-                ? `<div>
+        : ""
+      }
+            ${initialData.tourEndsOn
+        ? `<div>
                      <span style="${subTitleStyle}">To:</span>
                      <span style="${textStyle}">${format(
-                       initialData.tourEndsOn,
-                       "dd-MM-yyyy"
-                     )}</span>
+          initialData.tourEndsOn,
+          "dd-MM-yyyy"
+        )}</span>
                    </div>`
-                : ""
-            }
+        : ""
+      }
           </div>
-          ${
-            initialData.transport
-              ? `<div style="margin-bottom: 12px;">
+          ${initialData.transport
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Transport:</span>
                    <span style="${textStyle}">${initialData.transport}</span>
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pickup_location
-              ? `<div style="margin-bottom: 12px;">
+        : ""
+      }
+          ${initialData.pickup_location
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Pickup:</span>
                    <span style="${textStyle}">${initialData.pickup_location}</span>
                  </div>`
-              : ""
-          }
-          ${
-            initialData.drop_location
-              ? `<div style="margin-bottom: 12px;">
+        : ""
+      }
+          ${initialData.drop_location
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Drop:</span>
                    <span style="${textStyle}">${initialData.drop_location}</span>
                  </div>`
-              : ""
-          }
-          ${
-            initialData.numAdults
-              ? `<div style="margin-bottom: 12px;">
+        : ""
+      }
+          ${initialData.numAdults
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Adults:</span>
                    <span style="${textStyle}">${initialData.numAdults}</span>
                  </div>`
-              : ""
-          }
-          ${
-            initialData.numChild5to12
-              ? `<div style="margin-bottom: 12px;">
+        : ""
+      }
+          ${initialData.numChild5to12
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Children (5-12 Years):</span>
                    <span style="${textStyle}">${initialData.numChild5to12}</span>
                  </div>`
-              : ""
-          }
-          ${
-            initialData.numChild0to5
-              ? `<div style="margin-bottom: 12px;">
+        : ""
+      }
+          ${initialData.numChild0to5
+        ? `<div style="margin-bottom: 12px;">
                    <span style="${subTitleStyle}">Children (0-5 Years):</span>
                    <span style="${textStyle}">${initialData.numChild0to5}</span>
                  </div>`
-              : ""
-          }
+        : ""
+      }
         </div>
       </div>
     `;
@@ -246,53 +236,48 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     // 4. Tour Pricing Section (if applicable)
     const pricingSection =
       selectedOption !== "Empty" &&
-      selectedOption !== "SupplierA" &&
-      selectedOption !== "SupplierB"
+        selectedOption !== "SupplierA" &&
+        selectedOption !== "SupplierB"
         ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}">
           <h2 style="${sectionTitleStyle}">Tour Pricing</h2>
         </div>
-        ${
-          initialData.price && initialData.price.trim() !== ""
-            ? `
+        ${initialData.price && initialData.price.trim() !== ""
+          ? `
           <div style="padding: 16px;">
             <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
               ${initialData.price}
             </div>
           </div>
           `
-            : ""
+          : ""
         }
         <div style="padding: 16px; background: #ffffff;">
-          ${
-            initialData.pricePerAdult !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          ${initialData.pricePerAdult !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price per Adult:</span> ${initialData.pricePerAdult}
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pricePerChildOrExtraBed !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          : ""
+        }
+          ${initialData.pricePerChildOrExtraBed !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData.pricePerChildOrExtraBed}
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pricePerChild5to12YearsNoBed !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          : ""
+        }
+          ${initialData.pricePerChild5to12YearsNoBed !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData.pricePerChild5to12YearsNoBed}
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pricePerChildwithSeatBelow5Years !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          : ""
+        }
+          ${initialData.pricePerChildwithSeatBelow5Years !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData.pricePerChildwithSeatBelow5Years}
                  </div>`
-              : ""
-          }
+          : ""
+        }
         </div>
       </div>
       `
@@ -320,8 +305,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `
         : "";
 
-        const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
-        ? `
+    const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
+      ? `
           <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
             <!-- Section Header -->
             <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
@@ -340,8 +325,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               </thead>
               <tbody>
                 ${initialData.itineraries
-                  .map(
-                    (itinerary) => `
+        .map(
+          (itinerary) => `
                   <tr style="border: 1px solid #ddd; background: #fff; color: #333;">
                     <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
                       Day ${itinerary.dayNumber}: ${itinerary.days}
@@ -351,15 +336,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     </td>
                   </tr>
                 `
-                  )
-                  .join("")}
+        )
+        .join("")}
               </tbody>
             </table>
           </div>
         `
-        : "";
-      
-       
+      : "";
+
+
 
 
     // 7. Tour Highlights Section
@@ -380,9 +365,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     // 8. Flight Details Section (if applicable)
     const flightSection =
       initialData.flightDetails &&
-      initialData.flightDetails.length > 0 &&
-      selectedOption !== "SupplierA" &&
-      selectedOption !== "SupplierB"
+        initialData.flightDetails.length > 0 &&
+        selectedOption !== "SupplierA" &&
+        selectedOption !== "SupplierB"
         ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}">
@@ -421,27 +406,27 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `
         : "";
 
-// Example snippet inside your buildHtmlContent() function:
+    // Example snippet inside your buildHtmlContent() function:
 
-// 9. Itineraries Section
-let itinerariesSection = "";
+    // 9. Itineraries Section
+    let itinerariesSection = "";
 
-if (
-  selectedOption !== "SupplierA" &&
-  initialData.itineraries &&
-  initialData.itineraries.length > 0
-) {
-  // Render the Itinerary header once.
-  itinerariesSection += `
+    if (
+      selectedOption !== "SupplierA" &&
+      initialData.itineraries &&
+      initialData.itineraries.length > 0
+    ) {
+      // Render the Itinerary header once.
+      itinerariesSection += `
     <div style="${cardStyle} page-break-before: always">
       <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center;">
         <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Itinerary</h2>
       </div>
     </div>
   `;
-  // Map over each itinerary.
-  itinerariesSection += initialData.itineraries
-    .map((itinerary) => `
+      // Map over each itinerary.
+      itinerariesSection += initialData.itineraries
+        .map((itinerary) => `
       <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
         <!-- Itinerary Header -->
      <div style="display: flex; margin-bottom: 8px;">
@@ -464,31 +449,28 @@ if (
           <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
             ${itinerary.itineraryDescription || ""}
           </div>
-          ${
-            itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-              ? itinerary.itineraryImages
-                  .map(
-                    (img, idx) => `
+          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
+            ? itinerary.itineraryImages
+              .map(
+                (img, idx) => `
                     <div style="width: 100%; height: 300px; overflow: hidden; margin-bottom: 16px;">
                       <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
                     </div>
                   `
-                  )
-                  .join("")
-              : ""
+              )
+              .join("")
+            : ""
           }
           <!-- Hotel Details Section -->
-          ${
-            itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
-              ? `
+          ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
+            ? `
               <div style="${cardStyle}">
                 <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
                   <h2 style="font-size: 32px; font-weight: bold; margin: 0;">Hotel Details</h2>
                 </div>
                 <div style="padding: 16px;">
-                  ${
-                    hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
-                      ? `
+                  ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
+              ? `
                         <div style="display: flex; gap: 16px; margin-bottom: 16px;">
                           <div style="width: 250px; height: 250px;">
                             <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
@@ -504,93 +486,112 @@ if (
                                 ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
                               </a>
                             </div>
-                            ${
-                              itinerary.numberofRooms
-                                ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
+                            ${itinerary.numberofRooms
+                ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
                                    <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
-                                : ""
-                            }
-                            ${
-                              itinerary.roomCategory
-                                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
+                : ""
+              }
+                            ${itinerary.roomCategory
+                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
                                    <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
-                                : ""
-                            }
-                            ${
-                              itinerary.mealsIncluded
-                                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
+                : ""
+              }
+                            ${itinerary.mealsIncluded
+                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
                                    <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
-                                : ""
-                            }
+                : ""
+              }
                           </div>
                         </div>
                       `
-                      : `
+              : `
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
                           ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
-                            .map(
-                              (img) => `
+                .map(
+                  (img) => `
                               <div style="width: 250px; height: 250px;">
                                 <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
                                   <img src="${img.url}" alt="Hotel Image" 
                                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
                                 </a>
                               </div>
+                                 <div>
+                            <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
+                            <div style="font-size: 16px; margin-bottom: 8px;">
+                              <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
+                                ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
+                              </a>
+                            </div>
+                            ${itinerary.numberofRooms
+                      ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
+                                   <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
+                      : ""
+                    }
+                            ${itinerary.roomCategory
+                      ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
+                                   <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
+                      : ""
+                    }
+                            ${itinerary.mealsIncluded
+                      ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
+                                   <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
+                      : ""
+                    }
+                          </div>
+                       
                             `
-                            )
-                            .join("")}
+                )
+                .join("")}
                         </div>
                       `
-                  }
+            }
                 </div>
               </div>
               `
-              : ""
+            : ""
           }
           <!-- Activities Section -->
-          ${
-            itinerary.activities && itinerary.activities.length > 0
-              ? `
+          ${itinerary.activities && itinerary.activities.length > 0
+            ? `
               <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
                 <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
                 ${itinerary.activities
-                  .map(
-                    (activity) => `
+              .map(
+                (activity) => `
                     <div style="margin-bottom: 16px;">
                       <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
                       <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
-                      ${
-                        activity.activityImages && activity.activityImages.length > 0
-                          ? activity.activityImages
-                              .map(
-                                (actImg, idx) => `
+                      ${activity.activityImages && activity.activityImages.length > 0
+                    ? activity.activityImages
+                      .map(
+                        (actImg, idx) => `
                                 <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
                                   <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
                                 </div>
                               `
-                              )
-                              .join("")
-                          : ""
-                      }
+                      )
+                      .join("")
+                    : ""
+                  }
                     </div>
                   `
-                  )
-                  .join("")}
+              )
+              .join("")}
               </div>
               `
-              : ""
+            : ""
           }
         </div>
       </div>
     `)
-    .join("");
-} else if (
-  (selectedOption === "SupplierA" || selectedOption === "SupplierB") &&
-  initialData.itineraries &&
-  initialData.itineraries.length > 0
-) {
-  // For SupplierA/B, render a simpler itinerary section.
-  itinerariesSection = `
+        .join("");
+    } else if (
+      (selectedOption === "SupplierA" || selectedOption === "SupplierB") &&
+      initialData.itineraries &&
+      initialData.itineraries.length > 0
+    ) {
+      // For SupplierA/B, render a simpler itinerary section.
+      itinerariesSection = `
      <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
             <!-- Section Header -->
             <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
@@ -609,8 +610,8 @@ if (
               </thead>
               <tbody>
                 ${initialData.itineraries
-                  .map(
-                    (itinerary) => `
+          .map(
+            (itinerary) => `
                   <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
                     <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: left; font-size: 16px; font-weight: bold;">
                       Day ${itinerary.dayNumber}: ${itinerary.days}
@@ -620,13 +621,13 @@ if (
                     </td>
                   </tr>
                 `
-                  )
-                  .join("")}
+          )
+          .join("")}
               </tbody>
             </table>
           </div>
   `;
-}
+    }
 
     // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
     const inclusionsSection = initialData.inclusions

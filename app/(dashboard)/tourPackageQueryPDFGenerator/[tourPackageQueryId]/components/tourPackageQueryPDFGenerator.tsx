@@ -515,6 +515,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
                                 </a>
                               </div>
+                              </div>
                                  <div>
                             <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
                             <div style="font-size: 16px; margin-bottom: 8px;">
@@ -538,7 +539,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                                    <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
                       : ""
                     }
-                          </div>                       
+                                            
                             `                )
                 .join("")}                        
                       `

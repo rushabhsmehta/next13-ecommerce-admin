@@ -522,6 +522,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                                 ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
                               </a>
                             </div>
+                            </div>
                             ${itinerary.numberofRooms
                       ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
                                    <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
@@ -537,12 +538,9 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                                    <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
                       : ""
                     }
-                          </div>
-                       
-                            `
-                )
-                .join("")}
-                        </div>
+                          </div>                       
+                            `                )
+                .join("")}                        
                       `
             }
                 </div>

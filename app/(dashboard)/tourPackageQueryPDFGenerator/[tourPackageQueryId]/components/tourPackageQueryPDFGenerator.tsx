@@ -446,9 +446,19 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 </div>
    <!-- Itinerary Description & Images -->
         <div style="padding: 8px;">
-          <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
-            ${itinerary.itineraryDescription || ""}
-          </div>
+      <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
+  ${(itinerary.itineraryDescription || "")
+            // Replace both opening and closing <p> tags with <br>
+            .replace(/<\/?p>/gi, "<br>")
+            // Collapse multiple <br> tags into a single <br>
+            .replace(/(<br>\s*)+/gi, "<br>")
+            // Remove extra whitespace characters
+            .replace(/\s+/g, " ")
+            // Trim any leading/trailing whitespace
+            .trim()
+          }
+</div>
+
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
             ? itinerary.itineraryImages
               .map(

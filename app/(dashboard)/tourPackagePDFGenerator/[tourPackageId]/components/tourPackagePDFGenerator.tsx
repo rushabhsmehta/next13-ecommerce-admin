@@ -110,14 +110,14 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           <h2 style="font-size: 24px; margin: 0;">${initialData.tourPackageType} Package</h2>
         </div>
         ${initialData.images
-          .map(
-            (image, index) => `
+        .map(
+          (image, index) => `
             <div style="width: 100%; height: 500px; overflow: hidden;">
               <img src="${image.url}" alt="Tour Image ${index + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
             </div>
           `
-          )
-          .join("")}
+        )
+        .join("")}
       </div>
     `;
 
@@ -132,32 +132,28 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       <span style="${subTitleStyle}">Location:</span>
       <span style="${textStyle}">${locations.find((loc) => loc.id === initialData.locationId)?.label || ""}</span>
       </div>
-      ${
-      initialData.numDaysNight
+      ${initialData.numDaysNight
         ? `<div style="margin-bottom: 12px;">
          <span style="${subTitleStyle}">Duration:</span>
          <span style="${textStyle}">${initialData.numDaysNight}</span>
          </div>`
         : ""
       }
-      ${
-      initialData.transport
+      ${initialData.transport
         ? `<div style="margin-bottom: 12px;">
          <span style="${subTitleStyle}">Transport:</span>
          <span style="${textStyle}">${initialData.transport}</span>
          </div>`
         : ""
       }
-      ${
-      initialData.pickup_location
+      ${initialData.pickup_location
         ? `<div style="margin-bottom: 12px;">
          <span style="${subTitleStyle}">Pickup:</span>
          <span style="${textStyle}">${initialData.pickup_location}</span>
          </div>`
         : ""
       }
-      ${
-      initialData.drop_location
+      ${initialData.drop_location
         ? `<div style="margin-bottom: 12px;">
          <span style="${subTitleStyle}">Drop:</span>
          <span style="${textStyle}">${initialData.drop_location}</span>
@@ -182,34 +178,30 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           </div>
         </div>
         <div style="padding: 16px; background: #ffffff;">
-          ${
-            initialData.pricePerAdult !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          ${initialData.pricePerAdult !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price per Adult:</span> ${initialData.pricePerAdult}
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pricePerChildOrExtraBed !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          : ""
+        }
+          ${initialData.pricePerChildOrExtraBed !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData.pricePerChildOrExtraBed}
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pricePerChild5to12YearsNoBed !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          : ""
+        }
+          ${initialData.pricePerChild5to12YearsNoBed !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData.pricePerChild5to12YearsNoBed}
                  </div>`
-              : ""
-          }
-          ${
-            initialData.pricePerChildwithSeatBelow5Years !== ""
-              ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
+          : ""
+        }
+          ${initialData.pricePerChildwithSeatBelow5Years !== ""
+          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
                    <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData.pricePerChildwithSeatBelow5Years}
                  </div>`
-              : ""
-          }
+          : ""
+        }
         </div>
       </div>
       `
@@ -229,7 +221,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
 
     // 6. Tour Highlights Section
     const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
-    ? `
+      ? `
       <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
         <!-- Section Header -->
         <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
@@ -248,8 +240,8 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           </thead>
           <tbody>
             ${initialData.itineraries
-              .map(
-                (itinerary) => `
+        .map(
+          (itinerary) => `
               <tr style="border: 1px solid #ddd; background: #fff; color: #333;">
                 <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
                   Day ${itinerary.dayNumber}: ${itinerary.days}
@@ -259,14 +251,14 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
                 </td>
               </tr>
             `
-              )
-              .join("")}
+        )
+        .join("")}
           </tbody>
         </table>
       </div>
     `
-    : "";
-  
+      : "";
+
 
     // 7. Flight Details Section (if applicable)
     const flightSection =
@@ -323,7 +315,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       `;
       // Map over each itinerary.
       itinerariesSection += initialData.itineraries
-      .map((itinerary) => `
+        .map((itinerary) => `
         <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
           <!-- Itinerary Header -->
        <div style="display: flex; margin-bottom: 8px;">
@@ -344,21 +336,41 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
      <!-- Itinerary Description & Images -->
           <div style="padding: 8px;">
             <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
-              ${itinerary.itineraryDescription || ""}
-            </div>
-            ${
-              itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-                ? itinerary.itineraryImages
-                    .map(
-                      (img, idx) => `
+            ${(itinerary.itineraryDescription || "")
+            // Replace both opening and closing <p> tags with <br>
+            .replace(/<\/?p>/gi, "<br>")
+            // Collapse multiple <br> tags into a single <br>
+            .replace(/(<br>\s*)+/gi, "<br>")
+            // Remove extra whitespace characters
+            .replace(/\s+/g, " ")
+            // Trim any leading/trailing whitespace
+            .trim().replace(/<\/?(html|body)>/gi, '')
+            .replace(/<!--StartFragment-->/gi, '')
+            .replace(/<!--EndFragment-->/gi, '')
+            // Replace opening <p> tags with <br> and remove closing </p> tags
+            .replace(/<p>/gi, '<br>')
+            .replace(/<\/p>/gi, '')
+            // Normalize any <br> tag (remove extra attributes)
+            .replace(/<br\s*[^>]*>/gi, '<br>')
+            // Replace multiple consecutive <br> tags with a single <br>
+            .replace(/(<br>\s*){2,}/gi, '<br>')
+            // Remove extra whitespace and newlines
+            .replace(/\s+/g, ' ')
+            .trim()
+          }
+  </div>
+            ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
+            ? itinerary.itineraryImages
+              .map(
+                (img, idx) => `
                       <div style="width: 100%; height: 300px; overflow: hidden; margin-bottom: 16px;">
                         <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
                       </div>
                     `
-                    )
-                    .join("")
-                : ""
-            }
+              )
+              .join("")
+            : ""
+          }
     <!-- Hotel Details Section -->
 ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
             ? `
@@ -441,53 +453,71 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
             : ""
           }
            <!-- Activities Section -->
-            ${
-              itinerary.activities && itinerary.activities.length > 0
-                ? `
+            ${itinerary.activities && itinerary.activities.length > 0
+            ? `
                 <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
                   <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
                   ${itinerary.activities
-                    .map(
-                      (activity) => `
+              .map(
+                (activity) => `
                       <div style="margin-bottom: 16px;">
                         <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
                         <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
-                        ${
-                          activity.activityImages && activity.activityImages.length > 0
-                            ? activity.activityImages
-                                .map(
-                                  (actImg, idx) => `
+                        ${activity.activityImages && activity.activityImages.length > 0
+                    ? activity.activityImages
+                      .map(
+                        (actImg, idx) => `
                                   <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
                                     <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
                                   </div>
                                 `
-                                )
-                                .join("")
-                            : ""
-                        }
+                      )
+                      .join("")
+                    : ""
+                  }
                       </div>
                     `
-                    )
-                    .join("")}
+              )
+              .join("")}
                 </div>
                 `
-                : ""
-            }
+            : ""
+          }
           </div>
         </div>
       `)
-      .join("");
-  }
+        .join("");
+    }
 
-    // 9. Inclusions Section
-   const inclusionsSection = initialData.inclusions
+
+    // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
+    const inclusionsSection = initialData.inclusions
       ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.inclusions.replace(/->/g, "&#10004;")}
+          ${initialData.inclusions.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()
+      }
         </div>
       </div>
       `
@@ -499,7 +529,25 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.exclusions}
+          ${initialData.exclusions.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()}
         </div>
       </div>
       `
@@ -511,7 +559,25 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.importantNotes}
+          ${initialData.importantNotes.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()}
         </div>
       </div>
       `
@@ -523,7 +589,25 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.paymentPolicy}
+          ${initialData.paymentPolicy.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()}
         </div>
       </div>
       `
@@ -535,7 +619,25 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.termsconditions}
+          ${initialData.termsconditions.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()}
         </div>
       </div>
       `
@@ -547,7 +649,25 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.cancellationPolicy}
+          ${initialData.cancellationPolicy.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()}
         </div>
       </div>
       `
@@ -559,7 +679,25 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.airlineCancellationPolicy}
+          ${initialData.airlineCancellationPolicy.replace(/<\/?p>/gi, "<br>")
+        // Collapse multiple <br> tags into a single <br>
+        .replace(/(<br>\s*)+/gi, "<br>")
+        // Remove extra whitespace characters
+        .replace(/\s+/g, " ")
+        // Trim any leading/trailing whitespace
+        .trim().replace(/<\/?(html|body)>/gi, '')
+        .replace(/<!--StartFragment-->/gi, '')
+        .replace(/<!--EndFragment-->/gi, '')
+        // Replace opening <p> tags with <br> and remove closing </p> tags
+        .replace(/<p>/gi, '<br>')
+        .replace(/<\/p>/gi, '')
+        // Normalize any <br> tag (remove extra attributes)
+        .replace(/<br\s*[^>]*>/gi, '<br>')
+        // Replace multiple consecutive <br> tags with a single <br>
+        .replace(/(<br>\s*){2,}/gi, '<br>')
+        // Remove extra whitespace and newlines
+        .replace(/\s+/g, ' ')
+        .trim()}
         </div>
       </div>
       `

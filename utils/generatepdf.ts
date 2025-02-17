@@ -50,11 +50,12 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
     const pdfBuffer = (await page.pdf({
       format: "A4",
       printBackground: true,
+      scale: 0.8,
       margin: {
-        top: "0px",
-        right: "0px",
-        bottom: "0px",
-        left: "0px",
+        top: "10px",
+        right: "10px",
+        bottom: "10px",
+        left: "10px",
       },
     })) as Buffer; // Explicitly cast the result to Buffer
 

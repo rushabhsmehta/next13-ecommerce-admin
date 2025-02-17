@@ -705,26 +705,26 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
 
     // 16. Company Information Section
     const companyInfoSection = `
-      <div style="border-bottom: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
-        <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
-          <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-        </div>
-        <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
-          <li>${companyInfo.AH.address}</li>
-          <li>Phone: ${companyInfo.AH.phone}</li>
-          <li>
-            Email: 
-            <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">
-              ${companyInfo.AH.email}
-            </a>
-          </li>
-          <li>
-            Website: 
-            <a href="${companyInfo.AH.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
-              ${companyInfo.AH.website}
-            </a>
-          </li>
-        </ul>
+      <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center; border-radius: 8px;">
+      <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
+        <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+      </div>
+      <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
+        <li>${currentCompany.address}</li>
+        <li>Phone: ${currentCompany.phone}</li>
+        <li>
+        Email: 
+        <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">
+          ${currentCompany.email}
+        </a>
+        </li>
+        <li>
+        Website: 
+        <a href="${currentCompany.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
+          ${currentCompany.website}
+        </a>
+        </li>
+      </ul>
       </div>
     `;
 

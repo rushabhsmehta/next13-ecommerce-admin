@@ -872,30 +872,30 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
       selectedOption !== "SupplierB"
     ) {
       companySection = `
-      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
-        <div style="width: 120px; height: 120px; margin-right: 16px;">
-          <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-        </div>
-        <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
-          <div>${currentCompany.address}</div>
-          <div>Phone: ${currentCompany.phone}</div>
-          <div>Email: <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">${currentCompany.email}</a></div>
-          <div>Website: <a href="${currentCompany.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${currentCompany.website}</a></div>
-        </div>
+      <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+      <div style="width: 120px; height: 120px; margin-right: 16px;">
+        <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+      </div>
+      <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+        <div>${currentCompany.address}</div>
+        <div>Phone: ${currentCompany.phone}</div>
+        <div>Email: <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">${currentCompany.email}</a></div>
+        <div>Website: <a href="${currentCompany.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${currentCompany.website}</a></div>
+      </div>
       </div>
       `;
     } else if (selectedOption === "SupplierA" || selectedOption === "SupplierB") {
       companySection = `
-      <div style="border-top: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
-        <div style="width: 120px; height: 120px; margin-right: 16px;">
-          <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-        </div>
-        <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
-          <div>${companyInfo.AH.address}</div>
-          <div>Phone: ${companyInfo.AH.phone}</div>
-          <div>Email: <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.email}</a></div>
-          <div>Website: <a href="${companyInfo.AH.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.website}</a></div>
-        </div>
+      <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
+      <div style="width: 120px; height: 120px; margin-right: 16px;">
+        <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+      </div>
+      <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+        <div>${companyInfo.AH.address}</div>
+        <div>Phone: ${companyInfo.AH.phone}</div>
+        <div>Email: <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.email}</a></div>
+        <div>Website: <a href="${companyInfo.AH.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.website}</a></div>
+      </div>
       </div>
       `;
     }

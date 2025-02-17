@@ -84,9 +84,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
 
-  if (!initialData) return <div>No data available</div>;
+  if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
-  return (
+  return ( 
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card className="break-inside-avoid font-bold">

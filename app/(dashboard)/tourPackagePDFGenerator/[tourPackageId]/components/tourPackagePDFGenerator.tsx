@@ -376,7 +376,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
             ? `
     <div style="${cardStyle}">
       <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
-        <h2 style="font-size: 32px; font-weight: bold; margin: 0;">Hotel Details</h2>
+        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Hotel Details</h2>
       </div>
       <div style="padding: 16px;">
         ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1

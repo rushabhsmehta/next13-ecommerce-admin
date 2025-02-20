@@ -129,119 +129,94 @@ export const TOUR_HIGHLIGHTS_DEFAULT = `
 
 export const TOTAL_PRICE_DEFAULT = `
 <html>
-  <body>
-    <!--StartFragment-->
-    <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
-      <caption
-        style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #333;"
-      >
-        Pricing Details
-      </caption>
-      <thead>
-        <tr>
-          <th
-            style="width: 50%; background: linear-gradient(to right, #FF0000, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;"
-          >
-            Criteria
-          </th>
-          <th
-            style="width: 50%; background: linear-gradient(to right, #FF0000, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;"
-          >
-            Price
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr style="background-color: #f2f2f2;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Per Person Cost (For 2 Persons Travelling Together)</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Per Person Cost (For 4 Persons Travelling Together)</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f2f2f2;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Per Person Cost (For 6 Persons Travelling Together)</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Per Person With Extra Bed/Mattress</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f2f2f2;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Child with Mattress (5 to 11)</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f9f9f9;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Child without Mattress (5 to 11)</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹
-          </td>
-        </tr>
-        <tr style="background-color: #f2f2f2;">
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            <strong>Child below 5 years</strong>
-          </td>
-          <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
-          >
-            ₹ Complimentary With Parents Sharing Bed
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <!--EndFragment-->
-  </body>
-</html>
-`;
+<body>
+<!--StartFragment--><p>
+
+
+  
+  <title>Pricing Details</title>
+  </p><style>
+    /* Base table styling */
+    table.pricing {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+    }
+    table.pricing caption {
+      margin-bottom: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    table.pricing th,
+    table.pricing td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+      font-size: 13px;
+      text-align: left;
+    }
+    table.pricing th {
+      background: linear-gradient(to right, #ff0000, #ffa500);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    /* Alternate row colors */
+    table.pricing tbody tr:nth-child(odd) {
+      background-color: #f2f2f2;
+    }
+    table.pricing tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+
+
+  <table class="pricing">
+    <caption>Pricing Details</caption>
+    <thead>
+      <tr>
+        <th>Criteria</th>
+        <th colspan="2">Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Per Person Cost&nbsp;</strong></td>
+        <td colspan="2">₹ &nbsp;</td>
+      </tr>
+      <tr>
+        <td><strong>Per Couple Cost&nbsp;</strong></td>
+        <td colspan="2">₹ &nbsp;</td>
+      </tr>
+      <tr>
+        <td><strong>Per Person With Extra Bed/Mattress</strong></td>
+        <td colspan="2">₹ &nbsp;</td>
+      </tr>
+      <tr>
+        <td><strong>Child with Mattress (5 to 11)</strong><br></td>
+        <td colspan="2">₹ &nbsp;</td>
+      </tr>
+      <tr>
+        <td><strong>Child without Mattress (5 to 11)</strong><br></td>
+        <td colspan="2">₹ </td>
+      </tr>
+      <tr>
+        <td><strong>Child Above 3 years with Seat (Parents Sharing Bed)</strong><br></td>
+        <td colspan="2">₹ &nbsp;</td>
+      </tr>
+      <tr>
+        <td><strong>Child below 3 years without Seat (Parents Sharing Bed)</strong><br></td>
+        <td colspan="2">₹ Complimentary</td>
+      </tr>
+      
+    </tbody>
+  </table>
+
+
+<!--EndFragment-->
+</body>
+</html>`;
 
 export const TOUR_PACKAGE_TYPE_DEFAULT = [
   "Luxury",

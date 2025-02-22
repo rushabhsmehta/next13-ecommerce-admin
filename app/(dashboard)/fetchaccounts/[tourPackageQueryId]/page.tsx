@@ -18,17 +18,25 @@ const tourPackageQueryPage = async ({
           supplier: true
         }
       },
-      saleDetails: true,
+      saleDetails: {
+        include: {
+          customer: true
+        }
+      },
       paymentDetails: {
         include: {
           supplier: true
         }
       },
-      receiptDetails: true,
+      receiptDetails: {
+        include: {
+          customer: true
+        }
+      },
       expenseDetails: true,
     }
   });
-  
+
   console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({

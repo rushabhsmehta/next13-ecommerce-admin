@@ -34,6 +34,13 @@ const NAV_ITEMS = [
     ],
   },
   {
+    title: "Accounts",
+    items: [
+      { title: "Customers", url: "/customers" },
+      { title: "Suppliers", url: "/suppliers" },
+    ],
+  },
+  {
     title: "Reports",
     items: [
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },

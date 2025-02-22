@@ -4,8 +4,6 @@ import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
 import { Turret_Road } from "next/font/google";
 import Navbar from "@/components/navbar";
 
-
-
 const tourPackageQueryPage = async ({
   params
 }: {
@@ -38,11 +36,9 @@ const tourPackageQueryPage = async ({
   // console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
-
   });
 
   const hotels = await prismadb.hotel.findMany({
-
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({
@@ -70,19 +66,19 @@ const tourPackageQueryPage = async ({
 
   return (
     <>{/*       <Navbar /> */}
-      
-        
-        <div className="flex-col">
-          <div className="flex-1 space-y-4 p-8 pt-6">
-            <TourPackageQueryForm
-              initialData={tourPackageQuery}
-              locations={locations}
-              hotels={hotels}
-              activitiesMaster={activitiesMaster}
-              itinerariesMaster={itinerariesMaster} />
-          </div>
 
-          {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryForm
+            initialData={tourPackageQuery}
+            locations={locations}
+            hotels={hotels}
+            activitiesMaster={activitiesMaster}
+            itinerariesMaster={itinerariesMaster} />
+        </div>
+
+        {/*  <div className="flex-1 space-y-4 p-8 pt-6">
       <TourPackageQueryDisplay
         data={tourPackageQuery}
         locations={locations}
@@ -90,8 +86,8 @@ const tourPackageQueryPage = async ({
       //    itineraries={[]}
       />
     </div> */}
-        </div>
-      
+      </div>
+
     </>
   );
 }

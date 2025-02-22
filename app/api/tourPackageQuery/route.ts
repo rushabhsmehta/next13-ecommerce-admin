@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 
 
-async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber: any; days: any; hotelId: any; numberofRooms : any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageQueryId: any) {
+async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber: any; days: any; hotelId: any; numberofRooms: any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageQueryId: any) {
     // First, create the itinerary and get its id
     const createdItinerary = await prismadb.itinerary.create({
         data: {
@@ -30,7 +30,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
     // Next, create activities linked to this itinerary
     if (itinerary.activities && itinerary.activities.length > 0) {
         await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-           // console.log("Received Activities is ", activity);
+            // console.log("Received Activities is ", activity);
             return prismadb.activity.create({
                 data: {
                     itineraryId: createdItinerary.id, // Link to the created itinerary
@@ -52,7 +52,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
 
 export async function POST(
     req: Request,
-  ) {
+) {
     try {
         const { userId } = auth();
 
@@ -63,7 +63,7 @@ export async function POST(
             tourPackageQueryName,
             tourPackageQueryType,
             customerName,
-            customerNumber,  
+            customerNumber,
             numDaysNight,
             locationId,
             period,
@@ -86,7 +86,7 @@ export async function POST(
             flightDetails,
             inclusions,
             exclusions,
-            importantNotes,  
+            importantNotes,
             paymentPolicy,
             usefulTip,
             cancellationPolicy,
@@ -97,11 +97,7 @@ export async function POST(
             assignedTo,
             assignedToMobileNumber,
             assignedToEmail,
-            purchaseDetails,
-            saleDetails,
-            paymentDetails,
-            receiptDetails,
-            expenseDetails, 
+         
             isFeatured,
             isArchived } = body;
 
@@ -129,7 +125,7 @@ export async function POST(
                return new NextResponse("Hotel id is required", { status: 400 });
            }
     */
-      
+
 
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
@@ -137,7 +133,7 @@ export async function POST(
                 tourPackageQueryName,
                 tourPackageQueryType,
                 customerName,
-                customerNumber, 
+                customerNumber,
                 numDaysNight,
                 locationId,
                 period,
@@ -169,13 +165,10 @@ export async function POST(
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
-                purchaseDetails,
-                saleDetails,
-                paymentDetails,
-                receiptDetails,
-                expenseDetails,
+
+
                 //   hotelId,
-                        images: {
+                images: {
                     createMany: {
                         data: [
                             ...images.map((image: { url: string }) => image),
@@ -225,12 +218,14 @@ export async function GET(
 
         const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
             where: {
-                        locationId,
+                locationId,
                 //hotelId,
                 isFeatured: isFeatured ? true : undefined,
                 isArchived: false,
             },
             include: {
+
+         
                 images: true,
                 location: true,
                 itineraries: {

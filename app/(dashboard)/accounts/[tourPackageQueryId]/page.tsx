@@ -1,10 +1,8 @@
 import prismadb from "@/lib/prismadb";
 
-import { TourPackageQueryForm } from "./components/accounts-form";
 import { Turret_Road } from "next/font/google";
 import Navbar from "@/components/navbar";
-
-
+import { TourPackageQueryAccountingForm } from "./components/accounts-form";
 
 const tourPackageQueryPage = async ({
   params
@@ -16,41 +14,56 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,
-      flightDetails: true,
-      itineraries: {
+      purchaseDetails:
+      {
         include: {
-          itineraryImages: true,
-          activities:
-          {
-            include:
-            {
-              activityImages: true,
-            }
-          }
-        },
-        orderBy: {
-          dayNumber: 'asc' // or 'desc', depending on the desired order
+          supplier: true
         }
-      }
+      },
+
+      saleDetails:
+      {
+        include: {
+          customer: true,
+        }
+      },
+      paymentDetails:
+      {
+        include: {
+          supplier: true
+        }
+      },
+      receiptDetails:
+      {
+        include: {
+          customer: true,
+        }
+      },
+      expenseDetails: true,
     }
   });
-  // console.log("Fetched tourPackage Query:", tourPackageQuery);
-
-
 
   return (
     <>{/*       <Navbar /> */}
-      
-        
-        <div className="flex-col">
-          <div className="flex-1 space-y-4 p-8 pt-6">
-            <TourPackageQueryForm
-              initialData={tourPackageQuery}
-            />
-          </div>
+
+
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryAccountingForm
+            initialData={tourPackageQuery}
+          />
         </div>
-      
+
+        {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+      <TourPackageQueryDisplay
+        data={tourPackageQuery}
+        locations={locations}
+        hotels={hotels}
+      //    itineraries={[]}
+      />
+    </div> */}
+      </div>
+
     </>
   );
 }

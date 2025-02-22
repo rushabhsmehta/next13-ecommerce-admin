@@ -11,34 +11,26 @@ import { Separator } from '@radix-ui/react-separator';
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
-    purchaseDetails: (PurchaseDetail & {
-      supplier: Supplier;
-    })[];
-    saleDetails: (SaleDetail & {
-    customer: Customer;
-    }) [];
-    paymentDetails: (PaymentDetail & {
-      supplier: Supplier;
-    })[];
-    receiptDetails: (ReceiptDetail & {
-      customer: Customer;
-      }) [];
-    expenseDetails: ExpenseDetail[];
-  } | null;    
-  locations: Location[];
-  hotels: (Hotel & {
-    images: Images[];
-  })[];
-  selectedOption?: string;
+    purchaseDetails: Array<PurchaseDetail & {
+      supplier: Supplier | null;  // Make supplier nullable
+    }> | null;
+    saleDetails: Array<SaleDetail & {
+      customer: Customer | null;  // Make customer nullable
+    }> | null;
+    paymentDetails: Array<PaymentDetail & {
+      supplier: Supplier | null;  // Make supplier nullable
+    }> | null;
+    receiptDetails: Array<ReceiptDetail & {
+      customer: Customer | null;  // Make customer nullable
+    }> | null;
+    expenseDetails: ExpenseDetail[] | null;  // Make array nullable
+  } | null;
 }
 
 export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
   initialData,
-  locations,
-  hotels,
 }) => {
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'Empty';
 
   if (!initialData) return <div>No data available</div>;
 

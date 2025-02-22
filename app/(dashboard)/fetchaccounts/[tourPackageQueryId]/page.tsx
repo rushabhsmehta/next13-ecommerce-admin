@@ -37,18 +37,7 @@ const tourPackageQueryPage = async ({
     }
   });
 
-  console.log("Fetched tourPackage Query:", tourPackageQuery);
-
-  const locations = await prismadb.location.findMany({
-
-  });
-
-  const hotels = await prismadb.hotel.findMany({
-
-    include: {
-      images: true,
-    }
-  });
+  
 
   return (
     <>
@@ -65,8 +54,7 @@ const tourPackageQueryPage = async ({
         <div className="flex-1 space-y-4 p-8 pt-6">
           <TourPackageQueryDisplay
             initialData={tourPackageQuery}
-            locations={locations}
-            hotels={hotels}
+            
           />
         </div>
       </div>

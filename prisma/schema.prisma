@@ -114,7 +114,7 @@ model TourPackageQuery {
 model PurchaseDetail {
   id                 String           @id @default(uuid())
   tourPackageQueryId String
-  supplierId         String           // new field
+  supplierId         String?          // Make supplierId optional
   purchaseDate       DateTime
   price              Float
   description        String?          @db.Text
@@ -122,21 +122,10 @@ model PurchaseDetail {
   updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  supplier           Supplier         @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-}
-
-model SaleDetail {
-  id                 String           @id @default(uuid())
-  tourPackageQueryId String
-  customerId         String           // new field
-  saleDate           DateTime
-  salePrice          Float
-  description        String?          @db.Text
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Make relation optional
   
-  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer           Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  @@index([supplierId])
+  @@index([tourPackageQueryId])
 }
 
 model PaymentDetail {
@@ -147,12 +136,32 @@ model PaymentDetail {
   method             String?
   transactionId      String?
   note               String?          @db.Text
-  supplierId         String           // <-- new: reference to supplier
+  supplierId         String?          // Make supplierId optional
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  supplier           Supplier         @relation(fields: [supplierId], references: [id], onDelete: Cascade) // <-- new relation
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Make relation optional
+  
+  @@index([supplierId])
+  @@index([tourPackageQueryId])
+}
+
+model SaleDetail {
+  id                 String           @id @default(uuid())
+  tourPackageQueryId String
+  customerId         String?          // Make customerId optional
+  saleDate           DateTime
+  salePrice          Float
+  description        String?          @db.Text
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now())
+  
+  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Make relation optional
+  
+  @@index([customerId])
+  @@index([tourPackageQueryId])
 }
 
 model ReceiptDetail {
@@ -162,12 +171,15 @@ model ReceiptDetail {
   amount             Float
   reference          String?
   note               String?          @db.Text
-  customerId         String           // <-- new: reference to customer
+  customerId         String?          // Make customerId optional
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now())
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer           Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade) // <-- new relation
+  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Make relation optional
+  
+  @@index([customerId])
+  @@index([tourPackageQueryId])
 }
 
 model ExpenseDetail {

@@ -6,10 +6,29 @@ import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, React
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Activity, Images, ItineraryMaster } from "@prisma/client"
+import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
+import { Activity, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -20,80 +39,137 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-
-import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Heading } from "@/components/ui/heading"
+import { AlertModal } from "@/components/modals/alert-modal"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import ImageUpload from "@/components/ui/image-upload"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Textarea } from "@/components/ui/textarea"
+import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { cn } from "@/lib/utils"
+import { DatePickerWithRange } from "@/components/DatePickerWithRange"
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "@radix-ui/react-icons"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { format } from "date-fns"
+import JoditEditor from "jodit-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
+import { useFieldArray } from "react-hook-form" // (optional, if you want to simplify dynamic fields)
 
-
-
-const activitySchema = z.object({
-  activityTitle: z.string().optional(),
-  activityDescription: z.string().optional(),
-  activityImages: z.object({ url: z.string() }).array(),
-});
-
-const itinerarySchema = z.object({
-  itineraryImages: z.object({ url: z.string() }).array(),
-  itineraryTitle: z.string().optional(),
-  itineraryDescription: z.string().optional(),
-  dayNumber: z.coerce.number().optional(),
-  days: z.string().optional(),
-  activities: z.array(activitySchema),
-  mealsIncluded: z.array(z.string()).optional(),
-  hotelId: z.string(), // Array of hotel IDs
-  numberofRooms: z.string().optional(),
-  roomCategory: z.string().optional(),
-  locationId: z.string(),
-});
-
-const flightDetailsSchema = z.object({
-
-  date: z.string().optional(),
-  flightName: z.string().optional(),
-  flightNumber: z.string().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  departureTime: z.string().optional(),
-  arrivalTime: z.string().optional(),
-  flightDuration: z.string().optional(),
-
-}); // Assuming an array of flight details
-
+const paymentMethodOptions = ["Credit Card", "Debit Card", "Net Banking", "Cash", "UPI"];
+const receiptReferenceOptions = ["Invoice", "Online Payment", "Cash", "Cheque"];
 
 const formSchema = z.object({
-
-  locationId: z.string().min(1),
-
-  flightDetails: flightDetailsSchema.array(),
-
-  images: z.object({ url: z.string() }).array(),
-  itineraries: z.array(itinerarySchema),
-
-  purchaseDetails: z.string().optional(),
-  saleDetails: z.string().optional(),
-  paymentDetails: z.string().optional(),
-  receiptDetails: z.string().optional(),
-  expenseDetails: z.string().optional(),
+  purchaseDetails: z.array(z.object({
+    supplierId: z.string(),
+    purchaseDate: z.date(),
+    price: z.number(),
+    description: z.string().optional(),
+  })).default([]),
+  saleDetails: z.array(z.object({
+    customerId: z.string(),
+    saleDate: z.date(),
+    salePrice: z.number(),
+    description: z.string().optional(),
+  })).default([]),
+  paymentDetails: z.array(z.object({
+    paymentDate: z.date(),
+    amount: z.number(),
+    method: z.string().optional(),
+    transactionId: z.string().optional(),
+    note: z.string().optional(),
+    supplierId: z.string().optional(), // Add supplierId to paymentDetails schema
+  })).default([]),
+  receiptDetails: z.array(z.object({
+    receiptDate: z.date(),
+    amount: z.number(),
+    reference: z.string().optional(),
+    note: z.string().optional(),
+    customerId: z.string().optional(), // Add customerId to receiptDetails schema
+  })).default([]),
+  expenseDetails: z.array(z.object({
+    expenseDate: z.date(),
+    amount: z.number(),
+    expenseCategory: z.string(),
+    description: z.string().optional(),
+  })).default([]),
 });
 
-type TourPackageQueryFormValues = z.infer<typeof formSchema>
+type TourPackageQueryAccountingFormValues = z.infer<typeof formSchema>
 
-interface TourPackageQueryFormProps {
-  initialData: TourPackageQuery | null;
-};
+interface TourPackageQueryAccountingFormProps {
+  initialData: TourPackageQuery & {
+    purchaseDetails: (PurchaseDetail & {
+      supplier: Supplier;
+    })[] | null;
+    saleDetails: (SaleDetail & {
+      customer: Customer;
+    })[] | null;
+    paymentDetails: (PaymentDetail & {
+      supplier: Supplier;
+    })[] | null;
+    receiptDetails: (ReceiptDetail & {
+      customer: Customer;
+    })[] | null;
+    expenseDetails: ExpenseDetail[];
+  } | null;
+}
 
-export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
+
+export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccountingFormProps> = ({
   initialData,
 }) => {
   const params = useParams();
   const router = useRouter();
 
+  //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
 
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [flightDetails, setFlightDetails] = useState([]);
+  const editor = useRef(null)
+
+  //console.log(initialData);
+  const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
+  const description = initialData ? 'Edit a Tour Package Query.' : 'Add a new Tour Package Query';
+
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const res = await axios.get("/api/suppliers");
+        setSuppliers(res.data);
+      } catch (error) {
+        console.error("Error fetching suppliers", error);
+      }
+    };
+    fetchSuppliers();
+  }, []);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await axios.get("/api/customers");
+        setCustomers(res.data);
+      } catch (error) {
+        console.error("Error fetching customers", error);
+      }
+    };
+    fetchCustomers();
+  }, []);
 
 
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
@@ -102,138 +178,90 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const transformInitialData = (data: any) => {
     return {
       ...data,
-      tourPackageQueryNumber: data.tourPackageQueryNumber ?? getCurrentDateTimeString(), // Set the current date and time
-      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-      assignedToEmail: data.assignedToEmail ?? '',
-      purchaseDetails: data.purchaseDetails ?? '',
-      saleDetails: data.saleDetails ?? '',
-      paymentDetails: data.paymentDetails ?? '',
-      receiptDetails: data.receiptDetails ?? '',
-      expenseDetails: data.expenseDetails ?? '',
-
-      flightDetails: data.flightDetails.map((flightDetail: any) => ({
-        date: flightDetail.date ?? '',
-        flightName: flightDetail.flightName ?? '',
-        flightNumber: flightDetail.flightNumber ?? '',
-        from: flightDetail.from ?? '',
-        to: flightDetail.to ?? '',
-        departureTime: flightDetail.departureTime ?? '',
-        arrivalTime: flightDetail.arrivalTime ?? '',
-        flightDuration: flightDetail.flightDuration ?? '',
+      purchaseDetails: data.purchaseDetails.map((purchaseDetail: any) => ({
+        supplierId: purchaseDetail.supplierId,
+        purchaseDate: new Date(purchaseDetail.purchaseDate),
+        price: purchaseDetail.price,
+        description: purchaseDetail.description,
       })),
-
-      itineraries: data.itineraries.map((itinerary: any) => ({
-
-        dayNumber: itinerary.dayNumber ?? 0,
-        days: itinerary.days ?? '',
-        itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
-        itineraryTitle: itinerary.itineraryTitle ?? '',
-        itineraryDescription: itinerary.itineraryDescription ?? '',
-        hotelId: itinerary.hotelId ?? '',
-        numberofRooms: itinerary.numberofRooms ?? '',
-        roomCategory: itinerary.roomCategory ?? '',
-        locationId: itinerary.locationId ?? '',
-        //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
-        mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
-        activities: itinerary.activities?.map((activity: any) => ({
-          locationId: activity.locationId ?? '',
-          activityImages: activity.activityImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
-          activityTitle: activity.activityTitle ?? '',
-          activityDescription: activity.activityDescription ?? '',
-        }))
-      }))
+      saleDetails: data.saleDetails.map((saleDetail: any) => ({
+        customerId: saleDetail.customerId,
+        saleDate: new Date(saleDetail.saleDate),
+        salePrice: saleDetail.salePrice,
+        description: saleDetail.description,
+      })),
+      paymentDetails: data.paymentDetails.map((paymentDetail: any) => ({
+        paymentDate: new Date(paymentDetail.paymentDate),
+        amount: paymentDetail.amount,
+        method: paymentDetail.method,
+        transactionId: paymentDetail.transactionId,
+        note: paymentDetail.note,
+        supplierId: paymentDetail.supplierId,
+      })),
+      receiptDetails: data.receiptDetails.map((receiptDetail: any) => ({
+        customerId: receiptDetail.customerId,
+        receiptDate: new Date(receiptDetail.receiptDate),
+        amount: receiptDetail.amount,
+        reference: receiptDetail.reference,
+        note: receiptDetail.note,
+      })),
+      expenseDetails: data.expenseDetails.map((expenseDetail: any) => ({
+        expenseDate: new Date(expenseDetail.expenseDate),
+        amount: expenseDetail.amount,
+        expenseCategory: expenseDetail.expenseCategory,
+        description: expenseDetail.description,
+      })),
     };
-  };
-
-  const getCurrentDateTimeString = () => {
-    const now = new Date();
-    return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
-  };
+  }
 
   const defaultValues = initialData ? transformInitialData(initialData) : {
-
-    tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
-    tourPackageQueryName: '',
-    tourPackageQueryType: '',
-    customerName: '',
-    customerNumber: '',
-    numDaysNight: '',
-    period: '',
-    tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
-    tourStartsFrom: '',
-    tourEndsOn: '',
-    transport: '',
-    pickup_location: '',
-    drop_location: '',
-    numAdults: '',
-    numChild5to12: '',
-    numChild0to5: '',
-    price: '',
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
-    totalPrice: '',
-    remarks: '',
-    assignedTo: '',
-    assignedToMobileNumber: '',
-    assignedToEmail: '',
-
-    purchaseDetails: '',
-    saleDetails: '',
-    paymentDetails: '',
-    receiptDetails: '',
-    expenseDetails: '',
-
-    flightDetails: [],
-
-    // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT,
-    exclusions: EXCLUSIONS_DEFAULT,
-    importantNotes: IMPORTANT_NOTES_DEFAULT,
-    paymentPolicy: PAYMENT_TERMS_DEFAULT,
-    usefulTip: USEFUL_TIPS_DEFAULT,
-    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
-    termsconditions: IMPORTANT_NOTES_DEFAULT,
-    images: [],
-    itineraries: [],
-    locationId: '',
-    isFeatured: false,
-    isArchived: false,
+    purchaseDetails: [{ supplierId: '', purchaseDate: new Date(), price: 0, description: '' }],
+    saleDetails: [{ customerId: '', saleDate: new Date(), salePrice: 0, description: '' }],
+    paymentDetails: [{ paymentDate: new Date(), amount: 0, method: '', transactionId: '', note: '', supplierId: '' }],
+    receiptDetails: [{ customerId: '', receiptDate: new Date(), amount: 0, reference: '', note: '' }],
+    expenseDetails: [{ expenseDate: new Date(), amount: 0, expenseCategory: '', description: '' }],
   };
 
-  const form = useForm<TourPackageQueryFormValues>({
+  const form = useForm<TourPackageQueryAccountingFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
 
-  const onSubmit = async (data: TourPackageQueryFormValues) => {
+  const { fields: purchaseFields, append: appendPurchase, remove: removePurchase } = useFieldArray({
+    control: form.control,
+    name: "purchaseDetails"
+  });
 
+  const { fields: saleFields, append: appendSale, remove: removeSale } = useFieldArray({
+    control: form.control,
+    name: "saleDetails"
+  });
 
-    const formattedData = {
-      ...data,
-      itineraries: data.itineraries.map(itinerary => ({
-        ...itinerary,
-        locationId: data.locationId,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0 ? itinerary.mealsIncluded.join('-') : '',
-        activities: itinerary.activities?.map((activity) => ({
-          ...activity,
-          // activityTitle : activity.activityTitle,
-          // activityDescription : activity.activityDescription,
-          locationId: data.locationId,
+  const { fields: paymentFields, append: appendPayment, remove: removePayment } = useFieldArray({
+    control: form.control,
+    name: "paymentDetails"
+  });
 
-          //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
-        }))
-      }))
-    };
+  const { fields: receiptFields, append: appendReceipt, remove: removeReceipt } = useFieldArray({
+    control: form.control,
+    name: "receiptDetails"
+  });
 
+  const { fields: expenseFields, append: appendExpense, remove: removeExpense } = useFieldArray({
+    control: form.control,
+    name: "expenseDetails"
+  });
+
+  const onSubmit = async (data: TourPackageQueryAccountingFormValues) => {
     try {
       setLoading(true);
-      await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
+      if (initialData) {
+        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}/accounting`, data);
+      } else {
+        await axios.post(`/api/tourPackageQuery`, data);
+      }
       router.refresh();
-      router.push(`/accounts`);
+      router.push(`/tourPackageQuery`);
       toast.success(toastMessage);
     } catch (error: any) {
       console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
@@ -243,27 +271,46 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
+  const onDelete = async () => {
+    try {
+      setLoading(true);
+      await axios.delete(`/api/tourPackageQuery/${params.tourPackageQueryId}`);
+      router.refresh();
+      router.push(`/tourPackageQuery`);
+      toast.success('Tour Package Query deleted.');
+    } catch (error: any) {
+      toast.error('Something went wrong.');
+    } finally {
+      setLoading(false);
+      setOpen(false);
+    }
+  }
 
   return (
     <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full max-w-md mx-auto">
+      <AlertModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={onDelete}
+        loading={loading}
+      />
+      <div className="flex items-center justify-between">
+        <Heading title={title} description={description} />
+        {initialData && (
+          <Button
+            disabled={loading}
+            variant="destructive"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      <Separator />
 
-          <Card className="break-inside-avoid font-bold">
-            <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
-              <CardTitle className="flex items-center justify-between text-xl font-bold">
-                <span>{initialData?.tourPackageQueryName}</span>
-              </CardTitle>
-              <CardTitle className="text-xl font-bold  mb-4">
-                {initialData?.tourPackageQueryNumber}
-              </CardTitle>
-              <CardTitle className="flex items-center justify-between text-xl font-bold">
-                <span>{initialData?.tourPackageQueryType + " Package"} </span>
-              </CardTitle>
-            </CardHeader>
-          </Card>
-         
-          <Separator />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
 
           <Tabs defaultValue="purchaseDetails">
             <TabsList>
@@ -274,106 +321,626 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
             </TabsList>
             <TabsContent value="purchaseDetails">
-              <FormField
-                control={form.control}
-                name="purchaseDetails"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Purchase Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={5}
-                        disabled={loading}
-                        placeholder="Purchase Details"
-                        value={field.value || ''}
-                        onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Replace single textarea with dynamic purchase details */}
+              {purchaseFields.map((field, index) => (
+                <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* Replace supplierId Input with a dropdown */}
+                  <FormField
+                    control={form.control}
+                    name={`purchaseDetails.${index}.supplierId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Supplier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {suppliers.map(supplier => (
+                                <SelectItem key={supplier.id} value={supplier.id}>
+                                  {supplier.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`purchaseDetails.${index}.purchaseDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Purchase</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(day);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`purchaseDetails.${index}.price`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Price"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`purchaseDetails.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" onClick={() => removePurchase(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                onClick={() => appendPurchase({ supplierId: '', purchaseDate: new Date(), price: 0, description: '' })}>
+                Add Purchase Detail
+              </Button>
             </TabsContent>
             <TabsContent value="saleDetails">
-              <FormField
-                control={form.control}
-                name="saleDetails"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sales Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={5}
-                        disabled={loading}
-                        placeholder="Sales Details"
-                        value={field.value || ''}
-                        onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {saleFields.map((field, index) => (
+                <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  <FormField
+                    control={form.control}
+                    name={`saleDetails.${index}.customerId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Customer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customers.map(customer => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                  {customer.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+
+                  <FormField
+                    control={form.control}
+                    name={`saleDetails.${index}.saleDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Sale</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(day);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`saleDetails.${index}.salePrice`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sale Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Price"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`saleDetails.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" onClick={() => removeSale(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" onClick={() => appendSale({ customerId: '', saleDate: new Date(), salePrice: 0, description: '' })}>
+                Add Sale Detail
+              </Button>
             </TabsContent>
             <TabsContent value="paymentDetails">
-              <FormField
-                control={form.control}
-                name="paymentDetails"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={5}
-                        disabled={loading}
-                        placeholder="Payment Details"
-                        value={field.value || ''}
-                        onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {paymentFields.map((field, index) => (
+                <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* New field: Payment Supplier */}
+                  <FormField
+                    control={form.control}
+                    name={`paymentDetails.${index}.supplierId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Supplier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {suppliers.map(supplier => (
+                                <SelectItem key={supplier.id} value={supplier.id}>
+                                  {supplier.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`paymentDetails.${index}.paymentDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Payment</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(day);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`paymentDetails.${index}.amount`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Amount"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`paymentDetails.${index}.method`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Method</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Payment Method" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {paymentMethodOptions.map(option => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`paymentDetails.${index}.transactionId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Transaction ID</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Transaction ID" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`paymentDetails.${index}.note`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Note</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Note" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" onClick={() => removePayment(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" onClick={() => appendPayment({ paymentDate: new Date(), amount: 0, method: '', transactionId: '', note: '' })}>
+                Add Payment Detail
+              </Button>
             </TabsContent>
             <TabsContent value="receiptDetails">
-              <FormField
-                control={form.control}
-                name="receiptDetails"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Receipt Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={5}
-                        disabled={loading}
-                        placeholder="Receipt Details"
-                        value={field.value || ''}
-                        onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {receiptFields.map((field, index) => (
+                <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* New field: Receipt Customer */}
+                  <FormField
+                    control={form.control}
+                    name={`receiptDetails.${index}.customerId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Customer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {customers.map(customer => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                  {customer.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`receiptDetails.${index}.receiptDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Receipt</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(day);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+
+                  <FormField
+                    control={form.control}
+                    name={`receiptDetails.${index}.amount`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Amount"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`receiptDetails.${index}.reference`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reference</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Receipt Reference" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {receiptReferenceOptions.map(option => (
+                                <SelectItem key={option} value={option}>
+                                  {option}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`receiptDetails.${index}.note`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Note</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Note" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" onClick={() => removeReceipt(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" onClick={() => appendReceipt({ receiptDate: new Date(), amount: 0, reference: '', note: '' })}>
+                Add Receipt Detail
+              </Button>
             </TabsContent>
             <TabsContent value="expenseDetails">
-              <FormField
-                control={form.control}
-                name="expenseDetails"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Expense Details</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        rows={5}
-                        disabled={loading}
-                        placeholder="Expense Details"
-                        value={field.value || ''}
-                        onChange={field.onChange} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {expenseFields.map((field, index) => (
+                <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+
+
+                  <FormField
+                    control={form.control}
+                    name={`expenseDetails.${index}.expenseDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Expense</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(day);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`expenseDetails.${index}.amount`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`expenseDetails.${index}.expenseCategory`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expense Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Expense Category" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`expenseDetails.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" onClick={() => removeExpense(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" onClick={() => appendExpense({ expenseDate: new Date(), amount: 0, expenseCategory: '', description: '' })}>
+                Add Expense Detail
+              </Button>
             </TabsContent>
           </Tabs>
+
+
 
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
@@ -383,4 +950,4 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       </Form >
     </>
   )
-} 
+}

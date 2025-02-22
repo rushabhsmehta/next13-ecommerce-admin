@@ -3,8 +3,6 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryDisplay } from "./components/fetchaccounts";
 import Navbar from "@/components/navbar";
 
-
-
 const tourPackageQueryPage = async ({
   params
 }: {
@@ -15,27 +13,22 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,
-      flightDetails: true,
-      itineraries: {
+      purchaseDetails: {
         include: {
-          itineraryImages: true,
-          activities:
-          {
-            include: {
-              activityImages: true,
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
-          },
-        },
-        orderBy: {
-          dayNumber: 'asc',
+          supplier: true
         }
-      }
+      },
+      saleDetails: true,
+      paymentDetails: {
+        include: {
+          supplier: true
+        }
+      },
+      receiptDetails: true,
+      expenseDetails: true,
     }
   });
+  
   console.log("Fetched tourPackage Query:", tourPackageQuery);
 
   const locations = await prismadb.location.findMany({
@@ -49,15 +42,10 @@ const tourPackageQueryPage = async ({
     }
   });
 
-
-
   return (
     <>
-      {/*       <Navbar /> */}
-      
-        
-        <div className="flex-col">
-          {/*  <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-col">
+        {/*  <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryForm
           initialData={tourPackageQuery}
           locations={locations}
@@ -66,16 +54,15 @@ const tourPackageQueryPage = async ({
         />
       </div>
  */}
-          <div className="flex-1 space-y-4 p-8 pt-6">
-            <TourPackageQueryDisplay
-              initialData={tourPackageQuery}
-              locations={locations}
-              hotels={hotels}
-            //    itineraries={[]}
-            />
-          </div>
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryDisplay
+            initialData={tourPackageQuery}
+            locations={locations}
+            hotels={hotels}
+          />
         </div>
-      
+      </div>
+
     </>
   );
 }

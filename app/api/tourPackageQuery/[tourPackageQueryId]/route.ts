@@ -21,6 +21,9 @@ export async function GET(
         id: params.tourPackageQueryId
       },
       include: {
+        
+     
+
         flightDetails: true,
         images: true,
         location: true,
@@ -79,15 +82,16 @@ export async function DELETE(
   }
 };
 
-async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber: any; days: any; hotelId: any; numberofRooms: any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageQueryId: any) {
+async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageId: any; dayNumber: any; days: any; hotelId: any; numberofRooms: any; roomCategory: any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageQueryId: string) {
   // First, create the itinerary and get its id
   const createdItinerary = await prismadb.itinerary.create({
     data: {
+
       itineraryTitle: itinerary.itineraryTitle,
       itineraryDescription: itinerary.itineraryDescription,
       locationId: itinerary.locationId,
       tourPackageId: itinerary.tourPackageId,
-      tourPackageQueryId: tourPackageQueryId,
+      // Updated relation linking:
       dayNumber: itinerary.dayNumber,
       days: itinerary.days,
       hotelId: itinerary.hotelId,
@@ -178,12 +182,7 @@ export async function PATCH(
       isArchived,
       assignedTo,
       assignedToMobileNumber,
-      assignedToEmail,
-      purchaseDetails,
-      saleDetails,
-      paymentDetails,
-      receiptDetails,
-      expenseDetails,
+      assignedToEmail,    
     } = body;
 
 //   console.log(flightDetails);
@@ -266,12 +265,6 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-      purchaseDetails,
-      saleDetails,
-      paymentDetails,
-      receiptDetails,
-      expenseDetails, 
-
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {
@@ -332,11 +325,10 @@ export async function PATCH(
       await Promise.all(itineraryPromises);
     }
 
-
-
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
       include: {
+      
         location: true,
         flightDetails: true,
         images: true,

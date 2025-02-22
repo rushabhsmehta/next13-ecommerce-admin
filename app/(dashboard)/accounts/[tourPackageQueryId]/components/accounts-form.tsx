@@ -110,22 +110,21 @@ type TourPackageQueryAccountingFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryAccountingFormProps {
   initialData: TourPackageQuery & {
-    purchaseDetails: (PurchaseDetail & {
-      supplier: Supplier;
-    })[] | null;
-    saleDetails: (SaleDetail & {
-      customer: Customer;
-    })[] | null;
-    paymentDetails: (PaymentDetail & {
-      supplier: Supplier;
-    })[] | null;
-    receiptDetails: (ReceiptDetail & {
-      customer: Customer;
-    })[] | null;
-    expenseDetails: ExpenseDetail[];
+    purchaseDetails: Array<PurchaseDetail & {
+      supplier: Supplier | null;  // Make supplier nullable
+    }> | null;
+    saleDetails: Array<SaleDetail & {
+      customer: Customer | null;  // Make customer nullable
+    }> | null;
+    paymentDetails: Array<PaymentDetail & {
+      supplier: Supplier | null;  // Make supplier nullable
+    }> | null;
+    receiptDetails: Array<ReceiptDetail & {
+      customer: Customer | null;  // Make customer nullable
+    }> | null;
+    expenseDetails: ExpenseDetail[] | null;  // Make array nullable
   } | null;
 }
-
 
 export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccountingFormProps> = ({
   initialData,

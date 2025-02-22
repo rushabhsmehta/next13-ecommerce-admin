@@ -2,9 +2,6 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryFromTourPackageForm } from "./components/tourPackageQueryFromTourPackage-form";
 import Navbar from "@/components/navbar";
 
-
-
-
 const tourPackageQueryFromTourPackagePage = async ({
   params
 }: {

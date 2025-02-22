@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
-import { Activity, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
-import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
+import { Activity, Images, ItineraryMaster, PurchaseDetail } from "@prisma/client"
+import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, Supplier, PaymentDetail, SaleDetail, ReceiptDetail, Customer, ExpenseDetail } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
   Command,

@@ -177,42 +177,41 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
   const transformInitialData = (data: any) => {
     return {
       ...data,
-      purchaseDetails: data.purchaseDetails.map((purchaseDetail: any) => ({
-        supplierId: purchaseDetail.supplierId,
+      purchaseDetails: data.purchaseDetails?.map((purchaseDetail: any) => ({
+        supplierId: purchaseDetail.supplierId || '',
         purchaseDate: new Date(purchaseDetail.purchaseDate),
-        price: purchaseDetail.price,
-        description: purchaseDetail.description,
-      })),
-      saleDetails: data.saleDetails.map((saleDetail: any) => ({
-        customerId: saleDetail.customerId,
+        price: purchaseDetail.price || 0,
+        description: purchaseDetail.description || '',
+      })) || [],
+      saleDetails: data.saleDetails?.map((saleDetail: any) => ({
+        customerId: saleDetail.customerId || '',
         saleDate: new Date(saleDetail.saleDate),
-        salePrice: saleDetail.salePrice,
-        description: saleDetail.description,
-      })),
-      paymentDetails: data.paymentDetails.map((paymentDetail: any) => ({
+        salePrice: saleDetail.salePrice || 0,
+        description: saleDetail.description || '',
+      })) || [],
+      paymentDetails: data.paymentDetails?.map((paymentDetail: any) => ({
         paymentDate: new Date(paymentDetail.paymentDate),
-        amount: paymentDetail.amount,
-        method: paymentDetail.method,
-        transactionId: paymentDetail.transactionId,
-        note: paymentDetail.note,
-        supplierId: paymentDetail.supplierId,
-      })),
-      receiptDetails: data.receiptDetails.map((receiptDetail: any) => ({
-        customerId: receiptDetail.customerId,
+        amount: paymentDetail.amount || 0,
+        method: paymentDetail.method || '',
+        transactionId: paymentDetail.transactionId || '',
+        note: paymentDetail.note || '',
+        supplierId: paymentDetail.supplierId || '',
+      })) || [],
+      receiptDetails: data.receiptDetails?.map((receiptDetail: any) => ({
+        customerId: receiptDetail.customerId || '',
         receiptDate: new Date(receiptDetail.receiptDate),
-        amount: receiptDetail.amount,
-        reference: receiptDetail.reference,
-        note: receiptDetail.note,
-      })),
-      expenseDetails: data.expenseDetails.map((expenseDetail: any) => ({
+        amount: receiptDetail.amount || 0,
+        reference: receiptDetail.reference || '',
+        note: receiptDetail.note || '',
+      })) || [],
+      expenseDetails: data.expenseDetails?.map((expenseDetail: any) => ({
         expenseDate: new Date(expenseDetail.expenseDate),
-        amount: expenseDetail.amount,
-        expenseCategory: expenseDetail.expenseCategory,
-        description: expenseDetail.description,
-      })),
+        amount: expenseDetail.amount || 0,
+        expenseCategory: expenseDetail.expenseCategory || '',
+        description: expenseDetail.description || '',
+      })) || [],
     };
-  }
-
+  };
   const defaultValues = initialData ? transformInitialData(initialData) : {
     purchaseDetails: [{ supplierId: '', purchaseDate: new Date(), price: 0, description: '' }],
     saleDetails: [{ customerId: '', saleDate: new Date(), salePrice: 0, description: '' }],

@@ -6,7 +6,7 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { Trash } from "lucide-react"
+import { CheckIcon, ChevronDown, Trash } from "lucide-react"
 import { Location, Activity, Itinerary } from "@prisma/client"
 import { Images } from "@prisma/client"
 
@@ -28,6 +28,9 @@ import { AlertModal } from "@/components/modals/alert-modal"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
   activityTitle: z.string().optional(),
@@ -41,11 +44,11 @@ type ActivityFormValues = z.infer<typeof formSchema>
 
 interface ActivityFormProps {
   initialData: Activity & {
-    activityImages : Images[]
+    activityImages: Images[]
   } | null;
   // images: Images[];
   locations: Location[];
-  itineraries : Itinerary[];
+  itineraries: Itinerary[];
 };
 
 
@@ -65,21 +68,21 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
   const toastMessage = initialData ? 'Activity updated.' : 'Activity created.';
   const action = initialData ? 'Save changes' : 'Create';
 
-  const transformInitialData = (data:any) => {
+  const transformInitialData = (data: any) => {
     return {
       ...data,
       itineraryId: data.itineraryId || '', // Convert null to undefined
     };
-  }; 
-  
+  };
+
   const defaultValues = initialData ? transformInitialData(initialData) : {
     activityTitle: '',
     activityescription: '',
     activityImages: [],
     locationId: '',
-    itineraryId: '',  
+    itineraryId: '',
   }
-  
+
   const form = useForm<ActivityFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -163,29 +166,60 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
 
           <div className="md:grid md:grid-cols-3 gap-8">
 
-          <FormField
+            <FormField
               control={form.control}
               name="locationId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location </FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Location</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? locations.find((location) => location.id === field.value)?.label
+                            : "Select a location..."}
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search location..." />
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations.map((location) => (
+                            <CommandItem
+                              value={location.label}
+                              key={location.id}
+                              onSelect={() => {
+                                form.setValue("locationId", location.id);
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  location.id === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {location.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="activityTitle"
@@ -214,7 +248,7 @@ export const ActivityForm: React.FC<ActivityFormProps> = ({
               )}
             />
 
-            
+
           </div>
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}

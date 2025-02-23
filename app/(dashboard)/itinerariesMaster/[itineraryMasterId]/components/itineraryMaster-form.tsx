@@ -102,6 +102,8 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [hotelOpen, setHotelOpen] = useState(false);
 
   const title = initialData ? 'Edit Itinerary' : 'Create Itinerary';
   const description = initialData ? 'Edit a Itinerary.' : 'Add a new Itinerary';
@@ -261,64 +263,52 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               control={form.control}
               name="locationId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Location</FormLabel>
-
-                  <Popover>
+                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           variant="outline"
                           role="combobox"
-                          className={cn(
-                            "w-[200px] justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          disabled={loading}
+                          aria-expanded={locationOpen}
+                          className="justify-between"
                         >
                           {field.value
-                            ? (locations && locations.find(
-                              (location) => location.id === field.value
-                            )?.label)
-                            : "Select a Location"}
+                            ? locations.find((location) => location.id === field.value)?.label
+                            : "Select location..."}
                           <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                    <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput
-                          placeholder="Search location..."
-                          className="h-9"
-                        />
+                        <CommandInput placeholder="Search location..." />
                         <CommandEmpty>No location found.</CommandEmpty>
                         <CommandGroup>
-                          {locations && locations.map((location) => (
+                          {locations.map((location) => (
                             <CommandItem
-                              value={location.label ?? ''}
                               key={location.id}
+                              value={location.label}
                               onSelect={() => {
-                                field.onChange(location.id || '');
-
+                                field.onChange(location.id)
+                                setLocationOpen(false)
                               }}
                             >
-                              {location.label}
                               <CheckIcon
                                 className={cn(
-                                  "ml-auto h-4 w-4",
-                                  location.id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
+                                  "mr-2 h-4 w-4",
+                                  field.value === location.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
+                              {location.label}
                             </CommandItem>
                           ))}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {/* ... */}
                   <FormMessage />
                 </FormItem>
               )}
@@ -356,66 +346,54 @@ export const ItineraryMasterForm: React.FC<ItineraryMasterFormProps> = ({
               control={form.control}
               name="hotelId"
               render={({ field }) => (
-                <>
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Hotel</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-[200px] justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            disabled={loading}
-                          >
-                            {field.value
-                              ? hotels.find(
-                                (hotel) => hotel.id === field.value
-                              )?.name
-                              : "Select a Hotel"}
-                            <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search hotel..."
-                            className="h-9"
-                          />
-                          <CommandEmpty>No hotel found.</CommandEmpty>
-                          <CommandGroup>
-                            {hotels.filter(hotel => hotel.locationId === initialData?.locationId).map((hotel) => (
-                              <CommandItem
-                                value={hotel.name}
-                                key={hotel.id}
-                                onSelect={() => {
-                                  field.onChange(hotel.id);
-                                }}
-                              >
-                                {hotel.name}
-                                <CheckIcon
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    hotel.id === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-
-                </>
+                <FormItem className="flex flex-col">
+                  <FormLabel>Hotel</FormLabel>
+                  <Popover open={hotelOpen} onOpenChange={setHotelOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={hotelOpen}
+                          className="justify-between"
+                        >
+                          {field.value
+                            ? hotels.find((hotel) => hotel.id === field.value)?.name
+                            : "Select hotel..."}
+                          <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search hotel..." />
+                        <CommandEmpty>No hotel found.</CommandEmpty>
+                        <CommandGroup>
+                          {hotels.map((hotel) => (
+                            <CommandItem
+                              key={hotel.id}
+                              value={hotel.name}
+                              onSelect={() => {
+                                field.onChange(hotel.id)
+                                setHotelOpen(false)
+                              }}
+                            >
+                              <CheckIcon
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  field.value === hotel.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {hotel.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
               )}
             />
 

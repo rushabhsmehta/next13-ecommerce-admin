@@ -35,6 +35,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { cn } from "@/lib/utils"
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover"
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { CaretSortIcon } from "@radix-ui/react-icons"
 
 const editorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
@@ -467,20 +468,59 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
               control={form.control}
               name="locationId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Location</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[300px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? locations.find(
+                                (location) => location.id === field.value
+                              )?.label
+                            : "Select location..."}
+                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Search location..." 
+                          className="h-9"
+                        />
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations.map((location) => (
+                            <CommandItem
+                              value={location.label}
+                              key={location.id}
+                              onSelect={() => {
+                                form.setValue("locationId", location.id)
+                              }}
+                            >
+                              {location.label}
+                              <CheckIcon
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  location.id === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -1500,4 +1540,4 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
       </Form >
     </>
   )
-} 
+}

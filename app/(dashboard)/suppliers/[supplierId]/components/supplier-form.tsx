@@ -25,7 +25,7 @@ import { AlertModal } from "@/components/modals/alert-modal";
 const formSchema = z.object({
   name: z.string().min(1),
   contact: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.string().optional().or(z.literal('')), // Modified to make email optional
 });
 
 type SupplierFormValues = z.infer<typeof formSchema>;

@@ -29,6 +29,18 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Command, CommandInput, CommandItem } from "@/components/ui/command" // new import
+import { Check, ChevronsUpDown } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  CommandEmpty,
+  CommandGroup,
+} from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
 const activitySchema = z.object({
   activityTitle: z.string().min(2),
@@ -78,6 +90,8 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [hotelOpen, setHotelOpen] = useState(false);
 
   const title = initialData ? 'Edit Itinerary' : 'Create Itinerary';
   const description = initialData ? 'Edit a Itinerary.' : 'Add a new Itinerary';
@@ -95,30 +109,10 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
         })),
         itineraryId: data.itineraryId || '', // Convert null to undefined
       }))
-
-
-      // locationId: data.locationId ?? '',
-      // tourPackageId: data.tourPackageId ?? '',
-      // tourPackageQueryId: data.tourPackageQueryId ?? '',
-      // itineraryTitle: data.itineraryTitle ?? '',
-      // itineraryDescription: data.itineraryDescription ?? '',
-      // itineraryImages: data.itineraryImages ?? [],
-      // days: data.days ?? '',
-      // hotelId: data.hotelId ?? '',
-      // mealsIncluded: data.mealsIncluded ?? '',
-      // activities: data.activities.map((activity : any) => ({
-      //   ...activity,
-      //   activityImages: activity.activityImages ?? [], // Default to an empty array if not present
-      //   activityTitle: activity.activityTitle ?? '',
-      //   activityDescription: activity.activityDescription ?? '',
-      //   locationId: activity.locationId ?? '',
-      //   itineraryId: activity.itineraryId ?? '',
-      //})),
     };
   };
 
   const defaultValues = initialData ? transformInitialData(initialData) : {
-
     locationId: '',
     tourPackageId: '',
     tourPackageQueryId: '',
@@ -147,10 +141,7 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
       mealsIncluded: data.mealsIncluded?.join(','), // Convert array to comma-separated string
       activities: data.activities?.map((activity) => ({
         ...activity,
-
         locationId: data.locationId,
-        //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages
-
       }))
     };
     console.log("Data being Submitted is : ", submitData);
@@ -230,25 +221,55 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
           />
 
           <div className="md:grid md:grid-cols-3 gap-8">
-
             <FormField
               control={form.control}
               name="locationId"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location </FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <FormItem className="flex flex-col">
+                  <FormLabel>Location</FormLabel>
+                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={open}
+                          className="justify-between"
+                        >
+                          {field.value
+                            ? locations.find((location) => location.id === field.value)?.label
+                            : "Select location..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search location..." />
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations.map((location) => (
+                            <CommandItem
+                              key={location.id}
+                              value={location.label}
+                              onSelect={() => {
+                                field.onChange(location.id)
+                                setLocationOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  field.value === location.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {location.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -286,20 +307,51 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
               control={form.control}
               name="hotelId"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hotel </FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select Hotel" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {hotels.map((hotel) => (
-                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <FormItem className="flex flex-col">
+                  <FormLabel>Hotel</FormLabel>
+                  <Popover open={hotelOpen} onOpenChange={setHotelOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={hotelOpen}
+                          className="justify-between"
+                        >
+                          {field.value
+                            ? hotels.find((hotel) => hotel.id === field.value)?.name
+                            : "Select hotel..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search hotel..." />
+                        <CommandEmpty>No hotel found.</CommandEmpty>
+                        <CommandGroup>
+                          {hotels.map((hotel) => (
+                            <CommandItem
+                              key={hotel.id}
+                              value={hotel.name}
+                              onSelect={() => {
+                                field.onChange(hotel.id)
+                                setHotelOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  field.value === hotel.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {hotel.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -318,8 +370,6 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                 </FormItem>
               )}
             />
-
-
 
             <FormField
               control={form.control}
@@ -379,7 +429,6 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                         <Input
                           placeholder="Title"
                           disabled={loading}
-
                           value={activity.activityTitle}
                           onChange={(e) => {
                             const newActivities = [...value];
@@ -394,7 +443,6 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                         <Input
                           placeholder="Description"
                           disabled={loading}
-
                           value={activity.activityDescription}
                           onChange={(e) => {
                             const newActivities = [...value];
@@ -436,7 +484,6 @@ export const ItineraryForm: React.FC<ItineraryFormProps> = ({
                       }}
                     >
                       Remove Activity
-
                     </Button>
                   </div>
                 ))}

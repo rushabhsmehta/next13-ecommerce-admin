@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils"
 import JoditEditor from "jodit-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import tourPackageDisplayPage from "@/app/(dashboard)/tourPackageDisplay/[tourPackageDisplayId]/page"
+import { CaretSortIcon } from "@radix-ui/react-icons"
 
 const editorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
@@ -304,7 +305,6 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     form.setValue('slug', slug);
   }, [form.watch('tourPackageName')]);
 
-
   const onSubmit = async (data: TourPackageFromTourPackageQueryFormValues) => {
 
     const formattedData = {
@@ -324,8 +324,6 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
       }))
     };
 
-
-
     try {
       setLoading(true);
       await axios.post(`/api/tourPackages`, formattedData);
@@ -340,11 +338,8 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     }
   };
 
-
-
   const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
     const selectedActivityMaster = activitiesMaster?.find(activity => activity.id === selectedActivityId);
-
 
     if (selectedActivityMaster) {
       const updatedItineraries = [...form.getValues('itineraries')];
@@ -359,10 +354,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     }
   };
 
-
   // Function to handle meal checkbox changes
-
-
 
   return (
     <>
@@ -463,25 +455,63 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
               )}
             />
 
-
             <FormField
               control={form.control}
               name="locationId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Location</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-[300px] justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? locations.find(
+                                (location) => location.id === field.value
+                              )?.label
+                            : "Select location..."}
+                          <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput 
+                          placeholder="Search location..." 
+                          className="h-9"
+                        />
+                        <CommandEmpty>No location found.</CommandEmpty>
+                        <CommandGroup>
+                          {locations.map((location) => (
+                            <CommandItem
+                              value={location.label}
+                              key={location.id}
+                              onSelect={() => {
+                                form.setValue("locationId", location.id)
+                              }}
+                            >
+                              {location.label}
+                              <CheckIcon
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  location.id === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -1502,4 +1532,4 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
       </Form >
     </>
   )
-} 
+}

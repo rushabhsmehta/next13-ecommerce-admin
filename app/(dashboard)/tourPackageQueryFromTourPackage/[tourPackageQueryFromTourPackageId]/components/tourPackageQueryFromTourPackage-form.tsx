@@ -40,6 +40,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PRICE_DEFAULT } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/defaultValues"
 import { Switch } from "@/components/ui/switch"
+import { CaretSortIcon } from "@radix-ui/react-icons"
 
 const editorConfig = {
   readonly: false,
@@ -191,40 +192,40 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     termsconditions: false,
   });
   const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
-      setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
-      if (checked) {
-        const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
-        if (selectedLocation) {
-          switch (field) {
-            case 'inclusions':
-              form.setValue('inclusions', selectedLocation.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'exclusions':
-              form.setValue('exclusions', selectedLocation.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'importantNotes':
-              form.setValue('importantNotes', selectedLocation.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'paymentPolicy':
-              form.setValue('paymentPolicy', selectedLocation.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'usefulTip':
-              form.setValue('usefulTip', selectedLocation.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'cancellationPolicy':
-              form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'airlineCancellationPolicy':
-              form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-            case 'termsconditions':
-              form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
-              break;
-          }
+    setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
+    if (checked) {
+      const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
+      if (selectedLocation) {
+        switch (field) {
+          case 'inclusions':
+            form.setValue('inclusions', selectedLocation.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'exclusions':
+            form.setValue('exclusions', selectedLocation.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'importantNotes':
+            form.setValue('importantNotes', selectedLocation.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'paymentPolicy':
+            form.setValue('paymentPolicy', selectedLocation.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'usefulTip':
+            form.setValue('usefulTip', selectedLocation.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'cancellationPolicy':
+            form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'airlineCancellationPolicy':
+            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            break;
+          case 'termsconditions':
+            form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+            break;
         }
       }
-    };
-  
+    }
+  };
+
   //console.log(initialData);
   const title = 'Create Tour Package Query';
   const description = 'Add a new Tour Package Query';
@@ -624,24 +625,64 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                 control={form.control}
                 name="locationId"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Location</FormLabel>
-                    <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-[300px] justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? locations.find(
+                                (location) => location.id === field.value
+                              )?.label
+                              : "Select location..."}
+                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search location..."
+                            className="h-9"
+                          />
+                          <CommandEmpty>No location found.</CommandEmpty>
+                          <CommandGroup>
+                            {locations.map((location) => (
+                              <CommandItem
+                                value={location.label}
+                                key={location.id}
+                                onSelect={() => {
+                                  form.setValue("locationId", location.id)
+                                }}
+                              >
+                                {location.label}
+                                <CheckIcon
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    location.id === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
 
               {/* //add formfield for numDaysNight */}
               <FormField

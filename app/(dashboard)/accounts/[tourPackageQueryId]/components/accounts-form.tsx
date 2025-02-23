@@ -610,7 +610,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             <TabsContent value="paymentDetails">
               {paymentFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
-                // For Payment Details - Replace the existing supplier Select with:
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.supplierId`}
@@ -790,7 +789,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             <TabsContent value="receiptDetails">
               {receiptFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
-              // For Receipt Details - Replace the existing customer Select with:
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.customerId`}

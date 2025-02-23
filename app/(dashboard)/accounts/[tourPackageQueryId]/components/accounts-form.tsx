@@ -327,22 +327,52 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     control={form.control}
                     name={`purchaseDetails.${index}.supplierId`}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Supplier</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Supplier" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {suppliers.map(supplier => (
-                                <SelectItem key={supplier.id} value={supplier.id}>
-                                  {supplier.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? suppliers.find((supplier) => supplier.id === field.value)?.name
+                                  : "Select supplier..."}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search supplier..." />
+                              <CommandEmpty>No supplier found.</CommandEmpty>
+                              <CommandGroup>
+                                {suppliers.map((supplier) => (
+                                  <CommandItem
+                                    value={supplier.name}
+                                    key={supplier.id}
+                                    onSelect={() => {
+                                      form.setValue(`purchaseDetails.${index}.supplierId`, supplier.id);
+                                    }}
+                                  >
+                                    <CheckIcon
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        supplier.id === field.value ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {supplier.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -441,22 +471,52 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     control={form.control}
                     name={`saleDetails.${index}.customerId`}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Customer</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Customer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {customers.map(customer => (
-                                <SelectItem key={customer.id} value={customer.id}>
-                                  {customer.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? customers.find((customer) => customer.id === field.value)?.name
+                                  : "Select customer..."}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search customer..." />
+                              <CommandEmpty>No customer found.</CommandEmpty>
+                              <CommandGroup>
+                                {customers.map((customer) => (
+                                  <CommandItem
+                                    value={customer.name}
+                                    key={customer.id}
+                                    onSelect={() => {
+                                      form.setValue(`saleDetails.${index}.customerId`, customer.id);
+                                    }}
+                                  >
+                                    <CheckIcon
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        customer.id === field.value ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {customer.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -550,31 +610,62 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             <TabsContent value="paymentDetails">
               {paymentFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
-                  {/* New field: Payment Supplier */}
+                // For Payment Details - Replace the existing supplier Select with:
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.supplierId`}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Supplier</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Supplier" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {suppliers.map(supplier => (
-                                <SelectItem key={supplier.id} value={supplier.id}>
-                                  {supplier.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? suppliers.find((supplier) => supplier.id === field.value)?.name
+                                  : "Select supplier..."}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search supplier..." />
+                              <CommandEmpty>No supplier found.</CommandEmpty>
+                              <CommandGroup>
+                                {suppliers.map((supplier) => (
+                                  <CommandItem
+                                    value={supplier.name}
+                                    key={supplier.id}
+                                    onSelect={() => {
+                                      form.setValue(`paymentDetails.${index}.supplierId`, supplier.id);
+                                    }}
+                                  >
+                                    <CheckIcon
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        supplier.id === field.value ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {supplier.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
 
                   <FormField
                     control={form.control}
@@ -699,32 +790,61 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             <TabsContent value="receiptDetails">
               {receiptFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
-                  {/* New field: Receipt Customer */}
+              // For Receipt Details - Replace the existing customer Select with:
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.customerId`}
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Customer</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Customer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {customers.map(customer => (
-                                <SelectItem key={customer.id} value={customer.id}>
-                                  {customer.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value
+                                  ? customers.find((customer) => customer.id === field.value)?.name
+                                  : "Select customer..."}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search customer..." />
+                              <CommandEmpty>No customer found.</CommandEmpty>
+                              <CommandGroup>
+                                {customers.map((customer) => (
+                                  <CommandItem
+                                    value={customer.name}
+                                    key={customer.id}
+                                    onSelect={() => {
+                                      form.setValue(`receiptDetails.${index}.customerId`, customer.id);
+                                    }}
+                                  >
+                                    <CheckIcon
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        customer.id === field.value ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {customer.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.receiptDate`}

@@ -735,18 +735,91 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Location</FormLabel>
-                    <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue defaultValue={field.value} placeholder="Select a Location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>{location.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? locations.find((location) => location.id === field.value)?.label
+                              : "Select a location..."}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search location..." />
+                          <CommandEmpty>No location found.</CommandEmpty>
+                          <CommandGroup>
+                            {locations.map((location) => (
+                              <CommandItem
+                                value={location.label}
+                                key={location.id}
+                                onSelect={() => {
+                                  form.setValue("locationId", location.id);
+                                  // Update location-dependent fields if needed
+                                  if (useLocationDefaults.inclusions) {
+                                    form.setValue('inclusions', location.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.exclusions) {
+                                    form.setValue('exclusions', location.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.importantNotes) {
+                                    form.setValue('importantNotes', location.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.paymentPolicy) {
+                                    form.setValue('paymentPolicy', location.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.usefulTip) {
+                                    form.setValue('usefulTip', location.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.cancellationPolicy) {
+                                    form.setValue('cancellationPolicy', location.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.airlineCancellationPolicy) {
+                                    form.setValue('airlineCancellationPolicy', location.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  if (useLocationDefaults.termsconditions) {
+                                    form.setValue('termsconditions', location.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                  }
+                                  const currentItineraries = form.getValues('itineraries');
+                                  const updatedItineraries = currentItineraries.map(itinerary => ({
+                                    ...itinerary,
+                                    locationId: location.id
+                                  }));
+                                  form.setValue('itineraries', updatedItineraries);
+
+                                  // Update activities locationId within itineraries
+                                  const updatedItinerariesWithActivities = updatedItineraries.map(itinerary => ({
+                                    ...itinerary,
+                                    activities: itinerary.activities?.map(activity => ({
+                                      ...activity,
+                                      locationId: location.id
+                                    })) || []
+                                  }));
+                                  form.setValue('itineraries', updatedItinerariesWithActivities);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    location.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {location.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

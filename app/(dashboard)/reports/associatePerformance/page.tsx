@@ -14,6 +14,21 @@ import {
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
+// Create a separate component for the action cell
+const ActionCell = ({ associateId }: { associateId: string }) => {
+  const router = useRouter();
+  
+  return (
+    <Button
+      onClick={() => router.push(`/inquiries?associateId=${associateId}`)}
+      variant="outline"
+      size="sm"
+    >
+      View/Update Inquiries
+    </Button>
+  );
+};
+
 const columns = [
   {
     accessorKey: "associateName",
@@ -49,18 +64,7 @@ const columns = [
   },
   {
     id: "actions",
-    cell: ({ row }: { row: { original: { associateId: string } } }) => {
-      const router = useRouter();
-      return (
-        <Button
-          onClick={() => router.push(`/inquiries?associateId=${row.original.associateId}`)}
-          variant="outline"
-          size="sm"
-        >
-          View/Update Inquiries
-        </Button>
-      )
-    }
+    cell: ({ row }: { row: { original: { associateId: string } } }) => <ActionCell associateId={row.original.associateId} />
   }
 ];
 

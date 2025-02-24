@@ -13,7 +13,15 @@ export async function POST(req: Request) {
 
     // Create new customer entry
     const customer = await prismadb.customer.create({
-      data: { name, contact, email, associatePartnerId },
+      data: { 
+        name, 
+        contact, 
+        email,
+        associatePartnerId: associatePartnerId || null
+      },
+      include: {
+        associatePartner: true
+      }
     });
 
     return NextResponse.json(customer);
@@ -25,7 +33,16 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    // Get search params for filtering
+    const { searchParams } = new URL(req.url);
+    const associatePartnerId = searchParams.get('associatePartnerId');
+
+    const whereClause = associatePartnerId ? {
+      associatePartnerId: associatePartnerId
+    } : {};
+
     const customers = await prismadb.customer.findMany({
+      where: whereClause,
       include: {
         associatePartner: true
       },
@@ -33,6 +50,7 @@ export async function GET(req: Request) {
         createdAt: 'desc'
       }
     });
+    
     return NextResponse.json(customers);
   } catch (error) {
     console.log("[CUSTOMERS_GET]", error);

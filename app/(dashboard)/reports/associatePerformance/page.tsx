@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { AssociatePartner } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+
+interface PerformanceData {
+  associateId: string;
+  associateName: string;
+  totalBookings: number;
+  confirmedBookings: number;
+  cancellations: number;
+  revenue: string;
+  commission: string;
+  performance: string;
+  totalInquiries: number;
+}
 
 // Create a separate component for the action cell
 const ActionCell = ({ associateId }: { associateId: string }) => {
@@ -68,44 +81,41 @@ const columns = [
   }
 ];
 
-// Mock associates data
-const associates = [
-  { id: "1", name: "John Doe" },
-  { id: "2", name: "Jane Smith" },
-  { id: "3", name: "Mike Johnson" },
-  { id: "4", name: "Sarah Williams" },
-];
-
-// Mock performance data
-const performanceData = [
-  {
-    associateId: "1",
-    associateName: "John Doe",
-    totalBookings: 45,
-    confirmedBookings: 38,
-    cancellations: 7,
-    revenue: "$52,000",
-    commission: "$5,200",
-    performance: "Excellent",
-    totalInquiries: 25,
-  },
-  {
-    associateId: "2",
-    associateName: "Jane Smith",
-    totalBookings: 38,
-    confirmedBookings: 32,
-    cancellations: 6,
-    revenue: "$43,000",
-    commission: "$4,300",
-    performance: "Good",
-    totalInquiries: 18,
-  },
-  // Add more associate data as needed
-];
-
 export default function AssociatePerformancePage() {
   const [dateRange, setDateRange] = useState<any>();
   const [selectedAssociate, setSelectedAssociate] = useState<string>("all");
+  const [associatedPartners, setAssociatedPartners] = useState<AssociatePartner[]>([]);
+  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch associated partners
+        const partnersResponse = await fetch('/api/associatedPartners');
+        const partners = await partnersResponse.json();
+        setAssociatedPartners(partners);
+
+        // Transform partners data into performance data
+        const transformedData: PerformanceData[] = partners.map((partner: AssociatePartner) => ({
+          associateId: partner.id,
+          associateName: partner.name,
+          totalBookings: 0, // TODO: Implement real booking counts
+          confirmedBookings: 0,
+          cancellations: 0,
+          revenue: "$0", // TODO: Implement real revenue calculation
+          commission: "$0", // TODO: Implement real commission calculation
+          performance: "Good", // TODO: Implement real performance rating
+          totalInquiries: 0, // TODO: Implement real inquiry counts
+        }));
+
+        setPerformanceData(transformedData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Filter data based on selected associate
   const filteredData = selectedAssociate === "all"
@@ -132,9 +142,9 @@ export default function AssociatePerformancePage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Associates</SelectItem>
-            {associates.map((associate) => (
-              <SelectItem key={associate.id} value={associate.id}>
-                {associate.name}
+            {associatedPartners?.map((partner) => (
+              <SelectItem key={partner.id} value={partner.id}>
+                {partner.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -45,7 +45,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 
 const formSchema = z.object({
-  status: z.string().min(1), // Changed from enum to match schema's default "pending"
+  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED"]),
   customerName: z.string().min(1),
   customerMobileNumber: z.string().min(1),
   locationId: z.string().min(1, "Please select a location"),
@@ -93,7 +93,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   const form = useForm<InquiryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
-      status: initialData.status,
+      status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED",
       customerName: initialData.customerName,
       customerMobileNumber: initialData.customerMobileNumber,
       locationId: initialData.locationId,
@@ -110,7 +110,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       })),
       journeyDate: initialData.journeyDate ? new Date(initialData.journeyDate) : null,
     } : {
-      status: "Pending",
+      status: "PENDING",
       customerName: '',
       customerMobileNumber: '',
       locationId: '',
@@ -177,7 +177,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="grid grid-cols-3 gap-8">
 
-          <FormField
+            <FormField
               control={form.control}
               name="associatePartnerId"
               render={({ field }) => (
@@ -427,17 +427,16 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED") => field.onChange(value)} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue defaultValue={field.value} placeholder="Select status" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Contacted">Contacted</SelectItem>
-                      <SelectItem value="Converted">Converted</SelectItem>
-                      <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

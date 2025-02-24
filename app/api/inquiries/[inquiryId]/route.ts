@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
+const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED"];
+
 export async function GET(
   req: Request,
   { params }: { params: { inquiryId: string } }
@@ -59,6 +61,14 @@ export async function PATCH(
 
     if (!params.inquiryId) {
       return new NextResponse("Inquiry id is required", { status: 400 });
+    }
+
+    if (!body.status) {
+      return new NextResponse("Status is required", { status: 400 });
+    }
+
+    if (!validStatuses.includes(body.status)) {
+      return new NextResponse("Invalid status value", { status: 400 });
     }
 
     const inquiry = await prismadb.inquiry.updateMany({

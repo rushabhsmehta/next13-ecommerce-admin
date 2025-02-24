@@ -43,23 +43,55 @@ const columns = [
   },
 ];
 
+// Mock associates data
+const associates = [
+  { id: "1", name: "John Doe" },
+  { id: "2", name: "Jane Smith" },
+  { id: "3", name: "Mike Johnson" },
+  { id: "4", name: "Sarah Williams" },
+];
+
+// Mock performance data
+const performanceData = [
+  {
+    associateId: "1",
+    associateName: "John Doe",
+    totalBookings: 45,
+    confirmedBookings: 38,
+    cancellations: 7,
+    revenue: "$52,000",
+    commission: "$5,200",
+    performance: "Excellent",
+  },
+  {
+    associateId: "2",
+    associateName: "Jane Smith",
+    totalBookings: 38,
+    confirmedBookings: 32,
+    cancellations: 6,
+    revenue: "$43,000",
+    commission: "$4,300",
+    performance: "Good",
+  },
+  // Add more associate data as needed
+];
+
 export default function AssociatePerformancePage() {
   const [dateRange, setDateRange] = useState<any>();
-  const [associateFilter, setAssociateFilter] = useState<string>("all");
+  const [selectedAssociate, setSelectedAssociate] = useState<string>("all");
 
-  // Mock data - Replace with actual API call
-  const data = [
-    {
-      associateName: "John Doe",
-      totalBookings: 45,
-      confirmedBookings: 38,
-      cancellations: 7,
-      revenue: "$52,000",
-      commission: "$5,200",
-      performance: "Excellent",
-    },
-    // ... more data
-  ];
+  // Filter data based on selected associate
+  const filteredData = selectedAssociate === "all"
+    ? performanceData
+    : performanceData.filter(item => item.associateId === selectedAssociate);
+
+  // Calculate summary statistics based on filtered data
+  const totalRevenue = filteredData.reduce((sum, item) => 
+    sum + parseInt(item.revenue.replace(/\$|,/g, '')), 0);
+  const totalBookings = filteredData.reduce((sum, item) => 
+    sum + item.totalBookings, 0);
+  const avgPerformance = filteredData.reduce((sum, item) => 
+    sum + (item.performance === "Excellent" ? 5 : item.performance === "Good" ? 4 : 3), 0) / filteredData.length;
 
   return (
     <div className="p-6 space-y-6">
@@ -67,14 +99,17 @@ export default function AssociatePerformancePage() {
 
       <div className="flex gap-4 items-center">
         <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-        <Select value={associateFilter} onValueChange={setAssociateFilter}>
+        <Select value={selectedAssociate} onValueChange={setSelectedAssociate}>
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filter by Associate" />
+            <SelectValue placeholder="Select Associate" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Associates</SelectItem>
-            <SelectItem value="active">Active Associates</SelectItem>
-            <SelectItem value="inactive">Inactive Associates</SelectItem>
+            {associates.map((associate) => (
+              <SelectItem key={associate.id} value={associate.id}>
+                {associate.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -82,19 +117,19 @@ export default function AssociatePerformancePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <h3 className="font-semibold mb-2">Total Revenue</h3>
-          <p className="text-2xl">$157,250</p>
+          <p className="text-2xl">${totalRevenue.toLocaleString()}</p>
         </Card>
         <Card className="p-4">
           <h3 className="font-semibold mb-2">Total Bookings</h3>
-          <p className="text-2xl">324</p>
+          <p className="text-2xl">{totalBookings}</p>
         </Card>
         <Card className="p-4">
           <h3 className="font-semibold mb-2">Average Performance</h3>
-          <p className="text-2xl">4.2/5.0</p>
+          <p className="text-2xl">{avgPerformance.toFixed(1)}/5.0</p>
         </Card>
       </div>
 
-      <DataTable columns={columns} data={data} searchKey={""} />
+      <DataTable columns={columns} data={filteredData} searchKey="associateName" />
     </div>
   );
 }

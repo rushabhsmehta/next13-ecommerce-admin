@@ -503,18 +503,20 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               ))}
             </div>
           </div>
-          <Button disabled={loading} className="ml-auto" type="submit">
-            {action}
-          </Button>
-        </form>
-      </Form>
-      <Separator className="my-8" />
-      {initialData && (
-        <ActionHistory
-          inquiryId={initialData.id}
-          actions={actions}
-        />
-      )}
-    </>
+
+          <Separator className="my-8" />
+          {initialData && (
+            <ActionHistory
+              inquiryId={initialData.id}
+              actions={actions}
+            />
+          )}
+        
+        <Button disabled={loading} className="ml-auto" type="submit">
+          {action}
+        </Button>
+      </form>
+    </Form >
+   </>
   );
 };

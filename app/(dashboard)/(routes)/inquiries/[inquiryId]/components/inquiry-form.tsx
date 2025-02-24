@@ -108,7 +108,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         actionDate: new Date(action.actionDate),
       })),
     } : {
-      status: "pending",
+      status: "Pending",
       customerName: '',
       customerMobileNumber: '',
       locationId: '',
@@ -394,10 +394,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="contacted">Contacted</SelectItem>
-                      <SelectItem value="converted">Converted</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Contacted">Contacted</SelectItem>
+                      <SelectItem value="Converted">Converted</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

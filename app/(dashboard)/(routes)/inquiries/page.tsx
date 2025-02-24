@@ -53,10 +53,10 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
+      {/*   <div className="flex items-center gap-x-4">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-bold tracking-tight">Inquiries</h2>
         </div>
-      {/*   <div className="flex items-center gap-x-4">
           <StatusFilter />
         </div> */}
         <InquiriesClient 

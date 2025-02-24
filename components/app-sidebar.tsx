@@ -23,28 +23,45 @@ import { LayoutGrid } from "lucide-react"; // Replaced invalid `GalleryVerticalE
 // Sidebar Navigation Data
 const NAV_ITEMS = [
   {
-    title: "Main Navigation",
+    title: "Dashboard",
+    items: [
+      { title: "Overview", url: "/" },
+      { title: "Inquiries", url: "/inquiries" },
+    ],
+  },
+  {
+    title: "Master Data",
     items: [
       { title: "Locations", url: "/locations" },
       { title: "Hotels", url: "/hotels" },
       { title: "Itineraries", url: "/itinerariesMaster" },
       { title: "Activities", url: "/activitiesMaster" },
       { title: "Tour Packages", url: "/tourPackages" },
-      { title: "Tour Package Query", url: "/tourPackageQuery", isActive: true },
     ],
   },
   {
-    title: "Accounts",
+    title: "Business",
+    items: [
+      { title: "Inquiries", url: "/inquiries" },
+      { title: "Associate Partners", url: "/associates" },
+      { title: "Tour Package Query", url: "/tourPackageQuery" },
+    ],
+  },
+  {
+    title: "Users",
     items: [
       { title: "Customers", url: "/customers" },
       { title: "Suppliers", url: "/suppliers" },
+      { title: "Associates", url: "/associate-partners" },
     ],
   },
   {
     title: "Reports",
     items: [
+      { title: "Inquiry Summary", url: "/reports/inquirySummary" },
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
       { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
+      { title: "Associate Performance", url: "/reports/associatePerformance" },
     ],
   },
 ];

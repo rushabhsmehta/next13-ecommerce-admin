@@ -404,7 +404,7 @@ model Customer {
   email               String?
   associatePartnerId  String?
   createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  updatedAt           DateTime          @default(now())
 
   saleDetails         SaleDetail[]
   receiptDetails      ReceiptDetail[]
@@ -450,6 +450,7 @@ model Inquiry {
   numChildrenBelow5    Int              @default(0)
   remarks              String?          @db.Text
   status              String           @default("pending") // pending, contacted, converted, cancelled
+  journeyDate         DateTime?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 

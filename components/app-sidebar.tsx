@@ -25,7 +25,6 @@ const NAV_ITEMS = [
   {
     title: "Dashboard",
     items: [
-      { title: "Overview", url: "/" },
       { title: "Inquiries", url: "/inquiries" },
     ],
   },
@@ -42,19 +41,13 @@ const NAV_ITEMS = [
   {
     title: "Business",
     items: [
-      { title: "Inquiries", url: "/inquiries" },
-      { title: "Associate Partners", url: "/associates" },
+      { title: "Associates", url: "/associate-partners" },
+      { title: "Customers", url: "/customers" },
+      { title: "Suppliers", url: "/suppliers" },       
       { title: "Tour Package Query", url: "/tourPackageQuery" },
     ],
   },
-  {
-    title: "Users",
-    items: [
-      { title: "Customers", url: "/customers" },
-      { title: "Suppliers", url: "/suppliers" },
-      { title: "Associates", url: "/associate-partners" },
-    ],
-  },
+ 
   {
     title: "Reports",
     items: [

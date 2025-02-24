@@ -13,7 +13,9 @@ export async function GET(
 
     const customer = await prismadb.customer.findUnique({
       where: { id: params.customerId },
-      select: { id: true, name: true, contact: true, email: true, createdAt: true },
+      include: {
+        associatePartner: true
+      }
     });
 
     return NextResponse.json(customer);
@@ -53,12 +55,20 @@ export async function PATCH(
     if (!params.customerId) return new NextResponse("Customer ID is required", { status: 400 });
 
     const body = await req.json();
-    const { name, contact, email } = body;
+    const { name, contact, email, associatePartnerId } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
 
     const customer = await prismadb.customer.update({
       where: { id: params.customerId },
-      data: { name, contact, email },
+      data: { 
+        name, 
+        contact, 
+        email,
+        associatePartnerId: associatePartnerId || null
+      },
+      include: {
+        associatePartner: true
+      }
     });
 
     return NextResponse.json(customer);

@@ -1,33 +1,23 @@
 import { DataTable } from "@/components/ui/data-table";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { useSearchParams } from "next/navigation";
-import { InquiryColumn } from "./columns";
+import { InquiryColumn, columns } from "./columns";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
 }
 
-export const InquiriesClient: React.FC<InquiriesClientProps> = ({
-  data
-}) => {
-  const searchParams = useSearchParams();
-  const associateId = searchParams.get('associateId');
-
-  const filteredData = associateId 
-    ? data.filter((item: InquiryColumn) => item.associatePartner === associateId)
-    : data;
-
+export const InquiriesClient: React.FC<InquiriesClientProps> = ({ data }) => {
   return (
     <>
       <div className="flex items-center justify-between">
-        <Heading 
-          title={`Inquiries ${associateId ? 'for Selected Associate' : ''}`}
-          description="Manage inquiries"
+        <Heading
+          title={`Inquiries (${data.length})`}
+          description="Manage inquiries for your business"
         />
       </div>
       <Separator />
-      <DataTable data={filteredData} searchKey="customerName" columns={[]} />
+      <DataTable searchKey="customerName" columns={columns} data={data} />
     </>
   );
 };

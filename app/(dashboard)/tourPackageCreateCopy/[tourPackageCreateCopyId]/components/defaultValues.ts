@@ -8,7 +8,7 @@ export const INCLUSIONS_DEFAULT =
   "✔ Accomodation in preferred Hotel\n" +
   "✔ Meal As Per Plan\n" +
   "✔ All Transfers & Sightseeing By Private Vehicle\n" +
-  "✔ All Toll, Tax, Parking, Driver’s Allowance\n";
+  "✔ All Toll, Tax, Parking, Driver’s Allowance";
 
 export const EXCLUSIONS_DEFAULT =
   "➤ Air Fare / Train Fare\n" +
@@ -23,8 +23,8 @@ export const EXCLUSIONS_DEFAULT =
   "➤ Guide & Entrance Fees During Sightseeing\n" +
   "➤ Pony Ride Are Not Included In Your Package\n" +
   "➤ Any Other Union Vehicle Charges Other Than Mentioned\n" +
-  "➤ Union Vehicle Other Than Specified\n" +
-  "➤ All Inclusions\n";
+  "➤ Gondola Ride For Phase 2\n" +
+  "➤ Union Vehicle Other Than Specified";
 
 export const IMPORTANT_NOTES_DEFAULT =
   "∎ Rooms Are Subject To Availability.\n" +
@@ -37,17 +37,11 @@ export const IMPORTANT_NOTES_DEFAULT =
   "∎ In The Hills, AC Vehicles Will Not Work, So Kindly Do Not Expect An AC Vehicle In The Hills.";
 
 export const CANCELLATION_POLICY_DEFAULT =
-  "Cancellation by Customer\n\n" +
-  "∎ More than 30 days before departure: Full refund minus a 2.30% processing fee\n" +
-  "∎ 15 to 30 days before departure: 50% of the total amount refunded.\n" +
-  "∎ Less than 15 days before departure: No refund.\n\n\n" +
-  "Cancellation by Aagam Holidays\n\n" +
-  "∎ Full refund or option to reschedule at no additional cost if Aagam Holidays cancels due to unforeseen circumstances\n" +
-  "∎ Rescheduling: Requests must be made at least 30 before departure. Subject to availability; any cost difference is the customer’s responsibility\n" +
-  "∎ No-show Policy: No refund for failure to show up at the agreed time and location.\n" +
-  "Force Majeure:\n" +
-  "● In cases of circumstances beyond control (e.g., natural disasters, pandemics), refunds are subject to third-party policies (e.g., helicopter rides, airlines). Partial refunds or future credits may be offered depending on the situation.";
-
+  "∎ Air/Rail Fare: As Per Airlines/Rail Policy\n" +
+  "∎ Land Package:\n" +
+  "- Before 30 Days Of Departure 20% Will Be Refundable\n" +
+  "- Before 29 To 14 Days Of Departure 10% Will Be Refundable\n" +
+  "- Before 14 Days Of Departure No Refund.";
 
 export const ARILINE_CANCELLATION_POLICY_DEFAULT =
   "∎ As per Airline Policy\n";
@@ -65,7 +59,7 @@ export const TERMS_AND_CONDITIONS_DEFAULT =
   "∎ The price does not include expenses of personal nature, such as laundry, telephone calls, room service, alcoholic beverages, mini bar charges, tips, portage, camera fees etc.\n" +
   "∎ AAGAM HOLIDAYS reserves the right to modify the itinerary at any point, due to reasons including but not limited to: Force Majeure events, strikes, fairs, festivals, weather conditions, traffic problems, overbooking of hotels/flights, cancellation/re-routing of flights, closure of/entry restrictions at a place of visit, etc. While we will do our best to make suitable alternate arrangements, we would not be held liable for any refunds/compensation claims arising out of this.\n" +
   "∎ In case a flight gets cancelled, AAGAM HOLIDAYS will not be liable to provide any alternate flights within the same cost, any additional cost incurred for the same shall be borne by the traveler.\n" +
-  "∎ In Case of any Health/Medical Emergency, AAGAM HOLIDAYS will not be liable to provide any refunds and all the medical expenses will be borne by the customer.";
+  "∎ In Case of any Health AAGAM HOLIDAYS will not be liable to provide any refunds and in case of Medical Emergencies all the medical expenses will be liable by the customer.";
 
 export const USEFUL_TIPS_DEFAULT =
   "∎ If your flights involve a combination of different airlines, you may have to collect your luggage on arrival at the connecting hub and register it again while checking in for the return journey to your origin.\n" +
@@ -77,12 +71,17 @@ export const USEFUL_TIPS_DEFAULT =
   "∎ Disputes, if any, shall be subject to the exclusive jurisdiction of the courts in Kullu/ Manali.\n" +
   "∎ We reserve the right to issue a full refund in case we believe that we are unable to fulfil the services for any technical reasons.";
 
+export const DISCLAIMER_DEFAULT =
+  "! The Prices mentioned are subject to availability at the time of confirmation.\n" +
+  "! Flight rates will be provided separately, as they are dynamic and may impact the total package cost\n" +
+  "! The rates quoted are valid for 7 days only";
+
 
 export const TOUR_HIGHLIGHTS_DEFAULT = `
     <html>
       <body>
         <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; background-color: #f9f9f9;">
-          <caption style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #333;">Tour Highlights</caption>
+          <caption style="margin-bottom: 10px; font-size: 24px; font-weight: bold; color: #333;">Tour Highlights</caption>
           <thead>
             <tr style="background: linear-gradient(to right, #FF4500, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px;">
               <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Experience</th>
@@ -91,46 +90,41 @@ export const TOUR_HIGHLIGHTS_DEFAULT = `
           </thead>
           <tbody>
             <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Doodhpathri</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Explore scenic meadows and enjoy leisure time in the serene landscape. (If time permits)</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Doodhpathri</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Explore scenic meadows and enjoy leisure time in the serene landscape. (If time permits)</td>
             </tr>
             <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Shikara Ride on Dal Lake</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Experience a peaceful 1-hour ride on the iconic Dal Lake (included).</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Shikara Ride on Dal Lake</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Experience a peaceful 1-hour ride on the iconic Dal Lake (included).</td>
             </tr>
             <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Zero Point (Sonmarg)</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Optional visit by union vehicle (approx. ₹5500 per cab at your own cost).</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Zero Point (Sonmarg)</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Optional visit by union vehicle (approx. ₹5500 per cab at your own cost).</td>
             </tr>
             <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Thajiwas Glacier</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Optional horse ride to explore this stunning glacier near Sonmarg.</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Thajiwas Glacier</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Optional horse ride to explore this stunning glacier near Sonmarg.</td>
             </tr>
             <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Gulmarg Gondola</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Optional ride to Phase 1/2 (book online at extra cost).</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Gulmarg Gondola</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Optional ride to Phase 1/2 (book online at extra cost).</td>
             </tr>
             <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Betaab Valley, Aru Valley, Chandanwari</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Included visit to these scenic valleys near Pahalgam (union vehicle included).</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Betaab Valley, Aru Valley, Chandanwari</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Included visit to these scenic valleys near Pahalgam (union vehicle included).</td>
             </tr>
             <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Mughal Gardens</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Visit Shalimar Bagh and Nishat Bagh, famous for their Mughal architecture.</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Mughal Gardens</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Visit Shalimar Bagh and Nishat Bagh, famous for their Mughal architecture.</td>
             </tr>
             <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"><strong>Shankaracharya Temple</strong></td>
-              <td style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;">Enjoy panoramic views of Srinagar from this ancient temple.</td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Shankaracharya Temple</strong></td>
+              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Enjoy panoramic views of Srinagar from this ancient temple.</td>
             </tr>
           </tbody>
         </table>
       </body>
     </html>`;
-
-export const DISCLAIMER_DEFAULT =
-  "! The Prices mentioned are subject to availability at the time of confirmation.\n" +
-  "! Flght rates will be provided separately, as they are dynamic and may impact the total package cost\n" +
-  "! The rates quoted are valid for 7 days only";
 
 
 export const TOTAL_PRICE_DEFAULT = `
@@ -139,7 +133,7 @@ export const TOTAL_PRICE_DEFAULT = `
     <!--StartFragment-->
     <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
       <caption
-        style="margin-bottom: 10px; font-size: 18px; font-weight: bold; color: #333;"
+        style="margin-bottom: 10px; font-size: 24px; font-weight: bold; color: #333;"
       >
         Pricing Details
       </caption>
@@ -160,86 +154,176 @@ export const TOTAL_PRICE_DEFAULT = `
       <tbody>
         <tr style="background-color: #f2f2f2;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Per Person Cost (For 2 Persons Travelling Together)</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Per Person Cost (For 4 Persons Travelling Together)</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Per Person Cost (For 6 Persons Travelling Together)</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Per Person With Extra Bed/Mattress</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Child with Mattress (5 to 11)</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹
           </td>
         </tr>
         <tr style="background-color: #f9f9f9;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Child without Mattress (5 to 11)</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹
           </td>
         </tr>
         <tr style="background-color: #f2f2f2;">
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             <strong>Child below 5 years</strong>
           </td>
           <td
-            style="padding: 12px 15px; font-size: 13px; color: #555; border-bottom: 1px solid #ddd;"
+            style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"
           >
             ₹ Complimentary With Parents Sharing Bed
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!--EndFragment-->
+  </body>
+</html>
+`;
+
+export const PRICE_DEFAULT = `
+<html>
+  <body>
+    <!--StartFragment-->
+    <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; height: 266px;">
+      <caption style="margin-bottom: 10px; font-weight: bold; color: #333; font-size: 22px;">
+        Pricing Details
+      </caption>
+      <thead>
+        <tr>
+          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px;">
+            Criteria
+          </th>
+          <th style="width: 50%; background: linear-gradient(to right, #ff0000, #ffa500); color: white; text-transform: uppercase; letter-spacing: 1px; padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px;" colspan="2">
+            Price
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background-color: #f2f2f2;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Per Person Cost&nbsp;</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
+          </td>
+        </tr>
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Per Couple Cost&nbsp;</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
+          </td>
+        </tr>
+        <tr style="background-color: #f2f2f2;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Per Person With Extra Bed/Mattress</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
+          </td>
+        </tr>
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Child with Mattress (5 to 11)</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
+          </td>
+        </tr>
+        <tr style="background-color: #f2f2f2;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Child without Mattress (5 to 11)</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
+          </td>
+        </tr>
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Child below 5 years (With Seat - Parents Sharing Bed)</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
+          </td>
+        </tr>
+        <tr style="background-color: #f2f2f2;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Child below 5 years Without Seat (Parents Sharing Bed)</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            Complimentary With Parents Sharing Bed
+          </td>
+        </tr>
+        <tr style="background-color: #f9f9f9;">
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;">
+            <strong>Air Fare</strong>
+          </td>
+          <td style="padding: 12px 15px; color: #555; border-bottom: 1px solid #ddd; font-size: 15px;" colspan="2">
+            ₹
           </td>
         </tr>
       </tbody>
@@ -255,4 +339,4 @@ export const TOUR_PACKAGE_TYPE_DEFAULT =
     "Deluxe",
     "Premium",
     "Premium Plus",
-  ];
+  ]

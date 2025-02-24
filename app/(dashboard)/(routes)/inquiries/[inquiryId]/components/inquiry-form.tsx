@@ -1,14 +1,14 @@
 "use client";
 
 import * as z from "zod";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, PlusCircle, X } from "lucide-react";
 import { Inquiry, Location, AssociatePartner, InquiryAction } from "@prisma/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
 
 const formSchema = z.object({
   status: z.string().min(1), // Changed from enum to match schema's default "pending"
@@ -54,6 +55,11 @@ const formSchema = z.object({
   numChildren5to11: z.number().min(0),
   numChildrenBelow5: z.number().min(0),
   remarks: z.string().nullable(),
+  actions: z.array(z.object({
+    actionType: z.string().min(1),
+    remarks: z.string().min(1),
+    actionDate: z.date(),
+  })),
 });
 
 type InquiryFormValues = z.infer<typeof formSchema>;
@@ -96,6 +102,11 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildren5to11: initialData.numChildren5to11,
       numChildrenBelow5: initialData.numChildrenBelow5,
       remarks: initialData.remarks,
+      actions: actions.map(action => ({
+        actionType: action.actionType,
+        remarks: action.remarks,
+        actionDate: new Date(action.actionDate),
+      })),
     } : {
       status: "pending",
       customerName: '',
@@ -107,6 +118,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildren5to11: 0,
       numChildrenBelow5: 0,
       remarks: '',
+      actions: [],
     }
   });
 
@@ -132,6 +144,19 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const onAddAction = () => {
+    const currentActions = form.getValues("actions") || [];
+    form.setValue("actions", [
+      ...currentActions,
+      { actionType: "", remarks: "", actionDate: new Date() }
+    ]);
+  };
+
+  const onRemoveAction = (index: number) => {
+    const currentActions = form.getValues("actions");
+    form.setValue("actions", currentActions.filter((_, i) => i !== index));
   };
 
   return (
@@ -219,8 +244,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                                   location.id === field.value
                                     ? "opacity-100"
                                     : "opacity-0"
-                                )}
-                              />
+                                )} />
                               {location.label}
                             </CommandItem>
                           ))}
@@ -263,10 +287,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem>
                   <FormLabel>Number of Adults</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      disabled={loading} 
-                      placeholder="Number of adults" 
+                    <Input
+                      type="number"
+                      disabled={loading}
+                      placeholder="Number of adults"
                       {...field}
                       onChange={e => field.onChange(+e.target.value)}
                       value={field.value}
@@ -276,7 +300,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </FormItem>
               )}
             />
-   
+
             <FormField
               control={form.control}
               name="numChildrenAbove11"
@@ -284,10 +308,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem>
                   <FormLabel>Children Above 11</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      disabled={loading} 
-                      placeholder="Number of children above 11" 
+                    <Input
+                      type="number"
+                      disabled={loading}
+                      placeholder="Number of children above 11"
                       {...field}
                       onChange={e => field.onChange(+e.target.value)}
                       value={field.value}
@@ -304,10 +328,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem>
                   <FormLabel>Children 5-11</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      disabled={loading} 
-                      placeholder="Number of children 5-11" 
+                    <Input
+                      type="number"
+                      disabled={loading}
+                      placeholder="Number of children 5-11"
                       {...field}
                       onChange={e => field.onChange(+e.target.value)}
                       value={field.value}
@@ -324,10 +348,10 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem>
                   <FormLabel>Children Below 5</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      disabled={loading} 
-                      placeholder="Number of children below 5" 
+                    <Input
+                      type="number"
+                      disabled={loading}
+                      placeholder="Number of children below 5"
                       {...field}
                       onChange={e => field.onChange(+e.target.value)}
                       value={field.value}
@@ -344,7 +368,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem className="col-span-3">
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={loading}
                       placeholder="Add any additional remarks"
@@ -357,7 +381,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               )}
             />
 
-<FormField
+            <FormField
               control={form.control}
               name="status"
               render={({ field }) => (
@@ -380,7 +404,104 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
+            {/* Add Actions Section */}
+            <div className="col-span-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Actions</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onAddAction}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Action
+                </Button>
+              </div>
+
+              {form.watch("actions")?.map((_, index) => (
+                <div key={index} className="flex gap-4 items-start mt-4">
+                  <FormField
+                    control={form.control}
+                    name={`actions.${index}.actionType`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <Select
+                          disabled={loading}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select action type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="CALL">Call</SelectItem>
+                            <SelectItem value="MESSAGE">Message</SelectItem>
+                            <SelectItem value="EMAIL">Email</SelectItem>
+                            <SelectItem value="MEETING">Meeting</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`actions.${index}.remarks`}
+                    render={({ field }) => (
+                      <FormItem className="flex-[2]">
+                        <FormControl>
+                          <Textarea
+                            disabled={loading}
+                            placeholder="Enter remarks"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`actions.${index}.actionDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex-1">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button variant="outline">
+                                {field.value ? format(field.value, "PPP") : "Pick a date"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => date && field.onChange(date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => onRemoveAction(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}

@@ -109,7 +109,12 @@ model TourPackageQuery {
   receiptDetails          ReceiptDetail[]
   expenseDetails          ExpenseDetail[]
 
+  // Modified: Remove @unique constraint to allow multiple queries per inquiry
+  inquiryId                 String?
+  inquiry                   Inquiry?       @relation(fields: [inquiryId], references: [id])
+
   @@index([locationId])
+  @@index([inquiryId])  // Add index for the new foreign key
 }
 
 model PurchaseDetail {
@@ -120,7 +125,7 @@ model PurchaseDetail {
   price              Float
   description        String?          @db.Text
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  updatedAt          DateTime         @default(now())
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Make relation optional
@@ -354,7 +359,7 @@ model ItineraryMaster {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
@@ -452,11 +457,14 @@ model Inquiry {
   status              String           @default("pending") // pending, contacted, converted, cancelled
   journeyDate         DateTime?
   createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  updatedAt           DateTime         @default(now())
 
   location            Location         @relation("LocationToInquiry", fields: [locationId], references: [id])
   associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   actions             InquiryAction[]
+
+  // Modified: Change to one-to-many relationship
+  tourPackageQueries    TourPackageQuery[]
 
   @@index([locationId])
   @@index([associatePartnerId])

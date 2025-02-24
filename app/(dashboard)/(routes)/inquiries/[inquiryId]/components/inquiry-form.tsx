@@ -176,6 +176,32 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           <div className="grid grid-cols-3 gap-8">
+
+          <FormField
+              control={form.control}
+              name="associatePartnerId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Associate Partner</FormLabel>
+                  <Select disabled={loading} onValueChange={(value) => field.onChange(value)} value={field.value ?? undefined} defaultValue={field.value ?? undefined}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue defaultValue={field.value ?? ''} placeholder="Select an associate" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {associates.map((associate) => (
+                        <SelectItem key={associate.id} value={associate.id}>
+                          {associate.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="customerName"
@@ -261,28 +287,38 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
             <FormField
               control={form.control}
-              name="associatePartnerId"
+              name="journeyDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Associate Partner</FormLabel>
-                  <Select disabled={loading} onValueChange={(value) => field.onChange(value)} value={field.value ?? undefined} defaultValue={field.value ?? undefined}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value ?? ''} placeholder="Select an associate" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {associates.map((associate) => (
-                        <SelectItem key={associate.id} value={associate.id}>
-                          {associate.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Journey Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? format(field.value, "PPP") : "Pick a date"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value || undefined}
+                        onSelect={(date: Date | undefined) => date && field.onChange(date)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="numAdults"
@@ -384,39 +420,6 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="journeyDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Journey Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? format(field.value, "PPP") : "Pick a date"}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value || undefined}
-                        onSelect={(date: Date | undefined) => date && field.onChange(date)}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
@@ -548,12 +551,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               actions={actions}
             />
           )}
-        
-        <Button disabled={loading} className="ml-auto" type="submit">
-          {action}
-        </Button>
-      </form>
-    </Form >
-   </>
+
+          <Button disabled={loading} className="ml-auto" type="submit">
+            {action}
+          </Button>
+        </form>
+      </Form >
+    </>
   );
 };

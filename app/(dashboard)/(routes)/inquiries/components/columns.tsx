@@ -28,12 +28,15 @@ const StatusCell = ({ row }: { row: any }) => {
   const onStatusChange = async (newStatus: string) => {
     try {
       setLoading(true);
-      await axios.patch(`/api/inquiries/${row.original.id}`, {
+      // Use the new status-specific endpoint
+      await axios.patch(`/api/inquiries/${row.original.id}/status`, {
         status: newStatus
       });
       toast.success("Status updated");
+      // Optionally refresh the page or update the UI
+      window.location.reload();
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Failed to update status");
     } finally {
       setLoading(false);
     }

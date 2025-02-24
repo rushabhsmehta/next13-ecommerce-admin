@@ -103,8 +103,43 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusCell row={row} />
+    header: ({ column }) => {
+      return (
+        <Select
+          onValueChange={(value) => {
+            if (value === "ALL") {
+              column.setFilterValue("")
+            } else {
+              column.setFilterValue(value)
+            }
+          }}
+        >
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Status</SelectItem>
+            {statusOptions.map((status) => (
+              <SelectItem 
+                key={status.value} 
+                value={status.value}
+                className={
+                  status.value === "CONFIRMED" ? "text-green-600" :
+                  status.value === "CANCELLED" ? "text-red-600" :
+                  "text-yellow-600"
+                }
+              >
+                {status.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )
+    },
+    cell: ({ row }) => <StatusCell row={row} />,
+    filterFn: (row, id, value) => {
+      return value ? row.getValue(id) === value : true
+    }
   },
   {
     accessorKey: "numAdults",

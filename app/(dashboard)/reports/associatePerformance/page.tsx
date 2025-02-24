@@ -91,7 +91,7 @@ export default function AssociatePerformancePage() {
     const fetchData = async () => {
       try {
         // Fetch associated partners
-        const partnersResponse = await fetch('/api/associatedPartners');
+        const partnersResponse = await fetch('/api/associate-partners');
         const partners = await partnersResponse.json();
         setAssociatedPartners(partners);
 

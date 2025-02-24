@@ -1,41 +1,7 @@
-"use client";
-
 import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
-import { useSearchParams } from "next/navigation";
-import { DataTable } from "@/components/ui/data-table";
-import { Heading } from "@/components/ui/heading";
-import { Separator } from "@/components/ui/separator";
+import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
-
-interface InquiriesClientProps {
-  data: any[];
-}
-
-export const InquiriesClient: React.FC<InquiriesClientProps> = ({
-  data
-}) => {
-  const searchParams = useSearchParams();
-  const associateId = searchParams.get('associateId');
-
-  // Filter inquiries if associateId is provided
-  const filteredData = associateId 
-    ? data.filter(item => item.associatePartnerId === associateId)
-    : data;
-
-  return (
-    <>
-      <div className="flex items-center justify-between">
-        <Heading 
-          title={`Inquiries ${associateId ? 'for Selected Associate' : ''}`}
-          description="Manage inquiries"
-        />
-      </div>
-      <Separator />
-      <DataTable data={filteredData} searchKey="customerName" columns={[]} />
-    </>
-  );
-};
 
 const InquiriesPage = async () => {
   const inquiries = await prismadb.inquiry.findMany({

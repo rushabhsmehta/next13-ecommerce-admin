@@ -63,10 +63,10 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <Button onClick={handleAddNewClick}>
+        <Button onClick={handleAddNewClick}>
         <Plus className="mr-2 h-4 w-4" /> Add New
       </Button>
+      </div>    
       <Separator />
       <DataTable searchKey="customerName" columns={columns} data={data} />
     </>

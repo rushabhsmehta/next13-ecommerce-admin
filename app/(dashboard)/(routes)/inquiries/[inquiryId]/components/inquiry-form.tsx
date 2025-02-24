@@ -41,9 +41,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED"]),
+  status: z.string().min(1), // Changed from enum to match schema's default "pending"
   customerName: z.string().min(1),
   customerMobileNumber: z.string().min(1),
   locationId: z.string().min(1, "Please select a location"),
@@ -52,8 +53,7 @@ const formSchema = z.object({
   numChildrenAbove11: z.number().min(0),
   numChildren5to11: z.number().min(0),
   numChildrenBelow5: z.number().min(0),
-  totalAmount: z.number().min(0),
-  dateOfVisit: z.date()
+  remarks: z.string().nullable(),
 });
 
 type InquiryFormValues = z.infer<typeof formSchema>;
@@ -86,7 +86,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   const form = useForm<InquiryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
-      status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED",
+      status: initialData.status,
       customerName: initialData.customerName,
       customerMobileNumber: initialData.customerMobileNumber,
       locationId: initialData.locationId,
@@ -95,9 +95,9 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildrenAbove11: initialData.numChildrenAbove11,
       numChildren5to11: initialData.numChildren5to11,
       numChildrenBelow5: initialData.numChildrenBelow5,
-
+      remarks: initialData.remarks,
     } : {
-      status: "PENDING",
+      status: "pending",
       customerName: '',
       customerMobileNumber: '',
       locationId: '',
@@ -106,6 +106,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildrenAbove11: 0,
       numChildren5to11: 0,
       numChildrenBelow5: 0,
+      remarks: '',
     }
   });
 
@@ -262,7 +263,35 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 <FormItem>
                   <FormLabel>Number of Adults</FormLabel>
                   <FormControl>
-                    <Input type="number" disabled={loading} placeholder="Number of adults" {...field} />
+                    <Input 
+                      type="number" 
+                      disabled={loading} 
+                      placeholder="Number of adults" 
+                      {...field}
+                      onChange={e => field.onChange(+e.target.value)}
+                      value={field.value}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+   
+            <FormField
+              control={form.control}
+              name="numChildrenAbove11"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Children Above 11</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      disabled={loading} 
+                      placeholder="Number of children above 11" 
+                      {...field}
+                      onChange={e => field.onChange(+e.target.value)}
+                      value={field.value}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -270,26 +299,88 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
             <FormField
               control={form.control}
+              name="numChildren5to11"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Children 5-11</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      disabled={loading} 
+                      placeholder="Number of children 5-11" 
+                      {...field}
+                      onChange={e => field.onChange(+e.target.value)}
+                      value={field.value}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="numChildrenBelow5"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Children Below 5</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      disabled={loading} 
+                      placeholder="Number of children below 5" 
+                      {...field}
+                      onChange={e => field.onChange(+e.target.value)}
+                      value={field.value}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem className="col-span-3">
+                  <FormLabel>Remarks</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={loading}
+                      placeholder="Add any additional remarks"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+<FormField
+              control={form.control}
               name="status"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select disabled={loading} onValueChange={(value) => field.onChange(value as "PENDING" | "CONFIRMED" | "CANCELLED")} value={field.value} defaultValue={field.value}>
+                  <Select disabled={loading} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue defaultValue={field.value} placeholder="Select status" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
           </div>
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}

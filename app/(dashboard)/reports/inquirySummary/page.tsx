@@ -82,6 +82,15 @@ export default function InquirySummaryPage() {
   const [associatedPartners, setAssociatedPartners] = useState<AssociatePartner[]>([]);
   const [summaryData, setSummaryData] = useState<InquirySummaryData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  // Add inquiry status options
+  const statusOptions = [
+    { value: "all", label: "All Status" },
+    { value: "PENDING", label: "Pending" },
+    { value: "CONFIRMED", label: "Confirmed" },
+    { value: "CANCELLED", label: "Cancelled" },
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,6 +105,9 @@ export default function InquirySummaryPage() {
         const queryParams = new URLSearchParams();
         if (selectedAssociate !== "all") {
           queryParams.append("associateId", selectedAssociate);
+        }
+        if (selectedStatus !== "all") {
+          queryParams.append("status", selectedStatus);
         }
         if (dateRange?.from && dateRange?.to) {
           queryParams.append("startDate", dateRange.from.toISOString());
@@ -126,12 +138,24 @@ export default function InquirySummaryPage() {
     };
 
     fetchData();
-  }, [selectedAssociate, dateRange]);
+  }, [selectedAssociate, selectedStatus, dateRange]);
 
-  // Filter data based on selected associate
-  const filteredData = selectedAssociate === "all"
-    ? summaryData
-    : summaryData.filter(item => item.associateId === selectedAssociate);
+  // Update filtered data to include status filter
+  const filteredData = summaryData
+    .filter(item => selectedAssociate === "all" || item.associateId === selectedAssociate)
+    .filter(item => {
+      if (selectedStatus === "all") return true;
+      switch (selectedStatus) {
+        case "PENDING":
+          return item.pendingInquiries > 0;
+        case "CONFIRMED":
+          return item.confirmedInquiries > 0;
+        case "CANCELLED":
+          return item.cancelledInquiries > 0;
+        default:
+          return true;
+      }
+    });
 
   // Calculate summary metrics
   const totalInquiries = filteredData.reduce((sum, item) => sum + item.totalInquiries, 0);
@@ -142,7 +166,7 @@ export default function InquirySummaryPage() {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Inquiry Summary Report</h1>
 
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center flex-wrap">
         <DatePickerWithRange date={dateRange} setDate={setDateRange} />
         <Select value={selectedAssociate} onValueChange={setSelectedAssociate}>
           <SelectTrigger className="w-[200px]">
@@ -153,6 +177,19 @@ export default function InquirySummaryPage() {
             {associatedPartners?.map((partner) => (
               <SelectItem key={partner.id} value={partner.id}>
                 {partner.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((status) => (
+              <SelectItem key={status.value} value={status.value}>
+                {status.label}
               </SelectItem>
             ))}
           </SelectContent>

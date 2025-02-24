@@ -408,7 +408,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       <Calendar
                         mode="single"
                         selected={field.value || undefined}
-                        onSelect={field.onChange}
+                        onSelect={(date: Date | undefined) => date && field.onChange(date)}
                         initialFocus
                       />
                     </PopoverContent>

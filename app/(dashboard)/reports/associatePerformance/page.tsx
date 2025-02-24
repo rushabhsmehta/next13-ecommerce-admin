@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Card } from "@/components/ui/card";
 import {
@@ -41,6 +43,25 @@ const columns = [
     accessorKey: "performance",
     header: "Performance Rating",
   },
+  {
+    accessorKey: "totalInquiries",
+    header: "Total Inquiries",
+  },
+  {
+    id: "actions",
+    cell: ({ row }: { row: { original: { associateId: string } } }) => {
+      const router = useRouter();
+      return (
+        <Button
+          onClick={() => router.push(`/inquiries?associateId=${row.original.associateId}`)}
+          variant="outline"
+          size="sm"
+        >
+          View/Update Inquiries
+        </Button>
+      )
+    }
+  }
 ];
 
 // Mock associates data
@@ -62,6 +83,7 @@ const performanceData = [
     revenue: "$52,000",
     commission: "$5,200",
     performance: "Excellent",
+    totalInquiries: 25,
   },
   {
     associateId: "2",
@@ -72,6 +94,7 @@ const performanceData = [
     revenue: "$43,000",
     commission: "$4,300",
     performance: "Good",
+    totalInquiries: 18,
   },
   // Add more associate data as needed
 ];

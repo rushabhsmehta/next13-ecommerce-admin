@@ -16,7 +16,8 @@ export async function POST(req: Request) {
       numChildrenAbove11,
       numChildren5to11,
       numChildrenBelow5,
-      status
+      status,
+      journeyDate
     } = body;
 
     if (!userId) {
@@ -35,6 +36,10 @@ export async function POST(req: Request) {
       return new NextResponse("Location is required", { status: 400 });
     }
 
+    if (!journeyDate) {
+      return new NextResponse("Journey date is required", { status: 400 });
+    }
+
     const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
@@ -45,7 +50,8 @@ export async function POST(req: Request) {
         numChildrenAbove11,
         numChildren5to11,
         numChildrenBelow5,
-        status
+        status,
+        journeyDate: new Date(journeyDate)
       }
     });
   

@@ -46,6 +46,7 @@ export async function PATCH(
       numChildren5to11,
       numChildrenBelow5,
       status,
+      journeyDate,  // Add this line
     } = body;
 
     if (!userId) {
@@ -74,6 +75,7 @@ export async function PATCH(
         numChildren5to11,
         numChildrenBelow5,
         status,
+        journeyDate: new Date(journeyDate),  // Add this line
       }
     });
   

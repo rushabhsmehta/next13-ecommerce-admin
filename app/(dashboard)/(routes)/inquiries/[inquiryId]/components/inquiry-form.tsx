@@ -60,6 +60,7 @@ const formSchema = z.object({
     remarks: z.string().min(1),
     actionDate: z.date(),
   })),
+  journeyDate: z.date().nullable(),
 });
 
 type InquiryFormValues = z.infer<typeof formSchema>;
@@ -107,6 +108,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         remarks: action.remarks,
         actionDate: new Date(action.actionDate),
       })),
+      journeyDate: initialData.journeyDate ? new Date(initialData.journeyDate) : null,
     } : {
       status: "Pending",
       customerName: '',
@@ -119,6 +121,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildrenBelow5: 0,
       remarks: '',
       actions: [],
+      journeyDate: null,
     }
   });
 
@@ -376,6 +379,40 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       value={field.value ?? ''}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="journeyDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Journey Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? format(field.value, "PPP") : "Pick a date"}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value || undefined}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

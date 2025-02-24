@@ -34,7 +34,7 @@ const StatusCell = ({ row }: { row: any }) => {
       });
       toast.success("Status updated");
       // Optionally refresh the page or update the UI
-      window.location.reload();
+     // window.location.reload();
     } catch (error) {
       toast.error("Failed to update status");
     } finally {

@@ -3,8 +3,28 @@ import prismadb from "@/lib/prismadb";
 import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
 
-const InquiriesPage = async () => {
+interface InquiriesPageProps {
+  searchParams: {
+    associateId?: string;
+  }
+}
+
+const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
+  const associates = await prismadb.associatePartner.findMany({
+    orderBy: {
+      name: 'asc'
+    }
+  });
+
+  // Build the where clause based on search params
+  const where = {
+    ...(searchParams.associateId && {
+      associatePartnerId: searchParams.associateId
+    })
+  };
+
   const inquiries = await prismadb.inquiry.findMany({
+    where,
     include: {
       location: true,
       associatePartner: true,
@@ -29,7 +49,10 @@ const InquiriesPage = async () => {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <InquiriesClient data={formattedInquiries} />
+        <InquiriesClient 
+          data={formattedInquiries} 
+          associates={associates}
+        />
       </div>
     </div>
   );

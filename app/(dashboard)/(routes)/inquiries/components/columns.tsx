@@ -25,6 +25,8 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   {
     accessorKey: "location",
     header: "Location",
+    cell: ({ row }) => row.original.location,
+
   },
   {
     accessorKey: "associatePartner",

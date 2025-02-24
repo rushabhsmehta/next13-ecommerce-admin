@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react"
 import axios from "axios"
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react"
+import { Copy, Edit, MoreHorizontal, Trash, PackagePlus } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useParams, useRouter } from "next/navigation"
 
@@ -79,6 +79,11 @@ export const CellAction: React.FC<CellActionProps> = ({
             onClick={() => setOpen(true)}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push(`/tourpackagequeryfrominquiry/${data.id}`)}
+          >
+            <PackagePlus className="mr-2 h-4 w-4" /> Create Query
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

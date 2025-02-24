@@ -1,11 +1,10 @@
-import { InquiriesClient } from "./components/client";
-import { StatusFilter } from "./components/status-filter";
-import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
+import prismadb from "@/lib/prismadb";
+import { InquiriesClient } from "./components/client";
+import { InquiryColumn } from "./components/columns";
 
 interface InquiriesPageProps {
   searchParams: {
-    status?: string;
     associateId?: string;
   }
 }
@@ -21,9 +20,6 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   const where = {
     ...(searchParams.associateId && {
       associatePartnerId: searchParams.associateId
-    }),
-    ...(searchParams.status && {
-      status: searchParams.status
     })
   };
 
@@ -38,7 +34,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     }
   });
 
-  const formattedInquiries = inquiries.map((item) => ({
+  const formattedInquiries: InquiryColumn[] = inquiries.map((item) => ({
     id: item.id,
     customerName: item.customerName,
     customerMobileNumber: item.customerMobileNumber,
@@ -53,12 +49,6 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-      {/*   <div className="flex items-center gap-x-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Inquiries</h2>
-        </div>
-          <StatusFilter />
-        </div> */}
         <InquiriesClient 
           data={formattedInquiries} 
           associates={associates}

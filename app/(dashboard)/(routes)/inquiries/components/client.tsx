@@ -12,6 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
@@ -35,10 +37,16 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     router.push(`/inquiries?${params.toString()}`);
   };
 
+  const handleAddNewClick = () => {
+    // Open the link in a new tab
+    window.open(`/inquiries/new`, '_blank');
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
         <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" />
+
         <Select
           value={searchParams.get('associateId') || ''}
           onValueChange={onAssociateChange}
@@ -56,6 +64,9 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           </SelectContent>
         </Select>
       </div>
+      <Button onClick={handleAddNewClick}>
+        <Plus className="mr-2 h-4 w-4" /> Add New
+      </Button>
       <Separator />
       <DataTable searchKey="customerName" columns={columns} data={data} />
     </>

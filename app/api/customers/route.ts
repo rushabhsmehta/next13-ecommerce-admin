@@ -8,12 +8,12 @@ export async function POST(req: Request) {
     if (!userId) return new NextResponse("Unauthenticated", { status: 403 });
 
     const body = await req.json();
-    const { name, contact, email } = body;
+    const { name, contact, email, associatePartnerId } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
 
     // Create new customer entry
     const customer = await prismadb.customer.create({
-      data: { name, contact, email },
+      data: { name, contact, email, associatePartnerId },
     });
 
     return NextResponse.json(customer);
@@ -26,7 +26,12 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const customers = await prismadb.customer.findMany({
-      select: { id: true, name: true, contact: true, email: true, createdAt: true },
+      include: {
+        associatePartner: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
     return NextResponse.json(customers);
   } catch (error) {

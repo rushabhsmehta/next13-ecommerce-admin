@@ -8,6 +8,9 @@ import Navbar from "@/components/navbar";
 
 const CustomersPage = async () => {
   const customers = await prismadb.customer.findMany({
+    include: {
+      associatePartner: true,
+    },
     orderBy: { createdAt: 'desc' }
   });
 
@@ -16,6 +19,7 @@ const CustomersPage = async () => {
     name: item.name,
     contact: item.contact || "",
     email: item.email || "",
+    associatePartner: item.associatePartner?.name || 'None',
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 

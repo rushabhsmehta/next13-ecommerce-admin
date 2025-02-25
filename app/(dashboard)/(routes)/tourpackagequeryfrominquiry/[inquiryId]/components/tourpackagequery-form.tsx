@@ -141,7 +141,12 @@ const formSchema = z.object({
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
-  inquiry: Inquiry | null;
+  inquiry: (Inquiry & {
+    associatePartner?: {
+      mobileNumber?: string;
+      email?: string;
+    };
+  }) | null;
   locations: Location[];
   hotels: Hotel[];
   activitiesMaster: (ActivityMaster & {
@@ -187,7 +192,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const defaultValues = {
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
     tourPackageQueryName: `Tour Package for ${inquiry?.customerName || ''}`,
-    associatePartnerId : inquiry?.associatePartnerId || '',
+    assignedTo: inquiry?.associatePartnerId || '',
+    assignedToMobileNumber: inquiry?.associatePartner?.mobileNumber || '',
+    assignedToEmail: inquiry?.associatePartner?.email || '',
+    associatePartnerId: inquiry?.associatePartnerId || '',
     tourPackageQueryType: '',
     customerName: inquiry?.customerName || '',
     customerNumber: inquiry?.customerMobileNumber || '',
@@ -262,7 +270,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       setLoading(true);
       await axios.post(`/api/tourPackageQuery`, {
         ...data,
-        inquiryId: params.inquiryId
+        inquiryId: params.inquiryId,
+        associatePartnerId: inquiry?.associatePartnerId
       });
       router.refresh();
       router.push(`/tourPackageQuery`);

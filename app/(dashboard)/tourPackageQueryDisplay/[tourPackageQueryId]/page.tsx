@@ -31,7 +31,8 @@ const tourPackageQueryPage = async ({
         orderBy: {
           dayNumber : 'asc',
         }
-      }
+      },
+      associatePartner: true,
     }
   });
   console.log("Fetched tourPackage Query:", tourPackageQuery);
@@ -47,7 +48,7 @@ const tourPackageQueryPage = async ({
     }
   });
 
-
+  const associatePartners = await prismadb.associatePartner.findMany();
 
   return (
     <>
@@ -61,12 +62,13 @@ const tourPackageQueryPage = async ({
         //    itineraries={[]}
         />
       </div>
- */}
+ */} 
       <div className="flex-1 space-y-4 p-8 pt-6">
         <TourPackageQueryDisplay
           initialData={tourPackageQuery}
           locations={locations}
           hotels={hotels}
+          associatePartners={associatePartners}
         //    itineraries={[]}
         />
       </div>

@@ -64,6 +64,8 @@ const tourPackageQueryFromTourPackagePage = async ({
     }
   });
 
+  const associatePartners = await prismadb.associatePartner.findMany(); // Add this line
+
   return (
     <>{/*       <Navbar /> */}
       
@@ -75,7 +77,9 @@ const tourPackageQueryFromTourPackagePage = async ({
               locations={locations}
               hotels={hotels}
               activitiesMaster={activitiesMaster}
-              itinerariesMaster={itinerariesMaster} />
+              itinerariesMaster={itinerariesMaster}
+              associatePartners={associatePartners} // Add this line
+            />
           </div>
         </div>
       

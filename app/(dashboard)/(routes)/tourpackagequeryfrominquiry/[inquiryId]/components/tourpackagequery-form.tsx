@@ -393,9 +393,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <p className="text-muted-foreground">
                           Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
                         </p>
-                        <p className="text-muted-foreground">
-                          Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
-                        </p>
                       </div>
                     </>
                   ) : (
@@ -405,9 +402,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   )}
                 </div>
               </div>
-              <div>
+              <div className="space-y-2">
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <>
+                      <div className="flex flex-col space-y-1">                      
+                        <p className="text-muted-foreground">
+                          Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                    </p>
+                  )}
+                </div>
               </div>
-
+              
               <FormField
                 control={form.control}
                 name="images"

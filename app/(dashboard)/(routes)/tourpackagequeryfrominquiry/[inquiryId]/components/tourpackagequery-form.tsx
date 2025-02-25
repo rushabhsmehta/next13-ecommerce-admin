@@ -267,7 +267,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       await axios.post(`/api/tourPackageQuery`, {
         ...data,
         inquiryId: params.inquiryId,
-        associatePartnerId: inquiry?.associatePartnerId
       });
       router.refresh();
       router.push(`/tourPackageQuery`);

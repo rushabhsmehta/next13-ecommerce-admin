@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { exportToCSV } from "@/lib/utils/csv-export";
 
 interface PerformanceData {
   associateId: string;
@@ -130,9 +131,34 @@ export default function AssociatePerformancePage() {
   const avgPerformance = filteredData.reduce((sum, item) => 
     sum + (item.performance === "Excellent" ? 5 : item.performance === "Good" ? 4 : 3), 0) / filteredData.length;
 
+  const handleDownload = () => {
+    // Format data for CSV export
+    const exportData = filteredData.map(item => ({
+      "Associate Name": item.associateName,
+      "Total Bookings": item.totalBookings,
+      "Confirmed Bookings": item.confirmedBookings,
+      "Cancellations": item.cancellations,
+      "Revenue Generated": item.revenue,
+      "Commission Earned": item.commission,
+      "Performance Rating": item.performance,
+      "Total Inquiries": item.totalInquiries
+    }));
+
+    const dateRangeStr = dateRange?.from && dateRange?.to 
+      ? `_${dateRange.from.toISOString().split('T')[0]}_to_${dateRange.to.toISOString().split('T')[0]}`
+      : '';
+    
+    exportToCSV(exportData, `associate_performance_report${dateRangeStr}`);
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Associate Performance Report</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Associate Performance Report</h1>
+        <Button onClick={handleDownload} variant="outline">
+          Download Report
+        </Button>
+      </div>
 
       <div className="flex gap-4 items-center">
         <DatePickerWithRange date={dateRange} setDate={setDateRange} />

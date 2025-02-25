@@ -272,6 +272,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
+      // Add this line to update the tourPackageTemplate field
+      form.setValue('tourPackageTemplate', selectedTourPackageId);
+      
+      // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
       form.setValue('locationId', selectedTourPackage.locationId);
       form.setValue('numDaysNight', selectedTourPackage.numDaysNight || '');
@@ -404,9 +408,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         >
                           {!form.getValues('locationId') 
                             ? "Select a location first"
-                            : field.value 
-                              ? tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName 
-                              : "Select Tour Package Template"
+                            : tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName || "Select Tour Package Template"
                           }
                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -425,7 +427,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 key={tourPackage.id}
                                 onSelect={() => handleTourPackageSelection(tourPackage.id)}
                               >
-                                <CheckIcon className="mr-2 h-4 w-4 opacity-0" />
+                                <CheckIcon 
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    tourPackage.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
                                 {tourPackage.tourPackageName}
                               </CommandItem>
                           ))}

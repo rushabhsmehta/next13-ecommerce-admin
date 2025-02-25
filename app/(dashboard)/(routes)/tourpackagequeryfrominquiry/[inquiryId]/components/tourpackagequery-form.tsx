@@ -153,6 +153,7 @@ interface TourPackageQueryFormProps {
       activityImages: Images[];
     })[] | null;
   })[] | null;
+  associatePartners: any[]; // Add this line
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
@@ -161,6 +162,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
+  associatePartners, // Add this
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -185,6 +187,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const defaultValues = {
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
     tourPackageQueryName: `Tour Package for ${inquiry?.customerName || ''}`,
+    associatePartnerId : inquiry?.associatePartnerId || '',
     tourPackageQueryType: '',
     customerName: inquiry?.customerName || '',
     customerNumber: inquiry?.customerMobileNumber || '',
@@ -207,7 +210,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
-    
     // ...rest of the defaults with standard values...
     images: [],
     flightDetails: [],
@@ -326,18 +328,57 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Assigned To"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? associatePartners.find((partner) => partner.id === field.value)?.name
+                              : "Select Associate Partner..."}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search associate partner..." />
+                          <CommandEmpty>No associate partner found.</CommandEmpty>
+                          <CommandGroup>
+                            {associatePartners.map((partner) => (
+                              <CommandItem
+                                value={partner.name}
+                                key={partner.id}
+                                onSelect={() => {
+                                  form.setValue("assignedTo", partner.id);
+                                  form.setValue("assignedToMobileNumber", partner.mobileNumber || '');
+                                  form.setValue("assignedToEmail", partner.email || '');
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    partner.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {partner.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="assignedToMobileNumber"
@@ -346,28 +387,27 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormLabel>Mobile Number (Assigned To)</FormLabel>
                     <FormControl>
                       <Input
-                        disabled={loading}
-                        placeholder="Mobile Number (Assigned To)"
-                        value={field.value}
-                        onChange={field.onChange}
+                        disabled={true}
+                        placeholder="Mobile Number will auto-fill"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="assignedToEmail"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email ID (Assinged To)</FormLabel>
+                    <FormLabel>Email ID (Assigned To)</FormLabel>
                     <FormControl>
                       <Input
-                        disabled={loading}
-                        placeholder="Email ID"
-                        value={field.value}
-                        onChange={field.onChange}
+                        disabled={true}
+                        placeholder="Email will auto-fill"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

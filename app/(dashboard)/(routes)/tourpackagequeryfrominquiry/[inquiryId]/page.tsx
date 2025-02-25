@@ -12,6 +12,12 @@ const TourPackageQueryPage = async ({
     }
   });
 
+  const associatePartners = await prismadb.associatePartner.findMany({
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
   const locations = await prismadb.location.findMany();
   const hotels = await prismadb.hotel.findMany();
   const activitiesMaster = await prismadb.activityMaster.findMany({
@@ -39,6 +45,7 @@ const TourPackageQueryPage = async ({
           hotels={hotels}
           activitiesMaster={activitiesMaster}
           itinerariesMaster={itinerariesMaster}
+          associatePartners={associatePartners}
         />
       </div>
     </div>

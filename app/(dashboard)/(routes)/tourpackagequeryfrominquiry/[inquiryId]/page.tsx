@@ -9,12 +9,9 @@ const TourPackageQueryPage = async ({
   const inquiry = await prismadb.inquiry.findUnique({
     where: {
       id: params.inquiryId
-    }
-  });
-
-  const associatePartners = await prismadb.associatePartner.findMany({
-    orderBy: {
-      createdAt: 'desc'
+    },
+    include: {
+      associatePartner: true
     }
   });
 
@@ -35,17 +32,39 @@ const TourPackageQueryPage = async ({
       }
     }
   });
+  const associatePartners = await prismadb.associatePartner.findMany();
 
-  return ( 
+  const tourPackages = await prismadb.tourPackage.findMany({
+    where: {
+      isArchived: false
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryForm 
+        <TourPackageQueryForm
           inquiry={inquiry}
           locations={locations}
           hotels={hotels}
           activitiesMaster={activitiesMaster}
           itinerariesMaster={itinerariesMaster}
           associatePartners={associatePartners}
+          tourPackages={tourPackages}
         />
       </div>
     </div>

@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 
 
 const activitySchema = z.object({
@@ -186,7 +186,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT,
+    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: IMPORTANT_NOTES_DEFAULT,
     images: [],
     itineraries: [],

@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT } from "./defaultValues"
 import JoditEditor from "jodit-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -216,7 +216,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
             break;
           case 'airlineCancellationPolicy':
-            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
             break;
           case 'termsconditions':
             form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
@@ -320,7 +320,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     paymentPolicy: PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'),
     usefulTip: USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'),
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
-    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
+    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
     disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
 

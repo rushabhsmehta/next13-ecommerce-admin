@@ -45,7 +45,7 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Calendar } from "@/components/ui/calendar"
@@ -212,7 +212,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
             break;
           case 'airlineCancellationPolicy':
-            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
             break;
           case 'termsconditions':
             form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
@@ -341,7 +341,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     paymentPolicy: PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'),
     usefulTip: USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'),
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
-    airlineCancellationPolicy: ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
+    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
     disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
     images: [],
@@ -744,7 +744,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                     form.setValue('cancellationPolicy', location.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
                                   }
                                   if (useLocationDefaults.airlineCancellationPolicy) {
-                                    form.setValue('airlineCancellationPolicy', location.airlineCancellationPolicy || ARILINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                    form.setValue('airlineCancellationPolicy', location.airlineCancellationPolicy || AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
                                   }
                                   if (useLocationDefaults.termsconditions) {
                                     form.setValue('termsconditions', location.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
@@ -846,7 +846,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-
                           initialFocus
                         />
                       </PopoverContent>

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
-import { Activity, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
+import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
@@ -134,7 +134,7 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(),
-  
+
   //assignedTo: z.string().optional(),
   //assignedToMobileNumber: z.string().optional(),
   //assignedToEmail: z.string().optional(),
@@ -148,7 +148,6 @@ interface TourPackageQueryFormProps {
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
   } | null;
-  
   locations: Location[];
   hotels: Hotel[];
   activitiesMaster: (ActivityMaster & {
@@ -160,7 +159,7 @@ interface TourPackageQueryFormProps {
       activityImages: Images[];
     })[] | null;
   })[] | null;
-  associatePartners: any[]; // Add this line
+  associatePartners: AssociatePartner[]; // Add this line
 
 };
 
@@ -182,7 +181,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   const editor = useRef(null)
- 
+
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -269,9 +268,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     return {
       ...data,
       tourPackageQueryNumber: data.tourPackageQueryNumber ?? getCurrentDateTimeString(), // Set the current date and time
-    //  assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-    //  assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-    //  assignedToEmail: data.assignedToEmail ?? '',
+      //  assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+      //  assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+      //  assignedToEmail: data.assignedToEmail ?? '',
 
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
@@ -336,9 +335,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
     remarks: '',
-  //  assignedTo: '',
-  //  assignedToMobileNumber: '',
-  //  assignedToEmail: '',
+    //  assignedTo: '',
+    //  assignedToMobileNumber: '',
+    //  assignedToEmail: '',
 
     flightDetails: [],
 
@@ -497,7 +496,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
 
           <div>
-           {/*  <div className="grid grid-cols-3 gap-8">
+            {/*  <div className="grid grid-cols-3 gap-8">
               <FormField
                 control={form.control}
                 name="assignedTo"
@@ -554,7 +553,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </div> */}
 
-<div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-3 gap-8">
               <FormField
                 control={form.control}
                 name="associatePartnerId"
@@ -634,7 +633,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <div className="text-sm">
                   {form.watch("associatePartnerId") ? (
                     <>
-                      <div className="flex flex-col space-y-1">                      
+                      <div className="flex flex-col space-y-1">
                         <p className="text-muted-foreground">
                           Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
                         </p>

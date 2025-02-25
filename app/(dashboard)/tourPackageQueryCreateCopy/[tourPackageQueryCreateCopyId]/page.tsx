@@ -3,8 +3,6 @@ import prismadb from "@/lib/prismadb";
 import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCreateCopy-form";
 import Navbar from "@/components/navbar";
 
-
-
 const tourPackageQueryPage = async ({
   params
 }: {
@@ -68,22 +66,25 @@ const tourPackageQueryPage = async ({
     }
   });
 
+  const associatePartners = await prismadb.associatePartner.findMany();
   return (
     <>
       {/*       <Navbar /> */}
-      
-        
-        <div className="flex-col">
-          <div className="flex-1 space-y-4 p-8 pt-6">
-            <TourPackageQueryCreateCopyForm
-              initialData={tourPackageQuery}
-              locations={locations}
-              hotels={hotels}
-              activitiesMaster={activitiesMaster}
-              itinerariesMaster={itinerariesMaster} />
-          </div>
+
+
+      <div className="flex-col">
+        <div className="flex-1 space-y-4 p-8 pt-6">
+          <TourPackageQueryCreateCopyForm
+            initialData={tourPackageQuery}
+            locations={locations}
+            hotels={hotels}
+            activitiesMaster={activitiesMaster}
+            itinerariesMaster={itinerariesMaster}
+            associatePartners={associatePartners}
+          />
         </div>
-      
+      </div>
+
     </>
   );
 }

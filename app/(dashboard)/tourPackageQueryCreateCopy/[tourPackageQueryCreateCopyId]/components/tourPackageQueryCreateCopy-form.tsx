@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CalendarIcon, CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
-import { Activity, Images, ItineraryMaster } from "@prisma/client"
+import { Activity, AssociatePartner, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 
@@ -127,10 +127,7 @@ const formSchema = z.object({
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  assignedTo: z.string().optional(),
-  assignedToMobileNumber: z.string().optional(),
-  assignedToEmail: z.string().optional(),
-
+  associatePartnerId: z.string().optional(),
 });
 
 type TourPackageQueryCreateCopyFormValues = z.infer<typeof formSchema>
@@ -153,6 +150,7 @@ interface TourPackageQueryCreateCopyFormProps {
     })[] | null;
 
   })[] | null;
+  associatePartners: AssociatePartner[];
 };
 
 export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopyFormProps> = ({
@@ -161,6 +159,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   hotels,
   activitiesMaster,
   itinerariesMaster,
+  associatePartners,
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -228,9 +227,9 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const transformInitialData = (data: any) => {
     return {
       ...data,
-      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-      assignedToEmail: data.assignedToEmail ?? '',
+   //   assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+  //    assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+  //    assignedToEmail: data.assignedToEmail ?? '',
 
 
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
@@ -294,9 +293,9 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
     remarks: '',
-    assignedTo: '',
-    assignedToMobileNumber: '',
-    assignedToEmail: '',
+  //  assignedTo: '',
+ //   assignedToMobileNumber: '',
+ //   assignedToEmail: '',
 
 
     flightDetails: [],
@@ -436,58 +435,94 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
             <div className="grid grid-cols-3 gap-8">
               <FormField
                 control={form.control}
-                name="assignedTo"
+                name="associatePartnerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Assigned To"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
+                    <FormLabel>Associate Partner</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? associatePartners.find((partner) => partner.id === field.value)?.name
+                              : "Select Associate Partner..."}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search associate partner..." />
+                          <CommandEmpty>No associate partner found.</CommandEmpty>
+                          <CommandGroup>
+                            {associatePartners.map((partner) => (
+                              <CommandItem
+                                value={partner.name}
+                                key={partner.id}
+                                onSelect={() => {
+                                  form.setValue("associatePartnerId", partner.id);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    partner.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {partner.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Associate partner details will be automatically linked to this query
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="assignedToMobileNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number (Assigned To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Mobile Number (Assigned To)"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assignedToEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email ID (Assinged To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Email ID"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              <div className="space-y-2">
+                {/* Display partner mobile number */}
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-muted-foreground">
+                        Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      Select an associate partner to view contact details
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {/* Display partner email */}
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-muted-foreground">
+                        Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <FormField
@@ -1130,9 +1165,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
                   </FormControl>
                 </FormItem>
-              )}
-            />
-
+              )} />
 
             {/* //add formfield for flightDetails */}
             <div>
@@ -1270,6 +1303,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                           </FormControl>
                         </div>
                       ))}
+
                     <FormControl>
                       <Button type="button" size="sm"
                         disabled={loading}

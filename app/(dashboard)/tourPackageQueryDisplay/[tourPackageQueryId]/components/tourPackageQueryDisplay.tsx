@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
 import { Separator } from '@radix-ui/react-separator';
@@ -18,13 +18,14 @@ interface TourPackageQueryDisplayProps {
       })[];
     })[];
     flightDetails: FlightDetails[];
+    associatePartner: AssociatePartner | null;
   } | null;
   locations: Location[];
   hotels: (Hotel & {
     images: Images[];
   })[];
-  selectedOption?: string; // Add this line to accept the selected option
-
+  selectedOption?: string;
+  associatePartners: AssociatePartner[];
 };
 
 // Define a type for the company information
@@ -76,6 +77,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   initialData,
   locations,
   hotels,
+  associatePartners,
   // selectedOption = 'Empty', // Provide a default value
 }) => {
 
@@ -125,10 +127,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   <span className="font-bold">Customer:</span> {initialData.customerName} | {initialData.customerNumber}
                 </div>
                 <div>
-                  <span className="font-bold">Assigned To:</span> {initialData.assignedTo} | {initialData.assignedToMobileNumber} | {initialData.assignedToEmail}
+                  <span className="font-bold">Associate Partner :</span> {initialData.associatePartner?.name} | {initialData.associatePartner?.mobileNumber} | {initialData.associatePartner?.email}
                 </div>
               </CardDescription>
             )}
+            <CardDescription>
+              {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
+                <div className="mb-2">
+                  <div className="font-bold">
+                    Associate Partner: {initialData.associatePartner?.name || 'No Associate Partner Assigned yet'}
+                  </div>
+                  {initialData.associatePartner && (
+                    <>
+                      <div>Mobile: {initialData.associatePartner?.mobileNumber}</div>
+                      <div>Email: {initialData.associatePartner?.email}</div>
+                    </>
+                  )}
+                </div>
+              )}
+            </CardDescription>
           </div>
         </CardHeader>
       </Card>
@@ -324,7 +341,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Tour Highlights */}
 
       <Card className="break-inside-avoid border rounded-lg">
-          <CardTitle className="text-4xl font-bold shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">Tour Highlights</CardTitle>
+        <CardTitle className="text-4xl font-bold shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">Tour Highlights</CardTitle>
         {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
           <div key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
             <div className="flex items-center justify-between p-4 rounded-t-lg">
@@ -340,7 +357,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         ))}
       </Card>
 
-  
+
       {/* {initialData.tour_highlights && initialData.tour_highlights !== ' ' && (
         <Card className="break-inside-avoid border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
@@ -351,7 +368,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </CardContent>
         </Card>
       )} */}
-      
+
 
       {/* Flight Details */}
       {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
@@ -433,98 +450,98 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             {/* Hotel Section */}
             {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
               <Card className="my-4">
-              <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
-                Hotel Details
-              </CardHeader>
-              <div className="p-4">
-                {/* Hotel Images */}
-                {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
-                <div className="flex items-start mb-4">
-                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                  <div className="w-[250px] h-[250px]">
-                    <Image
-                    src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
-                    alt="Hotel Image"
-                    className="rounded-lg object-cover w-full h-full"
-                    width={250}
-                    height={250}
-                    />
-                  </div>
-                  </Link>
-                  {/* Hotel Text Content */}
-                  <div className="ml-4">
-                  <div className="text-xl font-bold">Hotel Name:</div>
-                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                  </Link>
-                  {itinerary.numberofRooms && (
-                    <>
-                    <div className="text-xl font-bold">Number of Rooms:</div>
-                    <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                    </>
-                  )}
+                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
+                  Hotel Details
+                </CardHeader>
+                <div className="p-4">
+                  {/* Hotel Images */}
+                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
+                    <div className="flex items-start mb-4">
+                      <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        <div className="w-[250px] h-[250px]">
+                          <Image
+                            src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
+                            alt="Hotel Image"
+                            className="rounded-lg object-cover w-full h-full"
+                            width={250}
+                            height={250}
+                          />
+                        </div>
+                      </Link>
+                      {/* Hotel Text Content */}
+                      <div className="ml-4">
+                        <div className="text-xl font-bold">Hotel Name:</div>
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                        </Link>
+                        {itinerary.numberofRooms && (
+                          <>
+                            <div className="text-xl font-bold">Number of Rooms:</div>
+                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                          </>
+                        )}
 
-                  {itinerary.roomCategory && (
-                    <>
-                    <div className="text-xl font-bold">Room Category:</div>
-                    <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                    </>
-                  )}
+                        {itinerary.roomCategory && (
+                          <>
+                            <div className="text-xl font-bold">Room Category:</div>
+                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                          </>
+                        )}
 
-                  {itinerary.mealsIncluded && (
-                    <>
-                    <div className="text-xl font-bold">Meal Plan:</div>
-                    <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                    </>
-                  )}
-                  </div>
-                </div>
-                ) : (
-                <div>
-                  <div className="grid grid-cols-3 gap-4">
-                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                    <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    <div className="w-[250px] h-[250px]">
-                      <Image
-                      src={image.url}
-                      alt={`Hotel Image ${imgIndex + 1}`}
-                      className="rounded-lg object-cover w-full h-full"
-                      width={250}
-                      height={250}
-                      />
+                        {itinerary.mealsIncluded && (
+                          <>
+                            <div className="text-xl font-bold">Meal Plan:</div>
+                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    </Link>
-                  ))}
-                  </div>
-                  <div className="ml-4">
-                  <div className="text-xl font-bold">Hotel Name:</div>
-                  <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                    <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                  </Link>
-                  {itinerary.numberofRooms && (
-                    <>
-                    <div className="text-xl font-bold">Number of Rooms:</div>
-                    <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                    </>
-                  )}
+                  ) : (
+                    <div>
+                      <div className="grid grid-cols-3 gap-4">
+                        {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                          <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            <div className="w-[250px] h-[250px]">
+                              <Image
+                                src={image.url}
+                                alt={`Hotel Image ${imgIndex + 1}`}
+                                className="rounded-lg object-cover w-full h-full"
+                                width={250}
+                                height={250}
+                              />
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-xl font-bold">Hotel Name:</div>
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                        </Link>
+                        {itinerary.numberofRooms && (
+                          <>
+                            <div className="text-xl font-bold">Number of Rooms:</div>
+                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                          </>
+                        )}
 
-                  {itinerary.roomCategory && (
-                    <>
-                    <div className="text-xl font-bold">Room Category:</div>
-                    <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                    </>
-                  )}
+                        {itinerary.roomCategory && (
+                          <>
+                            <div className="text-xl font-bold">Room Category:</div>
+                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                          </>
+                        )}
 
-                  {itinerary.mealsIncluded && (
-                    <>
-                    <div className="text-xl font-bold">Meal Plan:</div>
-                    <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                    </>
+                        {itinerary.mealsIncluded && (
+                          <>
+                            <div className="text-xl font-bold">Meal Plan:</div>
+                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   )}
-                  </div>
                 </div>
-                )}
-              </div>
               </Card>
             )}
 

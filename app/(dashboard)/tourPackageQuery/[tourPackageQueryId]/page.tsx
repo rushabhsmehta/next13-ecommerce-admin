@@ -30,7 +30,7 @@ const tourPackageQueryPage = async ({
         orderBy: {
           dayNumber: 'asc' // or 'desc', depending on the desired order
         }
-      }
+      },
     }
   });
   // console.log("Fetched tourPackage Query:", tourPackageQuery);

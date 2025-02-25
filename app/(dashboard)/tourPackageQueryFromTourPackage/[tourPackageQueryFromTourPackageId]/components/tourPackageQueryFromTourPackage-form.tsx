@@ -134,10 +134,7 @@ const formSchema = z.object({
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  assignedTo: z.string().optional(),
-  assignedToMobileNumber: z.string().optional(),
-  assignedToEmail: z.string().optional(),
-
+  associatePartnerId: z.string().optional(),
 });
 
 
@@ -161,6 +158,7 @@ interface TourPackageQueryFromTourPackageFormProps {
     })[] | null;
 
   })[] | null;
+  associatePartners: any[];
 };
 
 export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromTourPackageFormProps> = ({
@@ -169,6 +167,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
   hotels,
   activitiesMaster,
   itinerariesMaster,
+  associatePartners,
 
 }) => {
   const params = useParams();
@@ -424,58 +423,93 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             <div className="grid grid-cols-3 gap-8">
               <FormField
                 control={form.control}
-                name="assignedTo"
+                name="associatePartnerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Assigned To"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
+                    <FormLabel>Associate Partner</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? associatePartners.find((partner) => partner.id === field.value)?.name
+                              : "Select Associate Partner..."}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search associate partner..." />
+                          <CommandEmpty>No associate partner found.</CommandEmpty>
+                          <CommandGroup>
+                            {associatePartners.map((partner) => (
+                              <CommandItem
+                                value={partner.name}
+                                key={partner.id}
+                                onSelect={() => {
+                                  form.setValue("associatePartnerId", partner.id);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    partner.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {partner.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="assignedToMobileNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number (Assigned To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Mobile Number (Assigned To)"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assignedToEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email ID (Assinged To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Email ID"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+              <div className="space-y-2">
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-muted-foreground">
+                          Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      Select an associate partner to view contact details
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-muted-foreground">
+                          Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <FormField
@@ -1901,4 +1935,4 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
 
     </>
   )
-} 
+}

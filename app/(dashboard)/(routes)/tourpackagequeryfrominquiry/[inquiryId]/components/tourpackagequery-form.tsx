@@ -378,6 +378,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
+  const [open, setOpen] = useState(false);
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -394,7 +396,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Load from Tour Package</FormLabel>
-                  <Popover>
+                  <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -425,7 +427,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                               <CommandItem
                                 value={tourPackage.tourPackageName ?? ''}
                                 key={tourPackage.id}
-                                onSelect={() => handleTourPackageSelection(tourPackage.id)}
+                                onSelect={() => {
+                                  handleTourPackageSelection(tourPackage.id);
+                                  setOpen(false); // Close the popover after selection
+                                }}
                               >
                                 <CheckIcon 
                                   className={cn(

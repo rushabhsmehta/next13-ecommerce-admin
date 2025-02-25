@@ -133,9 +133,11 @@ const formSchema = z.object({
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  assignedTo: z.string().optional(),
-  assignedToMobileNumber: z.string().optional(),
-  assignedToEmail: z.string().optional(),
+  associatePartnerId: z.string().optional(),
+  
+  //assignedTo: z.string().optional(),
+  //assignedToMobileNumber: z.string().optional(),
+  //assignedToEmail: z.string().optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -146,6 +148,7 @@ interface TourPackageQueryFormProps {
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
   } | null;
+  
   locations: Location[];
   hotels: Hotel[];
   activitiesMaster: (ActivityMaster & {
@@ -157,6 +160,8 @@ interface TourPackageQueryFormProps {
       activityImages: Images[];
     })[] | null;
   })[] | null;
+  associatePartners: any[]; // Add this line
+
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
@@ -165,6 +170,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
+  associatePartners, // Add this
+
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -262,9 +269,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     return {
       ...data,
       tourPackageQueryNumber: data.tourPackageQueryNumber ?? getCurrentDateTimeString(), // Set the current date and time
-      assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
-      assignedToMobileNumber: data.assignedToMobileNumber ?? '',
-      assignedToEmail: data.assignedToEmail ?? '',
+    //  assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
+    //  assignedToMobileNumber: data.assignedToMobileNumber ?? '',
+    //  assignedToEmail: data.assignedToEmail ?? '',
 
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
@@ -307,6 +314,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
+    associatePartnerId: '',
     tourPackageQueryType: '',
     customerName: '',
     customerNumber: '',
@@ -328,9 +336,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
     remarks: '',
-    assignedTo: '',
-    assignedToMobileNumber: '',
-    assignedToEmail: '',
+  //  assignedTo: '',
+  //  assignedToMobileNumber: '',
+  //  assignedToEmail: '',
 
     flightDetails: [],
 
@@ -489,7 +497,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
 
           <div>
-            <div className="grid grid-cols-3 gap-8">
+           {/*  <div className="grid grid-cols-3 gap-8">
               <FormField
                 control={form.control}
                 name="assignedTo"
@@ -544,7 +552,102 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   </FormItem>
                 )}
               />
+            </div> */}
+
+<div className="grid grid-cols-3 gap-8">
+              <FormField
+                control={form.control}
+                name="associatePartnerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Associate Partner</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? associatePartners.find((partner) => partner.id === field.value)?.name
+                              : "Select Associate Partner..."}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search associate partner..." />
+                          <CommandEmpty>No associate partner found.</CommandEmpty>
+                          <CommandGroup>
+                            {associatePartners.map((partner) => (
+                              <CommandItem
+                                value={partner.name}
+                                key={partner.id}
+                                onSelect={() => {
+                                  form.setValue("associatePartnerId", partner.id);
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    partner.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {partner.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Associate partner details will be automatically linked to this query
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-muted-foreground">
+                          Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      Select an associate partner to view contact details
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <>
+                      <div className="flex flex-col space-y-1">                      
+                        <p className="text-muted-foreground">
+                          Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
+
 
             <FormField
               control={form.control}

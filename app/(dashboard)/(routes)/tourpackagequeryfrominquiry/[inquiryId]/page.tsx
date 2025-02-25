@@ -12,10 +12,34 @@ const TourPackageQueryPage = async ({
     }
   });
 
+  const locations = await prismadb.location.findMany();
+  const hotels = await prismadb.hotel.findMany();
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    include: {
+      activityMasterImages: true
+    }
+  });
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true
+        }
+      }
+    }
+  });
+
   return ( 
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryForm initialData={null} inquiry={inquiry} />
+        <TourPackageQueryForm 
+          inquiry={inquiry}
+          locations={locations}
+          hotels={hotels}
+          activitiesMaster={activitiesMaster}
+          itinerariesMaster={itinerariesMaster}
+        />
       </div>
     </div>
   );

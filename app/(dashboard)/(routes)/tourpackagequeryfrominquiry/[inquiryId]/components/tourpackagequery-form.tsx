@@ -201,6 +201,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     price: PRICE_DEFAULT,
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
+    paymentPolicy: PAYMENT_TERMS_DEFAULT,
+    usefulTip: USEFUL_TIPS_DEFAULT,
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+    
     // ...rest of the defaults with standard values...
     images: [],
     flightDetails: [],

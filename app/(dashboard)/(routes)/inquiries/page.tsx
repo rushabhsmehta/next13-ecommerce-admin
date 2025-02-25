@@ -28,6 +28,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     include: {
       location: true,
       associatePartner: true,
+      tourPackageQueries : true,
     },
     orderBy: {
       createdAt: 'desc'
@@ -41,16 +42,15 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     location: item.location.label,
     associatePartner: item.associatePartner?.name || 'Direct',
     status: item.status,
-    numAdults: item.numAdults,
-    numChildren: item.numChildrenAbove11 + item.numChildren5to11 + item.numChildrenBelow5,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    journeyDate: item.journeyDate ? format(new Date(item.journeyDate), 'dd MMM yyyy') : 'No date',
+    tourPackageQueries : item.tourPackageQueries|| 'Not specified'  // Add this line
   }));
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <InquiriesClient 
-          data={formattedInquiries} 
+        <InquiriesClient
+          data={formattedInquiries}
           associates={associates}
         />
       </div>

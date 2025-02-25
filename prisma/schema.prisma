@@ -113,8 +113,12 @@ model TourPackageQuery {
   inquiryId                 String?
   inquiry                   Inquiry?       @relation(fields: [inquiryId], references: [id])
 
+  associatePartnerId       String?
+  associatePartner        AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+
   @@index([locationId])
   @@index([inquiryId])  // Add index for the new foreign key
+  @@index([associatePartnerId])  // Add this index
 }
 
 model PurchaseDetail {
@@ -441,6 +445,7 @@ model AssociatePartner {
   
   inquiries       Inquiry[]
   customers       Customer[]
+  tourPackageQueries    TourPackageQuery[]
 }
 
 model Inquiry {

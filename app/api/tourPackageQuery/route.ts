@@ -97,7 +97,7 @@ export async function POST(
             assignedTo,
             assignedToMobileNumber,
             assignedToEmail,
-         
+            associatePartnerId,  // Add this line
             isFeatured,
             isArchived } = body;
 
@@ -165,8 +165,7 @@ export async function POST(
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
-
-
+                associatePartnerId,  // Add this line
                 //   hotelId,
                 images: {
                     createMany: {
@@ -194,6 +193,7 @@ export async function POST(
         const createdTourPackageQuery = await prismadb.tourPackageQuery.findUnique({
             where: { id: newTourPackageQuery.id },
             include: {
+                associatePartner: true,  // Add this line
                 // Include relevant relations
             },
         });
@@ -212,6 +212,7 @@ export async function GET(
     try {
         const { searchParams } = new URL(req.url)
         const locationId = searchParams.get('locationId') || undefined;
+        const associatePartnerId = searchParams.get('associatePartnerId') || undefined;  // Add this line
         //  const hotelId = searchParams.get('hotelId') || undefined;
         const isFeatured = searchParams.get('isFeatured');
 
@@ -219,13 +220,13 @@ export async function GET(
         const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
             where: {
                 locationId,
+                associatePartnerId,  // Add this line
                 //hotelId,
                 isFeatured: isFeatured ? true : undefined,
                 isArchived: false,
             },
             include: {
-
-         
+                associatePartner: true,  // Add this line
                 images: true,
                 location: true,
                 itineraries: {

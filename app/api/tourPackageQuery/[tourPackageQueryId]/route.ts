@@ -21,9 +21,7 @@ export async function GET(
         id: params.tourPackageQueryId
       },
       include: {
-        
-     
-
+        associatePartner: true,
         flightDetails: true,
         images: true,
         location: true,
@@ -183,6 +181,7 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,    
+      associatePartnerId,
     } = body;
 
 //   console.log(flightDetails);
@@ -265,6 +264,7 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
+      associatePartnerId,
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {
@@ -328,7 +328,7 @@ export async function PATCH(
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
       include: {
-      
+        associatePartner: true,
         location: true,
         flightDetails: true,
         images: true,

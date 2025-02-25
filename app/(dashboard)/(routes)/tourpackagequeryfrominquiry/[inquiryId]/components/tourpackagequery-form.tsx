@@ -134,7 +134,7 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(),
- 
+
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -385,6 +385,27 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 )}
               />
 
+              <div className="space-y-2">
+                <div className="text-sm">
+                  {form.watch("associatePartnerId") ? (
+                    <>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-muted-foreground">
+                          Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
+                        </p>
+                        <p className="text-muted-foreground">
+                          Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      Select an associate partner to view contact details
+                    </p>
+                  )}
+                </div>
+              </div>
+              
               <FormField
                 control={form.control}
                 name="images"

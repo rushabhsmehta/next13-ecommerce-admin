@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select"
 import axios from "axios"
 import { toast } from "react-hot-toast"
+import { TourPackageQuery } from "@prisma/client"
+import { QueryLink } from "./query-link"
 
 // Add status options
 const statusOptions = [
@@ -77,9 +79,8 @@ export type InquiryColumn = {
   location: string
   associatePartner: string
   status: string
-  numAdults: number
-  numChildren: number
-  createdAt: string
+  journeyDate: string
+  tourPackageQueries: TourPackageQuery[];  // Add this line
 }
 
 export const columns: ColumnDef<InquiryColumn>[] = [
@@ -95,7 +96,6 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     accessorKey: "location",
     header: "Location",
     cell: ({ row }) => row.original.location,
-
   },
   {
     accessorKey: "associatePartner",
@@ -142,20 +142,30 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     }
   },
   {
-    accessorKey: "numAdults",
-    header: "Adults",
+    accessorKey: "journeyDate",
+    header: "Journey Date",
   },
   {
-    accessorKey: "numChildren",
-    header: "Children",
+    accessorKey: "tourPackageQueries",
+    header: "Tour Package Queries",
+    cell: ({ row }) => {
+      const queries = row.original.tourPackageQueries;
+      if (!queries || queries.length === 0) return "No queries";
+      
+      return (
+        <div className="space-y-1">
+          {queries.map((query, index) => (
+            <span key={query.id}>
+              <QueryLink query={query} />
+              {index < queries.length - 1 && ", "}
+            </span>
+          ))}
+        </div>
+      );
+    }
   },
   {
-    accessorKey: "createdAt",
-    header: "Date",
+    id: "actions",
+    cell: ({ row }) => <CellAction data={row.original} />
   },
-
-  {
-      id: "actions",
-      cell: ({ row }) => <CellAction data={row.original} />
-    },
 ]

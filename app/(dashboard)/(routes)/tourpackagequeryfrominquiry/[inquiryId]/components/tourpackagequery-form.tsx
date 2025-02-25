@@ -418,7 +418,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   )}
                 </div>
               </div>
-              
+            </div>
+
               <FormField
                 control={form.control}
                 name="images"
@@ -1868,8 +1869,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             <Button disabled={loading} className="ml-auto" type="submit">
               Create Tour Package Query
             </Button>
-
-          </div>
         </form >
       </Form >
     </>

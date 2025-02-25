@@ -400,8 +400,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             "w-full justify-between",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={!form.getValues('locationId')} // Disable if no location selected
                         >
-                          { field.value ? tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName : "Select Tour Package Template" }
+                          {!form.getValues('locationId') 
+                            ? "Select a location first"
+                            : field.value 
+                              ? tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName 
+                              : "Select Tour Package Template"
+                          }
                           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
@@ -411,22 +417,26 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <CommandInput placeholder="Search tour package..." />
                         <CommandEmpty>No tour package found.</CommandEmpty>
                         <CommandGroup>
-                          {tourPackages?.map((tourPackage) => (
-                            <CommandItem
-                              value={tourPackage.tourPackageName ?? ''}
-                              key={tourPackage.id}
-                              onSelect={() => handleTourPackageSelection(tourPackage.id)}
-                            >
-                              <CheckIcon className="mr-2 h-4 w-4 opacity-0" />
-                              {tourPackage.tourPackageName}
-                            </CommandItem>
+                          {tourPackages
+                            ?.filter(tp => tp.locationId === form.getValues('locationId'))
+                            .map((tourPackage) => (
+                              <CommandItem
+                                value={tourPackage.tourPackageName ?? ''}
+                                key={tourPackage.id}
+                                onSelect={() => handleTourPackageSelection(tourPackage.id)}
+                              >
+                                <CheckIcon className="mr-2 h-4 w-4 opacity-0" />
+                                {tourPackage.tourPackageName}
+                              </CommandItem>
                           ))}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    Select an existing tour package to use as a template
+                    {!form.getValues('locationId') 
+                      ? "Please select a location first to view available tour packages" 
+                      : "Select an existing tour package to use as a template"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -1259,6 +1269,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 newFlightDetails[index] = { ...flight, departureTime: e.target.value };
                                 onChange(newFlightDetails);
                               }}
+
                             />
 
                           </FormControl>

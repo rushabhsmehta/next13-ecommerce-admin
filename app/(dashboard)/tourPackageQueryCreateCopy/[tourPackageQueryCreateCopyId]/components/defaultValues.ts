@@ -43,7 +43,7 @@ export const CANCELLATION_POLICY_DEFAULT =
     "- Before 29 To 14 Days Of Departure 10% Will Be Refundable\n" +
     "- Before 14 Days Of Departure No Refund.";
 
-export const ARILINE_CANCELLATION_POLICY_DEFAULT =
+export const AIRLINE_CANCELLATION_POLICY_DEFAULT =
     "∎ As per Airline Policy\n";
 
 export const PAYMENT_TERMS_DEFAULT =

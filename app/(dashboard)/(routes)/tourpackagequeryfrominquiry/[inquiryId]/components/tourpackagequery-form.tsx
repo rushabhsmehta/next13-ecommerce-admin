@@ -405,7 +405,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   )}
                 </div>
               </div>
-              
+              <div>
+              </div>
+
               <FormField
                 control={form.control}
                 name="images"

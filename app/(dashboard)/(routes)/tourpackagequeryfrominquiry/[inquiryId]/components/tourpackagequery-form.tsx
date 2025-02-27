@@ -305,7 +305,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           activityTitle: activity.activityTitle || '',
           activityDescription: activity.activityDescription || ''
         })) || [],
-        mealsIncluded: Array.isArray(itinerary.mealsIncluded) ? itinerary.mealsIncluded : [],
+        mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         hotelId: itinerary.hotelId || '',
         numberofRooms: itinerary.numberofRooms || '',
         roomCategory: itinerary.roomCategory || ''

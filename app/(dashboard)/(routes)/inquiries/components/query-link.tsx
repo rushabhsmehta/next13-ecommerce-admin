@@ -10,7 +10,7 @@ interface QueryLinkProps {
 export const QueryLink: React.FC<QueryLinkProps> = ({ query }) => {
   return (
     <Link
-      href={`/queries/${query.id}`}
+      href={`/tourPackageQuery/${query.id}`}
       className="text-blue-600 hover:underline cursor-pointer"
     >
       {query.tourPackageQueryName || `Query #${query.id}`}

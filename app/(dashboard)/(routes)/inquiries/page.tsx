@@ -29,6 +29,11 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       location: true,
       associatePartner: true,
       tourPackageQueries : true,
+      actions: {
+        orderBy: {
+          createdAt: 'desc'
+        }
+      }
     },
     orderBy: {
       createdAt: 'desc'
@@ -43,7 +48,13 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     associatePartner: item.associatePartner?.name || 'Direct',
     status: item.status,
     journeyDate: item.journeyDate ? format(new Date(item.journeyDate), 'dd MMM yyyy') : 'No date',
-    tourPackageQueries : item.tourPackageQueries|| 'Not specified'  // Add this line
+    tourPackageQueries : item.tourPackageQueries|| 'Not specified',  // Add this line
+    actionHistory: item.actions?.map(action => ({
+      status: action.actionType,
+      remarks: action.remarks,
+      timestamp: format(new Date(action.actionDate), 'dd MMM yyyy HH:mm'),
+      type: action.actionType
+    })) || []
   }));
 
   return (

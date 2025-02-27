@@ -36,7 +36,7 @@ const StatusCell = ({ row }: { row: any }) => {
       });
       toast.success("Status updated");
       // Optionally refresh the page or update the UI
-     // window.location.relroad();
+      // window.location.relroad();
     } catch (error) {
       toast.error("Failed to update status");
     } finally {
@@ -55,13 +55,13 @@ const StatusCell = ({ row }: { row: any }) => {
       </SelectTrigger>
       <SelectContent>
         {statusOptions.map((status) => (
-          <SelectItem 
-            key={status.value} 
+          <SelectItem
+            key={status.value}
             value={status.value}
             className={
               status.value === "CONFIRMED" ? "text-green-600" :
-              status.value === "CANCELLED" ? "text-red-600" :
-              "text-yellow-600"
+                status.value === "CANCELLED" ? "text-red-600" :
+                  "text-yellow-600"
             }
           >
             {status.label}
@@ -81,6 +81,12 @@ export type InquiryColumn = {
   status: string
   journeyDate: string
   tourPackageQueries: TourPackageQuery[];  // Add this line
+  actionHistory: {
+    status: string;
+    remarks: string;
+    timestamp: string;
+    type: string;
+  }[];
 }
 
 export const columns: ColumnDef<InquiryColumn>[] = [
@@ -120,13 +126,13 @@ export const columns: ColumnDef<InquiryColumn>[] = [
           <SelectContent>
             <SelectItem value="ALL">All Status</SelectItem>
             {statusOptions.map((status) => (
-              <SelectItem 
-                key={status.value} 
+              <SelectItem
+                key={status.value}
                 value={status.value}
                 className={
                   status.value === "CONFIRMED" ? "text-green-600" :
-                  status.value === "CANCELLED" ? "text-red-600" :
-                  "text-yellow-600"
+                    status.value === "CANCELLED" ? "text-red-600" :
+                      "text-yellow-600"
                 }
               >
                 {status.label}
@@ -146,12 +152,61 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     header: "Journey Date",
   },
   {
+      accessorKey: "actionHistory",
+      header: "Action History",
+      cell: ({ row }) => {
+        const history = row.original.actionHistory;
+        if (!history || history.length === 0) return "No actions";
+  
+        const getActionTypeColor = (type: string) => {
+          switch (type.toUpperCase()) {
+            case 'CALL':
+              return 'border-green-500';
+            case 'MESSAGE':
+              return 'border-blue-500';
+            case 'EMAIL':
+              return 'border-yellow-500';
+            default:
+              return 'border-gray-500';
+          }
+        };
+  
+        return (
+          <div className="space-y-2 max-w-[300px]">
+            {history.map((action, index) => (
+              <div 
+                key={index} 
+                className={`text-sm border-l-2 pl-2 ${getActionTypeColor(action.type)}`}
+              >
+                <div className="font-medium flex items-center gap-2">
+                  <span>{action.type}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {action.timestamp}
+                  </span>
+                </div>
+                {action.remarks && (
+                  <div className="text-muted-foreground text-xs mt-1">
+                    {action.remarks}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      }
+    },
+    {
+    id: "actions",
+    cell: ({ row }) => <CellAction data={row.original} />
+  },
+
+  {
     accessorKey: "tourPackageQueries",
     header: "Tour Package Queries",
     cell: ({ row }) => {
       const queries = row.original.tourPackageQueries;
       if (!queries || queries.length === 0) return "No queries";
-      
+
       return (
         <div className="space-y-1">
           {queries.map((query, index) => (

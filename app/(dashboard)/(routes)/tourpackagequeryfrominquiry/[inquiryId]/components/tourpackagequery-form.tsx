@@ -325,12 +325,25 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
+
+    const formattedData = {
+      ...data,
+      inquiryId: params.inquiryId,
+      itineraries: data.itineraries.map(itinerary => ({
+        ...itinerary,
+        locationId: data.locationId,
+        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0
+          ? itinerary.mealsIncluded.join('-')
+          : '',
+        activities: itinerary.activities?.map((activity) => ({
+          ...activity,
+          locationId: data.locationId,
+        }))
+      })),
+    }
     try {
       setLoading(true);
-      await axios.post(`/api/tourPackageQuery`, {
-        ...data,
-        inquiryId: params.inquiryId,
-      });
+      await axios.post(`/api/tourPackageQuery`, formattedData);
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success('Tour Package Query created from inquiry.');
@@ -342,22 +355,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const handleMealChange = (mealType: string, isChecked: boolean, itineraryIndex: number) => {
-
-    // console.log("Current meal change:", mealType, isChecked, itineraryIndex);
-
     const updatedItineraries = [...form.getValues('itineraries')];
     let currentMeals = updatedItineraries[itineraryIndex].mealsIncluded || [];
-
+  
     if (isChecked) {
-      // Add the meal type if checked and not already present
       if (!currentMeals.includes(mealType)) {
         currentMeals.push(mealType);
       }
     } else {
-      // Remove the meal type if unchecked
       currentMeals = currentMeals.filter((meal) => meal !== mealType);
     }
-
+  
+    // Join the meals array with a hyphen before saving
     updatedItineraries[itineraryIndex].mealsIncluded = currentMeals;
     form.setValue('itineraries', updatedItineraries);
   };

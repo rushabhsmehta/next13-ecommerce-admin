@@ -91,7 +91,7 @@ const flightDetailsSchema = z.object({
 
 }); // Assuming an array of flight details
 
-const formSchema = z.object({
+const formSchema = z.object({  
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),

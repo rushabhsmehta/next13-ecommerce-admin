@@ -98,6 +98,7 @@ export async function POST(
             assignedToMobileNumber,
             assignedToEmail,
             associatePartnerId,  // Add this line
+            inquiryId,
             isFeatured,
             isArchived } = body;
 
@@ -129,6 +130,7 @@ export async function POST(
 
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
+                inquiryId,
                 tourPackageQueryNumber,
                 tourPackageQueryName,
                 tourPackageQueryType,
@@ -194,6 +196,7 @@ export async function POST(
             where: { id: newTourPackageQuery.id },
             include: {
                 associatePartner: true,  // Add this line
+                inquiry: true,
                 // Include relevant relations
             },
         });

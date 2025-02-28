@@ -284,6 +284,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
       form.setValue('tour_highlights', selectedTourPackage.tour_highlights || '');
       form.setValue('price', selectedTourPackage.price || '');
+      form.setValue('pricePerAdult', selectedTourPackage.pricePerAdult || '');
+      form.setValue('pricePerChildOrExtraBed', selectedTourPackage.pricePerChildOrExtraBed || '');
+      form.setValue('pricePerChild5to12YearsNoBed', selectedTourPackage.pricePerChild5to12YearsNoBed || '');
+      form.setValue('pricePerChildwithSeatBelow5Years', selectedTourPackage.pricePerChildwithSeatBelow5Years || '');
+      form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
       form.setValue('inclusions', selectedTourPackage.inclusions || '');
       form.setValue('exclusions', selectedTourPackage.exclusions || '');
       form.setValue('importantNotes', selectedTourPackage.importantNotes || '');
@@ -1186,7 +1191,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
             </div>
 
-            <FormField
+            <FormField 
               control={form.control}
               name="tour_highlights"
               render={({ field }) => (

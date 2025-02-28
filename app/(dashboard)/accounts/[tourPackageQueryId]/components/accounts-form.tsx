@@ -286,7 +286,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
 
   return (
     <>
-      <AlertModal
+      {/* <AlertModal
         isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onDelete}
@@ -304,7 +304,11 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             <Trash className="h-4 w-4" />
           </Button>
         )}
-      </div>
+      </div> */}
+
+<div className="flex items-center justify-between">
+<Heading title={title} description={description} />
+</div>
       <Separator />
 
       <Form {...form}>

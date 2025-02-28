@@ -189,6 +189,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
 
   const [open, setOpen] = useState(false);
+  const [tourPackageTemplateSelectionOpen, settourPackageTemplateSelectionOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   const editor = useRef(null)
@@ -566,7 +567,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Load from Tour Package</FormLabel>
-                  <Popover open={open} onOpenChange={setOpen}>
+                  <Popover open={tourPackageTemplateSelectionOpen} onOpenChange={settourPackageTemplateSelectionOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -599,7 +600,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 key={tourPackage.id}
                                 onSelect={() => {
                                   handleTourPackageSelection(tourPackage.id);
-                                  setOpen(false); // Close the popover after selection
+                                  settourPackageTemplateSelectionOpen(false); // Close the popover after selection
                                 }}
                               >
                                 <CheckIcon

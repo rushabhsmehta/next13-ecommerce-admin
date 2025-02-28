@@ -69,6 +69,26 @@ const tourPackageQueryPage = async ({
     }
   });
 
+  const tourPackages = await prismadb.tourPackage.findMany({
+    where: {
+      isArchived: false
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
+            }
+          }
+        }
+      }
+    }
+  });
+
   return (
     <>{/*       <Navbar /> */}
 
@@ -82,6 +102,7 @@ const tourPackageQueryPage = async ({
             activitiesMaster={activitiesMaster}
             itinerariesMaster={itinerariesMaster}
             associatePartners={associatePartners}
+            tourPackages={tourPackages}
           />
         </div>
 

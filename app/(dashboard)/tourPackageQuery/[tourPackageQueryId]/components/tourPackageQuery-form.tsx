@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
-import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
+import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
   Command,
@@ -92,6 +92,7 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
+  tourPackageTemplate: z.string().optional(),  
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   tourPackageQueryType: z.string().optional(),
@@ -160,7 +161,16 @@ interface TourPackageQueryFormProps {
     })[] | null;
   })[] | null;
   associatePartners: AssociatePartner[]; // Add this line
-
+  tourPackages: (TourPackage & {
+    images: Images[];
+    flightDetails: FlightDetails[];
+    itineraries: (Itinerary & {
+      itineraryImages: Images[];
+      activities: (Activity & {
+        activityImages: Images[];
+      })[] | null;
+    })[] | null;
+  })[] | null;
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
@@ -170,7 +180,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   activitiesMaster,
   itinerariesMaster,
   associatePartners, // Add this
-
+  tourPackages,
 }) => {
   const params = useParams();
   const router = useRouter();
@@ -310,7 +320,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const defaultValues = initialData ? transformInitialData(initialData) : {
-
+    tourPackageTemplate: '',
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
     associatePartnerId: '',
@@ -391,6 +401,66 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
     updatedItineraries[itineraryIndex].mealsIncluded = currentMeals;
     form.setValue('itineraries', updatedItineraries);
+  };
+
+  const handleTourPackageSelection = (selectedTourPackageId: string) => {
+    const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
+    if (selectedTourPackage) {
+      // Add this line to update the tourPackageTemplate field
+      form.setValue('tourPackageTemplate', selectedTourPackageId);
+
+      // Rest of your existing setValue calls
+      form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
+      form.setValue('locationId', selectedTourPackage.locationId);
+      form.setValue('numDaysNight', selectedTourPackage.numDaysNight || '');
+      form.setValue('transport', selectedTourPackage.transport || '');
+      form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
+      form.setValue('drop_location', selectedTourPackage.drop_location || '');
+      form.setValue('tour_highlights', selectedTourPackage.tour_highlights || '');
+      form.setValue('price', selectedTourPackage.price || '');
+      form.setValue('pricePerAdult', selectedTourPackage.pricePerAdult || '');
+      form.setValue('pricePerChildOrExtraBed', selectedTourPackage.pricePerChildOrExtraBed || '');
+      form.setValue('pricePerChild5to12YearsNoBed', selectedTourPackage.pricePerChild5to12YearsNoBed || '');
+      form.setValue('pricePerChildwithSeatBelow5Years', selectedTourPackage.pricePerChildwithSeatBelow5Years || '');
+      form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
+      form.setValue('inclusions', selectedTourPackage.inclusions || '');
+      form.setValue('exclusions', selectedTourPackage.exclusions || '');
+      form.setValue('importantNotes', selectedTourPackage.importantNotes || '');
+      form.setValue('paymentPolicy', selectedTourPackage.paymentPolicy || '');
+      form.setValue('usefulTip', selectedTourPackage.usefulTip || '');
+      form.setValue('cancellationPolicy', selectedTourPackage.cancellationPolicy || '');
+      form.setValue('airlineCancellationPolicy', selectedTourPackage.airlineCancellationPolicy || '');
+      form.setValue('termsconditions', selectedTourPackage.termsconditions || '');
+      form.setValue('images', selectedTourPackage.images || []);
+      const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => ({
+        locationId: itinerary.locationId,
+        itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
+        itineraryTitle: itinerary.itineraryTitle || '',
+        itineraryDescription: itinerary.itineraryDescription || '',
+        dayNumber: itinerary.dayNumber || 0,
+        days: itinerary.days || '',
+        activities: itinerary.activities?.map(activity => ({
+          activityImages: activity.activityImages?.map(img => ({ url: img.url })) || [],
+          activityTitle: activity.activityTitle || '',
+          activityDescription: activity.activityDescription || ''
+        })) || [],
+        mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
+        hotelId: itinerary.hotelId || '',
+        numberofRooms: itinerary.numberofRooms || '',
+        roomCategory: itinerary.roomCategory || ''
+      })) || [];
+      form.setValue('itineraries', transformedItineraries);
+      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
+        date: flight.date || undefined,
+        flightName: flight.flightName || undefined,
+        flightNumber: flight.flightNumber || undefined,
+        from: flight.from || undefined,
+        to: flight.to || undefined,
+        departureTime: flight.departureTime || undefined,
+        arrivalTime: flight.arrivalTime || undefined,
+        flightDuration: flight.flightDuration || undefined
+      })));
+    }
   };
 
 
@@ -551,7 +621,70 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   </FormItem>
                 )}
               />
-            </div> */}
+            </div> */}  <FormField
+              control={form.control}
+              name="tourPackageTemplate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Load from Tour Package</FormLabel>
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={!form.getValues('locationId')} // Disable if no location selected
+                        >
+                          {!form.getValues('locationId')
+                            ? "Select a location first"
+                            : tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName || "Select Tour Package Template"
+                          }
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search tour package..." />
+                        <CommandEmpty>No tour package found.</CommandEmpty>
+                        <CommandGroup>
+                          {tourPackages
+                            ?.filter(tp => tp.locationId === form.getValues('locationId'))
+                            .map((tourPackage) => (
+                              <CommandItem
+                                value={tourPackage.tourPackageName ?? ''}
+                                key={tourPackage.id}
+                                onSelect={() => {
+                                  handleTourPackageSelection(tourPackage.id);
+                                  setOpen(false); // Close the popover after selection
+                                }}
+                              >
+                                <CheckIcon
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    tourPackage.id === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {tourPackage.tourPackageName}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    {!form.getValues('locationId')
+                      ? "Please select a location first to view available tour packages"
+                      : "Select an existing tour package to use as a template"}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-3 gap-8">
               <FormField

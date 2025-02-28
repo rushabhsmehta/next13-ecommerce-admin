@@ -89,7 +89,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
       itineraryDescription: itinerary.itineraryDescription,
       locationId: itinerary.locationId,
       tourPackageId: itinerary.tourPackageId,
-      // Updated relation linking:
+      tourPackageQueryId: tourPackageQueryId,
       dayNumber: itinerary.dayNumber,
       days: itinerary.days,
       hotelId: itinerary.hotelId,
@@ -107,7 +107,7 @@ async function createItineraryAndActivities(itinerary: { itineraryTitle: any; it
   // Next, create activities linked to this itinerary
   if (itinerary.activities && itinerary.activities.length > 0) {
     await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-    // console.log("Received Activities is ", activity);
+      // console.log("Received Activities is ", activity);
       return prismadb.activity.create({
         data: {
           itineraryId: createdItinerary.id, // Link to the created itinerary
@@ -181,11 +181,11 @@ export async function PATCH(
       isArchived,
       assignedTo,
       assignedToMobileNumber,
-      assignedToEmail,    
+      assignedToEmail,
       associatePartnerId,
     } = body;
 
-//   console.log(flightDetails);
+    //   console.log(flightDetails);
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -289,7 +289,7 @@ export async function PATCH(
       }
     }
 
-  //  console.log('tourPackageUpdateData:', tourPackageUpdateData);
+    //  console.log('tourPackageUpdateData:', tourPackageUpdateData);
 
     await prismadb.tourPackageQuery.update({
       where: { id: params.tourPackageQueryId },
@@ -330,7 +330,7 @@ export async function PATCH(
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
       include: {
-        
+
         associatePartner: true,
         location: true,
         flightDetails: true,

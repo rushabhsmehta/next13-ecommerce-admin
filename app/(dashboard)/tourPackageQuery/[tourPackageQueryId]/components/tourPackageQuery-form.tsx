@@ -532,11 +532,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
-
-  // Function to handle meal checkbox changes
-
-
-
   return (
     <>
       <AlertModal

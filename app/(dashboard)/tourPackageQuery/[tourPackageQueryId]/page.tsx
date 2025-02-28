@@ -14,7 +14,7 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,
+      images: true,      
       flightDetails: true,
       itineraries: {
         include: {

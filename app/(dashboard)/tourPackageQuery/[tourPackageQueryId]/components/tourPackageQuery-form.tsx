@@ -92,6 +92,7 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
+  inquiryId: z.string().optional(),
   tourPackageTemplate: z.string().optional(),  
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
@@ -320,6 +321,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const defaultValues = initialData ? transformInitialData(initialData) : {
+    inquiryId: '',
     tourPackageTemplate: '',
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
@@ -408,7 +410,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field
       form.setValue('tourPackageTemplate', selectedTourPackageId);
-
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
       form.setValue('locationId', selectedTourPackage.locationId);
@@ -479,9 +480,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           locationId: data.locationId,
         }))
       })),
-
-
-
     };
 
     try {

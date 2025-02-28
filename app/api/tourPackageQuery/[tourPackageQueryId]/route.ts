@@ -138,6 +138,7 @@ export async function PATCH(
     const body = await req.json();
 
     const {
+      inquiryId,
       tourPackageQueryNumber,
       tourPackageQueryName,
       tourPackageQueryType,
@@ -226,6 +227,7 @@ export async function PATCH(
       //    id: params.tourPackageQueryId
       //  },
       //    data: {
+      inquiryId,
       tourPackageQueryNumber,
       tourPackageQueryName,
       tourPackageQueryType,
@@ -328,6 +330,7 @@ export async function PATCH(
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
       include: {
+        
         associatePartner: true,
         location: true,
         flightDetails: true,

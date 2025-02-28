@@ -91,7 +91,7 @@ const flightDetailsSchema = z.object({
 
 }); // Assuming an array of flight details
 
-const formSchema = z.object({  
+const formSchema = z.object({
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
@@ -274,7 +274,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field
       form.setValue('tourPackageTemplate', selectedTourPackageId);
-      
+
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
       form.setValue('locationId', selectedTourPackage.locationId);
@@ -357,7 +357,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleMealChange = (mealType: string, isChecked: boolean, itineraryIndex: number) => {
     const updatedItineraries = [...form.getValues('itineraries')];
     let currentMeals = updatedItineraries[itineraryIndex].mealsIncluded || [];
-  
+
     if (isChecked) {
       if (!currentMeals.includes(mealType)) {
         currentMeals.push(mealType);
@@ -365,7 +365,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     } else {
       currentMeals = currentMeals.filter((meal) => meal !== mealType);
     }
-  
+
     // Join the meals array with a hyphen before saving
     updatedItineraries[itineraryIndex].mealsIncluded = currentMeals;
     form.setValue('itineraries', updatedItineraries);
@@ -417,7 +417,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           )}
                           disabled={!form.getValues('locationId')} // Disable if no location selected
                         >
-                          {!form.getValues('locationId') 
+                          {!form.getValues('locationId')
                             ? "Select a location first"
                             : tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName || "Select Tour Package Template"
                           }
@@ -441,7 +441,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   setOpen(false); // Close the popover after selection
                                 }}
                               >
-                                <CheckIcon 
+                                <CheckIcon
                                   className={cn(
                                     "mr-2 h-4 w-4",
                                     tourPackage.id === field.value ? "opacity-100" : "opacity-0"
@@ -449,14 +449,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 />
                                 {tourPackage.tourPackageName}
                               </CommandItem>
-                          ))}
+                            ))}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    {!form.getValues('locationId') 
-                      ? "Please select a location first to view available tour packages" 
+                    {!form.getValues('locationId')
+                      ? "Please select a location first to view available tour packages"
                       : "Select an existing tour package to use as a template"}
                   </FormDescription>
                   <FormMessage />
@@ -1062,7 +1062,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Adult</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Adult" {...field} />
+                      <Input disabled={loading} placeholder="Price per Adult" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1076,7 +1078,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Child/Extra Bed</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field} />
+                      <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1091,7 +1095,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field} />
+                      <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1105,7 +1111,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field} />
+                      <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1119,7 +1127,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Total Price</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Total Price" {...field} />
+                      <Input disabled={loading} placeholder="Total Price" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

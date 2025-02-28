@@ -1056,8 +1056,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             </TabsContent>
           </Tabs>
 
-
-
           <Button disabled={loading} className="ml-auto" type="submit">
             {action}
           </Button>

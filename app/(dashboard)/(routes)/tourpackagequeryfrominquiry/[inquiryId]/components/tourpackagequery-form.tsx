@@ -2014,12 +2014,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </div>
           </div>
-          <div className="hidden">
-
-
-
-          </div>
-
+       
           <Button disabled={loading} className="ml-auto" type="submit">
             Create Tour Package Query
           </Button>

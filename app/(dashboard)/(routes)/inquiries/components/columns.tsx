@@ -72,34 +72,51 @@ const renderActionHistory = ({ row }: { row: any }) => {
   const history = row.original.actionHistory;
   if (!history || history.length === 0) return "No actions";
 
+  // Show only the latest 2 actions
+  const latestActions = [...history]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 2);
+
   const getActionTypeColor = (type: string) => {
     switch (type.toUpperCase()) {
       case 'CALL':
-        return 'border-green-500';
+        return 'border-green-500 bg-green-50';
       case 'MESSAGE':
-        return 'border-blue-500';
+        return 'border-blue-500 bg-blue-50';
       case 'EMAIL':
-        return 'border-yellow-500';
+        return 'border-yellow-500 bg-yellow-50';
       default:
-        return 'border-gray-500';
+        return 'border-gray-500 bg-gray-50';
     }
   };
 
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="p-4 bg-muted/10 space-y-2">
-      {history.map((action: any, index: number) => (
+    <div className="space-y-2 min-w-[200px]">
+      {latestActions.map((action: any, index: number) => (
         <div 
           key={index} 
-          className={`text-sm border-l-2 pl-2 ${getActionTypeColor(action.type)}`}
+          className={`
+            text-xs rounded-md p-2 border-l-2
+            ${getActionTypeColor(action.type)}
+          `}
         >
-          <div className="font-medium flex items-center gap-2">
-            <span>{action.type}</span>
-            <span className="text-xs text-muted-foreground">
-              {action.timestamp}
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{action.type}</span>
+            <span className="text-muted-foreground">
+              {formatDate(action.timestamp)}
             </span>
           </div>
           {action.remarks && (
-            <div className="text-muted-foreground text-xs mt-1">
+            <div className="text-muted-foreground mt-1 truncate">
               {action.remarks}
             </div>
           )}
@@ -181,23 +198,9 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     header: "Journey Date",
   },
   {
-    id: 'expander',
-    header: 'History',
-    cell: ({ row }) => {
-      return (
-        <button
-          onClick={row.getToggleExpandedHandler()}
-          className="flex items-center gap-2"
-        >
-          {row.getIsExpanded() ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-          {row.original.actionHistory?.length || 0} Actions
-        </button>
-      )
-    }
+    accessorKey: "actionHistory",
+    header: "Recent Actions",
+    cell: renderActionHistory
   },
   {
     accessorKey: "tourPackageQueries",

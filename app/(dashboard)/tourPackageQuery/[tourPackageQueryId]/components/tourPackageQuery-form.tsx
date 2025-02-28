@@ -93,7 +93,7 @@ const flightDetailsSchema = z.object({
 
 const formSchema = z.object({
   inquiryId: z.string().optional(),
-  tourPackageTemplate: z.string().optional(),  
+  tourPackageTemplate: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   tourPackageQueryType: z.string().optional(),
@@ -559,62 +559,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
 
           <div>
-            {/*  <div className="grid grid-cols-3 gap-8">
-              <FormField
-                control={form.control}
-                name="assignedTo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Assigned To"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assignedToMobileNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number (Assigned To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Mobile Number (Assigned To)"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="assignedToEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email ID (Assinged To)</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={loading}
-                        placeholder="Email ID"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div> */}  <FormField
+            <FormField
               control={form.control}
               name="tourPackageTemplate"
               render={({ field }) => (
@@ -678,8 +623,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </FormItem>
               )}
             />
-
             <div className="grid grid-cols-3 gap-8">
+
               <FormField
                 control={form.control}
                 name="associatePartnerId"
@@ -772,7 +717,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </div>
               </div>
             </div>
-
 
             <FormField
               control={form.control}
@@ -1278,7 +1222,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Adult</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Adult" {...field} />
+                      <Input disabled={loading} placeholder="Price per Adult" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1292,7 +1238,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Child/Extra Bed</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field} />
+                      <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1307,7 +1255,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field} />
+                      <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1321,7 +1271,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field} />
+                      <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1335,7 +1287,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <FormItem>
                     <FormLabel>Total Price</FormLabel>
                     <FormControl>
-                      <Input disabled={loading} placeholder="Total Price" {...field} />
+                      <Input disabled={loading} placeholder="Total Price" {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1406,8 +1360,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       }}
                       value={field.value || TOUR_HIGHLIGHTS_DEFAULT} // Set initial content from form field value                      
                       /*  config={{ // Configure Jodit options (optional)
-                       readonly: loading, // Disable editing if loading                       
-                     }} */
+                     readonly: loading, // Disable editing if loading                       
+                   }} */
                       onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
                     />
 
@@ -1506,6 +1460,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 newFlightDetails[index] = { ...flight, departureTime: e.target.value };
                                 onChange(newFlightDetails);
                               }}
+
                             />
 
                           </FormControl>
@@ -2213,11 +2168,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 )}
               />
             </div>
-          </div>
-          <div className="hidden">
-
-
-
           </div>
 
           <Button disabled={loading} className="ml-auto" type="submit">

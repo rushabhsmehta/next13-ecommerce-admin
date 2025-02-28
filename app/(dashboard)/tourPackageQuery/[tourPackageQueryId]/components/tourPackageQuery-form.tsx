@@ -544,6 +544,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         <Heading title={title} description={description} />
         {initialData && (
           <Button
+            type="button"
             disabled={loading}
             variant="destructive"
             size="sm"

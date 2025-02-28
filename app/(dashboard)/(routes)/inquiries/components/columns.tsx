@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
+import { QueryLink } from "./query-link"
+import { ChevronDown, ChevronRight } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -13,16 +15,13 @@ import {
 import axios from "axios"
 import { toast } from "react-hot-toast"
 import { TourPackageQuery } from "@prisma/client"
-import { QueryLink } from "./query-link"
 
-// Add status options
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
-// Create StatusCell component
 const StatusCell = ({ row }: { row: any }) => {
   const [loading, setLoading] = useState(false);
   const initialStatus = row.original.status;
@@ -30,13 +29,10 @@ const StatusCell = ({ row }: { row: any }) => {
   const onStatusChange = async (newStatus: string) => {
     try {
       setLoading(true);
-      // Use the new status-specific endpoint
       await axios.patch(`/api/inquiries/${row.original.id}/status`, {
         status: newStatus
       });
       toast.success("Status updated");
-      // Optionally refresh the page or update the UI
-      // window.location.relroad();
     } catch (error) {
       toast.error("Failed to update status");
     } finally {
@@ -60,8 +56,8 @@ const StatusCell = ({ row }: { row: any }) => {
             value={status.value}
             className={
               status.value === "CONFIRMED" ? "text-green-600" :
-                status.value === "CANCELLED" ? "text-red-600" :
-                  "text-yellow-600"
+              status.value === "CANCELLED" ? "text-red-600" :
+              "text-yellow-600"
             }
           >
             {status.label}
@@ -69,6 +65,47 @@ const StatusCell = ({ row }: { row: any }) => {
         ))}
       </SelectContent>
     </Select>
+  );
+};
+
+const renderActionHistory = ({ row }: { row: any }) => {
+  const history = row.original.actionHistory;
+  if (!history || history.length === 0) return "No actions";
+
+  const getActionTypeColor = (type: string) => {
+    switch (type.toUpperCase()) {
+      case 'CALL':
+        return 'border-green-500';
+      case 'MESSAGE':
+        return 'border-blue-500';
+      case 'EMAIL':
+        return 'border-yellow-500';
+      default:
+        return 'border-gray-500';
+    }
+  };
+
+  return (
+    <div className="p-4 bg-muted/10 space-y-2">
+      {history.map((action: any, index: number) => (
+        <div 
+          key={index} 
+          className={`text-sm border-l-2 pl-2 ${getActionTypeColor(action.type)}`}
+        >
+          <div className="font-medium flex items-center gap-2">
+            <span>{action.type}</span>
+            <span className="text-xs text-muted-foreground">
+              {action.timestamp}
+            </span>
+          </div>
+          {action.remarks && (
+            <div className="text-muted-foreground text-xs mt-1">
+              {action.remarks}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   );
 };
 
@@ -80,13 +117,13 @@ export type InquiryColumn = {
   associatePartner: string
   status: string
   journeyDate: string
-  tourPackageQueries: TourPackageQuery[];  // Add this line
+  tourPackageQueries: TourPackageQuery[]
   actionHistory: {
-    status: string;
-    remarks: string;
-    timestamp: string;
-    type: string;
-  }[];
+    status: string
+    remarks: string
+    timestamp: string
+    type: string
+  }[]
 }
 
 export const columns: ColumnDef<InquiryColumn>[] = [
@@ -109,97 +146,59 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   },
   {
     accessorKey: "status",
-    header: ({ column }) => {
-      return (
-        <Select
-          onValueChange={(value) => {
-            if (value === "ALL") {
-              column.setFilterValue("")
-            } else {
-              column.setFilterValue(value)
-            }
-          }}
-        >
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Filter status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Status</SelectItem>
-            {statusOptions.map((status) => (
-              <SelectItem
-                key={status.value}
-                value={status.value}
-                className={
-                  status.value === "CONFIRMED" ? "text-green-600" :
-                    status.value === "CANCELLED" ? "text-red-600" :
-                      "text-yellow-600"
-                }
-              >
-                {status.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )
-    },
+    header: ({ column }) => (
+      <Select
+        onValueChange={(value) => {
+          column.setFilterValue(value === "ALL" ? "" : value)
+        }}
+      >
+        <SelectTrigger className="w-[140px]">
+          <SelectValue placeholder="Filter status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">All Status</SelectItem>
+          {statusOptions.map((status) => (
+            <SelectItem
+              key={status.value}
+              value={status.value}
+              className={
+                status.value === "CONFIRMED" ? "text-green-600" :
+                status.value === "CANCELLED" ? "text-red-600" :
+                "text-yellow-600"
+              }
+            >
+              {status.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    ),
     cell: ({ row }) => <StatusCell row={row} />,
-    filterFn: (row, id, value) => {
-      return value ? row.getValue(id) === value : true
-    }
+    filterFn: (row, id, value) => value ? row.getValue(id) === value : true
   },
   {
     accessorKey: "journeyDate",
     header: "Journey Date",
   },
   {
-      accessorKey: "actionHistory",
-      header: "Action History",
-      cell: ({ row }) => {
-        const history = row.original.actionHistory;
-        if (!history || history.length === 0) return "No actions";
-  
-        const getActionTypeColor = (type: string) => {
-          switch (type.toUpperCase()) {
-            case 'CALL':
-              return 'border-green-500';
-            case 'MESSAGE':
-              return 'border-blue-500';
-            case 'EMAIL':
-              return 'border-yellow-500';
-            default:
-              return 'border-gray-500';
-          }
-        };
-  
-        return (
-          <div className="space-y-2 max-w-[300px]">
-            {history.map((action, index) => (
-              <div 
-                key={index} 
-                className={`text-sm border-l-2 pl-2 ${getActionTypeColor(action.type)}`}
-              >
-                <div className="font-medium flex items-center gap-2">
-                  <span>{action.type}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {action.timestamp}
-                  </span>
-                </div>
-                {action.remarks && (
-                  <div className="text-muted-foreground text-xs mt-1">
-                    {action.remarks}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      }
-    },
-    {
-    id: "actions",
-    cell: ({ row }) => <CellAction data={row.original} />
+    id: 'expander',
+    header: 'History',
+    cell: ({ row }) => {
+      return (
+        <button
+          onClick={row.getToggleExpandedHandler()}
+          className="flex items-center gap-2"
+        >
+          {row.getIsExpanded() ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+          {row.original.actionHistory?.length || 0} Actions
+        </button>
+      )
+    }
   },
-
   {
     accessorKey: "tourPackageQueries",
     header: "Tour Package Queries",
@@ -222,5 +221,5 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   {
     id: "actions",
     cell: ({ row }) => <CellAction data={row.original} />
-  },
+  }
 ]

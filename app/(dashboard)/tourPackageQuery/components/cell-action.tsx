@@ -116,14 +116,6 @@ export const CellAction: React.FC<CellActionProps> = ({
 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <Edit className="mr-2 h-4 w-4" />  Accounts
-            </DropdownMenuSubTrigger>
-   
-          </DropdownMenuSub>
-          <DropdownMenuSeparator />
-
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
               <Edit className="mr-2 h-4 w-4" />  Download PDF
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>

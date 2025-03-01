@@ -34,6 +34,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
   if (!initialData) return <div>No data available</div>;
 
+  // Calculate totals
+  const totalSales = initialData.saleDetails?.reduce((sum, sale) => sum + sale.salePrice, 0) ?? 0;
+  const totalPurchases = initialData.purchaseDetails?.reduce((sum, purchase) => sum + purchase.price, 0) ?? 0;
+  const totalExpenses = initialData.expenseDetails?.reduce((sum, expense) => sum + expense.amount, 0) ?? 0;
+  const netProfit = totalSales - (totalPurchases + totalExpenses);
+
   return (
     <div className="space-y-8 w-full max-w-4xl mx-auto">
       {/* Package Header Card */}
@@ -49,6 +55,33 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </div>
         </CardHeader>
+      </Card>
+
+      {/* Profit Summary Card */}
+      <Card className="break-inside-avoid border-2 border-gray-200">
+        <CardHeader className="bg-gradient-to-r from-gray-100 to-gray-200">
+          <CardTitle className="text-xl font-bold">Profit Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <p className="text-green-600 font-semibold">Total Sales</p>
+              <p className="text-2xl font-bold">Rs. {totalSales.toFixed(2)}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-red-600 font-semibold">Total Expenses</p>
+              <p className="text-2xl font-bold">Rs. {(totalPurchases + totalExpenses).toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="mt-6 pt-4 border-t-2">
+            <div className="flex justify-between items-center">
+              <p className="text-lg font-bold">Net Profit:</p>
+              <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                Rs. {netProfit.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
       </Card>
   
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

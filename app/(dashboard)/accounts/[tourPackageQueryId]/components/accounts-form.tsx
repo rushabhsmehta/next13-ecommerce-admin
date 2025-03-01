@@ -269,7 +269,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
     }
   };
 
-  const onDelete = async () => {
+/*   const onDelete = async () => {
     try {
       setLoading(true);
       await axios.delete(`/api/tourPackageQuery/${params.tourPackageQueryId}`);
@@ -282,7 +282,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
       setLoading(false);
       setOpen(false);
     }
-  }
+  } */
 
   return (
     <>

@@ -41,6 +41,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   const totalExpenses = initialData.expenseDetails?.reduce((sum, expense) => sum + expense.amount, 0) ?? 0;
   const netProfit = totalSales - (totalPurchases + totalExpenses);
 
+  const formatDetailRow = (label: string, value: string) => (
+    <div className="flex items-center gap-2">
+      <span className="font-medium">{label}:</span>
+      <span>{value}</span>
+    </div>
+  );
+
   return (
     <div className="space-y-8 w-full max-w-4xl mx-auto">
       {/* Package Header Card */}
@@ -73,22 +80,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <h3 className="text-lg font-semibold text-emerald-800">Sales Details</h3>
                 {initialData.saleDetails && initialData.saleDetails.length > 0 ? (
                   <Card className="shadow-lg rounded-lg border-l-4 border-emerald-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckCircleIcon className="h-5 w-5 text-emerald-500" />
-                        <span>Sales Details</span>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4">
+                        <div>Customer</div>
+                        <div>Date</div>
+                        <div>Amount</div>
+                        <div>Description</div>
+                        <div>Actions</div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="max-h-[400px] overflow-y-auto">
                       {initialData.saleDetails.map((detail) => (
-                        <div key={detail.id} className="mb-4 p-4 border rounded-lg bg-emerald-50">
-                          <p className="font-semibold text-emerald-800">
-                            Customer : {detail.customer?.name || 'N/A'}
-                          </p>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <p>Date: {format(new Date(detail.saleDate), "PPP")}</p>
-                            <p className="font-medium">Amount: Rs. {detail.salePrice.toFixed(2)}</p>
-                            <p className="text-gray-600">{detail.description || 'N/A'}</p>
+                        <div key={detail.id} 
+                          className="grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4 items-center py-2 border-b last:border-0">
+                          <div className="font-medium">{detail.customer?.name || 'N/A'}</div>
+                          <div>{format(new Date(detail.saleDate), "dd/MM/yy")}</div>
+                          <div>Rs. {detail.salePrice.toFixed(2)}</div>
+                          <div className="truncate">{detail.description || 'N/A'}</div>
+                          <div>
+                            {/* Add action buttons if needed */}
                           </div>
                         </div>
                       ))}
@@ -102,24 +112,24 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <h3 className="text-lg font-semibold text-emerald-800">Receipt Details</h3>
                 {initialData.receiptDetails && initialData.receiptDetails.length > 0 ? (
                   <Card className="shadow-lg rounded-lg border-l-4 border-emerald-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <InfoIcon className="h-5 w-5 text-emerald-500" />
-                        <span>Receipt Details</span>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_1fr_2fr] gap-4">
+                        <div>Customer</div>
+                        <div>Date</div>
+                        <div>Amount</div>
+                        <div>Reference</div>
+                        <div>Note</div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="max-h-[400px] overflow-y-auto">
                       {initialData.receiptDetails.map((detail) => (
-                        <div key={detail.id} className="mb-4 p-4 border rounded-lg bg-emerald-50">
-                          <p className="font-semibold text-emerald-800">
-                            Customer : {detail.customer?.name || 'N/A'}
-                          </p>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <p>Date: {format(new Date(detail.receiptDate), "PPP")}</p>
-                            <p className="font-medium">Amount: Rs. {detail.amount.toFixed(2)}</p>
-                            <p className="text-gray-500">Ref: {detail.reference || 'N/A'}</p>
-                            <p className="text-gray-600">{detail.note || 'N/A'}</p>
-                          </div>
+                        <div key={detail.id} 
+                          className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr] gap-4 items-center py-2 border-b last:border-0">
+                          <div className="font-medium">{detail.customer?.name || 'N/A'}</div>
+                          <div>{format(new Date(detail.receiptDate), "dd/MM/yy")}</div>
+                          <div>Rs. {detail.amount.toFixed(2)}</div>
+                          <div>{detail.reference || 'N/A'}</div>
+                          <div className="truncate">{detail.note || 'N/A'}</div>
                         </div>
                       ))}
                     </CardContent>
@@ -144,22 +154,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <h3 className="text-lg font-semibold text-blue-800">Purchase Details</h3>
                 {initialData.purchaseDetails && initialData.purchaseDetails.length > 0 ? (
                   <Card className="shadow-lg rounded-lg border-l-4 border-blue-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CreditCardIcon className="h-5 w-5 text-blue-500" />
-                        <span>Purchase Details</span>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4">
+                        <div>Supplier</div>
+                        <div>Date</div>
+                        <div>Amount</div>
+                        <div>Description</div>
+                        <div>Actions</div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="max-h-[400px] overflow-y-auto">
                       {initialData.purchaseDetails.map((detail) => (
-                        <div key={detail.id} className="mb-4 p-4 border rounded-lg bg-blue-50">
-                          <p className="font-semibold text-blue-800">
-                            Supplier: {detail.supplier?.name || 'N/A'}
-                          </p>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <p>Date: {format(new Date(detail.purchaseDate), "PPP")}</p>
-                            <p className="font-medium">Amount: Rs. {detail.price.toFixed(2)}</p>
-                            <p className="text-gray-600">{detail.description || 'N/A'}</p>
+                        <div key={detail.id} 
+                          className="grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4 items-center py-2 border-b last:border-0">
+                          <div className="font-medium">{detail.supplier?.name || 'N/A'}</div>
+                          <div>{format(new Date(detail.purchaseDate), "dd/MM/yy")}</div>
+                          <div>Rs. {detail.price.toFixed(2)}</div>
+                          <div className="truncate">{detail.description || 'N/A'}</div>
+                          <div>
+                            {/* Add action buttons if needed */}
                           </div>
                         </div>
                       ))}
@@ -173,25 +186,24 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 <h3 className="text-lg font-semibold text-blue-800">Payment Details</h3>
                 {initialData.paymentDetails && initialData.paymentDetails.length > 0 ? (
                   <Card className="shadow-lg rounded-lg border-l-4 border-blue-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-blue-500" />
-                        <span>Payment Details</span>
+                    <CardHeader className="py-3">
+                      <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_1fr_2fr] gap-4">
+                        <div>Supplier</div>
+                        <div>Date</div>
+                        <div>Amount</div>
+                        <div>Method</div>
+                        <div>Reference</div>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="max-h-[400px] overflow-y-auto">
                       {initialData.paymentDetails.map((detail) => (
-                        <div key={detail.id} className="mb-4 p-4 border rounded-lg bg-blue-50">
-                          <p className="font-semibold text-blue-800">
-                            Supplier: {detail.supplier?.name || 'N/A'}
-                          </p>
-                          <div className="mt-2 space-y-1 text-sm">
-                            <p>Date: {format(new Date(detail.paymentDate), "PPP")}</p>
-                            <p className="font-medium">Amount: Rs. {detail.amount.toFixed(2)}</p>
-                            <p>Method: {detail.method || 'N/A'}</p>
-                            <p className="text-gray-500">Ref: {detail.transactionId || 'N/A'}</p>
-                            <p className="text-gray-600">{detail.note || 'N/A'}</p>
-                          </div>
+                        <div key={detail.id} 
+                          className="grid grid-cols-[2fr_1fr_1fr_1fr_2fr] gap-4 items-center py-2 border-b last:border-0">
+                          <div className="font-medium">{detail.supplier?.name || 'N/A'}</div>
+                          <div>{format(new Date(detail.paymentDate), "dd/MM/yy")}</div>
+                          <div>Rs. {detail.amount.toFixed(2)}</div>
+                          <div>{detail.method || 'N/A'}</div>
+                          <div>{detail.transactionId || 'N/A'}</div>
                         </div>
                       ))}
                     </CardContent>
@@ -212,27 +224,28 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <AccordionContent className="px-6 pt-2 pb-4">
             {initialData.expenseDetails && initialData.expenseDetails.length > 0 ? (
               <Card className="shadow-lg rounded-lg border-l-4 border-red-500">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <XCircleIcon className="h-5 w-5 text-red-500" />
-                    <span>Expense Details</span>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4">
+                    <div>Category</div>
+                    <div>Date</div>
+                    <div>Amount</div>
+                    <div>Description</div>
+                    <div>Actions</div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="max-h-[400px] overflow-y-auto">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {initialData.expenseDetails.map((detail) => (
-                      <div key={detail.id} className="p-4 border rounded-lg bg-red-50">
-                        <p className="font-semibold text-red-800">
-                          {detail.expenseCategory}
-                        </p>
-                        <div className="mt-2 space-y-1 text-sm">
-                          <p>Date: {format(new Date(detail.expenseDate), "PPP")}</p>
-                          <p className="font-medium">Amount: Rs. {detail.amount.toFixed(2)}</p>
-                          <p className="text-gray-600">{detail.description || 'N/A'}</p>
-                        </div>
+                  {initialData.expenseDetails.map((detail) => (
+                    <div key={detail.id} 
+                      className="grid grid-cols-[2fr_1fr_1fr_2fr_1fr] gap-4 items-center py-2 border-b last:border-0">
+                      <div className="font-medium">{detail.expenseCategory}</div>
+                      <div>{format(new Date(detail.expenseDate), "dd/MM/yy")}</div>
+                      <div>Rs. {detail.amount.toFixed(2)}</div>
+                      <div className="truncate">{detail.description || 'N/A'}</div>
+                      <div>
+                        {/* Add action buttons if needed */}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             ) : <p>No expense details available</p>}

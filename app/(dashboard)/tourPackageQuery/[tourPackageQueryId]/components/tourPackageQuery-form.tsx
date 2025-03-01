@@ -468,39 +468,47 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
 
-    const formattedData = {
-      ...data,
-      itineraries: data.itineraries.map(itinerary => ({
-        ...itinerary,
-        locationId: data.locationId,
-        mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0
-          ? itinerary.mealsIncluded.join('-')
-          : '',
-        activities: itinerary.activities?.map((activity) => ({
-          ...activity,
-          locationId: data.locationId,
-        }))
-      })),
-    };
-
     try {
       setLoading(true);
+      console.log("Submitting data:", data); // Add this line
+      console.log("TourPackageQueryId:", params.tourPackageQueryId); // Add this line
+  
+      const formattedData = {
+        ...data,
+        itineraries: data.itineraries.map(itinerary => ({
+          ...itinerary,
+          locationId: data.locationId,
+          mealsIncluded: itinerary.mealsIncluded && itinerary.mealsIncluded.length > 0
+            ? itinerary.mealsIncluded.join('-')
+            : '',
+          activities: itinerary.activities?.map((activity) => ({
+            ...activity,
+            locationId: data.locationId,
+          }))
+        })),
+      };
+  
       if (initialData) {
-        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
+        console.log("Updating existing query..."); // Add this line
+        const response = await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
+        console.log("Update response:", response.data); // Add this line
       } else {
-        await axios.post(`/api/tourPackageQuery`, formattedData);
+        console.log("Creating new query..."); // Add this line
+        const response = await axios.post(`/api/tourPackageQuery`, formattedData);
+        console.log("Create response:", response.data); // Add this line
       }
+  
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success(toastMessage);
     } catch (error: any) {
-      console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
-      toast.error('Something went wrong.');
+      console.error('Error details:', error.response?.data || error.message); // Enhanced error logging
+      toast.error(error.response?.data?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
-
+  
   const onDelete = async () => {
     try {
       setLoading(true);

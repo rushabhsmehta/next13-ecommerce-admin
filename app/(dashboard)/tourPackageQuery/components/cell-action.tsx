@@ -118,16 +118,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             <DropdownMenuSubTrigger>
               <Edit className="mr-2 h-4 w-4" />  Accounts
             </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent className="w-56">
-                <DropdownMenuItem onSelect={() => router.push(`/accounts/${data.id}`)}>
-                  Make Entries
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => router.push(`/fetchaccounts/${data.id}`)}>
-                  Display Details
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
+   
           </DropdownMenuSub>
           <DropdownMenuSeparator />
 

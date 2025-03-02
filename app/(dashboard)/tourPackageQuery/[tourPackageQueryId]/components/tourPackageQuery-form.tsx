@@ -10,6 +10,9 @@ import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
+// Import DevTool for better debugging (optional in production)
+import { DevTool } from "@hookform/devtools"
+
 import {
   Command,
   CommandDialog,
@@ -92,10 +95,10 @@ const flightDetailsSchema = z.object({
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
-  inquiryId: z.string().optional(),
+  inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
-  tourPackageQueryName: z.string().min(1),
+  tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
@@ -117,11 +120,8 @@ const formSchema = z.object({
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
   remarks: z.string().optional(),
-  locationId: z.string().min(1),
-  //location : z.string(),
-  // hotelId: z.string().min(1),
+  locationId: z.string().min(1, "Location is required"),
   flightDetails: flightDetailsSchema.array(),
-  //  hotelDetails: z.string(),
   inclusions: z.string(),
   exclusions: z.string(),
   importantNotes: z.string(),
@@ -136,10 +136,6 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(),
-
-  //assignedTo: z.string().optional(),
-  //assignedToMobileNumber: z.string().optional(),
-  //assignedToEmail: z.string().optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -279,6 +275,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const transformInitialData = (data: any) => {
     return {
       ...data,
+      inquiryId: data.inquiryId ?? '',  // Handle null/undefined inquiryId by using empty string as fallback
       tourPackageQueryNumber: data.tourPackageQueryNumber ?? getCurrentDateTimeString(), // Set the current date and time
       //  assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       //  assignedToMobileNumber: data.assignedToMobileNumber ?? '',
@@ -467,12 +464,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
-
     try {
       setLoading(true);
-      console.log("Submitting data:", data); // Add this line
-      console.log("TourPackageQueryId:", params.tourPackageQueryId); // Add this line
-  
+      // Log the form data being submitted
+      console.log("Submitting data:", data);
+      console.log("TourPackageQueryId:", params.tourPackageQueryId);
+
+      // Check form validation state
+      const isValid = await form.trigger();
+      console.log("Form validation state:", form.formState);
+
+      if (!isValid) {
+        console.log("Validation errors:", form.formState.errors);
+        toast.error("Please check the form for errors");
+        setLoading(false);
+        return;
+      }
+
       const formattedData = {
         ...data,
         itineraries: data.itineraries.map(itinerary => ({
@@ -487,28 +495,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           }))
         })),
       };
-  
+
       if (initialData) {
-        console.log("Updating existing query..."); // Add this line
+        console.log("Updating existing query...");
         const response = await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}`, formattedData);
-        console.log("Update response:", response.data); // Add this line
+        console.log("Update response:", response.data);
       } else {
-        console.log("Creating new query..."); // Add this line
+        console.log("Creating new query...");
         const response = await axios.post(`/api/tourPackageQuery`, formattedData);
-        console.log("Create response:", response.data); // Add this line
+        console.log("Create response:", response.data);
       }
-  
+
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success(toastMessage);
     } catch (error: any) {
-      console.error('Error details:', error.response?.data || error.message); // Enhanced error logging
+      console.error('Error details:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
-  
+
   const onDelete = async () => {
     try {
       setLoading(true);
@@ -567,6 +575,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+          {/* Error summary section */}
+          {Object.keys(form.formState.errors).length > 0 && (
+            <div className="bg-red-50 p-4 rounded-md border border-red-200">
+              <h3 className="text-red-800 font-medium">Form has the following errors:</h3>
+              <ul className="list-disc pl-5 space-y-1 mt-2">
+                {Object.entries(form.formState.errors).map(([field, error]) => (
+                  <li key={field} className="text-red-700">
+                    {field}: {error?.message as string}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div>
             <FormField
@@ -799,16 +820,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 name="tourPackageQueryName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tour Package Query Name</FormLabel>
+                    <FormLabel>Tour Package Query Name<span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input
                         disabled={loading}
                         placeholder="Tour Package Query Name"
                         value={field.value}
                         onChange={field.onChange}
+                        className={form.formState.errors.tourPackageQueryName ? "border-red-500" : ""}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.tourPackageQueryName?.message}
+                    </FormMessage>
                   </FormItem>
                 )}
               />
@@ -876,7 +900,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 name="locationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Location</FormLabel>
+                    <FormLabel>Location<span className="text-red-500">*</span></FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -885,7 +909,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             role="combobox"
                             className={cn(
                               "w-full justify-between",
-                              !field.value && "text-muted-foreground"
+                              !field.value && "text-muted-foreground",
+                              form.formState.errors.locationId ? "border-red-500" : ""
                             )}
                           >
                             {field.value
@@ -962,7 +987,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    <FormMessage>
+                      {form.formState.errors.locationId?.message}
+                    </FormMessage>
                   </FormItem>
                 )}
               />
@@ -1256,6 +1283,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   </FormItem>
                 )}
               />
+
 
 
               <FormField
@@ -2186,6 +2214,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         </form >
       </Form >
+
+      {/* Add React Hook Form DevTools (only in development) */}
+      {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
     </>
   )
 }

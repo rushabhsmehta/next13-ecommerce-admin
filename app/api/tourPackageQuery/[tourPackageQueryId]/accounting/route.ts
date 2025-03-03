@@ -12,7 +12,51 @@ export async function PATCH(
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
-    const { purchaseDetails, saleDetails, paymentDetails, receiptDetails, expenseDetails } = await req.json();
+    const data = await req.json();
+    const { purchaseDetails, saleDetails, paymentDetails, receiptDetails, expenseDetails } = data;
+
+    console.log("Incoming data:", data);
+
+    // Process payment details to map account IDs correctly
+    const processedPaymentDetails = paymentDetails.map((detail: any) => {
+      const { accountId, accountType, ...restDetail } = detail;
+      
+      return {
+        ...restDetail,
+        // Set the appropriate account ID based on account type
+        bankAccountId: accountType === 'bank' ? accountId : null,
+        cashAccountId: accountType === 'cash' ? accountId : null,
+      };
+    });
+
+    // Process receipt details
+    const processedReceiptDetails = receiptDetails.map((detail: any) => {
+      const { accountId, accountType, ...restDetail } = detail;
+      
+      return {
+        ...restDetail,
+        // Set the appropriate account ID based on account type
+        bankAccountId: accountType === 'bank' ? accountId : null,
+        cashAccountId: accountType === 'cash' ? accountId : null,
+      };
+    });
+
+    // Process expense details
+    const processedExpenseDetails = expenseDetails.map((detail: any) => {
+      const { accountId, accountType, ...restDetail } = detail;
+      
+      return {
+        ...restDetail,
+        // Set the appropriate account ID based on account type
+        bankAccountId: accountType === 'bank' ? accountId : null,
+        cashAccountId: accountType === 'cash' ? accountId : null,
+      };
+    });
+
+    // Log processed details for debugging
+    console.log("Processed payment details:", processedPaymentDetails);
+    console.log("Processed receipt details:", processedReceiptDetails);
+    console.log("Processed expense details:", processedExpenseDetails);
 
     const tourPackageQuery = await prismadb.tourPackageQuery.update({
       where: {
@@ -23,10 +67,7 @@ export async function PATCH(
           ? { 
               deleteMany: {}, 
               createMany: { 
-                data: purchaseDetails.map((detail: any) => ({
-                  ...detail,
-                 // tourPackageQueryId: params.tourPackageQueryId
-                }))
+                data: purchaseDetails
               } 
             }
           : { deleteMany: {} },
@@ -34,10 +75,7 @@ export async function PATCH(
           ? {
               deleteMany: {},
               createMany: {
-                data: saleDetails.map((detail: any) => ({
-                  ...detail,
-             //     tourPackageQueryId: params.tourPackageQueryId
-                }))
+                data: saleDetails
               }
             }
           : { deleteMany: {} },
@@ -45,10 +83,7 @@ export async function PATCH(
           ? {
               deleteMany: {},
               createMany: {
-                data: paymentDetails.map((detail: any) => ({
-                  ...detail,
-               //   tourPackageQueryId: params.tourPackageQueryId
-                }))
+                data: processedPaymentDetails
               }
             }
           : { deleteMany: {} },
@@ -56,10 +91,7 @@ export async function PATCH(
           ? {
               deleteMany: {},
               createMany: {
-                data: receiptDetails.map((detail: any) => ({
-                  ...detail,
-                //  tourPackageQueryId: params.tourPackageQueryId
-                }))
+                data: processedReceiptDetails
               }
             }
           : { deleteMany: {} },
@@ -67,10 +99,7 @@ export async function PATCH(
           ? {
               deleteMany: {},
               createMany: {
-                data: expenseDetails.map((detail: any) => ({
-                  ...detail,
-             //     tourPackageQueryId: params.tourPackageQueryId
-                }))
+                data: processedExpenseDetails
               }
             }
           : { deleteMany: {} },
@@ -88,15 +117,24 @@ export async function PATCH(
         },
         paymentDetails: {
           include: {
-            supplier: true
+            supplier: true,
+            bankAccount: true,
+            cashAccount: true
           }
         },
         receiptDetails: {
           include: {
-            customer: true
+            customer: true,
+            bankAccount: true,
+            cashAccount: true
           }
         },
-        expenseDetails: true
+        expenseDetails: {
+          include: {
+            bankAccount: true,
+            cashAccount: true
+          }
+        }
       }
     });
 

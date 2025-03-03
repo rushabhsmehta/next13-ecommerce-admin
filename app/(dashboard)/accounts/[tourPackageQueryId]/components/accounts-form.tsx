@@ -2,11 +2,11 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash } from "lucide-react"
+import { CheckIcon, ChevronDown } from "lucide-react"
 import { Activity, Images, ItineraryMaster, PurchaseDetail } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, Supplier, PaymentDetail, SaleDetail, ReceiptDetail, Customer, ExpenseDetail } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
@@ -17,9 +17,6 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command"
 
 import {
@@ -33,7 +30,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -41,19 +37,11 @@ import {
 } from "@/components/ui/form"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
-import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import ImageUpload from "@/components/ui/image-upload"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import { ARILINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
 import { cn } from "@/lib/utils"
-import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "@radix-ui/react-icons"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from "date-fns"
-import JoditEditor from "jodit-react";
 import {
   Dialog,
   DialogContent,
@@ -61,14 +49,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
-import { useFieldArray } from "react-hook-form" // (optional, if you want to simplify dynamic fields)
 
-const paymentMethodOptions = ["Credit Card", "Debit Card", "Net Banking", "Cash", "UPI"];
-const receiptReferenceOptions = ["Invoice", "Online Payment", "Cash", "Cheque"];
+// Import any other needed components from the original file
 
 const formSchema = z.object({
   purchaseDetails: z.array(z.object({
@@ -86,22 +70,23 @@ const formSchema = z.object({
   paymentDetails: z.array(z.object({
     paymentDate: z.date(),
     amount: z.number(),
-    method: z.string().optional(),
+    accountId: z.string(),
     transactionId: z.string().optional(),
     note: z.string().optional(),
-    supplierId: z.string().optional(), // Add supplierId to paymentDetails schema
+    supplierId: z.string().optional(),
   })).default([]),
   receiptDetails: z.array(z.object({
     receiptDate: z.date(),
     amount: z.number(),
-    reference: z.string().optional(),
+    accountId: z.string(),
     note: z.string().optional(),
-    customerId: z.string().optional(), // Add customerId to receiptDetails schema
+    customerId: z.string().optional(),
   })).default([]),
   expenseDetails: z.array(z.object({
     expenseDate: z.date(),
     amount: z.number(),
     expenseCategory: z.string(),
+    accountId: z.string(),
     description: z.string().optional(),
   })).default([]),
 });
@@ -111,18 +96,18 @@ type TourPackageQueryAccountingFormValues = z.infer<typeof formSchema>
 interface TourPackageQueryAccountingFormProps {
   initialData: TourPackageQuery & {
     purchaseDetails: Array<PurchaseDetail & {
-      supplier: Supplier | null;  // Make supplier nullable
+      supplier: Supplier | null;
     }> | null;
     saleDetails: Array<SaleDetail & {
-      customer: Customer | null;  // Make customer nullable
+      customer: Customer | null;
     }> | null;
     paymentDetails: Array<PaymentDetail & {
-      supplier: Supplier | null;  // Make supplier nullable
+      supplier: Supplier | null;
     }> | null;
     receiptDetails: Array<ReceiptDetail & {
-      customer: Customer | null;  // Make customer nullable
+      customer: Customer | null;
     }> | null;
-    expenseDetails: ExpenseDetail[] | null;  // Make array nullable
+    expenseDetails: ExpenseDetail[] | null;
   } | null;
 }
 
@@ -132,20 +117,27 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
   const params = useParams();
   const router = useRouter();
 
-  //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
-
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
   const editor = useRef(null)
 
-  //console.log(initialData);
-  const title = initialData ? 'Edit Tour  Query' : 'Create Tour Package Query';
+  const title = initialData ? 'Edit Tour Query' : 'Create Tour Package Query';
   const description = initialData ? 'Edit a Tour Package Query.' : 'Add a new Tour Package Query';
 
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [allAccounts, setAllAccounts] = useState<{
+    id: string;
+    displayName: string;
+    type: 'bank' | 'cash';
+    accountName: string;
+    bankName?: string;
+  }[]>([]);
 
+  // Fetch suppliers
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
@@ -158,10 +150,13 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
     fetchSuppliers();
   }, []);
 
+  // Fetch customers
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
+        console.log("Fetching customers...");
         const res = await axios.get("/api/customers");
+        console.log("Customers response:", res.data);
         setCustomers(res.data);
       } catch (error) {
         console.error("Error fetching customers", error);
@@ -170,6 +165,52 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
     fetchCustomers();
   }, []);
 
+  // Fetch accounts separately
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        console.log("Fetching all accounts...");
+
+        const [bankRes, cashRes] = await Promise.all([
+          axios.get("/api/bank-accounts"),
+          axios.get("/api/cash-accounts")
+        ]);
+
+        console.log("Bank accounts response:", bankRes.data);
+        console.log("Cash accounts response:", cashRes.data);
+
+        // Format bank accounts
+        const formattedBankAccounts = Array.isArray(bankRes.data)
+          ? bankRes.data.map(account => ({
+            id: account.id,
+            displayName: `${account.accountName}`,
+            type: 'bank' as const,
+            accountName: account.accountName,
+            bankName: account.bankName
+          }))
+          : [];
+
+        // Format cash accounts
+        const formattedCashAccounts = Array.isArray(cashRes.data)
+          ? cashRes.data.map(account => ({
+            id: account.id,
+            displayName: `${account.accountName}`,
+            type: 'cash' as const,
+            accountName: account.accountName
+          }))
+          : [];
+
+        // Combine both types of accounts
+        const combined = [...formattedBankAccounts, ...formattedCashAccounts];
+        setAllAccounts(combined);
+
+        console.log("Combined accounts:", combined);
+      } catch (error: any) {
+        console.error("Error fetching accounts:", error);
+      }
+    };
+    fetchAccounts();
+  }, []);
 
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
   const action = initialData ? 'Save changes' : 'Create';
@@ -189,35 +230,70 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
         salePrice: saleDetail.salePrice || 0,
         description: saleDetail.description || '',
       })) || [],
-      paymentDetails: data.paymentDetails?.map((paymentDetail: any) => ({
-        paymentDate: new Date(paymentDetail.paymentDate),
-        amount: paymentDetail.amount || 0,
-        method: paymentDetail.method || '',
-        transactionId: paymentDetail.transactionId || '',
-        note: paymentDetail.note || '',
-        supplierId: paymentDetail.supplierId || '',
-      })) || [],
-      receiptDetails: data.receiptDetails?.map((receiptDetail: any) => ({
-        customerId: receiptDetail.customerId || '',
-        receiptDate: new Date(receiptDetail.receiptDate),
-        amount: receiptDetail.amount || 0,
-        reference: receiptDetail.reference || '',
-        note: receiptDetail.note || '',
-      })) || [],
-      expenseDetails: data.expenseDetails?.map((expenseDetail: any) => ({
-        expenseDate: new Date(expenseDetail.expenseDate),
-        amount: expenseDetail.amount || 0,
-        expenseCategory: expenseDetail.expenseCategory || '',
-        description: expenseDetail.description || '',
-      })) || [],
+      paymentDetails: data.paymentDetails?.map((detail: any) => {
+        // Determine account ID based on which field is populated
+        const accountId = detail.bankAccountId || detail.cashAccountId || '';
+
+        return {
+          paymentDate: new Date(detail.paymentDate),
+          amount: detail.amount || 0,
+          accountId,
+          transactionId: detail.transactionId || '',
+          note: detail.note || '',
+          supplierId: detail.supplierId || '',
+        };
+      }) || [],
+      receiptDetails: data.receiptDetails?.map((detail: any) => {
+        // Determine account ID based on which field is populated
+        const accountId = detail.bankAccountId || detail.cashAccountId || '';
+
+        return {
+          customerId: detail.customerId || '',
+          receiptDate: new Date(detail.receiptDate),
+          amount: detail.amount || 0,
+          accountId,
+          note: detail.note || '',
+        };
+      }) || [],
+      expenseDetails: data.expenseDetails?.map((detail: any) => {
+        // Determine account ID based on which field is populated
+        const accountId = detail.bankAccountId || detail.cashAccountId || '';
+
+        return {
+          expenseDate: new Date(detail.expenseDate),
+          amount: detail.amount || 0,
+          expenseCategory: detail.expenseCategory || '',
+          accountId,
+          description: detail.description || '',
+        };
+      }) || [],
     };
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {
     purchaseDetails: [{ supplierId: '', purchaseDate: new Date(), price: 0, description: '' }],
     saleDetails: [{ customerId: '', saleDate: new Date(), salePrice: 0, description: '' }],
-    paymentDetails: [{ paymentDate: new Date(), amount: 0, method: '', transactionId: '', note: '', supplierId: '' }],
-    receiptDetails: [{ customerId: '', receiptDate: new Date(), amount: 0, reference: '', note: '' }],
-    expenseDetails: [{ expenseDate: new Date(), amount: 0, expenseCategory: '', description: '' }],
+    paymentDetails: [{
+      paymentDate: new Date(),
+      amount: 0,
+      accountId: '',
+      transactionId: '',
+      note: '',
+      supplierId: ''
+    }],
+    receiptDetails: [{
+      customerId: '',
+      receiptDate: new Date(),
+      amount: 0,
+      accountId: '',
+      note: ''
+    }],
+    expenseDetails: [{
+      expenseDate: new Date(),
+      amount: 0,
+      expenseCategory: '',
+      accountId: '',
+      description: ''
+    }],
   };
 
   const form = useForm<TourPackageQueryAccountingFormValues>({
@@ -251,61 +327,124 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
   });
 
   const onSubmit = async (data: TourPackageQueryAccountingFormValues) => {
+    // Validate form data before submission
+    const errors: string[] = [];
+
+    // Validate purchase details
+    data.purchaseDetails.forEach((item, index) => {
+      if (!item.supplierId) errors.push(`Supplier is required in purchase detail #${index + 1}`);
+      if (item.price <= 0) errors.push(`Price must be greater than 0 in purchase detail #${index + 1}`);
+    });
+
+    // Validate sale details
+    data.saleDetails.forEach((item, index) => {
+      if (!item.customerId) errors.push(`Customer is required in sale detail #${index + 1}`);
+      if (item.salePrice <= 0) errors.push(`Sale price must be greater than 0 in sale detail #${index + 1}`);
+    });
+
+    // Validate payment details
+    data.paymentDetails.forEach((item, index) => {
+      if (!item.accountId) {
+        errors.push(`Account is required in payment detail #${index + 1}`);
+      }
+      if (item.amount <= 0) errors.push(`Amount must be greater than 0 in payment detail #${index + 1}`);
+    });
+
+    // Validate receipt details
+    data.receiptDetails.forEach((item, index) => {
+      if (!item.accountId) {
+        errors.push(`Account is required in receipt detail #${index + 1}`);
+      }
+      if (item.amount <= 0) errors.push(`Amount must be greater than 0 in receipt detail #${index + 1}`);
+    });
+
+    // Validate expense details
+    data.expenseDetails.forEach((item, index) => {
+      if (!item.accountId) {
+        errors.push(`Account is required in expense detail #${index + 1}`);
+      }
+      if (item.amount <= 0) errors.push(`Amount must be greater than 0 in expense detail #${index + 1}`);
+    });
+
+    // If there are validation errors, show them in the dialog
+    if (errors.length > 0) {
+      setFormErrors(errors);
+      setShowErrorDialog(true);
+      return;
+    }
+
+    // Prepare the data for backend submission
+    const processedData = {
+      ...data,
+      // Add metadata about account types for backend processing
+      paymentDetails: data.paymentDetails.map(detail => {
+        const account = allAccounts.find(acc => acc.id === detail.accountId);
+        return {
+          ...detail,
+          accountType: account?.type || 'unknown'
+        };
+      }),
+      receiptDetails: data.receiptDetails.map(detail => {
+        const account = allAccounts.find(acc => acc.id === detail.accountId);
+        return {
+          ...detail,
+          accountType: account?.type || 'unknown'
+        };
+      }),
+      expenseDetails: data.expenseDetails.map(detail => {
+        const account = allAccounts.find(acc => acc.id === detail.accountId);
+        return {
+          ...detail,
+          accountType: account?.type || 'unknown'
+        };
+      }),
+    };
+
     try {
       setLoading(true);
       if (initialData) {
-        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}/accounting`, data);
+        await axios.patch(`/api/tourPackageQuery/${params.tourPackageQueryId}/accounting`, processedData);
       } else {
-        await axios.post(`/api/tourPackageQuery`, data);
+        await axios.post(`/api/tourPackageQuery`, processedData);
       }
       router.refresh();
       router.push(`/tourPackageQuery`);
       toast.success(toastMessage);
     } catch (error: any) {
-      console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
+      console.error('Error:', error.response ? error.response.data : error.message);
       toast.error('Something went wrong.');
     } finally {
       setLoading(false);
     }
   };
 
-/*   const onDelete = async () => {
-    try {
-      setLoading(true);
-      await axios.delete(`/api/tourPackageQuery/${params.tourPackageQueryId}`);
-      router.refresh();
-      router.push(`/tourPackageQuery`);
-      toast.success('Tour Package Query deleted.');
-    } catch (error: any) {
-      toast.error('Something went wrong.');
-    } finally {
-      setLoading(false);
-      setOpen(false);
-    }
-  } */
-
   return (
     <>
-      {/* <AlertModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onConfirm={onDelete}
-        loading={loading}
-      />
-      <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
-        {initialData && (
-          <Button
-            disabled={loading}
-            variant="destructive"
-            size="sm"
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        )}
-      </div> */}
+      {/* Add the error dialog */}
+      <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Form Validation Errors</DialogTitle>
+            <DialogDescription>
+              Please fix the following errors before submitting:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-auto">
+            <ul className="list-disc pl-5 space-y-2">
+              {formErrors.map((error, index) => (
+                <li key={index} className="text-destructive">{error}</li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setShowErrorDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
+      {/* Rest of component */}
       <div className="flex items-center justify-between">
         <Heading title={title} description={description} />
       </div>
@@ -322,11 +461,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
               <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
               <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
             </TabsList>
+
+            {/* Purchase details tab */}
             <TabsContent value="purchaseDetails">
-              {/* Replace single textarea with dynamic purchase details */}
               {purchaseFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
-                  {/* Replace supplierId Input with a dropdown */}
+                  {/* Supplier selection */}
                   <FormField
                     control={form.control}
                     name={`purchaseDetails.${index}.supplierId`}
@@ -382,6 +522,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
+                  {/* Purchase date */}
                   <FormField
                     control={form.control}
                     name={`purchaseDetails.${index}.purchaseDate`}
@@ -425,6 +566,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
+                  {/* Price */}
                   <FormField
                     control={form.control}
                     name={`purchaseDetails.${index}.price`}
@@ -444,6 +586,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Description */}
                   <FormField
                     control={form.control}
                     name={`purchaseDetails.${index}.description`}
@@ -457,6 +601,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
                   <Button type="button" variant="destructive" onClick={() => removePurchase(index)}>
                     Remove
                   </Button>
@@ -468,9 +613,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                 Add Purchase Detail
               </Button>
             </TabsContent>
+
+            {/* Sale details tab */}
             <TabsContent value="saleDetails">
               {saleFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* Customer selection */}
                   <FormField
                     control={form.control}
                     name={`saleDetails.${index}.customerId`}
@@ -526,7 +674,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
-
+                  {/* Sale date */}
                   <FormField
                     control={form.control}
                     name={`saleDetails.${index}.saleDate`}
@@ -570,6 +718,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
+                  {/* Price */}
                   <FormField
                     control={form.control}
                     name={`saleDetails.${index}.salePrice`}
@@ -589,6 +738,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Description */}
                   <FormField
                     control={form.control}
                     name={`saleDetails.${index}.description`}
@@ -602,6 +753,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
                   <Button type="button" variant="destructive" onClick={() => removeSale(index)}>
                     Remove
                   </Button>
@@ -611,9 +763,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                 Add Sale Detail
               </Button>
             </TabsContent>
+
+            {/* Payment details tab */}
             <TabsContent value="paymentDetails">
               {paymentFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* Supplier selection */}
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.supplierId`}
@@ -669,7 +824,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
-
+                  {/* Payment date */}
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.paymentDate`}
@@ -712,6 +867,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Amount */}
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.amount`}
@@ -731,30 +888,42 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+
                   <FormField
                     control={form.control}
-                    name={`paymentDetails.${index}.method`}
+                    name={`paymentDetails.${index}.accountId`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Method</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                        <FormLabel>Account</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={allAccounts.length === 0}
+                        >
+                          <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select Payment Method" />
+                              <SelectValue placeholder={
+                                allAccounts.length === 0
+                                  ? "No accounts available"
+                                  : "Select an account"
+                              } />
                             </SelectTrigger>
-                            <SelectContent>
-                              {paymentMethodOptions.map(option => (
-                                <SelectItem key={option} value={option}>
-                                  {option}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Select an account</SelectItem>
+                            {allAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.transactionId`}
@@ -786,13 +955,23 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                   </Button>
                 </div>
               ))}
-              <Button type="button" onClick={() => appendPayment({ paymentDate: new Date(), amount: 0, method: '', transactionId: '', note: '' })}>
+              <Button type="button" onClick={() => appendPayment({
+                paymentDate: new Date(),
+                amount: 0,
+                accountId: '',
+                transactionId: '',
+                note: '',
+                supplierId: ''
+              })}>
                 Add Payment Detail
               </Button>
             </TabsContent>
+
+            {/* Receipt details tab */}
             <TabsContent value="receiptDetails">
               {receiptFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* Customer selection */}
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.customerId`}
@@ -847,6 +1026,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Receipt date */}
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.receiptDate`}
@@ -890,7 +1071,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
-
+                  {/* Amount */}
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.amount`}
@@ -910,30 +1091,42 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Single combined account selection */}
                   <FormField
                     control={form.control}
-                    name={`receiptDetails.${index}.reference`}
+                    name={`receiptDetails.${index}.accountId`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reference</FormLabel>
-                        <FormControl>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                        <FormLabel>Account</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={allAccounts.length === 0}
+                        >
+                          <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select Receipt Reference" />
+                              <SelectValue placeholder={
+                                allAccounts.length === 0
+                                  ? "No accounts available"
+                                  : "Select an account"
+                              } />
                             </SelectTrigger>
-                            <SelectContent>
-                              {receiptReferenceOptions.map(option => (
-                                <SelectItem key={option} value={option}>
-                                  {option}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Select an account</SelectItem>
+                            {allAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name={`receiptDetails.${index}.note`}
@@ -952,15 +1145,22 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                   </Button>
                 </div>
               ))}
-              <Button type="button" onClick={() => appendReceipt({ receiptDate: new Date(), amount: 0, reference: '', note: '' })}>
+              <Button type="button" onClick={() => appendReceipt({
+                receiptDate: new Date(),
+                amount: 0,
+                accountId: '',
+                note: '',
+                customerId: ''
+              })}>
                 Add Receipt Detail
               </Button>
             </TabsContent>
+
+            {/* Expense details tab */}
             <TabsContent value="expenseDetails">
               {expenseFields.map((field, index) => (
                 <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
-
-
+                  {/* Expense date */}
                   <FormField
                     control={form.control}
                     name={`expenseDetails.${index}.expenseDate`}
@@ -1004,6 +1204,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
+                  {/* Amount */}
                   <FormField
                     control={form.control}
                     name={`expenseDetails.${index}.amount`}
@@ -1013,7 +1214,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="0"
+                            placeholder="Amount"
                             {...field}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                             value={field.value}
@@ -1023,6 +1224,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Expense category */}
                   <FormField
                     control={form.control}
                     name={`expenseDetails.${index}.expenseCategory`}
@@ -1036,6 +1239,42 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
+                  {/* Single combined account selection */}
+                  <FormField
+                    control={form.control}
+                    name={`expenseDetails.${index}.accountId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Account</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={allAccounts.length === 0}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={
+                                allAccounts.length === 0
+                                  ? "No accounts available"
+                                  : "Select an account"
+                              } />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Select an account</SelectItem>
+                            {allAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Description */}
                   <FormField
                     control={form.control}
                     name={`expenseDetails.${index}.description`}
@@ -1049,12 +1288,19 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
                   <Button type="button" variant="destructive" onClick={() => removeExpense(index)}>
                     Remove
                   </Button>
                 </div>
               ))}
-              <Button type="button" onClick={() => appendExpense({ expenseDate: new Date(), amount: 0, expenseCategory: '', description: '' })}>
+              <Button type="button" onClick={() => appendExpense({
+                expenseDate: new Date(),
+                amount: 0,
+                expenseCategory: '',
+                accountId: '',
+                description: ''
+              })}>
                 Add Expense Detail
               </Button>
             </TabsContent>
@@ -1064,8 +1310,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
             {action}
           </Button>
 
-        </form >
+        </form>
       </Form >
     </>
-  )
+  );
 }

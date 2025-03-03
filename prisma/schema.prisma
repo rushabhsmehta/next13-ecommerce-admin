@@ -153,6 +153,13 @@ model PaymentDetail {
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Make relation optional
   
+  bankAccountId   String?    
+  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
+  cashAccountId   String?
+  cashAccount     CashAccount? @relation(fields: [cashAccountId], references: [id])
+  
+  @@index([bankAccountId])
+  @@index([cashAccountId])
   @@index([supplierId])
   @@index([tourPackageQueryId])
 }
@@ -188,6 +195,14 @@ model ReceiptDetail {
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Make relation optional
   
+   bankAccountId   String?    
+  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
+  cashAccountId   String?
+  cashAccount     CashAccount? @relation(fields: [cashAccountId], references: [id])
+  
+  @@index([bankAccountId])
+  @@index([cashAccountId])
+
   @@index([customerId])
   @@index([tourPackageQueryId])
 }
@@ -203,6 +218,13 @@ model ExpenseDetail {
   updatedAt          DateTime         @default(now())
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  bankAccountId   String?    
+  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
+  cashAccountId   String?
+  cashAccount     CashAccount? @relation(fields: [cashAccountId], references: [id])
+  
+  @@index([bankAccountId])
+  @@index([cashAccountId])
 }
 
 model FlightDetails {
@@ -486,4 +508,40 @@ model InquiryAction {
   updatedAt   DateTime @updatedAt
 
   @@index([inquiryId])
+}
+
+model BankAccount {
+  id              String    @id @default(uuid())
+  accountName     String
+  bankName        String
+  accountNumber   String    @unique
+  ifscCode        String
+  branch          String
+  openingBalance  Float     @default(0)
+  currentBalance  Float     @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations with transactions
+  paymentDetails  PaymentDetail[]
+  receiptDetails  ReceiptDetail[]
+  expenseDetails  ExpenseDetail[]
+
+  @@index([accountNumber])
+}
+
+model CashAccount {
+  id              String    @id @default(uuid())
+  accountName     String    @unique  // e.g. "Main Cash", "Petty Cash"
+  openingBalance  Float     @default(0)
+  currentBalance  Float     @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations with transactions
+  paymentDetails  PaymentDetail[]
+  receiptDetails  ReceiptDetail[]
+  expenseDetails  ExpenseDetail[]
 }

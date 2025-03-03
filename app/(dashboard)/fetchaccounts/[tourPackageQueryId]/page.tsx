@@ -25,41 +25,38 @@ const tourPackageQueryPage = async ({
       },
       paymentDetails: {
         include: {
-          supplier: true
+          supplier: true,
+          bankAccount: true,
+          cashAccount: true
         }
       },
       receiptDetails: {
         include: {
-          customer: true
+          customer: true,
+          bankAccount: true,
+          cashAccount: true
         }
       },
-      expenseDetails: true,
+      expenseDetails: {
+        include: {
+          bankAccount: true,
+          cashAccount: true
+        }
+      },
     }
   });
-
-  
 
   return (
     <>
       <div className="flex-col">
-        {/*  <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryForm
-          initialData={tourPackageQuery}
-          locations={locations}
-          hotels={hotels}
-        //    itineraries={[]}
-        />
-      </div>
- */}
         <div className="flex-1 space-y-4 p-8 pt-6">
           <TourPackageQueryDisplay
             initialData={tourPackageQuery}
-            
           />
         </div>
       </div>
-
     </>
   );
 }
+
 export default tourPackageQueryPage;

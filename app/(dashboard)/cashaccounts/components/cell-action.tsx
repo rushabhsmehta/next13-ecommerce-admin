@@ -14,13 +14,12 @@ import {
   DropdownMenuLabel, 
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { useActivityModal } from "@/hooks/use-activity-modal";
 import { AlertModal } from "@/components/modals/alert-modal";
 
-import { ActivityColumn } from "./columns";
+import { CashAccountColumn } from "./columns";
 
 interface CellActionProps {
-  data: ActivityColumn;
+  data: CashAccountColumn;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
@@ -34,11 +33,11 @@ export const CellAction: React.FC<CellActionProps> = ({
   const onConfirm = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/activities/${data.id}`);
-      toast.success('Activity deleted.');
+      await axios.delete(`/api/cash-accounts/${data.id}`);
+      toast.success('Cash account deleted.');
       router.refresh();
     } catch (error) {
-      toast.error('Make sure you removed all products using this Activity first.');
+      toast.error('Make sure you removed all related items using this cash account first.');
     } finally {
       setOpen(false);
       setLoading(false);
@@ -47,7 +46,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
-    toast.success('ActivityID copied to clipboard.');
+    toast.success('Cash Account ID copied to clipboard.');
   }
 
   return (
@@ -73,7 +72,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push(`/activities/${data.id}`)}
+            onClick={() => router.push(`/cashaccounts/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>

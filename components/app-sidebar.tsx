@@ -45,6 +45,8 @@ const NAV_ITEMS = [
       { title: "Customers", url: "/customers" },
       { title: "Suppliers", url: "/suppliers" },       
       { title: "Tour Package Query", url: "/tourPackageQuery" },
+      { title: "Cash Account", url: "/cashaccounts" },
+      { title: "Bank Account", url: "/bankaccounts" },
     ],
   },
  

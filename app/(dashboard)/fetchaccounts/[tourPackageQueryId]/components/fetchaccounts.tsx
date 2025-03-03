@@ -150,7 +150,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <div className="space-y-6">
+            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
               {/* Sales Details Section */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -170,7 +170,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <div>Description</div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="max-h-[300px] overflow-y-auto p-0">
+                    <CardContent className="max-h-[250px] overflow-y-auto p-0">
                       {initialData.saleDetails.map((detail) => (
                         <div key={detail.id} 
                           className="grid grid-cols-[2fr_1fr_1fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
@@ -211,7 +211,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <div>Note</div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="max-h-[300px] overflow-y-auto p-0">
+                    <CardContent className="max-h-[250px] overflow-y-auto p-0">
                       {initialData.receiptDetails.map((detail) => {
                         const account = getAccountDisplay(detail);
                         return (
@@ -257,7 +257,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <div className="space-y-6">
+            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
               {/* Purchase Details Section */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -277,7 +277,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <div>Description</div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="max-h-[300px] overflow-y-auto p-0">
+                    <CardContent className="max-h-[250px] overflow-y-auto p-0">
                       {initialData.purchaseDetails.map((detail) => (
                         <div key={detail.id} 
                           className="grid grid-cols-[2fr_1fr_1fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
@@ -318,7 +318,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <div>Reference</div>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="max-h-[300px] overflow-y-auto p-0">
+                    <CardContent className="max-h-[250px] overflow-y-auto p-0">
                       {initialData.paymentDetails.map((detail) => {
                         const account = getAccountDisplay(detail);
                         return (
@@ -367,52 +367,54 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-red-800">Expense Records</h3>
-              <Badge variant="outline" className="text-red-800 border-red-800">
-                {initialData.expenseDetails?.length || 0} records
-              </Badge>
-            </div>
-            
-            {initialData.expenseDetails && initialData.expenseDetails.length > 0 ? (
-              <Card className="shadow-lg rounded-lg border-l-4 border-red-500">
-                <CardHeader className="py-3 bg-gray-50">
-                  <CardTitle className="text-sm font-medium grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4">
-                    <div>Category</div>
-                    <div>Date</div>
-                    <div>Amount</div>
-                    <div>Account</div>
-                    <div>Description</div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-[300px] overflow-y-auto p-0">
-                  {initialData.expenseDetails.map((detail) => {
-                    const account = getAccountDisplay(detail);
-                    return (
-                      <div key={detail.id} 
-                        className="grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
-                        <div className="font-medium">
-                          {detail.expenseCategory}
-                        </div>
-                        <div className="flex items-center">
-                          <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
-                          {format(new Date(detail.expenseDate), "dd MMM yyyy")}
-                        </div>
-                        <div className="font-bold text-red-700">₹{detail.amount.toFixed(2)}</div>
-                        <div className="flex items-center">
-                          {account.icon}
-                          <div>
-                            <div className="font-medium">{account.name}</div>
-                            {account.info && <div className="text-xs text-gray-500">{account.info}</div>}
+            <div className="max-h-[500px] overflow-y-auto pr-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-red-800">Expense Records</h3>
+                <Badge variant="outline" className="text-red-800 border-red-800">
+                  {initialData.expenseDetails?.length || 0} records
+                </Badge>
+              </div>
+              
+              {initialData.expenseDetails && initialData.expenseDetails.length > 0 ? (
+                <Card className="shadow-lg rounded-lg border-l-4 border-red-500">
+                  <CardHeader className="py-3 bg-gray-50">
+                    <CardTitle className="text-sm font-medium grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4">
+                      <div>Category</div>
+                      <div>Date</div>
+                      <div>Amount</div>
+                      <div>Account</div>
+                      <div>Description</div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="max-h-[250px] overflow-y-auto p-0">
+                    {initialData.expenseDetails.map((detail) => {
+                      const account = getAccountDisplay(detail);
+                      return (
+                        <div key={detail.id} 
+                          className="grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
+                          <div className="font-medium">
+                            {detail.expenseCategory}
                           </div>
+                          <div className="flex items-center">
+                            <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
+                            {format(new Date(detail.expenseDate), "dd MMM yyyy")}
+                          </div>
+                          <div className="font-bold text-red-700">₹{detail.amount.toFixed(2)}</div>
+                          <div className="flex items-center">
+                            {account.icon}
+                            <div>
+                              <div className="font-medium">{account.name}</div>
+                              {account.info && <div className="text-xs text-gray-500">{account.info}</div>}
+                            </div>
+                          </div>
+                          <div className="truncate text-gray-600">{detail.description || 'No description'}</div>
                         </div>
-                        <div className="truncate text-gray-600">{detail.description || 'No description'}</div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            ) : <p className="text-gray-500 italic">No expense details available</p>}
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ) : <p className="text-gray-500 italic">No expense details available</p>}
+            </div>
           </AccordionContent>
         </AccordionItem>
 
@@ -430,45 +432,47 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <Card className="break-inside-avoid border-2 border-gray-200 shadow-md">
-              <CardHeader className="bg-gradient-to-r from-gray-100 to-gray-200">
-                <CardTitle className="text-xl font-bold">Financial Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid gap-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Total Sales</p>
-                      <p className="text-2xl font-bold text-green-600">₹{totalSales.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">Received: ₹{totalReceipts.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">Pending: ₹{(totalSales - totalReceipts).toFixed(2)}</p>
+            <div className="max-h-[500px] overflow-y-auto pr-2">
+              <Card className="break-inside-avoid border-2 border-gray-200 shadow-md">
+                <CardHeader className="bg-gradient-to-r from-gray-100 to-gray-200">
+                  <CardTitle className="text-xl font-bold">Financial Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid gap-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Total Sales</p>
+                        <p className="text-2xl font-bold text-green-600">₹{totalSales.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Received: ₹{totalReceipts.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Pending: ₹{(totalSales - totalReceipts).toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Total Purchases</p>
+                        <p className="text-2xl font-bold text-blue-600">₹{totalPurchases.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Paid: ₹{totalPayments.toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">Pending: ₹{(totalPurchases - totalPayments).toFixed(2)}</p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Total Purchases</p>
-                      <p className="text-2xl font-bold text-blue-600">₹{totalPurchases.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">Paid: ₹{totalPayments.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">Pending: ₹{(totalPurchases - totalPayments).toFixed(2)}</p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Total Expenses</p>
+                        <p className="text-2xl font-bold text-red-600">₹{totalExpenses.toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1 border-l pl-4">
+                        <p className="text-sm text-muted-foreground">Net Profit</p>
+                        <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ₹{netProfit.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Profit Margin: {totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(2) : '0'}%
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Total Expenses</p>
-                      <p className="text-2xl font-bold text-red-600">₹{totalExpenses.toFixed(2)}</p>
-                    </div>
-                    <div className="space-y-1 border-l pl-4">
-                      <p className="text-sm text-muted-foreground">Net Profit</p>
-                      <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ₹{netProfit.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Profit Margin: {totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(2) : '0'}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>

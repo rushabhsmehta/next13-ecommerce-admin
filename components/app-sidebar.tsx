@@ -57,6 +57,8 @@ const NAV_ITEMS = [
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
       { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
       { title: "Associate Performance", url: "/reports/associatePerformance" },
+      { title: "Cash Book", url: "/cash-book" },
+      { title: "Bank Book", url: "/bank-book" },
     ],
   },
 ];

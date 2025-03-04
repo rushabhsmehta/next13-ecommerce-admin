@@ -625,7 +625,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 Location
               </TabsTrigger>
               <TabsTrigger value="dates" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+                <CalendarIcon className="h-4 w-4" />
                 Dates
               </TabsTrigger>
               <TabsTrigger value="itinerary" className="flex items-center gap-2">

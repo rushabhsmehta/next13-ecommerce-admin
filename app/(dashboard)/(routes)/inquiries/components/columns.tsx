@@ -210,14 +210,13 @@ export const columns: ColumnDef<InquiryColumn>[] = [
       if (!queries || queries.length === 0) return "No queries";
 
       return (
-        <div className="space-y-1">
-          {queries.map((query, index) => (
-            <span key={query.id}>
+        <ol className="list-decimal pl-4">
+          {queries.map((query) => (
+            <li key={query.id} className="my-1">
               <QueryLink query={query} />
-              {index < queries.length - 1 && ", "}
-            </span>
+            </li>
           ))}
-        </div>
+        </ol>
       );
     }
   },

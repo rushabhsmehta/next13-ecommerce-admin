@@ -6,7 +6,7 @@ import axios from "axios";
 
 const formatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
-  currency: 'USD'
+  currency: 'INR'
 });
 
 import { Heading } from "@/components/ui/heading";

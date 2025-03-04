@@ -61,6 +61,11 @@ export const QueryLink = ({ query }: QueryLinkProps) => {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Query Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => router.push(`/tourPackageQuery/${query.id}`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Update
+          </DropdownMenuItem>
 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>

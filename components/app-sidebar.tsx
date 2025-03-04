@@ -58,6 +58,7 @@ const NAV_ITEMS = [
   {
     title: "Reports",
     items: [
+      { title: "Upcoming Trips", url: "/reports/upcomingTrips" },
       { title: "Inquiry Summary", url: "/reports/inquirySummary" },
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
       { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },

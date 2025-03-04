@@ -12,7 +12,10 @@ const confirmedTourPackageQueryPage = async ({
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
     where: {
-      isFeatured: true,   
+      isFeatured: true,
+      tourStartsFrom: {
+        gte: startOfMonth(new Date()), // only include tours starting from the current month onwards
+      },
     },
     include: {
       images: true,

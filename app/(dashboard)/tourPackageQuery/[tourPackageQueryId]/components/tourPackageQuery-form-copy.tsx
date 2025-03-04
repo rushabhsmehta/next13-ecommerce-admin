@@ -6,7 +6,7 @@ import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, React
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus } from "lucide-react"
+import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
@@ -3271,205 +3271,240 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             <TabsContent value="policies" className="space-y-4 mt-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Policies</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileCheck className="h-5 w-5" />
+                    Policies & Terms
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Move policies form fields here */}
-                  <FormField
-                    control={form.control}
-                    name="inclusions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Inclusions</FormLabel>
-                          <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Inclusions as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options (optional)
-                              readonly: loading, // Disable editing if loading                       
-                            }}
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* //add formfield for exclusions */}
-                  <FormField
-                    control={form.control}
-                    name="exclusions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Exclusions</FormLabel>
-                          <Switch checked={useLocationDefaults.exclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Exclusions as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                        
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="importantNotes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Important Notes</FormLabel>
-                          <Switch checked={useLocationDefaults.importantNotes} onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Important Notes as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value || ''} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="paymentPolicy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Payment Policy</FormLabel>
-                          <Switch checked={useLocationDefaults.paymentPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Payment Policy as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* //add formfield for usefulTip */}
-                  <FormField
-                    control={form.control}
-                    name="usefulTip"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Useful Tip</FormLabel>
-                          <Switch checked={useLocationDefaults.usefulTip} onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Useful Tip as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="cancellationPolicy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Cancellation Policy</FormLabel>
-                          <Switch checked={useLocationDefaults.cancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Cancellation Policy as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading
-
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* //add formfield for airlineCancellationPolicy */}
-
-                  <FormField
-                    control={form.control}
-                    name="airlineCancellationPolicy"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Airline Cancellation Policy</FormLabel>
-                          <Switch checked={useLocationDefaults.airlineCancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Airline Cancellation Policy as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                      
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  {/* //add formfield for termsconditions */}
-                  <FormField
-                    control={form.control}
-                    name="termsconditions" // Ensure the name is lowercase with no spaces
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-3">
-                          <FormLabel>Terms and Conditions</FormLabel>
-                          <Switch checked={useLocationDefaults.termsconditions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} />
-                        </div>
-                        <FormDescription>Use above Switch to Paste Terms and Conditions as per the Selected Location</FormDescription>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                <CardContent>
+                  <Tabs defaultValue="inclusions" className="w-full">
+                    <TabsList className="grid grid-cols-4 w-full">
+                      <TabsTrigger value="inclusions">
+                        <ListChecks className="h-4 w-4 mr-2" />
+                        Inclusions
+                      </TabsTrigger>
+                      <TabsTrigger value="notes">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Notes & Tips
+                      </TabsTrigger>
+                      <TabsTrigger value="cancellation">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Cancellation
+                      </TabsTrigger>
+                      <TabsTrigger value="terms">
+                        <ScrollText className="h-4 w-4 mr-2" />
+                        Terms
+                      </TabsTrigger>
+                    </TabsList>
+            
+                    <TabsContent value="inclusions" className="space-y-4 mt-4">
+                      <div className="grid gap-4">
+                        <FormField
+                          control={form.control}
+                          name="inclusions"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Inclusions</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.inclusions} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+            
+                        <FormField
+                          control={form.control}
+                          name="exclusions"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Exclusions</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.exclusions} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </TabsContent>
+            
+                    <TabsContent value="notes" className="space-y-4 mt-4">
+                      <div className="grid gap-4">
+                        <FormField
+                          control={form.control}
+                          name="importantNotes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Important Notes</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.importantNotes} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value || ''}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+            
+                        <FormField
+                          control={form.control}
+                          name="usefulTip"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Useful Tips</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.usefulTip} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </TabsContent>
+            
+                    <TabsContent value="cancellation" className="space-y-4 mt-4">
+                      <div className="grid gap-4">
+                        <FormField
+                          control={form.control}
+                          name="cancellationPolicy"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">General Cancellation Policy</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.cancellationPolicy} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+            
+                        <FormField
+                          control={form.control}
+                          name="airlineCancellationPolicy"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Airline Cancellation Policy</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.airlineCancellationPolicy} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </TabsContent>
+            
+                    <TabsContent value="terms" className="space-y-4 mt-4">
+                      <div className="grid gap-4">
+                        <FormField
+                          control={form.control}
+                          name="paymentPolicy"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Payment Policy</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.paymentPolicy} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+            
+                        <FormField
+                          control={form.control}
+                          name="termsconditions"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between mb-4">
+                                <FormLabel className="text-base">Terms and Conditions</FormLabel>
+                                <Switch 
+                                  checked={useLocationDefaults.termsconditions} 
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} 
+                                />
+                              </div>
+                              <FormControl>
+                                <JoditEditor
+                                  ref={editor}
+                                  value={field.value}
+                                  config={{ readonly: loading }}
+                                  onBlur={(newContent) => field.onChange(newContent)}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -25,7 +25,7 @@ interface TransactionTableProps {
 
 export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, openingBalance }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
   
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));

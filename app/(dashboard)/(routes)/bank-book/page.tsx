@@ -31,7 +31,7 @@ interface BankAccount {
 const BankBookPage = () => {
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD'
+    currency: 'INR'
   });
   const router = useRouter();
   const [loading, setLoading] = useState(true);

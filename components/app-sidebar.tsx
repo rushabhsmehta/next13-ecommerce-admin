@@ -18,7 +18,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-import { LayoutGrid } from "lucide-react"; // Replaced invalid `GalleryVerticalEnd` icon
+import { LayoutGrid } from "lucide-react";
 
 // Sidebar Navigation Data
 const NAV_ITEMS = [
@@ -68,7 +68,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar {...props}>
-      {/* Sidebar Header */}
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -87,7 +86,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* Sidebar Navigation */}
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
@@ -113,7 +111,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Sidebar Rail for Collapsing */}
       <SidebarRail />
     </Sidebar>
   );

@@ -39,7 +39,7 @@ const confirmedTourPackageQueryPage = async ({
       }
     },
     orderBy: {
-      tourStartsFrom: 'desc' // or 'asc', depending on the desired order
+      tourStartsFrom: 'asc' // or 'asc', depending on the desired order
     }
   });
 

@@ -1,6 +1,6 @@
 import prismadb from "@/lib/prismadb";
 
-import { TourPackageQueryForm } from "./components/tourPackageQuery-form-copy";
+import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
 import { Turret_Road } from "next/font/google";
 import Navbar from "@/components/navbar";
 

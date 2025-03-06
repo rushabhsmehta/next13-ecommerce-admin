@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface InquirySummaryData {
   associateId: string;
@@ -167,7 +167,7 @@ export default function InquirySummaryPage() {
       <h1 className="text-2xl font-bold">Inquiry Summary Report</h1>
 
       <div className="flex gap-4 items-center flex-wrap">
-        <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+        <DateRangePicker  dateRange={dateRange}  onDateRangeChange={setDateRange} />
         <Select value={selectedAssociate} onValueChange={setSelectedAssociate}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select Associate" />

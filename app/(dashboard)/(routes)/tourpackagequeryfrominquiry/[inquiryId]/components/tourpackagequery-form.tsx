@@ -399,10 +399,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
+      <div className="flex items-center justify-between mb-4">
+        <div className="space-y-1">
+          <Heading title={title} description={description} />
+        </div>
       </div>
-      <Separator />
+      <Separator className="mb-8" />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -3114,7 +3116,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         Terms
                       </TabsTrigger>
                     </TabsList>
-            
+
                     <TabsContent value="inclusions" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <FormField
@@ -3124,9 +3126,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Inclusions</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.inclusions} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.inclusions}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3140,7 +3142,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             </FormItem>
                           )}
                         />
-            
+
                         <FormField
                           control={form.control}
                           name="exclusions"
@@ -3148,9 +3150,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Exclusions</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.exclusions} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.exclusions}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3166,7 +3168,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </div>
                     </TabsContent>
-            
+
                     <TabsContent value="notes" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <FormField
@@ -3176,9 +3178,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Important Notes</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.importantNotes} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.importantNotes}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3192,7 +3194,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             </FormItem>
                           )}
                         />
-            
+
                         <FormField
                           control={form.control}
                           name="usefulTip"
@@ -3200,9 +3202,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Useful Tips</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.usefulTip} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.usefulTip}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3218,7 +3220,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </div>
                     </TabsContent>
-            
+
                     <TabsContent value="cancellation" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <FormField
@@ -3228,9 +3230,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">General Cancellation Policy</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.cancellationPolicy} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.cancellationPolicy}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3244,7 +3246,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             </FormItem>
                           )}
                         />
-            
+
                         <FormField
                           control={form.control}
                           name="airlineCancellationPolicy"
@@ -3252,9 +3254,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Airline Cancellation Policy</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.airlineCancellationPolicy} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.airlineCancellationPolicy}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3270,7 +3272,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </div>
                     </TabsContent>
-            
+
                     <TabsContent value="terms" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <FormField
@@ -3280,9 +3282,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Payment Policy</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.paymentPolicy} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.paymentPolicy}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3296,7 +3298,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             </FormItem>
                           )}
                         />
-            
+
                         <FormField
                           control={form.control}
                           name="termsconditions"
@@ -3304,9 +3306,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <FormItem>
                               <div className="flex items-center justify-between mb-4">
                                 <FormLabel className="text-base">Terms and Conditions</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.termsconditions} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} 
+                                <Switch
+                                  checked={useLocationDefaults.termsconditions}
+                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
                                 />
                               </div>
                               <FormControl>
@@ -3330,7 +3332,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           </Tabs>
 
           <div className="flex justify-end mt-8">
-            <Button 
+            <Button
               type="submit"
               disabled={loading}
               className="flex items-center gap-2"
@@ -3345,7 +3347,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </Button>
           </div>
         </form>
-      </Form>   
+      </Form>
     </>
   )
 }

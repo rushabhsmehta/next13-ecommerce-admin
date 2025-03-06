@@ -3530,22 +3530,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       </Form>
 
       {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
-
-      <style jsx global>{`
-        .react-datepicker-popper {
-          z-index: 100 !important;
-        }
-        
-        .PopoverContent {
-          z-index: 50;
-        }
-        
-        /* Ensure calendar doesn't get cut off */
-        .CalendarWrapper {
-          position: relative;
-          z-index: 40;
-        }
-      `}</style>
+     
     </>
   )
 }

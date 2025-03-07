@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { PeriodFilter } from "./period-filter";
+import { StatusFilter } from "./status-filter";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
@@ -46,26 +48,29 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     <>
       <div className="flex items-center justify-between">
         <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" />
-
-        <Select
-          value={searchParams.get('associateId') || ''}
-          onValueChange={onAssociateChange}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select Associate" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Associates</SelectItem>
-            {associates.map((associate) => (
-              <SelectItem key={associate.id} value={associate.id}>
-                {associate.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={handleAddNewClick}>
-        <Plus className="mr-2 h-4 w-4" /> Add New
-      </Button>
+        <div className="flex items-center gap-x-2">
+          <PeriodFilter />
+          <StatusFilter />
+          <Select
+            value={searchParams.get('associateId') || ''}
+            onValueChange={onAssociateChange}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select Associate" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Associates</SelectItem>
+              {associates.map((associate) => (
+                <SelectItem key={associate.id} value={associate.id}>
+                  {associate.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleAddNewClick}>
+            <Plus className="mr-2 h-4 w-4" /> Add New
+          </Button>
+        </div>
       </div>    
       <Separator />
       <DataTable searchKey="customerName" columns={columns} data={data} />

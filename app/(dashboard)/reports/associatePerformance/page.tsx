@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { exportToCSV } from "@/lib/utils/csv-export";
 
 interface PerformanceData {
@@ -161,7 +161,7 @@ export default function AssociatePerformancePage() {
       </div>
 
       <div className="flex gap-4 items-center">
-        <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
+        <DatePickerWithRange date={dateRange} setDate={setDateRange} />
         <Select value={selectedAssociate} onValueChange={setSelectedAssociate}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select Associate" />

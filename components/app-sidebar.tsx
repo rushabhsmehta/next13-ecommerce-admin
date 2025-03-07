@@ -54,7 +54,15 @@ const NAV_ITEMS = [
       { title: "Bank Account", url: "/bankaccounts" },
     ],
   },
- 
+  {
+    title: "Finance",
+    items: [
+      { title: "Sales Ledger", url: "/sales/ledger" },
+      { title: "Purchase Ledger", url: "/purchases/ledger" },
+      { title: "Cash Book", url: "/cash-book" },
+      { title: "Bank Book", url: "/bank-book" },
+    ],
+  },
   {
     title: "Reports",
     items: [
@@ -63,8 +71,6 @@ const NAV_ITEMS = [
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
       { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
       { title: "Associate Performance", url: "/reports/associatePerformance" },
-      { title: "Cash Book", url: "/cash-book" },
-      { title: "Bank Book", url: "/bank-book" },
     ],
   },
 ];

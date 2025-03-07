@@ -13,94 +13,57 @@ export function MainNav({
   const params = useParams();
 
   const routes = [
-   /* {
-      href: ``,
-      label: 'Overview',
-      active: pathname === ``,
+    {
+      href: `/`,
+      label: 'Dashboard',
+      active: pathname === `/`,
     },
-      {
-      href: `/billboards`,
-      label: 'Billboards',
-      active: pathname === `/bill boards`,
-    },  */   
     {
       href: `/locations`,
       label: 'Locations',
       active: pathname === `/locations`,
     },
     {
-      href: `/hotels`,
-      label: 'Hotels',
-      active: pathname === `/hotels`,
+      href: `/tour-packages-query`,
+      label: 'Tour Packages Queries',
+      active: pathname === `/tour-packages-query`,
     },
     {
-      href: `/itinerariesMaster`,
-      label: 'Itineraries',
-      active: pathname === `/itinerariesMaster`,
+      href: `/inquiries`,
+      label: 'Inquiries',
+      active: pathname === `/inquiries`,
     },
     {
-      href: `/activitiesMaster`,
-      label: 'Activities',
-      active: pathname === `/activitiesMaster`,
+      href: `/associate-partners`,
+      label: 'Associate Partners',
+      active: pathname === `/associate-partners`,
     },
     {
-      href: `/tourPackages`,
-      label: 'Tour Packages',
-      active: pathname === `/tourPackages`,
+      href: `/customers`,
+      label: 'Customers',
+      active: pathname === `/customers`,
     },
     {
-      href: `/tourPackageQuery`,
-      label: 'Tour Package Query',
-      active: pathname === `/tourPackageQuery`,
+      href: `/suppliers`,
+      label: 'Suppliers',
+      active: pathname === `/suppliers`,
     },
     {
-      href: `/reports`,
-      label: 'Reports',
-      active: pathname === `/reports`,
-    },
-    
-    /* {
-      href: `/itineraries`,
-      label: 'Itineraries',
-      active: pathname === `/itineraries`,
-    },
-
-    {
-      href: `/categories`,
-      label: 'Categories',
-      active: pathname === `/categories`,
-    },
-     {
-      href: `/sizes`,
-      label: 'Sizes',
-      active: pathname === `/sizes`,
+      href: `/sales/ledger`,
+      label: 'Sales Ledger',
+      active: pathname === `/sales/ledger`,
     },
     {
-      href: `/colors`,
-      label: 'Colors',
-      active: pathname === `/colors`,
+      href: `/purchases/ledger`,
+      label: 'Purchase Ledger',
+      active: pathname === `/purchases/ledger`,
     },
-    {
-      href: `/products`,
-      label: 'Products',
-      active: pathname === `/products`,
-    }, 
-    
-    {
-      href: `/orders`,
-      label: 'Orders',
-      active: pathname === `/orders`,
-    }, 
-    {
-      href: `/settings`,
-      label: 'Settings',
-      active: pathname === `/settings`,
-    },*/
-  ]
+    // Add other routes as needed
+  ];
 
   return (
     <nav
-      className={cn("flex items-center space-x-4 lg:space-x-6", className)}
+      className={cn("flex items-center space-x-4 lg:space-x-6 overflow-auto", className)}
       {...props}
     >
       {routes.map((route) => (
@@ -108,12 +71,12 @@ export function MainNav({
           key={route.href}
           href={route.href}
           className={cn(
-            'text-sm font-medium transition-colors hover:text-primary',
-            route.active ? 'text-black dark:text-white' : 'text-muted-foreground'
+            "text-sm font-medium transition-colors hover:text-primary whitespace-nowrap",
+            route.active ? "text-black dark:text-white" : "text-muted-foreground"
           )}
         >
           {route.label}
-      </Link>
+        </Link>
       ))}
     </nav>
   )

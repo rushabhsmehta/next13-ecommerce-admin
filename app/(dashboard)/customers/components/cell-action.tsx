@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Copy, Edit, FileText, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, BookText } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 
@@ -22,9 +22,7 @@ interface CellActionProps {
   data: CustomerColumn;
 }
 
-export const CellAction: React.FC<CellActionProps> = ({
-  data,
-}) => {
+export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
   const params = useParams();
   const [open, setOpen] = useState(false);
@@ -37,7 +35,7 @@ export const CellAction: React.FC<CellActionProps> = ({
       toast.success('Customer deleted.');
       router.refresh();
     } catch (error) {
-      toast.error('Make sure all related dependencies are removed first.');
+      toast.error('Unable to delete customer.');
     } finally {
       setOpen(false);
       setLoading(false);
@@ -47,7 +45,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Customer ID copied to clipboard.');
-  }
+  };
 
   return (
     <>
@@ -66,24 +64,16 @@ export const CellAction: React.FC<CellActionProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem
-            onClick={() => onCopy(data.id)}
-          >
+          <DropdownMenuItem onClick={() => onCopy(data.id)}>
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/customers/${data.id}`)}
-          >
+          <DropdownMenuItem onClick={() => router.push(`/customers/${data.id}`)}>
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/customers/${data.id}/ledger`)}
-          >
-            <FileText className="mr-2 h-4 w-4" /> View Ledger
+          <DropdownMenuItem onClick={() => router.push(`/customers/${data.id}/ledger`)}>
+            <BookText className="mr-2 h-4 w-4" /> View Ledger
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setOpen(true)}
-          >
+          <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

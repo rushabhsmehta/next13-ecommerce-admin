@@ -10,6 +10,7 @@ export type CustomerColumn = {
   contact: string;
   email: string;
   associatePartner: string;
+  createdAt: string;
 }
 
 export const columns: ColumnDef<CustomerColumn>[] = [
@@ -28,6 +29,10 @@ export const columns: ColumnDef<CustomerColumn>[] = [
   {
     accessorKey: "associatePartner",
     header: "Associate Partner",
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Date Added",
   },
   {
     id: "actions",

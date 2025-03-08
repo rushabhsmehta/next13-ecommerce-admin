@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
 import { SalesTable } from "./sales-table";
 import { ReceiptsTable } from "./receipts-table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LedgerTransactionsTable } from "./ledger-transactions-table";
 
 type Sale = {
   id: string;
@@ -48,6 +50,12 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
 }) => {
   const router = useRouter();
 
+  // Combine transactions for the full ledger view
+  const allTransactions = [
+    ...sales,
+    ...receipts,
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -84,10 +92,12 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Balance Due</CardTitle>
+            <CardTitle className="text-sm font-medium">Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${balance > 0 ? "text-red-600" : "text-green-600"}`}>
+            <div className={`text-2xl font-bold ${
+              balance > 0 ? "text-red-600" : balance < 0 ? "text-green-600" : ""
+            }`}>
               {formatPrice(balance)}
             </div>
           </CardContent>
@@ -103,30 +113,10 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
         <TabsContent value="all" className="space-y-4">
           <Card className="col-span-3">
             <CardHeader>
-              <CardTitle>All Transactions</CardTitle>
-              <CardDescription>
-                Showing all financial transactions for this customer
-              </CardDescription>
+              <CardTitle>Ledger Transactions</CardTitle>
             </CardHeader>
             <CardContent>
-              {sales.length === 0 && receipts.length === 0 ? (
-                <p className="text-center text-muted-foreground py-6">No transactions found for this customer</p>
-              ) : (
-                <div className="space-y-8">
-                  {sales.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Sales</h3>
-                      <SalesTable data={sales} />
-                    </div>
-                  )}
-                  {receipts.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Receipts</h3>
-                      <ReceiptsTable data={receipts} />
-                    </div>
-                  )}
-                </div>
-              )}
+              <LedgerTransactionsTable data={allTransactions} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -134,16 +124,9 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
           <Card className="col-span-3">
             <CardHeader>
               <CardTitle>Sales</CardTitle>
-              <CardDescription>
-                Showing all sales for this customer
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              {sales.length === 0 ? (
-                <p className="text-center text-muted-foreground py-6">No sales found for this customer</p>
-              ) : (
-                <SalesTable data={sales} />
-              )}
+              <SalesTable data={sales} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -151,16 +134,9 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
           <Card className="col-span-3">
             <CardHeader>
               <CardTitle>Receipts</CardTitle>
-              <CardDescription>
-                Showing all receipts for this customer
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              {receipts.length === 0 ? (
-                <p className="text-center text-muted-foreground py-6">No receipts found for this customer</p>
-              ) : (
-                <ReceiptsTable data={receipts} />
-              )}
+              <ReceiptsTable data={receipts} />
             </CardContent>
           </Card>
         </TabsContent>

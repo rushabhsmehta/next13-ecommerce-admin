@@ -108,6 +108,7 @@ model TourPackageQuery {
   paymentDetails          PaymentDetail[]
   receiptDetails          ReceiptDetail[]
   expenseDetails          ExpenseDetail[]
+  incomeDetails           IncomeDetail[]
 
   // Modified: Remove @unique constraint to allow multiple queries per inquiry
   inquiryId                 String?
@@ -527,6 +528,7 @@ model BankAccount {
   paymentDetails  PaymentDetail[]
   receiptDetails  ReceiptDetail[]
   expenseDetails  ExpenseDetail[]
+  incomeDetails   IncomeDetail[]
 
   @@index([accountNumber])
 }
@@ -538,10 +540,32 @@ model CashAccount {
   currentBalance  Float     @default(0)
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime  @default(now())
   
   // Relations with transactions
   paymentDetails  PaymentDetail[]
   receiptDetails  ReceiptDetail[]
   expenseDetails  ExpenseDetail[]
+  incomeDetails   IncomeDetail[]
+}
+
+model IncomeDetail {
+  id              String            @id @default(uuid())
+  incomeDate      DateTime
+  amount          Float
+  incomeCategory  String
+  description     String?
+  
+  // Relations
+  tourPackageQueryId String?
+  tourPackageQuery   TourPackageQuery?   @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  
+  // Bank or Cash relation (one of them must be filled)
+  bankAccountId   String?
+  bankAccount     BankAccount?      @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  cashAccountId   String?
+  cashAccount     CashAccount?      @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }

@@ -62,6 +62,7 @@ const NAV_ITEMS = [
       { title: "Receipt Ledger", url: "/receipts/ledger" },
       { title: "Payment Ledger", url: "/payments/ledger" },
       { title: "Expense Ledger", url: "/expenses/ledger" },
+      { title: "Income Ledger", url: "/incomes/ledger" },  // Add Income Ledger
       { title: "Customer Statements", url: "/customers/ledger" },
       { title: "Supplier Statements", url: "/suppliers/ledger" },
       { title: "Cash Book", url: "/cash-book" },

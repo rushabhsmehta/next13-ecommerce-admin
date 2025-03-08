@@ -5,7 +5,7 @@ import { CheckCircleIcon, CreditCardIcon, WalletIcon, CalendarIcon, DollarSignIc
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, PurchaseDetail, SaleDetail, PaymentDetail, ReceiptDetail, ExpenseDetail, Supplier, Customer, BankAccount, CashAccount } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, PurchaseDetail, SaleDetail, PaymentDetail, ReceiptDetail, ExpenseDetail, Supplier, Customer, BankAccount, CashAccount, IncomeDetail } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,10 @@ interface TourPackageQueryDisplayProps {
       bankAccount: BankAccount | null;
       cashAccount: CashAccount | null;
     }> | null;
+    incomeDetails: Array<IncomeDetail & {
+      bankAccount: BankAccount | null;
+      cashAccount: CashAccount | null;
+    }> | null;
   } | null;
 }
 
@@ -55,6 +59,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   // Calculate payment and receipt status
   const paymentStatus = totalPayments / totalPurchases;
   const receiptStatus = totalReceipts / totalSales;
+
+  // Add income calculations in the component
+  const totalIncomes = initialData.incomeDetails?.reduce((sum, income) => sum + income.amount, 0) ?? 0;
 
   // Helper function to get account details with icon
   const getAccountDisplay = (detail: {
@@ -414,6 +421,69 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   </CardContent>
                 </Card>
               ) : <p className="text-gray-500 italic">No expense details available</p>}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Income Section */}
+        <AccordionItem value="incomes" className="border rounded-lg bg-white shadow-md">
+          <AccordionTrigger className="px-6 hover:no-underline">
+            <div className="flex justify-between w-full items-center">
+              <div className="flex items-center">
+                <DollarSignIcon className="h-5 w-5 mr-2 text-green-600" />
+                <span className="font-semibold text-lg">Income Details</span>
+              </div>
+              <span className="text-green-600 font-bold">₹{totalIncomes.toFixed(2)}</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pt-2 pb-4">
+            <div className="max-h-[500px] overflow-y-auto pr-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-green-800">Income Records</h3>
+                <Badge variant="outline" className="text-green-800 border-green-800">
+                  {initialData.incomeDetails?.length || 0} records
+                </Badge>
+              </div>
+              
+              {initialData.incomeDetails && initialData.incomeDetails.length > 0 ? (
+                <Card className="shadow-lg rounded-lg border-l-4 border-green-500">
+                  <CardHeader className="py-3 bg-gray-50">
+                    <CardTitle className="text-sm font-medium grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4">
+                      <div>Category</div>
+                      <div>Date</div>
+                      <div>Amount</div>
+                      <div>Account</div>
+                      <div>Description</div>
+                    </CardTitle>
+                      </CardHeader>
+                      <CardContent className="max-h-[250px] overflow-y-auto p-0">
+                        {initialData.incomeDetails.map((detail) => {
+                          const account = getAccountDisplay(detail);
+                          return (
+                            <div key={detail.id} 
+                              className="grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
+                              <div className="font-medium">
+                                {detail.incomeCategory}
+                              </div>
+                              <div className="flex items-center">
+                                <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
+                                {format(new Date(detail.incomeDate), "dd MMM yyyy")}
+                          </div>
+                          <div className="font-bold text-green-700">₹{detail.amount.toFixed(2)}</div>
+                          <div className="flex items-center">
+                            {account.icon}
+                            <div>
+                              <div className="font-medium">{account.name}</div>
+                              {account.info && <div className="text-xs text-gray-500">{account.info}</div>}
+                            </div>
+                          </div>
+                          <div className="truncate text-gray-600">{detail.description || 'No description'}</div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ) : <p className="text-gray-500 italic">No income details available</p>}
             </div>
           </AccordionContent>
         </AccordionItem>

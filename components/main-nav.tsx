@@ -89,6 +89,11 @@ export function MainNav({
       active: pathname === `/suppliers/ledger`,
     },
     {
+      href: `/transfers`,
+      label: 'Fund Transfers',
+      active: pathname === `/transfers`,
+    },
+    {
       href: `/expense-categories`,
       label: 'Expense Categories',
       active: pathname === `/expense-categories`,

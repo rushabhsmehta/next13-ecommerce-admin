@@ -143,6 +143,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
     accountName: string;
     bankName?: string;
   }[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<{ id: string; name: string }[]>([]);
+  const [incomeCategories, setIncomeCategories] = useState<{ id: string; name: string }[]>([]);
 
   // Fetch suppliers
   useEffect(() => {
@@ -219,6 +221,32 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
     fetchAccounts();
   }, []);
 
+  // Fetch expense categories
+  useEffect(() => {
+    const fetchExpenseCategories = async () => {
+      try {
+        const res = await axios.get("/api/expense-categories");
+        setExpenseCategories(res.data);
+      } catch (error) {
+        console.error("Error fetching expense categories", error);
+      }
+    };
+    fetchExpenseCategories();
+  }, []);
+
+  // Fetch income categories
+  useEffect(() => {
+    const fetchIncomeCategories = async () => {
+      try {
+        const res = await axios.get("/api/income-categories");
+        setIncomeCategories(res.data);
+      } catch (error) {
+        console.error("Error fetching income categories", error);
+      }
+    };
+    fetchIncomeCategories();
+  }, []);
+
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
   const action = initialData ? 'Save changes' : 'Create';
 
@@ -269,7 +297,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
         return {
           expenseDate: new Date(detail.expenseDate),
           amount: detail.amount || 0,
-          expenseCategory: detail.expenseCategory || '',
+          expenseCategory: detail.expenseCategoryId || detail.expenseCategory || '',
           accountId,
           description: detail.description || '',
         };
@@ -281,7 +309,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
         return {
           incomeDate: new Date(detail.incomeDate),
           amount: detail.amount || 0,
-          incomeCategory: detail.incomeCategory || '',
+          incomeCategory: detail.incomeCategoryId || detail.incomeCategory || '',
           accountId,
           description: detail.description || '',
         };
@@ -604,7 +632,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              }}
+                              })}
                               initialFocus
                             />
                           </PopoverContent>
@@ -755,7 +783,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              }}
+                              })}
                               initialFocus
                             />
                           </PopoverContent>
@@ -904,7 +932,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              }}
+                              })}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1107,7 +1135,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              }}
+                              })}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1240,7 +1268,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              }}
+                              })}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1278,9 +1306,29 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Expense Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Expense Category" {...field} />
-                        </FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {expenseCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                            {field.value && !expenseCategories.find(c => c.id === field.value) && (
+                              <SelectItem value={field.value}>
+                                {field.value}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1389,7 +1437,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              }}
+                              })}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1427,9 +1475,29 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Income Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Income Category" {...field} />
-                        </FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {incomeCategories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                            {field.value && !incomeCategories.find(c => c.id === field.value) && (
+                              <SelectItem value={field.value}>
+                                {field.value}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -88,6 +88,16 @@ export function MainNav({
       label: 'Supplier Statements',
       active: pathname === `/suppliers/ledger`,
     },
+    {
+      href: `/expense-categories`,
+      label: 'Expense Categories',
+      active: pathname === `/expense-categories`,
+    },
+    {
+      href: `/income-categories`,
+      label: 'Income Categories',
+      active: pathname === `/income-categories`,
+    },
   ];
 
   return (

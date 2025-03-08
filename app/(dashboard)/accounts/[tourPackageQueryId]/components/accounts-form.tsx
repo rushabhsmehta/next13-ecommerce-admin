@@ -89,6 +89,13 @@ const formSchema = z.object({
     accountId: z.string(),
     description: z.string().optional(),
   })).default([]),
+  incomeDetails: z.array(z.object({
+    incomeDate: z.date(),
+    amount: z.number(),
+    incomeCategory: z.string(),
+    accountId: z.string(),
+    description: z.string().optional(),
+  })).default([]),
 });
 
 type TourPackageQueryAccountingFormValues = z.infer<typeof formSchema>
@@ -267,6 +274,18 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
           description: detail.description || '',
         };
       }) || [],
+      incomeDetails: data.incomeDetails?.map((detail: any) => {
+        // Determine account ID based on which field is populated
+        const accountId = detail.bankAccountId || detail.cashAccountId || '';
+
+        return {
+          incomeDate: new Date(detail.incomeDate),
+          amount: detail.amount || 0,
+          incomeCategory: detail.incomeCategory || '',
+          accountId,
+          description: detail.description || '',
+        };
+      }) || [],
     };
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {
@@ -291,6 +310,13 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
       expenseDate: new Date(),
       amount: 0,
       expenseCategory: '',
+      accountId: '',
+      description: ''
+    }],
+    incomeDetails: [{
+      incomeDate: new Date(),
+      amount: 0,
+      incomeCategory: '',
       accountId: '',
       description: ''
     }],
@@ -324,6 +350,11 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
   const { fields: expenseFields, append: appendExpense, remove: removeExpense } = useFieldArray({
     control: form.control,
     name: "expenseDetails"
+  });
+
+  const { fields: incomeFields, append: appendIncome, remove: removeIncome } = useFieldArray({
+    control: form.control,
+    name: "incomeDetails"
   });
 
   const onSubmit = async (data: TourPackageQueryAccountingFormValues) => {
@@ -366,6 +397,17 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
       if (item.amount <= 0) errors.push(`Amount must be greater than 0 in expense detail #${index + 1}`);
     });
 
+    // Validate income details
+    data.incomeDetails.forEach((item, index) => {
+      if (!item.accountId) {
+        errors.push(`Account is required in income detail #${index + 1}`);
+      }
+      if (!item.incomeCategory) {
+        errors.push(`Category is required in income detail #${index + 1}`);
+      }
+      if (item.amount <= 0) errors.push(`Amount must be greater than 0 in income detail #${index + 1}`);
+    });
+
     // If there are validation errors, show them in the dialog
     if (errors.length > 0) {
       setFormErrors(errors);
@@ -392,6 +434,13 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
         };
       }),
       expenseDetails: data.expenseDetails.map(detail => {
+        const account = allAccounts.find(acc => acc.id === detail.accountId);
+        return {
+          ...detail,
+          accountType: account?.type || 'unknown'
+        };
+      }),
+      incomeDetails: data.incomeDetails.map(detail => {
         const account = allAccounts.find(acc => acc.id === detail.accountId);
         return {
           ...detail,
@@ -443,7 +492,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Rest of component */}
       <div className="flex items-center justify-between">
         <Heading title={title} description={description} />
@@ -452,7 +500,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-
           <Tabs defaultValue="purchaseDetails">
             <TabsList>
               <TabsTrigger value="purchaseDetails">Purchase</TabsTrigger>
@@ -460,6 +507,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
               <TabsTrigger value="paymentDetails">Payment</TabsTrigger>
               <TabsTrigger value="receiptDetails">Receipt</TabsTrigger>
               <TabsTrigger value="expenseDetails">Expense</TabsTrigger>
+              <TabsTrigger value="incomeDetails">Income</TabsTrigger>
             </TabsList>
 
             {/* Purchase details tab */}
@@ -498,8 +546,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                               <CommandGroup>
                                 {suppliers.map((supplier) => (
                                   <CommandItem
-                                    value={supplier.name}
                                     key={supplier.id}
+                                    value={supplier.name}
                                     onSelect={() => {
                                       form.setValue(`purchaseDetails.${index}.supplierId`, supplier.id);
                                     }}
@@ -601,7 +649,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
-
                   <Button type="button" variant="destructive" onClick={() => removePurchase(index)}>
                     Remove
                   </Button>
@@ -650,8 +697,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                               <CommandGroup>
                                 {customers.map((customer) => (
                                   <CommandItem
-                                    value={customer.name}
                                     key={customer.id}
+                                    value={customer.name}
                                     onSelect={() => {
                                       form.setValue(`saleDetails.${index}.customerId`, customer.id);
                                     }}
@@ -753,7 +800,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
-
                   <Button type="button" variant="destructive" onClick={() => removeSale(index)}>
                     Remove
                   </Button>
@@ -800,8 +846,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                               <CommandGroup>
                                 {suppliers.map((supplier) => (
                                   <CommandItem
-                                    value={supplier.name}
                                     key={supplier.id}
+                                    value={supplier.name}
                                     onSelect={() => {
                                       form.setValue(`paymentDetails.${index}.supplierId`, supplier.id);
                                     }}
@@ -889,7 +935,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                     )}
                   />
 
-
+                  {/* Single combined account selection */}
                   <FormField
                     control={form.control}
                     name={`paymentDetails.${index}.accountId`}
@@ -1003,8 +1049,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                               <CommandGroup>
                                 {customers.map((customer) => (
                                   <CommandItem
-                                    value={customer.name}
                                     key={customer.id}
+                                    value={customer.name}
                                     onSelect={() => {
                                       form.setValue(`receiptDetails.${index}.customerId`, customer.id);
                                     }}
@@ -1274,6 +1320,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
+
                   {/* Description */}
                   <FormField
                     control={form.control}
@@ -1288,7 +1335,6 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                       </FormItem>
                     )}
                   />
-
                   <Button type="button" variant="destructive" onClick={() => removeExpense(index)}>
                     Remove
                   </Button>
@@ -1302,6 +1348,155 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                 description: ''
               })}>
                 Add Expense Detail
+              </Button>
+            </TabsContent>
+
+            {/* Income details tab */}
+            <TabsContent value="incomeDetails">
+              {incomeFields.map((field, index) => (
+                <div key={field.id} className="space-y-2 border p-2 mb-2 rounded">
+                  {/* Income date */}
+                  <FormField
+                    control={form.control}
+                    name={`incomeDetails.${index}.incomeDate`}
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date of Income</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(day) => {
+                                if (day) {
+                                  field.onChange(day);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Amount */}
+                  <FormField
+                    control={form.control}
+                    name={`incomeDetails.${index}.amount`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Amount"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Income category */}
+                  <FormField
+                    control={form.control}
+                    name={`incomeDetails.${index}.incomeCategory`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Income Category</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Income Category" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Single combined account selection */}
+                  <FormField
+                    control={form.control}
+                    name={`incomeDetails.${index}.accountId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Account</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={allAccounts.length === 0}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={
+                                allAccounts.length === 0
+                                  ? "No accounts available"
+                                  : "Select an account"
+                              } />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Select an account</SelectItem>
+                            {allAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.displayName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Description */}
+                  <FormField
+                    control={form.control}
+                    name={`incomeDetails.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="button" variant="destructive" onClick={() => removeIncome(index)}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button type="button" onClick={() => appendIncome({
+                incomeDate: new Date(),
+                amount: 0,
+                incomeCategory: '',
+                accountId: '',
+                description: ''
+              })}>
+                Add Income Detail
               </Button>
             </TabsContent>
           </Tabs>

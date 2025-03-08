@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link"
+import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 export function MainNav({
   className,
@@ -74,6 +74,11 @@ export function MainNav({
       active: pathname === `/expenses/ledger`,
     },
     {
+      href: `/incomes/ledger`,
+      label: 'Income Ledger',
+      active: pathname === `/incomes/ledger`,
+    },
+    {
       href: `/customers/ledger`,
       label: 'Customer Statements',
       active: pathname === `/customers/ledger`,
@@ -83,7 +88,6 @@ export function MainNav({
       label: 'Supplier Statements',
       active: pathname === `/suppliers/ledger`,
     },
-    // Add other routes as needed
   ];
 
   return (

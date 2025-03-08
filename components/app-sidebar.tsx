@@ -24,6 +24,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
+import { ArrowLeftRight, BarChart3, Building2, Coins, CreditCard, DollarSign, LayoutDashboard, ListOrdered, PackageSearch, Receipt, Tags, Users, Wallet } from "lucide-react";
+import { useParams, usePathname } from "next/navigation";
+import { useState } from "react";
+import { Separator } from "./ui/separator";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -83,6 +88,105 @@ const NAV_ITEMS = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const params = useParams();
+  const [financialOpen, setFinancialOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+
+  const routes = [
+    {
+      href: `/dashboard`,
+      label: 'Dashboard',
+      active: pathname === `/dashboard`,
+      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/customers`,
+      label: 'Customers',
+      active: pathname.includes(`/customers`),
+      icon: <Users className="w-5 h-5 mr-3" />
+    },
+  ];
+
+  // Financial routes section
+  const financialRoutes = [
+    // Bank & Cash Management
+    {
+      href: `/bank-accounts`,
+      label: 'Bank Accounts',
+      active: pathname.includes(`/bank-accounts`),
+      icon: <Building2 className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/cash-accounts`,
+      label: 'Cash Accounts',
+      active: pathname.includes(`/cash-accounts`),
+      icon: <Wallet className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/transfers`,
+      label: 'Fund Transfers',
+      active: pathname.includes(`/transfers`),
+      icon: <ArrowLeftRight className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/suppliers`,
+      label: 'Suppliers',
+      active: pathname.includes(`/suppliers`),
+      icon: <PackageSearch className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/purchases/ledger`,
+      label: 'Purchase Ledger',
+      active: pathname.includes(`/purchases/ledger`),
+      icon: <CreditCard className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/sales/ledger`,
+      label: 'Sales Ledger',
+      active: pathname.includes(`/sales/ledger`),
+      icon: <DollarSign className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/receipts/ledger`,
+      label: 'Receipt Ledger',
+      active: pathname.includes(`/receipts/ledger`),
+      icon: <Receipt className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/payments/ledger`,
+      label: 'Payment Ledger',
+      active: pathname.includes(`/payments/ledger`),
+      icon: <Coins className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/expenses/ledger`,
+      label: 'Expense Ledger',
+      active: pathname.includes(`/expenses/ledger`),
+      icon: <CreditCard className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/incomes/ledger`,
+      label: 'Income Ledger',
+      active: pathname.includes(`/incomes/ledger`),
+      icon: <DollarSign className="w-5 h-5 mr-3" />
+    },
+  ];
+
+  // Categories routes section
+  const categoryRoutes = [
+    {
+      href: `/expense-categories`,
+      label: 'Expense Categories',
+      active: pathname.includes(`/expense-categories`),
+      icon: <Tags className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/income-categories`,
+      label: 'Income Categories',
+      active: pathname.includes(`/income-categories`),
+      icon: <ListOrdered className="w-5 h-5 mr-3" />
+    },
+  ];
 
   return (
     <Sidebar {...props}>
@@ -139,6 +243,107 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+
+      <div className={cn("pb-12 min-h-screen", props.className)}>
+        <div className="space-y-4 py-4">
+          <div className="px-4 py-2">
+            <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
+              Finance Manager
+            </h2>
+            <div className="space-y-1">
+              {routes.map((route) => (
+                <Button
+                  key={route.href}
+                  variant={route.active ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  asChild
+                >
+                  <Link href={route.href}>
+                    {route.icon}
+                    {route.label}
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Financial Management Section */}
+          <Collapsible
+            open={financialOpen}
+            onOpenChange={setFinancialOpen}
+            className="px-4 py-2"
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between"
+              >
+                <div className="flex items-center">
+                  <BarChart3 className="w-5 h-5 mr-3" />
+                  <span>Financial Management</span>
+                </div>
+                <span className={`transition-transform ${financialOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-1">
+              {financialRoutes.map((route) => (
+                <Button
+                  key={route.href}
+                  variant={route.active ? "secondary" : "ghost"}
+                  className="w-full justify-start pl-8"
+                  asChild
+                >
+                  <Link href={route.href}>
+                    {route.icon}
+                    {route.label}
+                  </Link>
+                </Button>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Categories Management Section */}
+          <Collapsible
+            open={categoriesOpen}
+            onOpenChange={setCategoriesOpen}
+            className="px-4 py-2"
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between"
+              >
+                <div className="flex items-center">
+                  <Tags className="w-5 h-5 mr-3" />
+                  <span>Categories</span>
+                </div>
+                <span className={`transition-transform ${categoriesOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-1">
+              {categoryRoutes.map((route) => (
+                <Button
+                  key={route.href}
+                  variant={route.active ? "secondary" : "ghost"}
+                  className="w-full justify-start pl-8"
+                  asChild
+                >
+                    <Link href={route.href}>
+                      {route.icon}
+                      {route.label}
+                    </Link>
+                </Button>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Separator />
+        </div>
+      </div>
 
       <SidebarRail />
     </Sidebar>

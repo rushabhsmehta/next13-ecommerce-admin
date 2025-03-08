@@ -58,6 +58,31 @@ export function MainNav({
       label: 'Purchase Ledger',
       active: pathname === `/purchases/ledger`,
     },
+    {
+      href: `/receipts/ledger`,
+      label: 'Receipt Ledger',
+      active: pathname === `/receipts/ledger`,
+    },
+    {
+      href: `/payments/ledger`,
+      label: 'Payment Ledger',
+      active: pathname === `/payments/ledger`,
+    },
+    {
+      href: `/expenses/ledger`,
+      label: 'Expense Ledger',
+      active: pathname === `/expenses/ledger`,
+    },
+    {
+      href: `/customers/ledger`,
+      label: 'Customer Statements',
+      active: pathname === `/customers/ledger`,
+    },
+    {
+      href: `/suppliers/ledger`,
+      label: 'Supplier Statements',
+      active: pathname === `/suppliers/ledger`,
+    },
     // Add other routes as needed
   ];
 

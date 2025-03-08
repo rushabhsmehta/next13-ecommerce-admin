@@ -58,7 +58,11 @@ export const ExpenseCategoryForm: React.FC<ExpenseCategoryFormProps> = ({
 
   const form = useForm<ExpenseCategoryFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      name: initialData.name,
+      description: initialData.description || undefined,
+      isActive: initialData.isActive,
+    } : {
       name: '',
       description: '',
       isActive: true,
@@ -162,7 +166,7 @@ export const ExpenseCategoryForm: React.FC<ExpenseCategoryFormProps> = ({
                   <FormControl>
                     <Checkbox
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked) => field.onChange(!!checked)}
                       disabled={loading}
                     />
                   </FormControl>

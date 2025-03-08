@@ -632,7 +632,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              })}
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -783,7 +783,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              })}
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -932,7 +932,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              })}
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1135,7 +1135,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              })}
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1268,7 +1268,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              })}
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1437,7 +1437,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 if (day) {
                                   field.onChange(day);
                                 }
-                              })}
+                              }}
                               initialFocus
                             />
                           </PopoverContent>

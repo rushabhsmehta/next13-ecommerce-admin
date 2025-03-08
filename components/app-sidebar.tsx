@@ -1,133 +1,93 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-
 import { cn } from "@/lib/utils";
-import { ChevronRight, LayoutGrid, type LucideIcon } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarRail,
-} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { 
+  ArrowLeftRight, 
+  BarChart3, 
+  Building2, 
+  Coins, 
+  CreditCard, 
+  DollarSign, 
+  LayoutDashboard, 
+  ListOrdered, 
+  PackageSearch, 
+  Receipt, 
+  Tags, 
+  Users, 
+  Wallet,
+  Map,
+  Store,
+  Hotel,
+  Plane,
+  FileQuestion,
+  Settings,
+  BriefcaseBusiness
+} from "lucide-react";
+import { useParams, usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, BarChart3, Building2, Coins, CreditCard, DollarSign, LayoutDashboard, ListOrdered, PackageSearch, Receipt, Tags, Users, Wallet } from "lucide-react";
-import { useParams, usePathname } from "next/navigation";
+} from "@/components/ui/collapsible"
 import { useState } from "react";
 import { Separator } from "./ui/separator";
 
-// Sidebar Navigation Data with appropriate structure for Collapsible components
-const NAV_ITEMS = [
-  {
-    title: "Dashboard",
-    items: [
-      { title: "Inquiries", url: "/inquiries" },
-      { title: "Tour Package Query", url: "/tourPackageQuery" },
-    ],
-  },
-  {
-    title: "Master Data",
-    items: [
-      { title: "Locations", url: "/locations" },
-      { title: "Hotels", url: "/hotels" },
-      { title: "Itineraries", url: "/itinerariesMaster" },
-      { title: "Activities", url: "/activitiesMaster" },
-      { title: "Tour Packages", url: "/tourPackages" },
-    ],
-  },
-  {
-    title: "Business",
-    items: [
-      { title: "Associates", url: "/associate-partners" },
-      { title: "Customers", url: "/customers" },
-      { title: "Suppliers", url: "/suppliers" },       
-      { title: "Cash Account", url: "/cashaccounts" },
-      { title: "Bank Account", url: "/bankaccounts" },
-    ],
-  },
-  {
-    title: "Finance",
-    items: [
-      { title: "Sales Ledger", url: "/sales/ledger" },
-      { title: "Purchase Ledger", url: "/purchases/ledger" },
-      { title: "Receipt Ledger", url: "/receipts/ledger" },
-      { title: "Payment Ledger", url: "/payments/ledger" },
-      { title: "Expense Ledger", url: "/expenses/ledger" },
-      { title: "Income Ledger", url: "/incomes/ledger" },  // Add Income Ledger
-      { title: "Customer Statements", url: "/customers/ledger" },
-      { title: "Supplier Statements", url: "/suppliers/ledger" },
-      { title: "Cash Book", url: "/cash-book" },
-      { title: "Bank Book", url: "/bank-book" },
-    ],
-  },
-  {
-    title: "Reports",
-    items: [
-      { title: "Upcoming Trips", url: "/reports/upcomingTrips" },
-      { title: "Inquiry Summary", url: "/reports/inquirySummary" },
-      { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
-      { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
-      { title: "Associate Performance", url: "/reports/associatePerformance" },
-    ],
-  },
-];
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  className,
+}: React.HTMLAttributes<HTMLDivElement>) {
   const pathname = usePathname();
   const params = useParams();
+  
+  // State for collapsible sections
+  const [dashboardOpen, setDashboardOpen] = useState(true);
+  const [tourManagementOpen, setTourManagementOpen] = useState(false);
   const [financialOpen, setFinancialOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [ledgersOpen, setLedgersOpen] = useState(false);
 
-  const routes = [
+  // Main Dashboard routes
+  const dashboardRoutes = [
     {
       href: `/dashboard`,
       label: 'Dashboard',
       active: pathname === `/dashboard`,
       icon: <LayoutDashboard className="w-5 h-5 mr-3" />
-    },
+    }
+  ];
+
+  // Tour Management routes
+  const tourManagementRoutes = [
     {
       href: `/tourPackageQuery`,
-      label: 'Tour Package',
+      label: 'Tour Packages',
       active: pathname === `/tourPackageQuery` || pathname.includes(`/tourPackageQuery`),
-      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
+      icon: <BriefcaseBusiness className="w-5 h-5 mr-3" />
     },
     {
       href: `/inquiries`,
       label: 'Inquiries',
       active: pathname.includes(`/inquiries`),
-      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
-    },
-    {
-      href: `/customers`,
-      label: 'Customers',
-      active: pathname.includes(`/customers`),
-      icon: <Users className="w-5 h-5 mr-3" />
+      icon: <FileQuestion className="w-5 h-5 mr-3" />
     },
     {
       href: `/locations`,
       label: 'Locations',
       active: pathname.includes(`/locations`),
-      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
+      icon: <Map className="w-5 h-5 mr-3" />
     },
+    {
+      href: `/hotels`,
+      label: 'Hotels',
+      active: pathname.includes(`/hotels`),
+      icon: <Hotel className="w-5 h-5 mr-3" />
+    }
   ];
 
-  // Financial routes section
-  const financialRoutes = [
-    // Bank & Cash Management
+  // Accounts management routes
+  const accountsRoutes = [
     {
       href: `/bank-accounts`,
       label: 'Bank Accounts',
@@ -145,13 +105,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       label: 'Fund Transfers',
       active: pathname.includes(`/transfers`),
       icon: <ArrowLeftRight className="w-5 h-5 mr-3" />
+    }
+  ];
+
+  // Categories routes
+  const categoryRoutes = [
+    {
+      href: `/expense-categories`,
+      label: 'Expense Categories',
+      active: pathname.includes(`/expense-categories`),
+      icon: <Tags className="w-5 h-5 mr-3" />
     },
     {
-      href: `/suppliers`,
-      label: 'Suppliers',
-      active: pathname.includes(`/suppliers`),
-      icon: <PackageSearch className="w-5 h-5 mr-3" />
-    },
+      href: `/income-categories`,
+      label: 'Income Categories',
+      active: pathname.includes(`/income-categories`),
+      icon: <ListOrdered className="w-5 h-5 mr-3" />
+    }
+  ];
+
+  // Ledger routes
+  const ledgerRoutes = [
     {
       href: `/purchases/ledger`,
       label: 'Purchase Ledger',
@@ -187,183 +161,242 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       label: 'Income Ledger',
       active: pathname.includes(`/incomes/ledger`),
       icon: <DollarSign className="w-5 h-5 mr-3" />
-    },
+    }
   ];
 
-  // Categories routes section
-  const categoryRoutes = [
+  // Customer / Suppliers routes
+  const contactsRoutes = [
     {
-      href: `/expense-categories`,
-      label: 'Expense Categories',
-      active: pathname.includes(`/expense-categories`),
-      icon: <Tags className="w-5 h-5 mr-3" />
+      href: `/customers`,
+      label: 'Customers',
+      active: pathname.includes(`/customers`),
+      icon: <Users className="w-5 h-5 mr-3" />
     },
     {
-      href: `/income-categories`,
-      label: 'Income Categories',
-      active: pathname.includes(`/income-categories`),
-      icon: <ListOrdered className="w-5 h-5 mr-3" />
-    },
+      href: `/suppliers`,
+      label: 'Suppliers',
+      active: pathname.includes(`/suppliers`),
+      icon: <PackageSearch className="w-5 h-5 mr-3" />
+    }
   ];
 
   return (
-    <Sidebar {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <LayoutGrid className="size-4" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Admin Panel</span>
-                  <span className="">v1.0.0</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            {NAV_ITEMS.map((section) => (
-              <Collapsible
-                key={section.title}
+    <div className={cn("pb-12 min-h-screen", className)}>
+      <div className="space-y-4 py-4">
+        <div className="px-4 py-2">
+          <h2 className="mb-4 px-2 text-xl font-semibold tracking-tight">
+            Travel Manager
+          </h2>
+          
+          {/* Dashboard Section */}
+          <div className="space-y-1">
+            {dashboardRoutes.map((route) => (
+              <Button
+                key={route.href}
+                variant={route.active ? "secondary" : "ghost"}
+                className="w-full justify-start"
                 asChild
-                defaultOpen={section.items.some(item => pathname === item.url)}
-                className="group/collapsible"
               >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton>
-                      <span className="font-semibold text-gray-700">{section.title}</span>
-                      <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {section.items.map((item) => (
-                        <SidebarMenuSubItem key={item.title}>
-                          <SidebarMenuSubButton asChild isActive={pathname === item.url}>
-                            <Link href={item.url}>{item.title}</Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
+                <Link href={route.href}>
+                  {route.icon}
+                  {route.label}
+                </Link>
+              </Button>
             ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <div className={cn("pb-12 min-h-screen", props.className)}>
-        <div className="space-y-4 py-4">
-          <div className="px-4 py-2">
-            <h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
-              Finance Manager
-            </h2>
-            <div className="space-y-1">
-              {routes.map((route) => (
-                <Button
-                  key={route.href}
-                  variant={route.active ? "secondary" : "ghost"}
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link href={route.href}>
-                    {route.icon}
-                    {route.label}
-                  </Link>
-                </Button>
-              ))}
-            </div>
           </div>
-
-          {/* Financial Management Section */}
-          <Collapsible
-            open={financialOpen}
-            onOpenChange={setFinancialOpen}
-            className="px-4 py-2"
-          >
-            <CollapsibleTrigger asChild>
+        </div>
+        
+        {/* Tour Management Section */}
+        <Collapsible
+          open={tourManagementOpen}
+          onOpenChange={setTourManagementOpen}
+          className="px-4 py-2"
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-between"
+            >
+              <div className="flex items-center">
+                <Plane className="w-5 h-5 mr-3" />
+                <span>Tour Management</span>
+              </div>
+              <span className={`transition-transform ${tourManagementOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1">
+            {tourManagementRoutes.map((route) => (
               <Button
-                variant="ghost"
-                className="w-full justify-between"
+                key={route.href}
+                variant={route.active ? "secondary" : "ghost"}
+                className="w-full justify-start pl-8"
+                asChild
               >
-                <div className="flex items-center">
-                  <BarChart3 className="w-5 h-5 mr-3" />
-                  <span>Financial Management</span>
-                </div>
-                <span className={`transition-transform ${financialOpen ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
+                <Link href={route.href}>
+                  {route.icon}
+                  {route.label}
+                </Link>
               </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-1">
-              {financialRoutes.map((route) => (
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Contacts Section */}
+        <div className="px-4 py-2">
+          <div className="space-y-1">
+            {contactsRoutes.map((route) => (
+              <Button
+                key={route.href}
+                variant={route.active ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                asChild
+              >
+                <Link href={route.href}>
+                  {route.icon}
+                  {route.label}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <Separator className="my-2" />
+        
+        {/* Financial Management - Main Section */}
+        <Collapsible
+          open={financialOpen}
+          onOpenChange={setFinancialOpen}
+          className="px-4 py-2"
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-between"
+            >
+              <div className="flex items-center">
+                <BarChart3 className="w-5 h-5 mr-3" />
+                <span>Financial Management</span>
+              </div>
+              <span className={`transition-transform ${financialOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1 pt-1">
+            {/* Account Management Sub-Section */}
+            <Collapsible
+              open={accountsOpen}
+              onOpenChange={setAccountsOpen}
+            >
+              <CollapsibleTrigger asChild>
                 <Button
-                  key={route.href}
-                  variant={route.active ? "secondary" : "ghost"}
-                  className="w-full justify-start pl-8"
-                  asChild
+                  variant="ghost"
+                  className="w-full justify-between pl-8"
                 >
-                  <Link href={route.href}>
-                    {route.icon}
-                    {route.label}
-                  </Link>
+                  <div className="flex items-center">
+                    <Building2 className="w-5 h-5 mr-3" />
+                    <span>Accounts</span>
+                  </div>
+                  <span className={`transition-transform ${accountsOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
                 </Button>
-              ))}
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Categories Management Section */}
-          <Collapsible
-            open={categoriesOpen}
-            onOpenChange={setCategoriesOpen}
-            className="px-4 py-2"
-          >
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-between"
-              >
-                <div className="flex items-center">
-                  <Tags className="w-5 h-5 mr-3" />
-                  <span>Categories</span>
-                </div>
-                <span className={`transition-transform ${categoriesOpen ? 'rotate-180' : ''}`}>
-                  ▼
-                </span>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-1">
-              {categoryRoutes.map((route) => (
-                <Button
-                  key={route.href}
-                  variant={route.active ? "secondary" : "ghost"}
-                  className="w-full justify-start pl-8"
-                  asChild
-                >
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1">
+                {accountsRoutes.map((route) => (
+                  <Button
+                    key={route.href}
+                    variant={route.active ? "secondary" : "ghost"}
+                    className="w-full justify-start pl-12"
+                    asChild
+                  >
                     <Link href={route.href}>
                       {route.icon}
                       {route.label}
                     </Link>
+                  </Button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Categories Sub-Section */}
+            <Collapsible
+              open={categoriesOpen}
+              onOpenChange={setCategoriesOpen}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between pl-8"
+                >
+                  <div className="flex items-center">
+                    <Tags className="w-5 h-5 mr-3" />
+                    <span>Categories</span>
+                  </div>
+                  <span className={`transition-transform ${categoriesOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
                 </Button>
-              ))}
-            </CollapsibleContent>
-          </Collapsible>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1">
+                {categoryRoutes.map((route) => (
+                  <Button
+                    key={route.href}
+                    variant={route.active ? "secondary" : "ghost"}
+                    className="w-full justify-start pl-12"
+                    asChild
+                  >
+                    <Link href={route.href}>
+                      {route.icon}
+                      {route.label}
+                    </Link>
+                  </Button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
 
-          <Separator />
-        </div>
+            {/* Ledgers Sub-Section */}
+            <Collapsible
+              open={ledgersOpen}
+              onOpenChange={setLedgersOpen}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between pl-8"
+                >
+                  <div className="flex items-center">
+                    <Receipt className="w-5 h-5 mr-3" />
+                    <span>Ledgers</span>
+                  </div>
+                  <span className={`transition-transform ${ledgersOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1">
+                {ledgerRoutes.map((route) => (
+                  <Button
+                    key={route.href}
+                    variant={route.active ? "secondary" : "ghost"}
+                    className="w-full justify-start pl-12"
+                    asChild
+                  >
+                    <Link href={route.href}>
+                      {route.icon}
+                      {route.label}
+                    </Link>
+                  </Button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <Separator />
       </div>
-
-      <SidebarRail />
-    </Sidebar>
+    </div>
   );
 }

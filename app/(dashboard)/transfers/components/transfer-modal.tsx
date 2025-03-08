@@ -191,7 +191,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                   <FormItem>
                     <FormLabel>From Account Type</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => field.onChange(value as "bank" | "cash")}
                       value={field.value}
                     >
                       <FormControl>
@@ -254,7 +254,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                   <FormItem>
                     <FormLabel>To Account Type</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => field.onChange(value as "bank" | "cash")}
                       value={field.value}
                     >
                       <FormControl>

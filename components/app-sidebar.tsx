@@ -29,7 +29,6 @@ const NAV_ITEMS = [
   {
     title: "Dashboard",
     items: [
-      { title: "Dashboard", url: "/dashboard" },
       { title: "Inquiries", url: "/inquiries" },
       { title: "Tour Package Query", url: "/tourPackageQuery" },
     ],

@@ -58,7 +58,11 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
 
   const form = useForm<IncomeCategoryFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      name: initialData.name,
+      description: initialData.description || '',
+      isActive: initialData.isActive,
+    } : {
       name: '',
       description: '',
       isActive: true,
@@ -162,7 +166,7 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
                   <FormControl>
                     <Checkbox
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked) => field.onChange(!!checked)}
                       disabled={loading}
                     />
                   </FormControl>

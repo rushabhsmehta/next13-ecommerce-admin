@@ -100,10 +100,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       icon: <LayoutDashboard className="w-5 h-5 mr-3" />
     },
     {
+      href: `/tourPackageQuery`,
+      label: 'Tour Package',
+      active: pathname === `/tourPackageQuery` || pathname.includes(`/tourPackageQuery`),
+      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/inquiries`,
+      label: 'Inquiries',
+      active: pathname.includes(`/inquiries`),
+      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
+    },
+    {
       href: `/customers`,
       label: 'Customers',
       active: pathname.includes(`/customers`),
       icon: <Users className="w-5 h-5 mr-3" />
+    },
+    {
+      href: `/locations`,
+      label: 'Locations',
+      active: pathname.includes(`/locations`),
+      icon: <LayoutDashboard className="w-5 h-5 mr-3" />
     },
   ];
 

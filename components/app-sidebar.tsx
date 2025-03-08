@@ -4,24 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { 
-  ArrowLeftRight,
-  BarChart3,
-  Building2,
-  ChevronRight, 
-  Coins, 
-  CreditCard, 
-  DollarSign, 
-  FileText, 
-  LayoutGrid, 
-  ListOrdered, 
-  PackageSearch, 
-  Receipt, 
-  ShoppingBag, 
-  Tags, 
-  Users, 
-  Wallet 
-} from "lucide-react";
+import { ChevronRight, LayoutGrid } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -40,74 +23,68 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { SidebarSection } from "@/types";
 
-// Enhanced Sidebar Navigation Data with icons and additional routes
-const NAV_ITEMS: SidebarSection[] = [
+// Sidebar Navigation Data with appropriate structure for Collapsible components
+const NAV_ITEMS = [
   {
     title: "Dashboard",
     items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutGrid },
-      { title: "Inquiries", url: "/inquiries", icon: FileText },
-      { title: "Tour Package Query", url: "/tourPackageQuery", icon: ShoppingBag },
+      { title: "Dashboard", url: "/dashboard" },
+      { title: "Inquiries", url: "/inquiries" },
+      { title: "Tour Package Query", url: "/tourPackageQuery" },
     ],
   },
   {
     title: "Master Data",
     items: [
-      { title: "Locations", url: "/locations", icon: LayoutGrid },
-      { title: "Hotels", url: "/hotels", icon: Building2 },
-      { title: "Itineraries", url: "/itinerariesMaster", icon: ListOrdered },
-      { title: "Activities", url: "/activitiesMaster", icon: ShoppingBag },
-      { title: "Tour Packages", url: "/tourPackages", icon: ShoppingBag },
+      { title: "Locations", url: "/locations" },
+      { title: "Hotels", url: "/hotels" },
+      { title: "Itineraries", url: "/itinerariesMaster" },
+      { title: "Activities", url: "/activitiesMaster" },
+      { title: "Tour Packages", url: "/tourPackages" },
     ],
   },
   {
     title: "Business",
     items: [
-      { title: "Associates", url: "/associate-partners", icon: Users },
-      { title: "Customers", url: "/customers", icon: Users },
-      { title: "Suppliers", url: "/suppliers", icon: PackageSearch },
-    ],
-  },
-  {
-    title: "Accounts",
-    items: [
-      { title: "Bank Accounts", url: "/bank-accounts", icon: Building2 },
-      { title: "Cash Accounts", url: "/cash-accounts", icon: Wallet },
-      { title: "Fund Transfers", url: "/transfers", icon: ArrowLeftRight },
+      { title: "Associates", url: "/associate-partners" },
+      { title: "Customers", url: "/customers" },
+      { title: "Suppliers", url: "/suppliers" },
+      { title: "Cash Account", url: "/cash-accounts" },
+      { title: "Bank Account", url: "/bank-accounts" },
+      { title: "Fund Transfers", url: "/transfers" },
     ],
   },
   {
     title: "Categories",
     items: [
-      { title: "Expense Categories", url: "/expense-categories", icon: Tags },
-      { title: "Income Categories", url: "/income-categories", icon: ListOrdered },
+      { title: "Income Categories", url: "/income-categories" },
+      { title: "Expense Categories", url: "/expense-categories" },
     ],
   },
   {
     title: "Finance",
     items: [
-      { title: "Sales Ledger", url: "/sales/ledger", icon: DollarSign },
-      { title: "Purchase Ledger", url: "/purchases/ledger", icon: CreditCard },
-      { title: "Receipt Ledger", url: "/receipts/ledger", icon: Receipt },
-      { title: "Payment Ledger", url: "/payments/ledger", icon: Coins },
-      { title: "Expense Ledger", url: "/expenses/ledger", icon: CreditCard },
-      { title: "Income Ledger", url: "/incomes/ledger", icon: DollarSign },
-      { title: "Customer Statements", url: "/customers/ledger", icon: FileText },
-      { title: "Supplier Statements", url: "/suppliers/ledger", icon: FileText },
-      { title: "Cash Book", url: "/cash-book", icon: Wallet },
-      { title: "Bank Book", url: "/bank-book", icon: Building2 },
+      { title: "Sales Ledger", url: "/sales/ledger" },
+      { title: "Purchase Ledger", url: "/purchases/ledger" },
+      { title: "Receipt Ledger", url: "/receipts/ledger" },
+      { title: "Payment Ledger", url: "/payments/ledger" },
+      { title: "Expense Ledger", url: "/expenses/ledger" },
+      { title: "Income Ledger", url: "/incomes/ledger" },
+      { title: "Customer Statements", url: "/customers/ledger" },
+      { title: "Supplier Statements", url: "/suppliers/ledger" },
+      { title: "Cash Book", url: "/cash-book" },
+      { title: "Bank Book", url: "/bank-book" },
     ],
   },
   {
     title: "Reports",
     items: [
-      { title: "Upcoming Trips", url: "/reports/upcomingTrips", icon: BarChart3 },
-      { title: "Inquiry Summary", url: "/reports/inquirySummary", icon: BarChart3 },
-      { title: "Confirmed Queries", url: "/reports/confirmedQueries", icon: BarChart3 },
-      { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries", icon: BarChart3 },
-      { title: "Associate Performance", url: "/reports/associatePerformance", icon: BarChart3 },
+      { title: "Upcoming Trips", url: "/reports/upcomingTrips" },
+      { title: "Inquiry Summary", url: "/reports/inquirySummary" },
+      { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
+      { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
+      { title: "Associate Performance", url: "/reports/associatePerformance" },
     ],
   },
 ];
@@ -116,7 +93,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   // Check if a section should be expanded
-  const isSectionActive = (section: SidebarSection) => {
+  const isSectionActive = (section: { title: string, items: { url: string }[] }) => {
     return section.items.some(item => pathname === item.url || pathname.startsWith(item.url + '/'));
   };
 
@@ -140,7 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="pb-4">
+      <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
             {NAV_ITEMS.map((section) => (
@@ -166,10 +143,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             asChild 
                             isActive={pathname === item.url || pathname.startsWith(item.url + '/')}
                           >
-                            <Link href={item.url} className="flex items-center">
-                              {item.icon && <item.icon className="mr-2 h-4 w-4" />}
-                              {item.title}
-                            </Link>
+                            <Link href={item.url}>{item.title}</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

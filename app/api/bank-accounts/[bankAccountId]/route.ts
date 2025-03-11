@@ -54,6 +54,10 @@ export async function PATCH(
 
     const newOpeningBalance = parseFloat(openingBalance) || 0;
     
+    console.log(`[BANK_ACCOUNT_PATCH] Updating bank account: ${currentBankAccount.accountName} (${params.bankAccountId})`);
+    console.log(`[BANK_ACCOUNT_PATCH] Current opening balance: ${currentBankAccount.openingBalance}, new opening balance: ${newOpeningBalance}`);
+    console.log(`[BANK_ACCOUNT_PATCH] Current current balance: ${currentBankAccount.currentBalance}`);
+    
     // Update the bank account
     const bankAccount = await prismadb.bankAccount.update({
       where: {
@@ -73,13 +77,18 @@ export async function PATCH(
     
     // If opening balance changed, recalculate the current balance
     if (newOpeningBalance !== currentBankAccount.openingBalance) {
+      console.log(`[BANK_ACCOUNT_PATCH] Opening balance changed from ${currentBankAccount.openingBalance} to ${newOpeningBalance}. Recalculating current balance...`);
       await recalculateBankBalance(params.bankAccountId);
+    } else {
+      console.log(`[BANK_ACCOUNT_PATCH] Opening balance unchanged. No recalculation needed.`);
     }
     
     // Get the updated bank account with the correct current balance
     const updatedBankAccount = await prismadb.bankAccount.findUnique({
       where: { id: params.bankAccountId }
     });
+    
+    console.log(`[BANK_ACCOUNT_PATCH] Update complete. New current balance: ${updatedBankAccount?.currentBalance}`);
   
     return NextResponse.json(updatedBankAccount);
   } catch (error) {

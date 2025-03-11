@@ -17,6 +17,10 @@ export async function POST(req: Request) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
+    const parsedOpeningBalance = parseFloat(openingBalance) || 0;
+    
+    console.log(`[BANK_ACCOUNTS_POST] Creating bank account: ${accountName} with opening balance: ${parsedOpeningBalance}`);
+
     const bankAccount = await prismadb.bankAccount.create({
       data: {
         accountName,
@@ -24,10 +28,12 @@ export async function POST(req: Request) {
         accountNumber,
         ifscCode,
         branch,
-        openingBalance: parseFloat(openingBalance) || 0,
-        currentBalance: parseFloat(openingBalance) || 0,
+        openingBalance: parsedOpeningBalance,
+        currentBalance: parsedOpeningBalance,
       }
     });
+    
+    console.log(`[BANK_ACCOUNTS_POST] Bank account created: ${bankAccount.id} with current balance: ${bankAccount.currentBalance}`);
   
     return NextResponse.json(bankAccount);
   } catch (error) {

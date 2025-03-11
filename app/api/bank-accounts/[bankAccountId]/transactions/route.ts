@@ -42,6 +42,21 @@ export async function GET(
       };
     }
 
+    // Get the bank account for starting balance
+    const bankAccount = await prismadb.bankAccount.findUnique({
+      where: {
+        id: params.bankAccountId
+      }
+    });
+
+    if (!bankAccount) {
+      console.log(`[BANK_TRANSACTIONS_GET] Bank account not found: ${params.bankAccountId}`);
+      return new NextResponse("Bank account not found", { status: 404 });
+    }
+
+    console.log(`\n[BANK_TRANSACTIONS_GET] Getting transactions for bank account: ${bankAccount.accountName} (${params.bankAccountId})`);
+    console.log(`[BANK_TRANSACTIONS_GET] Bank opening balance: ${bankAccount.openingBalance}, current balance: ${bankAccount.currentBalance}`);
+    
     // Get payments (outflows)
     const payments = await prismadb.paymentDetail.findMany({
       where: {
@@ -101,13 +116,6 @@ export async function GET(
       }
     });
 
-    // Get the bank account for starting balance
-    const bankAccount = await prismadb.bankAccount.findUnique({
-      where: {
-        id: params.bankAccountId
-      }
-    });
-
     // Combine and process all transactions
     const transactions = [
       ...payments.map(payment => ({
@@ -143,9 +151,37 @@ export async function GET(
       }))
     ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    // Calculate running balance for each transaction
+    let runningBalance = bankAccount.openingBalance || 0;
+    console.log(`[BANK_TRANSACTIONS_GET] Starting running balance calculation with opening balance: ${runningBalance}`);
+    
+    // Sort transactions by date
+    transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Add running balance to each transaction
+    const transactionsWithBalance = transactions.map(transaction => {
+      const prevBalance = runningBalance;
+      runningBalance += transaction.isInflow ? transaction.amount : -transaction.amount;
+      
+      console.log(`[BANK_TRANSACTIONS_GET] Transaction ${transaction.id} (${transaction.type}): ${transaction.description}, Date: ${new Date(transaction.date).toISOString().split('T')[0]}, Amount: ${transaction.isInflow ? '+' : '-'}${transaction.amount}, Previous Balance: ${prevBalance}, New Balance: ${runningBalance}`);
+      
+      return {
+        ...transaction,
+        runningBalance
+      };
+    });
+
+    console.log(`[BANK_TRANSACTIONS_GET] Final calculated balance: ${runningBalance}`);
+    console.log(`[BANK_TRANSACTIONS_GET] Stored current balance: ${bankAccount.currentBalance}`);
+    if (runningBalance !== bankAccount.currentBalance) {
+      console.log(`[BANK_TRANSACTIONS_GET] WARNING: Calculated balance (${runningBalance}) does not match stored balance (${bankAccount.currentBalance})!`);
+    }
+
     return NextResponse.json({
-      transactions,
-      openingBalance: bankAccount?.openingBalance || 0
+      transactions: transactionsWithBalance,
+      openingBalance: bankAccount.openingBalance || 0,
+      calculatedEndingBalance: runningBalance,
+      currentBalance: bankAccount.currentBalance || 0
     });
   } catch (error) {
     console.log('[BANK_TRANSACTIONS_GET]', error);

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { TourPackageQuery } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+import Link from "next/link";
 
 import {
   DropdownMenu,
@@ -22,11 +23,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 
-interface QueryLinkProps {
+export interface QueryLinkProps {
   query: TourPackageQuery;
+  url?: string; // Make url prop optional for backward compatibility
 }
 
-export const QueryLink = ({ query }: QueryLinkProps) => {
+export const QueryLink = ({ query, url }: QueryLinkProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -45,12 +47,22 @@ export const QueryLink = ({ query }: QueryLinkProps) => {
     window.open(`/tourPackageQueryVoucherDisplay/${query.id}?search=${selectedOption}`,"_blank");
   }
 
+  // Use the provided URL or fall back to a default URL structure
+  const linkUrl = url || `/inquiries/${query.inquiryId}/tourPackage/${query.id}`;
+  
+  // Format the display text based on available query data
+  const displayText = query.tourPackageQueryName || 
+                      query.tourPackageQueryNumber || 
+                      `Query #${query.id.substring(0, 8)}`;
 
   return (
     <div className="inline-flex items-center">
-      <span className="text-blue-600 hover:underline">
-        {query.tourPackageQueryName || `Query #${query.id.substring(0, 6)}`}
-      </span>
+      <Link 
+        href={linkUrl}
+        className="text-blue-600 hover:text-blue-800 hover:underline"
+      >
+        {displayText}
+      </Link>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0 ml-1">

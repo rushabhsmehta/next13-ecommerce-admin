@@ -213,7 +213,7 @@ export const columns: ColumnDef<InquiryColumn>[] = [
         <ol className="list-decimal pl-4">
           {queries.map((query) => (
             <li key={query.id} className="my-1">
-              <QueryLink query={query} />
+              <QueryLink query={query} url={`/tourPackageQuery/${query.id}`} />
             </li>
           ))}
         </ol>

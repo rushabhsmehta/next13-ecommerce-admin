@@ -54,7 +54,7 @@ const BankBookPage = () => {
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
-  
+
   // Date range for filtering (default to last 30 days)
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
@@ -71,7 +71,7 @@ const BankBookPage = () => {
         console.error("Failed to fetch bank account:", error);
       }
     };
-    
+
     if (params.bankAccountId) {
       fetchBankAccount();
     }
@@ -84,11 +84,11 @@ const BankBookPage = () => {
       try {
         const startDate = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
         const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
-        
+
         const response = await axios.get(
           `/api/bank-accounts/${params.bankAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
         );
-        
+
         setTransactions(response.data.transactions);
         setOpeningBalance(response.data.openingBalance);
       } catch (error) {
@@ -97,7 +97,7 @@ const BankBookPage = () => {
         setLoading(false);
       }
     };
-    
+
     if (params.bankAccountId && dateRange.from && dateRange.to) {
       fetchTransactions();
     }
@@ -113,7 +113,7 @@ const BankBookPage = () => {
     const now = new Date();
     let newRange: DateRange | undefined;
 
-    switch(value) {
+    switch (value) {
       case "7":
         newRange = {
           from: subDays(now, 7),
@@ -160,7 +160,7 @@ const BankBookPage = () => {
   return (
     <div className="p-8 pt-6">
       <div className="flex items-center justify-between">
-        <Heading 
+        <Heading
           title={`Bank Book - ${bankAccount?.accountName || ''}`}
           description={bankAccount ? `${bankAccount.bankName} - ${bankAccount.accountNumber}` : ''}
         />
@@ -169,7 +169,7 @@ const BankBookPage = () => {
           <Popover>
             <PopoverTrigger asChild>
               <Button
-              id = "date"
+                id="date"
                 variant={"outline"}
                 className={cn(
                   "w-[300px] justify-start text-left font-normal",
@@ -209,7 +209,12 @@ const BankBookPage = () => {
                   mode="range"
                   defaultMonth={dateRange?.from}
                   selected={dateRange}
-                  onSelect={handleDateRangeChange}
+                  onSelect={(range) => {
+                    // Allow partial selection - this is critical for proper range selection
+                    if (range) {
+                      setDateRange(range);
+                    }
+                  }}
                   numberOfMonths={2}
                 />
               </div>
@@ -218,7 +223,7 @@ const BankBookPage = () => {
         </div>
       </div>
       <Separator className="my-4" />
-      
+
       {loading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (

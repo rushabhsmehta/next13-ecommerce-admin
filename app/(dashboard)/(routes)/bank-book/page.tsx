@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -52,13 +52,20 @@ const BankBookPage = () => {
     fetchBankAccounts();
   }, []);
 
+  // Calculate total balance of all accounts
+  const totalBalance = useMemo(() => {
+    return bankAccounts.reduce((sum, account) => sum + account.currentBalance, 0);
+  }, [bankAccounts]);
+
   return (
     <div className="p-8 pt-6">
       <div className="flex items-center justify-between">
-        <Heading
-          title="Bank Book"
-          description="Manage and view your bank accounts"
-        />
+        <div>
+          <Heading
+            title={`Bank Book - Closing Balance: ${formatter.format(totalBalance)}`}
+            description="Manage and view your bank accounts"
+          />
+        </div>
         <Button onClick={() => router.push("/bank-accounts/new")}>
           <Plus className="mr-2 h-4 w-4" />
           Add New Bank Account

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { recalculateBankBalance } from "@/lib/bank-balance";
 
 export async function GET(
   req: Request,
@@ -42,6 +43,18 @@ export async function PATCH(
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
+    // First, get the current bank account to check if opening balance has changed
+    const currentBankAccount = await prismadb.bankAccount.findUnique({
+      where: { id: params.bankAccountId }
+    });
+    
+    if (!currentBankAccount) {
+      return new NextResponse("Bank account not found", { status: 404 });
+    }
+
+    const newOpeningBalance = parseFloat(openingBalance) || 0;
+    
+    // Update the bank account
     const bankAccount = await prismadb.bankAccount.update({
       where: {
         id: params.bankAccountId,
@@ -52,13 +65,23 @@ export async function PATCH(
         accountNumber,
         ifscCode,
         branch,
-        openingBalance: parseFloat(openingBalance) || 0,
-        currentBalance: parseFloat(openingBalance) || 0,
+        openingBalance: newOpeningBalance,
         isActive
+        // Don't update currentBalance here, we'll recalculate it
       }
     });
+    
+    // If opening balance changed, recalculate the current balance
+    if (newOpeningBalance !== currentBankAccount.openingBalance) {
+      await recalculateBankBalance(params.bankAccountId);
+    }
+    
+    // Get the updated bank account with the correct current balance
+    const updatedBankAccount = await prismadb.bankAccount.findUnique({
+      where: { id: params.bankAccountId }
+    });
   
-    return NextResponse.json(bankAccount);
+    return NextResponse.json(updatedBankAccount);
   } catch (error) {
     console.log('[BANK_ACCOUNT_PATCH]', error);
     return new NextResponse("Internal error", { status: 500 });

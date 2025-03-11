@@ -64,6 +64,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { FileText, Users, MapPin, Plane, Tag, FileCheck } from "lucide-react"
 
+// Add PolicyField import
+import { PolicyField } from "./policy-fields";
+
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
   activityDescription: z.string().optional(),
@@ -113,30 +116,30 @@ const formSchema = z.object({
   tour_highlights: z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
-  transport: z.string().optional(),
-  pickup_location: z.string().optional(),
-  drop_location: z.string().optional(),
+  transport: z.string().optional().nullable().transform(val => val || ''),
+  pickup_location: z.string().optional().nullable().transform(val => val || ''),
+  drop_location: z.string().optional().nullable().transform(val => val || ''),
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
   price: z.string().optional(),
-  pricePerAdult: z.string().optional(),
-  pricePerChildOrExtraBed: z.string().optional(),
-  pricePerChild5to12YearsNoBed: z.string().optional(),
-  pricePerChildwithSeatBelow5Years: z.string().optional(),
-  totalPrice: z.string().optional(),
+  pricePerAdult: z.string().optional().nullable().transform(val => val || ''),
+  pricePerChildOrExtraBed: z.string().optional().nullable().transform(val => val || ''),
+  pricePerChild5to12YearsNoBed: z.string().optional().nullable().transform(val => val || ''),
+  pricePerChildwithSeatBelow5Years: z.string().optional().nullable().transform(val => val || ''),
+  totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
   locationId: z.string().min(1, "Location is required"),
   flightDetails: flightDetailsSchema.array(),
-  inclusions: z.string(),
-  exclusions: z.string(),
-  importantNotes: z.string(),
-  paymentPolicy: z.string(),
-  usefulTip: z.string(),
-  cancellationPolicy: z.string(),
-  airlineCancellationPolicy: z.string(),
-  termsconditions: z.string(),
-  disclaimer: z.string().optional(),
+  inclusions: z.array(z.string()),
+  exclusions: z.array(z.string()),
+  importantNotes: z.array(z.string()),
+  paymentPolicy: z.array(z.string()),
+  usefulTip: z.array(z.string()),
+  cancellationPolicy: z.array(z.string()),
+  airlineCancellationPolicy: z.array(z.string()),
+  termsconditions: z.array(z.string()),
+  disclaimer: z.string().optional().nullable().transform(val => val || ''),
   images: z.object({ url: z.string() }).array(),
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
@@ -207,6 +210,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: false,
   });
 
+  const parseJsonField = (field: any): string[] => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    try {
+      const parsed = JSON.parse(field as string);
+      return Array.isArray(parsed) ? parsed : [field as string];
+    } catch (e) {
+      return [field as string];
+    }
+  };
+
   const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
     if (checked) {
@@ -214,28 +228,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       if (selectedLocation) {
         switch (field) {
           case 'inclusions':
-            form.setValue('inclusions', selectedLocation.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('inclusions', parseJsonField(selectedLocation.inclusions) || INCLUSIONS_DEFAULT);
             break;
           case 'exclusions':
-            form.setValue('exclusions', selectedLocation.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('exclusions', parseJsonField(selectedLocation.exclusions) || EXCLUSIONS_DEFAULT);
             break;
           case 'importantNotes':
-            form.setValue('importantNotes', selectedLocation.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('importantNotes', parseJsonField(selectedLocation.importantNotes) || IMPORTANT_NOTES_DEFAULT);
             break;
           case 'paymentPolicy':
-            form.setValue('paymentPolicy', selectedLocation.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('paymentPolicy', parseJsonField(selectedLocation.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
             break;
           case 'usefulTip':
-            form.setValue('usefulTip', selectedLocation.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('usefulTip', parseJsonField(selectedLocation.usefulTip) || USEFUL_TIPS_DEFAULT);
             break;
           case 'cancellationPolicy':
-            form.setValue('cancellationPolicy', selectedLocation.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('cancellationPolicy', parseJsonField(selectedLocation.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
             break;
           case 'airlineCancellationPolicy':
-            form.setValue('airlineCancellationPolicy', selectedLocation.airlineCancellationPolicy || AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
             break;
           case 'termsconditions':
-            form.setValue('termsconditions', selectedLocation.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+            form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
             break;
         }
       }
@@ -315,7 +329,24 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
         }))
-      }))
+      })),
+      transport: data.transport || '',
+      pickup_location: data.pickup_location || '',
+      drop_location: data.drop_location || '',
+      pricePerAdult: data.pricePerAdult || '',
+      pricePerChildOrExtraBed: data.pricePerChildOrExtraBed || '',
+      pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
+      pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
+      totalPrice: data.totalPrice || '',
+      disclaimer: data.disclaimer || '',
+      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
+      importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
+      paymentPolicy: parseJsonField(data.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
+      usefulTip: parseJsonField(data.usefulTip) || USEFUL_TIPS_DEFAULT,
+      cancellationPolicy: parseJsonField(data.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
+      airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
+      termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
     };
   };
 
@@ -358,15 +389,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     flightDetails: [],
 
     // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'),
-    exclusions: EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'),
-    importantNotes: IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'),
-    paymentPolicy: PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'),
-    usefulTip: USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'),
-    cancellationPolicy: CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
-    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'),
-    termsconditions: TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'),
-    disclaimer: DISCLAIMER_DEFAULT.replace(/\n/g, '<br>'),
+    inclusions: INCLUSIONS_DEFAULT,
+    exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
+    paymentPolicy: PAYMENT_TERMS_DEFAULT,
+    usefulTip: USEFUL_TIPS_DEFAULT,
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+    disclaimer: DISCLAIMER_DEFAULT,
     images: [],
     itineraries: [],
     /* itineraries: [{
@@ -428,14 +459,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricePerChild5to12YearsNoBed', selectedTourPackage.pricePerChild5to12YearsNoBed || '');
       form.setValue('pricePerChildwithSeatBelow5Years', selectedTourPackage.pricePerChildwithSeatBelow5Years || '');
       form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
-      form.setValue('inclusions', selectedTourPackage.inclusions || '');
-      form.setValue('exclusions', selectedTourPackage.exclusions || '');
-      form.setValue('importantNotes', selectedTourPackage.importantNotes || '');
-      form.setValue('paymentPolicy', selectedTourPackage.paymentPolicy || '');
-      form.setValue('usefulTip', selectedTourPackage.usefulTip || '');
-      form.setValue('cancellationPolicy', selectedTourPackage.cancellationPolicy || '');
-      form.setValue('airlineCancellationPolicy', selectedTourPackage.airlineCancellationPolicy || '');
-      form.setValue('termsconditions', selectedTourPackage.termsconditions || '');
+      form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
+      form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
+      form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
+      form.setValue('paymentPolicy', parseJsonField(selectedTourPackage.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
+      form.setValue('usefulTip', parseJsonField(selectedTourPackage.usefulTip) || USEFUL_TIPS_DEFAULT);
+      form.setValue('cancellationPolicy', parseJsonField(selectedTourPackage.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
+      form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackage.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
+      form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackage.images || []);
       const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => ({
         locationId: itinerary.locationId,
@@ -500,6 +531,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             locationId: data.locationId,
           }))
         })),
+        transport: data.transport || '',
+        pickup_location: data.pickup_location || '',
+        drop_location: data.drop_location || '',
+        pricePerAdult: data.pricePerAdult || '',
+        pricePerChildOrExtraBed: data.pricePerChildOrExtraBed || '',
+        pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
+        pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
+        totalPrice: data.totalPrice || '',
+        disclaimer: data.disclaimer || '',
       };
 
       if (initialData) {
@@ -995,28 +1035,29 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         form.setValue("locationId", location.id);
                                         // Update location-dependent fields if needed
                                         if (useLocationDefaults.inclusions) {
-                                          form.setValue('inclusions', location.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('inclusions', parseJsonField(location.inclusions) || INCLUSIONS_DEFAULT);
                                         }
                                         if (useLocationDefaults.exclusions) {
-                                          form.setValue('exclusions', location.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('exclusions', parseJsonField(location.exclusions) || EXCLUSIONS_DEFAULT);
                                         }
+                                         
                                         if (useLocationDefaults.importantNotes) {
-                                          form.setValue('importantNotes', location.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('importantNotes',parseJsonField(location.importantNotes) || IMPORTANT_NOTES_DEFAULT);
                                         }
                                         if (useLocationDefaults.paymentPolicy) {
-                                          form.setValue('paymentPolicy', location.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('paymentPolicy', parseJsonField(location.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
                                         }
                                         if (useLocationDefaults.usefulTip) {
-                                          form.setValue('usefulTip', location.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('usefulTip', parseJsonField(location.usefulTip) || USEFUL_TIPS_DEFAULT);
                                         }
                                         if (useLocationDefaults.cancellationPolicy) {
-                                          form.setValue('cancellationPolicy', location.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('cancellationPolicy', parseJsonField(location.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
                                         }
                                         if (useLocationDefaults.airlineCancellationPolicy) {
-                                          form.setValue('airlineCancellationPolicy', location.airlineCancellationPolicy || AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('airlineCancellationPolicy',parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
                                         }
                                         if (useLocationDefaults.termsconditions) {
-                                          form.setValue('termsconditions', location.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                          form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
                                         }
                                         const currentItineraries = form.getValues('itineraries');
                                         const updatedItineraries = currentItineraries.map(itinerary => ({
@@ -2065,209 +2106,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
                       </FormItem>
                     )}
-                  />
-
-                  <div className="md:grid md:grid-cols-2 gap-8">
-                    {/* //add formfield for hotelDetails */}
-
-
-                    {/* //add formfield for inclusions */}
-                    <FormField
-                      control={form.control}
-                      name="inclusions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Inclusions</FormLabel>
-                            <Switch checked={useLocationDefaults.inclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Inclusions as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options (optional)
-                                readonly: loading, // Disable editing if loading                       
-                              }}
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* //add formfield for exclusions */}
-                    <FormField
-                      control={form.control}
-                      name="exclusions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Exclusions</FormLabel>
-                            <Switch checked={useLocationDefaults.exclusions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Exclusions as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading                        
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="importantNotes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Important Notes</FormLabel>
-                            <Switch checked={useLocationDefaults.importantNotes} onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Important Notes as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value || ''} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading                
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="paymentPolicy"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Payment Policy</FormLabel>
-                            <Switch checked={useLocationDefaults.paymentPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Payment Policy as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading                
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* //add formfield for usefulTip */}
-                    <FormField
-                      control={form.control}
-                      name="usefulTip"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Useful Tip</FormLabel>
-                            <Switch checked={useLocationDefaults.usefulTip} onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Useful Tip as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading                
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="cancellationPolicy"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Cancellation Policy</FormLabel>
-                            <Switch checked={useLocationDefaults.cancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Cancellation Policy as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading
-
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* //add formfield for airlineCancellationPolicy */}
-
-                    <FormField
-                      control={form.control}
-                      name="airlineCancellationPolicy"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Airline Cancellation Policy</FormLabel>
-                            <Switch checked={useLocationDefaults.airlineCancellationPolicy} onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Airline Cancellation Policy as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading                      
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    {/* //add formfield for termsconditions */}
-                    <FormField
-                      control={form.control}
-                      name="termsconditions" // Ensure the name is lowercase with no spaces
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center space-x-3">
-                            <FormLabel>Terms and Conditions</FormLabel>
-                            <Switch checked={useLocationDefaults.termsconditions} onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} />
-                          </div>
-                          <FormDescription>Use above Switch to Paste Terms and Conditions as per the Selected Location</FormDescription>
-                          <FormControl>
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value} // Set initial content from form field value
-                              config={{ // Configure Jodit options
-                                readonly: loading, // Disable editing if loading                
-                              }} // Type assertion (optional)
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  />                  
                 </CardContent>
               </Card>
             </TabsContent>
@@ -2373,28 +2212,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       form.setValue("locationId", location.id);
                                       // Update location-dependent fields if needed
                                       if (useLocationDefaults.inclusions) {
-                                        form.setValue('inclusions', location.inclusions || INCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('inclusions', parseJsonField(location.inclusions) || INCLUSIONS_DEFAULT);
                                       }
                                       if (useLocationDefaults.exclusions) {
-                                        form.setValue('exclusions', location.exclusions || EXCLUSIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('exclusions', parseJsonField(location.exclusions) || EXCLUSIONS_DEFAULT);
                                       }
                                       if (useLocationDefaults.importantNotes) {
-                                        form.setValue('importantNotes', location.importantNotes || IMPORTANT_NOTES_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('importantNotes', parseJsonField(location.importantNotes) || IMPORTANT_NOTES_DEFAULT);
                                       }
                                       if (useLocationDefaults.paymentPolicy) {
-                                        form.setValue('paymentPolicy', location.paymentPolicy || PAYMENT_TERMS_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('paymentPolicy', parseJsonField(location.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
                                       }
                                       if (useLocationDefaults.usefulTip) {
-                                        form.setValue('usefulTip', location.usefulTip || USEFUL_TIPS_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('usefulTip', parseJsonField(location.usefulTip) || USEFUL_TIPS_DEFAULT);
                                       }
                                       if (useLocationDefaults.cancellationPolicy) {
-                                        form.setValue('cancellationPolicy', location.cancellationPolicy || CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('cancellationPolicy', parseJsonField(location.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
                                       }
                                       if (useLocationDefaults.airlineCancellationPolicy) {
-                                        form.setValue('airlineCancellationPolicy', location.airlineCancellationPolicy || AIRLINE_CANCELLATION_POLICY_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
                                       }
                                       if (useLocationDefaults.termsconditions) {
-                                        form.setValue('termsconditions', location.termsconditions || TERMS_AND_CONDITIONS_DEFAULT.replace(/\n/g, '<br>'));
+                                        form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
                                       }
                                       const currentItineraries = form.getValues('itineraries');
                                       const updatedItineraries = currentItineraries.map(itinerary => ({
@@ -3299,208 +3138,104 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             
                     <TabsContent value="inclusions" className="space-y-4 mt-4">
                       <div className="grid gap-4">
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="inclusions"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Inclusions</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.inclusions} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Inclusions"
+                          loading={loading}
+                          checked={useLocationDefaults.inclusions}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)}
+                          switchDescription="Use Switch to Copy Inclusions from the Selected Location"
+                          placeholder="Add inclusion item..."
                         />
             
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="exclusions"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Exclusions</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.exclusions} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Exclusions"
+                          loading={loading}
+                          checked={useLocationDefaults.exclusions}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)}
+                          switchDescription="Use Switch to Copy Exclusions from the Selected Location"
+                          placeholder="Add exclusion item..."
                         />
                       </div>
                     </TabsContent>
             
                     <TabsContent value="notes" className="space-y-4 mt-4">
                       <div className="grid gap-4">
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="importantNotes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Important Notes</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.importantNotes} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value || ''}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Important Notes"
+                          loading={loading}
+                          checked={useLocationDefaults.importantNotes}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)}
+                          switchDescription="Use Switch to Copy Important Notes from the Selected Location"
+                          placeholder="Add important note..."
                         />
             
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="usefulTip"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Useful Tips</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.usefulTip} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Useful Tips"
+                          loading={loading}
+                          checked={useLocationDefaults.usefulTip}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)}
+                          switchDescription="Use Switch to Copy Useful Tips from the Selected Location"
+                          placeholder="Add useful tip..."
                         />
                       </div>
                     </TabsContent>
             
                     <TabsContent value="cancellation" className="space-y-4 mt-4">
                       <div className="grid gap-4">
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="cancellationPolicy"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">General Cancellation Policy</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.cancellationPolicy} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="General Cancellation Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.cancellationPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
+                          switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
+                          placeholder="Add cancellation policy item..."
                         />
             
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="airlineCancellationPolicy"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Airline Cancellation Policy</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.airlineCancellationPolicy} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Airline Cancellation Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.airlineCancellationPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
+                          switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
+                          placeholder="Add airline cancellation policy item..."
                         />
                       </div>
                     </TabsContent>
             
                     <TabsContent value="terms" className="space-y-4 mt-4">
                       <div className="grid gap-4">
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="paymentPolicy"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Payment Policy</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.paymentPolicy} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Payment Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.paymentPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
+                          switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
+                          placeholder="Add payment policy item..."
                         />
             
-                        <FormField
+                        <PolicyField
                           control={form.control}
                           name="termsconditions"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between mb-4">
-                                <FormLabel className="text-base">Terms and Conditions</FormLabel>
-                                <Switch 
-                                  checked={useLocationDefaults.termsconditions} 
-                                  onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)} 
-                                />
-                              </div>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={editor}
-                                  value={field.value}
-                                  config={{ readonly: loading }}
-                                  onBlur={(newContent) => field.onChange(newContent)}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
+                          label="Terms and Conditions"
+                          loading={loading}
+                          checked={useLocationDefaults.termsconditions}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
+                          switchDescription="Use Switch to Copy Terms and Conditions from the Selected Location"
+                          placeholder="Add terms and conditions item..."
                         />
                       </div>
                     </TabsContent>
@@ -3530,22 +3265,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       </Form>
 
       {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
-
-      <style jsx global>{`
-        .react-datepicker-popper {
-          z-index: 100 !important;
-        }
-        
-        .PopoverContent {
-          z-index: 50;
-        }
-        
-        /* Ensure calendar doesn't get cut off */
-        .CalendarWrapper {
-          position: relative;
-          z-index: 40;
-        }
-      `}</style>
+     
     </>
   )
 }

@@ -215,9 +215,15 @@ export async function PATCH(
       return new NextResponse("Hotel id is required", { status: 400 });
     } */
 
-
-
-
+    // Process policy fields to ensure they're arrays and keep them as JavaScript objects for Prisma
+    const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
+    const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
+    const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
+    const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy : paymentPolicy ? [paymentPolicy] : [];
+    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];
+    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
+    const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
+    const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
 
     const tourPackageUpdateData =
     {
@@ -252,14 +258,14 @@ export async function PATCH(
       pricePerChildwithSeatBelow5Years,
       totalPrice,
       remarks,
-      inclusions,
-      exclusions,
-      importantNotes,
-      paymentPolicy,
-      usefulTip,
-      cancellationPolicy,
-      airlineCancellationPolicy,
-      termsconditions,
+      inclusions: processedInclusions,
+      exclusions: processedExclusions,
+      importantNotes: processedImportantNotes,
+      paymentPolicy: processedPaymentPolicy,
+      usefulTip: processedUsefulTip,
+      cancellationPolicy: processedCancellationPolicy,
+      airlineCancellationPolicy: processedAirlineCancellationPolicy,
+      termsconditions: processedTermsConditions,
       disclaimer,
       isFeatured,
       isArchived,

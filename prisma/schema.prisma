@@ -26,14 +26,14 @@ model Location {
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
   inquiries        Inquiry[]          @relation("LocationToInquiry")
 
-  inclusions                String? @db.Text
-  exclusions                String? @db.Text
-  importantNotes            String? @db.Text
-  paymentPolicy             String? @db.Text
-  usefulTip                 String? @db.Text
-  cancellationPolicy        String? @db.Text
-  airlineCancellationPolicy String? @db.Text
-  termsconditions           String? @db.Text  
+  inclusions                Json?
+  exclusions                Json?
+  importantNotes            Json?
+  paymentPolicy             Json? 
+  usefulTip                 Json?
+  cancellationPolicy        Json?
+  airlineCancellationPolicy Json?
+  termsconditions           Json?  
 
   @@index([id])
 }
@@ -79,14 +79,14 @@ model TourPackageQuery {
   pricePerChildwithSeatBelow5Years String?
   totalPrice                String? @db.Text
   remarks                   String? @db.Text
-  inclusions                String? @db.Text
-  exclusions                String? @db.Text
-  importantNotes            String? @db.Text
-  paymentPolicy             String? @db.Text
-  usefulTip                 String? @db.Text
-  cancellationPolicy        String? @db.Text
-  airlineCancellationPolicy String? @db.Text
-  termsconditions           String? @db.Text  
+  inclusions                Json?
+  exclusions                Json?
+  importantNotes            Json?
+  paymentPolicy             Json?
+  usefulTip                 Json?
+  cancellationPolicy        Json?
+  airlineCancellationPolicy Json?
+  termsconditions           Json?
   disclaimer                String? @db.Text
 
   isFeatured                Boolean         @default(false)
@@ -274,14 +274,14 @@ model TourPackage {
   pricePerChild5to12YearsNoBed String?
   pricePerChildwithSeatBelow5Years String?
   totalPrice                String? @db.Text
-  inclusions                String? @db.Text
-  exclusions                String? @db.Text
-  importantNotes            String? @db.Text
-  paymentPolicy             String? @db.Text
-  usefulTip                 String? @db.Text
-  cancellationPolicy        String? @db.Text
-  airlineCancellationPolicy String? @db.Text
-  termsconditions           String? @db.Text
+  inclusions                Json?
+  exclusions                Json?
+  importantNotes            Json?
+  paymentPolicy             Json?
+  usefulTip                 Json?
+  cancellationPolicy        Json?
+  airlineCancellationPolicy Json?
+  termsconditions           Json?
   
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
@@ -587,7 +587,7 @@ model IncomeCategory {
   description String?
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  updatedAt   DateTime      @default(now())
   incomes     IncomeDetail[]
 }
 

@@ -127,6 +127,15 @@ export async function POST(
            }
     */
 
+        // Process policy fields to ensure they're arrays, then convert to strings for Prisma
+        const processedInclusions = Array.isArray(inclusions) ? JSON.stringify(inclusions) : inclusions ? JSON.stringify([inclusions]) : '';
+        const processedExclusions = Array.isArray(exclusions) ? JSON.stringify(exclusions) : exclusions ? JSON.stringify([exclusions]) : '';
+        const processedImportantNotes = Array.isArray(importantNotes) ? JSON.stringify(importantNotes) : importantNotes ? JSON.stringify([importantNotes]) : '';
+        const processedPaymentPolicy = Array.isArray(paymentPolicy) ? JSON.stringify(paymentPolicy) : paymentPolicy ? JSON.stringify([paymentPolicy]) : '';
+        const processedUsefulTip = Array.isArray(usefulTip) ? JSON.stringify(usefulTip) : usefulTip ? JSON.stringify([usefulTip]) : '';
+        const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : cancellationPolicy ? JSON.stringify([cancellationPolicy]) : '';
+        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : airlineCancellationPolicy ? JSON.stringify([airlineCancellationPolicy]) : '';
+        const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : '';
 
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
@@ -156,14 +165,14 @@ export async function POST(
                 totalPrice,
                 remarks,
                 //  hotelDetails,
-                inclusions,
-                exclusions,
-                importantNotes,
-                paymentPolicy,
-                usefulTip,
-                cancellationPolicy,
-                airlineCancellationPolicy,
-                termsconditions,
+                inclusions: processedInclusions,
+                exclusions: processedExclusions,
+                importantNotes: processedImportantNotes,
+                paymentPolicy: processedPaymentPolicy,
+                usefulTip: processedUsefulTip,
+                cancellationPolicy: processedCancellationPolicy,
+                airlineCancellationPolicy: processedAirlineCancellationPolicy,
+                termsconditions: processedTermsConditions,
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,

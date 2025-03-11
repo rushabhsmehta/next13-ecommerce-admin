@@ -22,6 +22,86 @@ interface TourPackageDisplayProps {
   })[];
 };
 
+// Add this helper function to parse policy fields from the database
+const parsePolicyField = (field: any): string[] => {
+  if (!field) return [];
+  
+  // If field is already an array, return it
+  if (Array.isArray(field)) return field;
+  
+  // If field is a string, try to parse it as JSON
+  if (typeof field === 'string') {
+    try {
+      const parsed = JSON.parse(field);
+      return Array.isArray(parsed) ? parsed : [field];
+    } catch (e) {
+      return [field];
+    }
+  }
+  
+  // Handle numbers or other types by converting to string
+  return [String(field)];
+};
+
+// Update the PolicySection component with larger font sizes
+const PolicySection = ({ title, items }: { title: string; items: string[] }) => {
+  if (!items || items.length === 0) return null;
+  
+  // Determine the icon based on the title
+  const getIcon = () => {
+    switch (title) {
+      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
+      case "Exclusions": return <XCircleIcon className="h-7 w-7" />;
+      case "Important Notes": return <InfoIcon className="h-7 w-7" />;
+      case "Payment Policy": return <CreditCardIcon className="h-7 w-7" />;
+      case "Useful Tips": return <InfoIcon className="h-7 w-7" />;
+      case "Cancellation Policy": return <XCircleIcon className="h-7 w-7" />;
+      case "Airline Cancellation Policy": return <PlaneIcon className="h-7 w-7" />;
+      case "Terms and Conditions": return <Shield className="h-7 w-7" />;
+      default: return <InfoIcon className="h-7 w-7" />;
+    }
+  };
+
+  return (
+    <Card className="mb-6 border shadow-lg rounded-lg overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-5">
+        <div className="flex items-center gap-3">
+          {getIcon()}
+          <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="p-6">
+        {items.length > 0 ? (
+          <ul className="space-y-3">
+            {items.map((item, index) => {
+              // Check if the item has a bullet point already
+              const hasPrefix = 
+                item.startsWith("✔") || 
+                item.startsWith("➤") || 
+                item.startsWith("∎") || 
+                item.startsWith("-");
+              
+              // Add appropriate styling based on the item type
+              let className = "flex items-start gap-2 text-gray-700 text-lg";
+              if (item.startsWith("✔")) className += " text-green-700";
+              else if (item.startsWith("➤")) className += " text-red-700";
+              else if (item.startsWith("∎")) className += " text-blue-700";
+              
+              return (
+                <li key={index} className={className}>
+                  {!hasPrefix && <span className="text-orange-500 mt-1 text-xl">•</span>}
+                  <span className="leading-relaxed">{item}</span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-gray-500 italic text-lg">No items available</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
   initialData,
@@ -422,92 +502,23 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         ))
       }
 
-      {/* Inclusions Card */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <CheckCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Inclusions</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700">
-          <div className="max-w-full overflow-hidden">
-            <div
-              dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }}
-              className="whitespace-normal break-words text-xl"
-            ></div>
-          </div>
-        </div>
-      </div>
-      {/* Exclusions Card */}
-      {/* Example for Exclusions Section */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <XCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Exclusions</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700">
-          <div className="max-w-full overflow-hidden">
-            <div
-              dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}
-              className="whitespace-normal break-words text-xl"
-            ></div>
-          </div>
-        </div>
-      </div>
+      {/* Policy Sections */}
+      <Card className="break-before-all border rounded-lg shadow-lg overflow-hidden mb-8">
+        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 text-center">
+          <CardTitle className="text-4xl font-bold">Policies & Terms</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
+          <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
+          <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
+          <PolicySection title="Payment Policy" items={parsePolicyField(initialData.paymentPolicy)} />
+          <PolicySection title="Useful Tips" items={parsePolicyField(initialData.usefulTip)} />
+          <PolicySection title="Cancellation Policy" items={parsePolicyField(initialData.cancellationPolicy)} />
+          <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />
+          <PolicySection title="Terms and Conditions" items={parsePolicyField(initialData.termsconditions)} />
+        </CardContent>
+      </Card>
 
-      {/* Important Notes Section */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <InfoIcon className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Important Notes</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}></div>
-        </div>
-      </div>
-
-      {/* Payment Policy Section */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <CreditCardIcon className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Payment Policy</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}></div>
-        </div>
-      </div>
-
-      {/* Terms and Conditions Section */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <Shield className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Terms and Conditions</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}></div>
-        </div>
-      </div>
-
-      {/* Cancellation Policy Section */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <XCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Cancellation Policy</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}></div>
-        </div>
-      </div>
-
-      {/* Airline Cancellation Policy Section */}
-      <div className="break-inside-avoid rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <PlaneIcon className="w-6 h-6 text-white" />
-          <h3 className="text-xl font-semibold">Airline Cancellation Policy</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-xl" dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}></div>
-        </div>
-      </div>
       <Card className="border-b break-inside-avoid m-2">
         <CardDescription className="flex justify-between items-center px-4">
           <div className="inline-block relative w-48 h-48">

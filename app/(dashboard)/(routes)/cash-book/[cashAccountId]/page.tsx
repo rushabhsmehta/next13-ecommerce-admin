@@ -51,7 +51,7 @@ const CashBookPage = () => {
   const [cashAccount, setCashAccount] = useState<CashAccount | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
-  
+
   // Date range for filtering (default to last 30 days)
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
@@ -68,7 +68,7 @@ const CashBookPage = () => {
         console.error("Failed to fetch cash account:", error);
       }
     };
-    
+
     if (params.cashAccountId) {
       fetchCashAccount();
     }
@@ -81,11 +81,11 @@ const CashBookPage = () => {
       try {
         const startDate = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
         const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
-        
+
         const response = await axios.get(
           `/api/cash-accounts/${params.cashAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
         );
-        
+
         setTransactions(response.data.transactions);
         setOpeningBalance(response.data.openingBalance);
       } catch (error) {
@@ -94,7 +94,7 @@ const CashBookPage = () => {
         setLoading(false);
       }
     };
-    
+
     if (params.cashAccountId && dateRange.from && dateRange.to) {
       fetchTransactions();
     }
@@ -110,7 +110,7 @@ const CashBookPage = () => {
     const now = new Date();
     let newRange: DateRange | undefined;
 
-    switch(value) {
+    switch (value) {
       case "7":
         newRange = {
           from: subDays(now, 7),
@@ -157,7 +157,7 @@ const CashBookPage = () => {
   return (
     <div className="p-8 pt-6">
       <div className="flex items-center justify-between">
-        <Heading 
+        <Heading
           title={`Cash Book - ${cashAccount?.accountName || ''}`}
           description="View all transactions in this cash account"
         />
@@ -176,7 +176,8 @@ const CashBookPage = () => {
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                      {format(dateRange.from, "LLL dd, y")} - {" "}
+                      {format(dateRange.to, "LLL dd, y")}
                     </>
                   ) : (
                     format(dateRange.from, "LLL dd, y")
@@ -213,7 +214,7 @@ const CashBookPage = () => {
         </div>
       </div>
       <Separator className="my-4" />
-      
+
       {loading ? (
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (

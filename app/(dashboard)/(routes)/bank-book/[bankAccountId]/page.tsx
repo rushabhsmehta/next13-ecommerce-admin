@@ -104,7 +104,7 @@ const BankBookPage = () => {
   }, [params.bankAccountId, dateRange]);
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
-    if (range?.from && range?.to) {
+    if (range) {
       setDateRange(range);
     }
   };

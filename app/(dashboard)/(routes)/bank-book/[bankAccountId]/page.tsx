@@ -61,6 +61,7 @@ const BankBookPage = () => {
     to: new Date(),
   });
 
+  
   // Fetch bank account details
   useEffect(() => {
     const fetchBankAccount = async () => {
@@ -209,12 +210,7 @@ const BankBookPage = () => {
                   mode="range"
                   defaultMonth={dateRange?.from}
                   selected={dateRange}
-                  onSelect={(range) => {
-                    // Allow partial selection - this is critical for proper range selection
-                    if (range) {
-                      setDateRange(range);
-                    }
-                  }}
+                  onSelect={handleDateRangeChange}
                   numberOfMonths={2}
                 />
               </div>

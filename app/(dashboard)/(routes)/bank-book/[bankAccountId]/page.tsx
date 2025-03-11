@@ -169,6 +169,7 @@ const BankBookPage = () => {
           <Popover>
             <PopoverTrigger asChild>
               <Button
+              id = "date"
                 variant={"outline"}
                 className={cn(
                   "w-[300px] justify-start text-left font-normal",
@@ -179,7 +180,8 @@ const BankBookPage = () => {
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                      {format(dateRange.from, "LLL dd, y")} - {" "}
+                      {format(dateRange.to, "LLL dd, y")}
                     </>
                   ) : (
                     format(dateRange.from, "LLL dd, y")

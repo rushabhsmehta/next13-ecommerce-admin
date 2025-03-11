@@ -19,6 +19,7 @@ const SuppliersPage = async () => {
     name: item.name,
     contact: item.contact || "",
     email: item.email || "",
+    balance: 0,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),
   }));
 

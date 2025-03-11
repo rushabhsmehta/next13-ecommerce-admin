@@ -8,6 +8,7 @@ export type SupplierColumn = {
   name: string
   contact: string
   email: string
+  balance: number
   createdAt: string
 }
 

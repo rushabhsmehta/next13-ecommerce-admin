@@ -104,6 +104,16 @@ export async function PATCH(
       return new NextResponse("Image URL is required", { status: 400 });
     }
 
+    // Ensure list fields are valid arrays or convert strings to arrays
+    const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
+    const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
+    const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
+    const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy : paymentPolicy ? [paymentPolicy] : [];
+    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];
+    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
+    const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
+    const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
+
     const location = await prismadb.location.update({
       where: {
         id: params.locationId,
@@ -113,14 +123,14 @@ export async function PATCH(
         imageUrl,
         tags,
         slug,
-        inclusions,
-        exclusions,
-        importantNotes,
-        paymentPolicy,
-        usefulTip,
-        cancellationPolicy,
-        airlineCancellationPolicy,
-        termsconditions,
+        inclusions: processedInclusions,
+        exclusions: processedExclusions,
+        importantNotes: processedImportantNotes,
+        paymentPolicy: processedPaymentPolicy,
+        usefulTip: processedUsefulTip,
+        cancellationPolicy: processedCancellationPolicy,
+        airlineCancellationPolicy: processedAirlineCancellationPolicy,
+        termsconditions: processedTermsConditions,
       },
     });
 

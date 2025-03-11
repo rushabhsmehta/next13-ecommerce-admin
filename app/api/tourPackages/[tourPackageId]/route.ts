@@ -204,13 +204,27 @@ export async function PATCH(
       return new NextResponse("Hotel id is required", { status: 400 });
     } */
 
-
+    // Process policy fields to ensure they're arrays and then convert to strings for Prisma
+    const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
+    const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
+    const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
+    const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy : paymentPolicy ? [paymentPolicy] : [];
+    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];
+    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
+    const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
+    const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
     
+    // Convert arrays to JSON strings for Prisma
+    const inclusionsString = JSON.stringify(processedInclusions);
+    const exclusionsString = JSON.stringify(processedExclusions);
+    const importantNotesString = JSON.stringify(processedImportantNotes);
+    const paymentPolicyString = JSON.stringify(processedPaymentPolicy);
+    const usefulTipString = JSON.stringify(processedUsefulTip);
+    const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
+    const airlineCancellationPolicyString = JSON.stringify(processedAirlineCancellationPolicy);
+    const termsConditionsString = JSON.stringify(processedTermsConditions);
 
-
-    const tourPackageUpdateData =
-    {
-
+    const tourPackageUpdateData = {
       //  await prismadb.tourPackage.update({
       //  where: {
       //    id: params.tourPackageId
@@ -226,24 +240,16 @@ export async function PATCH(
       tour_highlights,
       transport,
       pickup_location,
-      drop_location,
-      numAdults,
-      numChild5to12,
-      numChild0to5,
-      price,
-      pricePerAdult,
-      pricePerChildOrExtraBed,
-      pricePerChild5to12YearsNoBed,
+      inclusions: inclusionsString,
+      exclusions: exclusionsString,
+      importantNotes: importantNotesString,
+      paymentPolicy: paymentPolicyString,
+      usefulTip: usefulTipString,
+      cancellationPolicy: cancellationPolicyString,
+      airlineCancellationPolicy: airlineCancellationPolicyString,
+      termsconditions: termsConditionsString,
       pricePerChildwithSeatBelow5Years,
       totalPrice,
-      inclusions,
-      exclusions,
-      importantNotes,
-      paymentPolicy,
-      usefulTip,
-      cancellationPolicy,
-      airlineCancellationPolicy,
-      termsconditions,
      // disclaimer,
       isFeatured,
       isArchived,

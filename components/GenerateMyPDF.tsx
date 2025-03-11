@@ -331,7 +331,25 @@ const parseHTMLContent = (htmlString: string): string => {
   return parsedString;
 };
 
-
+// Add a utility function to handle JSON formatted policies
+const handlePolicyContent = (policyData: any): string => {
+  if (!policyData) return '';
+  
+  // If it's a string, return it directly
+  if (typeof policyData === 'string') return policyData;
+  
+  // If it's an object (parsed JSON), extract the content property or convert it to string
+  if (typeof policyData === 'object') {
+    if (policyData.content) return policyData.content;
+    try {
+      return JSON.stringify(policyData);
+    } catch (e) {
+      return '';
+    }
+  }
+  
+  return '';
+};
 
 // Create Document Component
 const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, selectedOption }) => {
@@ -737,7 +755,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.inclusions && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Inclusions</Text>
-            <Text style={styles.text}> {parseHTMLContent(data.inclusions || '')} </Text>
+            <Text style={styles.text}> {parseHTMLContent(handlePolicyContent(data.inclusions))} </Text>
           </View>
         )}
 
@@ -745,7 +763,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.exclusions && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Exclusions</Text>
-            <Text style={styles.text}> {parseHTMLContent(data.exclusions || '')} </Text>
+            <Text style={styles.text}> {parseHTMLContent(handlePolicyContent(data.exclusions))} </Text>
           </View>
         )}
 
@@ -753,7 +771,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.importantNotes && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Important Notes</Text>
-            <Text style={styles.text} > {parseHTMLContent(data.importantNotes || '')} </Text>
+            <Text style={styles.text} > {parseHTMLContent(handlePolicyContent(data.importantNotes))} </Text>
           </View>
         )}
 
@@ -761,7 +779,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.paymentPolicy && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Payment Policy</Text>
-            <Text style={styles.text} > {parseHTMLContent(data.paymentPolicy || '')} </Text>
+            <Text style={styles.text} > {parseHTMLContent(handlePolicyContent(data.paymentPolicy))} </Text>
           </View>
         )}
 
@@ -769,7 +787,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.usefulTip && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Useful Tips</Text>
-            <Text style={styles.text} > {parseHTMLContent(data.usefulTip || '')} </Text>
+            <Text style={styles.text} > {parseHTMLContent(handlePolicyContent(data.usefulTip))} </Text>
           </View>
         )}
 
@@ -777,7 +795,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.cancellationPolicy && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Cancellation Policy</Text>
-            <Text style={styles.text} > {parseHTMLContent(data.cancellationPolicy || '')} </Text>
+            <Text style={styles.text} > {parseHTMLContent(handlePolicyContent(data.cancellationPolicy))} </Text>
           </View>
         )}
 
@@ -785,7 +803,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.airlineCancellationPolicy && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Airline Cancellation Policy</Text>
-            <Text style={styles.text} > {parseHTMLContent(data.airlineCancellationPolicy || '')} </Text>
+            <Text style={styles.text} > {parseHTMLContent(handlePolicyContent(data.airlineCancellationPolicy))} </Text>
           </View>
         )}
 
@@ -793,7 +811,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         {data.termsconditions && (
           <View wrap={false} style={styles.card}>
             <Text style={styles.title}>Terms and Conditions</Text>
-            <Text style={styles.text}> {parseHTMLContent(data.termsconditions || '')} </Text>
+            <Text style={styles.text}> {parseHTMLContent(handlePolicyContent(data.termsconditions))} </Text>
           </View>
         )}
 

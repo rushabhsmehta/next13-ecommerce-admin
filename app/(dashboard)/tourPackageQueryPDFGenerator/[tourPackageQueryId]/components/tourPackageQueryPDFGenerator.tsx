@@ -658,6 +658,47 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
     }
 
     // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
+    const renderPolicyContent = (policyData: any): string => {
+      if (!policyData) return "";
+      
+      try {
+        // If policyData is already a string (legacy data), use it directly
+        if (typeof policyData === 'string') {
+          return policyData            
+        }
+        
+        // If it's JSON, parse it and render as HTML
+        const parsedData = typeof policyData === 'object' ? policyData : JSON.parse(policyData);
+        
+        if (Array.isArray(parsedData)) {
+          return parsedData.map(item => {
+            if (typeof item === 'string') {
+              return `<div style="margin-bottom: 8px;">• ${item}</div>`;
+            } else if (item.type === 'bullet' && item.text) {
+              return `<div style="margin-bottom: 8px;">• ${item.text}</div>`;
+            } else if (item.type === 'paragraph' && item.text) {
+              return `<div style="margin-bottom: 12px;">${item.text}</div>`;
+            } else if (item.text) {
+              return `<div style="margin-bottom: 8px;">${item.text}</div>`;
+            }
+            return '';
+          }).join('');
+        } else if (typeof parsedData === 'object' && parsedData !== null) {
+          // Handle object format if needed
+          return Object.values(parsedData).map(item => 
+            typeof item === 'string' ? `<div style="margin-bottom: 8px;">• ${item}</div>` : ''
+          ).join('');
+        }
+        
+        return JSON.stringify(parsedData);
+      } catch (e) {
+        // If JSON parsing fails, treat it as a string
+        console.error("Policy parsing error:", e);
+        return String(policyData)
+       
+      }
+    };
+
     const inclusionsSection = initialData.inclusions
       ? `
       <div style="${cardStyle}">
@@ -665,26 +706,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.inclusions.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()
-      }
+          ${renderPolicyContent(initialData.inclusions)}
         </div>
       </div>
       `
@@ -696,25 +718,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.exclusions.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()}
+          ${renderPolicyContent(initialData.exclusions)}
         </div>
       </div>
       `
@@ -726,25 +730,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.importantNotes.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()}
+          ${renderPolicyContent(initialData.importantNotes)}
         </div>
       </div>
       `
@@ -756,25 +742,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.paymentPolicy.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()}
+          ${renderPolicyContent(initialData.paymentPolicy)}
         </div>
       </div>
       `
@@ -786,25 +754,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.termsconditions.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()}
+          ${renderPolicyContent(initialData.termsconditions)}
         </div>
       </div>
       `
@@ -816,25 +766,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.cancellationPolicy.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()}
+          ${renderPolicyContent(initialData.cancellationPolicy)}
         </div>
       </div>
       `
@@ -846,25 +778,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
           <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${initialData.airlineCancellationPolicy.replace(/<\/?p>/gi, "<br>")
-        // Collapse multiple <br> tags into a single <br>
-        .replace(/(<br>\s*)+/gi, "<br>")
-        // Remove extra whitespace characters
-        .replace(/\s+/g, " ")
-        // Trim any leading/trailing whitespace
-        .trim().replace(/<\/?(html|body)>/gi, '')
-        .replace(/<!--StartFragment-->/gi, '')
-        .replace(/<!--EndFragment-->/gi, '')
-        // Replace opening <p> tags with <br> and remove closing </p> tags
-        .replace(/<p>/gi, '<br>')
-        .replace(/<\/p>/gi, '')
-        // Normalize any <br> tag (remove extra attributes)
-        .replace(/<br\s*[^>]*>/gi, '<br>')
-        // Replace multiple consecutive <br> tags with a single <br>
-        .replace(/(<br>\s*){2,}/gi, '<br>')
-        // Remove extra whitespace and newlines
-        .replace(/\s+/g, ' ')
-        .trim()}
+          ${renderPolicyContent(initialData.airlineCancellationPolicy)}
         </div>
       </div>
       `

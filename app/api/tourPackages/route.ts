@@ -123,7 +123,15 @@ export async function POST(
            }
     */
        
-
+        // Process policy fields to ensure they're arrays, then join to strings
+        const processedInclusions = Array.isArray(inclusions) ? inclusions.join(',') : inclusions || '';
+        const processedExclusions = Array.isArray(exclusions) ? exclusions.join(',') : exclusions || '';
+        const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes.join(',') : importantNotes || '';
+        const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy.join(',') : paymentPolicy || '';
+        const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip.join(',') : usefulTip || '';
+        const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy.join(',') : cancellationPolicy || '';
+        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy.join(',') : airlineCancellationPolicy || '';
+        const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions.join(',') : termsconditions || '';
 
         const newTourPackage = await prismadb.tourPackage.create({
             data: {
@@ -148,14 +156,14 @@ export async function POST(
                 pricePerChildwithSeatBelow5Years,
                 totalPrice,
                 //  hotelDetails,
-                inclusions,
-                exclusions,
-                importantNotes,
-                paymentPolicy,
-                usefulTip,
-                cancellationPolicy,
-                airlineCancellationPolicy,
-                termsconditions,
+                inclusions: processedInclusions,
+                exclusions: processedExclusions,
+                importantNotes: processedImportantNotes,
+                paymentPolicy: processedPaymentPolicy,
+                usefulTip: processedUsefulTip,
+                cancellationPolicy: processedCancellationPolicy,
+                airlineCancellationPolicy: processedAirlineCancellationPolicy,
+                termsconditions: processedTermsConditions,
             //    disclaimer,
                 assignedTo,
                 assignedToMobileNumber,

@@ -13,6 +13,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CustomersTable } from "./customers-table";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type CustomerSummary = {
   id: string;
@@ -38,12 +52,21 @@ export const CustomersLedgerClient: React.FC<CustomersLedgerClientProps> = ({
 }) => {
   const router = useRouter();
   const [balanceFilter, setBalanceFilter] = useState<string>("all");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [open, setOpen] = useState(false);
 
   const filteredCustomers = customers.filter((customer) => {
-    if (balanceFilter === "due") return customer.balance > 0;
-    if (balanceFilter === "overpaid") return customer.balance < 0;
-    if (balanceFilter === "settled") return customer.balance === 0;
-    return true; // "all" filter
+    // First apply balance filter
+    const balanceCondition = 
+      balanceFilter === "due" ? customer.balance > 0 :
+      balanceFilter === "overpaid" ? customer.balance < 0 :
+      balanceFilter === "settled" ? customer.balance === 0 :
+      true; // "all" filter
+    
+    // Then apply customer filter if one is selected
+    const customerCondition = selectedCustomerId ? customer.id === selectedCustomerId : true;
+    
+    return balanceCondition && customerCondition;
   });
 
   return (
@@ -86,7 +109,7 @@ export const CustomersLedgerClient: React.FC<CustomersLedgerClientProps> = ({
       </div>
 
       <div className="bg-white p-4 rounded-md shadow-sm">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-4">
           <div className="w-full md:w-1/4">
             <Select
               value={balanceFilter}
@@ -103,6 +126,70 @@ export const CustomersLedgerClient: React.FC<CustomersLedgerClientProps> = ({
               </SelectContent>
             </Select>
           </div>
+          
+          <div className="w-full md:w-1/4">
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between"
+                >
+                  {selectedCustomerId
+                    ? customers.find((customer) => customer.id === selectedCustomerId)?.name
+                    : "Search customer..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search customer..." />
+                  <CommandEmpty>No customer found.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={() => {
+                        setSelectedCustomerId("");
+                        setOpen(false);
+                      }}
+                      className="text-sm"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          !selectedCustomerId ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      All Customers
+                    </CommandItem>
+                    {customers.map((customer) => (
+                      <CommandItem
+                        key={customer.id}
+                        onSelect={() => {
+                          setSelectedCustomerId(
+                            selectedCustomerId === customer.id ? "" : customer.id
+                          );
+                          setOpen(false);
+                        }}
+                        className="text-sm"
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            selectedCustomerId === customer.id
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {customer.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          
           <Button 
             onClick={() => router.push('/customers/new')} 
             className="ml-auto"

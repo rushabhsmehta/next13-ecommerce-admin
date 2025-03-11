@@ -61,7 +61,7 @@ const BankBookPage = () => {
     to: new Date(),
   });
 
-  
+
   // Fetch bank account details
   useEffect(() => {
     const fetchBankAccount = async () => {
@@ -99,15 +99,13 @@ const BankBookPage = () => {
       }
     };
 
-    if (params.bankAccountId && dateRange.from && dateRange.to) {
+    if (params.bankAccountId && dateRange.from) {
       fetchTransactions();
     }
   }, [params.bankAccountId, dateRange]);
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
-    if (range) {
-      setDateRange(range);
-    }
+    setDateRange(range || { from: undefined, to: undefined });
   };
 
   const handlePresetChange = (value: string) => {
@@ -171,7 +169,7 @@ const BankBookPage = () => {
             <PopoverTrigger asChild>
               <Button
                 id="date"
-                variant={"outline"}
+                variant="outline"
                 className={cn(
                   "w-[300px] justify-start text-left font-normal",
                   !dateRange && "text-muted-foreground"
@@ -181,7 +179,7 @@ const BankBookPage = () => {
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, "LLL dd, y")} - {" "}
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
                       {format(dateRange.to, "LLL dd, y")}
                     </>
                   ) : (

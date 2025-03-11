@@ -207,7 +207,7 @@ const BankBookPage = () => {
                 <Calendar
                   initialFocus
                   mode="range"
-                  defaultMonth={dateRange?.from || new Date()}
+                  defaultMonth={dateRange?.from}
                   selected={dateRange}
                   onSelect={handleDateRangeChange}
                   numberOfMonths={2}

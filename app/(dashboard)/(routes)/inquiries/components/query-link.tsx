@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MoreHorizontal, Edit, FileText, Download, Trash } from 'lucide-react';
+import { MoreHorizontal, Edit, FileText, Download, Trash, Check, X, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TourPackageQuery } from '@prisma/client';
 import { toast } from 'react-hot-toast';
@@ -33,8 +33,9 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const onConfirm = async () => {
+  const onConfirmDelete = async () => {
     try {
       setLoading(true);
       await axios.delete(`/api/tourPackageQuery/${query.id}`);
@@ -48,19 +49,30 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
     }
   };
 
+  const onConfirmQuery = async () => {
+    try {
+      setLoading(true);
+      // Toggle the isFeatured property instead of setting tourPackageQueryType
+      await axios.patch(`/api/tourPackageQuery/${query.id}/confirm`, {});
+      router.refresh();
+      toast.success(query.isFeatured ? 'Tour Package Query unmarked.' : 'Tour Package Query confirmed.');
+    } catch (error) {
+      toast.error('Failed to update query status.');
+    } finally {
+      setLoading(false);
+      setConfirmOpen(false);
+    }
+  };
 
   const handleOptionConfirm = (selectedOption: string) => {
-
     window.open(`/tourPackageQueryDisplay/${query.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmPDF = (selectedOption: string) => {
-
     window.open(`/tourPackageQueryPDFGenerator/${query.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {
-
     window.open(`/tourPackageQueryVoucherDisplay/${query.id}?search=${selectedOption}`, "_blank");
   }
 
@@ -72,13 +84,26 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
     query.tourPackageQueryNumber ||
     `Query #${query.id.substring(0, 8)}`;
 
+  // Use isFeatured to determine if query is confirmed
+  const isConfirmed = query.isFeatured;
+
   return (
     <>
       <AlertModal
         isOpen={open}
         onClose={() => setOpen(false)}
-        onConfirm={onConfirm}
+        onConfirm={onConfirmDelete}
         loading={loading}
+      />
+      <AlertModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={onConfirmQuery}
+        loading={loading}
+        title={isConfirmed ? "Unmark Query" : "Confirm Query"}
+        description={isConfirmed
+          ? "Are you sure you want to unmark this query as confirmed?"
+          : "Are you sure you want to confirm this query?"}
       />
       <div className="inline-flex items-center">
         <Link
@@ -87,6 +112,12 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
         >
           {displayText}
         </Link>
+        {isConfirmed && (
+          <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+            <Star className="mr-1 h-3 w-3" />
+            Confirmed
+          </span>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0 ml-1">
@@ -97,6 +128,21 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Query Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            
+            <DropdownMenuItem
+              onClick={() => setConfirmOpen(true)}
+            >
+              {isConfirmed ? (
+                <>
+                  <X className="mr-2 h-4 w-4" /> Unmark Confirmation
+                </>
+              ) : (
+                <>
+                  <Star className="mr-2 h-4 w-4" /> Confirm Query
+                </>
+              )}
+            </DropdownMenuItem>
+            
             <DropdownMenuItem
               onClick={() => router.push(`/tourPackageQuery/${query.id}`)}
             >
@@ -109,9 +155,11 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
               <Trash className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>
 
+            <DropdownMenuSeparator />
+
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <Edit className="mr-2 h-4 w-4" />  Download PDF
+                <Download className="mr-2 h-4 w-4" /> Download PDF
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="w-56">
@@ -138,10 +186,9 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
             </DropdownMenuSub>
             <DropdownMenuSeparator />
 
-
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <Edit className="mr-2 h-4 w-4" />  Generate PDF
+                <FileText className="mr-2 h-4 w-4" /> Generate PDF
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="w-56">
@@ -168,10 +215,9 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
             </DropdownMenuSub>
             <DropdownMenuSeparator />
 
-
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <Edit className="mr-2 h-4 w-4" />  Generate Voucher
+                <FileText className="mr-2 h-4 w-4" /> Generate Voucher
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="w-56">
@@ -190,8 +236,6 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
             </DropdownMenuSub>
-            <DropdownMenuSeparator />
-
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

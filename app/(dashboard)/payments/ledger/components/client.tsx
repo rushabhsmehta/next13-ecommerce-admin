@@ -19,7 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentsTable } from "./payments-table";
 
@@ -110,6 +110,10 @@ export const PaymentLedgerClient: React.FC<PaymentLedgerClientProps> = ({
             </Card>
           ) : null}
         </div>
+        <Button onClick={() => router.push("/payments/new")}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Payment
+        </Button>
       </div>
 
       <div className="bg-white p-4 rounded-md shadow-sm">

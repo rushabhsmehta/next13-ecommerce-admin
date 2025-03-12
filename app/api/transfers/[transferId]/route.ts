@@ -7,27 +7,95 @@ export async function GET(
   { params }: { params: { transferId: string } }
 ) {
   try {
-    const { transferId } = params;
-
-    if (!transferId) {
+    if (!params.transferId) {
       return new NextResponse("Transfer ID is required", { status: 400 });
     }
 
     const transfer = await prismadb.transfer.findUnique({
       where: {
-        id: transferId,
+        id: params.transferId,
       },
       include: {
         fromBankAccount: true,
         fromCashAccount: true,
         toBankAccount: true,
-        toCashAccount: true,
-      },
+        toCashAccount: true
+      }
     });
 
     return NextResponse.json(transfer);
   } catch (error) {
     console.log('[TRANSFER_GET]', error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: { transferId: string } }
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
+    const body = await req.json();
+    const { 
+      transferDate,
+      amount,
+      reference,
+      description,
+      fromAccountType,
+      fromAccountId,
+      toAccountType,
+      toAccountId
+    } = body;
+
+    if (!params.transferId) {
+      return new NextResponse("Transfer ID is required", { status: 400 });
+    }
+
+    if (!transferDate) {
+      return new NextResponse("Transfer date is required", { status: 400 });
+    }
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return new NextResponse("Valid amount is required", { status: 400 });
+    }
+
+    if (!fromAccountType || !fromAccountId) {
+      return new NextResponse("Source account is required", { status: 400 });
+    }
+
+    if (!toAccountType || !toAccountId) {
+      return new NextResponse("Destination account is required", { status: 400 });
+    }
+
+    // Cannot transfer to the same account
+    if (fromAccountType === toAccountType && fromAccountId === toAccountId) {
+      return new NextResponse("Cannot transfer to the same account", { status: 400 });
+    }
+
+    const transferDetail = await prismadb.transfer.update({
+      where: {
+        id: params.transferId
+      },
+      data: {
+        transferDate: new Date(transferDate),
+        amount: parseFloat(amount.toString()),
+        reference,
+        description,
+        fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : null,
+        fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : null,
+        toBankAccountId: toAccountType === 'bank' ? toAccountId : null,
+        toCashAccountId: toAccountType === 'cash' ? toAccountId : null,
+      }
+    });
+
+    return NextResponse.json(transferDetail);
+  } catch (error) {
+    console.log('[TRANSFER_PATCH]', error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
@@ -42,75 +110,17 @@ export async function DELETE(
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
-    const { transferId } = params;
-    if (!transferId) {
+    if (!params.transferId) {
       return new NextResponse("Transfer ID is required", { status: 400 });
     }
 
-    // First get the transfer details to revert the balances
-    const transfer = await prismadb.transfer.findUnique({
+    const transfer = await prismadb.transfer.delete({
       where: {
-        id: transferId,
+        id: params.transferId
       }
     });
 
-    if (!transfer) {
-      return new NextResponse("Transfer not found", { status: 404 });
-    }
-
-    // Use a transaction to ensure atomicity when reverting balances
-    await prismadb.$transaction(async (prisma) => {
-      // 1. Revert source account balance (add the amount back)
-      if (transfer.fromBankAccountId) {
-        await prisma.bankAccount.update({
-          where: { id: transfer.fromBankAccountId },
-          data: {
-            currentBalance: {
-              increment: transfer.amount
-            }
-          }
-        });
-      } else if (transfer.fromCashAccountId) {
-        await prisma.cashAccount.update({
-          where: { id: transfer.fromCashAccountId },
-          data: {
-            currentBalance: {
-              increment: transfer.amount
-            }
-          }
-        });
-      }
-
-      // 2. Revert destination account balance (subtract the amount)
-      if (transfer.toBankAccountId) {
-        await prisma.bankAccount.update({
-          where: { id: transfer.toBankAccountId },
-          data: {
-            currentBalance: {
-              decrement: transfer.amount
-            }
-          }
-        });
-      } else if (transfer.toCashAccountId) {
-        await prisma.cashAccount.update({
-          where: { id: transfer.toCashAccountId },
-          data: {
-            currentBalance: {
-              decrement: transfer.amount
-            }
-          }
-        });
-      }
-
-      // 3. Delete the transfer record
-      await prisma.transfer.delete({
-        where: {
-          id: transferId
-        }
-      });
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(transfer);
   } catch (error) {
     console.log('[TRANSFER_DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });

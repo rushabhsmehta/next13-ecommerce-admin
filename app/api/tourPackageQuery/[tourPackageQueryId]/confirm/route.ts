@@ -20,7 +20,6 @@ export async function PATCH(
     // Get existing query to toggle isFeatured
     const existingQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.queryId },
-      select: { isFeatured: true }
     });
 
     if (!existingQuery) {

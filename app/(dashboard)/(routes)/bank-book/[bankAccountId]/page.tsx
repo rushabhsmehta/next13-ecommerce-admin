@@ -99,7 +99,7 @@ const BankBookPage = () => {
       }
     };
 
-    if (params.bankAccountId && dateRange.from) {
+    if (params.bankAccountId && dateRange.from && dateRange.to) {
       fetchTransactions();
     }
   }, [params.bankAccountId, dateRange]);

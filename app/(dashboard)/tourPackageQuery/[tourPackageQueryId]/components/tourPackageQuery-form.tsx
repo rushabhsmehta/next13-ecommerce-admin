@@ -48,7 +48,7 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { CalendarIcon } from "@radix-ui/react-icons"
@@ -66,6 +66,13 @@ import { FileText, Users, MapPin, Plane, Tag, FileCheck } from "lucide-react"
 
 // Add PolicyField import
 import { PolicyField } from "./policy-fields";
+
+// Define a pricing item schema
+const pricingItemSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  price: z.string().optional(), // Changed from required to optional
+  description: z.string().optional(),
+});
 
 const activitySchema = z.object({
   activityTitle: z.string().optional(),
@@ -128,6 +135,7 @@ const formSchema = z.object({
   pricePerChild5to12YearsNoBed: z.string().optional().nullable().transform(val => val || ''),
   pricePerChildwithSeatBelow5Years: z.string().optional().nullable().transform(val => val || ''),
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
+  pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   remarks: z.string().optional(),
   locationId: z.string().min(1, "Location is required"),
   flightDetails: flightDetailsSchema.array(),
@@ -210,6 +218,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: false,
   });
 
+  const parsePricingSection = (data: any): Array<{name: string, price: string, description?: string}> => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    try {
+      const parsed = JSON.parse(data as string);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  
   const parseJsonField = (field: any): string[] => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
@@ -347,6 +366,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       cancellationPolicy: parseJsonField(data.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
       airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
       termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
+      pricingSection: data.pricingSection || DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
     };
   };
 
@@ -412,6 +432,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // hotelId: '',
     isFeatured: false,
     isArchived: false,
+    pricingSection: DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
   };
 
   const form = useForm<TourPackageQueryFormValues>({
@@ -496,9 +517,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: flight.arrivalTime || undefined,
         flightDuration: flight.flightDuration || undefined
       })));
+      form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
     }
   };
 
+  // Add this function to handle pricing items
+  const handleAddPricingItem = () => {
+    const currentPricing = form.getValues('pricingSection') || [];
+    form.setValue('pricingSection', [
+      ...currentPricing,
+      { name: '', price: '', description: '' }
+    ]);
+  };
+
+  const handleRemovePricingItem = (index: number) => {
+    const currentPricing = form.getValues('pricingSection') || [];
+    form.setValue('pricingSection', currentPricing.filter((_, i) => i !== index));
+  };
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     try {
@@ -633,7 +668,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -3102,6 +3137,93 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       )}
                     />
 
+                  </div>
+
+                  {/* Add the Pricing Section component */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
+                    <FormField
+                      control={form.control}
+                      name="pricingSection"
+                      render={({ field }) => (
+                        <FormItem>
+                          {/* Add column headers */}
+                          <div className="grid grid-cols-3 gap-4 mb-2 px-1">
+                            <div className="font-medium text-sm">Price Type</div>
+                            <div className="font-medium text-sm">Price</div>
+                            <div className="font-medium text-sm">Description (Optional)</div>
+                          </div>
+                          <div className="space-y-4">
+                            {field.value && field.value.map((item, index) => (
+                              <div key={index} className="grid grid-cols-3 gap-4 items-end relative pr-10">
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingSection.${index}.name`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input 
+                                          placeholder="e.g. Adult, Child, Infant" 
+                                          {...field} 
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingSection.${index}.price`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input 
+                                          placeholder="e.g. 1000 (optional)" 
+                                          {...field} 
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingSection.${index}.description`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input 
+                                          placeholder="e.g. Age 3-12, with bed" 
+                                          {...field} 
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <Button 
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 bottom-0"
+                                  onClick={() => handleRemovePricingItem(index)}
+                                >
+                                  <Trash className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleAddPricingItem}
+                              className="mt-2"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Pricing Option
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </CardContent>
               </Card>

@@ -78,6 +78,7 @@ model TourPackageQuery {
   pricePerChild5to12YearsNoBed String?
   pricePerChildwithSeatBelow5Years String?
   totalPrice                String? @db.Text
+  pricingSection            Json?    // Add this field
   remarks                   String? @db.Text
   inclusions                Json?
   exclusions                Json?
@@ -274,6 +275,7 @@ model TourPackage {
   pricePerChild5to12YearsNoBed String?
   pricePerChildwithSeatBelow5Years String?
   totalPrice                String? @db.Text
+  pricingSection            Json?    // Add this field
   inclusions                Json?
   exclusions                Json?
   importantNotes            Json?

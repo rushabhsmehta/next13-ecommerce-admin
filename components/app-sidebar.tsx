@@ -64,6 +64,8 @@ const NAV_ITEMS = [
   {
     title: "Finance",
     items: [
+      { title: "Incomes", url: "/incomes" },
+      { title: "Expenses", url: "/expenses" },
       { title: "Sales Ledger", url: "/sales/ledger" },
       { title: "Purchase Ledger", url: "/purchases/ledger" },
       { title: "Receipt Ledger", url: "/receipts/ledger" },

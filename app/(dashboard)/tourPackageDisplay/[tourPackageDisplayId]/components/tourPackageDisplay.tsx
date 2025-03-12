@@ -25,10 +25,10 @@ interface TourPackageDisplayProps {
 // Add this helper function to parse policy fields from the database
 const parsePolicyField = (field: any): string[] => {
   if (!field) return [];
-  
+
   // If field is already an array, return it
   if (Array.isArray(field)) return field;
-  
+
   // If field is a string, try to parse it as JSON
   if (typeof field === 'string') {
     try {
@@ -38,15 +38,15 @@ const parsePolicyField = (field: any): string[] => {
       return [field];
     }
   }
-  
+
   // Handle numbers or other types by converting to string
   return [String(field)];
 };
 
 // Add this helper function to parse pricing section from JSON
-const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
+const parsePricingSection = (pricingData: any): Array<{ name: string, price?: string, description?: string }> => {
   if (!pricingData) return [];
-  
+
   try {
     if (typeof pricingData === 'string') {
       return JSON.parse(pricingData);
@@ -61,7 +61,7 @@ const parsePricingSection = (pricingData: any): Array<{name: string, price?: str
 // Update the PolicySection component with larger font sizes
 const PolicySection = ({ title, items }: { title: string; items: string[] }) => {
   if (!items || items.length === 0) return null;
-  
+
   // Determine the icon based on the title
   const getIcon = () => {
     switch (title) {
@@ -90,18 +90,18 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
           <ul className="space-y-3">
             {items.map((item, index) => {
               // Check if the item has a bullet point already
-              const hasPrefix = 
-                item.startsWith("✔") || 
-                item.startsWith("➤") || 
-                item.startsWith("∎") || 
+              const hasPrefix =
+                item.startsWith("✔") ||
+                item.startsWith("➤") ||
+                item.startsWith("∎") ||
                 item.startsWith("-");
-              
+
               // Add appropriate styling based on the item type
               let className = "flex items-start gap-2 text-gray-700 text-lg";
               if (item.startsWith("✔")) className += " text-green-700";
               else if (item.startsWith("➤")) className += " text-red-700";
               else if (item.startsWith("∎")) className += " text-blue-700";
-              
+
               return (
                 <li key={index} className={className}>
                   {!hasPrefix && <span className="text-orange-500 mt-1 text-xl">•</span>}
@@ -211,7 +211,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
       </Card>
 
       <div className="break-inside-avoid">
-        <Card className="border shadow-lg rounded-lg">
+        {/*         <Card className="border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-xl font-bold">Tour Pricing</h2>
           </CardHeader>
@@ -228,7 +228,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
 
           <CardContent className="p-6">
             <div className="grid gap-6 text-gray-700">
-              {/* Price per Adult Section */}
               {initialData.pricePerAdult !== '' && (
                 <div className="md:col-span-1">
                   <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -238,7 +237,6 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                 </div>
               )}
 
-              {/* Price for Children Section */}
               <div className="md:col-span-1 space-y-4">
                 {initialData.pricePerChildOrExtraBed !== '' && (
                   <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -262,16 +260,8 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
             </div>
           </CardContent>
         </Card>
+ */}
 
-        {initialData.totalPrice && initialData.totalPrice !== ' ' && (
-          <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-            <CardContent>
-              <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-                Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       {/* Add this before the Tour Highlights section */}
@@ -302,7 +292,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
                       {item.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.price || 'Contact for price'}
+                      {item.price || '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {item.description || '-'}
@@ -315,6 +305,15 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         </div>
       )}
 
+      {initialData.totalPrice && initialData.totalPrice !== ' ' && (
+        <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
+          <CardContent>
+            <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Tour Highlights */}
 
       <Card className="break-inside-avoid border rounded-lg">

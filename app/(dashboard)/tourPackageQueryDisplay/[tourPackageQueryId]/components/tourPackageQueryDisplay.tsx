@@ -87,9 +87,9 @@ const parsePolicyField = (field: any): string[] => {
 };
 
 // Add this helper function to parse pricing section from JSON
-const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
+const parsePricingSection = (pricingData: any): Array<{ name: string, price?: string, description?: string }> => {
   if (!pricingData) return [];
-  
+
   try {
     if (typeof pricingData === 'string') {
       return JSON.parse(pricingData);
@@ -104,7 +104,7 @@ const parsePricingSection = (pricingData: any): Array<{name: string, price?: str
 // Update the PolicySection component with larger font sizes
 const PolicySection = ({ title, items }: { title: string; items: string[] }) => {
   if (!items || items.length === 0) return null;
-  
+
   // Determine the icon based on the title
   const getIcon = () => {
     switch (title) {
@@ -133,18 +133,18 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
           <ul className="space-y-3">
             {items.map((item, index) => {
               // Check if the item has a bullet point already
-              const hasPrefix = 
-                item.startsWith("✔") || 
-                item.startsWith("➤") || 
-                item.startsWith("∎") || 
+              const hasPrefix =
+                item.startsWith("✔") ||
+                item.startsWith("➤") ||
+                item.startsWith("∎") ||
                 item.startsWith("-");
-              
+
               // Add appropriate styling based on the item type
               let className = "flex items-start gap-2 text-gray-700 text-lg";
               if (item.startsWith("✔")) className += " text-green-700";
               else if (item.startsWith("➤")) className += " text-red-700";
               else if (item.startsWith("∎")) className += " text-blue-700";
-              
+
               return (
                 <li key={index} className={className}>
                   {!hasPrefix && <span className="text-orange-500 text-xl">•</span>}
@@ -339,7 +339,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </CardContent>
       </Card>
 
-      <div className="break-inside-avoid">
+      {/* <div className="break-inside-avoid">
         {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
           <Card className="border shadow-lg rounded-lg">
             <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
@@ -358,7 +358,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
             <CardContent className="p-6">
               <div className="grid gap-6 text-gray-700">
-                {/* Price per Adult Section */}
                 {initialData.pricePerAdult !== '' && (
                   <div className="md:col-span-1">
                     <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -368,7 +367,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   </div>
                 )}
 
-                {/* Price for Children Section */}
                 <div className="md:col-span-1 space-y-4">
                   {initialData.pricePerChildOrExtraBed !== '' && (
                     <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -393,20 +391,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardContent>
           </Card>
         )}
+ */}
 
-
-        {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
-          <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-            <CardContent>
-              <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-                Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-     {/* Add this before the Tour Highlights section */}
-     {initialData.pricingSection && (
+      {/* Add this before the Tour Highlights section */}
+      {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
         <div className="mt-6 border rounded-lg overflow-hidden">
           <div className="bg-gray-50 px-4 py-3 border-b">
             <h3 className="text-lg font-medium text-gray-900">Pricing Options</h3>
@@ -433,7 +421,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       {item.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.price || 'Contact for price'}
+                      {item.price || '-'}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {item.description || '-'}
@@ -445,19 +433,29 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </div>
         </div>
       )}
-      
-        {initialData.remarks !== '' && (
-          <Card className="break-inside-avoid text-xl">
-            <CardContent>
-              <div>
-                <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
+      {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+        <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
+          <CardContent>
+            <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
+              Total Price: <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.totalPrice || ' ' }} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {initialData.remarks !== '' && (
+        <Card className="break-inside-avoid text-xl">
+          <CardContent>
+            <div>
+              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
 
-        {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
+      {/*  {initialData.disclaimer && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
           <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
             <CardContent>
               <div className="font-semibold text-xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -466,7 +464,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardContent>
           </Card>
         )} */}
-      </div>
+
+
 
       {/* Tour Highlights */}
 
@@ -501,243 +500,249 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {/* Flight Details */}
-      {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
-        <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
-          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
-          </CardHeader>
-          {initialData.flightDetails.map((flight, index) => (
-            <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
-              <div className="flex items-center justify-between border-b pb-2 mb-2">
-                <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
-                <div className="text-xl text-gray-700">
-                  <span className="font-semibold">{flight.flightName}</span> |
-                  <span className="ml-1">{flight.flightNumber}</span>
+      {
+        initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
+          <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
+            <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+              <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
+            </CardHeader>
+            {initialData.flightDetails.map((flight, index) => (
+              <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
+                <div className="flex items-center justify-between border-b pb-2 mb-2">
+                  <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
+                  <div className="text-xl text-gray-700">
+                    <span className="font-semibold">{flight.flightName}</span> |
+                    <span className="ml-1">{flight.flightNumber}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="font-bold text-xs text-gray-700">{flight.from}</div>
-                  <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="font-bold text-xs text-gray-700">{flight.from}</div>
+                    <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
+                  </div>
+                  <div className="mx-2 text-center">
+                    <span className="text-gray-600"><PlaneTakeoffIcon /></span>
+                    <div className="text-xs text-gray-600">{flight.flightDuration}</div>
+                    <hr className="border-t-2 border-gray-400 mx-1" />
+                  </div>
+                  <div className="flex items-center">
+                    <div className="font-bold text-xs text-gray-700">{flight.to}</div>
+                    <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
+                  </div>
                 </div>
-                <div className="mx-2 text-center">
-                  <span className="text-gray-600"><PlaneTakeoffIcon /></span>
-                  <div className="text-xs text-gray-600">{flight.flightDuration}</div>
-                  <hr className="border-t-2 border-gray-400 mx-1" />
-                </div>
-                <div className="flex items-center">
-                  <div className="font-bold text-xs text-gray-700">{flight.to}</div>
-                  <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
-                </div>
-              </div>
-            </CardContent>
-          ))}
-        </Card>
-      )}
+              </CardContent>
+            ))}
+          </Card>
+        )
+      }
 
 
       {/* Itineraries */}
-      {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+      {
+        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
 
-        <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
-          {index === 0 &&
-            <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
-              <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
-            </Card>}
-          <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
-            {/* Day and Title grouped */}
+          <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+            {index === 0 &&
+              <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
+                <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
+              </Card>}
+            <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
+              {/* Day and Title grouped */}
 
 
-            <div>
-              <CardTitle className="text-xl font-bold"
-                dangerouslySetInnerHTML={{
-                  __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
-                }} />
-            </div>
-          </div>
-
-          {/* Fixed Size Image Section */}
-          <div className="flex justify-center items-center break-inside-avoid">
-            {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-              <div key={imageIndex} className="w-full h-[500px]">
-                <Image
-                  src={image.url}
-                  alt={`Itinerary Image ${imageIndex + 1}`}
-                  width={1200}
-                  height={500}
-                  className="object-cover w-full h-full"
-                />
+              <div>
+                <CardTitle className="text-xl font-bold"
+                  dangerouslySetInnerHTML={{
+                    __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                  }} />
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* Description Section */}
-          <div className="flex-grow p-8">
-            <div className="text-xl text-justify mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
-          </div>
-
-          <CardContent className="p-8">
-            {/* Hotel Section */}
-            {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-              <Card className="my-4">
-                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
-                  Hotel Details
-                </CardHeader>
-                <div className="p-4">
-                  {/* Hotel Images */}
-                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
-                    <div className="flex items-start mb-4">
-                      <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        <div className="w-[250px] h-[250px]">
-                          <Image
-                            src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
-                            alt="Hotel Image"
-                            className="rounded-lg object-cover w-full h-full"
-                            width={250}
-                            height={250}
-                          />
-                        </div>
-                      </Link>
-                      {/* Hotel Text Content */}
-                      <div className="ml-4">
-                        <div className="text-xl font-bold">Hotel Name:</div>
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                        </Link>
-                        {itinerary.numberofRooms && (
-                          <>
-                            <div className="text-xl font-bold">Number of Rooms:</div>
-                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                          </>
-                        )}
-
-                        {itinerary.roomCategory && (
-                          <>
-                            <div className="text-xl font-bold">Room Category:</div>
-                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                          </>
-                        )}
-
-                        {itinerary.mealsIncluded && (
-                          <>
-                            <div className="text-xl font-bold">Meal Plan:</div>
-                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="grid grid-cols-3 gap-4">
-                        {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                          <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                            <div className="w-[250px] h-[250px]">
-                              <Image
-                                src={image.url}
-                                alt={`Hotel Image ${imgIndex + 1}`}
-                                className="rounded-lg object-cover w-full h-full"
-                                width={250}
-                                height={250}
-                              />
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-xl font-bold">Hotel Name:</div>
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                        </Link>
-                        {itinerary.numberofRooms && (
-                          <>
-                            <div className="text-xl font-bold">Number of Rooms:</div>
-                            <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                          </>
-                        )}
-
-                        {itinerary.roomCategory && (
-                          <>
-                            <div className="text-xl font-bold">Room Category:</div>
-                            <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                          </>
-                        )}
-
-                        {itinerary.mealsIncluded && (
-                          <>
-                            <div className="text-xl font-bold">Meal Plan:</div>
-                            <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
+            {/* Fixed Size Image Section */}
+            <div className="flex justify-center items-center break-inside-avoid">
+              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+                <div key={imageIndex} className="w-full h-[500px]">
+                  <Image
+                    src={image.url}
+                    alt={`Itinerary Image ${imageIndex + 1}`}
+                    width={1200}
+                    height={500}
+                    className="object-cover w-full h-full"
+                  />
                 </div>
-              </Card>
-            )}
+              ))}
+            </div>
 
-            {/* Activities Section */}
-            {itinerary.activities && itinerary.activities.length > 0 && (
-              <Card className="my-4">
-                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
-                  Activities
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="grid gap-4">
-                    {itinerary.activities.map((activity, activityIndex) => (
-                      <div key={activityIndex} className="mb-4">
-                        {activity.activityImages && activity.activityImages.length === 1 ? (
-                          <div className="flex items-start mb-4 w-full">
-                            <div className="w-[250px] h-[250px] flex-shrink-0">
-                              <Image
-                                src={activity.activityImages[0].url}
-                                alt={`Activity Image ${activityIndex + 1}`}
-                                className="rounded-lg object-cover w-full h-full"
-                                width={250}
-                                height={250}
-                              />
+            {/* Description Section */}
+            <div className="flex-grow p-8">
+              <div className="text-xl text-justify mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
+            </div>
+
+            <CardContent className="p-8">
+              {/* Hotel Section */}
+              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
+                <Card className="my-4">
+                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
+                    Hotel Details
+                  </CardHeader>
+                  <div className="p-4">
+                    {/* Hotel Images */}
+                    {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
+                      <div className="flex items-start mb-4">
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <div className="w-[250px] h-[250px]">
+                            <Image
+                              src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
+                              alt="Hotel Image"
+                              className="rounded-lg object-cover w-full h-full"
+                              width={250}
+                              height={250}
+                            />
+                          </div>
+                        </Link>
+                        {/* Hotel Text Content */}
+                        <div className="ml-4">
+                          <div className="text-xl font-bold">Hotel Name:</div>
+                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                          </Link>
+                          {itinerary.numberofRooms && (
+                            <>
+                              <div className="text-xl font-bold">Number of Rooms:</div>
+                              <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                            </>
+                          )}
+
+                          {itinerary.roomCategory && (
+                            <>
+                              <div className="text-xl font-bold">Room Category:</div>
+                              <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                            </>
+                          )}
+
+                          {itinerary.mealsIncluded && (
+                            <>
+                              <div className="text-xl font-bold">Meal Plan:</div>
+                              <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="grid grid-cols-3 gap-4">
+                          {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                            <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                              <div className="w-[250px] h-[250px]">
+                                <Image
+                                  src={image.url}
+                                  alt={`Hotel Image ${imgIndex + 1}`}
+                                  className="rounded-lg object-cover w-full h-full"
+                                  width={250}
+                                  height={250}
+                                />
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-xl font-bold">Hotel Name:</div>
+                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                          </Link>
+                          {itinerary.numberofRooms && (
+                            <>
+                              <div className="text-xl font-bold">Number of Rooms:</div>
+                              <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                            </>
+                          )}
+
+                          {itinerary.roomCategory && (
+                            <>
+                              <div className="text-xl font-bold">Room Category:</div>
+                              <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                            </>
+                          )}
+
+                          {itinerary.mealsIncluded && (
+                            <>
+                              <div className="text-xl font-bold">Meal Plan:</div>
+                              <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Activities Section */}
+              {itinerary.activities && itinerary.activities.length > 0 && (
+                <Card className="my-4">
+                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
+                    Activities
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="grid gap-4">
+                      {itinerary.activities.map((activity, activityIndex) => (
+                        <div key={activityIndex} className="mb-4">
+                          {activity.activityImages && activity.activityImages.length === 1 ? (
+                            <div className="flex items-start mb-4 w-full">
+                              <div className="w-[250px] h-[250px] flex-shrink-0">
+                                <Image
+                                  src={activity.activityImages[0].url}
+                                  alt={`Activity Image ${activityIndex + 1}`}
+                                  className="rounded-lg object-cover w-full h-full"
+                                  width={250}
+                                  height={250}
+                                />
+                              </div>
+                              <div className="ml-4 w-full">
+                                <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                                <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                              </div>
                             </div>
-                            <div className="ml-4 w-full">
+                          ) : (
+                            <div className="w-full">
+                              <div className="flex justify-start items-center mb-4 gap-4">
+                                {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
+                                  <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
+                                    <Image
+                                      src={image.url}
+                                      alt={`Activity Image ${actImgIndex + 1}`}
+                                      className="rounded-lg object-cover w-full h-full"
+                                      width={250}
+                                      height={250}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                               <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
                               <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="w-full">
-                            <div className="flex justify-start items-center mb-4 gap-4">
-                              {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
-                                <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
-                                  <Image
-                                    src={image.url}
-                                    alt={`Activity Image ${actImgIndex + 1}`}
-                                    className="rounded-lg object-cover w-full h-full"
-                                    width={250}
-                                    height={250}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                            <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-      ))}
+        ))
+      }
 
 
-      {selectedOption === 'SupplierA' && initialData.itineraries && (
-        <Card className="break-inside-avoid border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
-          <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
-        </Card>
-      )}
+      {
+        selectedOption === 'SupplierA' && initialData.itineraries && (
+          <Card className="break-inside-avoid border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
+            <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
+          </Card>
+        )
+      }
 
       <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
 
@@ -796,21 +801,23 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )
       }
 
-      {(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
-        <Card className="border-b break-inside-avoid">
-          <CardDescription className="flex justify-between items-center px-4">
-            <div className="inline-block relative w-48 h-48">
-              <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
-            </div>
-            <ul className="font-bold">
-              <li>{companyInfo.AH.address}</li>
-              <li>Phone: {companyInfo.AH.phone}</li>
-              <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
-              <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
-            </ul>
-          </CardDescription>
-        </Card>
-      )}
+      {
+        (selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
+          <Card className="border-b break-inside-avoid">
+            <CardDescription className="flex justify-between items-center px-4">
+              <div className="inline-block relative w-48 h-48">
+                <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
+              </div>
+              <ul className="font-bold">
+                <li>{companyInfo.AH.address}</li>
+                <li>Phone: {companyInfo.AH.phone}</li>
+                <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
+                <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
+              </ul>
+            </CardDescription>
+          </Card>
+        )
+      }
 
       {/* Footer Section with Company Details */}
 

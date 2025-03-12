@@ -801,7 +801,9 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
 
    // Add this new section in buildHtmlContent
    const dynamicPricingSection = 
-   initialData.pricingSection
+   initialData.pricingSection && selectedOption !== "Empty" &&
+   selectedOption !== "SupplierA" &&
+   selectedOption !== "SupplierB"
      ? `
      <div style="${cardStyle}; page-break-inside: avoid; margin-top: 20px;">
        <div style="${headerStyle}">
@@ -820,7 +822,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
              ${parsePricingSection(initialData.pricingSection).map((item, index) => `
                <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
                  <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.name || ''}</td>
-                 <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.price || 'Contact for pricing'}</td>
+                 <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.price || '-'}</td>
                  <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.description || '-'}</td>
                </tr>
              `).join('')}
@@ -872,9 +874,8 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${headerSection}
         ${customerSection}
         ${tourInfoSection}
-        ${pricingSection}
-        ${totalPriceSection}
         ${dynamicPricingSection}  <!-- Add this line to include the new section -->
+        ${totalPriceSection}
         ${remarksSection}
         ${highlightsSection}
         ${flightSection}

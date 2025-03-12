@@ -694,9 +694,8 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
       <div style="${containerStyle}">
         ${headerSection}
         ${tourInfoSection}
-        ${pricingSection}
-        ${totalPriceSection}
         ${dynamicPricingSection}
+        ${totalPriceSection}
         ${highlightsSection}
         ${flightSection}
         ${itinerariesSection}

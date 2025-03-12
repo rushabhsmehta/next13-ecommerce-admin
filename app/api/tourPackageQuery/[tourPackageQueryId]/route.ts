@@ -162,6 +162,7 @@ export async function PATCH(
       pricePerChild5to12YearsNoBed,
       pricePerChildwithSeatBelow5Years,
       totalPrice,
+      pricingSection, // Add this line
       remarks,
       flightDetails,
       //   hotelDetails,
@@ -257,6 +258,7 @@ export async function PATCH(
       pricePerChild5to12YearsNoBed,
       pricePerChildwithSeatBelow5Years,
       totalPrice,
+      pricingSection, // Add this line
       remarks,
       inclusions: processedInclusions,
       exclusions: processedExclusions,

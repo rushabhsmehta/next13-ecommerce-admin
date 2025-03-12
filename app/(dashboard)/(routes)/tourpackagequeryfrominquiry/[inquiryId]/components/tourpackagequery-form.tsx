@@ -53,7 +53,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { format } from "date-fns"
 import JoditEditor from "jodit-react";
 import { Switch } from "@/components/ui/switch"
-import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, PRICE_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues"
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, PRICE_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PolicyField } from "./policy-fields"
@@ -94,6 +94,12 @@ const flightDetailsSchema = z.object({
   flightDuration: z.string().optional(),
 
 }); // Assuming an array of flight details
+
+const pricingItemSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  price: z.string().optional(), // Using optional to allow blank prices
+  description: z.string().optional(),
+});
 
 const formSchema = z.object({
   tourPackageTemplate: z.string().optional(),
@@ -139,7 +145,7 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(),
-
+  pricingSection: z.array(pricingItemSchema).optional().default([]),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -224,15 +230,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     pricePerChild5to12YearsNoBed: '',
     pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
-    disclaimer: '',
-    inclusions: Array.isArray(INCLUSIONS_DEFAULT) ? INCLUSIONS_DEFAULT : [INCLUSIONS_DEFAULT],
-    exclusions: Array.isArray(EXCLUSIONS_DEFAULT) ? EXCLUSIONS_DEFAULT : [EXCLUSIONS_DEFAULT],
-    importantNotes: Array.isArray(IMPORTANT_NOTES_DEFAULT) ? IMPORTANT_NOTES_DEFAULT : [IMPORTANT_NOTES_DEFAULT],
-    paymentPolicy: Array.isArray(PAYMENT_TERMS_DEFAULT) ? PAYMENT_TERMS_DEFAULT : [PAYMENT_TERMS_DEFAULT],
-    usefulTip: Array.isArray(USEFUL_TIPS_DEFAULT) ? USEFUL_TIPS_DEFAULT : [USEFUL_TIPS_DEFAULT],
-    cancellationPolicy: Array.isArray(CANCELLATION_POLICY_DEFAULT) ? CANCELLATION_POLICY_DEFAULT : [CANCELLATION_POLICY_DEFAULT],
-    airlineCancellationPolicy: Array.isArray(AIRLINE_CANCELLATION_POLICY_DEFAULT) ? AIRLINE_CANCELLATION_POLICY_DEFAULT : [AIRLINE_CANCELLATION_POLICY_DEFAULT],
-    termsconditions: Array.isArray(TERMS_AND_CONDITIONS_DEFAULT) ? TERMS_AND_CONDITIONS_DEFAULT : [TERMS_AND_CONDITIONS_DEFAULT],
+    inclusions: INCLUSIONS_DEFAULT,
+    exclusions: EXCLUSIONS_DEFAULT,
+    importantNotes: IMPORTANT_NOTES_DEFAULT,
+    paymentPolicy: PAYMENT_TERMS_DEFAULT,
+    usefulTip: USEFUL_TIPS_DEFAULT,
+    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+    disclaimer: DISCLAIMER_DEFAULT,
+    pricingSection: DEFAULT_PRICING_SECTION,
     images: [],
     flightDetails: [],
     itineraries: [],
@@ -243,6 +250,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
+  const parsePricingSection = (data: any): Array<{name: string, price: string, description?: string}> => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    try {
+      const parsed = JSON.parse(data as string);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  
 
   const parseJsonField = (field: any): string[] => {
     if (!field) return [];
@@ -310,8 +328,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricePerChild5to12YearsNoBed', String(selectedTourPackage.pricePerChild5to12YearsNoBed || ''));
       form.setValue('pricePerChildwithSeatBelow5Years', String(selectedTourPackage.pricePerChildwithSeatBelow5Years || ''));
       form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
-      form.setValue('inclusions', selectedTourPackage.inclusions ? [String(selectedTourPackage.inclusions)] : []);  
-      form.setValue('exclusions', selectedTourPackage.exclusions ? [String(selectedTourPackage.exclusions)] : []);     
+      form.setValue('inclusions', selectedTourPackage.inclusions ? [String(selectedTourPackage.inclusions)] : []);
+      form.setValue('exclusions', selectedTourPackage.exclusions ? [String(selectedTourPackage.exclusions)] : []);
       form.setValue('importantNotes', selectedTourPackage.importantNotes ? [String(selectedTourPackage.importantNotes)] : []);
       form.setValue('paymentPolicy', selectedTourPackage.paymentPolicy ? [String(selectedTourPackage.paymentPolicy)] : []);
       form.setValue('usefulTip', selectedTourPackage.usefulTip ? [String(selectedTourPackage.usefulTip)] : []);
@@ -348,6 +366,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: flight.arrivalTime || undefined,
         flightDuration: flight.flightDuration || undefined
       })));
+      form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
+
     }
   };
 
@@ -421,6 +441,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       };
       form.setValue('itineraries', updatedItineraries);
     }
+  };
+
+  const handleAddPricingItem = () => {
+    const currentPricing = form.getValues('pricingSection') || [];
+    form.setValue('pricingSection', [
+      ...currentPricing,
+      { name: '', price: '', description: '' }
+    ]);
+  };
+
+  const handleRemovePricingItem = (index: number) => {
+    const currentPricing = form.getValues('pricingSection') || [];
+    form.setValue('pricingSection', currentPricing.filter((_, i) => i !== index));
   };
 
   const [open, setOpen] = useState(false);
@@ -2910,6 +2943,91 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       )}
                     />
 
+                  </div>
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
+                    <FormField
+                      control={form.control}
+                      name="pricingSection"
+                      render={({ field }) => (
+                        <FormItem>
+                          {/* Add column headers */}
+                          <div className="grid grid-cols-3 gap-4 mb-2 px-1">
+                            <div className="font-medium text-sm">Price Type</div>
+                            <div className="font-medium text-sm">Price</div>
+                            <div className="font-medium text-sm">Description (Optional)</div>
+                          </div>
+                          <div className="space-y-4">
+                            {field.value && field.value.map((item, index) => (
+                              <div key={index} className="grid grid-cols-3 gap-4 items-end relative pr-10">
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingSection.${index}.name`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="e.g. Adult, Child, Infant"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingSection.${index}.price`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="e.g. 1000 (optional)"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingSection.${index}.description`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="e.g. Age 3-12, with bed"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 bottom-0"
+                                  onClick={() => handleRemovePricingItem(index)}
+                                >
+                                  <Trash className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleAddPricingItem}
+                              className="mt-2"
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Pricing Option
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </CardContent>
               </Card>

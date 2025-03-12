@@ -98,6 +98,21 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
   const gradientFooter =
     "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px;";
 
+  // Add this helper function
+  const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
+    if (!pricingData) return [];
+    
+    try {
+      if (typeof pricingData === 'string') {
+        return JSON.parse(pricingData);
+      }
+      return Array.isArray(pricingData) ? pricingData : [];
+    } catch (e) {
+      console.error("Error parsing pricing section:", e);
+      return [];
+    }
+  };
+
   // --- Build HTML content ---
   const buildHtmlContent = (): string => {
     if (!initialData) return "";
@@ -218,6 +233,38 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       </div>
     `
         : "";
+
+    // Add this new section in buildHtmlContent
+    const dynamicPricingSection = 
+      initialData.pricingSection
+        ? `
+        <div style="${cardStyle}; page-break-inside: avoid; margin-top: 20px;">
+          <div style="${headerStyle}">
+            <h2 style="${sectionTitleStyle}">Detailed Pricing Options</h2>
+          </div>
+          <div style="padding: 16px;">
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb;">
+              <thead>
+                <tr style="background-color: #f2f2f2;">
+                  <th style="width: 30%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Type</th>
+                  <th style="width: 30%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Price</th>
+                  <th style="width: 40%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${parsePricingSection(initialData.pricingSection).map((item, index) => `
+                  <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                    <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.name || ''}</td>
+                    <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.price || 'Contact for pricing'}</td>
+                    <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.description || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        `
+        : '';
 
     // 6. Tour Highlights Section
     const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
@@ -649,6 +696,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${tourInfoSection}
         ${pricingSection}
         ${totalPriceSection}
+        ${dynamicPricingSection}
         ${highlightsSection}
         ${flightSection}
         ${itinerariesSection}

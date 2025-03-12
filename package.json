@@ -80,6 +80,7 @@
   },
   "devDependencies": {
     "@hookform/devtools": "^4.3.3",
-    "prisma": "^5.5.0"
+    "prisma": "^5.5.0",
+    "ts-node": "^10.9.2"
   }
 }

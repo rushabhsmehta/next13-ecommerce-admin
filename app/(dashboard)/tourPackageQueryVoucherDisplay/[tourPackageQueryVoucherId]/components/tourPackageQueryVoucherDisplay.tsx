@@ -69,7 +69,20 @@ const companyInfo: CompanyInfo = {
   },
 };
 
-
+// Add this helper function to parse pricing section from JSON
+const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
+  if (!pricingData) return [];
+  
+  try {
+    if (typeof pricingData === 'string') {
+      return JSON.parse(pricingData);
+    }
+    return Array.isArray(pricingData) ? pricingData : [];
+  } catch (e) {
+    console.error("Error parsing pricing section:", e);
+    return [];
+  }
+};
 
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
   initialData,
@@ -319,7 +332,46 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
       )}
 
-
+      {initialData.pricingSection && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && parsePricingSection(initialData.pricingSection).length > 0 && (
+        <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-md">
+          <div className="bg-gradient-to-r from-orange-100 to-orange-50 px-4 py-3 border-b flex justify-between items-center">
+            <h3 className="text-xl font-bold text-orange-800">Detailed Pricing</h3>
+            <div className="text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full">
+              {initialData.isFeatured ? "Confirmed Prices" : "Indicative Prices"}
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr className="bg-orange-50 text-orange-800 uppercase text-sm leading-normal">
+                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Category</th>
+                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Price</th>
+                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Details</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600 text-md">
+                {parsePricingSection(initialData.pricingSection).map((item, index) => (
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-orange-50'} hover:bg-orange-100 transition-colors duration-150`}>
+                    <td className="py-3 px-6 border-b border-orange-100 font-medium">
+                      {item.name}
+                    </td>
+                    <td className="py-3 px-6 border-b border-orange-100 font-semibold">
+                      {item.price || 'Contact us'}
+                    </td>
+                    <td className="py-3 px-6 border-b border-orange-100">
+                      {item.description || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            <div className="bg-orange-50 px-6 py-4 text-orange-800 text-sm italic">
+              * All prices are in INR and subject to availability at the time of confirmation.
+            </div>
+          </div>
+        </div>
+      )}
 
       {initialData.remarks !== '' && (
         <Card className="break-inside-avoid text-3xl">

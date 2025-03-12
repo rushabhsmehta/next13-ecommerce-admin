@@ -82,6 +82,7 @@ export async function POST(
             pricePerChild5to12YearsNoBed,
             pricePerChildwithSeatBelow5Years,
             totalPrice,
+            pricingSection, // Add this line
             remarks,
             flightDetails,
             inclusions,
@@ -163,6 +164,7 @@ export async function POST(
                 pricePerChild5to12YearsNoBed,
                 pricePerChildwithSeatBelow5Years,
                 totalPrice,
+                pricingSection, // Add this line
                 remarks,
                 //  hotelDetails,
                 inclusions: processedInclusions,

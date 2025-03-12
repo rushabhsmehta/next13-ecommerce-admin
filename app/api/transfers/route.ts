@@ -11,135 +11,51 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const { 
-      amount, 
-      transferDate, 
-      fromAccountType, 
-      fromAccountId, 
-      toAccountType, 
-      toAccountId, 
-      reference, 
-      description 
+      transferDate,
+      amount,
+      reference,
+      description,
+      fromAccountType,
+      fromAccountId,
+      toAccountType,
+      toAccountId 
     } = body;
-
-    if (!amount || amount <= 0) {
-      return new NextResponse("Valid amount is required", { status: 400 });
-    }
 
     if (!transferDate) {
       return new NextResponse("Transfer date is required", { status: 400 });
     }
 
-    if (!fromAccountId || !fromAccountType) {
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return new NextResponse("Valid amount is required", { status: 400 });
+    }
+
+    if (!fromAccountType || !fromAccountId) {
       return new NextResponse("Source account is required", { status: 400 });
     }
 
-    if (!toAccountId || !toAccountType) {
+    if (!toAccountType || !toAccountId) {
       return new NextResponse("Destination account is required", { status: 400 });
     }
 
-    // Check if source and destination are the same
+    // Cannot transfer to the same account
     if (fromAccountType === toAccountType && fromAccountId === toAccountId) {
-      return new NextResponse("Source and destination cannot be the same account", { status: 400 });
+      return new NextResponse("Cannot transfer to the same account", { status: 400 });
     }
 
-    // Check if source account exists and has sufficient balance
-    let sourceAccount;
-    if (fromAccountType === 'bank') {
-      sourceAccount = await prismadb.bankAccount.findUnique({
-        where: { id: fromAccountId }
-      });
-    } else {
-      sourceAccount = await prismadb.cashAccount.findUnique({
-        where: { id: fromAccountId }
-      });
-    }
-
-    if (!sourceAccount) {
-      return new NextResponse("Source account not found", { status: 404 });
-    }
-
-    if (sourceAccount.currentBalance < amount) {
-      return new NextResponse("Insufficient funds in source account", { status: 400 });
-    }
-
-    // Check if destination account exists
-    let destinationAccount;
-    if (toAccountType === 'bank') {
-      destinationAccount = await prismadb.bankAccount.findUnique({
-        where: { id: toAccountId }
-      });
-    } else {
-      destinationAccount = await prismadb.cashAccount.findUnique({
-        where: { id: toAccountId }
-      });
-    }
-
-    if (!destinationAccount) {
-      return new NextResponse("Destination account not found", { status: 404 });
-    }
-
-    // Create the transfer in a transaction to ensure atomicity
-    const transfer = await prismadb.$transaction(async (prisma) => {
-      // 1. Create the transfer record
-      const transfer = await prisma.transfer.create({
-        data: {
-          amount: parseFloat(amount.toString()),
-          transferDate: new Date(transferDate),
-          fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : null,
-          fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : null,
-          toBankAccountId: toAccountType === 'bank' ? toAccountId : null,
-          toCashAccountId: toAccountType === 'cash' ? toAccountId : null,
-          reference,
-          description,
-        }
-      });
-
-      // 2. Update the source account balance
-      if (fromAccountType === 'bank') {
-        await prisma.bankAccount.update({
-          where: { id: fromAccountId },
-          data: {
-            currentBalance: {
-              decrement: parseFloat(amount.toString())
-            }
-          }
-        });
-      } else {
-        await prisma.cashAccount.update({
-          where: { id: fromAccountId },
-          data: {
-            currentBalance: {
-              decrement: parseFloat(amount.toString())
-            }
-          }
-        });
+    const transferDetail = await prismadb.transfer.create({
+      data: {
+        transferDate: new Date(transferDate),
+        amount: parseFloat(amount.toString()),
+        reference,
+        description,
+        fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : undefined,
+        fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : undefined,
+        toBankAccountId: toAccountType === 'bank' ? toAccountId : undefined,
+        toCashAccountId: toAccountType === 'cash' ? toAccountId : undefined,
       }
-
-      // 3. Update the destination account balance
-      if (toAccountType === 'bank') {
-        await prisma.bankAccount.update({
-          where: { id: toAccountId },
-          data: {
-            currentBalance: {
-              increment: parseFloat(amount.toString())
-            }
-          }
-        });
-      } else {
-        await prisma.cashAccount.update({
-          where: { id: toAccountId },
-          data: {
-            currentBalance: {
-              increment: parseFloat(amount.toString())
-            }
-          }
-        });
-      }
-
-      return transfer;
     });
 
-    return NextResponse.json(transfer);
+    return NextResponse.json(transferDetail);
   } catch (error) {
     console.log('[TRANSFER_POST]', error);
     return new NextResponse("Internal error", { status: 500 });

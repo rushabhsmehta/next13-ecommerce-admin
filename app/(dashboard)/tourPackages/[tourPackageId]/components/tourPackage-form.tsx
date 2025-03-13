@@ -242,6 +242,28 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     }
   };
 
+  const parsePricingSection = (pricingData: any): any[] => {
+    if (!pricingData) return DEFAULT_PRICING_SECTION;
+    
+    // If it's already an array of objects, return it
+    if (Array.isArray(pricingData) && pricingData.length > 0 && typeof pricingData[0] === 'object') {
+      return pricingData;
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof pricingData === 'string') {
+      try {
+        const parsed = JSON.parse(pricingData);
+        return Array.isArray(parsed) ? parsed : DEFAULT_PRICING_SECTION;
+      } catch (e) {
+        console.error("Error parsing pricingSection:", e);
+        return DEFAULT_PRICING_SECTION;
+      }
+    }
+    
+    return DEFAULT_PRICING_SECTION;
+  };
+
   const transformInitialData = (data: any) => {
     return {
       ...data,
@@ -292,7 +314,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       cancellationPolicy: parseJsonField(data.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
       airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
       termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
-      pricingSection: data.pricingSection || DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
+      pricingSection: parsePricingSection(data.pricingSection),
     };
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {

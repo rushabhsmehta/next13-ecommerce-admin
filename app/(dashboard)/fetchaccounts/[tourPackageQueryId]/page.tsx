@@ -9,14 +9,19 @@ interface TourPackageQueryPageProps {
   };
 }
 
-const TourPackageQueryPage = async ({
+const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
   params,
-}: TourPackageQueryPageProps) => {
-  const { tourPackageQueryId } = params;
+}) => {
+  const { userId } = auth();
 
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  // Fetch the tour package query with all related data
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
-      id: tourPackageQueryId,
+      id: params.tourPackageQueryId,
     },
     include: {
       purchaseDetails: {
@@ -59,6 +64,7 @@ const TourPackageQueryPage = async ({
         include: {
           bankAccount: true,
           cashAccount: true,
+          expenseCategory: true, // Include expense category relation
         },
         orderBy: {
           expenseDate: 'desc',
@@ -68,6 +74,7 @@ const TourPackageQueryPage = async ({
         include: {
           bankAccount: true,
           cashAccount: true,
+          incomeCategory: true, // Include income category relation
         },
         orderBy: {
           incomeDate: 'desc',
@@ -75,6 +82,10 @@ const TourPackageQueryPage = async ({
       },
     },
   });
+
+  if (!tourPackageQuery) {
+    redirect("/inquiries");
+  }
 
   return (
     <div className="flex-col">

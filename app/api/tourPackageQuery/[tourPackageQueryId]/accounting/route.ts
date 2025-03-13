@@ -151,7 +151,7 @@ export async function PATCH(
             tourPackageQueryId: params.tourPackageQueryId,
             expenseDate: expenseDetail.expenseDate,
             amount: expenseDetail.amount,
-            expenseCategory: expenseDetail.expenseCategory,
+            expenseCategoryId : expenseDetail.expenseCategoryId,
             description: expenseDetail.description || null,
             bankAccountId: expenseDetail.accountType === 'bank' ? expenseDetail.accountId : null,
             cashAccountId: expenseDetail.accountType === 'cash' ? expenseDetail.accountId : null,

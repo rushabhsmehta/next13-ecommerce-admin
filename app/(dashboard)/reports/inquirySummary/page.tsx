@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface InquirySummaryData {
   associateId: string;
@@ -83,22 +85,32 @@ export default function InquirySummaryPage() {
   const [summaryData, setSummaryData] = useState<InquirySummaryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
 
-  // Add inquiry status options
+  // Add inquiry status options with correct mappings
   const statusOptions = [
     { value: "all", label: "All Status" },
-    { value: "PENDING", label: "Pending" },
-    { value: "CONFIRMED", label: "Confirmed" },
-    { value: "CANCELLED", label: "Cancelled" },
+    { value: "PENDING", label: "Pending" },     // maps to 'pending' in database
+    { value: "CONFIRMED", label: "Confirmed" }, // maps to 'converted' in database
+    { value: "CANCELLED", label: "Cancelled" }, // maps to 'cancelled' in database
   ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
         // Fetch associated partners
+        console.log("Fetching associated partners...");
         const partnersResponse = await fetch('/api/associate-partners');
+        
+        if (!partnersResponse.ok) {
+          throw new Error(`Failed to fetch partners: ${partnersResponse.status} ${partnersResponse.statusText}`);
+        }
+        
         const partners = await partnersResponse.json();
+        console.log("Partners fetched:", partners);
         setAssociatedPartners(partners);
 
         // Fetch inquiry summary data
@@ -114,24 +126,42 @@ export default function InquirySummaryPage() {
           queryParams.append("endDate", dateRange.to.toISOString());
         }
 
-        const summaryResponse = await fetch(`/api/inquiry-summary?${queryParams}`);
+        const summaryUrl = `/api/inquiry-summary?${queryParams}`;
+        console.log("Fetching inquiry summary from:", summaryUrl);
+        
+        const summaryResponse = await fetch(summaryUrl);
+        
+        if (!summaryResponse.ok) {
+          throw new Error(`Failed to fetch inquiry summary: ${summaryResponse.status} ${summaryResponse.statusText}`);
+        }
+        
         const summaryData = await summaryResponse.json();
+        console.log("Summary data received:", summaryData);
+
+        if (!Array.isArray(summaryData)) {
+          throw new Error(`Expected array of summary data but got: ${typeof summaryData}`);
+        }
 
         // Transform summary data
         const transformedData: InquirySummaryData[] = summaryData.map((item: any) => ({
-          associateId: item.associateId,
-          associateName: item.associateName,
-          totalInquiries: item.totalInquiries,
+          associateId: item.associateId || '',
+          associateName: item.associateName || 'Unknown',
+          totalInquiries: item.totalInquiries || 0,
           pendingInquiries: item.pendingInquiries || 0,
           confirmedInquiries: item.confirmedInquiries || 0,
           cancelledInquiries: item.cancelledInquiries || 0,
-          conversionRate: `${((item.confirmedInquiries / item.totalInquiries) * 100).toFixed(1)}%`,
+          conversionRate: item.totalInquiries > 0 
+            ? `${((item.confirmedInquiries / item.totalInquiries) * 100).toFixed(1)}%` 
+            : '0%',
           averageResponseTime: item.averageResponseTime || 'N/A',
         }));
 
+        console.log("Transformed data:", transformedData);
         setSummaryData(transformedData);
       } catch (error) {
         console.error('Error fetching data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load data');
+        setSummaryData([]);
       } finally {
         setLoading(false);
       }
@@ -210,10 +240,23 @@ export default function InquirySummaryPage() {
           <p className="text-2xl">{overallConversion}%</p>
         </Card>
       </div>
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
           Loading data...
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className="text-center py-10 border rounded-md bg-gray-50">
+          <p className="text-gray-500">No data available for the selected filters.</p>
+          <p className="text-sm text-gray-400 mt-1">Try changing your filter criteria.</p>
         </div>
       ) : (
         <DataTable columns={columns} data={filteredData} searchKey="associateName" />

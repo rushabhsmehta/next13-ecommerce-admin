@@ -356,7 +356,7 @@ const CashBookPage = () => {
         />
         <div className="flex items-center gap-4">
           {/* Export buttons */}
-          <div className="flex gap-2"></div>
+          <div className="flex gap-2">
             <Button 
               onClick={generateExcel}
               variant="outline"
@@ -371,7 +371,7 @@ const CashBookPage = () => {
               variant="outline"
               className="flex gap-2 items-center"
               disabled={loading || transactions.length === 0}
-            ></Button>
+            >
               <Download size={16} />
               PDF
             </Button>

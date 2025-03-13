@@ -14,8 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
 
 interface InquirySummaryData {
   associateId: string;
@@ -192,9 +194,92 @@ export default function InquirySummaryPage() {
   const totalConfirmed = filteredData.reduce((sum, item) => sum + item.confirmedInquiries, 0);
   const overallConversion = totalInquiries ? ((totalConfirmed / totalInquiries) * 100).toFixed(1) : "0";
 
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    
+    // Add report title
+    doc.setFontSize(18);
+    doc.text("Inquiry Summary Report", 14, 22);
+    
+    // Add date range if selected
+    doc.setFontSize(10);
+    if (dateRange?.from && dateRange?.to) {
+      const formattedStartDate = dateRange.from.toLocaleDateString();
+      const formattedEndDate = dateRange.to.toLocaleDateString();
+      doc.text(`Date Range: ${formattedStartDate} to ${formattedEndDate}`, 14, 30);
+    } else {
+      doc.text("Date Range: All Time", 14, 30);
+    }
+    
+    // Add associate filter info
+    const associateName = selectedAssociate === "all" 
+      ? "All Associates" 
+      : associatedPartners.find(p => p.id === selectedAssociate)?.name || "Unknown";
+    doc.text(`Associate: ${associateName}`, 14, 36);
+    
+    // Add status filter info
+    const statusLabel = statusOptions.find(s => s.value === selectedStatus)?.label || "All Status";
+    doc.text(`Status Filter: ${statusLabel}`, 14, 42);
+    
+    // Add summary metrics
+    doc.setFontSize(12);
+    doc.text("Summary Metrics", 14, 52);
+    
+    doc.setFontSize(10);
+    doc.text(`Total Inquiries: ${totalInquiries}`, 14, 60);
+    doc.text(`Confirmed Inquiries: ${totalConfirmed}`, 80, 60);
+    doc.text(`Overall Conversion Rate: ${overallConversion}%`, 160, 60);
+    
+    // Add table data
+    const tableData = filteredData.map(item => [
+      item.associateName,
+      item.totalInquiries,
+      item.pendingInquiries,
+      item.confirmedInquiries,
+      item.cancelledInquiries,
+      item.conversionRate,
+      item.averageResponseTime
+    ]);
+    
+    // Add the table
+    autoTable(doc, {
+      head: [["Associate Name", "Total Inquiries", "Pending", "Confirmed", "Cancelled", "Conversion Rate", "Avg Response Time"]],
+      body: tableData,
+      startY: 70,
+    });
+    
+    // Add footer with date
+    const pageCount = doc.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.getWidth();
+      const pageHeight = pageSize.getHeight();
+      
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+    }
+    
+    // Download the PDF
+    doc.save("inquiry-summary-report.pdf");
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Inquiry Summary Report</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Inquiry Summary Report</h1>
+        <Button 
+          onClick={generatePDF} 
+          disabled={loading || summaryData.length === 0}
+          variant="outline"
+          className="flex gap-2 items-center"
+        >
+          <Download size={16} />
+          Download PDF
+        </Button>
+      </div>
 
       <div className="flex gap-4 items-center flex-wrap">
         <DatePickerWithRange date={dateRange} setDate={setDateRange} />

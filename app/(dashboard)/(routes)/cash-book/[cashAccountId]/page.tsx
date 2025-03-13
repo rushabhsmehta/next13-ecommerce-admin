@@ -6,7 +6,10 @@ import axios from "axios";
 import { useParams } from "next/navigation";
 import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { CalendarIcon, Divide } from "lucide-react";
+import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
@@ -56,6 +59,11 @@ const CashBookPage = () => {
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
+  });
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'INR'
   });
 
   // Fetch cash account details
@@ -155,6 +163,179 @@ const CashBookPage = () => {
     setDateRange(newRange);
   };
 
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    if (!cashAccount) return;
+    
+    const doc = new jsPDF();
+    
+    // Add report title
+    doc.setFontSize(18);
+    doc.text(`Cash Book - ${cashAccount.accountName}`, 14, 22);
+    
+    // Add date range
+    const fromDate = dateRange.from ? format(dateRange.from, 'MMM dd, yyyy') : 'N/A';
+    const toDate = dateRange.to ? format(dateRange.to, 'MMM dd, yyyy') : 'N/A';
+    doc.setFontSize(10);
+    doc.text(`Period: ${fromDate} to ${toDate}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 36);
+    
+    // Calculate totals
+    const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const closingBalance = openingBalance + totalInflow - totalOutflow;
+    
+    // Add summary information
+    doc.setFontSize(12);
+    doc.text(`Opening Balance: ${formatter.format(openingBalance)}`, 14, 46);
+    doc.text(`Total Inflow: ${formatter.format(totalInflow)}`, 14, 54);
+    doc.text(`Total Outflow: ${formatter.format(totalOutflow)}`, 14, 62);
+    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, 70);
+    
+    // Add transactions table
+    const tableData = transactions.map(transaction => {
+      // Calculate running balance for each row
+      let runningBalance = openingBalance;
+      for (let i = 0; i < transactions.indexOf(transaction); i++) {
+        transactions[i].isInflow 
+          ? runningBalance += transactions[i].amount 
+          : runningBalance -= transactions[i].amount;
+      }
+      transaction.isInflow ? runningBalance += transaction.amount : runningBalance -= transaction.amount;
+      
+      return [
+        format(new Date(transaction.date), 'dd/MM/yyyy'),
+        transaction.type,
+        transaction.description,
+        transaction.isInflow ? formatter.format(transaction.amount) : '-',
+        !transaction.isInflow ? formatter.format(transaction.amount) : '-',
+        formatter.format(runningBalance)
+      ];
+    });
+    
+    // Add the table with opening balance row
+    const allRows = [
+      ["", "", "Opening Balance", "", "", formatter.format(openingBalance)],
+      ...tableData
+    ];
+    
+    autoTable(doc, {
+      head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
+      body: allRows,
+      startY: 78,
+    });
+    
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.getWidth();
+      const pageHeight = pageSize.getHeight();
+      
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+    }
+    
+    // Download the PDF
+    const filename = `cash-book-${cashAccount.accountName.replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+    doc.save(filename);
+  };
+
+  // Function to generate and download Excel
+  const generateExcel = () => {
+    if (!cashAccount) return;
+    
+    // Create empty worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
+    
+    // Calculate totals
+    const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const closingBalance = openingBalance + totalInflow - totalOutflow;
+    
+    // Format dates for the report
+    const fromDate = dateRange.from ? format(dateRange.from, 'MMM dd, yyyy') : 'N/A';
+    const toDate = dateRange.to ? format(dateRange.to, 'MMM dd, yyyy') : 'N/A';
+    
+    // Add title and summary information with proper spacing
+    const summaryRows = [
+      [`Cash Book - ${cashAccount.accountName}`],
+      [""],
+      [`Period: ${fromDate} to ${toDate}`],
+      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [""],
+      [`Opening Balance: ${formatter.format(openingBalance)}`],
+      [`Total Inflow: ${formatter.format(totalInflow)}`],
+      [`Total Outflow: ${formatter.format(totalOutflow)}`],
+      [`Closing Balance: ${formatter.format(closingBalance)}`],
+      [""],
+      [""] // Empty row before the table
+    ];
+    
+    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A1" });
+    
+    // Add data table headers
+    const headers = [
+      ["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]
+    ];
+    
+    // Prepare transaction data rows with running balance
+    const dataRows = [];
+    
+    // Add opening balance row
+    dataRows.push(["", "", "Opening Balance", "", "", formatter.format(openingBalance)]);
+    
+    // Add transaction rows with running balance
+    let runningBalance = openingBalance;
+    transactions.forEach(transaction => {
+      transaction.isInflow ? runningBalance += transaction.amount : runningBalance -= transaction.amount;
+      
+      dataRows.push([
+        format(new Date(transaction.date), 'dd/MM/yyyy'),
+        transaction.type,
+        transaction.description,
+        transaction.isInflow ? formatter.format(transaction.amount) : '',
+        !transaction.isInflow ? formatter.format(transaction.amount) : '',
+        formatter.format(runningBalance)
+      ]);
+    });
+    
+    // Add headers and data
+    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A12" });
+    XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A13" });
+    
+    // Set column widths
+    const columnWidths = [
+      { wch: 12 }, // Date
+      { wch: 18 }, // Type
+      { wch: 30 }, // Description
+      { wch: 15 }, // Inflow
+      { wch: 15 }, // Outflow
+      { wch: 15 }, // Balance
+    ];
+    
+    worksheet["!cols"] = columnWidths;
+    
+    // Add merge cells for the title
+    if(!worksheet["!merges"]) worksheet["!merges"] = [];
+    worksheet["!merges"].push(
+      {s: {r: 0, c: 0}, e: {r: 0, c: 5}} // Merge cells for the title row
+    );
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Cash Book");
+    
+    // Generate filename with date
+    const today = new Date().toISOString().split('T')[0];
+    const fileName = `cash-book-${cashAccount.accountName.replace(/\s+/g, '-').toLowerCase()}-${today}.xlsx`;
+    
+    // Write to file and trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   if (!cashAccount && loading) {
     return (
       <div className="p-8">
@@ -174,6 +355,28 @@ const CashBookPage = () => {
           description="View all transactions in this cash account"
         />
         <div className="flex items-center gap-4">
+          {/* Export buttons */}
+          <div className="flex gap-2"></div>
+            <Button 
+              onClick={generateExcel}
+              variant="outline"
+              className="flex gap-2 items-center"
+              disabled={loading || transactions.length === 0}
+            >
+              <FileSpreadsheet size={16} />
+              Excel
+            </Button>
+            <Button 
+              onClick={generatePDF}
+              variant="outline"
+              className="flex gap-2 items-center"
+              disabled={loading || transactions.length === 0}
+            ></Button>
+              <Download size={16} />
+              PDF
+            </Button>
+          </div>
+          
           {/* From Date Picker */}
           <Popover>
             <PopoverTrigger asChild>
@@ -262,6 +465,7 @@ const CashBookPage = () => {
         <TransactionTable
           transactions={transactions}
           openingBalance={openingBalance}
+          accountName={cashAccount?.accountName}
         />
       )}
     </div>    

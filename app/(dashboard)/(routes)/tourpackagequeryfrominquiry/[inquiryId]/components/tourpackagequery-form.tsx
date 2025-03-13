@@ -209,7 +209,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const defaultValues = {
     tourPackageTemplate: '',
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
-    tourPackageQueryName: `Tour Package for ${inquiry?.customerName || ''}`,
+    // tourPackageQueryName: `Tour Package for ${inquiry?.customerName || ''}`,
     associatePartnerId: inquiry?.associatePartnerId || '',
     tourPackageQueryType: '',
     customerName: inquiry?.customerName || '',
@@ -250,6 +250,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
+
+
   const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -312,8 +314,24 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field
+
       form.setValue('tourPackageTemplate', selectedTourPackageId);
 
+      const customerName = form.getValues('customerName');
+      const packageName = selectedTourPackage.tourPackageName || '';
+      const days = String(selectedTourPackage.numDaysNight || '');
+      const packageType = String(selectedTourPackage.tourPackageType || '');
+
+      const queryNameParts = [];
+      if (customerName) queryNameParts.push(customerName);
+      if (packageName) queryNameParts.push(packageName);
+      if (days) queryNameParts.push(`${days} Days`);
+      if (packageType) queryNameParts.push(packageType);
+
+      // Set the new tour package query name
+      if (queryNameParts.length > 0) {
+        form.setValue('tourPackageQueryName', queryNameParts.join(' - '));
+      }
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', String(selectedTourPackage.tourPackageType || ''));
       form.setValue('locationId', selectedTourPackage.locationId);
@@ -878,10 +896,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <FormItem>
                         <FormLabel>Remarks</FormLabel>
                         <FormControl>
-                          <Input 
-                            disabled={loading} 
-                            placeholder="Additional remarks for the tour package" 
-                            {...field} 
+                          <Input
+                            disabled={loading}
+                            placeholder="Additional remarks for the tour package"
+                            {...field}
                           />
                         </FormControl>
                         <FormDescription>

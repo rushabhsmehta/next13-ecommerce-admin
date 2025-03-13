@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, startOfYear, endOfYear } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -36,14 +36,16 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Initialize with default values (current year) or provided values
   const [startDateValue, setStartDateValue] = useState<Date | undefined>(
-    startDate ? new Date(startDate) : undefined
+    startDate ? new Date(startDate) : startOfYear(new Date())
   );
   
   const [endDateValue, setEndDateValue] = useState<Date | undefined>(
-    endDate ? new Date(endDate) : undefined
+    endDate ? new Date(endDate) : endOfYear(new Date())
   );
 
+  // Apply filter with current values
   const applyDateFilter = () => {
     const params = new URLSearchParams(searchParams.toString());
     
@@ -62,14 +64,27 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
     router.push(`?${params.toString()}`);
   };
 
+  // Reset to current calendar year
   const clearDateFilter = () => {
-    setStartDateValue(undefined);
-    setEndDateValue(undefined);
+    const currentYear = new Date().getFullYear();
+    const yearStart = startOfYear(new Date(currentYear, 0, 1));
+    const yearEnd = endOfYear(new Date(currentYear, 0, 1));
+    
+    setStartDateValue(yearStart);
+    setEndDateValue(yearEnd);
+    
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('startDate');
-    params.delete('endDate');
+    params.set('startDate', yearStart.toISOString().split('T')[0]);
+    params.set('endDate', yearEnd.toISOString().split('T')[0]);
     router.push(`?${params.toString()}`);
   };
+
+  // Initialize filter on first load if no params are present
+  useEffect(() => {
+    if (!searchParams.has('startDate') && !searchParams.has('endDate')) {
+      applyDateFilter();
+    }
+  }, []);
 
   return (
     <> 
@@ -122,7 +137,7 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
             </Popover>
             
             <Button onClick={applyDateFilter}>Apply Filter</Button>
-            <Button variant="outline" onClick={clearDateFilter}>Clear</Button>
+            <Button variant="outline" onClick={clearDateFilter}>Reset to Current Year</Button>
           </div>
           
           <Button onClick={() => router.push(`/tourPackageQuery/new`)}>

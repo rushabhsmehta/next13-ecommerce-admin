@@ -10,7 +10,8 @@ const ExpenseLedgerPage = async () => {
     include: {
       tourPackageQuery: true,
       bankAccount: true,
-      cashAccount: true
+      cashAccount: true,
+      expenseCategoryRelation: true // Include the category relation
     },
     orderBy: {
       expenseDate: 'desc'
@@ -24,7 +25,8 @@ const ExpenseLedgerPage = async () => {
     amount: expense.amount,
     description: expense.description || "Expense",
     packageName: expense.tourPackageQuery?.tourPackageQueryName || "-",
-    category: expense.expenseCategory,
+    // Use category name from relation, fallback to the string field
+    category: expense.expenseCategoryRelation?.name || expense.expenseCategory,
     paymentMode: expense.bankAccount ? "Bank" : expense.cashAccount ? "Cash" : "Unknown",
     account: expense.bankAccount?.accountName || expense.cashAccount?.accountName || "-",
   }));

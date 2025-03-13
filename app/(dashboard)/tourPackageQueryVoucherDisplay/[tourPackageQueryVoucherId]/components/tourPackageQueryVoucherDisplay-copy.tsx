@@ -69,7 +69,20 @@ const companyInfo: CompanyInfo = {
   },
 };
 
+// Add this helper function to parse pricing section from JSON
+const parsePricingSection = (pricingData: any): Array<{ name: string, price?: string, description?: string }> => {
+  if (!pricingData) return [];
 
+  try {
+    if (typeof pricingData === 'string') {
+      return JSON.parse(pricingData);
+    }
+    return Array.isArray(pricingData) ? pricingData : [];
+  } catch (e) {
+    console.error("Error parsing pricing section:", e);
+    return [];
+  }
+};
 
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
   initialData,
@@ -86,7 +99,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
   if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
-  return ( 
+  return (
     <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
       {/* Tour Images */}
       <Card className="break-inside-avoid font-bold">
@@ -254,7 +267,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       </Card>
 
 
-
+      {/* 
       {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && (
         <Card className="break-inside-avoid border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
@@ -273,7 +286,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
           <CardContent className="p-6">
             <div className="grid gap-6 md:grid-cols-2 text-gray-700">
-              {/* Price per Adult Section */}
               {initialData.pricePerAdult !== '' && (
                 <div className="md:col-span-1">
                   <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -283,7 +295,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                 </div>
               )}
 
-              {/* Price for Children Section */}
               <div className="md:col-span-1 space-y-4">
                 {initialData.pricePerChildOrExtraBed !== '' && (
                   <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
@@ -309,6 +320,51 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
       )}
 
+      */}
+
+
+
+      {initialData.pricingSection && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && parsePricingSection(initialData.pricingSection).length > 0 && (
+        <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-md">
+          <div className="bg-gradient-to-r from-orange-100 to-orange-50 px-4 py-3 border-b flex justify-between items-center">
+            <h3 className="text-xl font-bold text-orange-800">Detailed Pricing</h3>
+            <div className="text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full">
+              {initialData.isFeatured ? "Confirmed Prices" : "Indicative Prices"}
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white">
+              <thead>
+                <tr className="bg-orange-50 text-orange-800 uppercase text-sm leading-normal">
+                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Category</th>
+                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Price</th>
+                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Details</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600 text-md">
+                {parsePricingSection(initialData.pricingSection).map((item, index) => (
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-orange-50'} hover:bg-orange-100 transition-colors duration-150`}>
+                    <td className="py-3 px-6 border-b border-orange-100 font-medium">
+                      {item.name}
+                    </td>
+                    <td className="py-3 px-6 border-b border-orange-100 font-semibold">
+                      {item.price || '-'}
+                    </td>
+                    <td className="py-3 px-6 border-b border-orange-100">
+                      {item.description || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="bg-orange-50 px-6 py-4 text-orange-800 text-sm italic">
+              * All prices are in INR and subject to availability at the time of confirmation.
+            </div>
+          </div>
+        </div>
+      )}
+
       {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && initialData.totalPrice !== ' ' && (
         <Card>
           <CardContent>
@@ -318,8 +374,6 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </CardContent>
         </Card>
       )}
-
-
 
       {initialData.remarks !== '' && (
         <Card className="break-inside-avoid text-3xl">

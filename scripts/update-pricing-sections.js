@@ -38,7 +38,7 @@ const DEFAULT_PRICING_SECTION = [
   {
     name: "Child below 5 years Without Seat (Parents Sharing Bed)",
     price: "",
-    description: ""
+    description: "Complimentary"
   },
   {
     name: "Air Fare",
@@ -116,43 +116,9 @@ async function updatePricingSections() {
     }
     
     // 2. Update TourPackageQuery records
-    console.log('Updating TourPackageQuery records...');
-    let tourPackageQueries;
-    try {
-      tourPackageQueries = await prisma.tourPackageQuery.findMany();
-      console.log(`Found ${tourPackageQueries.length} tour package queries`);
-    } catch (fetchError) {
-      console.error('Error fetching tour package queries:', fetchError);
-      return;
-    }
-    
-    let tourPackageQueryUpdateCount = 0;
-    
-    for (const tpq of tourPackageQueries) {
-      console.log(`Checking tour package query ${tpq.id}...`);
-      
-      if (!hasValidPricingSection(tpq.pricingSection)) {
-        console.log(`Updating tour package query ${tpq.id} with default pricing section...`);
-        try {
-          await prisma.tourPackageQuery.update({
-            where: { id: tpq.id },
-            data: {
-              pricingSection: JSON.stringify(DEFAULT_PRICING_SECTION)
-            }
-          });
-          tourPackageQueryUpdateCount++;
-          console.log(`Successfully updated TourPackageQuery: ${tpq.id}`);
-        } catch (updateError) {
-          console.error(`Error updating tour package query ${tpq.id}:`, updateError);
-        }
-      } else {
-        console.log(`Tour package query ${tpq.id} already has valid pricing section`);
-      }
-    }
     
     console.log(`Update complete!`);
     console.log(`Updated ${tourPackageUpdateCount} tour packages.`);
-    console.log(`Updated ${tourPackageQueryUpdateCount} tour package queries.`);
     
   } catch (error) {
     console.error('Error in updatePricingSections function:', error);

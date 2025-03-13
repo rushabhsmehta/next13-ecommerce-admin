@@ -1,3 +1,45 @@
+export const DEFAULT_PRICING_SECTION = [
+  {
+    name: "Per Person Cost",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Per Couple Cost",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Per Person With Extra Bed/Mattress",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child with Mattress (5 to 11)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child without Mattress (5 to 11)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child below 5 years (With Seat - Parents Sharing Bed)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child below 5 years Without Seat (Parents Sharing Bed)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Air Fare",
+    price: "",
+    description: ""
+  }
+];
 export const INCLUSIONS_DEFAULT = [
   "✔ Accomodation in preferred Hotel",
   "✔ Meal As Per Plan",
@@ -76,5 +118,4 @@ export const TERMS_AND_CONDITIONS_DEFAULT = [
 export const TOUR_HIGHLIGHTS_DEFAULT = "";
 export const TOTAL_PRICE_DEFAULT = "";
 export const TOUR_PACKAGE_TYPE_DEFAULT = ["Standard", "Deluxe", "Premium", "Luxury", "Super Luxury"];
-export const PRICE_DEFAULT = "";
 export const DISCLAIMER_DEFAULT = "";

@@ -218,7 +218,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     termsconditions: false,
   });
 
-  const parsePricingSection = (data: any): Array<{name: string, price: string, description?: string}> => {
+  const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
     try {
@@ -228,7 +228,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       return [];
     }
   };
-  
+
   const parseJsonField = (field: any): string[] => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
@@ -638,7 +638,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         onConfirm={onDelete}
         loading={loading}
       />
-      
+
       <div className="flex items-center justify-between mb-4">
         <div className="space-y-1">
           <Heading title={title} description={description} />
@@ -668,7 +668,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -1003,136 +1003,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       )}
                     />
 
-                    {/* //add formfield for customerName */}
-                    <FormField
-                      control={form.control}
-                      name="customerName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Customer Name</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Customer Name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
-                    <FormField
-                      control={form.control}
-                      name="customerNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Customer Number</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Customer Number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="locationId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location<span className="text-red-500">*</span></FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  className={cn(
-                                    "w-full justify-between",
-                                    !field.value && "text-muted-foreground",
-                                    form.formState.errors.locationId ? "border-red-500" : ""
-                                  )}
-                                >
-                                  {field.value
-                                    ? locations.find((location) => location.id === field.value)?.label
-                                    : "Select a location..."}
-                                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[400px] p-0">
-                              <Command>
-                                <CommandInput placeholder="Search location..." />
-                                <CommandEmpty>No location found.</CommandEmpty>
-                                <CommandGroup>
-                                  {locations.map((location) => (
-                                    <CommandItem
-                                      value={location.label}
-                                      key={location.id}
-                                      onSelect={() => {
-                                        form.setValue("locationId", location.id);
-                                        // Update location-dependent fields if needed
-                                        if (useLocationDefaults.inclusions) {
-                                          form.setValue('inclusions', parseJsonField(location.inclusions) || INCLUSIONS_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.exclusions) {
-                                          form.setValue('exclusions', parseJsonField(location.exclusions) || EXCLUSIONS_DEFAULT);
-                                        }
-                                         
-                                        if (useLocationDefaults.importantNotes) {
-                                          form.setValue('importantNotes',parseJsonField(location.importantNotes) || IMPORTANT_NOTES_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.paymentPolicy) {
-                                          form.setValue('paymentPolicy', parseJsonField(location.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.usefulTip) {
-                                          form.setValue('usefulTip', parseJsonField(location.usefulTip) || USEFUL_TIPS_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.cancellationPolicy) {
-                                          form.setValue('cancellationPolicy', parseJsonField(location.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.airlineCancellationPolicy) {
-                                          form.setValue('airlineCancellationPolicy',parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.termsconditions) {
-                                          form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-                                        }
-                                        const currentItineraries = form.getValues('itineraries');
-                                        const updatedItineraries = currentItineraries.map(itinerary => ({
-                                          ...itinerary,
-                                          locationId: location.id
-                                        }));
-                                        form.setValue('itineraries', updatedItineraries);
-
-                                        // Update activities locationId within itineraries
-                                        const updatedItinerariesWithActivities = updatedItineraries.map(itinerary => ({
-                                          ...itinerary,
-                                          activities: itinerary.activities?.map(activity => ({
-                                            ...activity,
-                                            locationId: location.id
-                                          })) || []
-                                        }));
-                                        form.setValue('itineraries', updatedItinerariesWithActivities);
-                                      }}
-                                    >
-                                      <CheckIcon
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          location.id === field.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                      {location.label}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage>
-                            {form.formState.errors.locationId?.message}
-                          </FormMessage>
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* //add formfield for numDaysNight */}
                     <FormField
                       control={form.control}
                       name="numDaysNight"
@@ -1147,118 +1018,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       )}
                     />
 
-                    {/* // add formfield for period */}
-
-                    {/*  <FormField
-              control={form.control}
-              name="period"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Period</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Period" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            /> */}
-
-                    <FormField
-                      control={form.control}
-                      name="tourStartsFrom"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Tour Starts From</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-[240px] pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="tourEndsOn"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Tour Ends On</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-[240px] pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP")
-                                  ) : (
-                                    <span>Pick a date</span>
-                                  )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                   </div>
-                  {/* 
-          <FormField
-            control={form.control}
-            name="period"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Period</FormLabel>
-                <FormControl>
-                  <DatePickerWithRange control={form.control} name="period" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          /> */}
                   <div className="grid grid-cols-3 gap-8">
 
                     <FormField
@@ -1302,103 +1063,52 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         </FormItem>
                       )}
                     />
-
-                    {/* //add formfield for numAdults */}
-                    <FormField
-                      control={form.control}
-                      name="numAdults"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Adults</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Number of Adults" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* //add formfield for numChildren */}
-                    <FormField
-                      control={form.control}
-                      name="numChild5to12"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Children 5 to 12</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* //add formfield for numChildren */}
-                    <FormField
-                      control={form.control}
-                      name="numChild0to5"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Children 0 to 5</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-8">
 
-                    <FormField
-                      control={form.control}
-                      name="disclaimer" // Ensure the name is lowercase with no spaces
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Disclaimer</FormLabel>
-                          <FormControl>
-                            <JoditEditor
-                              ref={editor}
-                              value={field.value || ''} // Should use DISCLAIMER_DEFAULT as fallback
-                              config={{
-                                readonly: loading,
-                              }}
-                              onBlur={(newContent) => field.onChange(newContent)}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={form.control}
+                    name="remarks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Remarks</FormLabel>
+                        <FormControl>
+                          <Input
+                            disabled={loading}
+                            placeholder="Additional remarks for the tour package"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Add any special notes or requirements for this tour package
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={form.control}
-                      name="remarks"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Remarks</FormLabel>
-                          <FormControl>
-
-                            <JoditEditor // Replace Textarea with JoditEditor
-                              ref={editor} // Optional ref for programmatic access
-                              value={field.value || ''} // Set initial content from form field value
-                              config={{ // Configure Jodit options (optional)
-                                readonly: loading, // Disable editing if loading                       
-                              }}
-                              onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                            />
-
-
-                            {/* <Textarea rows={5} disabled={loading} placeholder="" {...field} /> */}
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                  </div>
-                  
+                  <FormField
+                    control={form.control}
+                    name="disclaimer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Disclaimer</FormLabel>
+                        <FormControl>
+                          <JoditEditor
+                            ref={editor}
+                            value={field.value || DISCLAIMER_DEFAULT}
+                            config={{
+                              readonly: loading,
+                            }}
+                            onChange={(e) => field.onChange(e)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Legal disclaimers and important information for the client
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1412,6 +1122,35 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <CardContent className="space-y-4">
                   {/* Move guests form fields here */}
                   {/* //add formfield for numAdults */}
+                  <FormField
+                    control={form.control}
+                    name="customerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer Name</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Customer Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="customerNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer Number</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Customer Number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+
                   <FormField
                     control={form.control}
                     name="numAdults"
@@ -2395,8 +2134,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     />
 
                   </div>
-
-                  {/* Add the Pricing Section component */}
                   <div className="border rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
                     <FormField
@@ -2420,9 +2157,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormControl>
-                                        <Input 
-                                          placeholder="e.g. Adult, Child, Infant" 
-                                          {...field} 
+                                        <Input
+                                          placeholder="e.g. Adult, Child, Infant"
+                                          {...field}
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -2434,9 +2171,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormControl>
-                                        <Input 
-                                          placeholder="e.g. 1000 (optional)" 
-                                          {...field} 
+                                        <Input
+                                          placeholder="e.g. 1000 (optional)"
+                                          {...field}
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -2448,15 +2185,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormControl>
-                                        <Input 
-                                          placeholder="e.g. Age 3-12, with bed" 
-                                          {...field} 
+                                        <Input
+                                          placeholder="e.g. Age 3-12, with bed"
+                                          {...field}
                                         />
                                       </FormControl>
                                     </FormItem>
                                   )}
                                 />
-                                <Button 
+                                <Button
                                   type="button"
                                   variant="ghost"
                                   size="icon"
@@ -2515,7 +2252,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         Terms
                       </TabsTrigger>
                     </TabsList>
-            
+
                     <TabsContent value="inclusions" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
@@ -2528,7 +2265,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           switchDescription="Use Switch to Copy Inclusions from the Selected Location"
                           placeholder="Add inclusion item..."
                         />
-            
+
                         <PolicyField
                           control={form.control}
                           name="exclusions"
@@ -2541,7 +2278,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </div>
                     </TabsContent>
-            
+
                     <TabsContent value="notes" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
@@ -2554,7 +2291,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           switchDescription="Use Switch to Copy Important Notes from the Selected Location"
                           placeholder="Add important note..."
                         />
-            
+
                         <PolicyField
                           control={form.control}
                           name="usefulTip"
@@ -2567,7 +2304,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </div>
                     </TabsContent>
-            
+
                     <TabsContent value="cancellation" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
@@ -2580,7 +2317,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
                           placeholder="Add cancellation policy item..."
                         />
-            
+
                         <PolicyField
                           control={form.control}
                           name="airlineCancellationPolicy"
@@ -2593,7 +2330,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         />
                       </div>
                     </TabsContent>
-            
+
                     <TabsContent value="terms" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
@@ -2606,7 +2343,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
                           placeholder="Add payment policy item..."
                         />
-            
+
                         <PolicyField
                           control={form.control}
                           name="termsconditions"
@@ -2627,7 +2364,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           </Tabs>
 
           <div className="flex justify-end mt-8">
-            <Button 
+            <Button
               type="submit"
               disabled={loading}
               className="flex items-center gap-2"
@@ -2645,7 +2382,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       </Form>
 
       {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
-     
+
     </>
   )
 }

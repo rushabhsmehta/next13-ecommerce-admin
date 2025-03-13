@@ -120,8 +120,8 @@ export const TOUR_HIGHLIGHTS_DEFAULT = "";
 export const TOTAL_PRICE_DEFAULT = "";
 export const TOUR_PACKAGE_TYPE_DEFAULT = ["Standard", "Deluxe", "Premium", "Luxury", "Super Luxury"];
 export const PRICE_DEFAULT = "";
-export const DISCLAIMER_DEFAULT = "";
-export const REMARKS_DEFAULT = "";
+export const DISCLAIMER_DEFAULT = "All terms and conditions mentioned above are subject to change without prior notice. Please confirm all details at the time of booking.";
+export const REMARKS_DEFAULT = "Special requests are subject to availability and cannot be guaranteed.";
 export const TOUR_PACKAGE_QUERY_TYPE_DEFAULT =
   [
     "Luxury",

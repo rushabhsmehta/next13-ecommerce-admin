@@ -84,6 +84,54 @@ const parsePricingSection = (pricingData: any): Array<{ name: string, price?: st
   }
 };
 
+const parsePolicyField = (field: any): string[] => {
+  if (!field) return [];
+  try {
+    if (typeof field === 'string') {
+      return JSON.parse(field);
+    } else if (Array.isArray(field)) {
+      return field.map(item => String(item));
+    } else {
+      return [String(field)];
+    }
+  } catch (e) {
+    return [String(field)];
+  }
+};
+
+const PolicySection = ({ title, items }: { title: string; items: string[] }) => {
+  if (!items || items.length === 0) return null;
+
+  // Determine the icon based on the title
+  const getIcon = () => {
+    switch (title) {
+      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
+      case "Exclusions": return <XCircleIcon className="h-7 w-7" />;
+      case "Important Notes": return <InfoIcon className="h-7 w-7" />;
+      case "Payment Policy": return <CreditCardIcon className="h-7 w-7" />;
+      case "Useful Tips": return <InfoIcon className="h-7 w-7" />;
+      case "Cancellation Policy": return <XCircleIcon className="h-7 w-7" />;
+      case "Airline Cancellation Policy": return <PlaneIcon className="h-7 w-7" />;
+      case "Terms and Conditions": return <Shield className="h-7 w-7" />;
+      default: return <InfoIcon className="h-7 w-7" />;
+    }
+  };
+
+  return (
+    <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+      <div className="flex items-center mb-4">
+        {getIcon()}
+        <h3 className="text-2xl font-bold ml-2 text-gray-800">{title}</h3>
+      </div>
+      <ul className="list-disc pl-10 space-y-2 text-xl">
+        {items.map((item, index) => (
+          <li key={index} className="text-gray-700">{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDisplayProps> = ({
   initialData,
   locations,
@@ -96,6 +144,8 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
+  // Update the PolicySection component with larger font sizes
+  
 
   if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
@@ -500,95 +550,22 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           </CardContent>
         </Card>
       )}
-      {/* Payment Policy Card */}
-
-
-      {/* Inclusions Card */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <CheckCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Inclusions</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700">
-          <div className="max-w-full overflow-hidden">
-            <div
-              dangerouslySetInnerHTML={{ __html: initialData.inclusions || '' }}
-              className="whitespace-normal break-words text-2xl"
-            ></div>
-          </div>
-        </div>
-      </div>
-      {/* Exclusions Card */}
-      {/* Example for Exclusions Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <XCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Exclusions</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700">
-          <div className="max-w-full overflow-hidden">
-            <div
-              dangerouslySetInnerHTML={{ __html: initialData.exclusions || '' }}
-              className="whitespace-normal break-words text-2xl"
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Important Notes Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <InfoIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Important Notes</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.importantNotes || '' }}></div>
-        </div>
-      </div>
-
-      {/* Payment Policy Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <CreditCardIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Payment Policy</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.paymentPolicy || '' }}></div>
-        </div>
-      </div>
-
-      {/* Terms and Conditions Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <Shield className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Terms and Conditions</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.termsconditions || '' }}></div>
-        </div>
-      </div>
-
-      {/* Cancellation Policy Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <XCircleIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Cancellation Policy</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.cancellationPolicy || '' }}></div>
-        </div>
-      </div>
-
-      {/* Airline Cancellation Policy Section */}
-      <div className="rounded-lg overflow-hidden shadow-lg bg-gradient-to-r from-red-500 to-orange-500 text-white w-full mt-4">
-        <div className="flex items-center space-x-2 p-4">
-          <PlaneIcon className="w-6 h-6 text-white" />
-          <h3 className="text-2xl font-semibold">Airline Cancellation Policy</h3>
-        </div>
-        <div className="p-4 bg-white text-gray-700 w-full">
-          <div className="whitespace-normal break-words text-2xl" dangerouslySetInnerHTML={{ __html: initialData.airlineCancellationPolicy || '' }}></div>
-        </div>
-      </div>
+  {/* Replace individual policy sections with a single organized section */}
+      <Card className="break-before-all border rounded-lg shadow-lg overflow-hidden mb-8">
+        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 text-center">
+          <CardTitle className="text-4xl font-bold">Policies & Terms</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
+          <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
+          <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
+          <PolicySection title="Payment Policy" items={parsePolicyField(initialData.paymentPolicy)} />
+          <PolicySection title="Useful Tips" items={parsePolicyField(initialData.usefulTip)} />
+          <PolicySection title="Cancellation Policy" items={parsePolicyField(initialData.cancellationPolicy)} />
+          <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />
+          <PolicySection title="Terms and Conditions" items={parsePolicyField(initialData.termsconditions)} />
+        </CardContent>
+      </Card>
     </div>
   );
 };

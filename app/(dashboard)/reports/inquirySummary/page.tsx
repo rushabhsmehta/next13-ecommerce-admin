@@ -269,34 +269,11 @@ export default function InquirySummaryPage() {
 
   // Function to generate and download Excel
   const generateExcel = () => {
-    // Create worksheet with headers
-    const worksheet = XLSX.utils.json_to_sheet(
-      filteredData.map(item => ({
-        "Associate Name": item.associateName,
-        "Total Inquiries": item.totalInquiries,
-        "Pending": item.pendingInquiries,
-        "Confirmed": item.confirmedInquiries,
-        "Cancelled": item.cancelledInquiries,
-        "Conversion Rate": item.conversionRate,
-        "Avg Response Time": item.averageResponseTime
-      }))
-    );
+    // Create empty worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
     
-    // Set column widths
-    const columnWidths = [
-      { wch: 25 }, // Associate Name
-      { wch: 15 }, // Total Inquiries
-      { wch: 10 }, // Pending
-      { wch: 10 }, // Confirmed
-      { wch: 10 }, // Cancelled
-      { wch: 15 }, // Conversion Rate
-      { wch: 20 }, // Avg Response Time
-    ];
-    
-    worksheet["!cols"] = columnWidths;
-    
-    // Add summary info at the top
-    XLSX.utils.sheet_add_aoa(worksheet, [
+    // Add title and summary information with proper spacing
+    const summaryRows = [
       ["Inquiry Summary Report"],
       [""],
       ["Date Range:", dateRange?.from && dateRange?.to 
@@ -312,8 +289,48 @@ export default function InquirySummaryPage() {
       ["Confirmed Inquiries:", totalConfirmed],
       ["Overall Conversion Rate:", `${overallConversion}%`],
       [""],
-      [""]
-    ], { origin: "A1" });
+      [""] // Empty row before the table
+    ];
+    
+    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A1" });
+    
+    // Add data table starting after the summary (at row 13)
+    const headers = [
+      ["Associate Name", "Total Inquiries", "Pending", "Confirmed", "Cancelled", "Conversion Rate", "Avg Response Time"]
+    ];
+    
+    const dataRows = filteredData.map(item => [
+      item.associateName,
+      item.totalInquiries,
+      item.pendingInquiries,
+      item.confirmedInquiries,
+      item.cancelledInquiries,
+      item.conversionRate,
+      item.averageResponseTime
+    ]);
+    
+    // Add headers and data
+    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A13" });
+    XLSX.utils.sheet_add_json(worksheet, dataRows, { origin: "A14", skipHeader: true });
+    
+    // Set column widths
+    const columnWidths = [
+      { wch: 25 }, // Associate Name
+      { wch: 15 }, // Total Inquiries
+      { wch: 10 }, // Pending
+      { wch: 10 }, // Confirmed
+      { wch: 10 }, // Cancelled
+      { wch: 15 }, // Conversion Rate
+      { wch: 20 }, // Avg Response Time
+    ];
+    
+    worksheet["!cols"] = columnWidths;
+    
+    // Add merge cells for the title
+    if(!worksheet["!merges"]) worksheet["!merges"] = [];
+    worksheet["!merges"].push(
+      {s: {r: 0, c: 0}, e: {r: 0, c: 6}} // Merge cells for the title row
+    );
     
     // Create workbook
     const workbook = XLSX.utils.book_new();

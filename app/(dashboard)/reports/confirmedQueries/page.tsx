@@ -1,4 +1,4 @@
-import { add, format, isValid, startOfMonth, parseISO, endOfMonth } from "date-fns";
+import { add, format, isValid, startOfMonth, parseISO, endOfMonth, startOfYear, endOfYear } from "date-fns";
 
 import prismadb from "@/lib/prismadb";
 import { TourPackageQueryClient } from "./components/client";
@@ -15,33 +15,27 @@ const confirmedTourPackageQueryPage = async ({
 }: {
   searchParams: SearchParams
 }) => {
-  // Parse dates from search params
-  const startDate = searchParams.startDate ? new Date(searchParams.startDate) : undefined;
-  const endDate = searchParams.endDate ? new Date(searchParams.endDate) : undefined;
+  // Get current year dates if no dates are provided
+  const currentYear = new Date().getFullYear();
+  const defaultStartDate = startOfYear(new Date(currentYear, 0, 1));
+  const defaultEndDate = endOfYear(new Date(currentYear, 0, 1));
+  
+  // Parse dates from search params or use defaults
+  const startDate = searchParams.startDate ? new Date(searchParams.startDate) : defaultStartDate;
+  const endDate = searchParams.endDate ? new Date(searchParams.endDate) : defaultEndDate;
   
   // Validate dates
-  const validStartDate = startDate && isValid(startDate) ? startDate : undefined;
-  const validEndDate = endDate && isValid(endDate) ? endDate : undefined;
+  const validStartDate = startDate && isValid(startDate) ? startDate : defaultStartDate;
+  const validEndDate = endDate && isValid(endDate) ? endDate : defaultEndDate;
 
   // Build where clause with date filtering
   const whereClause: any = {
     isFeatured: true,
-  };
-
-  if (validStartDate && validEndDate) {
-    whereClause.tourStartsFrom = {
+    tourStartsFrom: {
       gte: validStartDate,
       lte: validEndDate
-    };
-  } else if (validStartDate) {
-    whereClause.tourStartsFrom = {
-      gte: validStartDate
-    };
-  } else if (validEndDate) {
-    whereClause.tourStartsFrom = {
-      lte: validEndDate
-    };
-  }
+    }
+  };
 
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
     where: whereClause,
@@ -83,14 +77,18 @@ const confirmedTourPackageQueryPage = async ({
     tourStartsFrom: item.tourStartsFrom ? format(add(item.tourStartsFrom, { hours: 5, minutes: 30 }), 'dd-MM-yyyy') : '',
   }));
 
+  // Format the default dates for the client component
+  const formattedStartDate = format(validStartDate, 'yyyy-MM-dd');
+  const formattedEndDate = format(validEndDate, 'yyyy-MM-dd');
+
   return (
     <>
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
           <TourPackageQueryClient 
             data={formattedtourPackageQuery} 
-            startDate={searchParams.startDate}
-            endDate={searchParams.endDate}
+            startDate={searchParams.startDate || formattedStartDate}
+            endDate={searchParams.endDate || formattedEndDate}
           />
         </div>
       </div>

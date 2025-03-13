@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,9 +13,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SalesTable } from "./sales-table";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 type Sale = {
   id: string;
@@ -46,6 +48,7 @@ export const SaleLedgerClient: React.FC<SaleLedgerClientProps> = ({
 }) => {
   const router = useRouter();
   const [filteredCustomer, setFilteredCustomer] = useState<string>("");
+  const [open, setOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -106,22 +109,64 @@ export const SaleLedgerClient: React.FC<SaleLedgerClientProps> = ({
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
           <div className="w-full md:w-1/3">
-            <Select
-              value={filteredCustomer}
-              onValueChange={setFilteredCustomer}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by customer" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Customers</SelectItem>
-                {customers.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.name}>
-                    {customer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between"
+                >
+                  {filteredCustomer
+                    ? customers.find((customer) => customer.name === filteredCustomer)?.name
+                    : "Filter by customer"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search customer..." />
+                  <CommandEmpty>No customer found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredCustomer("");
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filteredCustomer === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Customers
+                      </CommandItem>
+                      {customers.map((customer) => (
+                        <CommandItem
+                          key={customer.id}
+                          onSelect={() => {
+                            setFilteredCustomer(customer.name);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filteredCustomer === customer.name
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {customer.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">

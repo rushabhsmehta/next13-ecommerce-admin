@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -19,9 +13,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PurchasesTable } from "./purchases-table";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 type Purchase = {
   id: string;
@@ -46,6 +48,7 @@ export const PurchaseLedgerClient: React.FC<PurchaseLedgerClientProps> = ({
 }) => {
   const router = useRouter();
   const [filteredSupplier, setFilteredSupplier] = useState<string>("");
+  const [open, setOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -106,22 +109,64 @@ export const PurchaseLedgerClient: React.FC<PurchaseLedgerClientProps> = ({
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
           <div className="w-full md:w-1/3">
-            <Select
-              value={filteredSupplier}
-              onValueChange={setFilteredSupplier}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Suppliers</SelectItem>
-                {suppliers.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.name}>
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={open}
+                  className="w-full justify-between"
+                >
+                  {filteredSupplier
+                    ? suppliers.find((supplier) => supplier.name === filteredSupplier)?.name
+                    : "Filter by supplier"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search supplier..." />
+                  <CommandEmpty>No supplier found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredSupplier("");
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filteredSupplier === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Suppliers
+                      </CommandItem>
+                      {suppliers.map((supplier) => (
+                        <CommandItem
+                          key={supplier.id}
+                          onSelect={() => {
+                            setFilteredSupplier(supplier.name);
+                            setOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filteredSupplier === supplier.name
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {supplier.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">

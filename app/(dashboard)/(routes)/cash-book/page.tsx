@@ -63,6 +63,9 @@ const CashBookPage = () => {
   const generatePDF = () => {
     const doc = new jsPDF();
     
+      // Add a Unicode font that supports the Rupee symbol
+      doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.setFont('Roboto');
     // Add report title
     doc.setFontSize(18);
     doc.text("Cash Book Summary Report", 14, 22);

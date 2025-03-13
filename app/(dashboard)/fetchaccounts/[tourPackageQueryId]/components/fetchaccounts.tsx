@@ -5,11 +5,11 @@ import { CheckCircleIcon, CreditCardIcon, WalletIcon, CalendarIcon, DollarSignIc
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, PurchaseDetail, SaleDetail, PaymentDetail, ReceiptDetail, ExpenseDetail, Supplier, Customer, BankAccount, CashAccount, IncomeDetail } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, PurchaseDetail, SaleDetail, PaymentDetail, ReceiptDetail, ExpenseDetail, Supplier, Customer, BankAccount, CashAccount, IncomeDetail, ExpenseCategory, IncomeCategory } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
 import { cn } from "@/lib/utils";
 
-// Updated interface to include bank and cash account relations
+// Updated interface to include category relations
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
     purchaseDetails: Array<PurchaseDetail & {
@@ -31,10 +31,12 @@ interface TourPackageQueryDisplayProps {
     expenseDetails: Array<ExpenseDetail & {
       bankAccount: BankAccount | null;
       cashAccount: CashAccount | null;
+      expenseCategory: ExpenseCategory | null; // Add expense category relation
     }> | null;
     incomeDetails: Array<IncomeDetail & {
       bankAccount: BankAccount | null;
       cashAccount: CashAccount | null;
+      incomeCategory: IncomeCategory | null; // Add income category relation
     }> | null;
   } | null;
 }
@@ -400,7 +402,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <div key={detail.id} 
                           className="grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
                           <div className="font-medium">
-                            {detail.expenseCategory}
+                            {/* Updated to use the category relation */}
+                            {detail.expenseCategory?.name || "Uncategorized"}
                           </div>
                           <div className="flex items-center">
                             <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
@@ -463,7 +466,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             <div key={detail.id} 
                               className="grid grid-cols-[1.5fr_1fr_1fr_2fr_2fr] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
                               <div className="font-medium">
-                                {detail.incomeCategory}
+                                {/* Updated to use the category relation */}
+                                {detail.incomeCategory?.name || "Uncategorized"}
                               </div>
                               <div className="flex items-center">
                                 <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />

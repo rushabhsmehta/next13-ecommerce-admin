@@ -465,6 +465,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
         const account = allAccounts.find(acc => acc.id === detail.accountId);
         return {
           ...detail,
+          // Rename expenseCategory to expenseCategoryId for proper database storage
+          expenseCategoryId: detail.expenseCategory,
           accountType: account?.type || 'unknown'
         };
       }),
@@ -472,6 +474,8 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
         const account = allAccounts.find(acc => acc.id === detail.accountId);
         return {
           ...detail,
+          // Rename incomeCategory to incomeCategoryId for proper database storage  
+          incomeCategoryId: detail.incomeCategory,
           accountType: account?.type || 'unknown'
         };
       }),

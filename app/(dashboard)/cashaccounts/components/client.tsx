@@ -30,7 +30,9 @@ export const CashAccountsClient: React.FC<CashAccountsClientProps> = ({
   // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();
-    
+      // Add a Unicode font that supports the Rupee symbol
+      doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.setFont('Roboto');
     // Add report title
     doc.setFontSize(18);
     doc.text("Cash Accounts Report", 14, 22);

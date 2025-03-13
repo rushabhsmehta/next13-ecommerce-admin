@@ -51,7 +51,19 @@ const DEFAULT_POLICIES = {
       "There will be no refund for unused nights or early check-out."
     ]
   };
-  
+
+// Define default pricing section structure
+const DEFAULT_PRICING_SECTION = {
+  pricePerAdult: 0,
+  pricePerChildWithBed: 0, 
+  pricePerChildNoBed: 0,
+  pricePerChildWithSeat: 0,
+  currency: "INR",
+  taxIncluded: true,
+  discountAmount: 0,
+  totalPrice: 0
+};
+
 /**
  * Parses a policy field that could be HTML text, array, or JSON string into an array format
  * @param {any} field - The policy field to parse
@@ -77,15 +89,14 @@ function parseTextToArray(field, defaultValue) {
     }
     return [parsed.toString()];
   } catch (e) {
-    // Not valid JSON, try to convert HTML to array items
+    // Not valid JSON, continue with other parsing methods
   }
 
   // Handle HTML content by splitting on common separators
   const htmlString = field.toString();
   
-  // Common patterns for list items in the HTML
+  // Check for HTML list patterns first
   const patterns = [
-    /(<br\s*\/?>|\n)+/g, // Line breaks
     /<li>(.*?)<\/li>/g,  // List items
     /✔\s+(.*?)(?=✔|$)/g, // Checkmark bullet points
     /➤\s+(.*?)(?=➤|$)/g, // Triangle bullet points
@@ -117,12 +128,88 @@ function parseTextToArray(field, defaultValue) {
     }
   }
   
-  // If no patterns matched, split by lines and clean up
-  const lines = htmlString.split(/(<br\s*\/?>|\n)+/)
-    .map(line => line.replace(/<[^>]*>?/gm, '').trim())
-    .filter(line => line.length > 0);
+  // Try to split by line breaks rather than commas
+  const lineBreakPatterns = [
+    /\n+/g,           // Standard line breaks
+    /<br\s*\/?>/gi,   // HTML line breaks
+    /\s*\.\s*(?=[A-Z])/ // Period followed by capital letter (likely new sentence)
+  ];
   
-  return lines.length > 0 ? lines : defaultValue;
+  for (const pattern of lineBreakPatterns) {
+    if (htmlString.match(pattern)) {
+      const lines = htmlString.split(pattern)
+        .map(line => line.replace(/<[^>]*>?/gm, '').trim())
+        .filter(line => line.length > 0);
+      
+      if (lines.length > 1) {
+        return lines;
+      }
+    }
+  }
+  
+  // If the string contains periods that might indicate separate items
+  if (htmlString.includes('.') && !htmlString.match(/[A-Z]\./g)) {
+    const periodSplit = htmlString.split('.')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+    
+    if (periodSplit.length > 1) {
+      return periodSplit;
+    }
+  }
+  
+  // As a last resort, only use comma splitting if it appears to be a list
+  // (contains multiple commas and no long phrases between them)
+  const commaCount = (htmlString.match(/,/g) || []).length;
+  if (commaCount > 1) {
+    const avgSegmentLength = htmlString.length / (commaCount + 1);
+    // If average segment is short, it's likely a list
+    if (avgSegmentLength < 15) {
+      return htmlString.split(',')
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+    }
+  }
+  
+  // If no patterns matched, treat as a single item
+  return [htmlString];
+}
+
+/**
+ * Creates a new pricing section object from tour package data, overwriting any existing data
+ * @param {Object} tourPackage - The tour package with pricing information
+ * @returns {Object} - Structured pricing section object
+ */
+function createPricingSection(tourPackage) {
+  // Create fresh pricing section with default values
+  const pricingSection = { ...DEFAULT_PRICING_SECTION };
+  
+  // Extract values from individual fields
+  if (tourPackage.pricePerAdult) {
+    pricingSection.pricePerAdult = parseFloat(tourPackage.pricePerAdult) || 0;
+  }
+  
+  if (tourPackage.pricePerChildOrExtraBed) {
+    pricingSection.pricePerChildWithBed = parseFloat(tourPackage.pricePerChildOrExtraBed) || 0;
+  }
+  
+  if (tourPackage.pricePerChild5to12YearsNoBed) {
+    pricingSection.pricePerChildNoBed = parseFloat(tourPackage.pricePerChild5to12YearsNoBed) || 0;
+  }
+  
+  if (tourPackage.pricePerChildwithSeatBelow5Years) {
+    pricingSection.pricePerChildWithSeat = parseFloat(tourPackage.pricePerChildwithSeatBelow5Years) || 0;
+  }
+  
+  // Calculate total price if individual prices are available
+  if (tourPackage.totalPrice) {
+    pricingSection.totalPrice = parseFloat(tourPackage.totalPrice) || 0;
+  } else {
+    // If no explicit total price, calculate from components
+    pricingSection.totalPrice = pricingSection.pricePerAdult;
+  }
+  
+  return pricingSection;
 }
 
 // Main function to update all tour packages with policy data
@@ -167,23 +254,28 @@ async function seedTourPackagePolicies() {
       const airlineCancellationPolicy = parseTextToArray(tourPackage.airlineCancellationPolicy, locationPolicies.AIRLINE_CANCELLATION_POLICY);
       const termsconditions = parseTextToArray(tourPackage.termsconditions, locationPolicies.TERMS_AND_CONDITIONS);
       
-      // Update tour package with new policy data
+      // Create brand new pricing section (overwrite existing)
+      const pricingSection = createPricingSection(tourPackage);
+      console.log(`Created pricing section for ${tourPackage.id}:`, pricingSection);
+      
+      // Update tour package with new policy data and pricing section
       await prisma.tourPackage.update({
         where: { id: tourPackage.id },
         data: {
-          inclusions: JSON.stringify(inclusions),
-          exclusions: JSON.stringify(exclusions),
-          importantNotes: JSON.stringify(importantNotes),
-          paymentPolicy: JSON.stringify(paymentPolicy),
-          usefulTip: JSON.stringify(usefulTip),
-          cancellationPolicy: JSON.stringify(cancellationPolicy),
-          airlineCancellationPolicy: JSON.stringify(airlineCancellationPolicy),
-          termsconditions: JSON.stringify(termsconditions),
+          inclusions: inclusions,
+          exclusions: exclusions,
+          importantNotes: importantNotes,
+          paymentPolicy: paymentPolicy,
+          usefulTip: usefulTip,
+          cancellationPolicy: cancellationPolicy,
+          airlineCancellationPolicy: airlineCancellationPolicy,
+          termsconditions: termsconditions,
+          pricingSection: pricingSection, // Completely overwrite with new pricing section
         }
       });
     }
     
-    console.log('Policy data successfully updated for all tour packages!');
+    console.log('Policy data and pricing sections successfully updated for all tour packages!');
   } catch (error) {
     console.error('Error seeding tour package policy data:', error);
   } finally {

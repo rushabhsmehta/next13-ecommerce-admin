@@ -106,7 +106,8 @@ export async function recalculateBankBalance(bankAccountId: string) {
   const expenses = await prismadb.expenseDetail.findMany({
     where: { bankAccountId },
     include: {
-      tourPackageQuery: true
+      tourPackageQuery: true,
+      expenseCategory: true  // Include the expense category relation
     },
     orderBy: {
       expenseDate: 'asc'
@@ -118,7 +119,7 @@ export async function recalculateBankBalance(bankAccountId: string) {
     const previousBalance = currentBalance;
     currentBalance -= expense.amount;
     
-    console.log(`[RECALCULATE_BALANCE] Expense (${expense.id}): ${expense.expenseCategory}, ${expense.expenseDate.toISOString().split('T')[0]}, Amount: -${expense.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+    console.log(`[RECALCULATE_BALANCE] Expense (${expense.id}): ${expense.expenseCategory?.name || 'Uncategorized'}, ${expense.expenseDate.toISOString().split('T')[0]}, Amount: -${expense.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
   }
 
   console.log(`[RECALCULATE_BALANCE] Final balance: ${currentBalance}`);

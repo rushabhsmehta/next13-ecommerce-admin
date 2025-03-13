@@ -141,7 +141,8 @@ export async function GET(
           }
         },
         include: {
-          tourPackageQuery: true
+          tourPackageQuery: true,
+          incomeCategory: true  // Include the incomeCategory relation
         },
         orderBy: { incomeDate: 'asc' }
       }),
@@ -155,7 +156,8 @@ export async function GET(
           }
         },
         include: {
-          tourPackageQuery: true
+          tourPackageQuery: true,
+          expenseCategory: true  // Include the expenseCategory relation
         },
         orderBy: { expenseDate: 'asc' }
       }),
@@ -219,8 +221,8 @@ export async function GET(
       ...incomes.map(income => ({
         id: income.id,
         date: income.incomeDate,
-        type: `Income (${income.incomeCategory})`,
-        description: income.description || `${income.incomeCategory} income${income.tourPackageQuery ? ` for ${income.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
+        type: `Income (${income.incomeCategory?.name || 'Uncategorized'})`,
+        description: income.description || `${income.incomeCategory?.name || 'Uncategorized'} income${income.tourPackageQuery ? ` for ${income.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
         reference: '',
         amount: income.amount,
         isInflow: true,
@@ -230,8 +232,8 @@ export async function GET(
       ...expenses.map(expense => ({
         id: expense.id,
         date: expense.expenseDate,
-        type: `Expense (${expense.expenseCategory})`,
-        description: expense.description || `${expense.expenseCategory} expense${expense.tourPackageQuery ? ` for ${expense.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
+        type: `Expense (${expense.expenseCategory?.name || 'Uncategorized'})`,
+        description: expense.description || `${expense.expenseCategory?.name || 'Uncategorized'} expense${expense.tourPackageQuery ? ` for ${expense.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
         reference: '',
         amount: expense.amount,
         isInflow: false,

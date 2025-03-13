@@ -5,12 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { IncomeLedgerClient } from "./components/client";
 
 const IncomeLedgerPage = async () => {
-  // Get all income transactions with tour package details
+  // Get all income transactions with tour package details and category relation
   const incomes = await prismadb.incomeDetail.findMany({
     include: {
       tourPackageQuery: true,
       bankAccount: true,
-      cashAccount: true
+      cashAccount: true,
+      incomeCategory: true // Include the income category relation
     },
     orderBy: {
       incomeDate: 'desc'
@@ -24,7 +25,7 @@ const IncomeLedgerPage = async () => {
     amount: income.amount,
     description: income.description || "Income",
     packageName: income.tourPackageQuery?.tourPackageQueryName || "-",
-    category: income.incomeCategory,
+    category: income.incomeCategory?.name || "Uncategorized", // Access name through the relation
     paymentMode: income.bankAccount ? "Bank" : income.cashAccount ? "Cash" : "Unknown",
     account: income.bankAccount?.accountName || income.cashAccount?.accountName || "-",
   }));

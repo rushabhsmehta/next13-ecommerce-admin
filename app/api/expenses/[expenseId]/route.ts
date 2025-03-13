@@ -19,7 +19,7 @@ export async function GET(
         tourPackageQuery: true,
         bankAccount: true,
         cashAccount: true,
-        expenseCategoryRelation: true
+        expenseCategory: true, // Updated relation name
       }
     });
 
@@ -44,7 +44,7 @@ export async function PATCH(
     const { 
       expenseDate,
       amount,
-      expenseCategory,
+      expenseCategoryId, // Category ID for the relation
       description,
       tourPackageQueryId,
       accountId,
@@ -63,12 +63,21 @@ export async function PATCH(
       return new NextResponse("Valid amount is required", { status: 400 });
     }
 
-    if (!expenseCategory) {
+    if (!expenseCategoryId) {
       return new NextResponse("Expense category is required", { status: 400 });
     }
 
     if (!accountId || !accountType) {
       return new NextResponse("Payment account is required", { status: 400 });
+    }
+
+    // Check if the category exists
+    const category = await prismadb.expenseCategory.findUnique({
+      where: { id: expenseCategoryId }
+    });
+
+    if (!category) {
+      return new NextResponse("Invalid expense category", { status: 400 });
     }
 
     const expenseDetail = await prismadb.expenseDetail.update({
@@ -78,7 +87,7 @@ export async function PATCH(
       data: {
         expenseDate: new Date(expenseDate),
         amount: parseFloat(amount.toString()),
-        expenseCategory,
+        expenseCategoryId, // Store only the relation via ID
         description,
         tourPackageQueryId: tourPackageQueryId || null,
         bankAccountId: accountType === 'bank' ? accountId : null,

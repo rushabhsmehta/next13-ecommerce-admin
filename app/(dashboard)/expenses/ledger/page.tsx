@@ -5,13 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { ExpenseLedgerClient } from "./components/client";
 
 const ExpenseLedgerPage = async () => {
-  // Get all expense transactions with tour package details
+  // Get all expense transactions with relations
   const expenses = await prismadb.expenseDetail.findMany({
     include: {
       tourPackageQuery: true,
       bankAccount: true,
       cashAccount: true,
-      expenseCategoryRelation: true // Include the category relation
+      expenseCategory: true, // Updated relation name
     },
     orderBy: {
       expenseDate: 'desc'
@@ -25,13 +25,20 @@ const ExpenseLedgerPage = async () => {
     amount: expense.amount,
     description: expense.description || "Expense",
     packageName: expense.tourPackageQuery?.tourPackageQueryName || "-",
-    // Use category name from relation, fallback to the string field
-    category: expense.expenseCategoryRelation?.name || expense.expenseCategory,
+    // Updated relation name
+    category: expense.expenseCategory?.name || "Uncategorized",
     paymentMode: expense.bankAccount ? "Bank" : expense.cashAccount ? "Cash" : "Unknown",
     account: expense.bankAccount?.accountName || expense.cashAccount?.accountName || "-",
   }));
 
-  // Extract unique categories
+  // Get all expense categories for filter dropdown
+  const categories = await prismadb.expenseCategory.findMany({
+    orderBy: {
+      name: 'asc'
+    }
+  });
+
+  // Extract unique categories from formatted expenses
   const uniqueCategories = Array.from(new Set(formattedExpenses.map(expense => expense.category)));
 
   // Calculate total expenses

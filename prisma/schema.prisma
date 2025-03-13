@@ -214,9 +214,8 @@ model ExpenseDetail {
   tourPackageQueryId String
   expenseDate        DateTime
   amount             Float
-  expenseCategory    String
   expenseCategoryId  String?
-  expenseCategoryRelation ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
+  expenseCategory    ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
   description        String?          @db.Text
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now())
@@ -562,9 +561,8 @@ model IncomeDetail {
   id              String            @id @default(uuid())
   incomeDate      DateTime
   amount          Float
-  incomeCategory  String
   incomeCategoryId String?
-  incomeCategoryRelation IncomeCategory? @relation(fields: [incomeCategoryId], references: [id])
+  incomeCategory IncomeCategory? @relation(fields: [incomeCategoryId], references: [id])
   description     String?
   
   // Relations

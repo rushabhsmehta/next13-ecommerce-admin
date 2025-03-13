@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const { 
       expenseDate,
       amount,
-      expenseCategory,
+      expenseCategoryId, // Category ID for the relation
       description,
       tourPackageQueryId,
       accountId,
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       return new NextResponse("Valid amount is required", { status: 400 });
     }
 
-    if (!expenseCategory) {
+    if (!expenseCategoryId) {
       return new NextResponse("Expense category is required", { status: 400 });
     }
 
@@ -36,11 +36,20 @@ export async function POST(req: Request) {
       return new NextResponse("Payment account is required", { status: 400 });
     }
 
+    // Check if the category exists
+    const category = await prismadb.expenseCategory.findUnique({
+      where: { id: expenseCategoryId }
+    });
+
+    if (!category) {
+      return new NextResponse("Invalid expense category", { status: 400 });
+    }
+
     const expenseDetail = await prismadb.expenseDetail.create({
       data: {
         expenseDate: new Date(expenseDate),
         amount: parseFloat(amount.toString()),
-        expenseCategory,
+        expenseCategoryId, // Store the relation via ID only
         description,
         tourPackageQueryId: tourPackageQueryId || undefined,
         bankAccountId: accountType === 'bank' ? accountId : undefined,

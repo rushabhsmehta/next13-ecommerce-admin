@@ -818,10 +818,6 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </Card>
         )
       }
-
-      {/* Footer Section with Company Details */}
-
-
     </div >
   );
 };

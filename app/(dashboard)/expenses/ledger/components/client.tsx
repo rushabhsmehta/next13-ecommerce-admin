@@ -19,9 +19,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExpensesTable } from "./expenses-table";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 type Expense = {
   id: string;
@@ -48,6 +56,7 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
   const router = useRouter();
   const [filteredCategory, setFilteredCategory] = useState<string>("");
   const [filteredPaymentMode, setFilteredPaymentMode] = useState<string>("");
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
 
@@ -113,22 +122,62 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
           <div className="w-full md:w-1/4">
-            <Select
-              value={filteredCategory}
-              onValueChange={setFilteredCategory}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={categoryOpen}
+                  className="w-full justify-between"
+                >
+                  {filteredCategory || "Filter by category"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search category..." />
+                  <CommandEmpty>No category found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredCategory("");
+                          setCategoryOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filteredCategory === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Categories
+                      </CommandItem>
+                      {categories.map((category) => (
+                        <CommandItem
+                          key={category}
+                          onSelect={() => {
+                            setFilteredCategory(category);
+                            setCategoryOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filteredCategory === category
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {category}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="w-full md:w-1/4">

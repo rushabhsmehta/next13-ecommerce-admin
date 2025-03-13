@@ -14,10 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { AlertCircle, Download } from "lucide-react";
+import { AlertCircle, Download, FileSpreadsheet } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface InquirySummaryData {
   associateId: string;
@@ -266,19 +267,90 @@ export default function InquirySummaryPage() {
     doc.save("inquiry-summary-report.pdf");
   };
 
+  // Function to generate and download Excel
+  const generateExcel = () => {
+    // Create worksheet with headers
+    const worksheet = XLSX.utils.json_to_sheet(
+      filteredData.map(item => ({
+        "Associate Name": item.associateName,
+        "Total Inquiries": item.totalInquiries,
+        "Pending": item.pendingInquiries,
+        "Confirmed": item.confirmedInquiries,
+        "Cancelled": item.cancelledInquiries,
+        "Conversion Rate": item.conversionRate,
+        "Avg Response Time": item.averageResponseTime
+      }))
+    );
+    
+    // Set column widths
+    const columnWidths = [
+      { wch: 25 }, // Associate Name
+      { wch: 15 }, // Total Inquiries
+      { wch: 10 }, // Pending
+      { wch: 10 }, // Confirmed
+      { wch: 10 }, // Cancelled
+      { wch: 15 }, // Conversion Rate
+      { wch: 20 }, // Avg Response Time
+    ];
+    
+    worksheet["!cols"] = columnWidths;
+    
+    // Add summary info at the top
+    XLSX.utils.sheet_add_aoa(worksheet, [
+      ["Inquiry Summary Report"],
+      [""],
+      ["Date Range:", dateRange?.from && dateRange?.to 
+        ? `${dateRange.from.toLocaleDateString()} to ${dateRange.to.toLocaleDateString()}`
+        : "All Time"],
+      ["Associate:", selectedAssociate === "all" 
+        ? "All Associates" 
+        : associatedPartners.find(p => p.id === selectedAssociate)?.name || "Unknown"],
+      ["Status Filter:", statusOptions.find(s => s.value === selectedStatus)?.label || "All Status"],
+      [""],
+      ["Summary Metrics:"],
+      ["Total Inquiries:", totalInquiries],
+      ["Confirmed Inquiries:", totalConfirmed],
+      ["Overall Conversion Rate:", `${overallConversion}%`],
+      [""],
+      [""]
+    ], { origin: "A1" });
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Inquiry Summary");
+    
+    // Generate filename with date
+    const today = new Date().toISOString().split('T')[0];
+    const fileName = `inquiry-summary-report-${today}.xlsx`;
+    
+    // Write to file and trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <h1 className="text-2xl font-bold">Inquiry Summary Report</h1>
-        <Button 
-          onClick={generatePDF} 
-          disabled={loading || summaryData.length === 0}
-          variant="outline"
-          className="flex gap-2 items-center"
-        >
-          <Download size={16} />
-          Download PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={generateExcel} 
+            disabled={loading || filteredData.length === 0}
+            variant="outline"
+            className="flex gap-2 items-center"
+          >
+            <FileSpreadsheet size={16} />
+            Excel
+          </Button>
+          <Button 
+            onClick={generatePDF} 
+            disabled={loading || filteredData.length === 0}
+            variant="outline"
+            className="flex gap-2 items-center"
+          >
+            <Download size={16} />
+            PDF
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-4 items-center flex-wrap">

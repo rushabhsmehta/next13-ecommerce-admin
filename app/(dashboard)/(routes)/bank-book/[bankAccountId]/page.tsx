@@ -230,6 +230,7 @@ const BankBookPage = () => {
       head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
       body: allRows,
       startY: 88,
+      styles: { fontSize: 10 } // Ensure consistent font size
     });
     
     // Add footer with page numbers

@@ -223,6 +223,7 @@ const CashBookPage = () => {
       head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
       body: allRows,
       startY: 78,
+      styles: { fontSize: 10 } // Ensure consistent font size
     });
     
     // Add footer with page numbers

@@ -1279,8 +1279,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     />
 
                   </div>
-                  <div className="grid grid-cols-2 gap-8">
-
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
                     <FormField
                       control={form.control}
                       name="disclaimer" // Ensure the name is lowercase with no spaces
@@ -2958,7 +2958,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <div className="font-medium text-sm">Description (Optional)</div>
                           </div>
                           <div className="space-y-4">
-                            {field.value && field.value.map((item, index) => (
+                            {/* Ensure field.value is an array before mapping */}
+                            {Array.isArray(field.value) ? field.value.map((item, index) => (
                               <div key={index} className="grid grid-cols-3 gap-4 items-end relative pr-10">
                                 <FormField
                                   control={form.control}
@@ -2966,9 +2967,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormControl>
-                                        <Input
-                                          placeholder="e.g. Adult, Child, Infant"
-                                          {...field}
+                                        <Input 
+                                          placeholder="e.g. Adult, Child, Infant" 
+                                          {...field} 
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -2980,9 +2981,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormControl>
-                                        <Input
-                                          placeholder="e.g. 1000 (optional)"
-                                          {...field}
+                                        <Input 
+                                          placeholder="e.g. 1000 (optional)" 
+                                          {...field} 
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -2994,15 +2995,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   render={({ field }) => (
                                     <FormItem>
                                       <FormControl>
-                                        <Input
-                                          placeholder="e.g. Age 3-12, with bed"
-                                          {...field}
+                                        <Input 
+                                          placeholder="e.g. Age 3-12, with bed" 
+                                          {...field} 
                                         />
                                       </FormControl>
                                     </FormItem>
                                   )}
                                 />
-                                <Button
+                                <Button 
                                   type="button"
                                   variant="ghost"
                                   size="icon"
@@ -3012,7 +3013,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   <Trash className="h-4 w-4 text-red-500" />
                                 </Button>
                               </div>
-                            ))}
+                            )) : null}
                             <Button
                               type="button"
                               variant="outline"

@@ -1,3 +1,45 @@
+export const DEFAULT_PRICING_SECTION = [
+  {
+    name: "Per Person Cost",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Per Couple Cost",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Per Person With Extra Bed/Mattress",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child with Mattress (5 to 11)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child without Mattress (5 to 11)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child below 5 years (With Seat - Parents Sharing Bed)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Child below 5 years Without Seat (Parents Sharing Bed)",
+    price: "",
+    description: ""
+  },
+  {
+    name: "Air Fare",
+    price: "",
+    description: ""
+  }
+];
 export const INCLUSIONS_DEFAULT = [
   "✔ Accomodation in preferred Hotel",
   "✔ Meal As Per Plan",
@@ -8,7 +50,7 @@ export const INCLUSIONS_DEFAULT = [
 export const EXCLUSIONS_DEFAULT = [
   "➤ Air Fare / Train Fare",
   "➤ Heater Charges If Applicable",
-  "➤ Coolie / Porter Charges",
+  "➤ Coolie / Porter",
   "➤ Camera Charges",
   "➤ Donations At Temples",
   "➤ Extended Stay Or Travelling Due To Any Reason",

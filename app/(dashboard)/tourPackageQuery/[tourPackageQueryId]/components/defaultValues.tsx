@@ -1,11 +1,3 @@
-export const INCLUSIONS_DEFAULT = [
-  "Accomodation in preferred Hotel",
-  "Meal As Per Plan",
-  "All Transfers & Sightseeing By Private Vehicle",
-  "All Toll, Tax, Parking, Driver's Allowance"
-];
-
-
 export const DEFAULT_PRICING_SECTION = [
   {
     name: "Per Person Cost",
@@ -49,6 +41,12 @@ export const DEFAULT_PRICING_SECTION = [
   }
 ];
 
+export const INCLUSIONS_DEFAULT = [
+  "Accomodation in preferred Hotel",
+  "Meal As Per Plan",
+  "All Transfers & Sightseeing By Private Vehicle",
+  "All Toll, Tax, Parking, Driver's Allowance"
+];
 
 export const EXCLUSIONS_DEFAULT = [
   "Air Fare / Train Fare",

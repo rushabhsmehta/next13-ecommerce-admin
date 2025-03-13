@@ -61,7 +61,6 @@ const BankBookPage = () => {
     to: new Date(),
   });
 
-
   // Fetch bank account details
   useEffect(() => {
     const fetchBankAccount = async () => {
@@ -104,8 +103,23 @@ const BankBookPage = () => {
     }
   }, [params.bankAccountId, dateRange]);
 
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    setDateRange(range || { from: undefined, to: undefined });
+  // Replace handleDateRangeChange with separate handlers for from and to dates
+  const handleFromDateChange = (date: Date | undefined) => {
+    if (date) {
+      setDateRange(prev => ({
+        from: date,
+        to: prev.to
+      }));
+    }
+  };
+
+  const handleToDateChange = (date: Date | undefined) => {
+    if (date) {
+      setDateRange(prev => ({
+        from: prev.from,
+        to: date
+      }));
+    }
   };
 
   const handlePresetChange = (value: string) => {
@@ -164,29 +178,54 @@ const BankBookPage = () => {
           description={bankAccount ? `${bankAccount.bankName} - ${bankAccount.accountNumber}` : ''}
         />
         <div className="flex items-center gap-4">
-          {/* Date Range Picker Inline Implementation */}
+          {/* From Date Picker */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                id="date"
-                variant="outline"
+                variant={"outline"}
                 className={cn(
-                  "w-[300px] justify-start text-left font-normal",
-                  !dateRange && "text-muted-foreground"
+                  "w-[180px] justify-start text-left font-normal",
+                  !dateRange.from && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "LLL dd, y")} -{" "}
-                      {format(dateRange.to, "LLL dd, y")}
-                    </>
-                  ) : (
-                    format(dateRange.from, "LLL dd, y")
-                  )
+                {dateRange.from ? (
+                  format(dateRange.from, "LLL dd, y")
                 ) : (
-                  <span>Select date range</span>
+                  <span>Start date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="flex w-auto flex-col space-y-2 p-2" align="start">
+              <div className="rounded-md border">
+                <Calendar
+                  initialFocus
+                  mode="single"
+                  selected={dateRange.from}
+                  onSelect={handleFromDateChange}
+                  disabled={(date) => date > new Date()}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-muted-foreground">to</span>
+
+          {/* To Date Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[180px] justify-start text-left font-normal",
+                  !dateRange.to && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.to ? (
+                  format(dateRange.to, "LLL dd, y")
+                ) : (
+                  <span>End date</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -205,11 +244,10 @@ const BankBookPage = () => {
               <div className="rounded-md border">
                 <Calendar
                   initialFocus
-                  mode="range"
-                  defaultMonth={dateRange?.from}
-                  selected={dateRange}
-                  onSelect={handleDateRangeChange}
-                  numberOfMonths={2}
+                  mode="single"
+                  selected={dateRange.to}
+                  onSelect={handleToDateChange}
+                  disabled={(date) => date > new Date() || (dateRange.from ? date < dateRange.from : false)}
                 />
               </div>
             </PopoverContent>

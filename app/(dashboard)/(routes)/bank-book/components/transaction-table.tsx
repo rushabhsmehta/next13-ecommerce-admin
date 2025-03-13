@@ -3,9 +3,12 @@ import { format } from 'date-fns';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, Edit, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface Transaction {
   id: string;
@@ -22,9 +25,14 @@ interface Transaction {
 interface TransactionTableProps {
   transactions: Transaction[];
   openingBalance: number;
+  accountName?: string; // Add optional account name for reports title
 }
 
-export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, openingBalance }) => {
+export const TransactionTable: React.FC<TransactionTableProps> = ({ 
+  transactions, 
+  openingBalance,
+  accountName = "Bank Account" // Default title if not provided 
+}) => {
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
@@ -65,8 +73,179 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
   const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
   const closingBalance = openingBalance + totalInflow - totalOutflow;
 
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    
+    // Add report title
+    doc.setFontSize(18);
+    doc.text(`${accountName} Transactions`, 14, 22);
+    
+    // Add date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Add summary metrics
+    doc.setFontSize(12);
+    doc.text(`Opening Balance: ${formatter.format(openingBalance)}`, 14, 40);
+    doc.text(`Total Inflow: ${formatter.format(totalInflow)}`, 14, 48);
+    doc.text(`Total Outflow: ${formatter.format(totalOutflow)}`, 14, 56);
+    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, 64);
+    
+    // Add table data with running balance
+    const tableData = [];
+    let balance = openingBalance;
+    
+    // Add opening balance row
+    tableData.push(["", "", "Opening Balance", "", "", formatter.format(balance)]);
+    
+    // Add transaction rows
+    transactions.forEach(transaction => {
+      transaction.isInflow ? balance += transaction.amount : balance -= transaction.amount;
+      
+      tableData.push([
+        format(new Date(transaction.date), 'dd/MM/yyyy'),
+        transaction.type,
+        transaction.description,
+        transaction.isInflow ? formatter.format(transaction.amount) : '-',
+        !transaction.isInflow ? formatter.format(transaction.amount) : '-',
+        formatter.format(balance)
+      ]);
+    });
+    
+    // Add the table
+    autoTable(doc, {
+      head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
+      body: tableData,
+      startY: 72,
+    });
+    
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.getWidth();
+      const pageHeight = pageSize.getHeight();
+      
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+    }
+    
+    // Download the PDF
+    const safeAccountName = accountName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    doc.save(`bank-transactions-${safeAccountName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
+  // Function to generate and download Excel
+  const generateExcel = () => {
+    // Create empty worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
+    
+    // Add title and summary information with proper spacing
+    const summaryRows = [
+      [`${accountName} Transactions`],
+      [""],
+      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [""],
+      [`Opening Balance: ${formatter.format(openingBalance)}`],
+      [`Total Inflow: ${formatter.format(totalInflow)}`],
+      [`Total Outflow: ${formatter.format(totalOutflow)}`],
+      [`Closing Balance: ${formatter.format(closingBalance)}`],
+      [""],
+      [""] // Empty row before the table
+    ];
+    
+    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A1" });
+    
+    // Add data table headers
+    const headers = [
+      ["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]
+    ];
+    
+    // Prepare transaction data rows with running balance
+    const dataRows = [];
+    let balance = openingBalance;
+    
+    // Add opening balance row
+    dataRows.push(["", "", "Opening Balance", "", "", formatter.format(balance)]);
+    
+    // Add transaction rows
+    transactions.forEach(transaction => {
+      transaction.isInflow ? balance += transaction.amount : balance -= transaction.amount;
+      
+      dataRows.push([
+        format(new Date(transaction.date), 'dd/MM/yyyy'),
+        transaction.type,
+        transaction.description,
+        transaction.isInflow ? formatter.format(transaction.amount) : '',
+        !transaction.isInflow ? formatter.format(transaction.amount) : '',
+        formatter.format(balance)
+      ]);
+    });
+    
+    // Add headers and data
+    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A11" });
+    XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A12" });
+    
+    // Set column widths
+    const columnWidths = [
+      { wch: 12 }, // Date
+      { wch: 18 }, // Type
+      { wch: 30 }, // Description
+      { wch: 15 }, // Inflow
+      { wch: 15 }, // Outflow
+      { wch: 15 }, // Balance
+    ];
+    
+    worksheet["!cols"] = columnWidths;
+    
+    // Add merge cells for the title
+    if(!worksheet["!merges"]) worksheet["!merges"] = [];
+    worksheet["!merges"].push(
+      {s: {r: 0, c: 0}, e: {r: 0, c: 5}} // Merge cells for the title row
+    );
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bank Transactions");
+    
+    // Generate filename with date
+    const today = new Date().toISOString().split('T')[0];
+    const safeAccountName = accountName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const fileName = `bank-transactions-${safeAccountName}-${today}.xlsx`;
+    
+    // Write to file and trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="space-y-4">
+      {/* Export buttons */}
+      {transactions.length > 0 && (
+        <div className="flex justify-end gap-2">
+          <Button 
+            onClick={generateExcel}
+            variant="outline"
+            className="flex gap-2 items-center" 
+            size="sm"
+          >
+            <FileSpreadsheet size={16} />
+            Excel
+          </Button>
+          <Button 
+            onClick={generatePDF}
+            variant="outline"
+            className="flex gap-2 items-center"
+            size="sm"
+          >
+            <Download size={16} />
+            PDF
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>

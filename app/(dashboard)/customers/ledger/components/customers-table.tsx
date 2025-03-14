@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { BookText, Eye } from "lucide-react";
 
 type CustomerSummary = {
   id: string;
@@ -31,6 +31,10 @@ export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
 
   const handleViewCustomer = (customerId: string) => {
     router.push(`/customers/${customerId}`);
+  };
+  
+  const handleViewLedger = (customerId: string) => {
+    router.push(`/customers/${customerId}/ledger`);
   };
   
   return (
@@ -63,14 +67,24 @@ export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
                   <TableCell className="text-right">{formatPrice(customer.totalReceipts)}</TableCell>
                   <TableCell className="text-right font-medium">{formatPrice(customer.balance)}</TableCell>
                   <TableCell className="text-center">
-                    <Button
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleViewCustomer(customer.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleViewCustomer(customer.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleViewLedger(customer.id)}
+                      >
+                        <BookText className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -7,8 +7,8 @@ const CustomerLedgerPage = async () => {
   // Get all customers with their sales and receipts
   const customers = await prismadb.customer.findMany({
     include: {
-      sales: true,
-      receipts: true,
+      saleDetails: true,  // Updated relation name from sales to saleDetails
+      receiptDetails: true,  // Updated relation name from receipts to receiptDetails
     },
     orderBy: {
       name: 'asc'
@@ -17,8 +17,8 @@ const CustomerLedgerPage = async () => {
   
   // Format customer data with calculated totals
   const formattedCustomers = customers.map(customer => {
-    const totalSales = customer.sales.reduce((sum, sale) => sum + sale.amount, 0);
-    const totalReceipts = customer.receipts.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const totalSales = customer.saleDetails.reduce((sum, sale) => sum + sale.amount, 0);  // Updated from sales to saleDetails
+    const totalReceipts = customer.receiptDetails.reduce((sum, receipt) => sum + receipt.amount, 0);  // Updated from receipts to receiptDetails
     const balance = totalSales - totalReceipts;
     
     return {

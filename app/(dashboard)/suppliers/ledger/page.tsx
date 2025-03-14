@@ -7,8 +7,8 @@ const SupplierLedgerPage = async () => {
   // Get all suppliers with their purchases and payments
   const suppliers = await prismadb.supplier.findMany({
     include: {
-      purchases: true,
-      payments: true,
+      purchaseDetails: true,  // Updated from purchases to purchaseDetails
+      paymentDetails: true,   // Updated from payments to paymentDetails
     },
     orderBy: {
       name: 'asc'
@@ -17,8 +17,8 @@ const SupplierLedgerPage = async () => {
   
   // Format supplier data with calculated totals
   const formattedSuppliers = suppliers.map(supplier => {
-    const totalPurchases = supplier.purchases.reduce((sum, purchase) => sum + purchase.amount, 0);
-    const totalPayments = supplier.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalPurchases = supplier.purchaseDetails.reduce((sum, purchase) => sum + purchase.amount, 0);  // Updated relation name
+    const totalPayments = supplier.paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);     // Updated relation name
     const balance = totalPurchases - totalPayments;
     
     return {

@@ -35,8 +35,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
+// Update the schema to use expenseCategoryId instead of expenseCategory
 const formSchema = z.object({
   expenseDate: z.date({
     required_error: "Expense date is required",
@@ -44,7 +54,7 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({
     message: "Amount must be positive",
   }),
-  expenseCategory: z.string().min(1, {
+  expenseCategoryId: z.string().min(1, {
     message: "Expense category is required",
   }),
   description: z.string().optional(),
@@ -70,6 +80,10 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
   const [cashAccounts, setCashAccounts] = useState<any[]>([]);
   const [tourPackages, setTourPackages] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  
+  // Add states for dropdown open status
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [packageOpen, setPackageOpen] = useState(false);
 
   const title = initialData ? "Edit Expense" : "Create Expense";
   const description = initialData ? "Edit expense details" : "Add a new expense";
@@ -106,7 +120,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
   let defaultValues: Partial<ExpenseFormValues> = {
     expenseDate: new Date(),
     amount: 0,
-    expenseCategory: "",
+    expenseCategoryId: "",
     description: "",
     tourPackageQueryId: undefined,
     accountId: "",
@@ -117,7 +131,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
     defaultValues = {
       expenseDate: initialData.expenseDate ? new Date(initialData.expenseDate) : new Date(),
       amount: initialData.amount,
-      expenseCategory: initialData.expenseCategory,
+      expenseCategoryId: initialData.expenseCategoryId || "",
       description: initialData.description || "",
       tourPackageQueryId: initialData.tourPackageQueryId || undefined,
       accountId: initialData.bankAccountId || initialData.cashAccountId || "",
@@ -129,6 +143,18 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
+  // Helper function to find category name by ID
+  const getCategoryNameById = (id: string) => {
+    const category = categories.find(cat => cat.id === id);
+    return category ? category.name : "";
+  };
+  
+  // Helper function to find package name by ID
+  const getPackageNameById = (id: string) => {
+    const pkg = tourPackages.find(p => p.id === id);
+    return pkg ? (pkg.tourPackageQueryName || `Package #${pkg.id.substring(0, 8)}`) : "";
+  };
 
   const onSubmit = async (data: ExpenseFormValues) => {
     try {
@@ -208,62 +234,126 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
               )}
             />
 
+            {/* Searchable Expense Category Dropdown */}
             <FormField
               control={form.control}
-              name="expenseCategory"
+              name="expenseCategoryId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Expense Category</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={categoryOpen}
+                          className="w-full justify-between"
+                        >
+                          {field.value ? getCategoryNameById(field.value) : "Select a category"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search category..." />
+                        <CommandEmpty>No category found.</CommandEmpty>
+                        <CommandList>
+                          <CommandGroup>
+                            {categories.map((category) => (
+                              <CommandItem
+                                key={category.id}
+                                value={category.name}
+                                onSelect={() => {
+                                  form.setValue("expenseCategoryId", category.id);
+                                  setCategoryOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === category.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {category.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Searchable Tour Package Dropdown */}
             <FormField
               control={form.control}
               name="tourPackageQueryId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tour Package (Optional)</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a tour package" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {tourPackages.map((pkg) => (
-                        <SelectItem key={pkg.id} value={pkg.id}>
-                          {pkg.tourPackageQueryName || `Package #${pkg.id.substring(0, 8)}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={packageOpen} onOpenChange={setPackageOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={packageOpen}
+                          className="w-full justify-between"
+                        >
+                          {field.value ? getPackageNameById(field.value) : "Select a tour package (optional)"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search tour package..." />
+                        <CommandEmpty>No package found.</CommandEmpty>
+                        <CommandList>
+                          <CommandGroup>
+                            <CommandItem
+                              value=""
+                              onSelect={() => {
+                                form.setValue("tourPackageQueryId", "");
+                                setPackageOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  !field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              None
+                            </CommandItem>
+                            {tourPackages.map((pkg) => (
+                              <CommandItem
+                                key={pkg.id}
+                                value={pkg.tourPackageQueryName || pkg.id}
+                                onSelect={() => {
+                                  form.setValue("tourPackageQueryId", pkg.id);
+                                  setPackageOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === pkg.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {pkg.tourPackageQueryName || `Package #${pkg.id.substring(0, 8)}`}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormDescription>
                     Associate this expense with a specific tour package
                   </FormDescription>

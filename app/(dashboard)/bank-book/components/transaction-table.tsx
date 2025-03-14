@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FormattedTransaction } from "@/types";
+import { FormattedTransaction } from "@/types/index";
 import { formatPrice } from "@/lib/utils";
 import { Download } from "lucide-react";
 
@@ -76,7 +76,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       startY: 48,
       headStyles: { fillColor: [41, 128, 185] },
       footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
-    });
+    ]);
     
     // Add footer
     const pageCount = doc.getNumberOfPages();

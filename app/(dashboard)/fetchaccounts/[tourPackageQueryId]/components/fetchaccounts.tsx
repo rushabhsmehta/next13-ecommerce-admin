@@ -196,6 +196,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         </div>
                       ))}
                     </CardContent>
+                    {/* Add sales total footer */}
+                    <div className="p-3 bg-emerald-50 border-t border-emerald-200 flex justify-end">
+                      <div className="font-bold text-emerald-800">
+                        Total: ₹{totalSales.toFixed(2)}
+                      </div>
+                    </div>
                   </Card>
                 ) : <p className="text-gray-500 italic">No sales details available</p>}
               </div>
@@ -247,6 +253,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         );
                       })}
                     </CardContent>
+                    {/* Add receipts total footer */}
+                    <div className="p-3 bg-emerald-50 border-t border-emerald-200 flex justify-end">
+                      <div className="font-bold text-emerald-800">
+                        Total: ₹{totalReceipts.toFixed(2)}
+                      </div>
+                    </div>
                   </Card>
                 ) : <p className="text-gray-500 italic">No receipt details available</p>}
               </div>
@@ -303,6 +315,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         </div>
                       ))}
                     </CardContent>
+                    {/* Add purchases total footer */}
+                    <div className="p-3 bg-blue-50 border-t border-blue-200 flex justify-end">
+                      <div className="font-bold text-blue-800">
+                        Total: ₹{totalPurchases.toFixed(2)}
+                      </div>
+                    </div>
                   </Card>
                 ) : <p className="text-gray-500 italic">No purchase details available</p>}
               </div>
@@ -357,6 +375,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         );
                       })}
                     </CardContent>
+                    {/* Add payments total footer */}
+                    <div className="p-3 bg-blue-50 border-t border-blue-200 flex justify-end">
+                      <div className="font-bold text-blue-800">
+                        Total: ₹{totalPayments.toFixed(2)}
+                      </div>
+                    </div>
                   </Card>
                 ) : <p className="text-gray-500 italic">No payment details available</p>}
               </div>
@@ -422,6 +446,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       );
                     })}
                   </CardContent>
+                  {/* Add expenses total footer */}
+                  <div className="p-3 bg-red-50 border-t border-red-200 flex justify-end">
+                    <div className="font-bold text-red-800">
+                      Total: ₹{totalExpenses.toFixed(2)}
+                    </div>
+                  </div>
                 </Card>
               ) : <p className="text-gray-500 italic">No expense details available</p>}
             </div>
@@ -486,6 +516,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       );
                     })}
                   </CardContent>
+                  {/* Add incomes total footer */}
+                  <div className="p-3 bg-green-50 border-t border-green-200 flex justify-end">
+                    <div className="font-bold text-green-800">
+                      Total: ₹{totalIncomes.toFixed(2)}
+                    </div>
+                  </div>
                 </Card>
               ) : <p className="text-gray-500 italic">No income details available</p>}
             </div>

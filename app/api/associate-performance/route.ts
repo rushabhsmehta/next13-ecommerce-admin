@@ -29,7 +29,6 @@ export async function GET(req: Request) {
       associatesMap.set(partner.id, {
         associateId: partner.id,
         associateName: partner.name,
-        totalBookings: 0,
         confirmedBookings: 0,
         cancellations: 0,
         revenue: 0,
@@ -75,7 +74,6 @@ export async function GET(req: Request) {
         associatesMap.set(associateId, {
           associateId,
           associateName: inquiry.associatePartner?.name || 'Unknown',
-          totalBookings: 0,
           confirmedBookings: 0,
           cancellations: 0,
           revenue: 0,
@@ -98,9 +96,8 @@ export async function GET(req: Request) {
       if (inquiry.status === 'CONFIRMED') {
         associate.confirmedBookings += 1;
         
-        // Add tour package queries as bookings
+        // Calculate revenue from tour package queries
         if (inquiry.tourPackageQueries && inquiry.tourPackageQueries.length > 0) {
-          associate.totalBookings += inquiry.tourPackageQueries.length;
           
           // Calculate revenue from sale details
           inquiry.tourPackageQueries.forEach(packageQuery => {
@@ -152,7 +149,6 @@ export async function GET(req: Request) {
     const performanceData = Array.from(associatesMap.values()).map(associate => ({
       associateId: associate.associateId,
       associateName: associate.associateName,
-      totalBookings: associate.totalBookings,
       confirmedBookings: associate.confirmedBookings,
       cancellations: associate.cancellations,
       revenue: `$${associate.revenue.toLocaleString()}`,

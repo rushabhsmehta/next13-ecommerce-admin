@@ -24,7 +24,6 @@ import * as XLSX from 'xlsx';
 interface PerformanceData {
   associateId: string;
   associateName: string;
-  totalBookings: number;
   confirmedBookings: number;
   cancellations: number;
   revenue: string;
@@ -52,10 +51,6 @@ const columns = [
   {
     accessorKey: "associateName",
     header: "Associate Name",
-  },
-  {
-    accessorKey: "totalBookings",
-    header: "Total Bookings",
   },
   {
     accessorKey: "confirmedBookings",
@@ -151,8 +146,7 @@ export default function AssociatePerformancePage() {
   // Calculate summary statistics based on filtered data
   const totalRevenue = filteredData.reduce((sum, item) => 
     sum + parseInt(item.revenue.replace(/\$|,/g, '') || '0'), 0);
-  const totalBookings = filteredData.reduce((sum, item) => 
-    sum + item.totalBookings, 0);
+  
   const avgPerformance = filteredData.length > 0 ? 
     filteredData.reduce((sum, item) => 
       sum + (item.performance === "Excellent" ? 5 : item.performance === "Good" ? 4 : 3), 0) / filteredData.length 
@@ -162,7 +156,6 @@ export default function AssociatePerformancePage() {
     // Format data for CSV export
     const exportData = filteredData.map(item => ({
       "Associate Name": item.associateName,
-      "Total Bookings": item.totalBookings,
       "Confirmed Bookings": item.confirmedBookings,
       "Cancellations": item.cancellations,
       "Revenue Generated": item.revenue,
@@ -210,13 +203,11 @@ export default function AssociatePerformancePage() {
     
     doc.setFontSize(10);
     doc.text(`Total Revenue: $${totalRevenue.toLocaleString()}`, 14, 60);
-    doc.text(`Total Bookings: ${totalBookings}`, 100, 60);
     doc.text(`Average Performance: ${avgPerformance.toFixed(1)}/5.0`, 160, 60);
     
     // Add table data
     const tableData = filteredData.map(item => [
       item.associateName,
-      item.totalBookings,
       item.confirmedBookings,
       item.cancellations,
       item.revenue,
@@ -227,7 +218,7 @@ export default function AssociatePerformancePage() {
     
     // Add the table
     autoTable(doc, {
-      head: [["Associate Name", "Total Bookings", "Confirmed", "Cancellations", "Revenue", "Commission", "Performance", "Inquiries"]],
+      head: [["Associate Name", "Confirmed", "Cancellations", "Revenue", "Commission", "Performance", "Inquiries"]],
       body: tableData,
       startY: 70,
     });
@@ -267,7 +258,6 @@ export default function AssociatePerformancePage() {
       [""],
       ["Summary Metrics:"],
       ["Total Revenue:", `$${totalRevenue.toLocaleString()}`],
-      ["Total Bookings:", totalBookings],
       ["Average Performance:", `${avgPerformance.toFixed(1)}/5.0`],
       [""],
       [""] // Empty row before the table
@@ -277,12 +267,11 @@ export default function AssociatePerformancePage() {
     
     // Add data table starting after the summary (at row 12)
     const headers = [
-      ["Associate Name", "Total Bookings", "Confirmed Bookings", "Cancellations", "Revenue", "Commission", "Performance", "Total Inquiries"]
+      ["Associate Name", "Confirmed Bookings", "Cancellations", "Revenue", "Commission", "Performance", "Total Inquiries"]
     ];
     
     const dataRows = filteredData.map(item => [
       item.associateName,
-      item.totalBookings,
       item.confirmedBookings,
       item.cancellations,
       item.revenue,
@@ -298,7 +287,6 @@ export default function AssociatePerformancePage() {
     // Set column widths
     const columnWidths = [
       { wch: 25 }, // Associate Name
-      { wch: 15 }, // Total Bookings
       { wch: 15 }, // Confirmed Bookings
       { wch: 15 }, // Cancellations
       { wch: 15 }, // Revenue
@@ -387,12 +375,12 @@ export default function AssociatePerformancePage() {
           <p className="text-2xl">${totalRevenue.toLocaleString()}</p>
         </Card>
         <Card className="p-4">
-          <h3 className="font-semibold mb-2">Total Bookings</h3>
-          <p className="text-2xl">{totalBookings}</p>
-        </Card>
-        <Card className="p-4">
           <h3 className="font-semibold mb-2">Average Performance</h3>
           <p className="text-2xl">{avgPerformance.toFixed(1)}/5.0</p>
+        </Card>
+        <Card className="p-4">
+          <h3 className="font-semibold mb-2">Confirmed Bookings</h3>
+          <p className="text-2xl">{filteredData.reduce((sum, item) => sum + item.confirmedBookings, 0)}</p>
         </Card>
       </div>
 

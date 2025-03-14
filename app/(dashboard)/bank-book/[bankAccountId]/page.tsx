@@ -3,7 +3,8 @@ import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { TransactionTable, BankTransaction } from "../components/transaction-table";
+import { TransactionTable } from "@/components/bank-book/transaction-table";
+import { FormattedTransaction } from "@/types";
 
 interface BankBookPageProps {
   params: {
@@ -33,20 +34,19 @@ const BankBookPage = async ({ params }: BankBookPageProps) => {
     },
   });
 
-  // Calculate opening balance and running balance
+  // Calculate running balance
   let runningBalance = bankAccount.openingBalance;
   
-  // Transform to the expected transaction format
-  const formattedTransactions: BankTransaction[] = dbTransactions.map(transaction => {
-    // Update running balance
+  // Transform DB transactions to formatted transactions
+  const transactions: FormattedTransaction[] = dbTransactions.map(transaction => {
     const amount = transaction.amount;
     runningBalance += amount;
-
+    
     return {
       id: transaction.id,
       date: format(transaction.date, "yyyy-MM-dd"),
-      type: transaction.type,
-      description: transaction.description,
+      type: transaction.type || 'Transaction',
+      description: transaction.description || '',
       inflow: amount > 0 ? amount : 0,
       outflow: amount < 0 ? Math.abs(amount) : 0,
       balance: runningBalance,
@@ -64,7 +64,7 @@ const BankBookPage = async ({ params }: BankBookPageProps) => {
         <Separator />
         
         <TransactionTable 
-          data={formattedTransactions}
+          data={transactions}
           openingBalance={bankAccount.openingBalance} 
           accountName={bankAccount.name} 
         />

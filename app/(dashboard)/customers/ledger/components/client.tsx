@@ -5,35 +5,114 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CalendarIcon, Check, ChevronsUpDown, Download, FileSpreadsheet, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { CustomersTable } from "./customers-table";
-import { Download, FileSpreadsheet } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-type CustomerSummary = {
+type Customer = {
   id: string;
   name: string;
-  contact: string | null; // Updated to accept null values
+  contact: string;
+  email: string;
+  associatePartner: string;
+  createdAt: string;
   totalSales: number;
   totalReceipts: number;
-  balance: number;
+  outstanding: number;
 };
 
 interface CustomerLedgerClientProps {
-  customers: CustomerSummary[];
+  customers: Customer[];
+  associatePartners: string[];
   totalSales: number;
   totalReceipts: number;
-  totalBalance: number;
+  totalOutstanding: number;
 }
 
 export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
   customers,
+  associatePartners,
   totalSales,
   totalReceipts,
-  totalBalance
+  totalOutstanding,
 }) => {
   const router = useRouter();
+  const [filteredPartner, setFilteredPartner] = useState<string>("");
+  const [partnerOpen, setPartnerOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [outstandingOnly, setOutstandingOnly] = useState(false);
+
+  const filteredCustomers = customers.filter((customer) => {
+    // Filter by associate partner
+    if (filteredPartner && customer.associatePartner !== filteredPartner) {
+      return false;
+    }
+
+    // Filter by date created
+    if (dateFrom) {
+      const customerDate = new Date(customer.createdAt);
+      if (customerDate < dateFrom) return false;
+    }
+
+    if (dateTo) {
+      const customerDate = new Date(customer.createdAt);
+      // Add one day to include the end date
+      const endDate = new Date(dateTo);
+      endDate.setDate(endDate.getDate() + 1);
+      if (customerDate > endDate) return false;
+    }
+
+    // Filter by outstanding balance
+    if (outstandingOnly && customer.outstanding <= 0) {
+      return false;
+    }
+
+    // Search by name, contact, email
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        customer.name.toLowerCase().includes(query) ||
+        customer.contact.toLowerCase().includes(query) ||
+        customer.email.toLowerCase().includes(query)
+      );
+    }
+
+    return true;
+  });
+
+  // Calculate filtered totals
+  const filteredTotalSales = filteredCustomers.reduce((sum, customer) => sum + customer.totalSales, 0);
+  const filteredTotalReceipts = filteredCustomers.reduce((sum, customer) => sum + customer.totalReceipts, 0);
+  const filteredTotalOutstanding = filteredCustomers.reduce((sum, customer) => sum + customer.outstanding, 0);
+
+  const resetFilters = () => {
+    setFilteredPartner("");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setSearchQuery("");
+    setOutstandingOnly(false);
+  };
 
   // Function to generate and download PDF
   const generatePDF = () => {
@@ -47,42 +126,47 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    // Add summary metrics with properly formatted amounts
+    // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Total Customers: ${customers.length}`, 14, 40);
-    doc.text(`Total Sales: Rs. ${formatPrice(totalSales, { forPDF: true })}`, 14, 48);
-    doc.text(`Total Receipts: Rs. ${formatPrice(totalReceipts, { forPDF: true })}`, 14, 56);
-    doc.text(`Outstanding Balance: Rs. ${formatPrice(totalBalance, { forPDF: true })}`, 14, 64);
+    doc.text(`Total Sales: ${formatPrice(totalSales)}`, 14, 40);
+    doc.text(`Total Receipts: ${formatPrice(totalReceipts)}`, 14, 48);
+    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 56);
+    
+    if (filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) {
+      doc.text(`Filtered Sales: ${formatPrice(filteredTotalSales)}`, 14, 64);
+      doc.text(`Filtered Receipts: ${formatPrice(filteredTotalReceipts)}`, 14, 72);
+      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 80);
+    }
 
-    // Add table data with proper formatting
-    const tableData = customers.map(customer => [
+    // Add table data
+    const tableData = filteredCustomers.map(customer => [
       customer.name,
-      customer.contact || "-",
-      `Rs. ${formatPrice(customer.totalSales, { forPDF: true })}`,
-      `Rs. ${formatPrice(customer.totalReceipts, { forPDF: true })}`,
-      `Rs. ${formatPrice(customer.balance, { forPDF: true })}`
+      customer.contact,
+      customer.email,
+      customer.associatePartner,
+      customer.createdAt,
+      formatPrice(customer.totalSales),
+      formatPrice(customer.totalReceipts),
+      formatPrice(customer.outstanding)
     ]);
 
     // Add the table
     autoTable(doc, {
-      head: [["Customer", "Contact", "Total Sales", "Total Receipts", "Balance"]],
+      head: [["Name", "Contact", "Email", "Associate", "Created", "Sales", "Receipts", "Outstanding"]],
       body: tableData,
-      startY: 72,
-      styles: { fontSize: 10 } // Ensure consistent font size
+      startY: filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly ? 90 : 64,
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 20 },
+        7: { cellWidth: 20 }
+      }
     });
-
-    // Add footer with page numbers
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      const pageSize = doc.internal.pageSize;
-      const pageWidth = pageSize.getWidth();
-      const pageHeight = pageSize.getHeight();
-
-      doc.setFontSize(8);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
-      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
-    }
 
     // Download the PDF
     const today = new Date().toISOString().split('T')[0];
@@ -91,69 +175,68 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
 
   // Function to generate and download Excel
   const generateExcel = () => {
-    // Create empty worksheet
-    const worksheet = XLSX.utils.aoa_to_sheet([]);
-
-    // Add title and summary information with proper spacing
-    const summaryRows = [
+    // Create worksheet data
+    const workSheetData = [
       ["Customer Ledger Report"],
-      [""],
+      [],
       [`Generated on: ${new Date().toLocaleDateString()}`],
-      [""],
-      [`Total Customers: ${customers.length}`],
+      [],
       [`Total Sales: ${formatPrice(totalSales)}`],
       [`Total Receipts: ${formatPrice(totalReceipts)}`],
-      [`Outstanding Balance: ${formatPrice(totalBalance)}`],
-      [""],
-      [""] // Empty row before the table
+      [`Total Outstanding: ${formatPrice(totalOutstanding)}`],
+      []
     ];
 
-    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A1" });
+    if (filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) {
+      workSheetData.push(
+        [`Filtered Sales: ${formatPrice(filteredTotalSales)}`],
+        [`Filtered Receipts: ${formatPrice(filteredTotalReceipts)}`],
+        [`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`],
+        []
+      );
+    }
 
-    // Add data table headers
-    const headers = [
-      ["Customer", "Contact", "Total Sales", "Total Receipts", "Balance"]
-    ];
+    // Add headers
+    workSheetData.push(["Name", "Contact", "Email", "Associate", "Created", "Sales", "Receipts", "Outstanding"]);
 
-    const dataRows = customers.map(customer => [
-      customer.name,
-      customer.contact || "-",
-      formatPrice(customer.totalSales),
-      formatPrice(customer.totalReceipts),
-      formatPrice(customer.balance)
-    ]);
+    // Add data rows
+    filteredCustomers.forEach(customer => {
+      workSheetData.push([
+        customer.name,
+        customer.contact,
+        customer.email,
+        customer.associatePartner,
+        customer.createdAt,
+        formatPrice(customer.totalSales),
+        formatPrice(customer.totalReceipts),
+        formatPrice(customer.outstanding)
+      ]);
+    });
 
-    // Add headers and data
-    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A11" });
-    XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A12" });
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(workSheetData);
 
     // Set column widths
-    const columnWidths = [
-      { wch: 25 }, // Customer
+    const colWidths = [
+      { wch: 30 }, // Name
       { wch: 15 }, // Contact
-      { wch: 15 }, // Total Sales
-      { wch: 15 }, // Total Receipts
-      { wch: 15 }, // Balance
+      { wch: 25 }, // Email
+      { wch: 20 }, // Associate
+      { wch: 20 }, // Created
+      { wch: 15 }, // Sales
+      { wch: 15 }, // Receipts
+      { wch: 15 }, // Outstanding
     ];
 
-    worksheet["!cols"] = columnWidths;
-
-    // Add merge cells for the title
-    if (!worksheet["!merges"]) worksheet["!merges"] = [];
-    worksheet["!merges"].push(
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Merge cells for the title row
-    );
+    ws["!cols"] = colWidths;
 
     // Create workbook
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Customer Ledger");
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Customer Ledger");
 
-    // Generate filename with date
+    // Generate filename and download
     const today = new Date().toISOString().split('T')[0];
-    const fileName = `customer-ledger-${today}.xlsx`;
-
-    // Write to file and trigger download
-    XLSX.writeFile(workbook, fileName);
+    XLSX.writeFile(wb, `customer-ledger-${today}.xlsx`);
   };
 
   return (
@@ -178,10 +261,10 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatPrice(totalBalance)}</div>
+              <div className="text-2xl font-bold">{formatPrice(totalOutstanding)}</div>
             </CardContent>
           </Card>
         </div>
@@ -205,12 +288,170 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
         </div>
       </div>
 
+      {(filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Filtered Sales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(filteredTotalSales)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Filtered Receipts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(filteredTotalReceipts)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Filtered Outstanding</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(filteredTotalOutstanding)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="bg-white p-4 rounded-md shadow-sm">
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+          <div className="w-full md:w-1/4 relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search customers..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="w-full md:w-1/4">
+            <Popover open={partnerOpen} onOpenChange={setPartnerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={partnerOpen}
+                  className="w-full justify-between"
+                >
+                  {filteredPartner || "Filter by associate"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput placeholder="Search associate..." />
+                  <CommandEmpty>No associate found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredPartner("");
+                          setPartnerOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filteredPartner === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Associates
+                      </CommandItem>
+                      {associatePartners.map((partner) => (
+                        <CommandItem
+                          key={partner}
+                          onSelect={() => {
+                            setFilteredPartner(partner);
+                            setPartnerOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filteredPartner === partner ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {partner}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="w-full md:w-auto justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? format(dateFrom, "PPP") : "From Date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={setDateFrom}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="w-full md:w-auto justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? format(dateTo, "PPP") : "To Date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={setDateTo}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <Button
+            variant={outstandingOnly ? "default" : "outline"}
+            className="w-full md:w-auto"
+            onClick={() => setOutstandingOnly(!outstandingOnly)}
+          >
+            {outstandingOnly ? "Outstanding Only" : "Show All"}
+          </Button>
+
+          <Button
+            variant="secondary"
+            className="w-full md:w-auto"
+            onClick={resetFilters}
+          >
+            Reset Filters
+          </Button>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Customer Summary</CardTitle>
+          <CardTitle>Customer Accounts</CardTitle>
         </CardHeader>
         <CardContent>
-          <CustomersTable data={customers} />
+          <CustomersTable data={filteredCustomers} />
         </CardContent>
       </Card>
     </div>

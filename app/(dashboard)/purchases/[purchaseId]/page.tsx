@@ -9,32 +9,32 @@ import { ArrowLeft, FileText, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { ReceiptForm } from "../components/receipt-form";
+import { PurchaseForm } from "../components/purchase-form";
 
-const ReceiptEditPage = () => {
+const PurchaseDetailPage = () => {
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [receiptData, setReceiptData] = useState(null);
+  const [purchaseData, setPurchaseData] = useState(null);
 
   useEffect(() => {
-    const fetchReceiptDetails = async () => {
+    const fetchPurchaseDetails = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/receipts/${params.receiptId}`);
-        setReceiptData(response.data);
+        const response = await axios.get(`/api/purchases/${params.purchaseId}`);
+        setPurchaseData(response.data);
       } catch (error) {
-        toast.error("Failed to load receipt details");
-        router.push('/receipts');
+        toast.error("Failed to load purchase details");
+        router.push('/purchases');
       } finally {
         setLoading(false);
       }
     };
 
-    if (params.receiptId) {
-      fetchReceiptDetails();
+    if (params.purchaseId) {
+      fetchPurchaseDetails();
     }
-  }, [params.receiptId, router]);
+  }, [params.purchaseId, router]);
 
   if (loading) {
     return <div className="flex-col p-8">Loading...</div>;
@@ -44,7 +44,7 @@ const ReceiptEditPage = () => {
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between">
-          <Heading title="Receipt Details" description="View receipt information" />
+          <Heading title="Purchase Details" description="View purchase information" />
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -54,23 +54,23 @@ const ReceiptEditPage = () => {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <Button
-              onClick={() => router.push(`/receipts/${params.receiptId}/edit`)}
+              onClick={() => router.push(`/purchases/${params.purchaseId}/edit`)}
             >
               <Pencil className="mr-2 h-4 w-4" /> Edit
             </Button>
             <Button
               variant="secondary"
-              onClick={() => router.push(`/receipts/${params.receiptId}/voucher`)}
+              onClick={() => router.push(`/purchases/${params.purchaseId}/voucher`)}
             >
               <FileText className="mr-2 h-4 w-4" /> Voucher
             </Button>
           </div>
         </div>
         <Separator />
-        {receiptData && <ReceiptForm initialData={receiptData} />}
+        {purchaseData && <PurchaseForm initialData={purchaseData} />}
       </div>
     </div>
   );
 };
 
-export default ReceiptEditPage;
+export default PurchaseDetailPage;

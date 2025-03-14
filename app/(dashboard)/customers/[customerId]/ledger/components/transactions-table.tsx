@@ -11,8 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { FileText, Receipt } from "lucide-react";
+import { MoreHorizontal, Edit, FileText } from "lucide-react";
 
 type CustomerTransaction = {
   id: string;
@@ -64,7 +70,7 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
             <TableHead className="text-right">Receipt</TableHead>
             <TableHead className="text-right">Sale</TableHead>
             <TableHead className="text-right">Balance</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -91,24 +97,28 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                     {formatPrice(transaction.balance)}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => navigateToTransaction(transaction)}
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleGenerateVoucher(transaction)}
-                      >
-                        <Receipt className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}`)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}/voucher`)}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Generate Voucher
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

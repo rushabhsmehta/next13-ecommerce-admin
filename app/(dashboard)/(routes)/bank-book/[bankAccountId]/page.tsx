@@ -51,6 +51,16 @@ interface Transaction {
   transactionId?: string;
 }
 
+type TableTransaction = {
+  id: string;
+  date: string;
+  type: string;
+  description: string;
+  inflow: number;
+  outflow: number;
+  balance: number;
+};
+
 const BankBookPage = () => {
   const params = useParams();
   const [loading, setLoading] = useState(true);
@@ -472,7 +482,15 @@ const BankBookPage = () => {
         </div>
       ) : (
         <TransactionTable
-          data={transactions} // Changed from transactions to data
+          data={transactions.map(transaction => ({
+            id: transaction.id,
+            date: transaction.date,
+            type: transaction.type,
+            description: transaction.description,
+            inflow: transaction.isInflow ? transaction.amount : 0,
+            outflow: !transaction.isInflow ? transaction.amount : 0,
+            balance: 0 // You can calculate the balance here if needed
+          })) as TableTransaction[]}
           openingBalance={openingBalance}
           accountName={bankAccount?.accountName}
         />

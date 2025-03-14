@@ -15,10 +15,10 @@ import {
 import { CashAccount } from "@/types";
 
 const CashBookPage = async () => {
-  // Get all cash accounts
+  // Get all cash accounts - fix the orderBy syntax
   const cashAccounts = await prismadb.cashAccount.findMany({
     orderBy: {
-      name: 'asc'
+      accountName: 'asc'  // Changed from 'name' to 'accountName'
     }
   });
 

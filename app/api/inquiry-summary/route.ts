@@ -24,14 +24,14 @@ export async function GET(req: Request) {
       whereClause.associatePartnerId = associateId;
     }
     
-    // Map the frontend status values to database status values
+    // Map the frontend status values to database status values - FIXED: use uppercase to match rest of app
     if (status && status !== 'all') {
       if (status === 'PENDING') {
-        whereClause.status = 'pending';
+        whereClause.status = 'PENDING'; // Changed from lowercase 'pending'
       } else if (status === 'CONFIRMED') {
-        whereClause.status = 'converted';
+        whereClause.status = 'CONFIRMED'; // Changed from 'converted'
       } else if (status === 'CANCELLED') {
-        whereClause.status = 'cancelled';
+        whereClause.status = 'CANCELLED'; // Changed from lowercase 'cancelled'
       }
     }
     
@@ -79,18 +79,18 @@ export async function GET(req: Request) {
       const associate = associatesMap.get(associateId);
       associate.totalInquiries += 1;
       
-      // Count by status
-      switch (inquiry.status.toLowerCase()) {
-        case 'pending':
+      // Count by status - FIXED: use uppercase status values consistently
+      switch (inquiry.status) {
+        case 'PENDING':
           associate.pendingInquiries += 1;
           break;
-        case 'converted':
+        case 'CONFIRMED': // Changed from 'converted'
           associate.confirmedInquiries += 1;
           break;
-        case 'cancelled':
+        case 'CANCELLED':
           associate.cancelledInquiries += 1;
           break;
-        case 'contacted':
+        case 'contacted': // Keeping this lowercase since it might still exist in legacy data
           associate.contactedInquiries += 1;
           break;
       }
@@ -119,7 +119,7 @@ export async function GET(req: Request) {
         associateName: associate.associateName,
         totalInquiries: associate.totalInquiries,
         pendingInquiries: associate.pendingInquiries,
-        confirmedInquiries: associate.confirmedInquiries, // converted status
+        confirmedInquiries: associate.confirmedInquiries,
         cancelledInquiries: associate.cancelledInquiries,
         contactedInquiries: associate.contactedInquiries,
         averageResponseTime

@@ -89,7 +89,7 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">CUSTOMER</h3>
               <p className="font-medium">{sale.customer?.name || "N/A"}</p>
               <p>{sale.customer?.contact || "No contact information"}</p>
-              <p>{sale.customer?.address || ""}</p>
+              <p>{sale.customer?.email || ""}</p> {/* Changed from address to email which exists in the customer type */}
             </div>
             <div className="text-right">
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">VOUCHER DETAILS</h3>

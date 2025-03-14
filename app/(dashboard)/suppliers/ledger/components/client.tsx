@@ -62,16 +62,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   const [searchOpen, setSearchOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
 
-  // Filter suppliers by search term for suggestions
-  const searchSuggestions = suppliers.filter(supplier => {
-    const query = searchQuery.toLowerCase();
-    return (
-      supplier.name.toLowerCase().includes(query) ||
-      supplier.contact?.toLowerCase().includes(query) ||
-      supplier.email?.toLowerCase().includes(query)
-    );
-  }).slice(0, 5); // Limit to 5 suggestions
-
+  
   // Full filtering logic for the table
   const filteredSuppliers = suppliers.filter((supplier) => {
     // Filter by date created
@@ -396,6 +387,18 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
                 <SelectItem value="Card">Card</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="w-full md:w-1/4">
+            <div className="flex w-full items-center space-x-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search suppliers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+            </div>
           </div>
 
           <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">

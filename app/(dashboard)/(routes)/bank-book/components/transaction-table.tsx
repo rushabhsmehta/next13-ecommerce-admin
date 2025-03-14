@@ -1,47 +1,50 @@
+"use client";
+
 import React, { useState } from 'react';
-import { format } from 'date-fns';
+import { formatPrice } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { format } from "date-fns";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Download, Edit, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from 'next/navigation';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { ChevronDown, ChevronRight, Edit, FileSpreadsheet, Download } from "lucide-react";
 
-interface Transaction {
+type Transaction = {
   id: string;
-  date: Date | string;
+  date: string;
   type: string;
   description: string;
-  reference: string;
-  amount: number;
-  isInflow: boolean;
-  note: string;
+  inflow: number;
+  outflow: number;
+  balance: number;
+  reference?: string;
+  note?: string;
   transactionId?: string;
-}
+};
 
 interface TransactionTableProps {
-  transactions: Transaction[];
+  data: Transaction[];
   openingBalance: number;
-  accountName?: string; // Add optional account name for reports title
+  accountName?: string;
 }
 
-export const TransactionTable: React.FC<TransactionTableProps> = ({
-  transactions,
-  openingBalance,
-  accountName = "Bank Account" // Default title if not provided 
-}) => {
+export const TransactionTable: React.FC<TransactionTableProps> = ({ data, openingBalance, accountName = "Bank Account" }) => {
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Function to navigate to the appropriate edit page based on transaction type
   const handleEditTransaction = (transaction: Transaction) => {
     const type = transaction.type.toLowerCase();
 
@@ -58,22 +61,6 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     }
   };
 
-  // Calculate running balance and totals
-  const transactionsWithBalance = transactions.map((transaction, index) => {
-    let runningBalance = openingBalance;
-    for (let i = 0; i <= index; i++) {
-      transactions[i].isInflow
-        ? runningBalance += transactions[i].amount
-        : runningBalance -= transactions[i].amount;
-    }
-    return { ...transaction, balance: runningBalance };
-  });
-
-  const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
-  const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
-  const closingBalance = openingBalance + totalInflow - totalOutflow;
-
-  // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();
 
@@ -87,43 +74,32 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
 
     // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Opening Balance: Rs. ${formatter.format(openingBalance)}`, 14, 40);
-    doc.text(`Total Inflow: Rs. ${formatter.format(totalInflow)}`, 14, 48);
-    doc.text(`Total Outflow: Rs. ${formatter.format(totalOutflow)}`, 14, 56);
-    doc.text(`Closing Balance: Rs. ${formatter.format(closingBalance)}`, 14, 64);
+    doc.text(`Opening Balance: Rs. ${formatPrice(openingBalance)}`, 14, 40);
+    doc.text(`Total Inflow: Rs. ${formatPrice(data.reduce((sum, t) => sum + t.inflow, 0))}`, 14, 48);
+    doc.text(`Total Outflow: Rs. ${formatPrice(data.reduce((sum, t) => sum + t.outflow, 0))}`, 14, 56);
+    doc.text(`Closing Balance: Rs. ${formatPrice(data[data.length - 1]?.balance || openingBalance)}`, 14, 64);
 
-    // Add table data with running balance
-    const tableData = [];
-    let balance = openingBalance;
+    // Prepare transaction data for table with proper formatting
+    const tableData = data.map(transaction => [
+      format(new Date(transaction.date), 'MM/dd/yyyy'),
+      transaction.type,
+      transaction.description,
+      transaction.inflow ? `Rs. ${formatPrice(transaction.inflow, { forPDF: true })}` : "-",
+      transaction.outflow ? `Rs. ${formatPrice(transaction.outflow, { forPDF: true })}` : "-",
+      `Rs. ${formatPrice(transaction.balance, { forPDF: true })}` // Fix balance formatting
+    ]);
 
-    // Add opening balance row
-    tableData.push(["", "", "Opening Balance", "", "", `Rs. ${formatter.format(balance)}`]);
-
-    // Add transaction rows
-    transactions.forEach(transaction => {
-      transaction.isInflow ? balance += transaction.amount : balance -= transaction.amount;
-
-      tableData.push([
-        format(new Date(transaction.date), 'dd/MM/yyyy'),
-        transaction.type,
-        transaction.description,
-        transaction.isInflow ? `Rs. ${transaction.amount.toFixed(2)}` : '-',
-        !transaction.isInflow ? `Rs. ${transaction.amount.toFixed(2)}` : '-',
-        `Rs. ${balance.toFixed(2)}`
-      ]);
-    });
-
-    // Add the table
+    // Add the transactions table
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
       body: tableData,
       startY: 72,
-      styles: { fontSize: 10 } // Ensure consistent font size
+      styles: { fontSize: 10 }
     });
 
     // Add footer with page numbers
     const pageCount = doc.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
+    for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       const pageSize = doc.internal.pageSize;
       const pageWidth = pageSize.getWidth();
@@ -139,7 +115,6 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     doc.save(`bank-transactions-${safeAccountName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
-  // Function to generate and download Excel
   const generateExcel = () => {
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
@@ -150,10 +125,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       [""],
       [`Generated on: ${new Date().toLocaleDateString()}`],
       [""],
-      [`Opening Balance: ${formatter.format(openingBalance)}`],
-      [`Total Inflow: ${formatter.format(totalInflow)}`],
-      [`Total Outflow: ${formatter.format(totalOutflow)}`],
-      [`Closing Balance: ${formatter.format(closingBalance)}`],
+      [`Opening Balance: ${formatPrice(openingBalance)}`],
+      [`Total Inflow: ${formatPrice(data.reduce((sum, t) => sum + t.inflow, 0))}`],
+      [`Total Outflow: ${formatPrice(data.reduce((sum, t) => sum + t.outflow, 0))}`],
+      [`Closing Balance: ${formatPrice(data[data.length - 1]?.balance || openingBalance)}`],
       [""],
       [""] // Empty row before the table
     ];
@@ -166,25 +141,14 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     ];
 
     // Prepare transaction data rows with running balance
-    const dataRows = [];
-    let balance = openingBalance;
-
-    // Add opening balance row
-    dataRows.push(["", "", "Opening Balance", "", "", formatter.format(balance)]);
-
-    // Add transaction rows
-    transactions.forEach(transaction => {
-      transaction.isInflow ? balance += transaction.amount : balance -= transaction.amount;
-
-      dataRows.push([
-        format(new Date(transaction.date), 'dd/MM/yyyy'),
-        transaction.type,
-        transaction.description,
-        transaction.isInflow ? formatter.format(transaction.amount) : '',
-        !transaction.isInflow ? formatter.format(transaction.amount) : '',
-        formatter.format(balance)
-      ]);
-    });
+    const dataRows = data.map(transaction => [
+      format(new Date(transaction.date), 'dd/MM/yyyy'),
+      transaction.type,
+      transaction.description,
+      transaction.inflow ? formatPrice(transaction.inflow) : '',
+      transaction.outflow ? formatPrice(transaction.outflow) : '',
+      formatPrice(transaction.balance)
+    ]);
 
     // Add headers and data
     XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A11" });
@@ -224,7 +188,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   return (
     <div className="space-y-4">
       {/* Export buttons */}
-      {transactions.length > 0 && (
+      {data.length > 0 && (
         <div className="flex justify-end gap-2">
           <Button
             onClick={generateExcel}
@@ -266,12 +230,12 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
             <TableRow>
               <TableCell></TableCell>
               <TableCell colSpan={5} className="font-medium">Opening Balance</TableCell>
-              <TableCell className="text-right font-medium">{formatter.format(openingBalance)}</TableCell>
+              <TableCell className="text-right font-medium">{formatPrice(openingBalance)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
 
             {/* Transaction Rows with Expandable Details */}
-            {transactionsWithBalance.map((transaction) => (
+            {data.map((transaction) => (
               <React.Fragment key={transaction.id}>
                 <TableRow className="cursor-pointer hover:bg-muted/50">
                   <TableCell>
@@ -294,13 +258,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                     {transaction.description}
                   </TableCell>
                   <TableCell className="text-right" onClick={() => toggleRow(transaction.id)}>
-                    {transaction.isInflow ? formatter.format(transaction.amount) : '-'}
+                    {transaction.inflow ? formatPrice(transaction.inflow) : '-'}
                   </TableCell>
                   <TableCell className="text-right" onClick={() => toggleRow(transaction.id)}>
-                    {!transaction.isInflow ? formatter.format(transaction.amount) : '-'}
+                    {transaction.outflow ? formatPrice(transaction.outflow) : '-'}
                   </TableCell>
                   <TableCell className="text-right font-medium" onClick={() => toggleRow(transaction.id)}>
-                    {formatter.format(transaction.balance)}
+                    {formatPrice(transaction.balance)}
                   </TableCell>
                   <TableCell>
                     <Button
@@ -349,13 +313,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
               <TableCell></TableCell>
               <TableCell colSpan={3} className="font-medium">Totals</TableCell>
               <TableCell className="text-right font-medium">
-                {formatter.format(totalInflow)}
+                {formatPrice(data.reduce((sum, t) => sum + t.inflow, 0))}
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatter.format(totalOutflow)}
+                {formatPrice(data.reduce((sum, t) => sum + t.outflow, 0))}
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatter.format(closingBalance)}
+                {formatPrice(data[data.length - 1]?.balance || openingBalance)}
               </TableCell>
               <TableCell></TableCell>
             </TableRow>

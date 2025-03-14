@@ -118,7 +118,9 @@ export const VoucherLayout: React.FC<VoucherLayoutProps> = ({
             <tfoot className="bg-slate-50">
               <tr>
                 <td colSpan={tableHeaders.length - 1} className="py-3 px-4 text-right font-semibold">Total:</td>
-                <td className="py-3 px-4 text-right font-bold text-slate-900">{formatPrice(totalAmount)}</td>
+                <td className="py-3 px-4 text-right font-bold text-slate-900">
+                  {formatPrice(totalAmount)}
+                </td>
               </tr>
             </tfoot>
           </table>

@@ -92,11 +92,11 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
     }
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);
     
-    // Add summary metrics
+    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases)}`, 14, 48);
-    doc.text(`Total Payments: Rs. ${formatPrice(totalPayments)}`, 14, 56);
-    doc.text(`Current Balance: Rs. ${formatPrice(currentBalance)}`, 14, 64);
+    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Payments: Rs. ${formatPrice(totalPayments, { forPDF: true })}`, 14, 56);
+    doc.text(`Current Balance: Rs. ${formatPrice(currentBalance, { forPDF: true })}`, 14, 64);
     
     // Add date filters if applied
     if (dateFrom || dateTo) {
@@ -107,14 +107,14 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
       doc.text(filterText, 14, 72);
     }
     
-    // Prepare transaction data for table
+    // Prepare transaction data for table with proper formatting
     const tableData = filteredTransactions.map(transaction => [
       format(new Date(transaction.date), 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
-      transaction.isInflow ? `Rs. ${formatPrice(transaction.amount)}` : "-",
-      !transaction.isInflow ? `Rs. ${formatPrice(transaction.amount)}` : "-",
-      `Rs. ${formatPrice(transaction.balance)}`
+      transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
+      !transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
+      `Rs. ${formatPrice(transaction.balance, { forPDF: true })}` // Fix balance formatting
     ]);
     
     // Add the transactions table

@@ -66,20 +66,20 @@ export const SupplierLedgerClient: React.FC<SuppliersLedgerClientProps> = ({
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    // Add summary metrics
+    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
     doc.text(`Total Suppliers: ${suppliers.length}`, 14, 40);
-    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases)}`, 14, 48);
-    doc.text(`Total Payments: Rs. ${formatPrice(totalPayments)}`, 14, 56);
-    doc.text(`Outstanding Balance: Rs. ${formatPrice(totalBalance)}`, 14, 64);
+    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Payments: Rs. ${formatPrice(totalPayments, { forPDF: true })}`, 14, 56);
+    doc.text(`Outstanding Balance: Rs. ${formatPrice(totalBalance, { forPDF: true })}`, 14, 64);
 
-    // Add table data
+    // Add table data with proper formatting
     const tableData = suppliers.map(supplier => [
       supplier.name,
       supplier.contact || "-",
-      `Rs. ${formatPrice(supplier.totalPurchases)}`,
-      `Rs. ${formatPrice(supplier.totalPayments)}`,
-      `Rs. ${formatPrice(supplier.balance)}`
+      `Rs. ${formatPrice(supplier.totalPurchases, { forPDF: true })}`,
+      `Rs. ${formatPrice(supplier.totalPayments, { forPDF: true })}`,
+      `Rs. ${formatPrice(supplier.balance, { forPDF: true })}`
     ]);
 
     // Add the table

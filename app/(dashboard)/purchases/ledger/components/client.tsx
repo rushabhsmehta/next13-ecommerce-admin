@@ -78,26 +78,26 @@ export const PurchaseLedgerClient: React.FC<PurchaseLedgerClientProps> = ({
 
     // Add report title
     doc.setFontSize(18);
-    doc.text("Purchase Ledger Report", 14, 22);
+    doc.text("Purchases Ledger Report", 14, 22);
 
     // Add date
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    // Add summary metrics
+    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: ${formatPrice(totalPurchases)}`, 14, 40);
+    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 40);
     if (filteredSupplier || dateFrom || dateTo) {
-      doc.text(`Filtered Total: ${formatPrice(filteredTotal)}`, 14, 48);
+      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
     }
 
-    // Add table data
+    // Add table data with proper formatting
     const tableData = filteredPurchases.map(purchase => [
       purchase.date,
       purchase.supplierName,
       purchase.packageName,
       purchase.description,
-      formatPrice(purchase.amount)
+      `Rs. ${formatPrice(purchase.amount, { forPDF: true })}`
     ]);
 
     // Add the table

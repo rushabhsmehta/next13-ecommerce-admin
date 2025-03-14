@@ -27,6 +27,9 @@ type Transaction = {
   inflow: number;
   outflow: number;
   balance: number;
+  reference?: string; // Add the missing reference property as optional
+  note?: string; // Optional note field
+  transactionId?: string; // Optional transaction ID field
 };
 
 interface TransactionTableProps {

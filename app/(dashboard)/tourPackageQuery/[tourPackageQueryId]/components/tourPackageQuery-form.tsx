@@ -4,7 +4,7 @@ import * as z from "zod"
 import axios from "axios"
 import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
@@ -449,6 +449,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
+  
+  // Add this right after the form declaration
+  // This gives us specialized methods to handle the pricing section array
+  const {
+    fields: pricingFields,
+    append: appendPricing,
+    remove: removePricing,
+    insert: insertPricing
+  } = useFieldArray({
+    control: form.control,
+    name: "pricingSection"
+  });
 
   const handleMealChange = (mealType: string, isChecked: boolean, itineraryIndex: number) => {
 
@@ -531,19 +543,25 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
-  // Add this function to handle pricing items
-  const handleAddPricingItem = () => {
-    const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', [
-      ...currentPricing,
-      { name: '', price: '', description: '' }
-    ]);
-  };
+  // Fix the handleAddPricingItem function using splice for direct array manipulation
+const handleAddPricingItem = (insertAtIndex?: number) => {
+  const newItem = { name: '', price: '', description: '' };
+  
+  if (insertAtIndex !== undefined) {
+    // Insert after the specified index
+    insertPricing(insertAtIndex + 1, newItem);
+    console.log("Inserted item after index", insertAtIndex);
+  } else {
+    // Add to the end
+    appendPricing(newItem);
+    console.log("Added item at the end");
+  }
+};
 
-  const handleRemovePricingItem = (index: number) => {
-    const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', currentPricing.filter((_, i) => i !== index));
-  };
+const handleRemovePricingItem = (indexToRemove: number) => {
+  removePricing(indexToRemove);
+  console.log("Removed item at index", indexToRemove);
+};
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     try {
@@ -678,7 +696,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -2149,7 +2167,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <FormField
                       control={form.control}
                       name="pricingSection"
-                      render={({ field }) => (
+                      render={() => (
                         <FormItem>
                           {/* Add column headers */}
                           <div className="grid grid-cols-3 gap-4 mb-2 px-1">
@@ -2158,9 +2176,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <div className="font-medium text-sm">Description (Optional)</div>
                           </div>
                           <div className="space-y-4">
-                            {/* Ensure field.value is an array before mapping */}
-                            {Array.isArray(field.value) ? field.value.map((item, index) => (
-                              <div key={index} className="grid grid-cols-3 gap-4 items-end relative pr-10">
+                            {/* Use pricingFields from useFieldArray instead of field.value */}
+                            {pricingFields.map((field, index) => (
+                              <div key={field.id} className="grid grid-cols-3 gap-4 items-end relative pr-20 pt-2 border-t border-gray-100 first:border-t-0">
                                 <FormField
                                   control={form.control}
                                   name={`pricingSection.${index}.name`}
@@ -2193,32 +2211,45 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   control={form.control}
                                   name={`pricingSection.${index}.description`}
                                   render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="relative">
                                       <FormControl>
                                         <Input
                                           placeholder="e.g. Age 3-12, with bed"
                                           {...field}
                                         />
                                       </FormControl>
+                                      <div className="absolute right-0 top-0 -mr-20 flex space-x-1">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAddPricingItem(index)}
+                                          className="h-10 w-10"
+                                          title="Insert row after this"
+                                        >
+                                          <Plus className="h-4 w-4 text-blue-500" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleRemovePricingItem(index)}
+                                          className="h-10 w-10"
+                                          title="Remove this row"
+                                        >
+                                          <Trash className="h-4 w-4 text-red-500" />
+                                        </Button>
+                                      </div>
                                     </FormItem>
                                   )}
                                 />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute right-0 bottom-0"
-                                  onClick={() => handleRemovePricingItem(index)}
-                                >
-                                  <Trash className="h-4 w-4 text-red-500" />
-                                </Button>
                               </div>
-                            )) : null}
+                            ))}
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={handleAddPricingItem}
+                              onClick={() => handleAddPricingItem()}
                               className="mt-2"
                             >
                               <Plus className="mr-2 h-4 w-4" />

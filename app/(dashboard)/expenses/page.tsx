@@ -22,17 +22,23 @@ const ExpensesPage = () => {
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
+        console.log("Fetching expenses data...");
         setLoading(true);
         const response = await axios.get('/api/expenses');
-        setExpenses(response.data.map((expense: any) => ({
+        
+        const formattedExpenses = response.data.map((expense: any) => ({
           ...expense,
           formattedDate: format(new Date(expense.expenseDate), 'MMMM dd, yyyy'),
           formattedAmount: new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: 'INR'
           }).format(expense.amount),
+          // Keep the entire expenseCategory object for the column cell to use
           accountName: expense.bankAccount?.accountName || expense.cashAccount?.accountName || 'N/A'
-        })));
+        }));
+        
+        setExpenses(formattedExpenses);
+        console.log(`Loaded ${formattedExpenses.length} expenses`);
       } catch (error) {
         console.error("Error fetching expenses:", error);
       } finally {

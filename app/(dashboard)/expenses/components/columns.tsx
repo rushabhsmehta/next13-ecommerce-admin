@@ -9,7 +9,7 @@ export type ExpensesColumn = {
   formattedDate: string;
   amount: number;
   formattedAmount: string;
-  expenseCategory: string;
+  expenseCategory: any; // This is now an object from the relation
   description: string;
   accountName: string;
 };
@@ -24,8 +24,12 @@ export const columns: ColumnDef<ExpensesColumn>[] = [
     header: "Amount",
   },
   {
-    accessorKey: "expenseCategory",
+    accessorKey: "expenseCategory.name", // Access the name property of the category object
     header: "Category",
+    cell: ({ row }) => {
+      const category = row.original.expenseCategory;
+      return category?.name || "Uncategorized";
+    }
   },
   {
     accessorKey: "description",

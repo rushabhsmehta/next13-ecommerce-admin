@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -13,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, Download, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SalesTable } from "./sales-table";
 import {
@@ -24,6 +23,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 type Sale = {
   id: string;
@@ -81,6 +83,125 @@ export const SaleLedgerClient: React.FC<SaleLedgerClientProps> = ({
     setDateTo(undefined);
   };
 
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    const doc = new jsPDF();
+
+    // Add report title
+    doc.setFontSize(18);
+    doc.text("Sales Ledger Report", 14, 22);
+
+    // Add date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+    // Add summary metrics
+    doc.setFontSize(12);
+    doc.text(`Total Sales: Rs. ${formatPrice(totalSales)}`, 14, 40);
+    if (filteredCustomer || dateFrom || dateTo) {
+      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal)}`, 14, 48);
+    }
+
+    // Add table data
+    const tableData = filteredSales.map(sale => [
+      sale.date,
+      sale.customerName,
+      sale.packageName,
+      sale.description,
+      `Rs. ${formatPrice(sale.amount)}`
+    ]);
+
+    // Add the table
+    autoTable(doc, {
+      head: [["Date", "Customer", "Package", "Description", "Amount"]],
+      body: tableData,
+      startY: 55,
+      styles: { fontSize: 10 } // Ensure consistent font size
+    });
+
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.getWidth();
+      const pageHeight = pageSize.getHeight();
+
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+    }
+
+    // Download the PDF
+    const today = new Date().toISOString().split('T')[0];
+    doc.save(`sales-ledger-report-${today}.pdf`);
+  };
+
+  // Function to generate and download Excel
+  const generateExcel = () => {
+    // Create empty worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
+
+    // Add title and summary information with proper spacing
+    const summaryRows = [
+      ["Sales Ledger Report"],
+      [""],
+      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [""],
+      [`Total Sales: ${formatPrice(totalSales)}`],
+      filteredCustomer || dateFrom || dateTo ? [`Filtered Total: ${formatPrice(filteredTotal)}`] : [],
+      [""],
+      [""] // Empty row before the table
+    ];
+
+    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A1" });
+
+    // Add data table headers
+    const headers = [
+      ["Date", "Customer", "Package", "Description", "Amount"]
+    ];
+
+    const dataRows = filteredSales.map(sale => [
+      sale.date,
+      sale.customerName,
+      sale.packageName,
+      sale.description,
+      formatPrice(sale.amount)
+    ]);
+
+    // Add headers and data
+    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A9" });
+    XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A10" });
+
+    // Set column widths
+    const columnWidths = [
+      { wch: 12 }, // Date
+      { wch: 20 }, // Customer
+      { wch: 20 }, // Package
+      { wch: 30 }, // Description
+      { wch: 15 }, // Amount
+    ];
+
+    worksheet["!cols"] = columnWidths;
+
+    // Add merge cells for the title
+    if (!worksheet["!merges"]) worksheet["!merges"] = [];
+    worksheet["!merges"].push(
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } } // Merge cells for the title row
+    );
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Ledger");
+
+    // Generate filename with date
+    const today = new Date().toISOString().split('T')[0];
+    const fileName = `sales-ledger-${today}.xlsx`;
+
+    // Write to file and trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -103,6 +224,24 @@ export const SaleLedgerClient: React.FC<SaleLedgerClientProps> = ({
               </CardContent>
             </Card>
           ) : null}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={generateExcel}
+            variant="outline"
+            className="flex gap-2 items-center"
+          >
+            <FileSpreadsheet size={16} />
+            Excel
+          </Button>
+          <Button
+            onClick={generatePDF}
+            variant="outline"
+            className="flex gap-2 items-center"
+          >
+            <Download size={16} />
+            PDF
+          </Button>
         </div>
       </div>
 

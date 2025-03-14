@@ -148,7 +148,7 @@ export const VoucherLayout: React.FC<VoucherLayoutProps> = ({
         {/* Footer */}
         <div className="mt-8 pt-4 border-t text-center text-xs text-slate-500">
           <p>© {new Date().getFullYear()} Your Company Name. All rights reserved.</p>
-          <p className="mt-1">This is an electronically generated document and doesn't require a physical signature.</p>
+          <p className="mt-1">This is an electronically generated document and doesn&apos;t require a physical signature.</p>
         </div>
       </div>
     </div>

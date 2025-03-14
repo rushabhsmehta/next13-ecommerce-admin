@@ -89,7 +89,7 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">SUPPLIER</h3>
               <p className="font-medium">{purchase.supplier?.name || "N/A"}</p>
               <p>{purchase.supplier?.contact || "No contact information"}</p>
-              <p>{purchase.supplier?.address || ""}</p>
+              <p>{purchase.supplier?.email || ""}</p> {/* Changed from address to email which exists in the supplier type */}
             </div>
             <div className="text-right">
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">VOUCHER DETAILS</h3>

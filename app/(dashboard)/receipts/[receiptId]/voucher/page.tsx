@@ -98,7 +98,7 @@ const ReceiptVoucherPage = async ({ params }: ReceiptVoucherPageProps) => {
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">RECEIVED FROM</h3>
               <p className="font-medium">{receipt.customer?.name || "N/A"}</p>
               <p>{receipt.customer?.contact || "No contact information"}</p>
-              <p>{receipt.customer?.address || ""}</p>
+              <p>{receipt.customer?.email || ""}</p> {/* Changed from address to email which exists in the customer type */}
             </div>
             <div className="text-right">
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">VOUCHER DETAILS</h3>

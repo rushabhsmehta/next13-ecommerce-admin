@@ -98,7 +98,7 @@ const PaymentVoucherPage = async ({ params }: PaymentVoucherPageProps) => {
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">PAID TO</h3>
               <p className="font-medium">{payment.supplier?.name || "N/A"}</p>
               <p>{payment.supplier?.contact || "No contact information"}</p>
-              <p>{payment.supplier?.address || ""}</p>
+              <p>{payment.supplier?.email || ""}</p> {/* Changed from address to email which exists in the supplier type */}
             </div>
             <div className="text-right">
               <h3 className="font-semibold text-sm text-muted-foreground mb-1">VOUCHER DETAILS</h3>

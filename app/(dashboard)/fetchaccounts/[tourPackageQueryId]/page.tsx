@@ -29,7 +29,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           supplier: true,
         },
         orderBy: {
-          purchaseDate: 'desc',
+          purchaseDate: 'asc', // Changed from 'desc' to 'asc'
         },
       },
       saleDetails: {
@@ -37,7 +37,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           customer: true,
         },
         orderBy: {
-          saleDate: 'desc',
+          saleDate: 'asc', // Changed from 'desc' to 'asc'
         },
       },
       paymentDetails: {
@@ -47,7 +47,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           cashAccount: true,
         },
         orderBy: {
-          paymentDate: 'desc',
+          paymentDate: 'asc', // Changed from 'desc' to 'asc'
         },
       },
       receiptDetails: {
@@ -57,7 +57,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           cashAccount: true,
         },
         orderBy: {
-          receiptDate: 'desc',
+          receiptDate: 'asc', // Changed from 'desc' to 'asc'
         },
       },
       expenseDetails: {
@@ -67,7 +67,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           expenseCategory: true, // Include expense category relation
         },
         orderBy: {
-          expenseDate: 'desc',
+          expenseDate: 'asc', // Changed from 'desc' to 'asc'
         },
       },
       incomeDetails: {
@@ -77,7 +77,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           incomeCategory: true, // Include income category relation
         },
         orderBy: {
-          incomeDate: 'desc',
+          incomeDate: 'asc', // Changed from 'desc' to 'asc'
         },
       },
     },

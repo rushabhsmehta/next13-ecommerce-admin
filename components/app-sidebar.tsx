@@ -81,6 +81,8 @@ const NAV_ITEMS = [
   {
     title: "Reports",
     items: [
+      /*       { title: "Profit Report", url: "/reports/profit" },
+       */
       { title: "Upcoming Trips", url: "/reports/upcomingTrips" },
       { title: "Inquiry Summary", url: "/reports/inquirySummary" },
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
@@ -135,13 +137,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
-                  
+
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {section.items.map((item) => (
                         <SidebarMenuSubItem key={item.title}>
-                          <SidebarMenuSubButton 
-                            asChild 
+                          <SidebarMenuSubButton
+                            asChild
                             isActive={pathname === item.url || pathname.startsWith(item.url + '/')}
                           >
                             <Link href={item.url}>{item.title}</Link>

@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Download, FileSpreadsheet, Search } from "lucide-react";
+import { CalendarIcon, Download, ChevronsUpDown, FileSpreadsheet, Search } from "lucide-react";
 import { SuppliersTable } from "./suppliers-table";
 import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
@@ -21,6 +21,13 @@ import * as XLSX from 'xlsx';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from "@/components/ui/command";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Supplier = {
   id: string;
@@ -46,12 +53,14 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   totalPayments,
   totalOutstanding,
 }) => {
-  const router = useRouter();
+  const [filteredSupplier, setFilteredSupplier] = useState<string>("");
+  const [filteredPaymentMode, setFilteredPaymentMode] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [supplierOpen, setSupplierOpen] = useState(false);
 
   // Filter suppliers by search term for suggestions
   const searchSuggestions = suppliers.filter(supplier => {
@@ -126,7 +135,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     doc.text(`Total Purchases: ${formatPrice(totalPurchases)}`, 14, 40);
     doc.text(`Total Payments: ${formatPrice(totalPayments)}`, 14, 48);
     doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 56);
-    
+
     if (dateFrom || dateTo || searchQuery || outstandingOnly) {
       doc.text(`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`, 14, 64);
       doc.text(`Filtered Payments: ${formatPrice(filteredTotalPayments)}`, 14, 72);
@@ -310,43 +319,60 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
 
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-          <div className="w-full md:w-1/3 relative">
-            <Popover>
+          <div className="w-full md:w-1/4">
+            <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
+                  aria-expanded={supplierOpen}
                   className="w-full justify-between"
                 >
-                  {searchQuery || "Search suppliers..."}
-                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  {filteredSupplier
+                    ? suppliers.find((supplier) => supplier.name === filteredSupplier)?.name
+                    : "Filter by supplier"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0">
                 <Command>
-                  <CommandInput 
-                    placeholder="Search by name, contact, email..." 
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
-                  />
-                  <CommandEmpty>No suppliers found.</CommandEmpty>
+                  <CommandInput placeholder="Search supplier..." />
+                  <CommandEmpty>No supplier found.</CommandEmpty>
                   <CommandList>
                     <CommandGroup>
-                      {searchQuery && (
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredSupplier("");
+                          setSupplierOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filteredSupplier === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Suppliers
+                      </CommandItem>
+                      {suppliers.map((supplier) => (
                         <CommandItem
+                          key={supplier.id}
                           onSelect={() => {
-                            setSearchQuery("");
+                            setFilteredSupplier(supplier.name);
+                            setSupplierOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              searchQuery === "" ? "opacity-100" : "opacity-0"
+                              filteredSupplier === supplier.name
+                                ? "opacity-100"
+                                : "opacity-0"
                             )}
                           />
-                          Clear search
+                          {supplier.name}
                         </CommandItem>
-                      )}
+                      ))}
                     </CommandGroup>
                   </CommandList>
                 </Command>
@@ -354,7 +380,25 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
             </Popover>
           </div>
 
-          <div className="w-full md:w-2/5 flex flex-col md:flex-row gap-2">
+          <div className="w-full md:w-1/4">
+            <Select
+              value={filteredPaymentMode}
+              onValueChange={setFilteredPaymentMode}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by payment mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Modes</SelectItem>
+                <SelectItem value="Bank">Bank</SelectItem>
+                <SelectItem value="Cash">Cash</SelectItem>
+                <SelectItem value="UPI">UPI</SelectItem>
+                <SelectItem value="Card">Card</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -395,14 +439,6 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
               </PopoverContent>
             </Popover>
           </div>
-
-          <Button
-            variant={outstandingOnly ? "default" : "outline"}
-            className="w-full md:w-auto"
-            onClick={() => setOutstandingOnly(!outstandingOnly)}
-          >
-            {outstandingOnly ? "Outstanding Only" : "Show All"}
-          </Button>
 
           <Button
             variant="secondary"

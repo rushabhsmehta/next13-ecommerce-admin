@@ -36,7 +36,7 @@ interface SuppliersLedgerClientProps {
   totalBalance: number;
 }
 
-export const SuppliersLedgerClient: React.FC<SuppliersLedgerClientProps> = ({
+export const SupplierLedgerClient: React.FC<SuppliersLedgerClientProps> = ({
   suppliers,
   totalPurchases,
   totalPayments,

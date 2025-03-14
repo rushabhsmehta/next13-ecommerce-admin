@@ -17,7 +17,7 @@ const SupplierLedgerPage = async () => {
   
   // Format supplier data with calculated totals
   const formattedSuppliers = suppliers.map(supplier => {
-    const totalPurchases = supplier.purchaseDetails.reduce((sum, purchase) => sum + purchase.amount, 0);  // Updated relation name
+    const totalPurchases = supplier.purchaseDetails.reduce((sum, purchase) => sum + purchase.price, 0);  // Changed from purchase.amount to purchase.price
     const totalPayments = supplier.paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);     // Updated relation name
     const balance = totalPurchases - totalPayments;
     

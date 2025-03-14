@@ -95,20 +95,20 @@ export const SaleLedgerClient: React.FC<SaleLedgerClientProps> = ({
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    // Add summary metrics
+    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Sales: Rs. ${formatPrice(totalSales)}`, 14, 40);
+    doc.text(`Total Sales: Rs. ${formatPrice(totalSales, { forPDF: true })}`, 14, 40);
     if (filteredCustomer || dateFrom || dateTo) {
-      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal)}`, 14, 48);
+      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
     }
 
-    // Add table data
+    // Add table data with proper formatting
     const tableData = filteredSales.map(sale => [
       sale.date,
       sale.customerName,
       sale.packageName,
       sale.description,
-      `Rs. ${formatPrice(sale.amount)}`
+      `Rs. ${formatPrice(sale.amount, { forPDF: true })}`
     ]);
 
     // Add the table

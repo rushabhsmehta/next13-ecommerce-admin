@@ -47,20 +47,20 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-    // Add summary metrics
+    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
     doc.text(`Total Customers: ${customers.length}`, 14, 40);
-    doc.text(`Total Sales: Rs. ${formatPrice(totalSales)}`, 14, 48);
-    doc.text(`Total Receipts: Rs. ${formatPrice(totalReceipts)}`, 14, 56);
-    doc.text(`Outstanding Balance: Rs. ${formatPrice(totalBalance)}`, 14, 64);
+    doc.text(`Total Sales: Rs. ${formatPrice(totalSales, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Receipts: Rs. ${formatPrice(totalReceipts, { forPDF: true })}`, 14, 56);
+    doc.text(`Outstanding Balance: Rs. ${formatPrice(totalBalance, { forPDF: true })}`, 14, 64);
 
-    // Add table data
+    // Add table data with proper formatting
     const tableData = customers.map(customer => [
       customer.name,
       customer.contact || "-",
-      `Rs. ${formatPrice(customer.totalSales)}`,
-      `Rs. ${formatPrice(customer.totalReceipts)}`,
-      `Rs. ${formatPrice(customer.balance)}`
+      `Rs. ${formatPrice(customer.totalSales, { forPDF: true })}`,
+      `Rs. ${formatPrice(customer.totalReceipts, { forPDF: true })}`,
+      `Rs. ${formatPrice(customer.balance, { forPDF: true })}`
     ]);
 
     // Add the table

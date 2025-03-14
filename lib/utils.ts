@@ -10,18 +10,25 @@ export function formatPrice(
   options: {
     currency?: "USD" | "EUR" | "GBP" | "BDT" | "INR";
     notation?: Intl.NumberFormatOptions["notation"];
-    forPDF?: boolean; // Add this option
+    forPDF?: boolean;
   } = {}
 ) {
-  const { currency = "INR", notation = "compact", forPDF = false } = options;
+  const { currency = "INR", notation = "standard", forPDF = false } = options;
   
-  // For PDF export, return a simple string without the currency symbol
+  const numericPrice = typeof price === "string" ? parseFloat(price) : price;
+  
+  // For PDF export, return Indian number format with rupee notation
   if (forPDF) {
-    return Number(price).toFixed(2);
+    // Format with Indian number system (lakh, crore)
+    const formatter = new Intl.NumberFormat("en-IN", {
+      style: "decimal",
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    });
+    return `Rs. ${formatter.format(numericPrice)}/-`;
   }
 
-  const numericPrice = typeof price === "string" ? parseFloat(price) : price;
-
+  // For UI display, use currency symbol with proper Indian number formatting
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency,

@@ -1,7 +1,6 @@
 import prismadb from "@/lib/prismadb";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { formatter } from "@/lib/utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";

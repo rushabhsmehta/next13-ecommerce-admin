@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from "@/components/ui/command";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Supplier = {
   id: string;
@@ -48,7 +51,19 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
+  // Filter suppliers by search term for suggestions
+  const searchSuggestions = suppliers.filter(supplier => {
+    const query = searchQuery.toLowerCase();
+    return (
+      supplier.name.toLowerCase().includes(query) ||
+      supplier.contact?.toLowerCase().includes(query) ||
+      supplier.email?.toLowerCase().includes(query)
+    );
+  }).slice(0, 5); // Limit to 5 suggestions
+
+  // Full filtering logic for the table
   const filteredSuppliers = suppliers.filter((supplier) => {
     // Filter by date created
     if (dateFrom) {
@@ -296,13 +311,47 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
           <div className="w-full md:w-1/3 relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search suppliers..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between"
+                >
+                  {searchQuery || "Search suppliers..."}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput 
+                    placeholder="Search by name, contact, email..." 
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                  />
+                  <CommandEmpty>No suppliers found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup>
+                      {searchQuery && (
+                        <CommandItem
+                          onSelect={() => {
+                            setSearchQuery("");
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              searchQuery === "" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Clear search
+                        </CommandItem>
+                      )}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="w-full md:w-2/5 flex flex-col md:flex-row gap-2">

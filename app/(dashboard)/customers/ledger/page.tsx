@@ -17,7 +17,7 @@ const CustomerLedgerPage = async () => {
   
   // Format customer data with calculated totals
   const formattedCustomers = customers.map(customer => {
-    const totalSales = customer.saleDetails.reduce((sum, sale) => sum + sale.amount, 0);  // Updated from sales to saleDetails
+    const totalSales = customer.saleDetails.reduce((sum, sale) => sum + sale.salePrice, 0);  // Changed from sale.amount to sale.salePrice
     const totalReceipts = customer.receiptDetails.reduce((sum, receipt) => sum + receipt.amount, 0);  // Updated from receipts to receiptDetails
     const balance = totalSales - totalReceipts;
     

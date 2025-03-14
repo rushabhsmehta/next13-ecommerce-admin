@@ -172,9 +172,7 @@ const BankBookPage = () => {
     if (!bankAccount) return;
     
     const doc = new jsPDF();
-      // Add a Unicode font that supports the Rupee symbol
-      doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto');
+    
     // Add report title
     doc.setFontSize(18);
     doc.text(`Bank Book - ${bankAccount.accountName}`, 14, 22);
@@ -196,10 +194,10 @@ const BankBookPage = () => {
     
     // Add summary information
     doc.setFontSize(12);
-    doc.text(`Opening Balance: ${formatter.format(openingBalance)}`, 14, 56);
-    doc.text(`Total Inflow: ${formatter.format(totalInflow)}`, 14, 64);
-    doc.text(`Total Outflow: ${formatter.format(totalOutflow)}`, 14, 72);
-    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, 80);
+    doc.text(`Opening Balance: Rs. ${formatter.format(openingBalance)}`, 14, 56);
+    doc.text(`Total Inflow: Rs. ${formatter.format(totalInflow)}`, 14, 64);
+    doc.text(`Total Outflow: Rs. ${formatter.format(totalOutflow)}`, 14, 72);
+    doc.text(`Closing Balance: Rs. ${formatter.format(closingBalance)}`, 14, 80);
     
     // Add transactions table
     const tableData = transactions.map(transaction => {
@@ -216,15 +214,15 @@ const BankBookPage = () => {
         format(new Date(transaction.date), 'dd/MM/yyyy'),
         transaction.type,
         transaction.description,
-        transaction.isInflow ? formatter.format(transaction.amount) : '-',
-        !transaction.isInflow ? formatter.format(transaction.amount) : '-',
-        formatter.format(runningBalance)
+        transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
+        !transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
+        `Rs. ${formatter.format(runningBalance)}`
       ];
     });
     
     // Add the table with opening balance row
     const allRows = [
-      ["", "", "Opening Balance", "", "", formatter.format(openingBalance)],
+      ["", "", "Opening Balance", "", "", `Rs. ${formatter.format(openingBalance)}`],
       ...tableData
     ];
     

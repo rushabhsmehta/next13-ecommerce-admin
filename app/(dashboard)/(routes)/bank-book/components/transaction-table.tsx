@@ -78,8 +78,8 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     const doc = new jsPDF();
     
       // Add a Unicode font that supports the Rupee symbol
-      doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto');
+      doc.addFont('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans/files/noto-sans-all-400-normal.woff', 'NotoSans', 'normal');
+      doc.setFont('NotoSans');
     // Add report title
     doc.setFontSize(18);
     doc.text(`${accountName} Transactions`, 14, 22);

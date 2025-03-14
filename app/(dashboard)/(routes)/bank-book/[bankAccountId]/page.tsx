@@ -210,14 +210,35 @@ const BankBookPage = () => {
       transaction.isInflow ? formatter.format(transaction.amount) : '-',
       !transaction.isInflow ? formatter.format(transaction.amount) : '-',
     ]);
+    
+    // Add totals row to table data
+    tableData.push(
+      ['', '', '', 'TOTALS', formatter.format(totalInflow), formatter.format(totalOutflow)]
+    );
 
-    // Add the table
+    // Add the table with styling for totals row
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Reference", "Inflow", "Outflow"]],
       body: tableData,
       startY: 100,
-      styles: { fontSize: 10 }
+      styles: { fontSize: 10 },
+      didDrawCell: (data) => {
+        // Highlight the last row (totals)
+        if (data.row.index === tableData.length - 1) {
+          doc.setFillColor(240, 240, 240); // Light gray background
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+          doc.setTextColor(0, 0, 0);
+        }
+      }
     });
+
+    // Add closing balance summary after table
+    const lastPage = doc.getNumberOfPages();
+    doc.setPage(lastPage);
+    
+    const finalY = (doc as any).lastAutoTable.finalY + 10 || 150;
+    doc.setFontSize(12);
+    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, finalY);
 
     // Add footer with page numbers
     const pageCount = doc.getNumberOfPages();
@@ -287,12 +308,20 @@ const BankBookPage = () => {
       !transaction.isInflow ? transaction.amount : null,
       transaction.note || ''
     ]);
+    
+    // Add totals row
+    dataRows.push([
+      "", "", "", "TOTALS", 
+      totalInflow, 
+      totalOutflow,
+      ""
+    ]);
 
     // Add headers and data
     XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A15" });
     XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A16" });
 
-    // Format numbers as currency
+    // Format numbers as currency and apply styles to totals row
     const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:G1000');
     for (let R = 15; R <= range.e.r; ++R) {
       const inflowCell = XLSX.utils.encode_cell({r: R, c: 4}); // Column E (Inflow)
@@ -303,6 +332,17 @@ const BankBookPage = () => {
       }
       if (worksheet[outflowCell] && worksheet[outflowCell].v) {
         worksheet[outflowCell].z = '"Rs. "#,##0.00';
+      }
+      
+      // Apply bold formatting to the totals row
+      if (R === 16 + dataRows.length - 1) {
+        // Make cells in the totals row bold
+        for (let C = 0; C <= 6; C++) {
+          const cell = XLSX.utils.encode_cell({r: R, c: C});
+          if (!worksheet[cell]) worksheet[cell] = { t: 's', v: '' };
+          if (!worksheet[cell].s) worksheet[cell].s = {};
+          worksheet[cell].s.font = { bold: true };
+        }
       }
     }
 

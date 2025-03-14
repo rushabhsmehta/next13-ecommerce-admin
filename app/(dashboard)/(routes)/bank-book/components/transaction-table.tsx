@@ -77,9 +77,6 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   const generatePDF = () => {
     const doc = new jsPDF();
 
-    // Add a Unicode font that supports the Rupee symbol
-    doc.addFont('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans/files/noto-sans-all-400-normal.woff', 'NotoSans', 'normal');
-    doc.setFont('NotoSans');
     // Add report title
     doc.setFontSize(18);
     doc.text(`${accountName} Transactions`, 14, 22);
@@ -90,17 +87,17 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
 
     // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Opening Balance: ${formatter.format(openingBalance)}`, 14, 40);
-    doc.text(`Total Inflow: ${formatter.format(totalInflow)}`, 14, 48);
-    doc.text(`Total Outflow: ${formatter.format(totalOutflow)}`, 14, 56);
-    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, 64);
+    doc.text(`Opening Balance: Rs. ${formatter.format(openingBalance)}`, 14, 40);
+    doc.text(`Total Inflow: Rs. ${formatter.format(totalInflow)}`, 14, 48);
+    doc.text(`Total Outflow: Rs. ${formatter.format(totalOutflow)}`, 14, 56);
+    doc.text(`Closing Balance: Rs. ${formatter.format(closingBalance)}`, 14, 64);
 
     // Add table data with running balance
     const tableData = [];
     let balance = openingBalance;
 
     // Add opening balance row
-    tableData.push(["", "", "Opening Balance", "", "", formatter.format(balance)]);
+    tableData.push(["", "", "Opening Balance", "", "", `Rs. ${formatter.format(balance)}`]);
 
     // Add transaction rows
     transactions.forEach(transaction => {
@@ -110,9 +107,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         format(new Date(transaction.date), 'dd/MM/yyyy'),
         transaction.type,
         transaction.description,
-        transaction.isInflow ? formatter.format(transaction.amount) : '-',
-        !transaction.isInflow ? formatter.format(transaction.amount) : '-',
-        formatter.format(balance)
+        transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
+        !transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
+        `Rs. ${formatter.format(balance)}`
       ]);
     });
 
@@ -121,23 +118,12 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
       body: tableData,
       startY: 72,
-      styles: {
-        font: 'NotoSans',
-        fontStyle: 'normal'
-      },
-      headStyles: {
-        font: 'NotoSans',
-        fontStyle: 'normal'
-      },
-      bodyStyles: {
-        font: 'NotoSans',
-        fontStyle: 'normal'
-      },
+      styles: { fontSize: 10 } // Ensure consistent font size
     });
 
     // Add footer with page numbers
     const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+    for(let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       const pageSize = doc.internal.pageSize;
       const pageWidth = pageSize.getWidth();

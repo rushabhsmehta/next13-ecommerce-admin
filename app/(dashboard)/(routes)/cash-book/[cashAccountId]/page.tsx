@@ -164,6 +164,11 @@ const CashBookPage = () => {
     
     const doc = new jsPDF();
 
+    // Create a custom formatter for PDF that won't cause formatting issues
+    const formatCurrency = (value: number) => {
+      return `Rs. ${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+    };
+
     // Add report title
     doc.setFontSize(18);
     doc.text("Cash Book Report", 14, 22);
@@ -183,31 +188,31 @@ const CashBookPage = () => {
 
     // Add summary metrics
     doc.setFontSize(12);
-    const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
-    doc.text(`Opening Balance: ${formatter.format(openingBalance)}`, 14, 56);
+    // Use the safe formatter for PDF
+    doc.text(`Opening Balance: ${formatCurrency(openingBalance)}`, 14, 56);
     
     // Calculate totals
     const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
     const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
     const closingBalance = openingBalance + totalInflow - totalOutflow;
     
-    doc.text(`Total Inflow: ${formatter.format(totalInflow)}`, 14, 64);
-    doc.text(`Total Outflow: ${formatter.format(totalOutflow)}`, 14, 72);
-    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, 80);
+    doc.text(`Total Inflow: ${formatCurrency(totalInflow)}`, 14, 64);
+    doc.text(`Total Outflow: ${formatCurrency(totalOutflow)}`, 14, 72);
+    doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, 80);
 
-    // Add table data
+    // Add table data with safe formatting
     const tableData = transactions.map(transaction => [
       format(new Date(transaction.date), 'dd/MM/yyyy'),
       transaction.type,
       transaction.description,
       transaction.reference || '-',
-      transaction.isInflow ? formatter.format(transaction.amount) : '-',
-      !transaction.isInflow ? formatter.format(transaction.amount) : '-',
+      transaction.isInflow ? formatCurrency(transaction.amount) : '-',
+      !transaction.isInflow ? formatCurrency(transaction.amount) : '-',
     ]);
     
     // Add totals row to table data
     tableData.push(
-      ['', '', '', 'TOTALS', formatter.format(totalInflow), formatter.format(totalOutflow)]
+      ['', '', '', 'TOTALS', formatCurrency(totalInflow), formatCurrency(totalOutflow)]
     );
 
     // Add the table with styling for totals row
@@ -231,7 +236,7 @@ const CashBookPage = () => {
     
     const finalY = (doc as any).lastAutoTable.finalY + 10 || 150;
     doc.setFontSize(12);
-    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, finalY);
+    doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, finalY);
 
     // Add footer with page numbers
     const pageCount = doc.getNumberOfPages();

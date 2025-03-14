@@ -76,8 +76,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       startY: 48,
       headStyles: { fillColor: [41, 128, 185] },
       footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
-    ]);
-    
+    });
     // Add footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {

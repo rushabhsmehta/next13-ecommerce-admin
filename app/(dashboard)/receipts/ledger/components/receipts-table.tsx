@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CellAction } from "./cell-action";
 
 type Receipt = {
   id: string;
@@ -40,8 +41,8 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({ data }) => {
             <TableHead>Description</TableHead>
             <TableHead>Reference</TableHead>
             <TableHead>Mode</TableHead>
-            <TableHead>Account</TableHead>
             <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-center w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -61,15 +62,18 @@ export const ReceiptsTable: React.FC<ReceiptsTableProps> = ({ data }) => {
                   <TableCell>{item.description}</TableCell>
                   <TableCell>{item.reference}</TableCell>
                   <TableCell>{item.paymentMode}</TableCell>
-                  <TableCell>{item.account}</TableCell>
                   <TableCell className="text-right font-medium">{formatPrice(item.amount)}</TableCell>
+                  <TableCell>
+                    <CellAction data={item} />
+                  </TableCell>
                 </TableRow>
               ))}
               <TableRow>
-                <TableCell colSpan={7} className="font-bold">Total</TableCell>
+                <TableCell colSpan={6} className="font-bold">Total</TableCell>
                 <TableCell className="text-right font-bold">
                   {formatPrice(data.reduce((total, item) => total + item.amount, 0))}
                 </TableCell>
+                <TableCell></TableCell>
               </TableRow>
             </>
           )}

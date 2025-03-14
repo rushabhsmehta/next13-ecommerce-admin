@@ -10,8 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { CellAction } from "./cell-action";
 
 type Payment = {
   id: string;
@@ -48,15 +47,14 @@ export const PaymentsTable: React.FC<PaymentsTableProps> = ({ data }) => {
             <TableHead>Description</TableHead>
             <TableHead>Reference</TableHead>
             <TableHead>Mode</TableHead>
-            <TableHead>Account</TableHead>
             <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="w-10">Actions</TableHead>
+            <TableHead className="text-center w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No payments found
               </TableCell>
             </TableRow>
@@ -70,22 +68,14 @@ export const PaymentsTable: React.FC<PaymentsTableProps> = ({ data }) => {
                   <TableCell>{item.description}</TableCell>
                   <TableCell>{item.reference}</TableCell>
                   <TableCell>{item.paymentMode}</TableCell>
-                  <TableCell>{item.account}</TableCell>
                   <TableCell className="text-right font-medium">{formatPrice(item.amount)}</TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleEditPayment(item.id)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <CellAction data={item} />
                   </TableCell>
                 </TableRow>
               ))}
               <TableRow>
-                <TableCell colSpan={8} className="font-bold">Total</TableCell>
+                <TableCell colSpan={6} className="font-bold">Total</TableCell>
                 <TableCell className="text-right font-bold">
                   {formatPrice(data.reduce((total, item) => total + item.amount, 0))}
                 </TableCell>

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatPrice } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CellAction } from "./cell-action";
 
 type Sale = {
   id: string;
@@ -25,6 +27,8 @@ interface SalesTableProps {
 }
 
 export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
+  const router = useRouter();
+  
   return (
     <div className="rounded-md border">
       <Table>
@@ -35,12 +39,13 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
             <TableHead>Package</TableHead>
             <TableHead>Description</TableHead>
             <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-center w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No sales found
               </TableCell>
             </TableRow>
@@ -53,6 +58,9 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
                   <TableCell>{item.packageName}</TableCell>
                   <TableCell>{item.description}</TableCell>
                   <TableCell className="text-right font-medium">{formatPrice(item.amount)}</TableCell>
+                  <TableCell>
+                    <CellAction data={item} />
+                  </TableCell>
                 </TableRow>
               ))}
               <TableRow>
@@ -60,6 +68,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
                 <TableCell className="text-right font-bold">
                   {formatPrice(data.reduce((total, item) => total + item.amount, 0))}
                 </TableCell>
+                <TableCell></TableCell>
               </TableRow>
             </>
           )}

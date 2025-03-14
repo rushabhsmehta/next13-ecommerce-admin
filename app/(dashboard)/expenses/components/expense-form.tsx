@@ -93,24 +93,47 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.log("Fetching data for expense form...");
         // Fetch bank accounts
         const bankResponse = await axios.get('/api/bank-accounts');
         setBankAccounts(bankResponse.data.filter((account: any) => account.isActive));
+        console.log(`Loaded ${bankResponse.data.filter((account: any) => account.isActive).length} active bank accounts`);
 
         // Fetch cash accounts
         const cashResponse = await axios.get('/api/cash-accounts');
         setCashAccounts(cashResponse.data.filter((account: any) => account.isActive));
+        console.log(`Loaded ${cashResponse.data.filter((account: any) => account.isActive).length} active cash accounts`);
 
         // Fetch tour packages
         const packagesResponse = await axios.get('/api/tourPackageQuery?isFeatured=true');
         setTourPackages(packagesResponse.data);
+        console.log(`Loaded ${packagesResponse.data.length} tour packages`);
         
         // Fetch expense categories
         const categoriesResponse = await axios.get('/api/expense-categories');
         setCategories(categoriesResponse.data.filter((category: any) => category.isActive));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to load necessary data");
+        console.log(`Loaded ${categoriesResponse.data.filter((category: any) => category.isActive).length} active expense categories`);
+      } catch (error: any) {
+        console.error("Error loading form data:", error);
+        let errorMessage = "Failed to load necessary data";
+        
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          console.error("Response error:", error.response.data);
+          console.error("Status code:", error.response.status);
+          errorMessage = `Server error: ${error.response.status}`;
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("Request error - no response received");
+          errorMessage = "No response from server. Please check your connection.";
+        } else {
+          // Something happened in setting up the request
+          console.error("Error message:", error.message);
+          errorMessage = error.message || errorMessage;
+        }
+        
+        toast.error(errorMessage);
       }
     };
 
@@ -158,19 +181,41 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
 
   const onSubmit = async (data: ExpenseFormValues) => {
     try {
+      console.log("Submitting expense form with data:", data);
       setLoading(true);
+      
       if (initialData) {
         // Update existing expense
+        console.log(`Updating expense with ID: ${initialData.id}`);
         await axios.patch(`/api/expenses/${initialData.id}`, data);
       } else {
         // Create new expense
+        console.log("Creating new expense");
         await axios.post('/api/expenses', data);
       }
+      
       router.push('/expenses');
       router.refresh();
       toast.success(toastMessage);
     } catch (error: any) {
-      toast.error("Something went wrong.");
+      console.error("Error submitting expense form:", error);
+      let errorMessage = "Something went wrong.";
+      
+      if (error.response) {
+        console.error("Response error:", error.response.data);
+        console.error("Status code:", error.response.status);
+        
+        // Extract the detailed error message if available
+        errorMessage = error.response.data || errorMessage;
+      } else if (error.request) {
+        console.error("Request error - no response received");
+        errorMessage = "No response from server. Please check your connection.";
+      } else {
+        console.error("Error message:", error.message);
+        errorMessage = error.message || errorMessage;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

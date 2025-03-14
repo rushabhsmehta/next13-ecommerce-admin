@@ -6,6 +6,7 @@ export async function POST(req: Request) {
   try {
     const { userId } = auth();
     if (!userId) {
+      console.log('[EXPENSE_POST] Unauthorized access attempt');
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
@@ -20,19 +21,24 @@ export async function POST(req: Request) {
       accountType 
     } = body;
 
+    // Input validation with logging
     if (!expenseDate) {
+      console.log('[EXPENSE_POST] Missing required field: expenseDate');
       return new NextResponse("Expense date is required", { status: 400 });
     }
 
     if (!amount || isNaN(amount) || amount <= 0) {
+      console.log('[EXPENSE_POST] Invalid amount:', amount);
       return new NextResponse("Valid amount is required", { status: 400 });
     }
 
     if (!expenseCategoryId) {
+      console.log('[EXPENSE_POST] Missing required field: expenseCategoryId');
       return new NextResponse("Expense category is required", { status: 400 });
     }
 
     if (!accountId || !accountType) {
+      console.log('[EXPENSE_POST] Missing account information. accountId:', accountId, 'accountType:', accountType);
       return new NextResponse("Payment account is required", { status: 400 });
     }
 
@@ -42,8 +48,17 @@ export async function POST(req: Request) {
     });
 
     if (!category) {
+      console.log('[EXPENSE_POST] Invalid expense category ID:', expenseCategoryId);
       return new NextResponse("Invalid expense category", { status: 400 });
     }
+
+    console.log('[EXPENSE_POST] Creating expense with data:', { 
+      expenseDate, 
+      amount, 
+      expenseCategoryId, 
+      tourPackageQueryId: tourPackageQueryId || 'none', 
+      accountType 
+    });
 
     const expenseDetail = await prismadb.expenseDetail.create({
       data: {
@@ -57,9 +72,23 @@ export async function POST(req: Request) {
       }
     });
 
+    console.log('[EXPENSE_POST] Successfully created expense with ID:', expenseDetail.id);
     return NextResponse.json(expenseDetail);
-  } catch (error) {
-    console.log('[EXPENSE_POST]', error);
+  } catch (error: any) {
+    console.error('[EXPENSE_POST] Error details:', { 
+      message: error.message, 
+      stack: error.stack,
+      code: error.code
+    });
+    
+    if (error.code === 'P2003') {
+      return new NextResponse("Foreign key constraint failed. Invalid related record ID.", { status: 400 });
+    }
+    
+    if (error.code === 'P2002') {
+      return new NextResponse("A unique constraint would be violated.", { status: 400 });
+    }
+    
     return new NextResponse("Internal error", { status: 500 });
   }
 }

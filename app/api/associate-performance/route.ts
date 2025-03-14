@@ -88,13 +88,14 @@ export async function GET(req: Request) {
       const associate = associatesMap.get(associateId);
       associate.totalInquiries += 1;
       
-      // Count cancellations
-      if (inquiry.status.toLowerCase() === 'cancelled') {
+      // Count cancellations - fix to use uppercase or handle case insensitively
+      if (inquiry.status === 'CANCELLED') {
         associate.cancellations += 1;
       }
       
       // Count confirmed bookings and calculate revenue
-      if (inquiry.status.toLowerCase() === 'converted') {
+      // FIXED: Changed from 'converted' to 'CONFIRMED' to match the rest of the application
+      if (inquiry.status === 'CONFIRMED') {
         associate.confirmedBookings += 1;
         
         // Add tour package queries as bookings

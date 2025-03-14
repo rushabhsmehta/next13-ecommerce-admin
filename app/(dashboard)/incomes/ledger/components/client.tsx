@@ -19,7 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, Download, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IncomesTable } from "./incomes-table";
 import {
@@ -30,6 +30,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 type Income = {
   id: string;
@@ -94,6 +97,131 @@ export const IncomeLedgerClient: React.FC<IncomeLedgerClientProps> = ({
     setDateTo(undefined);
   };
 
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    const doc = new jsPDF();
+
+    // Add report title
+    doc.setFontSize(18);
+    doc.text("Income Ledger Report", 14, 22);
+
+    // Add date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+    // Add summary metrics
+    doc.setFontSize(12);
+    doc.text(`Total Income: Rs. ${formatPrice(totalIncomes)}`, 14, 40);
+    if (filteredCategory || filteredPaymentMode || dateFrom || dateTo) {
+      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal)}`, 14, 48);
+    }
+
+    // Add table data
+    const tableData = filteredIncomes.map(income => [
+      income.date,
+      income.category,
+      income.packageName,
+      income.description,
+      income.paymentMode,
+      income.account,
+      `Rs. ${formatPrice(income.amount)}`
+    ]);
+
+    // Add the table
+    autoTable(doc, {
+      head: [["Date", "Category", "Package", "Description", "Mode", "Account", "Amount"]],
+      body: tableData,
+      startY: 55,
+      styles: { fontSize: 10 } // Ensure consistent font size
+    });
+
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.getWidth();
+      const pageHeight = pageSize.getHeight();
+
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+    }
+
+    // Download the PDF
+    const today = new Date().toISOString().split('T')[0];
+    doc.save(`income-ledger-report-${today}.pdf`);
+  };
+
+  // Function to generate and download Excel
+  const generateExcel = () => {
+    // Create empty worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
+
+    // Add title and summary information with proper spacing
+    const summaryRows = [
+      ["Income Ledger Report"],
+      [""],
+      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [""],
+      [`Total Income: ${formatPrice(totalIncomes)}`],
+      (filteredCategory || filteredPaymentMode || dateFrom || dateTo) ? [`Filtered Total: ${formatPrice(filteredTotal)}`] : [],
+      [""],
+      [""] // Empty row before the table
+    ];
+
+    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A1" });
+
+    // Add data table headers
+    const headers = [
+      ["Date", "Category", "Package", "Description", "Mode", "Account", "Amount"]
+    ];
+
+    const dataRows = filteredIncomes.map(income => [
+      income.date,
+      income.category,
+      income.packageName,
+      income.description,
+      income.paymentMode,
+      income.account,
+      formatPrice(income.amount)
+    ]);
+
+    // Add headers and data
+    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A9" });
+    XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A10" });
+
+    // Set column widths
+    const columnWidths = [
+      { wch: 12 }, // Date
+      { wch: 15 }, // Category
+      { wch: 15 }, // Package
+      { wch: 30 }, // Description
+      { wch: 12 }, // Mode
+      { wch: 15 }, // Account
+      { wch: 15 }, // Amount
+    ];
+
+    worksheet["!cols"] = columnWidths;
+
+    // Add merge cells for the title
+    if (!worksheet["!merges"]) worksheet["!merges"] = [];
+    worksheet["!merges"].push(
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } } // Merge cells for the title row
+    );
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Income Ledger");
+
+    // Generate filename with date
+    const today = new Date().toISOString().split('T')[0];
+    const fileName = `income-ledger-${today}.xlsx`;
+
+    // Write to file and trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -116,6 +244,24 @@ export const IncomeLedgerClient: React.FC<IncomeLedgerClientProps> = ({
               </CardContent>
             </Card>
           ) : null}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={generateExcel}
+            variant="outline"
+            className="flex gap-2 items-center"
+          >
+            <FileSpreadsheet size={16} />
+            Excel
+          </Button>
+          <Button
+            onClick={generatePDF}
+            variant="outline"
+            className="flex gap-2 items-center"
+          >
+            <Download size={16} />
+            PDF
+          </Button>
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 
 type CustomerSummary = {
   id: string;
@@ -28,6 +29,10 @@ interface CustomersTableProps {
 export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
   const router = useRouter();
 
+  const handleViewCustomer = (customerId: string) => {
+    router.push(`/customers/${customerId}`);
+  };
+  
   return (
     <div className="rounded-md border">
       <Table>
@@ -50,42 +55,30 @@ export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
             </TableRow>
           ) : (
             <>
-              {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.contact}</TableCell>
-                  <TableCell className="text-right">{formatPrice(item.totalSales)}</TableCell>
-                  <TableCell className="text-right">{formatPrice(item.totalReceipts)}</TableCell>
-                  <TableCell 
-                    className={`text-right font-medium ${
-                      item.balance > 0 
-                        ? "text-red-600" 
-                        : item.balance < 0 
-                          ? "text-green-600" 
-                          : ""
-                    }`}
-                  >
-                    {formatPrice(item.balance)}
-                  </TableCell>
+              {data.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell>{customer.name}</TableCell>
+                  <TableCell>{customer.contact || "-"}</TableCell>
+                  <TableCell className="text-right">{formatPrice(customer.totalSales)}</TableCell>
+                  <TableCell className="text-right">{formatPrice(customer.totalReceipts)}</TableCell>
+                  <TableCell className="text-right font-medium">{formatPrice(customer.balance)}</TableCell>
                   <TableCell className="text-center">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => router.push(`/customers/${item.id}/ledger`)}
+                    <Button
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleViewCustomer(customer.id)}
                     >
-                      View Ledger
+                      <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
-              
               <TableRow>
-                <TableCell colSpan={2} className="font-bold">Total</TableCell>
-                <TableCell className="text-right font-bold">{formatPrice(data.reduce((sum, item) => sum + item.totalSales, 0))}</TableCell>
-                <TableCell className="text-right font-bold">{formatPrice(data.reduce((sum, item) => sum + item.totalReceipts, 0))}</TableCell>
-                <TableCell className="text-right font-bold">
-                  {formatPrice(data.reduce((sum, item) => sum + item.balance, 0))}
-                </TableCell>
+                <TableCell colSpan={2} className="font-bold">Totals</TableCell>
+                <TableCell className="text-right font-bold">{formatPrice(data.reduce((total, customer) => total + customer.totalSales, 0))}</TableCell>
+                <TableCell className="text-right font-bold">{formatPrice(data.reduce((total, customer) => total + customer.totalReceipts, 0))}</TableCell>
+                <TableCell className="text-right font-bold">{formatPrice(data.reduce((total, customer) => total + customer.balance, 0))}</TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </>

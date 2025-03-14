@@ -120,7 +120,8 @@ export async function GET(req: Request) {
       include: {
         tourPackageQuery: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        expenseCategory: true  // Add this to include the category relation
       },
       orderBy: {
         expenseDate: 'desc'

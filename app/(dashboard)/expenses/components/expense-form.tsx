@@ -88,7 +88,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData }) => {
         setCashAccounts(cashResponse.data.filter((account: any) => account.isActive));
 
         // Fetch tour packages
-        const packagesResponse = await axios.get('/api/tourPackageQuery');
+        const packagesResponse = await axios.get('/api/tourPackageQuery?isFeatured=true');
         setTourPackages(packagesResponse.data);
         
         // Fetch expense categories

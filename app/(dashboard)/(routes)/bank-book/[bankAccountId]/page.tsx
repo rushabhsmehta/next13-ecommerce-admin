@@ -222,12 +222,11 @@ const BankBookPage = () => {
       body: tableData,
       startY: 100,
       styles: { fontSize: 10 },
-      didDrawCell: (data) => {
-        // Highlight the last row (totals)
+      didParseCell: (data) => {
+        // Apply styling to the totals row
         if (data.row.index === tableData.length - 1) {
-          doc.setFillColor(240, 240, 240); // Light gray background
-          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-          doc.setTextColor(0, 0, 0);
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [240, 240, 240];
         }
       }
     });

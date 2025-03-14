@@ -65,7 +65,7 @@ const CustomerLedgerPage = async () => {
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <Heading 
-          title="Customer Ledger" 
+          title="Statement of Customers Ledger" 
           description="View all customer accounts and transactions"
         />
         <Separator />

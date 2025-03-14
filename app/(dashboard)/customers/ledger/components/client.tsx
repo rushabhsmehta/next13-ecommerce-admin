@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
@@ -57,74 +64,109 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
 }) => {
   const router = useRouter();
   const [filteredPartner, setFilteredPartner] = useState<string>("");
+  const [filteredCustomerId, setFilteredCustomerId] = useState<string>(""); // Change to track customer ID instead of name
+  const [filteredCustomerDisplay, setFilteredCustomerDisplay] = useState<string>("");
   const [partnerOpen, setPartnerOpen] = useState(false);
+  const [customerOpen, setCustomerOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>("");
 
-  // Filter customers by search term for suggestions
-  const searchSuggestions = customers.filter(customer => {
-    const query = searchQuery.toLowerCase();
-    return (
-      customer.name.toLowerCase().includes(query) ||
-      customer.contact.toLowerCase().includes(query) ||
-      customer.email.toLowerCase().includes(query)
-    );
-  }).slice(0, 5); // Limit to 5 suggestions
+  // Filter customers based on all filter criteria
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      // Filter by customer ID directly
+      if (filteredCustomerId && customer.id !== filteredCustomerId) {
+        return false;
+      }
 
-  // Full filtering logic for the table
-  const filteredCustomers = customers.filter((customer) => {
-    // Filter by associate partner
-    if (filteredPartner && customer.associatePartner !== filteredPartner) {
-      return false;
-    }
+      // Filter by associate partner
+      if (filteredPartner && customer.associatePartner !== filteredPartner) {
+        return false;
+      }
 
-    // Filter by date created
-    if (dateFrom) {
-      const customerDate = new Date(customer.createdAt);
-      if (customerDate < dateFrom) return false;
-    }
+      // Filter by search query (search in name, contact, and email)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = customer.name.toLowerCase().includes(query);
+        const matchesContact = customer.contact.toLowerCase().includes(query);
+        const matchesEmail = customer.email.toLowerCase().includes(query);
 
-    if (dateTo) {
-      const customerDate = new Date(customer.createdAt);
-      // Add one day to include the end date
-      const endDate = new Date(dateTo);
-      endDate.setDate(endDate.getDate() + 1);
-      if (customerDate > endDate) return false;
-    }
+        if (!matchesName && !matchesContact && !matchesEmail) {
+          return false;
+        }
+      }
 
-    // Filter by outstanding balance
-    if (outstandingOnly && customer.outstanding <= 0) {
-      return false;
-    }
+      // Filter by date range
+      if (dateFrom || dateTo) {
+        const createdDate = new Date(customer.createdAt);
 
-    // Search by name, contact, email
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        customer.name.toLowerCase().includes(query) ||
-        customer.contact.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query)
-      );
-    }
+        if (dateFrom && createdDate < dateFrom) {
+          return false;
+        }
 
-    return true;
-  });
+        if (dateTo) {
+          // Add one day to dateTo to include the end date in the range
+          const adjustedDateTo = new Date(dateTo);
+          adjustedDateTo.setDate(adjustedDateTo.getDate() + 1);
+
+          if (createdDate > adjustedDateTo) {
+            return false;
+          }
+        }
+      }
+
+      // Filter by payment status
+      if (paymentStatus) {
+        if (paymentStatus === "outstanding" && customer.outstanding <= 0) {
+          return false;
+        } else if (paymentStatus === "paid" && customer.outstanding !== 0) {
+          return false;
+        } else if (paymentStatus === "overpaid" && customer.outstanding >= 0) {
+          return false;
+        }
+      }
+
+      // Filter by outstanding amount
+      if (outstandingOnly && customer.outstanding <= 0) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [customers, filteredCustomerId, filteredPartner, searchQuery, dateFrom, dateTo, outstandingOnly, paymentStatus]);
 
   // Calculate filtered totals
-  const filteredTotalSales = filteredCustomers.reduce((sum, customer) => sum + customer.totalSales, 0);
-  const filteredTotalReceipts = filteredCustomers.reduce((sum, customer) => sum + customer.totalReceipts, 0);
-  const filteredTotalOutstanding = filteredCustomers.reduce((sum, customer) => sum + customer.outstanding, 0);
+  const filteredTotalSales = useMemo(() =>
+    filteredCustomers.reduce((sum, customer) => sum + customer.totalSales, 0),
+    [filteredCustomers]);
+
+  const filteredTotalReceipts = useMemo(() =>
+    filteredCustomers.reduce((sum, customer) => sum + customer.totalReceipts, 0),
+    [filteredCustomers]);
+
+  const filteredTotalOutstanding = useMemo(() =>
+    filteredCustomers.reduce((sum, customer) => sum + customer.outstanding, 0),
+    [filteredCustomers]);
 
   const resetFilters = () => {
     setFilteredPartner("");
+    setFilteredCustomerId(""); // Reset customer ID filter
+    setFilteredCustomerDisplay("");
     setDateFrom(undefined);
     setDateTo(undefined);
     setSearchQuery("");
     setOutstandingOnly(false);
+    setPaymentStatus("");
   };
+
+  // Get sorted list of customers for the dropdown (no deduplication)
+  const sortedCustomers = useMemo(() => {
+    return [...customers].sort((a, b) => a.name.localeCompare(b.name));
+  }, [customers]);
 
   // Function to generate and download PDF
   const generatePDF = () => {
@@ -143,7 +185,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
     doc.text(`Total Sales: ${formatPrice(totalSales)}`, 14, 40);
     doc.text(`Total Receipts: ${formatPrice(totalReceipts)}`, 14, 48);
     doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 56);
-    
+
     if (filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) {
       doc.text(`Filtered Sales: ${formatPrice(filteredTotalSales)}`, 14, 64);
       doc.text(`Filtered Receipts: ${formatPrice(filteredTotalReceipts)}`, 14, 72);
@@ -300,7 +342,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
         </div>
       </div>
 
-      {(filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) && (
+      {(filteredPartner || filteredCustomerId || dateFrom || dateTo || searchQuery || outstandingOnly || paymentStatus) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -331,43 +373,58 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
 
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-          <div className="w-full md:w-1/4 relative">
-            <Popover open={searchOpen && searchQuery.length > 0} onOpenChange={setSearchOpen}>
+          {/* Customer filter */}
+          <div className="w-full md:w-1/5">
+            <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
               <PopoverTrigger asChild>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search customers..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setSearchOpen(true)}
-                  />
-                </div>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={customerOpen}
+                  className="w-full justify-between"
+                >
+                  {filteredCustomerDisplay || "Filter by customer"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
+              <PopoverContent className="w-full p-0">
                 <Command>
+                  <CommandInput placeholder="Search customer..." />
                   <CommandEmpty>No customer found.</CommandEmpty>
                   <CommandList>
-                    <CommandGroup heading="Suggested Customers">
-                      {searchSuggestions.map((customer) => (
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredCustomerId("");
+                          setFilteredCustomerDisplay("");
+                          setCustomerOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filteredCustomerId === "" ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        All Customers
+                      </CommandItem>
+                      {/* Display all customers with name and contact */}
+                      {sortedCustomers.map((customer) => (
                         <CommandItem
                           key={customer.id}
                           onSelect={() => {
-                            setSearchQuery(customer.name);
-                            setSearchOpen(false);
+                            setFilteredCustomerId(customer.id);
+                            setFilteredCustomerDisplay(`${customer.name} - ${customer.contact}`);
+                            setCustomerOpen(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              searchQuery === customer.name ? "opacity-100" : "opacity-0"
+                              filteredCustomerId === customer.id ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          <span>{customer.name}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            {customer.contact}
-                          </span>
+                          {customer.name} - {customer.contact}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -377,7 +434,8 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
             </Popover>
           </div>
 
-          <div className="w-full md:w-1/4">
+          {/* Associate partner filter */}
+          <div className="w-full md:w-1/5">
             <Popover open={partnerOpen} onOpenChange={setPartnerOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -434,7 +492,25 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
             </Popover>
           </div>
 
-          <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">
+          {/* Payment status filter */}
+          <div className="w-full md:w-1/5">
+            <Select
+              value={paymentStatus}
+              onValueChange={setPaymentStatus}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Payment status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="outstanding">Outstanding</SelectItem>
+                <SelectItem value="paid">Fully Paid</SelectItem>
+                <SelectItem value="overpaid">Overpaid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-full md:w-1/5 flex flex-col md:flex-row gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -475,14 +551,6 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
               </PopoverContent>
             </Popover>
           </div>
-
-          <Button
-            variant={outstandingOnly ? "default" : "outline"}
-            className="w-full md:w-auto"
-            onClick={() => setOutstandingOnly(!outstandingOnly)}
-          >
-            {outstandingOnly ? "Outstanding Only" : "Show All"}
-          </Button>
 
           <Button
             variant="secondary"

@@ -69,14 +69,7 @@ export const SuppliersTable: React.FC<SuppliersTableProps> = ({ data }) => {
                     {formatPrice(item.outstanding)}
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => router.push(`/suppliers/${item.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" /> Profile
-                      </Button>
+                    <div className="flex space-x-2">                      
                       <Button 
                         variant="outline" 
                         size="sm"

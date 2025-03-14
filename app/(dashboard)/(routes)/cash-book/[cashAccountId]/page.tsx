@@ -6,7 +6,10 @@ import axios from "axios";
 import { useParams } from "next/navigation";
 import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { CalendarIcon, Divide } from "lucide-react";
+import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
@@ -155,6 +158,177 @@ const CashBookPage = () => {
     setDateRange(newRange);
   };
 
+  // Function to generate and download PDF
+  const generatePDF = () => {
+    if (!cashAccount) return;
+    
+    const doc = new jsPDF();
+
+    // Add report title
+    doc.setFontSize(18);
+    doc.text("Cash Book Report", 14, 22);
+
+    // Add account information
+    doc.setFontSize(12);
+    doc.text(`Account: ${cashAccount.accountName}`, 14, 32);
+    
+    // Add date range
+    const fromDate = dateRange.from ? format(dateRange.from, 'MMMM d, yyyy') : 'N/A';
+    const toDate = dateRange.to ? format(dateRange.to, 'MMMM d, yyyy') : 'N/A';
+    doc.text(`Period: ${fromDate} to ${toDate}`, 14, 40);
+    
+    // Add generation date
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`, 14, 48);
+
+    // Add summary metrics
+    doc.setFontSize(12);
+    const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
+    doc.text(`Opening Balance: ${formatter.format(openingBalance)}`, 14, 56);
+    
+    // Calculate totals
+    const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const closingBalance = openingBalance + totalInflow - totalOutflow;
+    
+    doc.text(`Total Inflow: ${formatter.format(totalInflow)}`, 14, 64);
+    doc.text(`Total Outflow: ${formatter.format(totalOutflow)}`, 14, 72);
+    doc.text(`Closing Balance: ${formatter.format(closingBalance)}`, 14, 80);
+
+    // Add table data
+    const tableData = transactions.map(transaction => [
+      format(new Date(transaction.date), 'dd/MM/yyyy'),
+      transaction.type,
+      transaction.description,
+      transaction.reference || '-',
+      transaction.isInflow ? formatter.format(transaction.amount) : '-',
+      !transaction.isInflow ? formatter.format(transaction.amount) : '-',
+    ]);
+
+    // Add the table
+    autoTable(doc, {
+      head: [["Date", "Type", "Description", "Reference", "Inflow", "Outflow"]],
+      body: tableData,
+      startY: 90,
+      styles: { fontSize: 10 }
+    });
+
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageSize = doc.internal.pageSize;
+      const pageWidth = pageSize.getWidth();
+      const pageHeight = pageSize.getHeight();
+
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`, 14, pageHeight - 10);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
+    }
+
+    // Download the PDF
+    doc.save(`cash-book-${cashAccount.accountName}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
+  // Function to generate and download Excel
+  const generateExcel = () => {
+    if (!cashAccount) return;
+    
+    // Create empty worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet([]);
+
+    // Add title and account information
+    const titleRows = [
+      ["Cash Book Report"],
+      [`Account: ${cashAccount.accountName}`],
+      [`Period: ${dateRange.from ? format(dateRange.from, 'MMMM d, yyyy') : 'N/A'} to ${dateRange.to ? format(dateRange.to, 'MMMM d, yyyy') : 'N/A'}`],
+      [`Generated on: ${format(new Date(), 'MMMM d, yyyy h:mm a')}`],
+      [""],
+    ];
+
+    XLSX.utils.sheet_add_aoa(worksheet, titleRows, { origin: "A1" });
+
+    // Add summary information
+    const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'INR' });
+    const totalInflow = transactions.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const totalOutflow = transactions.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+    const closingBalance = openingBalance + totalInflow - totalOutflow;
+
+    const summaryRows = [
+      ["Summary:"],
+      ["Opening Balance:", formatter.format(openingBalance)],
+      ["Total Inflow:", formatter.format(totalInflow)],
+      ["Total Outflow:", formatter.format(totalOutflow)],
+      ["Closing Balance:", formatter.format(closingBalance)],
+      [""],
+    ];
+
+    XLSX.utils.sheet_add_aoa(worksheet, summaryRows, { origin: "A6" });
+
+    // Add data table headers
+    const headers = [
+      ["Date", "Type", "Description", "Reference", "Inflow", "Outflow", "Note"]
+    ];
+
+    const dataRows = transactions.map(transaction => [
+      format(new Date(transaction.date), 'dd/MM/yyyy'),
+      transaction.type,
+      transaction.description,
+      transaction.reference || '-',
+      transaction.isInflow ? transaction.amount : null,
+      !transaction.isInflow ? transaction.amount : null,
+      transaction.note || ''
+    ]);
+
+    // Add headers and data
+    XLSX.utils.sheet_add_aoa(worksheet, headers, { origin: "A13" });
+    XLSX.utils.sheet_add_aoa(worksheet, dataRows, { origin: "A14" });
+
+    // Format numbers as currency
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:G1000');
+    for (let R = 13; R <= range.e.r; ++R) {
+      const inflowCell = XLSX.utils.encode_cell({r: R, c: 4}); // Column E (Inflow)
+      const outflowCell = XLSX.utils.encode_cell({r: R, c: 5}); // Column F (Outflow)
+
+      if (worksheet[inflowCell] && worksheet[inflowCell].v) {
+        worksheet[inflowCell].z = '"Rs. "#,##0.00';
+      }
+      if (worksheet[outflowCell] && worksheet[outflowCell].v) {
+        worksheet[outflowCell].z = '"Rs. "#,##0.00';
+      }
+    }
+
+    // Set column widths
+    const columnWidths = [
+      { wch: 12 },  // Date
+      { wch: 15 },  // Type
+      { wch: 30 },  // Description
+      { wch: 15 },  // Reference
+      { wch: 15 },  // Inflow
+      { wch: 15 },  // Outflow
+      { wch: 20 },  // Note
+    ];
+
+    worksheet["!cols"] = columnWidths;
+
+    // Add merge cells for the title
+    if (!worksheet["!merges"]) worksheet["!merges"] = [];
+    worksheet["!merges"].push(
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } } // Merge cells for title
+    );
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Cash Book");
+
+    // Generate filename with date
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const fileName = `cash-book-${cashAccount.accountName}-${today}.xlsx`;
+
+    // Write to file and trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   if (!cashAccount && loading) {
     return (
       <div className="p-8">
@@ -174,6 +348,26 @@ const CashBookPage = () => {
           description="View all transactions in this cash account"
         />
         <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            <Button
+              onClick={generateExcel}
+              variant="outline"
+              className="flex gap-2 items-center"
+              disabled={loading || !cashAccount}
+            >
+              <FileSpreadsheet size={16} />
+              Excel
+            </Button>
+            <Button
+              onClick={generatePDF}
+              variant="outline"
+              className="flex gap-2 items-center"
+              disabled={loading || !cashAccount}
+            >
+              <Download size={16} />
+              PDF
+            </Button>
+          </div>
           {/* From Date Picker */}
           <Popover>
             <PopoverTrigger asChild>

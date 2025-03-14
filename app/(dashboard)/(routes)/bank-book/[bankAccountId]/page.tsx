@@ -214,8 +214,8 @@ const BankBookPage = () => {
         format(new Date(transaction.date), 'dd/MM/yyyy'),
         transaction.type,
         transaction.description,
-        transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
-        !transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
+        transaction.isInflow ? `Rs. ${transaction.amount.toFixed(2)}` : '-',
+        !transaction.isInflow ? `Rs. ${transaction.amount.toFixed(2)}` : '-',
         `Rs. ${formatter.format(runningBalance)}`
       ];
     });

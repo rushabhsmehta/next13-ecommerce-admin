@@ -111,9 +111,9 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
 
     // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Total Expenses: Rs. ${formatPrice(totalExpenses)}`, 14, 40);
+    doc.text(`Total Expenses: Rs. ${formatPrice(totalExpenses, { forPDF: true })}`, 14, 40);
     if (filteredCategory || filteredPaymentMode || dateFrom || dateTo) {
-      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal)}`, 14, 48);
+      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
     }
 
     // Add table data
@@ -124,7 +124,7 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
       expense.description,
       expense.paymentMode,
       expense.account,
-      `Rs. ${formatPrice(expense.amount)}`
+      `Rs. ${formatPrice(expense.amount, { forPDF: true })}`
     ]);
 
     // Add the table

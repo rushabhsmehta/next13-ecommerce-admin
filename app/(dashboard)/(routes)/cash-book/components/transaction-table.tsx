@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 
-type Transaction = {
+// Define transaction type
+export type CashTransaction = {
   id: string;
   date: string;
   type: string;
@@ -23,13 +24,20 @@ type Transaction = {
   inflow: number;
   outflow: number;
   balance: number;
+  reference?: string;
 };
 
 interface TransactionTableProps {
-  data: Transaction[];
+  data: CashTransaction[];
+  openingBalance: number;
+  accountName?: string;
 }
 
-export const TransactionTable: React.FC<TransactionTableProps> = ({ data }) => {
+export const TransactionTable: React.FC<TransactionTableProps> = ({ 
+  data, 
+  openingBalance, 
+  accountName 
+}) => {
   const router = useRouter();
 
   const generatePDF = () => {
@@ -39,9 +47,16 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ data }) => {
     doc.setFontSize(18);
     doc.text("Cash Book", 14, 22);
     
-    // Add date
+    // Add account name and date
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    if (accountName) {
+      doc.text(`Account: ${accountName}`, 14, 30);
+    }
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);
+    
+    // Add opening balance
+    doc.setFontSize(12);
+    doc.text(`Opening Balance: Rs. ${formatPrice(openingBalance, { forPDF: true })}`, 14, 46);
     
     // Prepare transaction data for table with proper formatting
     const tableData = data.map(transaction => [
@@ -57,7 +72,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ data }) => {
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Inflow", "Outflow", "Balance"]],
       body: tableData,
-      startY: 36,
+      startY: 54,
       styles: { fontSize: 10 }
     });
     
@@ -76,7 +91,8 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ data }) => {
     
     // Download the PDF
     const today = new Date().toISOString().split('T')[0];
-    doc.save(`cash-book-${today}.pdf`);
+    const fileName = `cash-book${accountName ? `-${accountName.toLowerCase().replace(/\s+/g, '-')}` : ''}-${today}.pdf`;
+    doc.save(fileName);
   };
 
   return (
@@ -93,6 +109,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ data }) => {
           </TableRow>
         </TableHeader>
         <TableBody>
+          <TableRow>
+            <TableCell colSpan={5} className="font-medium text-right">Opening Balance:</TableCell>
+            <TableCell className="text-right font-medium">{formatPrice(openingBalance)}</TableCell>
+          </TableRow>
+          
           {data.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="h-24 text-center">
@@ -117,13 +138,27 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ data }) => {
                   </TableCell>
                 </TableRow>
               ))}
+              <TableRow>
+                <TableCell colSpan={3} className="font-bold">Totals</TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatPrice(data.reduce((total, item) => total + (item.inflow || 0), 0))}
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatPrice(data.reduce((total, item) => total + (item.outflow || 0), 0))}
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {formatPrice(data[data.length - 1]?.balance || openingBalance)}
+                </TableCell>
+              </TableRow>
             </>
           )}
         </TableBody>
       </Table>
-      <Button onClick={generatePDF} className="mt-4">
-        Download PDF
-      </Button>
+      <div className="p-4">
+        <Button onClick={generatePDF} className="mt-4">
+          Download PDF
+        </Button>
+      </div>
     </div>
   );
 };

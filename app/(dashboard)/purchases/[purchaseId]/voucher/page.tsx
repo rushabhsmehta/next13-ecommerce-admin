@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
 import { VoucherActions } from "@/components/voucher-actions";
+import { VoucherLayout } from "@/components/voucher-layout";
 
 interface PurchaseVoucherPageProps {
   params: {
@@ -16,9 +16,7 @@ interface PurchaseVoucherPageProps {
 const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
   // Get purchase details with related data
   const purchase = await prismadb.purchaseDetail.findUnique({
-    where: {
-      id: params.purchaseId,
-    },
+    where: { id: params.purchaseId },
     include: {
       tourPackageQuery: true,
       supplier: true,
@@ -32,6 +30,46 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
   // Format the purchase date
   const formattedDate = format(purchase.purchaseDate, "MMMM d, yyyy");
 
+  // Package name and description
+  const packageName = purchase.tourPackageQuery?.tourPackageQueryName || "Purchase";
+  const description = purchase.description || "No description provided";
+
+  // Prepare data for voucher layout
+  const voucherData = {
+    title: "PURCHASE VOUCHER",
+    subtitle: "Supplier Purchase Record",
+    voucherNo: `PV-${purchase.id.substring(0, 8).toUpperCase()}`,
+    date: formattedDate,
+    leftInfo: [
+      { 
+        label: "SUPPLIER", 
+        content: (
+          <div>
+            <p className="font-medium">{purchase.supplier?.name || "N/A"}</p>
+            <p>{purchase.supplier?.contact || "No contact information"}</p>
+            <p>{purchase.supplier?.email || ""}</p>
+          </div>
+        ) 
+      }
+    ],
+    rightInfo: [],
+    tableHeaders: ["Description", "Amount"],
+    tableRows: [(
+      <tr key={purchase.id}>
+        <td className="py-4 px-4">
+          <div>
+            <p className="font-medium">{packageName}</p>
+            <p className="text-slate-500 text-sm">{description}</p>
+          </div>
+        </td>
+        <td className="py-4 px-4 text-right">{formatPrice(purchase.price)}</td>
+      </tr>
+    )],
+    totalAmount: purchase.price,
+    additionalNotes: "Thank you for your service!",
+    signatures: { left: "Prepared By", right: "Supplier Signature" }
+  };
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
@@ -44,73 +82,10 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
         </div>
         <Separator />
         
-        <div id="voucher-content" className="bg-white p-8 shadow-md rounded-lg">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold mb-1">PURCHASE VOUCHER</h1>
-            <p className="text-muted-foreground">Supplier Purchase Record</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="font-semibold text-sm text-muted-foreground mb-1">SUPPLIER</h3>
-              <p className="font-medium">{purchase.supplier?.name || "N/A"}</p>
-              <p>{purchase.supplier?.contact || "No contact information"}</p>
-              <p>{purchase.supplier?.email || ""}</p> {/* Changed from address to email which exists in the supplier type */}
-            </div>
-            <div className="text-right">
-              <h3 className="font-semibold text-sm text-muted-foreground mb-1">VOUCHER DETAILS</h3>
-              <p><span className="font-medium">Voucher No:</span> PV-{purchase.id.substring(0, 8).toUpperCase()}</p>
-              <p><span className="font-medium">Date:</span> {formattedDate}</p>
-            </div>
-          </div>
-          
-          <Card className="mb-6">
-            <CardContent className="p-0">
-              <table className="w-full">
-                <thead className="bg-slate-100 text-slate-900">
-                  <tr>
-                    <th className="py-3 px-4 text-left font-medium">Description</th>
-                    <th className="py-3 px-4 text-right font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  <tr>
-                    <td className="py-4 px-4">
-                      <div>
-                        <p className="font-medium">{purchase.tourPackageQuery?.tourPackageQueryName || "Purchase"}</p>
-                        <p className="text-muted-foreground text-sm">{purchase.description || "No description"}</p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-right">{formatPrice(purchase.price)}</td>
-                  </tr>
-                </tbody>
-                <tfoot className="bg-slate-50">
-                  <tr>
-                    <td className="py-3 px-4 text-right font-semibold">Total:</td>
-                    <td className="py-3 px-4 text-right font-bold">{formatPrice(purchase.price)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </CardContent>
-          </Card>
-          
-          <div className="grid grid-cols-2 gap-6 mt-12">
-            <div>
-              <div className="border-t pt-2">
-                <p className="text-center text-sm">Prepared By</p>
-              </div>
-            </div>
-            <div>
-              <div className="border-t pt-2">
-                <p className="text-center text-sm">Supplier Signature</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 text-center text-sm text-muted-foreground">
-            <p>Thank you for your service!</p>
-          </div>
-        </div>
+        <VoucherLayout 
+          type="purchase"
+          {...voucherData}
+        />
       </div>
     </div>
   );

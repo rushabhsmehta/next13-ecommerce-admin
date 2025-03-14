@@ -62,7 +62,19 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [outstandingOnly, setOutstandingOnly] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
+  // Filter customers by search term for suggestions
+  const searchSuggestions = customers.filter(customer => {
+    const query = searchQuery.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(query) ||
+      customer.contact.toLowerCase().includes(query) ||
+      customer.email.toLowerCase().includes(query)
+    );
+  }).slice(0, 5); // Limit to 5 suggestions
+
+  // Full filtering logic for the table
   const filteredCustomers = customers.filter((customer) => {
     // Filter by associate partner
     if (filteredPartner && customer.associatePartner !== filteredPartner) {
@@ -320,13 +332,49 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
           <div className="w-full md:w-1/4 relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search customers..."
-              className="pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <Popover open={searchOpen && searchQuery.length > 0} onOpenChange={setSearchOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search customers..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setSearchOpen(true)}
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandEmpty>No customer found.</CommandEmpty>
+                  <CommandList>
+                    <CommandGroup heading="Suggested Customers">
+                      {searchSuggestions.map((customer) => (
+                        <CommandItem
+                          key={customer.id}
+                          onSelect={() => {
+                            setSearchQuery(customer.name);
+                            setSearchOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              searchQuery === customer.name ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span>{customer.name}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            {customer.contact}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="w-full md:w-1/4">

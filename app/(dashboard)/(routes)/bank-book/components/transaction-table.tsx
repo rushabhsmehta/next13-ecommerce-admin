@@ -107,9 +107,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         format(new Date(transaction.date), 'dd/MM/yyyy'),
         transaction.type,
         transaction.description,
-        transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
-        !transaction.isInflow ? `Rs. ${formatter.format(transaction.amount)}` : '-',
-        `Rs. ${formatter.format(balance)}`
+        transaction.isInflow ? `Rs. ${transaction.amount.toFixed(2)}` : '-',
+        !transaction.isInflow ? `Rs. ${transaction.amount.toFixed(2)}` : '-',
+        `Rs. ${balance.toFixed(2)}`
       ]);
     });
 

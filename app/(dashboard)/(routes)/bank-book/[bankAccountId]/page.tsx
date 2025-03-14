@@ -385,7 +385,7 @@ const BankBookPage = () => {
                   "w-[180px] justify-start text-left font-normal",
                   !dateRange.from && "text-muted-foreground"
                 )}
-              ></Button>
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {dateRange.from ? (
                   format(dateRange.from, "LLL dd, y")
@@ -418,7 +418,7 @@ const BankBookPage = () => {
                   "w-[180px] justify-start text-left font-normal",
                   !dateRange.to && "text-muted-foreground"
                 )}
-              ></Button>
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {dateRange.to ? (
                   format(dateRange.to, "LLL dd, y")

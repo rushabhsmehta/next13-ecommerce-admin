@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { formatPrice } from "@/lib/utils";
 import {
   Table,

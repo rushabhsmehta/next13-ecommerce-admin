@@ -2,6 +2,7 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { CellAction } from "./cell-action";
+import { ExpenseCategory } from "@prisma/client";
 
 export type ExpensesColumn = {
   id: string;
@@ -9,7 +10,7 @@ export type ExpensesColumn = {
   formattedDate: string;
   amount: number;
   formattedAmount: string;
-  expenseCategory: any; // This is now an object from the relation
+  expenseCategory: ExpenseCategory; // This is now an object from the relation
   description: string;
   accountName: string;
 };

@@ -33,7 +33,8 @@ const ExpensesPage = () => {
             style: 'currency',
             currency: 'INR'
           }).format(expense.amount),
-          // Keep the entire expenseCategory object for the column cell to use
+          // Simply keep the existing expenseCategory object without changes
+          // This passes through the full object with its 'name' property
           accountName: expense.bankAccount?.accountName || expense.cashAccount?.accountName || 'N/A'
         }));
         

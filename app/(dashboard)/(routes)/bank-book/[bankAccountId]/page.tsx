@@ -472,7 +472,7 @@ const BankBookPage = () => {
         </div>
       ) : (
         <TransactionTable
-          transactions={transactions}
+          data={transactions} // Changed from transactions to data
           openingBalance={openingBalance}
           accountName={bankAccount?.accountName}
         />

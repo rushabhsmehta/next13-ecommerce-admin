@@ -1,98 +1,121 @@
 import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
-import { SupplierLedgerClient } from "./components/client";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
+import { SupplierIndividualLedgerClient } from "./components/client";
+import { notFound } from "next/navigation";
 
 interface SupplierLedgerPageProps {
   params: {
     supplierId: string;
-  }
+  };
 }
 
 const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
+  // Get supplier details
   const supplier = await prismadb.supplier.findUnique({
     where: {
-      id: params.supplierId
-    }
+      id: params.supplierId,
+    },
   });
 
   if (!supplier) {
-    return <div>Supplier not found</div>;
+    return notFound();
   }
 
-  // Get purchases transactions
+  // Get all purchases for this supplier
   const purchases = await prismadb.purchaseDetail.findMany({
     where: {
-      supplierId: params.supplierId
+      supplierId: params.supplierId,
     },
     include: {
-      tourPackageQuery: true
+      tourPackageQuery: true,
     },
     orderBy: {
-      purchaseDate: 'desc'
-    }
+      purchaseDate: 'asc',
+    },
   });
 
-  // Get payment transactions
+  // Get all payments for this supplier
   const payments = await prismadb.paymentDetail.findMany({
     where: {
-      supplierId: params.supplierId
+      supplierId: params.supplierId,
     },
     include: {
       tourPackageQuery: true,
       bankAccount: true,
-      cashAccount: true
+      cashAccount: true,
     },
     orderBy: {
-      paymentDate: 'desc'
-    }
+      paymentDate: 'asc',
+    },
   });
 
-  // Format purchases data
+  // Format transactions for display
   const formattedPurchases = purchases.map(purchase => ({
     id: purchase.id,
-    date: format(purchase.purchaseDate, 'MMMM d, yyyy'),
-    amount: purchase.price, // Updated to match schema field name
-    description: purchase.description || "Purchase",
+    date: purchase.purchaseDate,
+    type: "Purchase",
+    description: purchase.description || purchase.tourPackageQuery?.tourPackageQueryName || "Purchase",
+    amount: purchase.price,
+    isInflow: true, // Purchases are inflows from supplier perspective (we owe them)
+    reference: purchase.id,
+    packageId: purchase.tourPackageQueryId,
     packageName: purchase.tourPackageQuery?.tourPackageQueryName || "-",
-    type: "PURCHASE" as const
   }));
 
-  // Format payments data
   const formattedPayments = payments.map(payment => ({
     id: payment.id,
-    date: format(payment.paymentDate, 'MMMM d, yyyy'),
-    amount: payment.amount,
+    date: payment.paymentDate,
+    type: "Payment",
     description: payment.note || "Payment",
-    packageName: payment.tourPackageQuery?.tourPackageQueryName || "-",
-    reference: payment.transactionId || payment.method || "-", // Updated to use proper schema fields
+    amount: payment.amount,
+    isInflow: false, // Payments are outflows from supplier perspective (we pay them)
+    reference: payment.transactionId || payment.id,
     paymentMode: payment.method || (payment.bankAccount ? "Bank" : payment.cashAccount ? "Cash" : "Unknown"),
-    account: payment.bankAccount?.accountName || payment.cashAccount?.accountName || "-",
-    type: "PAYMENT" as const
+    accountName: payment.bankAccount?.accountName || payment.cashAccount?.accountName || "-",
   }));
 
-  // Calculate totals and balance
+  // Combine transactions and sort by date
+  const allTransactions = [...formattedPurchases, ...formattedPayments].sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Calculate opening balance and running balance
+  let runningBalance = 0;
+  const transactions = allTransactions.map(transaction => {
+    if (transaction.isInflow) {
+      runningBalance += transaction.amount; // Purchases increase supplier balance
+    } else {
+      runningBalance -= transaction.amount; // Payments decrease supplier balance
+    }
+    
+    return {
+      ...transaction,
+      balance: runningBalance,
+    };
+  });
+
+  // Calculate totals
   const totalPurchases = formattedPurchases.reduce((sum, purchase) => sum + purchase.amount, 0);
   const totalPayments = formattedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const balance = totalPurchases - totalPayments;
+  const currentBalance = totalPurchases - totalPayments;
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <Heading 
-          title={`Ledger for ${supplier.name}`} 
-          description="View all financial transactions for this supplier"
+          title={`${supplier.name} - Ledger`}
+          description={`View transactions and balance for ${supplier.name}`}
         />
         <Separator />
         
-        <SupplierLedgerClient 
-          supplier={supplier} 
-          purchases={formattedPurchases}
-          payments={formattedPayments}
+        <SupplierIndividualLedgerClient 
+          supplier={supplier}
+          transactions={transactions}
           totalPurchases={totalPurchases}
           totalPayments={totalPayments}
-          balance={balance}
+          currentBalance={currentBalance}
         />
       </div>
     </div>

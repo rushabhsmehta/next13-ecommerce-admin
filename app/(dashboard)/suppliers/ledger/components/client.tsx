@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,54 +61,91 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [supplierOpen, setSupplierOpen] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>(""); // Add payment status filter
 
-  
-  // Full filtering logic for the table
-  const filteredSuppliers = suppliers.filter((supplier) => {
-    // Filter by date created
-    if (dateFrom) {
-      const supplierDate = new Date(supplier.createdAt);
-      if (supplierDate < dateFrom) return false;
-    }
+  // Filter suppliers based on all filter criteria
+  const filteredSuppliers = useMemo(() => {
+    return suppliers.filter((supplier) => {
+      // Filter by supplier name
+      if (filteredSupplier && supplier.name !== filteredSupplier) {
+        return false;
+      }
 
-    if (dateTo) {
-      const supplierDate = new Date(supplier.createdAt);
-      // Add one day to include the end date
-      const endDate = new Date(dateTo);
-      endDate.setDate(endDate.getDate() + 1);
-      if (supplierDate > endDate) return false;
-    }
+      // Filter by search query (search in name, contact, and email)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = supplier.name.toLowerCase().includes(query);
+        const matchesContact = supplier.contact.toLowerCase().includes(query);
+        const matchesEmail = supplier.email.toLowerCase().includes(query);
+        
+        if (!matchesName && !matchesContact && !matchesEmail) {
+          return false;
+        }
+      }
 
-    // Filter by outstanding balance
-    if (outstandingOnly && supplier.outstanding <= 0) {
-      return false;
-    }
+      // Filter by date range
+      if (dateFrom || dateTo) {
+        const createdDate = new Date(supplier.createdAt);
+        
+        if (dateFrom && createdDate < dateFrom) {
+          return false;
+        }
+        
+        if (dateTo) {
+          // Add one day to dateTo to include the end date in the range
+          const adjustedDateTo = new Date(dateTo);
+          adjustedDateTo.setDate(adjustedDateTo.getDate() + 1);
+          
+          if (createdDate > adjustedDateTo) {
+            return false;
+          }
+        }
+      }
 
-    // Search by name, contact, email
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        supplier.name.toLowerCase().includes(query) ||
-        supplier.contact.toLowerCase().includes(query) ||
-        supplier.email.toLowerCase().includes(query)
-      );
-    }
+      // Filter by payment status
+      if (paymentStatus) {
+        if (paymentStatus === "outstanding" && supplier.outstanding <= 0) {
+          return false;
+        } else if (paymentStatus === "paid" && supplier.outstanding !== 0) {
+          return false;
+        } else if (paymentStatus === "overpaid" && supplier.outstanding >= 0) {
+          return false;
+        }
+      }
 
-    return true;
-  });
+      // Filter by outstanding amount (legacy filter)
+      if (outstandingOnly && supplier.outstanding <= 0) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [suppliers, filteredSupplier, searchQuery, dateFrom, dateTo, outstandingOnly, filteredPaymentMode, paymentStatus]);
 
   // Calculate filtered totals
-  const filteredTotalPurchases = filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchases, 0);
-  const filteredTotalPayments = filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalPayments, 0);
-  const filteredTotalOutstanding = filteredSuppliers.reduce((sum, supplier) => sum + supplier.outstanding, 0);
+  const filteredTotalPurchases = useMemo(() => 
+    filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchases, 0),
+  [filteredSuppliers]);
+  
+  const filteredTotalPayments = useMemo(() => 
+    filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalPayments, 0),
+  [filteredSuppliers]);
+  
+  const filteredTotalOutstanding = useMemo(() => 
+    filteredSuppliers.reduce((sum, supplier) => sum + supplier.outstanding, 0),
+  [filteredSuppliers]);
 
+  // Function to reset all filters
   const resetFilters = () => {
+    setFilteredSupplier("");
+    setFilteredPaymentMode("");
     setDateFrom(undefined);
     setDateTo(undefined);
     setSearchQuery("");
     setOutstandingOnly(false);
+    setPaymentStatus(""); // Reset payment status filter
   };
-
+  
   // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -127,7 +164,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     doc.text(`Total Payments: ${formatPrice(totalPayments)}`, 14, 48);
     doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 56);
 
-    if (dateFrom || dateTo || searchQuery || outstandingOnly) {
+    if (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) {
       doc.text(`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`, 14, 64);
       doc.text(`Filtered Payments: ${formatPrice(filteredTotalPayments)}`, 14, 72);
       doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 80);
@@ -148,7 +185,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     autoTable(doc, {
       head: [["Name", "Contact", "Email", "Created", "Purchases", "Payments", "Outstanding"]],
       body: tableData,
-      startY: dateFrom || dateTo || searchQuery || outstandingOnly ? 88 : 64,
+      startY: (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) ? 88 : 64,
       styles: { fontSize: 8 },
       columnStyles: {
         0: { cellWidth: 30 },
@@ -180,7 +217,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
       []
     ];
 
-    if (dateFrom || dateTo || searchQuery || outstandingOnly) {
+    if (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) {
       workSheetData.push(
         [`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`],
         [`Filtered Payments: ${formatPrice(filteredTotalPayments)}`],
@@ -279,7 +316,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
         </div>
       </div>
 
-      {(dateFrom || dateTo || searchQuery || outstandingOnly) && (
+      {(dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -310,7 +347,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
 
       <div className="bg-white p-4 rounded-md shadow-sm">
         <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-          <div className="w-full md:w-1/4">
+          <div className="w-full md:w-1/5">
             <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -371,13 +408,30 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
             </Popover>
           </div>
 
-          <div className="w-full md:w-1/4">
+          <div className="w-full md:w-1/5">
+            <Select
+              value={paymentStatus}
+              onValueChange={setPaymentStatus}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Payment status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="outstanding">Outstanding</SelectItem>
+                <SelectItem value="paid">Fully Paid</SelectItem>
+                <SelectItem value="overpaid">Overpaid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="w-full md:w-1/5">
             <Select
               value={filteredPaymentMode}
               onValueChange={setFilteredPaymentMode}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Filter by payment mode" />
+                <SelectValue placeholder="Payment mode" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Modes</SelectItem>
@@ -389,19 +443,9 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
             </Select>
           </div>
 
-          <div className="w-full md:w-1/4">
-            <div className="flex w-full items-center space-x-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search suppliers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
-              />
-            </div>
-          </div>
+        
 
-          <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">
+          <div className="w-full md:w-1/5 flex flex-col md:flex-row gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button

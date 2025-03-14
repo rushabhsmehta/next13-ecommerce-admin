@@ -23,7 +23,7 @@ const CustomerLedgerPage = async () => {
       associatePartner: true
     },
     orderBy: {
-      createdAt: 'desc'
+      name: 'asc'
     }
   });
 
@@ -51,13 +51,7 @@ const CustomerLedgerPage = async () => {
     };
   });
 
-  // Get associate partners for filter dropdown
-  const associatePartners = await prismadb.associatePartner.findMany({
-    where: { isActive: true },
-    orderBy: { name: 'asc' }
-  });
-
-  // Extract unique partner names from formatted customers
+  // Extract unique partner names from formatted customers for filtering
   const uniquePartners = Array.from(
     new Set(formattedCustomers.map(customer => customer.associatePartner).filter(name => name !== "-"))
   );

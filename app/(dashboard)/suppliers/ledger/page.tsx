@@ -1,47 +1,66 @@
+import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { SupplierLedgerClient } from "./components/client";
 
 const SupplierLedgerPage = async () => {
-  // Get all suppliers with their purchases and payments
+  // Get all suppliers with necessary relations
   const suppliers = await prismadb.supplier.findMany({
     include: {
-      purchaseDetails: true,  // Updated from purchases to purchaseDetails
-      paymentDetails: true,   // Updated from payments to paymentDetails
+      purchaseDetails: {
+        include: {
+          tourPackageQuery: true
+        }
+      },
+      paymentDetails: {
+        include: {
+          tourPackageQuery: true,
+          bankAccount: true,
+          cashAccount: true
+        }
+      }
     },
     orderBy: {
       name: 'asc'
     }
   });
-  
-  // Format supplier data with calculated totals
+
+  // Format suppliers data
   const formattedSuppliers = suppliers.map(supplier => {
-    const totalPurchases = supplier.purchaseDetails.reduce((sum, purchase) => sum + purchase.price, 0);  // Changed from purchase.amount to purchase.price
-    const totalPayments = supplier.paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);     // Updated relation name
-    const balance = totalPurchases - totalPayments;
+    // Calculate total purchases
+    const totalPurchases = supplier.purchaseDetails.reduce((sum, purchase) => sum + purchase.price, 0);
+    
+    // Calculate total payments
+    const totalPayments = supplier.paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    // Calculate outstanding amount
+    const outstanding = totalPurchases - totalPayments;
     
     return {
       id: supplier.id,
       name: supplier.name,
-      contact: supplier.contact,
-      totalPurchases,
-      totalPayments,
-      balance,
+      contact: supplier.contact || "-",
+      email: supplier.email || "-",
+      createdAt: format(supplier.createdAt, 'MMMM d, yyyy'),
+      totalPurchases: totalPurchases,
+      totalPayments: totalPayments,
+      outstanding: outstanding,
+      balance: outstanding
     };
   });
-  
-  // Calculate overall totals
+
+  // Calculate total metrics
   const totalPurchases = formattedSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchases, 0);
   const totalPayments = formattedSuppliers.reduce((sum, supplier) => sum + supplier.totalPayments, 0);
-  const totalBalance = formattedSuppliers.reduce((sum, supplier) => sum + supplier.balance, 0);
+  const totalOutstanding = formattedSuppliers.reduce((sum, supplier) => sum + supplier.outstanding, 0);
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <Heading 
           title="Supplier Ledger" 
-          description="View supplier balances and transactions"
+          description="View all supplier accounts and transactions"
         />
         <Separator />
         
@@ -49,7 +68,7 @@ const SupplierLedgerPage = async () => {
           suppliers={formattedSuppliers}
           totalPurchases={totalPurchases}
           totalPayments={totalPayments}
-          totalBalance={totalBalance}
+          totalOutstanding={totalOutstanding}
         />
       </div>
     </div>

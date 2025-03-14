@@ -11,90 +11,74 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { BookText, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 
-type SupplierSummary = {
+type Supplier = {
   id: string;
   name: string;
-  contact: string | null; // Updated to accept null values
+  contact: string;
+  email: string;
+  createdAt: string;
   totalPurchases: number;
   totalPayments: number;
-  balance: number;
+  outstanding: number;
 };
 
 interface SuppliersTableProps {
-  data: SupplierSummary[];
+  data: Supplier[];
 }
 
 export const SuppliersTable: React.FC<SuppliersTableProps> = ({ data }) => {
   const router = useRouter();
-
-  const handleViewSupplier = (supplierId: string) => {
-    router.push(`/suppliers/${supplierId}`);
-  };
-  
-  const handleViewLedger = (supplierId: string) => {
-    router.push(`/suppliers/${supplierId}/ledger`);
-  };
   
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Supplier</TableHead>
+            <TableHead className="w-[200px]">Supplier Name</TableHead>
             <TableHead>Contact</TableHead>
-            <TableHead className="text-right">Total Purchases</TableHead>
-            <TableHead className="text-right">Total Payments</TableHead>
-            <TableHead className="text-right">Balance</TableHead>
-            <TableHead className="text-center">Action</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Purchases</TableHead>
+            <TableHead className="text-right">Payments</TableHead>
+            <TableHead className="text-right">Outstanding</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No suppliers found
               </TableCell>
             </TableRow>
           ) : (
             <>
-              {data.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell>{supplier.name}</TableCell>
-                  <TableCell>{supplier.contact || "-"}</TableCell>
-                  <TableCell className="text-right">{formatPrice(supplier.totalPurchases)}</TableCell>
-                  <TableCell className="text-right">{formatPrice(supplier.totalPayments)}</TableCell>
-                  <TableCell className="text-right font-medium">{formatPrice(supplier.balance)}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Button
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleViewSupplier(supplier.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleViewLedger(supplier.id)}
-                      >
-                        <BookText className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {data.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>{item.contact}</TableCell>
+                  <TableCell>{item.email}</TableCell>
+                  <TableCell>{item.createdAt}</TableCell>
+                  <TableCell className="text-right">{formatPrice(item.totalPurchases)}</TableCell>
+                  <TableCell className="text-right">{formatPrice(item.totalPayments)}</TableCell>
+                  <TableCell 
+                    className={`text-right font-bold ${item.outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}
+                  >
+                    {formatPrice(item.outstanding)}
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => router.push(`/suppliers/${item.id}`)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" /> View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
-              <TableRow>
-                <TableCell colSpan={2} className="font-bold">Totals</TableCell>
-                <TableCell className="text-right font-bold">{formatPrice(data.reduce((total, supplier) => total + supplier.totalPurchases, 0))}</TableCell>
-                <TableCell className="text-right font-bold">{formatPrice(data.reduce((total, supplier) => total + supplier.totalPayments, 0))}</TableCell>
-                <TableCell className="text-right font-bold">{formatPrice(data.reduce((total, supplier) => total + supplier.balance, 0))}</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
             </>
           )}
         </TableBody>

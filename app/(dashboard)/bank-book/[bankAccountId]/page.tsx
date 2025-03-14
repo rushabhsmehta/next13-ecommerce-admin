@@ -3,7 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { TransactionTable } from "@/components/bank-book/transaction-table";
+import { TransactionTable } from "../components/transaction-table"; // Updated path
 import { FormattedTransaction } from "@/types";
 
 interface BankBookPageProps {

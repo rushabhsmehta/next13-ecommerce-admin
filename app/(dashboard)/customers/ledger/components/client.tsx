@@ -14,7 +14,7 @@ import * as XLSX from 'xlsx';
 type CustomerSummary = {
   id: string;
   name: string;
-  contact: string;
+  contact: string | null; // Updated to accept null values
   totalSales: number;
   totalReceipts: number;
   balance: number;

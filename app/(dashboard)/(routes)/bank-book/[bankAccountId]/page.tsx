@@ -1,74 +1,273 @@
-import { format } from "date-fns";
-import prismadb from "@/lib/prismadb";
-import { notFound } from "next/navigation";
+"use client";
+
+import * as React from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { useParams } from "next/navigation";
+import { format, subDays } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { CalendarIcon } from "lucide-react";
+
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { TransactionTable, BankTransaction } from "../components/transaction-table";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TransactionTable } from "../components/transaction-table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-interface BankBookPageProps {
-  params: {
-    bankAccountId: string;
-  };
+interface BankAccount {
+  id: string;
+  accountName: string;
+  bankName: string;
+  accountNumber: string;
+  openingBalance: number;
 }
 
-const BankBookPage = async ({ params }: BankBookPageProps) => {
-  // Get bank account details
-  const bankAccount = await prismadb.bankAccount.findUnique({
-    where: {
-      id: params.bankAccountId,
-    },
+interface Transaction {
+  id: string;
+  date: string;
+  type: string;
+  description: string;
+  reference: string;
+  amount: number;
+  isInflow: boolean;
+  note: string;
+  transactionId?: string;
+}
+
+const BankBookPage = () => {
+  const params = useParams();
+  const [loading, setLoading] = useState(true);
+  const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [openingBalance, setOpeningBalance] = useState(0);
+
+  // Date range for filtering (default to last 30 days)
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
   });
 
-  if (!bankAccount) {
-    return notFound();
+  // Fetch bank account details
+  useEffect(() => {
+    const fetchBankAccount = async () => {
+      try {
+        const response = await axios.get(`/api/bank-accounts/${params.bankAccountId}`);
+        setBankAccount(response.data);
+      } catch (error) {
+        console.error("Failed to fetch bank account:", error);
+      }
+    };
+
+    if (params.bankAccountId) {
+      fetchBankAccount();
+    }
+  }, [params.bankAccountId]);
+
+  // Fetch transactions when date range changes
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      try {
+        const startDate = dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
+        const endDate = dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '';
+
+        const response = await axios.get(
+          `/api/bank-accounts/${params.bankAccountId}/transactions?startDate=${startDate}&endDate=${endDate}`
+        );
+
+        setTransactions(response.data.transactions);
+        setOpeningBalance(response.data.openingBalance);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.bankAccountId && dateRange.from && dateRange.to) {
+      fetchTransactions();
+    }
+  }, [params.bankAccountId, dateRange]);
+
+  // Replace handleDateRangeChange with separate handlers for from and to dates
+  const handleFromDateChange = (date: Date | undefined) => {
+    if (date) {
+      setDateRange(prev => ({
+        from: date,
+        to: prev.to
+      }));
+    }
+  };
+
+  const handleToDateChange = (date: Date | undefined) => {
+    if (date) {
+      setDateRange(prev => ({
+        from: prev.from,
+        to: date
+      }));
+    }
+  };
+
+  const handlePresetChange = (value: string) => {
+    const now = new Date();
+    let newRange: DateRange | undefined;
+
+    switch (value) {
+      case "7":
+        newRange = {
+          from: subDays(now, 7),
+          to: now
+        };
+        break;
+      case "30":
+        newRange = {
+          from: subDays(now, 30),
+          to: now
+        };
+        break;
+      case "90":
+        newRange = {
+          from: subDays(now, 90),
+          to: now
+        };
+        break;
+      case "this-month":
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        newRange = {
+          from: firstDayOfMonth,
+          to: now
+        };
+        break;
+      default:
+        return;
+    }
+
+    setDateRange(newRange);
+  };
+
+  if (!bankAccount && loading) {
+    return (
+      <div className="p-8">
+        <Skeleton className="h-8 w-[200px] mb-4" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-4 w-full mb-2" />
+        <Skeleton className="h-4 w-full mb-2" />
+      </div>
+    );
   }
 
-  // Get transactions for this bank account
-  const dbTransactions = await prismadb.transaction.findMany({
-    where: {
-      bankAccountId: params.bankAccountId,
-    },
-    orderBy: {
-      date: 'asc',
-    },
-  });
-
-  // Calculate opening balance and running balance
-  let runningBalance = bankAccount.openingBalance;
-  
-  // Transform to the expected transaction format
-  const formattedTransactions: BankTransaction[] = dbTransactions.map(transaction => {
-    // Update running balance
-    const amount = transaction.amount;
-    runningBalance += amount;
-
-    return {
-      id: transaction.id,
-      date: format(transaction.date, "yyyy-MM-dd"),
-      type: transaction.type,
-      description: transaction.description,
-      inflow: amount > 0 ? amount : 0,
-      outflow: amount < 0 ? Math.abs(amount) : 0,
-      balance: runningBalance,
-      reference: transaction.reference || undefined
-    };
-  });
-
   return (
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <Heading 
-          title={`${bankAccount.name} - Bank Book`}
-          description={`View transactions and balance for ${bankAccount.name}`}
+    <div className="p-8 pt-6">
+      <div className="flex items-center justify-between">
+        <Heading
+          title={`Bank Book - ${bankAccount?.accountName || ''}`}
+          description={bankAccount ? `${bankAccount.bankName} - ${bankAccount.accountNumber}` : ''}
         />
-        <Separator />
-        
-        <TransactionTable 
-          data={formattedTransactions}
-          openingBalance={bankAccount.openingBalance} 
-          accountName={bankAccount.name} 
-        />
+        <div className="flex items-center gap-4">
+          {/* From Date Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[180px] justify-start text-left font-normal",
+                  !dateRange.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.from ? (
+                  format(dateRange.from, "LLL dd, y")
+                ) : (
+                  <span>Start date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="flex w-auto flex-col space-y-2 p-2" align="start">
+              <div className="rounded-md border">
+                <Calendar
+                  initialFocus
+                  mode="single"
+                  selected={dateRange.from}
+                  onSelect={handleFromDateChange}
+                  disabled={(date) => date > new Date()}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-muted-foreground">to</span>
+
+          {/* To Date Picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[180px] justify-start text-left font-normal",
+                  !dateRange.to && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.to ? (
+                  format(dateRange.to, "LLL dd, y")
+                ) : (
+                  <span>End date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="flex w-auto flex-col space-y-2 p-2" align="start">
+              <Select onValueChange={handlePresetChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a preset" />
+                </SelectTrigger>
+                <SelectContent position="popper">
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                  <SelectItem value="this-month">This month</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="rounded-md border">
+                <Calendar
+                  initialFocus
+                  mode="single"
+                  selected={dateRange.to}
+                  onSelect={handleToDateChange}
+                  disabled={(date) => date > new Date() || (dateRange.from ? date < dateRange.from : false)}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
+      <Separator className="my-4" />
+
+      {loading ? (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : (
+        <TransactionTable
+          transactions={transactions}
+          openingBalance={openingBalance}
+        />
+      )}
     </div>
   );
 };

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const { 
       expenseDate,
       amount,
-      expenseCategoryId, // Category ID for the relation
+      expenseCategoryId,
       description,
       tourPackageQueryId,
       accountId,
@@ -49,9 +49,9 @@ export async function POST(req: Request) {
       data: {
         expenseDate: new Date(expenseDate),
         amount: parseFloat(amount.toString()),
-        expenseCategoryId, // Store the relation via ID only
+        expenseCategoryId,
         description,
-        tourPackageQueryId: tourPackageQueryId || undefined,
+        tourPackageQueryId: tourPackageQueryId || undefined, // This is now optional
         bankAccountId: accountType === 'bank' ? accountId : undefined,
         cashAccountId: accountType === 'cash' ? accountId : undefined,
       }

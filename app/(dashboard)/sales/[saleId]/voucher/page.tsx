@@ -2,12 +2,10 @@ import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, Printer } from "lucide-react";
-import { jsPDF } from "jspdf";
+import { VoucherActions } from "@/components/voucher-actions";
 
 interface SaleVoucherPageProps {
   params: {
@@ -42,39 +40,7 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
             title="Sales Voucher" 
             description="View and print sales voucher"
           />
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => window.print()}
-              className="flex items-center gap-2 print:hidden"
-            >
-              <Printer className="h-4 w-4" />
-              Print
-            </Button>
-            <Button 
-              variant="default"
-              onClick={() => {
-                const doc = new jsPDF();
-                // Capture the HTML content
-                const content = document.getElementById('voucher-content');
-                if (content) {
-                  doc.html(content, {
-                    callback: function(doc) {
-                      doc.save(`sale-voucher-${params.saleId}.pdf`);
-                    },
-                    x: 15,
-                    y: 15,
-                    width: 170,
-                    windowWidth: 650
-                  });
-                }
-              }}
-              className="flex items-center gap-2 print:hidden"
-            >
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Button>
-          </div>
+          <VoucherActions id={params.saleId} type="sale" />
         </div>
         <Separator />
         

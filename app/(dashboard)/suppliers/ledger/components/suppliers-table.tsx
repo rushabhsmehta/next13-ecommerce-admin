@@ -16,7 +16,7 @@ import { Eye } from "lucide-react";
 type SupplierSummary = {
   id: string;
   name: string;
-  contact: string;
+  contact: string | null; // Updated to accept null values
   totalPurchases: number;
   totalPayments: number;
   balance: number;

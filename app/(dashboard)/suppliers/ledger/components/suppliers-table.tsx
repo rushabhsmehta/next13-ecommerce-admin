@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, FileText } from "lucide-react";
 
 type Supplier = {
   id: string;
@@ -69,13 +69,23 @@ export const SuppliersTable: React.FC<SuppliersTableProps> = ({ data }) => {
                     {formatPrice(item.outstanding)}
                   </TableCell>
                   <TableCell>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => router.push(`/suppliers/${item.id}`)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" /> View
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => router.push(`/suppliers/${item.id}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" /> Profile
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-blue-50 hover:bg-blue-100"
+                        onClick={() => router.push(`/suppliers/${item.id}/ledger`)}
+                      >
+                        <FileText className="h-4 w-4 mr-1" /> Ledger
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

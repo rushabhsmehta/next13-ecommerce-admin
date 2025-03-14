@@ -211,7 +211,7 @@ model ReceiptDetail {
 
 model ExpenseDetail {
   id                 String           @id @default(uuid())
-  tourPackageQueryId String
+  tourPackageQueryId String?          // Added ? to make it optional
   expenseDate        DateTime
   amount             Float
   expenseCategoryId  String?
@@ -220,7 +220,7 @@ model ExpenseDetail {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now())
   
-  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade) // Made relation optional
   bankAccountId   String?    
   bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
   cashAccountId   String?
@@ -229,6 +229,7 @@ model ExpenseDetail {
   @@index([bankAccountId])
   @@index([cashAccountId])
   @@index([expenseCategoryId])
+  @@index([tourPackageQueryId]) // Add index for better performance
 }
 
 model FlightDetails {

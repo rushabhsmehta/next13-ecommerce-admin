@@ -89,7 +89,7 @@ export async function PATCH(
         amount: parseFloat(amount.toString()),
         expenseCategoryId, // Store only the relation via ID
         description,
-        tourPackageQueryId: tourPackageQueryId || null,
+        tourPackageQueryId: tourPackageQueryId || null, // Use null to clear the field if not provided
         bankAccountId: accountType === 'bank' ? accountId : null,
         cashAccountId: accountType === 'cash' ? accountId : null,
       }

@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
@@ -32,33 +32,47 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   const [confirmationFilter, setConfirmationFilter] = useState("all");
   
   // Get unique assigned to values
-  const uniqueAssignedTo = Array.from(new Set(data.map(item => item.assignedTo)));
+  const uniqueAssignedTo = Array.from(
+    new Set(data.map(item => item.assignedTo))
+  ).filter(Boolean).sort();
 
-  const applyFilters = () => {
+  // Apply filters whenever filter state changes
+  useEffect(() => {
+    applyFilters(assigneeFilter, confirmationFilter);
+  }, [assigneeFilter, confirmationFilter, data]);
+
+  const applyFilters = (assignee: string, confirmation: string) => {
+    console.log(`Applying filters - Assignee: ${assignee}, Status: ${confirmation}`);
+    
     let result = [...data];
     
     // Filter by assignee if not "all"
-    if (assigneeFilter !== "all") {
-      result = result.filter(item => item.assignedTo === assigneeFilter);
+    if (assignee !== "all") {
+      result = result.filter(item => item.assignedTo === assignee);
     }
     
     // Filter by confirmation status if not "all"
-    if (confirmationFilter !== "all") {
-      const isConfirmed = confirmationFilter === "confirmed";
-      result = result.filter(item => item.isFeatured === isConfirmed);
+    if (confirmation !== "all") {
+      const isConfirmed = confirmation === "confirmed";
+      console.log(`Filtering for isConfirmed=${isConfirmed}`);
+      result = result.filter(item => {
+        console.log(`Item ${item.tourPackageQueryName}: isFeatured=${item.isFeatured}`);
+        return item.isFeatured === isConfirmed;
+      });
     }
     
+    console.log(`Filter result: ${result.length} items`);
     setFilteredData(result);
   };
 
   const handleAssigneeFilterChange = (value: string) => {
+    console.log(`Setting assignee filter to: ${value}`);
     setAssigneeFilter(value);
-    setTimeout(() => applyFilters(), 0);
   };
 
   const handleConfirmationFilterChange = (value: string) => {
+    console.log(`Setting confirmation filter to: ${value}`);
     setConfirmationFilter(value);
-    setTimeout(() => applyFilters(), 0);
   };
 
   return (
@@ -71,7 +85,7 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
       </div>
       <Separator />
       <div className="my-4 flex flex-wrap gap-4">
-        <Select onValueChange={handleAssigneeFilterChange} defaultValue="all">
+        <Select value={assigneeFilter} onValueChange={handleAssigneeFilterChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filter by Assigned To" />
           </SelectTrigger>
@@ -79,13 +93,13 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
             <SelectItem value="all">All Assignments</SelectItem>
             {uniqueAssignedTo.map((assignee) => (
               <SelectItem key={assignee} value={assignee}>
-                {assignee}
+                {assignee || "Unassigned"}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select onValueChange={handleConfirmationFilterChange} defaultValue="all">
+        <Select value={confirmationFilter} onValueChange={handleConfirmationFilterChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filter by Status" />
           </SelectTrigger>

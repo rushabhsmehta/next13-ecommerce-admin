@@ -538,10 +538,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                     <MapPin className="h-4 w-4" />
                     Location
                   </TabsTrigger>
-                  <TabsTrigger value="dates" className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4" />
-                    Dates
-                  </TabsTrigger>
+             
                   <TabsTrigger value="itinerary" className="flex items-center gap-2">
                     <ListPlus className="h-4 w-4" />
                     Itinerary

@@ -238,6 +238,27 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
   const action = 'Create';
   // console.log("Initial Data : ", initialData?.itineraries)
 
+  const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
+    if (!data) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(data)) return data;
+    
+    // If it's a string, try to parse it
+    if (typeof data === 'string') {
+      try {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error("Error parsing pricingSection:", e);
+        return [];
+      }
+    }
+    
+    // If it's neither an array nor a string, return empty array
+    return [];
+  };
+
   const parseJsonField = (field: any): string[] => {
     if (!field) return [];
     if (Array.isArray(field)) return field;
@@ -298,7 +319,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
       cancellationPolicy: parseJsonField(data.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
       airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
       termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
-      pricingSection: data.pricingSection || DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
+      pricingSection: parsePricingSection(data.pricingSection) || DEFAULT_PRICING_SECTION,
     };
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {

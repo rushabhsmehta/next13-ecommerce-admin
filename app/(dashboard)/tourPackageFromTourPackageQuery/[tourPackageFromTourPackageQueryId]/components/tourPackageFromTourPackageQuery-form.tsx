@@ -103,11 +103,6 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  price: z.string().optional(),
-  pricePerAdult: z.string().optional(),
-  pricePerChildOrExtraBed: z.string().optional(),
-  pricePerChild5to12YearsNoBed: z.string().optional(),
-  pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
 
@@ -337,11 +332,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: '',
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
+ 
     totalPrice: TOTAL_PRICE_DEFAULT,
     assignedTo: '',
     assignedToMobileNumber: '',
@@ -538,7 +529,10 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                     <MapPin className="h-4 w-4" />
                     Location
                   </TabsTrigger>
-             
+                  <TabsTrigger value="dates" className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    Dates
+                  </TabsTrigger>
                   <TabsTrigger value="itinerary" className="flex items-center gap-2">
                     <ListPlus className="h-4 w-4" />
                     Itinerary

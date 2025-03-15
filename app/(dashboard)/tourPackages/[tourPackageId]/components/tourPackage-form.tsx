@@ -4,7 +4,7 @@ import * as z from "zod"
 import axios from "axios"
 import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useFieldArray, useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
 import { Activity, Images, ItineraryMaster } from "@prisma/client"
@@ -106,11 +106,6 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  price: z.string().optional(),
-  pricePerAdult: z.string().optional(),
-  pricePerChildOrExtraBed: z.string().optional(),
-  pricePerChild5to12YearsNoBed: z.string().optional(),
-  pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   locationId: z.string().min(1),
@@ -182,6 +177,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     termsconditions: false,
   });
 
+  const [useDefaultPricing, setUseDefaultPricing] = useState(false);
+
   const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
     if (checked) {
@@ -217,6 +214,13 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     }
   };
 
+  const handleUseDefaultPricingChange = (checked: boolean) => {
+    setUseDefaultPricing(checked);
+    if (checked) {
+      // Reset pricing section to default values
+      form.setValue('pricingSection', DEFAULT_PRICING_SECTION);
+    }
+  };
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -244,12 +248,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const parsePricingSection = (pricingData: any): any[] => {
     if (!pricingData) return DEFAULT_PRICING_SECTION;
-    
+
     // If it's already an array of objects, return it
     if (Array.isArray(pricingData) && pricingData.length > 0 && typeof pricingData[0] === 'object') {
       return pricingData;
     }
-    
+
     // If it's a string, try to parse it
     if (typeof pricingData === 'string') {
       try {
@@ -260,7 +264,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         return DEFAULT_PRICING_SECTION;
       }
     }
-    
+
     return DEFAULT_PRICING_SECTION;
   };
 
@@ -271,7 +275,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
       customerNumber: data.customerNumber ?? '',
-      price: data.price ?? '',
       tour_highlights: data.tour_highlights ?? TOUR_HIGHLIGHTS_DEFAULT,
       slug: data.slug ?? '',
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
@@ -332,11 +335,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: '',
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
     totalPrice: TOTAL_PRICE_DEFAULT,
     assignedTo: '',
     assignedToMobileNumber: '',
@@ -374,6 +372,16 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const form = useForm<TourPackageFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
+  });
+
+  const {
+    fields: pricingFields,
+    append: appendPricing,
+    remove: removePricing,
+    insert: insertPricing
+  } = useFieldArray({
+    control: form.control,
+    name: "pricingSection"
   });
 
   const handleMealChange = (mealType: string, isChecked: boolean, itineraryIndex: number) => {
@@ -494,17 +502,23 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   // Function to handle meal checkbox changes
 
   // Add this function to handle pricing items
-  const handleAddPricingItem = () => {
-    const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', [
-      ...currentPricing,
-      { name: '', price: '', description: '' }
-    ]);
+  const handleAddPricingItem = (insertAtIndex?: number) => {
+    const newItem = { name: '', price: '', description: '' };
+    
+    if (insertAtIndex !== undefined) {
+      // Insert after the specified index
+      insertPricing(insertAtIndex + 1, newItem);
+      console.log("Inserted item after index", insertAtIndex);
+    } else {
+      // Add to the end
+      appendPricing(newItem);
+      console.log("Added item at the end");
+    }
   };
-
-  const handleRemovePricingItem = (index: number) => {
-    const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', currentPricing.filter((_, i) => i !== index));
+  
+  const handleRemovePricingItem = (indexToRemove: number) => {
+    removePricing(indexToRemove);
+    console.log("Removed item at index", indexToRemove);
   };
 
   return (
@@ -537,7 +551,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -596,6 +610,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
                   <FormField
                     control={form.control}
                     name="images"
@@ -640,13 +655,15 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   />
 
                   <div className="grid grid-cols-3 gap-8">
+
+
                     {/* add formfield for TourPackageQueryName */}
                     <FormField
                       control={form.control}
                       name="tourPackageName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Tour Package Name<span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>Tour Package Query Name<span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <Input
                               disabled={loading}
@@ -752,7 +769,93 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                         </FormItem>
                       )}
                     />
-                  </div>  
+                  </div>
+
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Add similar TabsContent sections for other tabs */}
+            <TabsContent value="guests" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Guests</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Move guests form fields here */}
+                  {/* //add formfield for numAdults */}
+                  <FormField
+                    control={form.control}
+                    name="customerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer Name</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Customer Name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="customerNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer Number</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Customer Number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+
+                  <FormField
+                    control={form.control}
+                    name="numAdults"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Adults</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Number of Adults" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* //add formfield for numChildren */}
+                  <FormField
+                    control={form.control}
+                    name="numChild5to12"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Children 5 to 12</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* //add formfield for numChildren */}
+                  <FormField
+                    control={form.control}
+                    name="numChild0to5"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Children 0 to 5</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1480,13 +1583,43 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   <CardTitle>Pricing</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Move pricing form fields here */}              
+                  {/* Add switch for default pricing options at the top */}
+                  <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md mb-4">
+                    <Switch
+                      checked={useDefaultPricing}
+                      onCheckedChange={handleUseDefaultPricingChange}
+                      id="use-default-pricing"
+                    />
+                    <label
+                      htmlFor="use-default-pricing"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Use default pricing options
+                    </label>
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="totalPrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total Price</FormLabel>
+                        <FormControl>
+                          <Input disabled={loading} placeholder="Total Price" {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="border rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
                     <FormField
                       control={form.control}
                       name="pricingSection"
-                      render={({ field }) => (
+                      render={() => (
                         <FormItem>
                           {/* Add column headers */}
                           <div className="grid grid-cols-3 gap-4 mb-2 px-1">
@@ -1495,9 +1628,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             <div className="font-medium text-sm">Description (Optional)</div>
                           </div>
                           <div className="space-y-4">
-                            {/* Ensure field.value is an array before mapping */}
-                            {Array.isArray(field.value) ? field.value.map((item, index) => (
-                              <div key={index} className="grid grid-cols-3 gap-4 items-end relative pr-10">
+                            {/* Use pricingFields from useFieldArray instead of field.value */}
+                            {pricingFields.map((field, index) => (
+                              <div key={field.id} className="grid grid-cols-3 gap-4 items-end relative pr-20 pt-2 border-t border-gray-100 first:border-t-0">
                                 <FormField
                                   control={form.control}
                                   name={`pricingSection.${index}.name`}
@@ -1530,32 +1663,45 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                   control={form.control}
                                   name={`pricingSection.${index}.description`}
                                   render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="relative">
                                       <FormControl>
                                         <Input
                                           placeholder="e.g. Age 3-12, with bed"
                                           {...field}
                                         />
                                       </FormControl>
+                                      <div className="absolute right-0 top-0 -mr-20 flex space-x-1">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleAddPricingItem(index)}
+                                          className="h-10 w-10"
+                                          title="Insert row after this"
+                                        >
+                                          <Plus className="h-4 w-4 text-blue-500" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleRemovePricingItem(index)}
+                                          className="h-10 w-10"
+                                          title="Remove this row"
+                                        >
+                                          <Trash className="h-4 w-4 text-red-500" />
+                                        </Button>
+                                      </div>
                                     </FormItem>
                                   )}
                                 />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute right-0 bottom-0"
-                                  onClick={() => handleRemovePricingItem(index)}
-                                >
-                                  <Trash className="h-4 w-4 text-red-500" />
-                                </Button>
                               </div>
-                            )) : null}
+                            ))}
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={handleAddPricingItem}
+                              onClick={() => handleAddPricingItem()}
                               className="mt-2"
                             >
                               <Plus className="mr-2 h-4 w-4" />
@@ -1729,6 +1875,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       </Form>
 
       {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+
     </>
   )
 }

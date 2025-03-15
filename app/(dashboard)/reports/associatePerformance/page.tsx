@@ -138,6 +138,22 @@ export default function AssociatePerformancePage() {
     fetchData();
   }, [selectedAssociate, dateRange]);
 
+  // Function to get current financial year (April 1 to March 31)
+  const setCurrentFinancialYear = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    
+    // If current month is January to March, financial year started last year
+    const financialYearStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+    const financialYearEndYear = financialYearStartYear + 1;
+    
+    const from = new Date(financialYearStartYear, 3, 1); // April 1st
+    const to = new Date(financialYearEndYear, 2, 31); // March 31st
+    
+    setDateRange({ from, to });
+  };
+
   // Filter data based on selected associate
   const filteredData = selectedAssociate === "all"
     ? performanceData
@@ -346,6 +362,14 @@ export default function AssociatePerformancePage() {
 
       <div className="flex gap-4 items-center">
         <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+        <Button 
+          onClick={setCurrentFinancialYear} 
+          variant="outline" 
+          size="sm"
+          className="whitespace-nowrap"
+        >
+          Financial Year
+        </Button>
         <Select value={selectedAssociate} onValueChange={setSelectedAssociate}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select Associate" />

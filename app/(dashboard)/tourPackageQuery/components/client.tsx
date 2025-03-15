@@ -28,16 +28,37 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   const params = useParams();
   const router = useRouter();
   const [filteredData, setFilteredData] = useState(data);
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [confirmationFilter, setConfirmationFilter] = useState("all");
   
   // Get unique assigned to values
   const uniqueAssignedTo = Array.from(new Set(data.map(item => item.assignedTo)));
 
-  const handleFilterChange = (value: string) => {
-    if (value === "all") {
-      setFilteredData(data);
-    } else {
-      setFilteredData(data.filter(item => item.assignedTo === value));
+  const applyFilters = () => {
+    let result = [...data];
+    
+    // Filter by assignee if not "all"
+    if (assigneeFilter !== "all") {
+      result = result.filter(item => item.assignedTo === assigneeFilter);
     }
+    
+    // Filter by confirmation status if not "all"
+    if (confirmationFilter !== "all") {
+      const isConfirmed = confirmationFilter === "confirmed";
+      result = result.filter(item => item.isFeatured === isConfirmed);
+    }
+    
+    setFilteredData(result);
+  };
+
+  const handleAssigneeFilterChange = (value: string) => {
+    setAssigneeFilter(value);
+    setTimeout(() => applyFilters(), 0);
+  };
+
+  const handleConfirmationFilterChange = (value: string) => {
+    setConfirmationFilter(value);
+    setTimeout(() => applyFilters(), 0);
   };
 
   return (
@@ -49,8 +70,8 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
         </Button>
       </div>
       <Separator />
-      <div className="my-4">
-        <Select onValueChange={handleFilterChange} defaultValue="all">
+      <div className="my-4 flex flex-wrap gap-4">
+        <Select onValueChange={handleAssigneeFilterChange} defaultValue="all">
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Filter by Assigned To" />
           </SelectTrigger>
@@ -61,6 +82,17 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
                 {assignee}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select onValueChange={handleConfirmationFilterChange} defaultValue="all">
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filter by Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Queries</SelectItem>
+            <SelectItem value="confirmed">Confirmed Queries</SelectItem>
+            <SelectItem value="pending">Pending Queries</SelectItem>
           </SelectContent>
         </Select>
       </div>

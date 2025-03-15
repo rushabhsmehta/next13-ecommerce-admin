@@ -179,6 +179,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     termsconditions: false,
   });
 
+  const [useDefaultPricing, setUseDefaultPricing] = useState(false);
 
   const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
@@ -215,6 +216,13 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     }
   };
 
+  const handleUseDefaultPricingChange = (checked: boolean) => {
+    setUseDefaultPricing(checked);
+    if (checked) {
+      // Reset pricing section to default values
+      form.setValue('pricingSection', DEFAULT_PRICING_SECTION);
+    }
+  };
 
   //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
 
@@ -1510,24 +1518,37 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                       <CardTitle>Pricing</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Move pricing form fields here */}                     
-    
-                        <FormField
-                          control={form.control}
-                          name="totalPrice"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Total Price</FormLabel>
-                              <FormControl>
-                                <Input disabled={loading} placeholder="Total Price" {...field}
-                                  value={field.value || ''}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                      {/* Add switch for default pricing options at the top */}
+                      <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md mb-4">
+                        <Switch
+                          checked={useDefaultPricing}
+                          onCheckedChange={handleUseDefaultPricingChange}
+                          id="use-default-pricing"
                         />
-
+                        <label
+                          htmlFor="use-default-pricing"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Use default pricing options
+                        </label>
+                      </div>
+    
+                      <FormField
+                        control={form.control}
+                        name="totalPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Total Price</FormLabel>
+                            <FormControl>
+                              <Input disabled={loading} placeholder="Total Price" {...field}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+    
                       <div className="border rounded-lg p-4">
                         <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
                         <FormField

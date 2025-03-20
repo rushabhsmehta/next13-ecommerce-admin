@@ -4,6 +4,12 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CellAction } from "./cell-action";
 import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type LocationInfo = {
   id: string;
@@ -50,15 +56,30 @@ export const columns: ColumnDef<SupplierColumn>[] = [
             </Badge>
           ))}
           {locations.length > 3 && (
-            <Badge variant="outline">
-              +{locations.length - 3} more
-            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="cursor-default">
+                    +{locations.length - 3} more
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent align="start" className="max-w-[300px] p-2">
+                  <p className="text-sm font-medium mb-1">All Locations:</p>
+                  <div className="grid grid-cols-1 gap-1">
+                    {locations.map((location) => (
+                      <span key={location.id} className="text-xs">
+                        • {location.label}
+                      </span>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       )
     }
   },
-
   {
     accessorKey: "createdAt",
     header: "Created At",

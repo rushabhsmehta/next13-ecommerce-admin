@@ -70,13 +70,13 @@ export const SupplierClient: React.FC<SupplierClientProps> = ({ data, locations 
       <Separator />
       
       <div className="flex flex-wrap items-center gap-4 py-4">
-        <Input
+      {/*   <Input
           placeholder="Search suppliers..."
           className="w-[250px]"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        
+         */}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button

@@ -39,10 +39,38 @@ export interface ExpenseFormProps extends TransactionFormProps {
 
 export interface IncomeFormProps {
   initialData: any;
-  incomeCategories: IncomeCategory[];
-  bankAccounts: BankAccount[];
-  cashAccounts: CashAccount[];
-  onSuccess?: () => void; // Make onSuccess optional by adding a question mark
+  incomeCategories: {
+    id: string;
+    name: string;
+    description: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  bankAccounts: {
+    id: string;
+    accountName: string;
+    bankName: string;
+    accountNumber: string;
+    ifscCode: string;
+    branch: string;
+    openingBalance: number;
+    currentBalance: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  cashAccounts: {
+    id: string;
+    accountName: string;
+    openingBalance: number;
+    currentBalance: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  onSuccess?: () => void;
+  submitButtonText?: string; // Add this line to include the submitButtonText property
 }
 
 // Common base interface for all financial form props

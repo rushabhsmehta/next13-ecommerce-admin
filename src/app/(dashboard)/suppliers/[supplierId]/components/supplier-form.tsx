@@ -67,6 +67,11 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         const response = await axios.get('/api/locations');
         console.log("Fetched locations:", response.data);
         setLocations(response.data);
+        
+        // Debug info for selected locations
+        if (initialData?.locations) {
+          console.log("Initial locations:", initialData.locations);
+        }
       } catch (error) {
         toast.error('Failed to load locations');
         console.error(error);
@@ -74,7 +79,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
     };
     
     fetchLocations();
-  }, []);
+  }, [initialData]);
 
   const title = initialData ? "Edit Supplier" : "Create Supplier";
   const description = initialData ? "Edit supplier details." : "Add a new supplier";

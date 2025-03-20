@@ -35,7 +35,6 @@ export function MultiSelect({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
-  // Add new ref to track whether clicks are inside the component
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   const handleSelect = React.useCallback(
@@ -77,7 +76,7 @@ export function MultiSelect({
   return (
     <div className="relative" ref={containerRef}>
       <div
-        className={`flex min-h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background ${
+        className={`flex min-h-10 max-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background ${
           disabled ? "cursor-not-allowed opacity-50" : "cursor-text"
         }`}
         onClick={() => {
@@ -87,7 +86,7 @@ export function MultiSelect({
           }
         }}
       >
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 overflow-y-auto w-full">
           {selected.map((value) => {
             const option = options.find((opt) => opt.value === value);
             if (!option) return null;
@@ -120,10 +119,9 @@ export function MultiSelect({
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            // Remove onBlur that closes the dropdown
             onFocus={() => setOpen(true)}
             placeholder={selected.length === 0 ? placeholder : ""}
-            className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+            className="flex-1 min-w-[80px] bg-transparent outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
             disabled={disabled}
           />
         </div>
@@ -133,7 +131,6 @@ export function MultiSelect({
         <div 
           className="absolute z-50 w-full mt-1 rounded-md border bg-popover text-popover-foreground shadow-md outline-none"
           onMouseDown={(e) => {
-            // Prevent input blur when clicking inside dropdown
             e.preventDefault();
           }}
         >
@@ -143,7 +140,6 @@ export function MultiSelect({
               value={inputValue} 
               onValueChange={setInputValue} 
               className="h-9"
-              // Don't trigger blur on input
               onMouseDown={(e) => e.stopPropagation()}
             />
             <CommandEmpty>No results found.</CommandEmpty>
@@ -156,12 +152,10 @@ export function MultiSelect({
                     value={option.label}
                     onSelect={() => {
                       handleSelect(option);
-                      // Keep dropdown open after selection
                       inputRef.current?.focus();
                     }}
                     className="flex items-center gap-2 cursor-pointer"
                     onMouseDown={(e) => {
-                      // Prevent input blur
                       e.preventDefault();
                     }}
                   >

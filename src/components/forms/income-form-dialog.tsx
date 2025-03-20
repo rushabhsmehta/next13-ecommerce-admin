@@ -44,7 +44,31 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { IncomeFormProps } from "@/types/index";
+
+// Modify the interface directly in the component file
+interface IncomeFormProps {
+  initialData: any;
+  incomeCategories: {
+    id: string;
+    name: string;
+    description: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+  bankAccounts: {
+    id: string;
+    accountName: string;
+    // ...other properties
+  }[];
+  cashAccounts: {
+    id: string;
+    accountName: string;
+    // ...other properties
+  }[];
+  onSuccess?: () => void;
+  submitButtonText?: string; // Add this line
+}
 
 const formSchema = z.object({
   incomeDate: z.date({

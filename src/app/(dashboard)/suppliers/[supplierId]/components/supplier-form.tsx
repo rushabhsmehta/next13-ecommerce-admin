@@ -145,74 +145,76 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         )}
       </div>
       <Separator />
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Supplier name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="contact"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Contact info" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input disabled={loading} placeholder="Email address" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="locationIds"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Locations</FormLabel>
-                <FormControl>
-                  <MultiSelect
-                    disabled={loading}
-                    placeholder="Select locations"
-                    options={locations.map(location => ({
-                      label: location.label, // Changed from name to label
-                      value: location.id
-                    }))}
-                    selected={field.value || []}
-                    onChange={field.onChange}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button disabled={loading} className="ml-auto" type="submit">
-            {action}
-          </Button>
-        </form>
-      </Form>
+      <div className="max-w-3xl mx-auto w-full">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Supplier name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Contact info" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Email address" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="locationIds"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Locations</FormLabel>
+                  <FormControl>
+                    <MultiSelect
+                      disabled={loading}
+                      placeholder="Select locations"
+                      options={locations.map(location => ({
+                        label: location.label, // Changed from name to label
+                        value: location.id
+                      }))}
+                      selected={field.value || []}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button disabled={loading} className="ml-auto" type="submit">
+              {action}
+            </Button>
+          </form>
+        </Form>
+      </div>
     </>
   );
 };

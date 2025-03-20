@@ -1,0 +1,71 @@
+# Next.js E-Commerce Admin Project Routes
+
+This document provides an overview of the important routes and file paths in the Next.js E-Commerce admin project.
+
+## API Routes
+
+### Purchase Management
+- `/api/purchases`
+  - `GET` - Fetch purchases with optional filters
+  - `POST` - Create a new purchase
+
+- `/api/purchases/[purchaseId]`
+  - `GET` - Get a specific purchase by ID
+  - `PATCH` - Update an existing purchase
+  - `DELETE` - Delete a purchase
+
+### Supporting Data
+- `/api/tax-slabs` - Tax slabs management
+- `/api/units` - Units of measure management
+- `/api/customers` - Customer data management
+- `/api/suppliers` - Supplier data management
+
+## Component Structure
+
+### Form Components
+- `/components/forms/purchase-form-dialog.tsx` - Dialog form for creating/editing purchases
+- `/components/forms/sale-form-dialog.tsx` - Dialog form for creating/editing sales
+- `/components/forms/purchase-form-wrapper.tsx` - Wrapper component that loads data for purchase forms
+- `/components/forms/sale-form-wrapper.tsx` - Wrapper component that loads data for sale forms
+
+### UI Components
+- `/components/ui/button.tsx`
+- `/components/ui/checkbox.tsx`
+- `/components/ui/form.tsx`
+- `/components/ui/input.tsx`
+- `/components/ui/textarea.tsx`
+
+## Pages Structure
+
+### Dashboard Pages
+- `/app/(dashboard)/purchases/page.tsx` - Purchase listing page
+- `/app/(dashboard)/purchases/[purchaseId]/page.tsx` - Purchase details page
+- `/app/(dashboard)/purchases/new/page.tsx` - New purchase page
+- `/app/(dashboard)/sales/page.tsx` - Sales listing page
+- `/app/(dashboard)/sales/[saleId]/page.tsx` - Sale details page
+
+### Settings Pages
+- `/app/(dashboard)/settings/tax-slabs/page.tsx` - Tax slabs management
+- `/app/(dashboard)/settings/units/page.tsx` - Units management
+- `/app/(dashboard)/settings/organization/page.tsx` - Organization settings
+
+## Data Models
+
+The application uses Prisma with the following key models:
+- `PurchaseDetail` - Main purchase records
+- `PurchaseItem` - Line items for purchases
+- `SaleDetail` - Main sales records
+- `SaleItem` - Line items for sales
+- `PaymentDetail` - Payment tracking
+- `ReceiptDetail` - Receipt tracking
+- `ExpenseDetail` - Expense management
+- `IncomeDetail` - Income management
+- `Customer` - Customer information
+- `Supplier` - Supplier information
+- `TaxSlab` - Tax rate definitions
+- `UnitOfMeasure` - Units of measurement
+
+## Type Definitions
+
+Type definitions for form props and other interfaces are stored in:
+- `/src/types.ts`

@@ -10,6 +10,7 @@ import { IncomeFormProps } from "@/types/index";
 interface IncomeFormWrapperProps extends IncomeFormProps {
   isModal?: boolean;
   redirectPath?: string;
+  submitButtonText?: string;
 }
 
 export const IncomeFormWrapper = ({

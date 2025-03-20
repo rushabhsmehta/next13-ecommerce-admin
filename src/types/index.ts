@@ -37,10 +37,12 @@ export interface ExpenseFormProps extends TransactionFormProps {
   cashAccounts: CashAccount[];
 }
 
-export interface IncomeFormProps extends TransactionFormProps {
+export interface IncomeFormProps {
+  initialData: any;
   incomeCategories: IncomeCategory[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
+  onSuccess?: () => void; // Make onSuccess optional by adding a question mark
 }
 
 // Common base interface for all financial form props

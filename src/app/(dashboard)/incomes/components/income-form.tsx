@@ -4,10 +4,17 @@ import { IncomeFormWrapper } from "@/components/forms/income-form-wrapper";
 import { IncomeFormProps } from "@/types/index";
 import { useRouter } from "next/navigation";
 
-export const IncomeForm = ({ initialData, incomeCategories, bankAccounts, cashAccounts }: IncomeFormProps) => {
+export const IncomeForm = ({ 
+  initialData, 
+  incomeCategories, 
+  bankAccounts, 
+  cashAccounts, 
+  onSuccess 
+}: IncomeFormProps) => {
   const router = useRouter();
   
-  const onSuccess = () => {
+  // Default onSuccess handler if none is provided
+  const handleSuccess = () => {
     router.push("/incomes");
     router.refresh();
   };
@@ -18,7 +25,7 @@ export const IncomeForm = ({ initialData, incomeCategories, bankAccounts, cashAc
       incomeCategories={incomeCategories}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}
-      onSuccess={onSuccess}
+      onSuccess={onSuccess || handleSuccess}
       submitButtonText={initialData?.id ? "Update Income" : "Create Income"}
     />
   );

@@ -1,4 +1,3 @@
-
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
@@ -7,11 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { IncomeForm } from "../components/income-form";
 
 export default async function NewIncomePage() {
-/*   const { userId } = auth();
+  const { userId } = auth();
 
   if (!userId) {
     redirect("/sign-in");
-  } */
+  }
 
   // Get the data we need for the form
   const [incomeCategories, bankAccounts, cashAccounts] = await Promise.all([
@@ -42,7 +41,6 @@ export default async function NewIncomePage() {
           incomeCategories={incomeCategories}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts}
-          onSuccess={() => {}}
         />
       </div>
     </div>

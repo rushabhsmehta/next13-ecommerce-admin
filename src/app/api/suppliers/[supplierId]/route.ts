@@ -13,7 +13,18 @@ export async function GET(
 
     const supplier = await prismadb.supplier.findUnique({
       where: { id: params.supplierId },
-      select: { id: true, name: true, contact: true, email: true, createdAt: true },
+      select: { 
+        id: true, 
+        name: true, 
+        contact: true, 
+        email: true, 
+        createdAt: true,
+        locations: {
+          select: {
+            location: true
+          }
+        }
+      },
     });
 
     return NextResponse.json(supplier);
@@ -53,12 +64,43 @@ export async function PATCH(
     if (!params.supplierId) return new NextResponse("Supplier ID is required", { status: 400 });
 
     const body = await req.json();
-    const { name, contact, email } = body;
+    const { name, contact, email, locationIds } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
+
+    // Delete existing supplier-location relationships
+    await prismadb.supplierLocation.deleteMany({
+      where: { supplierId: params.supplierId }
+    });
+    
+    // Create new supplier-location relationships
+    let locationData = {};
+    if (locationIds && locationIds.length > 0) {
+      locationData = {
+        locations: {
+          create: locationIds.map((locationId: string) => ({
+            location: {
+              connect: { id: locationId }
+            }
+          }))
+        }
+      };
+    }
 
     const supplier = await prismadb.supplier.update({
       where: { id: params.supplierId },
-      data: { name, contact, email },
+      data: { 
+        name, 
+        contact, 
+        email,
+        ...locationData
+      },
+      include: {
+        locations: {
+          include: {
+            location: true
+          }
+        }
+      }
     });
 
     return NextResponse.json(supplier);

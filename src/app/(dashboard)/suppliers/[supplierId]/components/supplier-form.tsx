@@ -2,7 +2,7 @@
 
 import * as z from "zod";
 import axios from "axios";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
@@ -18,26 +18,63 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
+import { MultiSelect } from "@/components/ui/multi-select"; // You'll need to implement this component
 
 const formSchema = z.object({
   name: z.string().min(1),
   contact: z.string().optional(),
-  email: z.string().optional().or(z.literal('')), // Modified to make email optional
+  email: z.string().optional().or(z.literal('')),
+  locationIds: z.array(z.string()).optional(),
 });
 
 type SupplierFormValues = z.infer<typeof formSchema>;
 
-interface SupplierFormProps {
-  initialData: { id: string; name: string; contact?: string | null; email?: string | null } | null;
+interface Location {
+  id: string;
+  label: string; // Changed from name to label to match schema
 }
+
+interface SupplierFormProps {
+  initialData: { 
+    id: string; 
+    name: string; 
+    contact?: string | null; 
+    email?: string | null;
+    locations?: Array<{location: Location}>;
+  } | null;
+}
+
 export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
   const params = useParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await axios.get('/api/locations');
+        console.log("Fetched locations:", response.data);
+        setLocations(response.data);
+      } catch (error) {
+        toast.error('Failed to load locations');
+        console.error(error);
+      }
+    };
+    
+    fetchLocations();
+  }, []);
 
   const title = initialData ? "Edit Supplier" : "Create Supplier";
   const description = initialData ? "Edit supplier details." : "Add a new supplier";
@@ -49,8 +86,9 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
         name: initialData.name,
         contact: initialData.contact || "",
         email: initialData.email || "",
+        locationIds: initialData.locations?.map(l => l.location.id) || [],
       }
-    : { name: "", contact: "", email: "" };
+    : { name: "", contact: "", email: "", locationIds: [] };
 
   const form = useForm<SupplierFormValues>({
     resolver: zodResolver(formSchema),
@@ -65,6 +103,8 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
       } else {
         await axios.post(`/api/suppliers`, data);
       }
+      
+      // Force router refresh before navigating
       router.refresh();
       router.push(`/suppliers`);
       toast.success(toastMessage);
@@ -136,6 +176,28 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData }) => {
                 <FormLabel>Email</FormLabel>
                 <FormControl>
                   <Input disabled={loading} placeholder="Email address" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="locationIds"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Locations</FormLabel>
+                <FormControl>
+                  <MultiSelect
+                    disabled={loading}
+                    placeholder="Select locations"
+                    options={locations.map(location => ({
+                      label: location.label, // Changed from name to label
+                      value: location.id
+                    }))}
+                    selected={field.value || []}
+                    onChange={field.onChange}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

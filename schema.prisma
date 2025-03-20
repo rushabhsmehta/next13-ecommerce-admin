@@ -26,6 +26,9 @@ model Location {
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
   inquiries        Inquiry[]          @relation("LocationToInquiry")
 
+  // Add the many-to-many relationship with Supplier
+  suppliers        SupplierLocation[]
+
   inclusions                Json?
   exclusions                Json?
   importantNotes            Json?
@@ -527,8 +530,31 @@ model Supplier {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @default(now())
 
+  // Add the many-to-many relationship with Location
+  locations       SupplierLocation[]
+  
   purchaseDetails PurchaseDetail[]
   paymentDetails  PaymentDetail[]  // Add this line
+}
+
+// Create a join model for the many-to-many relationship between Supplier and Location
+model SupplierLocation {
+  id         String   @id @default(uuid())
+  
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId String
+  
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId String
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Create a unique constraint to prevent duplicate associations
+  @@unique([supplierId, locationId])
+  
+  @@index([supplierId])
+  @@index([locationId])
 }
 
 model AssociatePartner {

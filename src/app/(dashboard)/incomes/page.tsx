@@ -7,12 +7,12 @@ import Link from "next/link";
 import { IncomesListTable } from "./components/incomes-list-table";
 
 export default async function IncomesPage() {
-  /* const { userId } = auth();
+  const { userId } = auth();
 
   if (!userId) {
     redirect("/sign-in");
   }
- */
+
   const incomes = await prismadb.incomeDetail.findMany({
     orderBy: { incomeDate: "desc" },
     include: {

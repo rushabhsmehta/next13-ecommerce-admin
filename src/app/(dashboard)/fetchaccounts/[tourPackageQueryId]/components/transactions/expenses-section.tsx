@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ExpenseFormDialog } from "@/components/forms/expense-form-dialog"; // Updated path
+import { ExpenseFormWrapper } from "@/components/forms/expense-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -153,7 +153,7 @@ const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           </DialogHeader>
           
           <div className="mt-4">
-            <ExpenseFormDialog
+            <ExpenseFormWrapper
               initialData={editItem || {
                 tourPackageQueryId: tourPackageId,
                 tourPackageQuery: {

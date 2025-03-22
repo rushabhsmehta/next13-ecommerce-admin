@@ -13,8 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from 'lucide-react';
 
 interface DeleteConfirmationProps {
   isOpen: boolean;
@@ -40,42 +38,21 @@ const DeleteConfirmation: React.FC<DeleteConfirmationProps> = ({
     setIsDeleting(true);
 
     try {
-      let endpoint = '';
-      switch (itemToDelete.type) {
-        case 'sale':
-          endpoint = `/api/sales/${itemToDelete.id}`;
-          break;
-        case 'purchase':
-          endpoint = `/api/purchases/${itemToDelete.id}`;
-          break;
-        case 'payment':
-          endpoint = `/api/payments/${itemToDelete.id}`;
-          break;
-        case 'receipt':
-          endpoint = `/api/receipts/${itemToDelete.id}`;
-          break;
-        case 'expense':
-          endpoint = `/api/expenses/${itemToDelete.id}`;
-          break;
-        case 'income':
-          endpoint = `/api/incomes/${itemToDelete.id}`;
-          break;
-        default:
-          toast.error('Unknown item type');
-          setIsDeleting(false);
-          setIsOpen(false);
-          return;
-      }
-
+      const endpoint = `/api/${itemToDelete.type}s/${itemToDelete.id}`;
       await axios.delete(endpoint);
-      toast.success(`${itemToDelete.type.charAt(0).toUpperCase() + itemToDelete.type.slice(1)} deleted successfully`);
+      toast.success(`${capitalizeFirstLetter(itemToDelete.type)} deleted successfully`);
       onConfirmDelete();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || `Failed to delete ${itemToDelete.type}`);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      toast.error(`Failed to delete ${itemToDelete.type}`);
     } finally {
       setIsDeleting(false);
       setIsOpen(false);
     }
+  };
+
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
   return (
@@ -84,24 +61,22 @@ const DeleteConfirmation: React.FC<DeleteConfirmationProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the 
-            {itemToDelete?.type && ` ${itemToDelete.type}`} record from the database.
+            This action cannot be undone. This will permanently delete the selected
+            {itemToDelete?.type && ` ${itemToDelete.type}`} and remove its data from our servers.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <Button 
-            variant="destructive" 
-            onClick={handleDelete} 
+          <AlertDialogAction
             disabled={isDeleting}
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isDeleting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Deleting...
-              </>
-            ) : 'Delete'}
-          </Button>
+            {isDeleting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

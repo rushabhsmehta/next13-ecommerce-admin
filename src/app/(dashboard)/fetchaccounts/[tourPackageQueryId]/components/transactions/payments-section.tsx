@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { PaymentFormDialog } from "@/components/forms/payment-form-dialog"; // Updated path
+import { PaymentFormWrapper } from "@/components/forms/payment-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -153,7 +153,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
           </DialogHeader>
           
           <div className="mt-4">
-            <PaymentFormDialog
+            <PaymentFormWrapper
               initialData={editItem || {
                 tourPackageQueryId: tourPackageId,
                 tourPackageQuery: {

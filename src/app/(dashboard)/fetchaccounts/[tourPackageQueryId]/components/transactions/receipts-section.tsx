@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ReceiptFormDialog } from "@/components/forms/receipt-form-dialog"; // Updated path
+import { ReceiptFormWrapper } from "@/components/forms/receipt-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -153,7 +153,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
           </DialogHeader>
           
           <div className="mt-4">
-            <ReceiptFormDialog
+            <ReceiptFormWrapper
               initialData={editItem || {
                 tourPackageQueryId: tourPackageId,
                 tourPackageQuery: {

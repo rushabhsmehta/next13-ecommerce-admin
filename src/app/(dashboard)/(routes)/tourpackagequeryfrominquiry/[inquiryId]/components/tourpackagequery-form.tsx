@@ -103,6 +103,7 @@ const pricingItemSchema = z.object({
 
 const formSchema = z.object({
   tourPackageTemplate: z.string().optional(),
+  tourPackageQueryTemplate : z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   tourPackageQueryType: z.string().optional(),
@@ -174,6 +175,16 @@ interface TourPackageQueryFormProps {
       })[] | null;
     })[] | null;
   })[] | null;
+  tourPackageQueries?: (TourPackageQuery & {
+    images: Images[];
+    flightDetails: FlightDetails[];
+    itineraries: (Itinerary & {
+      itineraryImages: Images[];
+      activities: (Activity & {
+        activityImages: Images[];
+      })[] | null;
+    })[] | null;
+  })[] | null;
 };
 
 
@@ -185,11 +196,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   itinerariesMaster,
   associatePartners, // Add this
   tourPackages,
+  tourPackageQueries = [],
 }) => {
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [openTemplate, setOpenTemplate] = useState(false);
+  const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const editor = useRef(null);
 
   // Keep state handlers but remove initialData related code
@@ -208,6 +221,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const description = "Convert this inquiry into a detailed tour package";
   const defaultValues = {
     tourPackageTemplate: '',
+    tourPackageQueryTemplate: '',
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
     // tourPackageQueryName: `Tour Package for ${inquiry?.customerName || ''}`,
     associatePartnerId: inquiry?.associatePartnerId || '',
@@ -316,7 +330,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       // Add this line to update the tourPackageTemplate field
 
       form.setValue('tourPackageTemplate', selectedTourPackageId);
-
       const customerName = form.getValues('customerName');
       const packageName = selectedTourPackage.tourPackageName || '';
       const days = String(selectedTourPackage.numDaysNight || '');
@@ -386,6 +399,87 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       })));
     //  form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
 
+    }
+  };
+
+  const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
+    const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
+    if (selectedTourPackageQuery) {
+      // Update form fields with selected tour package query data
+      form.setValue('tourPackageQueryName', selectedTourPackageQuery.tourPackageQueryName || '');
+      form.setValue('tourPackageQueryType', String(selectedTourPackageQuery.tourPackageQueryType || ''));
+      form.setValue('locationId', selectedTourPackageQuery.locationId);
+      form.setValue('numDaysNight', String(selectedTourPackageQuery.numDaysNight || ''));
+      form.setValue('customerName', selectedTourPackageQuery.customerName || '');
+      form.setValue('customerNumber', selectedTourPackageQuery.customerNumber || '');
+      form.setValue('transport', String(selectedTourPackageQuery.transport || ''));
+      form.setValue('pickup_location', String(selectedTourPackageQuery.pickup_location || ''));
+      form.setValue('drop_location', String(selectedTourPackageQuery.drop_location || ''));
+      form.setValue('tour_highlights', String(selectedTourPackageQuery.tour_highlights || ''));
+      form.setValue('price', String(selectedTourPackageQuery.price || ''));
+      form.setValue('pricePerAdult', String(selectedTourPackageQuery.pricePerAdult || ''));
+      form.setValue('pricePerChildOrExtraBed', String(selectedTourPackageQuery.pricePerChildOrExtraBed || ''));
+      form.setValue('pricePerChild5to12YearsNoBed', String(selectedTourPackageQuery.pricePerChild5to12YearsNoBed || ''));
+      form.setValue('pricePerChildwithSeatBelow5Years', String(selectedTourPackageQuery.pricePerChildwithSeatBelow5Years || ''));
+      form.setValue('totalPrice', String(selectedTourPackageQuery.totalPrice || ''));
+      form.setValue('numAdults', String(selectedTourPackageQuery.numAdults || ''));
+      form.setValue('numChild5to12', String(selectedTourPackageQuery.numChild5to12 || ''));
+      form.setValue('numChild0to5', String(selectedTourPackageQuery.numChild0to5 || ''));
+      form.setValue('remarks', String(selectedTourPackageQuery.remarks || REMARKS_DEFAULT));
+      form.setValue('inclusions', selectedTourPackageQuery.inclusions ? parseJsonField(selectedTourPackageQuery.inclusions) : INCLUSIONS_DEFAULT);
+      form.setValue('exclusions', selectedTourPackageQuery.exclusions ? parseJsonField(selectedTourPackageQuery.exclusions) : EXCLUSIONS_DEFAULT);
+      form.setValue('importantNotes', selectedTourPackageQuery.importantNotes ? parseJsonField(selectedTourPackageQuery.importantNotes) : IMPORTANT_NOTES_DEFAULT);
+      form.setValue('paymentPolicy', selectedTourPackageQuery.paymentPolicy ? parseJsonField(selectedTourPackageQuery.paymentPolicy) : PAYMENT_TERMS_DEFAULT);
+      form.setValue('usefulTip', selectedTourPackageQuery.usefulTip ? parseJsonField(selectedTourPackageQuery.usefulTip) : USEFUL_TIPS_DEFAULT);
+      form.setValue('cancellationPolicy', selectedTourPackageQuery.cancellationPolicy ? parseJsonField(selectedTourPackageQuery.cancellationPolicy) : CANCELLATION_POLICY_DEFAULT);
+      form.setValue('airlineCancellationPolicy', selectedTourPackageQuery.airlineCancellationPolicy ? parseJsonField(selectedTourPackageQuery.airlineCancellationPolicy) : AIRLINE_CANCELLATION_POLICY_DEFAULT);
+      form.setValue('termsconditions', selectedTourPackageQuery.termsconditions ? parseJsonField(selectedTourPackageQuery.termsconditions) : TERMS_AND_CONDITIONS_DEFAULT);
+      form.setValue('disclaimer', String(selectedTourPackageQuery.disclaimer || DISCLAIMER_DEFAULT));
+      form.setValue('associatePartnerId', selectedTourPackageQuery.associatePartnerId || inquiry?.associatePartnerId || '');
+      form.setValue('images', selectedTourPackageQuery.images || []);
+
+      // Copy complex objects like flightDetails and itineraries
+      if (selectedTourPackageQuery.flightDetails && selectedTourPackageQuery.flightDetails.length > 0) {
+        form.setValue('flightDetails', selectedTourPackageQuery.flightDetails.map(flight => ({
+          date: flight.date || '',
+          flightName: flight.flightName || '',
+          flightNumber: flight.flightNumber || '',
+          from: flight.from || '',
+          to: flight.to || '',
+          departureTime: flight.departureTime || '',
+          arrivalTime: flight.arrivalTime || '',
+          flightDuration: flight.flightDuration || ''
+        })));
+      }
+
+      if (selectedTourPackageQuery.itineraries && selectedTourPackageQuery.itineraries.length > 0) {
+        form.setValue('itineraries', selectedTourPackageQuery.itineraries.map(itinerary => ({
+          locationId: itinerary.locationId || form.getValues('locationId'),
+          itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
+          itineraryTitle: itinerary.itineraryTitle || '',
+          itineraryDescription: itinerary.itineraryDescription || '',
+          dayNumber: itinerary.dayNumber || 0,
+          days: itinerary.days || '',
+          activities: itinerary.activities?.map(activity => ({
+            activityTitle: activity.activityTitle || '',
+            activityDescription: activity.activityDescription || '',
+            activityImages: activity.activityImages?.map(img => ({ url: img.url })) || []
+          })) || [],
+          mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
+          hotelId: itinerary.hotelId || '',
+          numberofRooms: itinerary.numberofRooms || '',
+          roomCategory: itinerary.roomCategory || ''
+        })));
+      }
+
+      // Attempt to parse and set pricing section if available
+      try {
+        if (selectedTourPackageQuery.pricingSection) {
+          form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection));
+        }
+      } catch (error) {
+        console.error("Error parsing pricing section:", error);
+      }
     }
   };
 
@@ -492,7 +586,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -551,6 +645,70 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="tourPackageQueryTemplate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Load from Existing Tour Package Query</FormLabel>
+                        <Popover open={openQueryTemplate} onOpenChange={setOpenQueryTemplate}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                                disabled={!form.getValues('locationId')} // Disable if no location selected
+                              >
+                                {!form.getValues('locationId')
+                                  ? "Select a location first"
+                                  : tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"
+                                }
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search tour package query..." />
+                              <CommandEmpty>No tour package query found.</CommandEmpty>
+                              <CommandGroup>
+                                {tourPackageQueries
+                                  ?.filter(tpq => tpq.locationId === form.getValues('locationId'))
+                                  .map((query) => (
+                                    <CommandItem
+                                      value={query.tourPackageQueryName ?? ''}
+                                      key={query.id}
+                                      onSelect={() => {
+                                        handleTourPackageQuerySelection(query.id);
+                                        setOpenQueryTemplate(false); // Close the popover after selection
+                                      }}
+                                    >
+                                      <CheckIcon
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          query.id === field.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {query.tourPackageQueryName}
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          {!form.getValues('locationId')
+                            ? "Please select a location first to view available tour package queries"
+                            : "Select an existing tour package query to use as a template"}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="tourPackageTemplate"

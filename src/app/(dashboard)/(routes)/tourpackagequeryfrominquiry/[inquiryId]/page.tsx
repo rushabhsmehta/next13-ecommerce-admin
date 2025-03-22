@@ -54,6 +54,27 @@ const TourPackageQueryPage = async ({
     }
   });
 
+  // Fetch tour package queries
+  const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
+    where: {
+      isArchived: false
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
+            }
+          }
+        }
+      }
+    }
+  });
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
@@ -65,6 +86,7 @@ const TourPackageQueryPage = async ({
           itinerariesMaster={itinerariesMaster}
           associatePartners={associatePartners}
           tourPackages={tourPackages}
+          tourPackageQueries={tourPackageQueries}
         />
       </div>
     </div>

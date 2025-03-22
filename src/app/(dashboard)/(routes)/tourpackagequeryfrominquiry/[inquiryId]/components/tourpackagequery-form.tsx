@@ -330,6 +330,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       // Add this line to update the tourPackageTemplate field
 
       form.setValue('tourPackageTemplate', selectedTourPackageId);
+      form.setValue('tourPackageQueryTemplate', ''); // Clear the query template field
       const customerName = form.getValues('customerName');
       const packageName = selectedTourPackage.tourPackageName || '';
       const days = String(selectedTourPackage.numDaysNight || '');
@@ -405,6 +406,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
     const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
     if (selectedTourPackageQuery) {
+
+      form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
+      form.setValue('tourPackageTemplate', '')
       // Update form fields with selected tour package query data
       form.setValue('tourPackageQueryName', selectedTourPackageQuery.tourPackageQueryName || '');
       form.setValue('tourPackageQueryType', String(selectedTourPackageQuery.tourPackageQueryType || ''));

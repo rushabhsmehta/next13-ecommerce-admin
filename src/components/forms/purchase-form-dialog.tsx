@@ -22,6 +22,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PurchaseFormProps } from "@/types/index";
 import { CommandEmpty, CommandGroup, CommandItem } from "../ui/command";
+import { FormErrorSummary } from "@/components/ui/form-error-summary";
 
 const purchaseItemSchema = z.object({
   id: z.string().optional(),
@@ -313,6 +314,27 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
+
+    const errorMessages: string[] = [];
+    
+    // Handle field-specific errors
+    Object.entries(errors).forEach(([key, value]: [string, any]) => {
+      if (key === 'items') {
+        value.forEach((itemError: any, index: number) => {
+          if (itemError) {
+            Object.values(itemError).forEach((error: any) => {
+              if (error?.message) {
+                errorMessages.push(`Item ${index + 1}: ${error.message}`);
+              }
+            });
+          }
+        });
+      } else if (value?.message) {
+        errorMessages.push(`${key}: ${value.message}`);
+      }
+    });
+
+    setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
 
@@ -336,17 +358,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      {formErrors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
-          <h3 className="text-sm font-medium mb-2">Form has errors:</h3>
-          <ul className="list-disc pl-5 text-sm">
-            {formErrors.map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
+      <FormErrorSummary errors={formErrors} />
+      
       {debugInfo && (
         <div className="bg-gray-50 border border-gray-200 p-4 rounded-md text-sm">
           <h3 className="font-medium mb-2">Debug Information:</h3>

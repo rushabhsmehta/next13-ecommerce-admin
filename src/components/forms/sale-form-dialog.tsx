@@ -34,6 +34,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { FormErrorSummary } from "@/components/ui/form-error-summary";
 
 // Define the item schema with consistent nullable patterns
 const saleItemSchema = z.object({
@@ -361,16 +362,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      {formErrors.length > 0 && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
-          <h3 className="text-sm font-medium mb-2">Form has errors:</h3>
-          <ul className="list-disc pl-5 text-sm">
-            {formErrors.map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <FormErrorSummary errors={formErrors} />
 
       {debugInfo && (
         <div className="bg-gray-50 border border-gray-200 p-4 rounded-md text-sm">
@@ -455,7 +447,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                                         <Check className="h-4 w-4 text-primary" />
                                       )}
                                     </div>
-                                  )))
+                                  )))                                
                                 }                                
                               </div>
                             </div>
@@ -464,7 +456,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                       </div>
                       <FormMessage />
                     </FormItem>
-                  )}
+                  )} 
                 />
                 
                   {/* Sale Date */}

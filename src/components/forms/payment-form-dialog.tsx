@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentFormProps } from "@/types/index";
+import { FormErrorSummary } from "@/components/ui/form-error-summary";
 
 const formSchema = z.object({
   paymentDate: z.date({
@@ -77,6 +78,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   submitButtonText = "Create"
 }) => {
   const [loading, setLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
 
@@ -116,11 +118,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
     defaultValues,
   });
 
-
-
   const onSubmit = async (data: PaymentFormValues) => {
     try {
       setLoading(true);
+      setFormErrors([]);
 
       // Prepare the API data with correct account type field
       const apiData: Partial<PaymentFormValues & {
@@ -143,16 +144,34 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       toast.success(initialData.id ? "Payment updated." : "Payment created.");
       onSuccess();
     } catch (error: any) {
-      toast.error(error.response?.data || "Something went wrong.");
+      const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
+      toast.error(errorMessage);
+      setFormErrors([errorMessage]);
     } finally {
       setLoading(false);
     }
   };
 
+  const onError = (errors: any) => {
+    console.error("Form Validation Errors:", errors);
+    
+    const errorMessages: string[] = [];
+    Object.entries(errors).forEach(([key, value]: [string, any]) => {
+      if (value?.message) {
+        errorMessages.push(`${key}: ${value.message}`);
+      }
+    });
+    
+    setFormErrors(errorMessages);
+    toast.error("Please check the form for errors");
+  };
+
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
+      <FormErrorSummary errors={formErrors} />
+      
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
           {/* Header */}
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-semibold tracking-tight">

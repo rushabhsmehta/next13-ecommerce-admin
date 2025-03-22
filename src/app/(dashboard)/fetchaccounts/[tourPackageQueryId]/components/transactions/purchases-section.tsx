@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { PurchaseFormDialog } from "@/components/forms/purchase-form-dialog"; // Updated path
+import { PurchaseFormWrapper } from "@/components/forms/purchase-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -177,7 +177,7 @@ const PurchasesSection: React.FC<PurchasesSectionProps> = ({
           </DialogHeader>
           
           <div className="mt-4">
-            <PurchaseFormDialog
+            <PurchaseFormWrapper
               initialData={editItem || {
                 tourPackageQueryId: tourPackageId,
                 tourPackageQueryName: tourPackageName

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { IncomeFormDialog } from "@/components/forms/income-form-dialog"; // Updated path
+import { IncomeFormWrapper } from "@/components/forms/income-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
@@ -153,7 +153,7 @@ const IncomesSection: React.FC<IncomesSectionProps> = ({
                     </DialogHeader>
 
                     <div className="mt-4">
-                        <IncomeFormDialog
+                        <IncomeFormWrapper
                             initialData={editItem || {
                                 tourPackageQueryId: tourPackageId,
                                 tourPackageQuery: {

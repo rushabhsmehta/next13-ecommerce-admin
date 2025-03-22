@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { SaleFormDialog } from "@/components/forms/sale-form-dialog"; // Updated path
+import { SaleFormWrapper } from "@/components/forms/sale-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
 import toast from 'react-hot-toast';
 import { Customer, UnitOfMeasure, SaleDetail, TaxSlab } from '@prisma/client';
@@ -190,23 +190,23 @@ const SalesSection: React.FC<SalesSectionProps> = ({
           </DialogHeader>
           
           <div className="mt-4">
-            <SaleFormDialog
+            <SaleFormWrapper
               initialData={editItem || {
                 tourPackageQueryId: tourPackageId,
                 tourPackageQuery: {
                   tourPackageQueryName: tourPackageName
                 }
               }}
-              units = {units}
+              units={units}
               taxSlabs={taxSlabs}
               customers={customers}
               onSuccess={() => {
                 setIsSaleModalOpen(false);
                 onRefresh();
                 toast.success(editItem ? "Sale updated successfully" : "Sale created successfully");
-              } }
+              }}
               submitButtonText={editItem ? "Update Sale" : "Create Sale"}
-              />
+            />
           </div>
         </DialogContent>
       </Dialog>

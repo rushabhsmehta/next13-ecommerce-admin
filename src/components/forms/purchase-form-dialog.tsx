@@ -72,10 +72,10 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   const [lastUpdatedField, setLastUpdatedField] = useState<string | null>(null);
 
   // Add this computed value
-  const filteredSuppliers = suppliers.filter(supplier => 
+  const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
   );
-  
+
   const defaultItems = initialData?.items?.length > 0
     ? initialData.items
     : [{
@@ -141,40 +141,40 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
         if (changedField?.includes(`items.${index}.totalAmount`)) {
           // Direction: Total → Price per unit
           const totalAmount = Number(parseFloat(item.totalAmount?.toString() || "0").toFixed(2));
-          
+
           // Preserve the exact total amount the user entered
           updates[`items.${index}.totalAmount`] = totalAmount;
-          
+
           const qty = Number(parseFloat(item.quantity?.toString() || "1").toFixed(2));
           const taxSlab = item.taxSlabId ? taxSlabs.find(tax => tax.id === item.taxSlabId) : null;
           const taxRate = taxSlab ? taxSlab.percentage / 100 : 0;
-          
+
           // Calculate price per unit backwards from total with precise rounding
           let pricePerUnit: number;
           let taxAmount: number;
-          
+
           if (taxRate > 0) {
             // Calculate price before tax: price = total / (1 + taxRate)
             const priceBeforeTax = totalAmount / (1 + taxRate);
             pricePerUnit = Number((priceBeforeTax / qty).toFixed(4));
-            
+
             // Calculate subtotal precisely
             const itemSubtotal = Number((pricePerUnit * qty).toFixed(2));
-            
+
             // Calculate tax amount precisely
             taxAmount = Number((totalAmount - itemSubtotal).toFixed(2));
           } else {
             pricePerUnit = Number((totalAmount / qty).toFixed(4));
             taxAmount = 0;
           }
-          
+
           updates[`items.${index}.pricePerUnit`] = pricePerUnit;
           updates[`items.${index}.taxAmount`] = taxAmount;
-          
+
           const itemSubtotal = Number((pricePerUnit * qty).toFixed(2));
           totalPriceExclTax += itemSubtotal;
           totalTax += taxAmount;
-        } 
+        }
         else {
           // Direction: Price per unit → Total (default calculation)
           const price = Number(parseFloat(item.pricePerUnit?.toString() || "0").toFixed(4));
@@ -229,17 +229,17 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     // This is the key change - we're not using the "watch" method for real-time changes
     // Instead we'll use onBlur events on inputs to trigger calculations
     recalculateTotals();
-    
+
     // Still watch for tax slab and quantity changes which should recalculate immediately
     const subscription = form.watch((value, { name, type }) => {
       if (isCalculating || !name) return;
-      
+
       // Only recalculate immediately for these specific changes
       if (name.includes('taxSlabId') || name.includes('quantity')) {
         setTimeout(() => recalculateTotals(name), 10);
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form, isCalculating, fields.length]);
 
@@ -293,7 +293,11 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
         toast.success("Purchase details updated");
         onSuccess();
       } else {
-        // ...existing code for creating...
+        console.log("Creating new Purchase");
+        const response = await axios.post('/api/purchases', apiData);
+        console.log("Create response:", response.data);
+        toast.success("Purchase created successfully");
+        onSuccess();
       }
     } catch (error: any) {
       console.error("Error submitting form:", error);
@@ -316,7 +320,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     console.error("Form Validation Errors:", errors);
 
     const errorMessages: string[] = [];
-    
+
     // Handle field-specific errors
     Object.entries(errors).forEach(([key, value]: [string, any]) => {
       if (key === 'items') {
@@ -359,7 +363,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       <FormErrorSummary errors={formErrors} />
-      
+
       {debugInfo && (
         <div className="bg-gray-50 border border-gray-200 p-4 rounded-md text-sm">
           <h3 className="font-medium mb-2">Debug Information:</h3>
@@ -406,7 +410,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                               : "Select supplier"}
                             <Check className="ml-auto h-4 w-4" />
                           </Button>
-                          
+
                           {supplierDropdownOpen && (
                             <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
                               <div className="p-2">
@@ -417,7 +421,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                   onChange={(e) => setSupplierSearch(e.target.value)}
                                   autoFocus
                                 />
-                                
+
                                 <div className="max-h-[200px] overflow-y-auto">
                                   {filteredSuppliers.length === 0 ? (
                                     <div className="text-center py-2 text-sm text-gray-500">
@@ -799,15 +803,15 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
           </Card>
 
           <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               onClick={() => window.history.back()}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading}
               className="px-8"
             >

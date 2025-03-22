@@ -124,6 +124,7 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
   hotels,
 }) => {
 
+  
   const currentCompany = {
     logo: '/aagamholidays.png',
     name: 'Aagam Holidays',

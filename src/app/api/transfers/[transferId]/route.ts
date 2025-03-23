@@ -94,9 +94,15 @@ export async function PATCH(
     });
 
     return NextResponse.json(transferDetail);
-  } catch (error) {
-    console.log('[TRANSFER_PATCH]', error);
-    return new NextResponse("Internal error", { status: 500 });
+  } catch (error: any) {
+    console.error("[TRANSFER_PATCH]", error);
+    return new Response(
+      JSON.stringify({
+        message: error.message || "Failed to update transfer",
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      }), 
+      { status: 500 }
+    );
   }
 }
 
@@ -121,8 +127,14 @@ export async function DELETE(
     });
 
     return NextResponse.json(transfer);
-  } catch (error) {
-    console.log('[TRANSFER_DELETE]', error);
-    return new NextResponse("Internal error", { status: 500 });
+  } catch (error: any) {
+    console.error("[TRANSFER_DELETE]", error);
+    return new Response(
+      JSON.stringify({
+        message: error.message || "Failed to delete transfer",
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      }), 
+      { status: 500 }
+    );
   }
 }

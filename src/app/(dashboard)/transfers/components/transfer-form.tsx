@@ -127,18 +127,17 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         return;
       }
       
-      const apiData = {
-        ...data,
-        fromBankAccountId: data.fromAccountType === 'bank' ? data.fromAccountId : null,
-        fromCashAccountId: data.fromAccountType === 'cash' ? data.fromAccountId : null,
-        toBankAccountId: data.toAccountType === 'bank' ? data.toAccountId : null,
-        toCashAccountId: data.toAccountType === 'cash' ? data.toAccountId : null,
-      };
+      // Extract the properties we want to remove and keep the rest using destructuring
+      const { fromAccountType, fromAccountId, toAccountType, toAccountId, ...baseApiData } = data;
       
-      delete apiData.fromAccountType;
-      delete apiData.fromAccountId;
-      delete apiData.toAccountType;
-      delete apiData.toAccountId;
+      // Create a new object with the required API structure
+      const apiData = {
+        ...baseApiData,
+        fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : null,
+        fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : null,
+        toBankAccountId: toAccountType === 'bank' ? toAccountId : null,
+        toCashAccountId: toAccountType === 'cash' ? toAccountId : null,
+      };
       
       if (initialData) {
         // Update existing transfer

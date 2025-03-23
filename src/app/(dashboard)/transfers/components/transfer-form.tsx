@@ -133,16 +133,23 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         return;
       }
       
-      // Extract the properties we want to remove and keep the rest using destructuring
-      const { fromAccountType, fromAccountId, toAccountType, toAccountId, ...baseApiData } = data;
-      
-      // Create a new object with the required API structure
+      // Create a new object with the required API structure BUT KEEP the account type fields
+      // that the API route is expecting for validation
       const apiData = {
-        ...baseApiData,
-        fromBankAccountId: fromAccountType === 'bank' ? fromAccountId : null,
-        fromCashAccountId: fromAccountType === 'cash' ? fromAccountId : null,
-        toBankAccountId: toAccountType === 'bank' ? toAccountId : null,
-        toCashAccountId: toAccountType === 'cash' ? toAccountId : null,
+        transferDate: data.transferDate,
+        amount: data.amount,
+        reference: data.reference,
+        description: data.description,
+        // Include these fields that the API uses for validation
+        fromAccountType: data.fromAccountType,
+        fromAccountId: data.fromAccountId,
+        toAccountType: data.toAccountType,
+        toAccountId: data.toAccountId,
+        // Add the account ID fields the database needs
+        fromBankAccountId: data.fromAccountType === 'bank' ? data.fromAccountId : null,
+        fromCashAccountId: data.fromAccountType === 'cash' ? data.fromAccountId : null,
+        toBankAccountId: data.toAccountType === 'bank' ? data.toAccountId : null,
+        toCashAccountId: data.toAccountType === 'cash' ? data.toAccountId : null,
       };
       
       console.log("Submitting transfer data:", apiData);

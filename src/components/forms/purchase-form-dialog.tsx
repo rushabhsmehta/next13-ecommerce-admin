@@ -471,7 +471,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                             <FormControl>
                               <Button
                                 variant={"outline"}
-                                type="button" 
+                                type="button"
                                 className={cn(
                                   "w-full pl-3 text-left font-normal",
                                   !field.value && "text-muted-foreground"
@@ -490,8 +490,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                           <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
                             <Calendar
                               mode="single"
-                              selected={new Date(field.value)}
-                              onSelect={(date) => {
+                              selected={field.value}
+                              onSelect={(date: Date | undefined) => {  // Add proper type annotation
                                 if (date) {
                                   field.onChange(date);
                                   setDatePickerOpen(false);

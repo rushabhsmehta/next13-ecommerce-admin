@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormDatePicker } from "@/components/ui/form-date-picker";
 import { Heading } from "@/components/ui/heading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormErrorSummary } from "@/components/ui/form-error-summary";
 
 const formSchema = z.object({
   transferDate: z.date({
@@ -61,6 +62,8 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
   const [loading, setLoading] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [cashAccounts, setCashAccounts] = useState<any[]>([]);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const title = initialData ? "Edit Fund Transfer" : "Create Fund Transfer";
   const description = initialData ? "Edit fund transfer details" : "Add a new fund transfer";
@@ -119,10 +122,13 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
   const onSubmit = async (data: TransferFormValues) => {
     try {
       setLoading(true);
+      setFormErrors([]);
+      setDebugInfo(null);
       
       // Validate that source and destination are not the same
       if (data.fromAccountType === data.toAccountType && data.fromAccountId === data.toAccountId) {
         toast.error("Source and destination accounts cannot be the same");
+        setFormErrors(["Source and destination accounts cannot be the same"]);
         setLoading(false);
         return;
       }
@@ -139,27 +145,72 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         toCashAccountId: toAccountType === 'cash' ? toAccountId : null,
       };
       
+      console.log("Submitting transfer data:", apiData);
+      
       if (initialData) {
         // Update existing transfer
-        await axios.patch(`/api/transfers/${initialData.id}`, apiData);
+        const response = await axios.patch(`/api/transfers/${initialData.id}`, apiData);
+        console.log("Update response:", response.data);
       } else {
         // Create new transfer
-        await axios.post('/api/transfers', apiData);
+        const response = await axios.post('/api/transfers', apiData);
+        console.log("Create response:", response.data);
       }
+      
       router.push('/transfers');
       router.refresh();
       toast.success(toastMessage);
     } catch (error: any) {
-      toast.error("Something went wrong.");
+      console.error("Transfer form error:", error);
+      
+      // Extract detailed error information
+      const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
+      toast.error(errorMessage);
+      
+      // Add specific error to formErrors
+      setFormErrors([errorMessage]);
+      
+      // Set debug info for development purposes
+      if (error.response?.data) {
+        setDebugInfo(`API Error: ${JSON.stringify(error.response.data, null, 2)}`);
+      } else {
+        setDebugInfo(`Error: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Add error handling for form validation errors
+  const onError = (errors: any) => {
+    console.error("Form Validation Errors:", errors);
+    
+    const errorMessages: string[] = [];
+    Object.entries(errors).forEach(([key, value]: [string, any]) => {
+      if (value?.message) {
+        errorMessages.push(`${key}: ${value.message}`);
+      }
+    });
+    
+    setFormErrors(errorMessages);
+    toast.error("Please check the form for errors");
+  };
+
   return (
     <div className="space-y-4">
+      {/* Add error summary at the top */}
+      <FormErrorSummary errors={formErrors} />
+      
+      {/* Add debug info panel (visible only when there's debug info) */}
+      {debugInfo && (
+        <div className="bg-gray-50 border border-gray-200 p-4 rounded-md text-sm">
+          <h3 className="font-medium mb-2">Debug Information:</h3>
+          <pre className="whitespace-pre-wrap text-xs max-h-64 overflow-auto">{debugInfo}</pre>
+        </div>
+      )}
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
           <Card className="shadow-sm border-slate-200">
             <CardHeader className="bg-slate-50 border-b px-6">
               <CardTitle className="text-base font-medium">Transfer Details</CardTitle>

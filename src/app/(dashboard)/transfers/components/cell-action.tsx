@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Copy, Eye, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Edit, Eye, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
@@ -55,6 +55,10 @@ export const CellAction: React.FC<CellActionProps> = ({
     transferModal.onOpen();
   };
 
+  const onEdit = () => {
+    router.push(`/transfers/${data.id}`);
+  };
+
   return (
     <>
       <AlertModal 
@@ -72,15 +76,14 @@ export const CellAction: React.FC<CellActionProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem
-            onClick={() => onCopy(data.id)}
-          >
+          <DropdownMenuItem onClick={() => onCopy(data.id)}>
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={onView}
-          >
+          <DropdownMenuItem onClick={onView}>
             <Eye className="mr-2 h-4 w-4" /> View Details
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onEdit}>
+            <Edit className="mr-2 h-4 w-4" /> Edit
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setOpen(true)}

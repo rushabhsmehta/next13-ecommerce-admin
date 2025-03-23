@@ -2,40 +2,21 @@
 
 import * as z from "zod";
 import { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { format } from "date-fns";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { FormDatePicker } from "@/components/ui/form-date-picker";
+import { Heading } from "@/components/ui/heading";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formSchema = z.object({
   transferDate: z.date({
@@ -58,6 +39,15 @@ const formSchema = z.object({
   toAccountId: z.string().min(1, {
     message: "Destination account is required",
   }),
+}).refine(data => {
+  // Prevent transfer between the same account
+  if (data.fromAccountType === data.toAccountType && data.fromAccountId === data.toAccountId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Cannot transfer funds to the same account",
+  path: ["toAccountId"],
 });
 
 type TransferFormValues = z.infer<typeof formSchema>;
@@ -137,12 +127,25 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         return;
       }
       
+      const apiData = {
+        ...data,
+        fromBankAccountId: data.fromAccountType === 'bank' ? data.fromAccountId : null,
+        fromCashAccountId: data.fromAccountType === 'cash' ? data.fromAccountId : null,
+        toBankAccountId: data.toAccountType === 'bank' ? data.toAccountId : null,
+        toCashAccountId: data.toAccountType === 'cash' ? data.toAccountId : null,
+      };
+      
+      delete apiData.fromAccountType;
+      delete apiData.fromAccountId;
+      delete apiData.toAccountType;
+      delete apiData.toAccountId;
+      
       if (initialData) {
         // Update existing transfer
-        await axios.patch(`/api/transfers/${initialData.id}`, data);
+        await axios.patch(`/api/transfers/${initialData.id}`, apiData);
       } else {
         // Create new transfer
-        await axios.post('/api/transfers', data);
+        await axios.post('/api/transfers', apiData);
       }
       router.push('/transfers');
       router.refresh();
@@ -158,238 +161,234 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
     <div className="space-y-4">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="transferDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Transfer Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={`w-full pl-3 text-left font-normal ${!field.value && "text-muted-foreground"}`}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
+          <Card className="shadow-sm border-slate-200">
+            <CardHeader className="bg-slate-50 border-b px-6">
+              <CardTitle className="text-base font-medium">Transfer Details</CardTitle>
+            </CardHeader>
+            <CardContent className="px-6 pt-6">
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="transferDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Transfer Date</FormLabel>
+                      <FormDatePicker
+                        date={field.value}
                         onSelect={(date) => date && field.onChange(date)}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
+                        disabled={loading}
                       />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Source Account Section */}
-            <FormField
-              control={form.control}
-              name="fromAccountType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Source Account Type</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      // Reset the accountId when account type changes
-                      form.setValue("fromAccountId", "");
-                    }}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select account type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="bank">Bank Account</SelectItem>
-                      <SelectItem value="cash">Cash Account</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                {/* Source Account Section */}
+                <FormField
+                  control={form.control}
+                  name="fromAccountType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Source Account Type</FormLabel>
+                      <Select
+                        disabled={loading}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Reset the accountId when account type changes
+                          form.setValue("fromAccountId", "");
+                        }}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="bank">Bank Account</SelectItem>
+                          <SelectItem value="cash">Cash Account</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="fromAccountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Source Account</FormLabel>
-                  <Select
-                    disabled={loading || !form.watch("fromAccountType")}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select source account" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {form.watch("fromAccountType") === "bank"
-                        ? bankAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.accountName}
-                            </SelectItem>
-                          ))
-                        : cashAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.accountName}
-                            </SelectItem>
-                          ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="fromAccountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Source Account</FormLabel>
+                      <Select
+                        disabled={loading || !form.watch("fromAccountType")}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select source account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {form.watch("fromAccountType") === "bank"
+                            ? bankAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.accountName}
+                                </SelectItem>
+                              ))
+                            : cashAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.accountName}
+                                </SelectItem>
+                              ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Destination Account Section */}
-            <FormField
-              control={form.control}
-              name="toAccountType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Destination Account Type</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      // Reset the accountId when account type changes
-                      form.setValue("toAccountId", "");
-                    }}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select account type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="bank">Bank Account</SelectItem>
-                      <SelectItem value="cash">Cash Account</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                {/* Destination Account Section */}
+                <FormField
+                  control={form.control}
+                  name="toAccountType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Destination Account Type</FormLabel>
+                      <Select
+                        disabled={loading}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Reset the accountId when account type changes
+                          form.setValue("toAccountId", "");
+                        }}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="bank">Bank Account</SelectItem>
+                          <SelectItem value="cash">Cash Account</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="toAccountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Destination Account</FormLabel>
-                  <Select
-                    disabled={loading || !form.watch("toAccountType")}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select destination account" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {form.watch("toAccountType") === "bank"
-                        ? bankAccounts
-                            .filter(account => !(form.watch("fromAccountType") === "bank" && form.watch("fromAccountId") === account.id))
-                            .map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.accountName}
-                              </SelectItem>
-                            ))
-                        : cashAccounts
-                            .filter(account => !(form.watch("fromAccountType") === "cash" && form.watch("fromAccountId") === account.id))
-                            .map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.accountName}
-                              </SelectItem>
-                            ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="toAccountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Destination Account</FormLabel>
+                      <Select
+                        disabled={loading || !form.watch("toAccountType")}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select destination account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {form.watch("toAccountType") === "bank"
+                            ? bankAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.accountName}
+                                </SelectItem>
+                              ))
+                            : cashAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.accountName}
+                                </SelectItem>
+                              ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="reference"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reference (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Transaction reference" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="reference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reference (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Transaction reference" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      disabled={loading}
-                      placeholder="Enter description"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          disabled={loading}
+                          placeholder="Enter description"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center justify-end gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/transfers')}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={loading}
+              className="px-8"
+            >
+              {loading ? (
+                <>
+                  <span className="animate-spin mr-2">○</span>
+                  Processing...
+                </>
+              ) : action}
+            </Button>
           </div>
-
-          <Separator />
-
-          <Button disabled={loading} type="submit">
-            {action}
-          </Button>
         </form>
       </Form>
     </div>

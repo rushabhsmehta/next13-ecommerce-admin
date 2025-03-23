@@ -70,6 +70,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   const [supplierSearch, setSupplierSearch] = useState("");
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
   const [lastUpdatedField, setLastUpdatedField] = useState<string | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Add this computed value
   const filteredSuppliers = suppliers.filter(supplier =>
@@ -465,18 +466,20 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Purchase Date</FormLabel>
-                        <Popover>
+                        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
                                 variant={"outline"}
+                                type="button" 
                                 className={cn(
                                   "w-full pl-3 text-left font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
+                                onClick={() => setDatePickerOpen(true)}
                               >
                                 {field.value ? (
-                                  format(field.value, "MMMM d, yyyy")
+                                  format(new Date(field.value), "MMMM d, yyyy")
                                 ) : (
                                   <span>Select a date</span>
                                 )}
@@ -484,11 +487,16 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
                             <Calendar
                               mode="single"
-                              selected={field.value}
-                              onSelect={(date) => date && field.onChange(date)}
+                              selected={new Date(field.value)}
+                              onSelect={(date) => {
+                                if (date) {
+                                  field.onChange(date);
+                                  setDatePickerOpen(false);
+                                }
+                              }}
                               disabled={(date) =>
                                 date > new Date() || date < new Date("1900-01-01")
                               }

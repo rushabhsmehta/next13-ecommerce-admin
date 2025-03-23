@@ -1,6 +1,5 @@
 "use client";
 
-import { formatPrice } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -9,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatPrice } from "@/lib/utils";
+import { format } from "date-fns";
 
 type Expense = {
   id: string;
@@ -50,22 +51,18 @@ export const ExpensesTable: React.FC<ExpensesTableProps> = ({ data }) => {
           ) : (
             <>
               {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.date}</TableCell>
+                <TableRow key={item.id} className="hover:bg-muted/30">
+                  <TableCell>{format(new Date(item.date), "MMM d, yyyy")}</TableCell>
                   <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.packageName}</TableCell>
-                  <TableCell>{item.description}</TableCell>
+                  <TableCell>{item.packageName || 'N/A'}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{item.description || 'No description'}</TableCell>
                   <TableCell>{item.paymentMode}</TableCell>
                   <TableCell>{item.account}</TableCell>
-                  <TableCell className="text-right font-medium">{formatPrice(item.amount)}</TableCell>
+                  <TableCell className="text-right font-medium text-red-600">
+                    {formatPrice(item.amount)}
+                  </TableCell>
                 </TableRow>
               ))}
-              <TableRow>
-                <TableCell colSpan={6} className="font-bold">Total</TableCell>
-                <TableCell className="text-right font-bold">
-                  {formatPrice(data.reduce((total, item) => total + item.amount, 0))}
-                </TableCell>
-              </TableRow>
             </>
           )}
         </TableBody>

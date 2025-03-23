@@ -35,6 +35,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 // Define the item schema with consistent nullable patterns
 const saleItemSchema = z.object({
@@ -466,37 +467,11 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Sale Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "MMMM d, yyyy")
-                                ) : (
-                                  <span>Select a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => date && field.onChange(date)}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormDatePicker
+                          date={field.value}
+                          onSelect={(date) => date && field.onChange(date)}
+                          disabled={loading}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}

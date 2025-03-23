@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { PurchaseFormProps } from "@/types/index";
 import { CommandEmpty, CommandGroup, CommandItem } from "../ui/command";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 const purchaseItemSchema = z.object({
   id: z.string().optional(),
@@ -466,44 +467,11 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Purchase Date</FormLabel>
-                        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                type="button"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                                onClick={() => setDatePickerOpen(true)}
-                              >
-                                {field.value ? (
-                                  format(new Date(field.value), "MMMM d, yyyy")
-                                ) : (
-                                  <span>Select a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={4}>
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date: Date | undefined) => {  // Add proper type annotation
-                                if (date) {
-                                  field.onChange(date);
-                                  setDatePickerOpen(false);
-                                }
-                              }}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                        <FormDatePicker
+                          date={field.value}
+                          onSelect={(date) => date && field.onChange(date)}
+                          disabled={loading}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}

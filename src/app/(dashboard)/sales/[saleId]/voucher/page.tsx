@@ -73,7 +73,7 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
 
   // Prepare data for voucher layout with GST info
   const voucherData = {
-    title: "SALES VOUCHER",
+    title: "SALES INVOICE",
     subtitle: isMultiItem ? "Invoice" : "Tour Package Sale Receipt",
     voucherNo: sale.invoiceNumber || `SV-${sale.id.substring(0, 8).toUpperCase()}`,
     date: formattedDate,
@@ -113,8 +113,8 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between">
           <Heading 
-            title="Sales Voucher" 
-            description="View and print sales voucher"
+            title="Sales Inovice" 
+            description="View and print Sales Inovice"
           />
           <VoucherActions id={params.saleId} type="sale" />
         </div>

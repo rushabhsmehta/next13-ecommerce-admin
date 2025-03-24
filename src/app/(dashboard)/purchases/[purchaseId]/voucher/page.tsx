@@ -57,7 +57,7 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
 
   // Prepare data for voucher layout with GST info
   const voucherData = {
-    title: "PURCHASE VOUCHER",
+    title: "PURCHASE INVOICE",
     subtitle: isMultiItem ? "Purchase Bill" : "Supplier Purchase Record",
     voucherNo: purchase.billNumber || `PV-${purchase.id.substring(0, 8).toUpperCase()}`,
     date: formattedDate,
@@ -98,8 +98,8 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
       <div className="flex-1 space-y-4 p-8 pt-6">
         <div className="flex items-center justify-between">
           <Heading 
-            title="Purchase Voucher" 
-            description="View and print purchase voucher"
+            title="Purchase Invoice" 
+            description="View and print Purchase Invoice"
           />
           <VoucherActions id={params.purchaseId} type="purchase" />
         </div>

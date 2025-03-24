@@ -413,9 +413,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('tourPackageQueryName', selectedTourPackageQuery.tourPackageQueryName || '');
       form.setValue('tourPackageQueryType', String(selectedTourPackageQuery.tourPackageQueryType || ''));
       form.setValue('locationId', selectedTourPackageQuery.locationId);
-      form.setValue('numDaysNight', String(selectedTourPackageQuery.numDaysNight || ''));
-      form.setValue('customerName', selectedTourPackageQuery.customerName || '');
-      form.setValue('customerNumber', selectedTourPackageQuery.customerNumber || '');
+      //form.setValue('numDaysNight', String(selectedTourPackageQuery.numDaysNight || ''));
+     // form.setValue('customerName', selectedTourPackageQuery.customerName || '');
+     // form.setValue('customerNumber', selectedTourPackageQuery.customerNumber || '');
       form.setValue('transport', String(selectedTourPackageQuery.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackageQuery.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackageQuery.drop_location || ''));
@@ -426,9 +426,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricePerChild5to12YearsNoBed', String(selectedTourPackageQuery.pricePerChild5to12YearsNoBed || ''));
       form.setValue('pricePerChildwithSeatBelow5Years', String(selectedTourPackageQuery.pricePerChildwithSeatBelow5Years || ''));
       form.setValue('totalPrice', String(selectedTourPackageQuery.totalPrice || ''));
-      form.setValue('numAdults', String(selectedTourPackageQuery.numAdults || ''));
-      form.setValue('numChild5to12', String(selectedTourPackageQuery.numChild5to12 || ''));
-      form.setValue('numChild0to5', String(selectedTourPackageQuery.numChild0to5 || ''));
+      //form.setValue('numAdults', String(selectedTourPackageQuery.numAdults || ''));
+      //form.setValue('numChild5to12', String(selectedTourPackageQuery.numChild5to12 || ''));
+      //form.setValue('numChild0to5', String(selectedTourPackageQuery.numChild0to5 || ''));
       form.setValue('remarks', String(selectedTourPackageQuery.remarks || REMARKS_DEFAULT));
       form.setValue('inclusions', selectedTourPackageQuery.inclusions ? parseJsonField(selectedTourPackageQuery.inclusions) : INCLUSIONS_DEFAULT);
       form.setValue('exclusions', selectedTourPackageQuery.exclusions ? parseJsonField(selectedTourPackageQuery.exclusions) : EXCLUSIONS_DEFAULT);

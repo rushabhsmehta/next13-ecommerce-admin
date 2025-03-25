@@ -15,6 +15,13 @@ interface InquiriesPageProps {
 }
 
 const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
+  // Fetch organization data
+  const organization = await prismadb.organization.findFirst({
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+
   const associates = await prismadb.associatePartner.findMany({
     orderBy: {
       name: 'asc'
@@ -132,6 +139,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
         <InquiriesClient
           data={formattedInquiries}
           associates={associates}
+          organization={organization} // Pass organization data to client
         />
       </div>
     </div>

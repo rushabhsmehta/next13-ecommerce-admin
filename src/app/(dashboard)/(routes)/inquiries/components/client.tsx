@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import {  FileIcon, FileSpreadsheet, Plus } from "lucide-react";
+import { FileIcon, FileSpreadsheet, Plus } from "lucide-react";
 import { PeriodFilter } from "./period-filter";
 import { StatusFilter } from "./status-filter";
 import { downloadAsExcel, downloadAsPDF } from "@/app/(dashboard)/(routes)/inquiries/components/download-utils";
@@ -21,11 +21,13 @@ import { downloadAsExcel, downloadAsPDF } from "@/app/(dashboard)/(routes)/inqui
 interface InquiriesClientProps {
   data: InquiryColumn[];
   associates: { id: string; name: string }[];
+  organization: any; // Add organization prop
 }
 
 export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   data,
-  associates
+  associates,
+  organization
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,12 +50,12 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   // Download handlers
   const handleExcelDownload = () => {
     const filename = `inquiries-${new Date().toISOString().split('T')[0]}`;
-    downloadAsExcel(data, filename);
+    downloadAsExcel(data, filename, organization);
   };
 
   const handlePdfDownload = () => {
     const filename = `inquiries-${new Date().toISOString().split('T')[0]}`;
-    downloadAsPDF(data, filename);
+    downloadAsPDF(data, filename, organization);
   };
 
   return (

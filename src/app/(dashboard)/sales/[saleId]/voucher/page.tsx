@@ -35,6 +35,13 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
     return notFound();
   }
 
+  // Get organization data for displaying in the voucher
+  const organization = await prismadb.organization.findFirst({
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+
   // Format the sale date
   const formattedDate = format(sale.saleDate, "MMMM d, yyyy");
   const formattedDueDate = sale.dueDate ? format(sale.dueDate, "MMMM d, yyyy") : null;
@@ -122,6 +129,7 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
         
         <VoucherLayout 
           type="sale"
+          organization={organization}
           {...voucherData}
         >
           {isMultiItem ? (

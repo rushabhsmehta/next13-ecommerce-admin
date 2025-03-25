@@ -29,6 +29,13 @@ const ReceiptVoucherPage = async ({ params }: ReceiptVoucherPageProps) => {
     return notFound();
   }
 
+  // Get organization data for displaying in the voucher
+  const organization = await prismadb.organization.findFirst({
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+
   // Format the receipt date
   const formattedDate = format(receipt.receiptDate, "MMMM d, yyyy");
   
@@ -96,6 +103,7 @@ const ReceiptVoucherPage = async ({ params }: ReceiptVoucherPageProps) => {
         
         <VoucherLayout 
           type="receipt"
+          organization={organization}
           {...voucherData}
         />
       </div>

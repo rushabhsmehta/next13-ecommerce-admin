@@ -1,72 +1,113 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Printer } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from 'html2canvas';
+import { toast } from "react-hot-toast";
 
 interface VoucherActionsProps {
   id: string;
-  type: "receipt" | "payment" | "sale" | "purchase";
+  type: "receipt" | "payment" | "sale" | "purchase" | "income" | "expense";
 }
 
 export const VoucherActions: React.FC<VoucherActionsProps> = ({ id, type }) => {
+  const [loading, setLoading] = useState(false);
+
   const generatePDF = async () => {
     const content = document.getElementById('voucher-content');
-    if (!content) return;
+    if (!content) {
+      toast.error('Could not find voucher content to convert');
+      return;
+    }
 
-    // Display loading state
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.style.position = 'fixed';
-    loadingOverlay.style.top = '0';
-    loadingOverlay.style.left = '0';
-    loadingOverlay.style.width = '100%';
-    loadingOverlay.style.height = '100%';
-    loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-    loadingOverlay.style.display = 'flex';
-    loadingOverlay.style.justifyContent = 'center';
-    loadingOverlay.style.alignItems = 'center';
-    loadingOverlay.style.zIndex = '9999';
-    loadingOverlay.innerText = 'Generating PDF...';
-    document.body.appendChild(loadingOverlay);
+    // Set loading state
+    setLoading(true);
+    
+    // Display loading toast
+    const loadingToast = toast.loading('Generating PDF...');
 
     try {
-      // Higher quality scaling
-      const scale = 2;
-      const canvas = await html2canvas(content, {
+      // For purchase vouchers, use a different approach with more optimizations
+      const isPurchase = type === 'purchase';
+      
+      // Different settings based on voucher type
+      const scale = isPurchase ? 1.5 : 2; // Lower scale for purchase vouchers
+      const quality = isPurchase ? 0.8 : 1; // Lower quality for purchase vouchers to improve performance
+      
+      // Create a clone of the element for processing to avoid UI blocking
+      const clone = content.cloneNode(true) as HTMLElement;
+      clone.style.width = `${content.offsetWidth}px`;
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '-9999px';
+      document.body.appendChild(clone);
+      
+      // Apply specific styles for PDF rendering
+      const elementsToHide = clone.querySelectorAll('.print\\:hidden');
+      elementsToHide.forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
+
+      // Generate canvas with optimized settings
+      const canvas = await html2canvas(clone, {
         scale: scale,
         logging: false,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
+        imageTimeout: 30000, // Longer timeout for images
+        onclone: (document, element) => {
+          // Any additional modifications to the cloned content if needed
+        }
       });
 
-      const imgData = canvas.toDataURL('image/png');
+      // Remove the clone from DOM after processing
+      document.body.removeChild(clone);
+      
+      const imgData = canvas.toDataURL('image/jpeg', quality); // Use JPEG for better performance with quality setting
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
+      
+      // Calculate the height of the image in the PDF based on its aspect ratio
       const imgHeight = canvas.height * imgWidth / canvas.width;
       
       const doc = new jsPDF({
-        orientation: imgHeight > pageHeight ? 'portrait' : 'portrait',
+        orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
+        compress: true // Enable compression for smaller file size
       });
       
+      // Add the image to the PDF
+      let heightLeft = imgHeight;
       let position = 0;
-      doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      let pageCount = 1;
 
-      // Check if there are more pages needed
-      while (imgHeight > pageHeight) {
-        position = position - pageHeight;
+      // Add first page
+      doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add additional pages if needed for long content
+      while (heightLeft > 0) {
+        position = -pageHeight * pageCount;
         doc.addPage();
-        doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        pageCount++;
       }
 
-      doc.save(`${type}-voucher-${id}.pdf`);
+      // Save the PDF
+      doc.save(`${type}-voucher-${id.substring(0, 8)}.pdf`);
+      toast.dismiss(loadingToast);
+      toast.success('PDF downloaded successfully');
     } catch (error) {
       console.error('PDF generation failed:', error);
+      toast.dismiss(loadingToast);
+      toast.error('Failed to generate PDF. Try using the print option instead.');
     } finally {
-      document.body.removeChild(loadingOverlay);
+      setLoading(false);
     }
   };
 
@@ -83,10 +124,11 @@ export const VoucherActions: React.FC<VoucherActionsProps> = ({ id, type }) => {
       <Button 
         variant="default"
         onClick={generatePDF}
+        disabled={loading}
         className="flex items-center gap-2 print:hidden"
       >
         <Download className="h-4 w-4" />
-        Download PDF
+        {loading ? 'Processing...' : 'Download PDF'}
       </Button>
     </div>
   );

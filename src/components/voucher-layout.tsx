@@ -4,7 +4,7 @@ import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 export interface VoucherLayoutProps {
   title: string;
@@ -17,8 +17,9 @@ export interface VoucherLayoutProps {
   additionalNotes?: string;
   signatures?: { left: string; right: string };
   totalAmount?: number;
-  type: "sale" | "purchase" | "receipt" | "payment";
-  children?: ReactNode; // Add children prop to the interface
+  type: "sale" | "purchase" | "receipt" | "payment" | "income" | "expense"; // Add new types
+  organization?: any; // Add organization prop
+  children?: ReactNode;
 }
 
 export function VoucherLayout({
@@ -33,12 +34,58 @@ export function VoucherLayout({
   signatures,
   totalAmount,
   type,
-  children, // Include children in the component props
+  organization,
+  children,
 }: VoucherLayoutProps) {
+  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null);
+
+  // Load organization logo if available
+  useEffect(() => {
+    if (organization?.logoUrl) {
+      setOrgLogoUrl(organization.logoUrl);
+    }
+  }, [organization]);
+
   return (
-    <Card className="print:shadow-none">
+    <Card className="print:shadow-none" id="voucher-content">
       <CardContent className="p-6 print:p-0">
         <div className="space-y-6 print:space-y-4">
+          {/* Organization Header - Logo on left, details on right */}
+          {organization && (
+            <div className="flex items-start mb-6">
+              {/* Logo on the left */}
+              {orgLogoUrl && (
+                <div className="w-1/3 pr-4">
+                  <div className="relative h-24 w-full">
+                    <Image
+                      src={orgLogoUrl}
+                      alt="Organization Logo"
+                      fill
+                      style={{ objectFit: "contain", objectPosition: "left" }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Organization details on the right */}
+              <div className={`${orgLogoUrl ? 'w-2/3' : 'w-full'} space-y-1`}>
+                <h2 className="text-xl font-bold">{organization.name}</h2>
+                {organization.address && <p className="text-sm">{organization.address}</p>}
+                <div className="text-xs text-muted-foreground">
+                  {organization.phone && <span className="mr-2">Phone: {organization.phone}</span>}
+                  {organization.email && <span className="mr-2">Email: {organization.email}</span>}
+                  {organization.website && <span>Web: {organization.website}</span>}
+                </div>
+                {(organization.gstNumber || organization.panNumber) && (
+                  <div className="text-xs">
+                    {organization.gstNumber && <span className="mr-2">GST: {organization.gstNumber}</span>}
+                    {organization.panNumber && <span>PAN: {organization.panNumber}</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Header Section */}
           <div className="flex flex-col items-center text-center border-b pb-4 print:pb-2">
             <h1 className="text-2xl font-bold tracking-tight print:text-xl">{title}</h1>

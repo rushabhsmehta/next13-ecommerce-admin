@@ -29,6 +29,13 @@ const PaymentVoucherPage = async ({ params }: PaymentVoucherPageProps) => {
     return notFound();
   }
 
+  // Get organization data for displaying in the voucher
+  const organization = await prismadb.organization.findFirst({
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+
   // Format the payment date
   const formattedDate = format(payment.paymentDate, "MMMM d, yyyy");
   
@@ -96,6 +103,7 @@ const PaymentVoucherPage = async ({ params }: PaymentVoucherPageProps) => {
         
         <VoucherLayout 
           type="payment"
+          organization={organization}
           {...voucherData}
         />
       </div>

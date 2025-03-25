@@ -13,9 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import {  FileIcon, FileSpreadsheet, Plus } from "lucide-react";
 import { PeriodFilter } from "./period-filter";
 import { StatusFilter } from "./status-filter";
+import { downloadAsExcel, downloadAsPDF } from "@/app/(dashboard)/(routes)/inquiries/components/download-utils";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
@@ -44,6 +45,17 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     window.open(`/inquiries/new`, '_blank');
   };
 
+  // Download handlers
+  const handleExcelDownload = () => {
+    const filename = `inquiries-${new Date().toISOString().split('T')[0]}`;
+    downloadAsExcel(data, filename);
+  };
+
+  const handlePdfDownload = () => {
+    const filename = `inquiries-${new Date().toISOString().split('T')[0]}`;
+    downloadAsPDF(data, filename);
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -67,6 +79,26 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
               ))}
             </SelectContent>
           </Select>
+          
+          {/* Separate Excel and PDF Download Buttons */}
+          <Button 
+            variant="outline"
+            onClick={handleExcelDownload}
+            className="flex items-center gap-x-2"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Excel
+          </Button>
+          
+          <Button 
+            variant="outline"
+            onClick={handlePdfDownload}
+            className="flex items-center gap-x-2"
+          >
+            <FileIcon className="h-4 w-4" />
+            PDF
+          </Button>
+          
           <Button onClick={handleAddNewClick}>
             <Plus className="mr-2 h-4 w-4" /> Add New
           </Button>

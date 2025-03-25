@@ -96,7 +96,7 @@ model TourPackageQuery {
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
   
   location                  Location        @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
@@ -142,7 +142,7 @@ model PurchaseDetail {
   description        String?          @db.Text
   status             String?          @default("pending") // pending, complete, cancelled
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)

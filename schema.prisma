@@ -188,7 +188,7 @@ model PaymentDetail {
   note               String?          @db.Text
   supplierId         String?          // Make supplierId optional
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Make relation optional
@@ -219,7 +219,7 @@ model SaleDetail {
   description        String?          @db.Text
   status             String?          @default("pending") // pending, complete, cancelled
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -264,7 +264,7 @@ model ReceiptDetail {
   note               String?          @db.Text
   customerId         String?          // Make customerId optional
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Make relation optional
@@ -290,7 +290,7 @@ model ExpenseDetail {
   expenseCategory    ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
   description        String?          @db.Text
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
   
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade) // Made relation optional
   bankAccountId   String?    
@@ -360,7 +360,7 @@ model TourPackage {
   isFeatured                Boolean         @default(false)
   isArchived                Boolean         @default(false)
   createdAt                 DateTime        @default(now())
-  updatedAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
   location                  Location        @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails             FlightDetails[]
   itineraries               Itinerary[]
@@ -406,7 +406,7 @@ model ActivityMaster {
   activityMasterTitle       String?     @db.Text
   activityMasterDescription String?     @db.Text
   createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   itineraryId String?
   itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
@@ -433,7 +433,7 @@ model Itinerary {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
@@ -463,7 +463,7 @@ model ItineraryMaster {
   roomCategory       String?
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   activities         Activity[]
@@ -479,7 +479,7 @@ model Images {
   tourPackageQueryId String?
   url                String
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   hotelId            String?
@@ -513,7 +513,7 @@ model Customer {
   email               String?
   associatePartnerId  String?
   createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   saleDetails         SaleDetail[]
   receiptDetails      ReceiptDetail[]
@@ -528,7 +528,7 @@ model Supplier {
   contact         String?
   email           String?
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   // Add the many-to-many relationship with Location
   locations       SupplierLocation[]
@@ -585,7 +585,7 @@ model Inquiry {
   status              String           @default("pending") // pending, contacted, converted, cancelled
   journeyDate         DateTime?
   createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   location            Location         @relation("LocationToInquiry", fields: [locationId], references: [id])
   associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
@@ -642,7 +642,7 @@ model CashAccount {
   currentBalance  Float     @default(0)
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
   // Relations with transactions
   paymentDetails  PaymentDetail[]
@@ -683,7 +683,7 @@ model IncomeCategory {
   description String?
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   incomes     IncomeDetail[]
 }
 
@@ -693,7 +693,7 @@ model ExpenseCategory {
   description String?
   isActive    Boolean        @default(true)
   createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   expenses    ExpenseDetail[]
 }
 
@@ -756,7 +756,7 @@ model UnitOfMeasure {
   description String?
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   
   // Relations
   purchaseItems PurchaseItem[]

@@ -35,6 +35,13 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
     return notFound();
   }
 
+  // Get organization data for displaying in the voucher
+  const organization = await prismadb.organization.findFirst({
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+
   // Format the purchase date
   const formattedDate = format(purchase.purchaseDate, "MMMM d, yyyy");
   const formattedDueDate = purchase.dueDate ? format(purchase.dueDate, "MMMM d, yyyy") : null;
@@ -64,7 +71,7 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
     dueDate: formattedDueDate,
     leftInfo: [
       { 
-        label: "SUPPLIER", 
+        label: "Particulars", 
         content: (
           <div>
             <p className="font-medium">{purchase.supplier?.name || "N/A"}</p>
@@ -107,6 +114,7 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
         
         <VoucherLayout 
           type="purchase"
+          organization={organization}
           {...voucherData}
         >
           {/* Use ItemTransactionTable for multi-item purchases */}

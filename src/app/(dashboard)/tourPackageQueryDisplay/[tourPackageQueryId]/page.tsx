@@ -14,9 +14,14 @@ const tourPackageQueryPage = async ({
     },
     include: {
       images: true,
-      flightDetails: true,
+      flightDetails: {
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
       itineraries: {
         include: {
+          
           itineraryImages: true,
           activities:
           {

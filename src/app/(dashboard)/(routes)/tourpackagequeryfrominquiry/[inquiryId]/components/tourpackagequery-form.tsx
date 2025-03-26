@@ -53,7 +53,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { format } from "date-fns"
 import JoditEditor from "jodit-react";
 import { Switch } from "@/components/ui/switch"
-import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, PRICE_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, DEFAULT_PRICING_SECTION, REMARKS_DEFAULT } from "./defaultValues"
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, DEFAULT_PRICING_SECTION, REMARKS_DEFAULT } from "./defaultValues"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PolicyField } from "./policy-fields"
@@ -103,7 +103,7 @@ const pricingItemSchema = z.object({
 
 const formSchema = z.object({
   tourPackageTemplate: z.string().optional(),
-  tourPackageQueryTemplate : z.string().optional(),
+  tourPackageQueryTemplate: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   tourPackageQueryType: z.string().optional(),
@@ -120,11 +120,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  price: z.string().optional(),
-  pricePerAdult: z.string().optional().nullable().transform(val => val || ''),
-  pricePerChildOrExtraBed: z.string().optional().nullable().transform(val => val || ''),
-  pricePerChild5to12YearsNoBed: z.string().optional().nullable().transform(val => val || ''),
-  pricePerChildwithSeatBelow5Years: z.string().optional().nullable().transform(val => val || ''),
+
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
   locationId: z.string().min(1),
@@ -238,11 +234,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numChild0to5: inquiry?.numChildrenBelow5?.toString() || '',
     remarks: REMARKS_DEFAULT,
     tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
-    price: PRICE_DEFAULT,
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
+
     totalPrice: '',
     inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
@@ -354,11 +346,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
       form.setValue('tour_highlights', String(selectedTourPackage.tour_highlights || ''));
-      form.setValue('price', String(selectedTourPackage.price || ''));
-      form.setValue('pricePerAdult', String(selectedTourPackage.pricePerAdult || ''));
-      form.setValue('pricePerChildOrExtraBed', String(selectedTourPackage.pricePerChildOrExtraBed || ''));
-      form.setValue('pricePerChild5to12YearsNoBed', String(selectedTourPackage.pricePerChild5to12YearsNoBed || ''));
-      form.setValue('pricePerChildwithSeatBelow5Years', String(selectedTourPackage.pricePerChildwithSeatBelow5Years || ''));
       form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
       form.setValue('inclusions', selectedTourPackage.inclusions ? [String(selectedTourPackage.inclusions)] : []);
       form.setValue('exclusions', selectedTourPackage.exclusions ? [String(selectedTourPackage.exclusions)] : []);
@@ -398,7 +385,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         arrivalTime: flight.arrivalTime || undefined,
         flightDuration: flight.flightDuration || undefined
       })));
-    //  form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
+      //  form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
 
     }
   };
@@ -414,17 +401,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('tourPackageQueryType', String(selectedTourPackageQuery.tourPackageQueryType || ''));
       form.setValue('locationId', selectedTourPackageQuery.locationId);
       //form.setValue('numDaysNight', String(selectedTourPackageQuery.numDaysNight || ''));
-     // form.setValue('customerName', selectedTourPackageQuery.customerName || '');
-     // form.setValue('customerNumber', selectedTourPackageQuery.customerNumber || '');
+      // form.setValue('customerName', selectedTourPackageQuery.customerName || '');
+      // form.setValue('customerNumber', selectedTourPackageQuery.customerNumber || '');
       form.setValue('transport', String(selectedTourPackageQuery.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackageQuery.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackageQuery.drop_location || ''));
       form.setValue('tour_highlights', String(selectedTourPackageQuery.tour_highlights || ''));
-      form.setValue('price', String(selectedTourPackageQuery.price || ''));
-      form.setValue('pricePerAdult', String(selectedTourPackageQuery.pricePerAdult || ''));
-      form.setValue('pricePerChildOrExtraBed', String(selectedTourPackageQuery.pricePerChildOrExtraBed || ''));
-      form.setValue('pricePerChild5to12YearsNoBed', String(selectedTourPackageQuery.pricePerChild5to12YearsNoBed || ''));
-      form.setValue('pricePerChildwithSeatBelow5Years', String(selectedTourPackageQuery.pricePerChildwithSeatBelow5Years || ''));
       form.setValue('totalPrice', String(selectedTourPackageQuery.totalPrice || ''));
       //form.setValue('numAdults', String(selectedTourPackageQuery.numAdults || ''));
       //form.setValue('numChild5to12', String(selectedTourPackageQuery.numChild5to12 || ''));
@@ -495,10 +477,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',
-      pricePerAdult: data.pricePerAdult || '',
-      pricePerChildOrExtraBed: data.pricePerChildOrExtraBed || '',
-      pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
-      pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
       totalPrice: data.totalPrice || '',
       disclaimer: data.disclaimer || '',
       itineraries: data.itineraries.map(itinerary => ({
@@ -1708,7 +1686,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             </SelectTrigger>
                                           </FormControl>
                                           <SelectContent>
-                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal |  null | undefined }) => (
+                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
                                               <SelectItem key={activityMaster.id}
                                                 value={activityMaster.id}>
                                                 {activityMaster.activityMasterTitle}
@@ -2015,94 +1993,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Move pricing form fields here */}
-                  <FormField
-                    control={form.control}
-                    name="price" // Ensure the name is lowercase with no spaces
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pricing Table</FormLabel>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value || PRICE_DEFAULT} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
 
                   <div className="grid grid-cols-3 gap-8">
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerAdult"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Adult</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Adult" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChildOrExtraBed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child/Extra Bed</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChild5to12YearsNoBed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChildwithSeatBelow5Years"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={form.control}
                       name="totalPrice"

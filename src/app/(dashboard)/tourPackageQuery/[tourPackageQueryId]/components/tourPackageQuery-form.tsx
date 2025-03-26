@@ -48,7 +48,7 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { CalendarIcon } from "@radix-ui/react-icons"
@@ -129,11 +129,6 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  price: z.string().optional(),
-  pricePerAdult: z.string().optional().nullable().transform(val => val || ''),
-  pricePerChildOrExtraBed: z.string().optional().nullable().transform(val => val || ''),
-  pricePerChild5to12YearsNoBed: z.string().optional().nullable().transform(val => val || ''),
-  pricePerChildwithSeatBelow5Years: z.string().optional().nullable().transform(val => val || ''),
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   remarks: z.string().optional(),
@@ -220,10 +215,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
     if (!data) return [];
-    
+
     // If it's already an array, return it
     if (Array.isArray(data)) return data;
-    
+
     // If it's a string, try to parse it
     if (typeof data === 'string') {
       try {
@@ -234,7 +229,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         return [];
       }
     }
-    
+
     // If it's neither an array nor a string, return empty array
     return [];
   };
@@ -362,10 +357,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',
-      pricePerAdult: data.pricePerAdult || '',
-      pricePerChildOrExtraBed: data.pricePerChildOrExtraBed || '',
-      pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
-      pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
       totalPrice: data.totalPrice || '',
       disclaimer: data.disclaimer || '',
       inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
@@ -405,11 +396,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: PRICE_DEFAULT,
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
     totalPrice: '',
     remarks: '',
     //  assignedTo: '',
@@ -449,7 +435,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
-  
+
   // Add this right after the form declaration
   // This gives us specialized methods to handle the pricing section array
   const {
@@ -496,11 +482,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
       form.setValue('tour_highlights', selectedTourPackage.tour_highlights || '');
-      form.setValue('price', selectedTourPackage.price || '');
-      form.setValue('pricePerAdult', selectedTourPackage.pricePerAdult || '');
-      form.setValue('pricePerChildOrExtraBed', selectedTourPackage.pricePerChildOrExtraBed || '');
-      form.setValue('pricePerChild5to12YearsNoBed', selectedTourPackage.pricePerChild5to12YearsNoBed || '');
-      form.setValue('pricePerChildwithSeatBelow5Years', selectedTourPackage.pricePerChildwithSeatBelow5Years || '');
       form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
@@ -544,24 +525,24 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   // Fix the handleAddPricingItem function using splice for direct array manipulation
-const handleAddPricingItem = (insertAtIndex?: number) => {
-  const newItem = { name: '', price: '', description: '' };
-  
-  if (insertAtIndex !== undefined) {
-    // Insert after the specified index
-    insertPricing(insertAtIndex + 1, newItem);
-    console.log("Inserted item after index", insertAtIndex);
-  } else {
-    // Add to the end
-    appendPricing(newItem);
-    console.log("Added item at the end");
-  }
-};
+  const handleAddPricingItem = (insertAtIndex?: number) => {
+    const newItem = { name: '', price: '', description: '' };
 
-const handleRemovePricingItem = (indexToRemove: number) => {
-  removePricing(indexToRemove);
-  console.log("Removed item at index", indexToRemove);
-};
+    if (insertAtIndex !== undefined) {
+      // Insert after the specified index
+      insertPricing(insertAtIndex + 1, newItem);
+      console.log("Inserted item after index", insertAtIndex);
+    } else {
+      // Add to the end
+      appendPricing(newItem);
+      console.log("Added item at the end");
+    }
+  };
+
+  const handleRemovePricingItem = (indexToRemove: number) => {
+    removePricing(indexToRemove);
+    console.log("Removed item at index", indexToRemove);
+  };
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     try {
@@ -597,10 +578,6 @@ const handleRemovePricingItem = (indexToRemove: number) => {
         transport: data.transport || '',
         pickup_location: data.pickup_location || '',
         drop_location: data.drop_location || '',
-        pricePerAdult: data.pricePerAdult || '',
-        pricePerChildOrExtraBed: data.pricePerChildOrExtraBed || '',
-        pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
-        pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
         totalPrice: data.totalPrice || '',
         disclaimer: data.disclaimer || '',
       };
@@ -2057,93 +2034,9 @@ const handleRemovePricingItem = (indexToRemove: number) => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Move pricing form fields here */}
-                  <FormField
-                    control={form.control}
-                    name="price" // Ensure the name is lowercase with no spaces
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pricing Table</FormLabel>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value || PRICE_DEFAULT} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+              
 
-                  <div className="grid grid-cols-3 gap-8">
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerAdult"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Adult</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Adult" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChildOrExtraBed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child/Extra Bed</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChild5to12YearsNoBed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChildwithSeatBelow5Years"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="grid grid-cols-3 gap-8">            
 
                     <FormField
                       control={form.control}

@@ -33,6 +33,7 @@ import { BankAccount, CashAccount } from "@prisma/client";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 const formSchema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than zero"),
@@ -117,49 +118,24 @@ export const TransferModal: React.FC<TransferModalProps> = ({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               {/* Transfer Date */}
+
+
               <FormField
                 control={form.control}
                 name="transferDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Transfer Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(day) => {
-                            if (day) {
-                              field.onChange(day);
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormDatePicker
+                      date={field.value}
+                      onSelect={(date) => date && field.onChange(date)}
+                      disabled={loading}
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               {/* Amount */}
               <FormField
                 control={form.control}
@@ -215,7 +191,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 render={({ field }) => {
                   const accountType = form.watch("fromAccountType");
                   const accounts = accountType === "bank" ? bankAccounts : cashAccounts;
-                  
+
                   return (
                     <FormItem>
                       <FormLabel>From Account</FormLabel>
@@ -232,7 +208,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                           {accounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.accountName}
-                              {accountType === "bank" && (account as BankAccount).bankName && 
+                              {accountType === "bank" && (account as BankAccount).bankName &&
                                 ` (${(account as BankAccount).bankName})`}
                             </SelectItem>
                           ))}
@@ -278,7 +254,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                 render={({ field }) => {
                   const accountType = form.watch("toAccountType");
                   const accounts = accountType === "bank" ? bankAccounts : cashAccounts;
-                  
+
                   return (
                     <FormItem>
                       <FormLabel>To Account</FormLabel>
@@ -295,7 +271,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
                           {accounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.accountName}
-                              {accountType === "bank" && (account as BankAccount).bankName && 
+                              {accountType === "bank" && (account as BankAccount).bankName &&
                                 ` (${(account as BankAccount).bankName})`}
                             </SelectItem>
                           ))}

@@ -57,7 +57,9 @@ const formSchema = z.object({
   }),
   reference: z.string().optional(),
   note: z.string().optional(),
-  customerId: z.string().optional(),
+  customerId: z.string().min(1, {
+    message: "Customer is required",
+  }),
   tourPackageQueryId: z.string().optional(),
   accountId: z.string().min(1, {
     message: "Account is required",
@@ -185,7 +187,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   name="customerId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer</FormLabel>
+                      <FormLabel>Customer <span className="text-red-500">*</span></FormLabel>
                       <div className="relative">
                         <Button
                           type="button"

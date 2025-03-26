@@ -395,7 +395,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                   name="customerId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer</FormLabel>
+                      <FormLabel>Customer <span className="text-red-500">*</span></FormLabel>
                       <div className="relative">
                         <Button
                           type="button"

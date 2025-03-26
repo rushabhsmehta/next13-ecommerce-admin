@@ -395,7 +395,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     name="supplierId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Supplier</FormLabel>
+                        <FormLabel>Supplier <span className="text-red-500">*</span></FormLabel>
                         <div className="relative">
                           <Button
                             type="button"

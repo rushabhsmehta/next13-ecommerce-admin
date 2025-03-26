@@ -58,7 +58,9 @@ const formSchema = z.object({
   method: z.string().optional(),
   transactionId: z.string().optional(),
   note: z.string().optional(),
-  supplierId: z.string().optional(),
+  supplierId: z.string().min(1, {
+    message: "Supplier is required",
+  }),
   tourPackageQueryId: z.string().optional(),
   accountId: z.string().min(1, {
     message: "Account is required",
@@ -192,7 +194,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                   name="supplierId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Supplier</FormLabel>
+                      <FormLabel>Supplier <span className="text-red-500">*</span></FormLabel>
                       <div className="relative">
                         <Button
                           type="button"

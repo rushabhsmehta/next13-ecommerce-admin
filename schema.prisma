@@ -315,6 +315,9 @@ model FlightDetails {
   arrivalTime        String?
   flightDuration     String?
 
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
   tourPackageId String?
   tourPackage   TourPackage? @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
 

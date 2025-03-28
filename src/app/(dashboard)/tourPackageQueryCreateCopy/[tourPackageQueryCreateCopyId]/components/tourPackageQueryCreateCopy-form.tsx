@@ -479,23 +479,14 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
 
 
-  return (
+return (
     <>
-
-      <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
-        {initialData && (
-          <Button
-            disabled={loading}
-            variant="destructive"
-            size="sm"
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <div className="space-y-1">
+          <Heading title={title} description={description} />
+        </div>
       </div>
-      <Separator />
+      <Separator className="mb-8" />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -504,7 +495,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -562,8 +553,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 <CardHeader>
                   <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-
+                <CardContent className="space-y-4">    
                   <div className="grid grid-cols-3 gap-8">
 
                     <FormField
@@ -1495,7 +1485,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                                             </SelectTrigger>
                                           </FormControl>
                                           <SelectContent>
-                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
                                               <SelectItem key={activityMaster.id}
                                                 value={activityMaster.id}>
                                                 {activityMaster.activityMasterTitle}
@@ -1802,94 +1792,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Move pricing form fields here */}
-                  <FormField
-                    control={form.control}
-                    name="price" // Ensure the name is lowercase with no spaces
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Pricing Table</FormLabel>
-                        <FormControl>
-                          <JoditEditor // Replace Textarea with JoditEditor
-                            ref={editor} // Optional ref for programmatic access
-                            value={field.value || PRICE_DEFAULT} // Set initial content from form field value
-                            config={{ // Configure Jodit options
-                              readonly: loading, // Disable editing if loading                
-                            }} // Type assertion (optional)
-                            onBlur={(newContent) => field.onChange(newContent)} // Update form field on blur
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
 
                   <div className="grid grid-cols-3 gap-8">
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerAdult"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Adult</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Adult" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChildOrExtraBed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child/Extra Bed</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child or Extra Bed" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChild5to12YearsNoBed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child (5 to 12 Years - No Bed)</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child 5 to 12 Years - No Bed" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerChildwithSeatBelow5Years"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Per Child with Seat (Below 5 Years)</FormLabel>
-                          <FormControl>
-                            <Input disabled={loading} placeholder="Price per Child with Seat - Below 5 years" {...field}
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={form.control}
                       name="totalPrice"
@@ -2148,7 +2052,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               )}
-              {action}
+              Create Tour Package Query
             </Button>
           </div>
         </form>

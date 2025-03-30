@@ -4,7 +4,7 @@ import * as z from "zod"
 import axios from "axios"
 import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useFieldArray, useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
 import { Activity, Images, ItineraryMaster } from "@prisma/client"
@@ -103,11 +103,7 @@ const formSchema = z.object({
   numAdults: z.string().optional(),
   numChild5to12: z.string().optional(),
   numChild0to5: z.string().optional(),
-  price: z.string().optional(),
-  pricePerAdult: z.string().optional(),
-  pricePerChildOrExtraBed: z.string().optional(),
-  pricePerChild5to12YearsNoBed: z.string().optional(),
-  pricePerChildwithSeatBelow5Years: z.string().optional(),
+ 
   totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
 
@@ -178,60 +174,51 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     termsconditions: false,
   });
 
-
-  const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
-    setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
-    if (checked) {
-      const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
-      if (selectedLocation) {
-        switch (field) {
-          case 'inclusions':
-            form.setValue('inclusions', parseJsonField(selectedLocation.inclusions) || INCLUSIONS_DEFAULT);
-            break;
-          case 'exclusions':
-            form.setValue('exclusions', parseJsonField(selectedLocation.exclusions) || EXCLUSIONS_DEFAULT);
-            break;
-          case 'importantNotes':
-            form.setValue('importantNotes', parseJsonField(selectedLocation.importantNotes) || IMPORTANT_NOTES_DEFAULT);
-            break;
-          case 'paymentPolicy':
-            form.setValue('paymentPolicy', parseJsonField(selectedLocation.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
-            break;
-          case 'usefulTip':
-            form.setValue('usefulTip', parseJsonField(selectedLocation.usefulTip) || USEFUL_TIPS_DEFAULT);
-            break;
-          case 'cancellationPolicy':
-            form.setValue('cancellationPolicy', parseJsonField(selectedLocation.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
-            break;
-          case 'airlineCancellationPolicy':
-            form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-            break;
-          case 'termsconditions':
-            form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-            break;
+  const [useDefaultPricing, setUseDefaultPricing] = useState(false);
+  
+    const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
+      setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
+      if (checked) {
+        const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
+        if (selectedLocation) {
+          switch (field) {
+            case 'inclusions':
+              form.setValue('inclusions', parseJsonField(selectedLocation.inclusions) || INCLUSIONS_DEFAULT);
+              break;
+            case 'exclusions':
+              form.setValue('exclusions', parseJsonField(selectedLocation.exclusions) || EXCLUSIONS_DEFAULT);
+              break;
+            case 'importantNotes':
+              form.setValue('importantNotes', parseJsonField(selectedLocation.importantNotes) || IMPORTANT_NOTES_DEFAULT);
+              break;
+            case 'paymentPolicy':
+              form.setValue('paymentPolicy', parseJsonField(selectedLocation.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
+              break;
+            case 'usefulTip':
+              form.setValue('usefulTip', parseJsonField(selectedLocation.usefulTip) || USEFUL_TIPS_DEFAULT);
+              break;
+            case 'cancellationPolicy':
+              form.setValue('cancellationPolicy', parseJsonField(selectedLocation.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
+              break;
+            case 'airlineCancellationPolicy':
+              form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
+              break;
+            case 'termsconditions':
+              form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+              break;
+          }
         }
       }
-    }
-  };
-  //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
-
-
-  // Function to handle meal checkbox changes
-
-  // Add this function to handle pricing items
-  const handleAddPricingItem = () => {
-    const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', [
-      ...currentPricing,
-      { name: '', price: '', description: '' }
-    ]);
-  };
-
-  const handleRemovePricingItem = (index: number) => {
-    const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', currentPricing.filter((_, i) => i !== index));
-  };
-
+    };
+  
+    const handleUseDefaultPricingChange = (checked: boolean) => {
+      setUseDefaultPricing(checked);
+      if (checked) {
+        // Reset pricing section to default values
+        form.setValue('pricingSection', DEFAULT_PRICING_SECTION);
+      }
+    };
+ 
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -265,11 +252,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
       slug: data.slug ?? '',
-      price: data.price ?? '',
-      pricePerAdult: data.pricePerAdult ?? '',
-      pricePerChildOrExtraBed: data.pricePerChildOrExtraBed ?? '',
-      pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed ?? '',
-      pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years ?? '',
+    
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
         flightName: flightDetail.flightName ?? '',
@@ -328,11 +311,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     numAdults: '',
     numChild5to12: '',
     numChild0to5: '',
-    price: '',
-    pricePerAdult: '',
-    pricePerChildOrExtraBed: '',
-    pricePerChild5to12YearsNoBed: '',
-    pricePerChildwithSeatBelow5Years: '',
+  
     totalPrice: TOTAL_PRICE_DEFAULT,
     assignedTo: '',
     assignedToMobileNumber: '',
@@ -372,6 +351,16 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     defaultValues
   });
 
+  const {
+      fields: pricingFields,
+      append: appendPricing,
+      remove: removePricing,
+      insert: insertPricing
+    } = useFieldArray({
+      control: form.control,
+      name: "pricingSection"
+    });
+    
   const handleMealChange = (mealType: string, isChecked: boolean, itineraryIndex: number) => {
 
     // console.log("Current meal change:", mealType, isChecked, itineraryIndex);
@@ -462,19 +451,45 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
   };
 
 
-  // Function to handle meal checkbox changes
+  const handleAddPricingItem = (insertAtIndex?: number) => {
+    const newItem = { name: '', price: '', description: '' };
+    
+    if (insertAtIndex !== undefined) {
+      // Insert after the specified index
+      insertPricing(insertAtIndex + 1, newItem);
+      console.log("Inserted item after index", insertAtIndex);
+    } else {
+      // Add to the end
+      appendPricing(newItem);
+      console.log("Added item at the end");
+    }
+  };
+  
+  const handleRemovePricingItem = (indexToRemove: number) => {
+    removePricing(indexToRemove);
+    console.log("Removed item at index", indexToRemove);
+  };
 
 
 
   return (
-    <>
       <>
-
+      
         <div className="flex items-center justify-between">
           <Heading title={title} description={description} />
+          {initialData && (
+            <Button
+              disabled={loading}
+              variant="destructive"
+              size="sm"
+              onClick={() => setOpen(true)}
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         <Separator />
-
+  
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             {Object.keys(form.formState.errors).length > 0 && (
@@ -482,7 +497,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 <CardHeader>
                   <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                     Please fix the following errors:
                   </CardTitle>
@@ -498,7 +513,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                 </CardContent>
               </Card>
             )}
-
+  
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid grid-cols-8 w-full"> {/* Changed from grid-cols-7 to grid-cols-8 */}
                 <TabsTrigger value="basic" className="flex items-center gap-2">
@@ -534,13 +549,14 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   Policies
                 </TabsTrigger>
               </TabsList>
-
+  
               <TabsContent value="basic" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
                     <CardTitle>Basic Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+  
                     <FormField
                       control={form.control}
                       name="images"
@@ -559,7 +575,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                         </FormItem>
                       )}
                     />
-
+  
                     <FormField
                       control={form.control}
                       name="isFeatured"
@@ -583,15 +599,17 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                         </FormItem>
                       )}
                     />
-
+  
                     <div className="grid grid-cols-3 gap-8">
+  
+  
                       {/* add formfield for TourPackageQueryName */}
                       <FormField
                         control={form.control}
                         name="tourPackageName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Tour Package Name<span className="text-red-500">*</span></FormLabel>
+                            <FormLabel>Tour Package Query Name<span className="text-red-500">*</span></FormLabel>
                             <FormControl>
                               <Input
                                 disabled={loading}
@@ -607,7 +625,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           </FormItem>
                         )}
                       />
-
+  
                       <FormField
                         control={form.control}
                         name="tourPackageType"
@@ -636,8 +654,8 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           </FormItem>
                         )}
                       />
-
-
+  
+  
                       <FormField
                         control={form.control}
                         name="numDaysNight"
@@ -651,11 +669,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           </FormItem>
                         )}
                       />
-
-
+  
+  
                     </div>
                     <div className="grid grid-cols-3 gap-8">
-
+  
                       <FormField
                         control={form.control}
                         name="transport"
@@ -669,7 +687,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           </FormItem>
                         )}
                       />
-
+  
                       <FormField
                         control={form.control}
                         name="pickup_location"
@@ -683,7 +701,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           </FormItem>
                         )}
                       />
-
+  
                       <FormField
                         control={form.control}
                         name="drop_location"
@@ -698,10 +716,96 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                         )}
                       />
                     </div>
+  
                   </CardContent>
                 </Card>
               </TabsContent>
-
+  
+              {/* Add similar TabsContent sections for other tabs */}
+              <TabsContent value="guests" className="space-y-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Guests</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Move guests form fields here */}
+                    {/* //add formfield for numAdults */}
+                    <FormField
+                      control={form.control}
+                      name="customerName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Customer Name</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading} placeholder="Customer Name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+  
+                    <FormField
+                      control={form.control}
+                      name="customerNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Customer Number</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading} placeholder="Customer Number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+  
+  
+                    <FormField
+                      control={form.control}
+                      name="numAdults"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Adults</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading} placeholder="Number of Adults" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+  
+                    {/* //add formfield for numChildren */}
+                    <FormField
+                      control={form.control}
+                      name="numChild5to12"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Children 5 to 12</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+  
+                    {/* //add formfield for numChildren */}
+                    <FormField
+                      control={form.control}
+                      name="numChild0to5"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Children 0 to 5</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+  
               <TabsContent value="location" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -776,7 +880,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           locationId: location.id
                                         }));
                                         form.setValue('itineraries', updatedItineraries);
-
+  
                                         // Update activities locationId within itineraries
                                         const updatedItinerariesWithActivities = updatedItineraries.map(itinerary => ({
                                           ...itinerary,
@@ -810,7 +914,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   </CardContent>
                 </Card>
               </TabsContent>
-
+  
               <TabsContent value="itinerary" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -902,7 +1006,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           </Command>
                                         </PopoverContent>
                                       </Popover>
-
+  
                                       <FormItem>
                                         <FormLabel>Day {index + 1}</FormLabel>
                                         <FormControl>
@@ -919,14 +1023,14 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           />
                                         </FormControl>
                                       </FormItem>
-
+  
                                       <FormItem>
                                         <FormLabel>Date</FormLabel>
                                         <FormControl>
                                           <Input
                                             placeholder="Day"
                                             disabled={loading}
-
+  
                                             value={itinerary.days}
                                             onChange={(e) => {
                                               const newItineraries = [...value];
@@ -936,7 +1040,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           />
                                         </FormControl>
                                       </FormItem>
-
+  
                                       <ImageUpload
                                         value={itinerary.itineraryImages?.map((image) => image.url) || []}
                                         disabled={loading}
@@ -956,9 +1060,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           onChange(updatedItineraries);
                                         }}
                                       />
-
-
-
+  
+  
+  
                                       <FormItem>
                                         <FormLabel>Title</FormLabel>
                                         <FormControl>
@@ -972,7 +1076,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                             }} />
                                         </FormControl>
                                       </FormItem>
-
+  
                                       <FormItem>
                                         <FormLabel>Description</FormLabel>
                                         <FormControl>
@@ -986,7 +1090,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                             }} />
                                         </FormControl>
                                       </FormItem>
-
+  
                                       <FormItem className="flex flex-col">
                                         <FormLabel>Hotel</FormLabel>
                                         <Popover>
@@ -1049,14 +1153,14 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                         </Popover>
                                         <FormMessage />
                                       </FormItem>
-
+  
                                       <FormItem>
                                         <FormLabel>Room Category</FormLabel>
                                         <FormControl>
                                           <Input
                                             placeholder="Room Category"
                                             disabled={loading}
-
+  
                                             value={itinerary.roomCategory}
                                             onChange={(e) => {
                                               const newItineraries = [...value];
@@ -1066,8 +1170,8 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           />
                                         </FormControl>
                                       </FormItem>
-
-
+  
+  
                                       <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                                         <FormLabel>Meal Plan</FormLabel>
                                         <FormControl>
@@ -1102,9 +1206,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           </div>
                                         </FormControl>
                                       </FormItem>
-
-
-
+  
+  
+  
                                       {itinerary.activities.map((activity, activityIndex) => (
                                         <div key={activityIndex} className="space-y-2">
                                           <Select
@@ -1119,7 +1223,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                               </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                              {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined }) => (
+                                              {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
                                                 <SelectItem key={activityMaster.id}
                                                   value={activityMaster.id}>
                                                   {activityMaster.activityMasterTitle}
@@ -1140,11 +1244,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                                 }} />
                                             </FormControl>
                                           </FormItem>
-
+  
                                           <FormItem>
                                             <FormLabel>Activity Description</FormLabel>
                                             <FormControl>
-
+  
                                               <JoditEditor
                                                 ref={editor}
                                                 value={activity.activityDescription || ''}
@@ -1153,11 +1257,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                                   newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
                                                   onChange(newItineraries)
                                                 }} />
-
+  
                                             </FormControl>
                                           </FormItem>
-
-
+  
+  
                                           <ImageUpload
                                             value={activity.activityImages?.map((image) => image.url)}
                                             disabled={loading}
@@ -1167,7 +1271,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                               // Update the specific activity in the itinerary
                                               const updatedActivities = [...itinerary.activities];
                                               updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
+  
                                               // Update the specific itinerary in the itineraries array
                                               const updatedItineraries = [...value];
                                               updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
@@ -1179,15 +1283,15 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                               // Update the specific activity in the itinerary
                                               const updatedActivities = [...itinerary.activities];
                                               updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
+  
                                               // Update the specific itinerary in the itineraries array
                                               const updatedItineraries = [...value];
                                               updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
                                               onChange(updatedItineraries);
                                             }}
                                           />
-
-
+  
+  
                                           <Button
                                             type="button"
                                             variant="destructive"
@@ -1213,9 +1317,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                       >
                                         Add Activity
                                       </Button>
-
-
-
+  
+  
+  
                                       <Button
                                         type="button"
                                         variant="destructive"
@@ -1226,7 +1330,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                         }}
                                       >
                                         Remove Itinerary for Day {index + 1}
-
+  
                                       </Button>
                                     </div>
                                   </AccordionContent>
@@ -1261,7 +1365,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   </CardContent>
                 </Card>
               </TabsContent>
-
+  
               <TabsContent value="flights" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -1277,7 +1381,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           <FormLabel>Create Flight Plan</FormLabel>
                           {
                             value.map((flight, index) => (
-
+  
                               <div key={index} className="grid grid-cols-3 gap-8">
                                 <FormControl>
                                   <Input
@@ -1291,7 +1395,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
+  
                                 <FormControl>
                                   <Input
                                     placeholder="Flight Name"
@@ -1304,7 +1408,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
+  
                                 <FormControl>
                                   <Input
                                     placeholder="Flight Number"
@@ -1317,7 +1421,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
+  
                                 <FormControl>
                                   <Input
                                     placeholder="From"
@@ -1330,9 +1434,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
+  
                                 <FormControl>
-
+  
                                   <Input
                                     placeholder="To"
                                     disabled={loading}
@@ -1344,9 +1448,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
+  
                                 <FormControl>
-
+  
                                   <Input
                                     placeholder="Departure Time"
                                     disabled={loading}
@@ -1356,12 +1460,12 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                       newFlightDetails[index] = { ...flight, departureTime: e.target.value };
                                       onChange(newFlightDetails);
                                     }}
-
+  
                                   />
-
+  
                                 </FormControl>
                                 <FormControl>
-
+  
                                   <Input
                                     placeholder="Arrival Time"
                                     disabled={loading}
@@ -1373,7 +1477,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
+  
                                 <FormControl>
                                   <Input
                                     placeholder="Flight Duration"
@@ -1386,11 +1490,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     }}
                                   />
                                 </FormControl>
-
-
+  
+  
                                 <FormControl>
                                   <Button
-
+  
                                     type="button"
                                     variant="destructive"
                                     size="sm"
@@ -1418,20 +1522,50 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   </CardContent>
                 </Card>
               </TabsContent>
-
+  
               <TabsContent value="pricing" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
                     <CardTitle>Pricing</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Move pricing form fields here */}
+                    {/* Add switch for default pricing options at the top */}
+                    <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md mb-4">
+                      <Switch
+                        checked={useDefaultPricing}
+                        onCheckedChange={handleUseDefaultPricingChange}
+                        id="use-default-pricing"
+                      />
+                      <label
+                        htmlFor="use-default-pricing"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Use default pricing options
+                      </label>
+                    </div>
+  
+                    <FormField
+                      control={form.control}
+                      name="totalPrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Total Price</FormLabel>
+                          <FormControl>
+                            <Input disabled={loading} placeholder="Total Price" {...field}
+                              value={field.value || ''}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+  
                     <div className="border rounded-lg p-4">
                       <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>
                       <FormField
                         control={form.control}
                         name="pricingSection"
-                        render={({ field }) => (
+                        render={() => (
                           <FormItem>
                             {/* Add column headers */}
                             <div className="grid grid-cols-3 gap-4 mb-2 px-1">
@@ -1440,9 +1574,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                               <div className="font-medium text-sm">Description (Optional)</div>
                             </div>
                             <div className="space-y-4">
-                              {/* Ensure field.value is an array before mapping */}
-                              {Array.isArray(field.value) ? field.value.map((item, index) => (
-                                <div key={index} className="grid grid-cols-3 gap-4 items-end relative pr-10">
+                              {/* Use pricingFields from useFieldArray instead of field.value */}
+                              {pricingFields.map((field, index) => (
+                                <div key={field.id} className="grid grid-cols-3 gap-4 items-end relative pr-20 pt-2 border-t border-gray-100 first:border-t-0">
                                   <FormField
                                     control={form.control}
                                     name={`pricingSection.${index}.name`}
@@ -1475,32 +1609,45 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                     control={form.control}
                                     name={`pricingSection.${index}.description`}
                                     render={({ field }) => (
-                                      <FormItem>
+                                      <FormItem className="relative">
                                         <FormControl>
                                           <Input
                                             placeholder="e.g. Age 3-12, with bed"
                                             {...field}
                                           />
                                         </FormControl>
+                                        <div className="absolute right-0 top-0 -mr-20 flex space-x-1">
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleAddPricingItem(index)}
+                                            className="h-10 w-10"
+                                            title="Insert row after this"
+                                          >
+                                            <Plus className="h-4 w-4 text-blue-500" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleRemovePricingItem(index)}
+                                            className="h-10 w-10"
+                                            title="Remove this row"
+                                          >
+                                            <Trash className="h-4 w-4 text-red-500" />
+                                          </Button>
+                                        </div>
                                       </FormItem>
                                     )}
                                   />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-0 bottom-0"
-                                    onClick={() => handleRemovePricingItem(index)}
-                                  >
-                                    <Trash className="h-4 w-4 text-red-500" />
-                                  </Button>
                                 </div>
-                              )) : null}
+                              ))}
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={handleAddPricingItem}
+                                onClick={() => handleAddPricingItem()}
                                 className="mt-2"
                               >
                                 <Plus className="mr-2 h-4 w-4" />
@@ -1515,7 +1662,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   </CardContent>
                 </Card>
               </TabsContent>
-
+  
               <TabsContent value="policies" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -1544,7 +1691,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           Terms
                         </TabsTrigger>
                       </TabsList>
-
+  
                       <TabsContent value="inclusions" className="space-y-4 mt-4">
                         <div className="grid gap-4">
                           <PolicyField
@@ -1557,7 +1704,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                             switchDescription="Use Switch to Copy Inclusions from the Selected Location"
                             placeholder="Add inclusion item..."
                           />
-
+  
                           <PolicyField
                             control={form.control}
                             name="exclusions"
@@ -1570,7 +1717,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           />
                         </div>
                       </TabsContent>
-
+  
                       <TabsContent value="notes" className="space-y-4 mt-4">
                         <div className="grid gap-4">
                           <PolicyField
@@ -1583,7 +1730,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                             switchDescription="Use Switch to Copy Important Notes from the Selected Location"
                             placeholder="Add important note..."
                           />
-
+  
                           <PolicyField
                             control={form.control}
                             name="usefulTip"
@@ -1596,7 +1743,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           />
                         </div>
                       </TabsContent>
-
+  
                       <TabsContent value="cancellation" className="space-y-4 mt-4">
                         <div className="grid gap-4">
                           <PolicyField
@@ -1609,7 +1756,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                             switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
                             placeholder="Add cancellation policy item..."
                           />
-
+  
                           <PolicyField
                             control={form.control}
                             name="airlineCancellationPolicy"
@@ -1622,7 +1769,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                           />
                         </div>
                       </TabsContent>
-
+  
                       <TabsContent value="terms" className="space-y-4 mt-4">
                         <div className="grid gap-4">
                           <PolicyField
@@ -1635,7 +1782,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                             switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
                             placeholder="Add payment policy item..."
                           />
-
+  
                           <PolicyField
                             control={form.control}
                             name="termsconditions"
@@ -1652,9 +1799,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                   </CardContent>
                 </Card>
               </TabsContent>
-
+  
             </Tabs>
-
+  
             <div className="flex justify-end mt-8">
               <Button
                 type="submit"
@@ -1672,9 +1819,9 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
             </div>
           </form>
         </Form>
-
+  
         {process.env.NODE_ENV !== 'production' && <DevTool control={form.control} />}
+  
       </>
-    </>
-  )
+    )
 }

@@ -16,6 +16,9 @@ interface UpcomingTripsPageProps {
 const confirmedTourPackageQueryPage = async ({
   searchParams
 }: UpcomingTripsPageProps) => {
+  // Get current date to filter out trips that have already ended
+  const currentDate = new Date();
+  
   // Parse and validate date filters
   const startDate = searchParams.startDate ? new Date(searchParams.startDate) : startOfMonth(new Date());
   const endDate = searchParams.endDate ? new Date(searchParams.endDate) : null;
@@ -23,9 +26,14 @@ const confirmedTourPackageQueryPage = async ({
   // Use validated dates for filtering
   const validStartDate = isValid(startDate) ? startDate : startOfMonth(new Date());
   
-  // Create where condition based on dates
+  // Create where condition based on dates, filtering on tourEndsOn to include ongoing trips
   const whereCondition: any = {
     isFeatured: true,
+    // Filter by tourEndsOn to keep showing ongoing trips
+    tourEndsOn: {
+      gte: currentDate, // Show trips that end today or in the future
+    },
+    // Still use start date filter from search params if provided
     tourStartsFrom: {
       gte: validStartDate,
     },

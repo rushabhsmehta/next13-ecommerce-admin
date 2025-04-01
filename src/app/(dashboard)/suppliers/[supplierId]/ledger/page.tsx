@@ -53,17 +53,25 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
 
   
   // Format transactions for display
-  const formattedPurchases = purchases.map(purchase => ({
-    id: purchase.id,
-    date: purchase.purchaseDate,
-    type: "Purchase",
-    description: purchase.description || purchase.tourPackageQuery?.tourPackageQueryName || "Purchase",
-    amount: purchase.price,
-    isInflow: true, // Purchases are inflows from supplier perspective (we owe them)
-    reference: purchase.id,
-    packageId: purchase.tourPackageQueryId,
-    packageName: purchase.tourPackageQuery?.tourPackageQueryName || "-",
-  }));
+  const formattedPurchases = purchases.map(purchase => {
+    // Calculate total including GST for each purchase
+    const gstAmount = purchase.gstAmount || 0;
+    const totalAmount = purchase.price + gstAmount;
+    
+    return {
+      id: purchase.id,
+      date: purchase.purchaseDate,
+      type: "Purchase",
+      description: purchase.description || purchase.tourPackageQuery?.tourPackageQueryName || "Purchase",
+      amount: totalAmount, // Include GST in the amount
+      baseAmount: purchase.price,
+      gstAmount: gstAmount,
+      isInflow: true, // Purchases are inflows from supplier perspective (we owe them)
+      reference: purchase.id,
+      packageId: purchase.tourPackageQueryId,
+      packageName: purchase.tourPackageQuery?.tourPackageQueryName || "-",
+    };
+  });
 
   const formattedPayments = payments.map(payment => ({
     id: payment.id,
@@ -97,7 +105,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     };
   });
 
-  // Calculate totals
+  // Calculate totals (now including GST)
   const totalPurchases = formattedPurchases.reduce((sum, purchase) => sum + purchase.amount, 0);
   const totalPayments = formattedPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const currentBalance = totalPurchases - totalPayments;

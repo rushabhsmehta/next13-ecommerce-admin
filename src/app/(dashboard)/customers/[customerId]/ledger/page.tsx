@@ -53,19 +53,27 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
   });
 
   // Format transactions for display with proper typing
-  const formattedSales = sales.map((sale: SaleDetail) => ({
-    id: sale.id,
-    date: sale.saleDate,
-    type: "Sale",
-    description: `Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
-    debit: sale.salePrice,
-    credit: 0,
-    balance: 0, // Will be calculated later
-    status: sale.status,
-    isInflow: false,
-    amount: sale.salePrice,
-    reference: sale.invoiceNumber || '', // Add the missing reference property
-  }));
+  const formattedSales = sales.map((sale: SaleDetail) => {
+    // Calculate total including GST for each sale
+    const gstAmount = sale.gstAmount || 0;
+    const totalAmount = sale.salePrice + gstAmount;
+    
+    return {
+      id: sale.id,
+      date: sale.saleDate,
+      type: "Sale",
+      description: `Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
+      debit: totalAmount,
+      credit: 0,
+      balance: 0, // Will be calculated later
+      status: sale.status,
+      isInflow: false,
+      amount: totalAmount, // Include GST in the amount
+      baseAmount: sale.salePrice,
+      gstAmount: gstAmount,
+      reference: sale.invoiceNumber || '', // Add the missing reference property
+    };
+  });
 
   const formattedReceipts = receipts.map((receipt: ReceiptDetail) => ({
     id: receipt.id,
@@ -101,7 +109,7 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
     };
   });
 
-  // Calculate totals
+  // Calculate totals (now including GST)
   const totalSales = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
   const totalReceipts = formattedReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
   const currentBalance = totalSales - totalReceipts;

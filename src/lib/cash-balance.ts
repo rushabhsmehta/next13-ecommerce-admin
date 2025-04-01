@@ -23,7 +23,6 @@ export async function recalculateCashBalance(cashAccountId: string): Promise<num
     where: { cashAccountId }
   });
   
-  
   // Add up all inflows
   const totalReceipts = receipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0);
   console.log(`[RECALCULATE_CASH_BALANCE] Total receipts: ${totalReceipts}`);
@@ -48,6 +47,48 @@ export async function recalculateCashBalance(cashAccountId: string): Promise<num
   const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   console.log(`[RECALCULATE_CASH_BALANCE] Total expenses: ${totalExpenses}`);
   currentBalance -= totalExpenses;
+  
+  // Account for transfers TO this cash account (inflows)
+  const transfersIn = await prismadb.transfer.findMany({
+    where: { 
+      toCashAccountId: cashAccountId 
+    },
+    orderBy: {
+      transferDate: 'asc'
+    }
+  });
+  
+  console.log(`[RECALCULATE_CASH_BALANCE] Found ${transfersIn.length} transfers TO this cash account (inflows)`);
+  let totalTransfersIn = 0;
+  for (const transfer of transfersIn) {
+    totalTransfersIn += transfer.amount;
+    const previousBalance = currentBalance;
+    currentBalance += transfer.amount;
+    
+    console.log(`[RECALCULATE_CASH_BALANCE] Transfer IN (${transfer.id}): From ${transfer.fromBankAccountId ? 'Bank' : 'Cash'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: +${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+  }
+  console.log(`[RECALCULATE_CASH_BALANCE] Total transfers in: ${totalTransfersIn}`);
+  
+  // Account for transfers FROM this cash account (outflows)
+  const transfersOut = await prismadb.transfer.findMany({
+    where: { 
+      fromCashAccountId: cashAccountId 
+    },
+    orderBy: {
+      transferDate: 'asc'
+    }
+  });
+  
+  console.log(`[RECALCULATE_CASH_BALANCE] Found ${transfersOut.length} transfers FROM this cash account (outflows)`);
+  let totalTransfersOut = 0;
+  for (const transfer of transfersOut) {
+    totalTransfersOut += transfer.amount;
+    const previousBalance = currentBalance;
+    currentBalance -= transfer.amount;
+    
+    console.log(`[RECALCULATE_CASH_BALANCE] Transfer OUT (${transfer.id}): To ${transfer.toBankAccountId ? 'Bank' : 'Cash'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: -${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+  }
+  console.log(`[RECALCULATE_CASH_BALANCE] Total transfers out: ${totalTransfersOut}`);
   
   console.log(`[RECALCULATE_CASH_BALANCE] New calculated balance: ${currentBalance}`);
   

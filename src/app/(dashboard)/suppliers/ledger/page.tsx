@@ -29,13 +29,19 @@ const SupplierLedgerPage = async () => {
   
   // Format suppliers data
   const formattedSuppliers = suppliers.map(supplier => {
-    // Calculate total purchases
-    const totalPurchases = supplier.purchaseDetails.reduce((sum, purchase) => sum + purchase.price, 0);
+    // Calculate total purchases including GST
+    const totalPurchases = supplier.purchaseDetails.reduce(
+      (sum, purchase) => sum + purchase.price + (purchase.gstAmount || 0), 
+      0
+    );
     
     // Calculate total payments
-    const totalPayments = supplier.paymentDetails.reduce((sum, payment) => sum + payment.amount, 0);
+    const totalPayments = supplier.paymentDetails.reduce(
+      (sum, payment) => sum + payment.amount, 
+      0
+    );
     
-    // Calculate outstanding amount
+    // Calculate outstanding amount (now includes GST)
     const outstanding = totalPurchases - totalPayments;
     
     return {

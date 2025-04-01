@@ -30,13 +30,19 @@ const CustomerLedgerPage = async () => {
 
   // Format customers data
   const formattedCustomers = customers.map((customer) => {
-    // Calculate total sales
-    const totalSales = customer.saleDetails.reduce((sum, sale) => sum + sale.salePrice, 0);
+    // Calculate total sales including GST
+    const totalSales = customer.saleDetails.reduce(
+      (sum, sale) => sum + sale.salePrice + (sale.gstAmount || 0), 
+      0
+    );
     
     // Calculate total receipts
-    const totalReceipts = customer.receiptDetails.reduce((sum, receipt) => sum + receipt.amount, 0);
+    const totalReceipts = customer.receiptDetails.reduce(
+      (sum, receipt) => sum + receipt.amount, 
+      0
+    );
     
-    // Calculate outstanding amount
+    // Calculate outstanding amount (now includes GST)
     const outstanding = totalSales - totalReceipts;
     
     return {

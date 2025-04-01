@@ -121,6 +121,42 @@ export async function recalculateBankBalance(bankAccountId: string) {
     
     console.log(`[RECALCULATE_BALANCE] Expense (${expense.id}): ${expense.expenseCategory?.name || 'Uncategorized'}, ${expense.expenseDate.toISOString().split('T')[0]}, Amount: -${expense.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
   }
+  
+  // Account for transfers TO this bank account (inflows)
+  const transfersIn = await prismadb.transfer.findMany({
+    where: { 
+      toBankAccountId: bankAccountId 
+    },
+    orderBy: {
+      transferDate: 'asc'
+    }
+  });
+  
+  console.log(`[RECALCULATE_BALANCE] Found ${transfersIn.length} transfers TO this account (inflows)`);
+  for (const transfer of transfersIn) {
+    const previousBalance = currentBalance;
+    currentBalance += transfer.amount;
+    
+    console.log(`[RECALCULATE_BALANCE] Transfer IN (${transfer.id}): From ${transfer.fromBankAccountId ? 'Bank' : 'Cash'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: +${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+  }
+  
+  // Account for transfers FROM this bank account (outflows)
+  const transfersOut = await prismadb.transfer.findMany({
+    where: { 
+      fromBankAccountId: bankAccountId 
+    },
+    orderBy: {
+      transferDate: 'asc'
+    }
+  });
+  
+  console.log(`[RECALCULATE_BALANCE] Found ${transfersOut.length} transfers FROM this account (outflows)`);
+  for (const transfer of transfersOut) {
+    const previousBalance = currentBalance;
+    currentBalance -= transfer.amount;
+    
+    console.log(`[RECALCULATE_BALANCE] Transfer OUT (${transfer.id}): To ${transfer.toBankAccountId ? 'Bank' : 'Cash'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: -${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+  }
 
   console.log(`[RECALCULATE_BALANCE] Final balance: ${currentBalance}`);
   console.log(`[RECALCULATE_BALANCE] Previous saved balance: ${bankAccount.currentBalance}`);

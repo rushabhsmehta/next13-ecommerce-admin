@@ -7,7 +7,7 @@ import axios from "axios";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface BankAccount {
   id: string;
@@ -35,6 +36,7 @@ const BankBookPage = () => {
   });
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
   useEffect(() => {
@@ -52,26 +54,69 @@ const BankBookPage = () => {
     fetchBankAccounts();
   }, []);
 
+  const handleRefreshBalances = async () => {
+    setRefreshing(true);
+    try {
+      // Call an API endpoint to recalculate all bank account balances
+      await axios.post("/api/bank-accounts/recalculate-all");
+      // Refetch the bank accounts with updated balances
+      const response = await axios.get("/api/bank-accounts");
+      setBankAccounts(response.data);
+    } catch (error) {
+      console.error("Failed to refresh balances:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Calculate total balance of all accounts
   const totalBalance = useMemo(() => {
-    return bankAccounts.reduce((sum, account) => sum + account.currentBalance, 0);
+    return bankAccounts.reduce((sum, account) => sum + (account.isActive ? account.currentBalance : 0), 0);
+  }, [bankAccounts]);
+
+  // Calculate active accounts
+  const activeAccounts = useMemo(() => {
+    return bankAccounts.filter(account => account.isActive);
   }, [bankAccounts]);
 
   return (
     <div className="p-8 pt-6">
       <div className="flex items-center justify-between">
-        <div>
-          <Heading
-            title={`Bank Book - Closing Balance: ${formatter.format(totalBalance)}`}
-            description="Manage and view your bank accounts"
-          />
+        <Heading
+          title="Bank Book"
+          description="Manage and view your bank accounts"
+        />
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefreshBalances} 
+            disabled={refreshing || loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh Balances
+          </Button>
+          <Button onClick={() => router.push("/bank-accounts/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Bank Account
+          </Button>
         </div>
-        <Button onClick={() => router.push("/bank-accounts/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Bank Account
-        </Button>
       </div>
       <Separator className="my-4" />
+
+      {/* Consolidated Balance Card */}
+      {!loading && (
+        <Card className="mb-6 bg-slate-50 dark:bg-slate-900 border-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-2xl">Consolidated Bank Balance</CardTitle>
+            <CardDescription>
+              Total balance across {activeAccounts.length} active bank account{activeAccounts.length !== 1 ? 's' : ''}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{formatter.format(totalBalance)}</div>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div>Loading bank accounts...</div>
@@ -79,22 +124,24 @@ const BankBookPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {bankAccounts.map((account) => (
             <Card key={account.id} className={!account.isActive ? "opacity-70" : ""}>
-              <CardHeader>
-                <CardTitle>{account.accountName}</CardTitle>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle>{account.accountName}</CardTitle>
+                  <Badge variant={account.isActive ? "default" : "outline"}>
+                    {account.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
                 <CardDescription>
                   {account.bankName} - {account.accountNumber}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-sm font-medium">Current Balance:</span>
-                    <span className="font-medium">
+                    <span className="font-medium text-xl">
                       {formatter.format(account.currentBalance)}
                     </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {account.isActive ? "Active Account" : "Inactive Account"}
                   </div>
                 </div>
               </CardContent>

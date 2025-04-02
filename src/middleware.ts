@@ -13,6 +13,8 @@ export default authMiddleware({
   async beforeAuth(req) {
     const userAgent = req.headers.get("user-agent") || "";
     const hostname = req.headers.get("host") || "";
+    
+    console.log(`[Middleware beforeAuth] Host: ${hostname}, Path: ${req.nextUrl.pathname}`);
 
     // ✅ Allow Puppeteer (Headless Chrome) to bypass authentication
     if (userAgent.includes("HeadlessChrome") || userAgent.includes("Puppeteer")) {
@@ -46,6 +48,15 @@ export default authMiddleware({
 
   async afterAuth(auth, req) {
     const hostname = req.headers.get("host") || "";
+    
+    if (hostname === "associate.aagamholidays.com") {
+      console.log("[Middleware afterAuth] Associate domain access:", {
+        userId: auth.userId,
+        // Check for userId instead of isSignedIn
+        signedIn: !!auth.userId,
+        path: req.nextUrl.pathname
+      });
+    }
     
     // If user is on associate domain, ensure they only access inquiries
     if (hostname === "associate.aagamholidays.com") {

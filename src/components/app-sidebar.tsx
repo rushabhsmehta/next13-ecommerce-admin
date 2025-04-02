@@ -177,9 +177,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />
         </div>
+        <SignOutButton />
       </SidebarFooter>
-      <SignOutButton />
-
       <SidebarRail />
     </Sidebar >
   );

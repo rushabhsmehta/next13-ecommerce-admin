@@ -1,5 +1,6 @@
-import { authMiddleware } from "@clerk/nextjs";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { auth, authMiddleware } from "@clerk/nextjs";
 
 export default authMiddleware({
   publicRoutes: [
@@ -23,14 +24,19 @@ export default authMiddleware({
       const url = req.nextUrl.clone();
       const path = url.pathname;
 
-      // Allow access only to the inquiries route and its API endpoints
+      // Always direct root path to /inquiries
+      if (path === "/") {
+        url.pathname = "/inquiries";
+        return NextResponse.redirect(url);
+      }
+
+      // Allow access only to the inquiries route and necessary assets
       if (!path.startsWith("/inquiries") && 
           !path.startsWith("/api/inquiries") && 
           !path.startsWith("/_next") && 
           !path.startsWith("/favicon.ico") &&
           !path.startsWith("/images") &&
-          !path.startsWith("/fonts") &&
-          path !== "/") {
+          !path.startsWith("/fonts")) {
         // Redirect to inquiries page
         url.pathname = "/inquiries";
         return NextResponse.redirect(url);
@@ -46,13 +52,18 @@ export default authMiddleware({
       const url = req.nextUrl.clone();
       const path = url.pathname;
       
+      // Always direct root path to /inquiries
+      if (path === "/") {
+        url.pathname = "/inquiries";
+        return NextResponse.redirect(url);
+      }
+      
       if (!path.startsWith("/inquiries") && 
           !path.startsWith("/api/inquiries") && 
           !path.startsWith("/_next") && 
           !path.startsWith("/favicon.ico") &&
           !path.startsWith("/images") &&
-          !path.startsWith("/fonts") &&
-          path !== "/") {
+          !path.startsWith("/fonts")) {
         url.pathname = "/inquiries";
         return NextResponse.redirect(url);
       }

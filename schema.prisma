@@ -113,6 +113,7 @@ model TourPackageQuery {
   receiptDetails          ReceiptDetail[]
   expenseDetails          ExpenseDetail[]
   incomeDetails           IncomeDetail[]
+  flightTickets          FlightTicket[]
 
   // Modified: Remove @unique constraint to allow multiple queries per inquiry
   inquiryId                 String?
@@ -778,4 +779,53 @@ model TaxSlab {
   // Relations
   purchaseItems PurchaseItem[]
   saleItems     SaleItem[]
+}
+
+model FlightTicket {
+  id                String      @id @default(uuid())
+  pnr               String      @unique
+  airline           String
+  flightNumber      String
+  departureAirport  String
+  arrivalAirport    String
+  departureTime     DateTime
+  arrivalTime       DateTime
+  ticketClass       String    // Economy, Business, First
+  issueDate         DateTime  @default(now())
+  status            String    @default("confirmed") // confirmed, cancelled, rescheduled
+  baggageAllowance  String?
+  bookingReference  String?
+  fareAmount        Float?
+  taxAmount         Float?
+  totalAmount       Float?
+  
+  // Relations
+  tourPackageQueryId String?
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: SetNull)
+  
+  // Add the relation to Passenger model
+  passengers        Passenger[]
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  
+  @@index([tourPackageQueryId])
+}
+
+model Passenger {
+  id                String    @id @default(uuid())
+  name              String
+  type              String    @default("Adult") // Adult, Child, Infant
+  seatNumber        String?
+  age               Int?
+  gender            String?   // Male, Female, Other
+  
+  // Relations
+  flightTicketId    String
+  flightTicket      FlightTicket @relation(fields: [flightTicketId], references: [id], onDelete: Cascade)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([flightTicketId])
 }

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronRight, LayoutGrid, Settings as SettingsIcon } from "lucide-react";
+import { ChevronRight, LayoutGrid, LogOutIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ThemeToggle } from "./theme-toggle";
 import { SignOutButton } from "@clerk/nextjs";
+
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -171,13 +172,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
+
       {/* Add a footer with the theme switcher */}
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />
         </div>
-        <SignOutButton />
+        <div className="flex items-center justify-between mt-4">
+          <SignOutButton>
+            <LogOutIcon className="h-4 w-4 text-gray-500" />
+            <span className="text-sm text-muted-foreground">Sign out</span>
+          </SignOutButton>
+        </div>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar >

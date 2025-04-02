@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ThemeToggle } from "./theme-toggle";
 import { SignOutButton } from "@clerk/nextjs";
+import router from "next/router";
 
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
@@ -180,7 +181,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <ThemeToggle />
         </div>
         <div className="flex items-center justify-between mt-4">
-          <SignOutButton>
+          <SignOutButton signOutCallback={()=> { router.replace("/sign-in"); }}>
             <LogOutIcon className="h-4 w-4 text-gray-500" />
             <span className="text-sm text-muted-foreground">Sign out</span>
           </SignOutButton>

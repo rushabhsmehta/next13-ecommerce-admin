@@ -25,7 +25,7 @@ interface InquiriesClientProps {
   isAssociateDomain?: boolean; // Add this prop to determine UI elements to show
 }
 
-export const InquiriesClient: React.FC<InquiriesClientProps> = ({
+export constInquiriesClient: React.FC<InquiriesClientProps> = ({
   data,
   associates,
   organization,

@@ -21,13 +21,15 @@ import { downloadAsExcel, downloadAsPDF } from "@/app/(dashboard)/(routes)/inqui
 interface InquiriesClientProps {
   data: InquiryColumn[];
   associates: { id: string; name: string }[];
-  organization: any; // Add organization prop
+  organization: any;
+  isAssociateDomain?: boolean; // Add this prop to determine UI elements to show
 }
 
 export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   data,
   associates,
-  organization
+  organization,
+  isAssociateDomain = false // Default to false if not provided
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,6 +60,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     downloadAsPDF(data, filename, organization);
   };
 
+  // Determine which columns to show based on domain
+  const visibleColumns = isAssociateDomain 
+    ? columns.filter(col => col.id !== 'associatePartner') // Hide associate column for associates
+    : columns;
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -65,24 +72,28 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         <div className="flex items-center gap-x-2">
           <PeriodFilter />
           <StatusFilter />
-          <Select
-            value={searchParams.get('associateId') || ''}
-            onValueChange={onAssociateChange}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Associate" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Associates</SelectItem>
-              {associates.map((associate) => (
-                <SelectItem key={associate.id} value={associate.id}>
-                  {associate.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           
-          {/* Separate Excel and PDF Download Buttons */}
+          {/* Only show associate filter to admins */}
+          {!isAssociateDomain && (
+            <Select
+              value={searchParams.get('associateId') || ''}
+              onValueChange={onAssociateChange}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select Associate" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Associates</SelectItem>
+                {associates.map((associate) => (
+                  <SelectItem key={associate.id} value={associate.id}>
+                    {associate.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {/* Separate Excel and PDF Download Buttons - available to both */}
           <Button 
             variant="outline"
             onClick={handleExcelDownload}
@@ -101,13 +112,16 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             PDF
           </Button>
           
-          <Button onClick={handleAddNewClick}>
-            <Plus className="mr-2 h-4 w-4" /> Add New
-          </Button>
+          {/* Only admins can add new inquiries directly from this page */}
+          {!isAssociateDomain && (
+            <Button onClick={handleAddNewClick}>
+              <Plus className="mr-2 h-4 w-4" /> Add New
+            </Button>
+          )}
         </div>
       </div>    
       <Separator />
-      <DataTable searchKey="customerName" columns={columns} data={data} />
+      <DataTable searchKey="customerName" columns={visibleColumns} data={data} />
     </>
   );
 };

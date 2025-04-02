@@ -3,6 +3,8 @@ import prismadb from "@/lib/prismadb";
 import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
 import { Inquiry } from "@prisma/client";
+import { headers } from "next/headers";
+import { auth, clerkClient } from "@clerk/nextjs";
 
 interface InquiriesPageProps {
   searchParams: {
@@ -15,6 +17,11 @@ interface InquiriesPageProps {
 }
 
 const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
+  // Get the hostname from headers
+  const headersList = headers();
+  const host = headersList.get('host') || '';
+  const isAssociateDomain = host === 'associate.aagamholidays.com';
+
   // Fetch organization data
   const organization = await prismadb.organization.findFirst({
     orderBy: {
@@ -27,6 +34,35 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       name: 'asc'
     }
   });
+
+  // If it's an associate domain, find the associate by email
+  let associateId = searchParams.associateId;
+  
+  // Get the associate ID if we're on the associate domain and no specific ID is selected
+  if (isAssociateDomain) {
+    // Use the user's email from auth to find the correct associate
+    // This requires that your associates have Clerk accounts with the same email used in your system
+    try {
+      const { userId } = auth();
+      if (userId) {
+        const user = await clerkClient.users.getUser(userId);
+        if (user && user.emailAddresses && user.emailAddresses.length > 0) {
+          const email = user.emailAddresses[0].emailAddress;
+          
+          // Find associate by email
+          const associate = await prismadb.associatePartner.findFirst({
+            where: { email }
+          });
+          
+          if (associate) {
+            associateId = associate.id;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error identifying associate:", error);
+    }
+  }
 
   // Get the current date
   const now = new Date();
@@ -88,10 +124,10 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     }
   }
 
-  // Build the where clause based on search params
+  // Build the where clause based on search params and associate domain
   const where = {
-    ...(searchParams.associateId && {
-      associatePartnerId: searchParams.associateId
+    ...(associateId && {
+      associatePartnerId: associateId
     }),
     ...(searchParams.status && searchParams.status !== 'ALL' && {
       status: searchParams.status
@@ -139,7 +175,8 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
         <InquiriesClient
           data={formattedInquiries}
           associates={associates}
-          organization={organization} // Pass organization data to client
+          organization={organization}
+          isAssociateDomain={isAssociateDomain} // Pass this to client to maybe hide certain controls
         />
       </div>
     </div>

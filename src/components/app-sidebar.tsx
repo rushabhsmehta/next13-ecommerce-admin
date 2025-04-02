@@ -25,6 +25,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ThemeToggle } from "./theme-toggle";
+import { SignOutButton } from "@clerk/nextjs";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -84,7 +85,7 @@ const NAV_ITEMS = [
     title: "Reports",
     items: [
       /*       { title: "Profit Report", url: "/reports/profit" },
-      { title: "GST Report", url: "/reports/gst" }, */        
+      { title: "GST Report", url: "/reports/gst" }, */
       { title: "Upcoming Trips", url: "/reports/upcomingTrips" },
       { title: "Inquiry Summary", url: "/reports/inquirySummary" },
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
@@ -170,16 +171,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-        {/* Add a footer with the theme switcher */}
-        <SidebarFooter className="border-t p-4">
+      {/* Add a footer with the theme switcher */}
+      <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />
         </div>
       </SidebarFooter>
+      <SignOutButton />
 
       <SidebarRail />
-    </Sidebar>
+    </Sidebar >
   );
 }
 

@@ -28,7 +28,10 @@ export default async function NewFlightTicketPage() {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <FlightTicketForm tourPackageQueries={tourPackageQueries} />
+        <FlightTicketForm 
+          tourPackageQueries={tourPackageQueries} 
+          initialData={undefined}
+        />
       </div>
     </div>
   );

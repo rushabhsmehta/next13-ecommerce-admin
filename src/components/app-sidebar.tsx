@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { redirect, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronRight, LayoutGrid, LogOut, Settings as SettingsIcon } from "lucide-react";
-import { SignOutButton, useClerk } from "@clerk/nextjs";
+import { auth, SignOutButton } from "@clerk/nextjs";
 import {
   Sidebar,
   SidebarContent,
@@ -106,17 +106,16 @@ const NAV_ITEMS = [
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+   const { userId } = auth();
+  
+    if (!userId) {
+      redirect("/sign-in");
+    }
   const pathname = usePathname();
-  const router = useRouter();
-  const { signOut } = useClerk();
 
   // Check if a section should be expanded
   const isSectionActive = (section: { title: string, items: { url: string }[] }) => {
     return section.items.some(item => pathname === item.url || pathname.startsWith(item.url + '/'));
-  };
-
-  const handleSignOut = () => {
-    signOut(() => router.push("/sign-in"));
   };
 
   return (
@@ -163,7 +162,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         <SidebarMenuSubItem key={item.title}>
                           <SidebarMenuSubButton
                             asChild
-                            isActive={pathname === item.url || pathname.startsWith(item.url + '/')}>
+                            isActive={pathname === item.url || pathname.startsWith(item.url + '/')}
+                          >
                             <Link href={item.url}>{item.title}</Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -184,14 +184,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <ThemeToggle />
         </div>
         
-        <Button 
-          variant="outline" 
-          className="w-full flex items-center justify-center gap-2"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4" />
-          <span>Sign Out</span>
-        </Button>
+        <SignOutButton>
+          <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </Button>
+        </SignOutButton>
       </SidebarFooter>
 
       <SidebarRail />

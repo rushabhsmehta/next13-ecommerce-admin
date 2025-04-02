@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronRight, LayoutGrid, LogOutIcon } from "lucide-react";
 import {
@@ -25,9 +25,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ThemeToggle } from "./theme-toggle";
-import { SignOutButton } from "@clerk/nextjs";
-import router from "next/router";
-
+import { useClerk } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -86,8 +85,6 @@ const NAV_ITEMS = [
   {
     title: "Reports",
     items: [
-      /*       { title: "Profit Report", url: "/reports/profit" },
-      { title: "GST Report", url: "/reports/gst" }, */
       { title: "Upcoming Trips", url: "/reports/upcomingTrips" },
       { title: "Inquiry Summary", url: "/reports/inquirySummary" },
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
@@ -108,10 +105,22 @@ const NAV_ITEMS = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut } = useClerk();
 
   // Check if a section should be expanded
-  const isSectionActive = (section: { title: string, items: { url: string }[] }) => {
-    return section.items.some(item => pathname === item.url || pathname.startsWith(item.url + '/'));
+  const isSectionActive = (section: { title: string; items: { url: string }[] }) =>
+    section.items.some(
+      (item) => pathname === item.url || pathname.startsWith(item.url + "/")
+    );
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push("/sign-in");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
@@ -126,7 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">Finance Manager</span>
-                  <span className="">v1.0.0</span>
+                  <span>v1.0.0</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -147,7 +156,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton>
-                      <span className="font-semibold text-gray-700">{section.title}</span>
+                      <span className="font-semibold text-gray-700">
+                        {section.title}
+                      </span>
                       <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
@@ -158,7 +169,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         <SidebarMenuSubItem key={item.title}>
                           <SidebarMenuSubButton
                             asChild
-                            isActive={pathname === item.url || pathname.startsWith(item.url + '/')}
+                            isActive={
+                              pathname === item.url ||
+                              pathname.startsWith(item.url + "/")
+                            }
                           >
                             <Link href={item.url}>{item.title}</Link>
                           </SidebarMenuSubButton>
@@ -173,22 +187,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-
-      {/* Add a footer with the theme switcher */}
+      {/* Add a footer with the theme switcher and sign out button */}
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />
         </div>
-        <div className="flex items-center justify-between mt-4">
-          <SignOutButton signOutCallback={()=> { router.replace("/sign-in"); }}>
-            <LogOutIcon className="h-4 w-4 text-gray-500" />
-            <span className="text-sm text-muted-foreground">Sign out</span>
-          </SignOutButton>
+        <div className="mt-4">
+          <Button
+            onClick={handleSignOut}
+            variant="outline"
+            size="sm"
+            className="w-full flex items-center justify-center"
+          >
+            <LogOutIcon className="mr-2 h-4 w-4" />
+            <span>Sign out</span>
+          </Button>
         </div>
       </SidebarFooter>
       <SidebarRail />
-    </Sidebar >
+    </Sidebar>
   );
 }
-

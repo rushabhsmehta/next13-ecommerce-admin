@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth, clerkClient } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { 
   startOfDay, 
@@ -11,6 +11,7 @@ import {
   subMonths,
   parseISO
 } from "date-fns";
+import { headers } from "next/headers";
 
 export async function POST(req: Request) {
   try {
@@ -78,9 +79,12 @@ export async function GET(req: Request) {
   try {
     const { userId } = auth();
     const url = new URL(req.url);
+    const headersList = headers();
+    const host = headersList.get('host') || '';
+    const isAssociateDomain = host === 'associate.aagamholidays.com';
 
     // Extract query parameters
-    const associateId = url.searchParams.get('associateId') || undefined;
+    let associateId = url.searchParams.get('associateId') || undefined;
     const status = url.searchParams.get('status') || undefined;
     const period = url.searchParams.get('period') || undefined;
     const startDate = url.searchParams.get('startDate') || undefined;
@@ -88,6 +92,32 @@ export async function GET(req: Request) {
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
+    }
+    
+    // If on associate domain, find the associate by user's email
+    if (isAssociateDomain) {
+      try {
+        const user = await clerkClient.users.getUser(userId);
+        if (user && user.emailAddresses && user.emailAddresses.length > 0) {
+          const email = user.emailAddresses[0].emailAddress;
+          
+          // Find associate by email
+          const associate = await prismadb.associatePartner.findFirst({
+            where: { email }
+          });
+          
+          if (associate) {
+            // Override any associateId from the query params
+            associateId = associate.id;
+          } else {
+            // No matching associate found - return empty results
+            return NextResponse.json([]);
+          }
+        }
+      } catch (error) {
+        console.error("Error identifying associate:", error);
+        return NextResponse.json([]);
+      }
     }
 
     // Build date range filters based on period

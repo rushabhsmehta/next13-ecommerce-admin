@@ -27,6 +27,7 @@ import {
 import { ThemeToggle } from "./theme-toggle";
 import { useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -103,10 +104,36 @@ const NAV_ITEMS = [
   },
 ];
 
+// Sidebar items for associate users - only show inquiries
+const ASSOCIATE_NAV_ITEMS = [
+  {
+    title: "Dashboard",
+    items: [
+      { title: "Inquiries", url: "/inquiries" },
+    ],
+  },
+];
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useClerk();
+  const [isAssociateDomain, setIsAssociateDomain] = useState(false);
+  const [navItems, setNavItems] = useState(NAV_ITEMS);
+
+  // Check if the domain is associate domain
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const isAssociate = hostname.includes('admin.associate.com');
+    setIsAssociateDomain(isAssociate);
+    
+    // Set nav items based on domain
+    if (isAssociate) {
+      setNavItems(ASSOCIATE_NAV_ITEMS);
+    } else {
+      setNavItems(NAV_ITEMS);
+    }
+  }, []);
 
   // Check if a section should be expanded
   const isSectionActive = (section: { title: string; items: { url: string }[] }) =>
@@ -146,7 +173,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
-            {NAV_ITEMS.map((section) => (
+            {navItems.map((section) => (
               <Collapsible
                 key={section.title}
                 asChild

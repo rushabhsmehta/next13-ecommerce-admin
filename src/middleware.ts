@@ -16,6 +16,34 @@ export default authMiddleware({
     if (userAgent.includes("HeadlessChrome") || userAgent.includes("Puppeteer")) {
       return NextResponse.next();
     }
+  },
+
+  async afterAuth(auth, req) {
+    // Check if the request is from an associate domain
+    const hostname = req.headers.get('host') || '';
+    const isAssociateDomain = hostname.includes('admin.associate.com');
+    
+    // Only apply restrictions for associate domains
+    if (isAssociateDomain) {
+      const path = req.nextUrl.pathname;
+      
+      // Associates are only allowed to access the inquiries page and API routes
+      const isAllowedPath = 
+        path.startsWith('/inquiries') || 
+        path.startsWith('/api/inquiries') || 
+        path === '/' || 
+        path.startsWith('/sign-in') || 
+        path.startsWith('/api/auth') ||
+        path === '/api/associate-partners/me';
+      
+      if (!isAllowedPath) {
+        // Redirect associates to the inquiries page when they try to access other routes
+        const url = new URL('/inquiries', req.url);
+        return NextResponse.redirect(url);
+      }
+    }
+    
+    return NextResponse.next();
   }
 });
 

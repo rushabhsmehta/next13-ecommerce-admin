@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { 
   startOfDay, 
@@ -11,7 +11,6 @@ import {
   subMonths,
   parseISO
 } from "date-fns";
-import { headers } from "next/headers";
 
 export async function POST(req: Request) {
   try {
@@ -79,82 +78,17 @@ export async function GET(req: Request) {
   try {
     const { userId } = auth();
     const url = new URL(req.url);
-    const headersList = headers();
-    const host = headersList.get('host') || '';
-    const isAssociateDomain = host === 'associate.aagamholidays.com';
-    
-    console.log(`[API inquiries GET] Host: ${host}, isAssociateDomain: ${isAssociateDomain}`);
 
     // Extract query parameters
-    let associateId = url.searchParams.get('associateId') || undefined;
+    const associateId = url.searchParams.get('associateId') || undefined;
     const status = url.searchParams.get('status') || undefined;
     const period = url.searchParams.get('period') || undefined;
     const startDate = url.searchParams.get('startDate') || undefined;
     const endDate = url.searchParams.get('endDate') || undefined;
-    
-    console.log(`[API inquiries GET] Query params:`, { 
-      associateId, 
-      status, 
-      period, 
-      startDate, 
-      endDate 
-    });
 
     if (!userId) {
-      console.log(`[API inquiries GET] Unauthenticated request`);
       return new NextResponse("Unauthenticated", { status: 401 });
     }
-    
-    console.log(`[API inquiries GET] Authenticated userId: ${userId}`);
-    
-    // If on associate domain, find the associate by user's email
-    if (isAssociateDomain) {
-      try {
-        const user = await clerkClient.users.getUser(userId);
-        console.log(`[API inquiries GET] Clerk user:`, {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          emailsCount: user.emailAddresses?.length || 0
-        });
-        
-        if (user && user.emailAddresses && user.emailAddresses.length > 0) {
-          const email = user.emailAddresses[0].emailAddress;
-          console.log(`[API inquiries GET] User email: ${email}`);
-          
-          // Find associate by email
-          const associate = await prismadb.associatePartner.findFirst({
-            where: { email }
-          });
-          
-          if (associate) {
-            console.log(`[API inquiries GET] Found matching associate:`, {
-              id: associate.id,
-              name: associate.name,
-              email: associate.email
-            });
-            // Override any associateId from the query params
-            associateId = associate.id;
-          } else {
-            console.log(`[API inquiries GET] No associate found with email: ${email}`);
-            
-            // List all associates for debugging
-            const allAssociates = await prismadb.associatePartner.findMany({
-              select: { id: true, name: true, email: true }
-            });
-            console.log(`[API inquiries GET] All available associates:`, allAssociates);
-            
-            // No matching associate found - return empty results
-            return NextResponse.json([]);
-          }
-        }
-      } catch (error) {
-        console.error("[API inquiries GET] Error identifying associate:", error);
-        return NextResponse.json([]);
-      }
-    }
-
-    console.log(`[API inquiries GET] Final associateId for query: ${associateId}`);
 
     // Build date range filters based on period
     let dateFilter = {};
@@ -224,8 +158,6 @@ export async function GET(req: Request) {
       ...(status && status !== 'ALL' && { status }),
       ...dateFilter
     };
-    
-    console.log(`[API inquiries GET] Final query where clause:`, where);
 
     const inquiries = await prismadb.inquiry.findMany({
       where,
@@ -243,8 +175,6 @@ export async function GET(req: Request) {
         createdAt: 'desc'
       }
     });
-    
-    console.log(`[API inquiries GET] Found ${inquiries.length} inquiries`);
 
     return NextResponse.json(inquiries);
   } catch (error) {

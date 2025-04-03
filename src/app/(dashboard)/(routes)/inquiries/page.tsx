@@ -2,6 +2,8 @@ import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
 import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
+import { auth, currentUser } from "@clerk/nextjs";
+import { headers } from "next/headers";
 
 interface InquiriesPageProps {
   searchParams: {
@@ -14,6 +16,16 @@ interface InquiriesPageProps {
 }
 
 const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
+  // Check if user is accessing from associate domain
+  const headersList = headers();
+  const hostname = headersList.get('host') || '';
+  const isAssociateDomain = hostname.includes('admin.associate.com');
+  
+  // Get the current user from Clerk
+  const { userId } = auth();
+  const user = await currentUser();
+  const userEmail = user?.emailAddresses[0]?.emailAddress || '';
+  
   // Fetch organization data
   const organization = await prismadb.organization.findFirst({
     orderBy: {
@@ -27,7 +39,23 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     }
   });
 
-  const associateId = searchParams.associateId;
+  // If user is on associate domain, find their associate ID
+  let associateId = searchParams.associateId;
+  let isAssociateUser = false;
+  
+  if (isAssociateDomain && userEmail) {
+    // Try to find the associate by email
+    const associatePartner = await prismadb.associatePartner.findFirst({
+      where: {
+        email: userEmail
+      }
+    });
+    
+    if (associatePartner) {
+      associateId = associatePartner.id;
+      isAssociateUser = true;
+    }
+  }
 
   // Build the where clause based on search params
   const where = {
@@ -80,6 +108,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
           data={formattedInquiries}
           associates={associates}
           organization={organization}
+          isAssociateUser={isAssociateUser}
         />
       </div>
     </div>

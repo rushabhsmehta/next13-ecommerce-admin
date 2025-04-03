@@ -22,12 +22,14 @@ interface InquiriesClientProps {
   data: InquiryColumn[];
   associates: { id: string; name: string }[];
   organization: any;
+  isAssociateUser?: boolean;
 }
 
 export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   data,
   associates,
-  organization
+  organization,
+  isAssociateUser = false
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,22 +68,25 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           <PeriodFilter />
           <StatusFilter />
           
-          <Select
-            value={searchParams.get('associateId') || ''}
-            onValueChange={onAssociateChange}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Associate" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Associates</SelectItem>
-              {associates.map((associate) => (
-                <SelectItem key={associate.id} value={associate.id}>
-                  {associate.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Hide associate filter for associate users since they can only see their own inquiries */}
+          {!isAssociateUser && (
+            <Select
+              value={searchParams.get('associateId') || ''}
+              onValueChange={onAssociateChange}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select Associate" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Associates</SelectItem>
+                {associates.map((associate) => (
+                  <SelectItem key={associate.id} value={associate.id}>
+                    {associate.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           
           {/* Download Buttons */}
           <Button 

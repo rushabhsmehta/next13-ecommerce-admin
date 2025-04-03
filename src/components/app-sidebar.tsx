@@ -124,7 +124,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Check if the domain is associate domain
   useEffect(() => {
     const hostname = window.location.hostname;
-    const isAssociate = hostname.includes('admin.associate.com');
+    const isAssociate = hostname.includes('associate.aagamholidays.com');
     setIsAssociateDomain(isAssociate);
     
     // Set nav items based on domain

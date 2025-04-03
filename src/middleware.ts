@@ -21,7 +21,7 @@ export default authMiddleware({
   async afterAuth(auth, req) {
     // Check if the request is from an associate domain
     const hostname = req.headers.get('host') || '';
-    const isAssociateDomain = hostname.includes('admin.associate.com');
+    const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
     
     // Only apply restrictions for associate domains
     if (isAssociateDomain) {

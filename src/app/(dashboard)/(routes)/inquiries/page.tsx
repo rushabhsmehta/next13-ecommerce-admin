@@ -19,7 +19,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   // Check if user is accessing from associate domain
   const headersList = headers();
   const hostname = headersList.get('host') || '';
-  const isAssociateDomain = hostname.includes('admin.associate.com');
+  const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
   
   // Get the current user from Clerk
   const { userId } = auth();

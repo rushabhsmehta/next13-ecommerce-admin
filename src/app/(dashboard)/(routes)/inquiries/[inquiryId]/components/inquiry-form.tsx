@@ -175,7 +175,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <div className="grid grid-cols-3 gap-8">
+          {/* Changed from grid-cols-3 to a responsive grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
             <FormField
               control={form.control}
@@ -252,13 +253,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[400px] p-0">
+                    <PopoverContent className="w-[280px] md:w-[350px] p-0">
                       <Command>
                         <CommandInput placeholder="Search location..." />
                         <CommandEmpty>
                           No location found.
                         </CommandEmpty>
-                        <CommandGroup>
+                        <CommandGroup className="max-h-[200px] overflow-auto">
                           {locations.map((location) => (
                             <CommandItem
                               value={location.label}
@@ -402,27 +403,6 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
             <FormField
               control={form.control}
-              name="remarks"
-              render={({ field }) => (
-                <FormItem className="col-span-3">
-                  <FormLabel>Remarks</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={loading}
-                      placeholder="Add any additional remarks"
-                      {...field}
-                      value={field.value ?? ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-
-            <FormField
-              control={form.control}
               name="status"
               render={({ field }) => (
                 <FormItem>
@@ -443,9 +423,30 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </FormItem>
               )}
             />
+            
+            {/* Remarks field spans full width on all screen sizes */}
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
+                  <FormLabel>Remarks</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      className="min-h-[80px] w-full"
+                      disabled={loading}
+                      placeholder="Add any additional remarks"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            {/* Add Actions Section */}
-            <div className="col-span-3">
+            {/* Add Actions Section - spans full width */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium">Actions</h3>
                 <Button
@@ -460,12 +461,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               </div>
 
               {form.watch("actions")?.map((_, index) => (
-                <div key={index} className="flex gap-4 items-start mt-4">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 border rounded-md p-4">
                   <FormField
                     control={form.control}
                     name={`actions.${index}.actionType`}
                     render={({ field }) => (
-                      <FormItem className="flex-1">
+                      <FormItem>
+                        <FormLabel className="md:sr-only">Action Type</FormLabel>
                         <Select
                           disabled={loading}
                           onValueChange={field.onChange}
@@ -484,22 +486,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                             <SelectItem value="MEETING">Meeting</SelectItem>
                           </SelectContent>
                         </Select>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`actions.${index}.remarks`}
-                    render={({ field }) => (
-                      <FormItem className="flex-[2]">
-                        <FormControl>
-                          <Textarea
-                            disabled={loading}
-                            placeholder="Enter remarks"
-                            {...field}
-                          />
-                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -508,11 +495,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     control={form.control}
                     name={`actions.${index}.actionDate`}
                     render={({ field }) => (
-                      <FormItem className="flex-1">
+                      <FormItem>
+                        <FormLabel className="md:sr-only">Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
-                              <Button variant="outline">
+                              <Button variant="outline" className="w-full justify-start">
                                 {field.value ? format(field.value, "PPP") : "Pick a date"}
                               </Button>
                             </FormControl>
@@ -526,18 +514,41 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                             />
                           </PopoverContent>
                         </Popover>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => onRemoveAction(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <FormField
+                    control={form.control}
+                    name={`actions.${index}.remarks`}
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-1">
+                        <FormLabel className="md:sr-only">Remarks</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            disabled={loading}
+                            placeholder="Enter remarks"
+                            {...field}
+                            className="min-h-[60px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex items-end">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => onRemoveAction(index)}
+                      className="ml-auto"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -551,9 +562,11 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
           )}
 
-          <Button disabled={loading} className="ml-auto" type="submit">
-            {action}
-          </Button>
+          <div className="flex justify-end">
+            <Button disabled={loading} className="ml-auto" type="submit">
+              {action}
+            </Button>
+          </div>
         </form>
       </Form >
     </>

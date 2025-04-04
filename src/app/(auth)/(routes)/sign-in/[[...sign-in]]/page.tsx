@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
+// Ensure the environment variable is exposed to the client by renaming it in your .env file to NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL
 const allowedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL;
 
 export default function Page() {
@@ -12,7 +13,7 @@ export default function Page() {
   const { user } = useUser();
   const error = searchParams.get('error');
 
-  // Only show unauthorized alert if error exists and the user's email is not the allowed one.
+  // Only show the unauthorized alert if an error exists and the user's email does not equal the allowed email.
   const showUnauthorizedAlert =
     error === 'unauthorized_email' &&
     user?.primaryEmailAddress?.emailAddress !== allowedEmail;

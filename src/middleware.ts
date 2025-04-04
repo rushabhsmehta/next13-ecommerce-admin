@@ -1,8 +1,8 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
-// Hardcode the authorized admin email specifically for admin.aagamholidays.com
-const AUTHORIZED_ADMIN_EMAIL = "aagamholiday@gmail.com";
+// Get the authorized admin email from environment variables
+const AUTHORIZED_ADMIN_EMAIL = process.env.NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL || 'aagamholiday@gmail.com';
 
 export default authMiddleware({
   publicRoutes: [
@@ -22,10 +22,9 @@ export default authMiddleware({
   },
 
   async afterAuth(auth, req) {
-    // Check if the request is from an associate domain or admin domain
+    // Check if the request is from an associate domain
     const hostname = req.headers.get('host') || '';
     const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
-    const isAdminDomain = hostname.includes('admin.aagamholidays.com');
     
     // Only apply restrictions for associate domains
     if (isAssociateDomain) {
@@ -47,32 +46,14 @@ export default authMiddleware({
         return NextResponse.redirect(url);
       }
     } 
-    // For admin domain, strictly enforce only aagamholiday@gmail.com can access
-    else if (isAdminDomain && auth.userId) {
+    // For non-associate domains, restrict access to the authorized admin email only
+    else if (auth.userId) {
       // If user is authenticated, check email
       const userEmail = auth.user?.emailAddresses?.[0]?.emailAddress || '';
       
-      // Check if we're already on the sign-in page
-      const path = req.nextUrl.pathname;
-      const isSignInPath = path.startsWith('/sign-in');
-      
-      // Only allow aagamholiday@gmail.com
-      if (userEmail !== AUTHORIZED_ADMIN_EMAIL && !isSignInPath) {
+      // Allow access only if the email matches the authorized admin email
+      if (userEmail !== AUTHORIZED_ADMIN_EMAIL) {
         // User is not authorized, redirect to sign-in page with an error message
-        const signInUrl = new URL('/sign-in', req.url);
-        signInUrl.searchParams.set('error', 'unauthorized_email');
-        return NextResponse.redirect(signInUrl);
-      }
-    }
-    // For other domains, use environment variable (legacy behavior)
-    else if (auth.userId) {
-      const userEmail = auth.user?.emailAddresses?.[0]?.emailAddress || '';
-      const envAuthorizedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL;
-      
-      const path = req.nextUrl.pathname;
-      const isSignInPath = path.startsWith('/sign-in');
-      
-      if (userEmail !== envAuthorizedEmail && !isSignInPath) {
         const signInUrl = new URL('/sign-in', req.url);
         signInUrl.searchParams.set('error', 'unauthorized_email');
         return NextResponse.redirect(signInUrl);
@@ -86,4 +67,3 @@ export default authMiddleware({
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
-

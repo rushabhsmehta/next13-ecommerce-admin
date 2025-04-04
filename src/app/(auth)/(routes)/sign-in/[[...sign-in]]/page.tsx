@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-const allowedEmail = "aagamholiday@gmail.com";
+const allowedEmail = process.env.AUTHORIZED_ADMIN_EMAIL;
 
 export default function Page() {
   const searchParams = useSearchParams();

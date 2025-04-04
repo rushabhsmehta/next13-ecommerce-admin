@@ -566,6 +566,7 @@ model AssociatePartner {
   name            String
   mobileNumber    String
   email           String?
+  gmail           String?    // Added gmail field
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

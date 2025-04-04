@@ -32,7 +32,7 @@ export async function PATCH(
     const { userId } = auth();
     const body = await req.json();
 
-    const { name, mobileNumber, email, isActive } = body;
+    const { name, mobileNumber, email, gmail, isActive } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -58,6 +58,7 @@ export async function PATCH(
         name,
         mobileNumber,
         email,
+        gmail,
         isActive
       }
     });

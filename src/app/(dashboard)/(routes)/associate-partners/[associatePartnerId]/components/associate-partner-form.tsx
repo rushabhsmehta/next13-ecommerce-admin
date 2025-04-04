@@ -29,6 +29,7 @@ const formSchema = z.object({
   name: z.string().min(1),
   mobileNumber: z.string().min(1),
   email: z.string().optional().nullable(),
+  gmail: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
 });
 
@@ -56,11 +57,13 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
       ...initialData,
-      email: initialData.email || undefined
+      email: initialData.email || undefined,
+      gmail: initialData.gmail || undefined
     } : {
       name: '',
       mobileNumber: '',
       email: undefined,
+      gmail: undefined,
       isActive: true
     }
   });
@@ -157,6 +160,19 @@ export const AssociatePartnerForm: React.FC<AssociatePartnerFormProps> = ({
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input disabled={loading} placeholder="Email" {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="gmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gmail</FormLabel>
+                  <FormControl>
+                    <Input disabled={loading} placeholder="Gmail" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

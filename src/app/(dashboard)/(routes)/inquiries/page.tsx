@@ -50,10 +50,13 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   let isAssociateUser = false;
   
   if (isAssociateDomain && userEmail) {
-    // Try to find the associate by email
+    // Try to find the associate by gmail (primary) or email (fallback) field
     const associatePartner = await prismadb.associatePartner.findFirst({
       where: {
-        email: userEmail
+        OR: [
+          { gmail: userEmail },
+          { email: userEmail }
+        ]
       }
     });
     
@@ -61,7 +64,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       associateId = associatePartner.id;
       isAssociateUser = true;
     } else {
-      // If user is on associate domain but email doesn't match any associate,
+      // If user is on associate domain but email doesn't match any associate's gmail or email,
       // return empty results instead of showing all inquiries
       if (isAssociateDomain) {
         return (

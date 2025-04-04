@@ -9,7 +9,7 @@ export async function POST(
     const { userId } = auth();
     const body = await req.json();
 
-    const { name, mobileNumber, email } = body;
+    const { name, mobileNumber, email, gmail } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -28,6 +28,7 @@ export async function POST(
         name,
         mobileNumber,
         email,
+        gmail,
       }
     });
   

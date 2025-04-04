@@ -1,16 +1,24 @@
 "use client";
 
 import { SignIn } from "@clerk/nextjs";
+import { useClerk } from "@clerk/clerk-react";
 import { useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-
-// Get authorized admin email from environment variables
-const AUTHORIZED_ADMIN_EMAIL = process.env.NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL || 'aagamholiday@gmail.com';
+import { useEffect } from "react";
 
 export default function Page() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
+  const { signOut } = useClerk();
+  
+  useEffect(() => {
+    if (error === 'unauthorized_email') {
+      // Automatically sign out unauthorized users
+      signOut();
+      console.log("Unauthorized email detected, signing out user");
+    }
+  }, [error, signOut]);
   
   return (
     <div className="w-full flex flex-col items-center gap-4">
@@ -20,7 +28,7 @@ export default function Page() {
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>
             Only authorized email addresses can access this application.
-            Access to this domain is restricted to {AUTHORIZED_ADMIN_EMAIL} only.
+            Access to this domain is restricted to aagamholiday@gmail.com only.
           </AlertDescription>
         </Alert>
       )}

@@ -59,12 +59,28 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
     }
   };
 
+  // Helper function to get action type color
+  const getActionTypeColor = (type: string) => {
+    switch (type) {
+      case "CALL":
+        return "border-green-500 bg-green-50";
+      case "MESSAGE":
+        return "border-blue-500 bg-blue-50";
+      case "EMAIL":
+        return "border-yellow-500 bg-yellow-50";
+      case "MEETING":
+        return "border-purple-500 bg-purple-50";
+      default:
+        return "border-gray-500 bg-gray-50";
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="font-medium text-lg">Action History</div>
       
-      {/* Add new action form */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Add new action form - responsive layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Select
           value={actionType}
           onValueChange={setActionType}
@@ -82,7 +98,7 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline">
+            <Button variant="outline" className="w-full justify-start">
               {actionDate ? format(actionDate, "PPP") : "Pick a date"}
             </Button>
           </PopoverTrigger>
@@ -96,38 +112,54 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
           </PopoverContent>
         </Popover>
 
-        <Textarea
-          placeholder="Enter remarks"
-          value={remarks}
-          onChange={(e) => setRemarks(e.target.value)}
-        />
+        <div className="sm:col-span-2 md:col-span-1">
+          <Textarea
+            placeholder="Enter remarks"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            className="h-full min-h-[80px]"
+          />
+        </div>
 
-        <Button 
-          disabled={isLoading || !actionType || !remarks} 
-          onClick={onSubmit}
-        >
-          Add Action
-        </Button>
+        <div className="sm:col-span-2 md:col-span-1">
+          <Button 
+            disabled={isLoading || !actionType || !remarks} 
+            onClick={onSubmit}
+            className="w-full"
+          >
+            Add Action
+          </Button>
+        </div>
       </div>
 
-      {/* Action history list */}
+      {/* Action history list - responsive layout */}
       <div className="space-y-4">
-        {actions.map((action) => (
-          <div 
-            key={action.id}
-            className="flex items-start space-x-4 border rounded-lg p-4"
-          >
-            <div className="min-w-[100px] font-medium">
-              {action.actionType}
-            </div>
-            <div className="flex-1">
-              {action.remarks}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {format(new Date(action.actionDate), "PPP")}
-            </div>
+        {actions.length === 0 ? (
+          <div className="text-center text-muted-foreground py-6">
+            No actions recorded yet.
           </div>
-        ))}
+        ) : (
+          actions.map((action) => (
+            <div 
+              key={action.id}
+              className={`border-l-4 rounded-lg p-4 ${getActionTypeColor(action.actionType)}`}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <span className="font-medium mr-2">
+                    {action.actionType}
+                  </span>
+                </div>
+                <div className="text-sm text-muted-foreground mt-1 sm:mt-0">
+                  {format(new Date(action.actionDate), "PPP")}
+                </div>
+              </div>
+              <div className="text-sm mt-1">
+                {action.remarks}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

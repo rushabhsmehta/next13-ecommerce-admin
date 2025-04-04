@@ -2,7 +2,7 @@ import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
 // Get the authorized admin email from environment variables
-const AUTHORIZED_ADMIN_EMAIL = process.env.AUTHORIZED_ADMIN_EMAIL;
+const AUTHORIZED_ADMIN_EMAIL = process.env.NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL;
 
 export default authMiddleware({
   publicRoutes: [
@@ -54,10 +54,14 @@ export default authMiddleware({
       // Check if we're already on the sign-in page with the error parameter
       const path = req.nextUrl.pathname;
       const isSignInPath = path.startsWith('/sign-in');
-      const hasErrorParam = req.nextUrl.searchParams.get('error') === 'unauthorized_email';
-
-      // Only redirect if not already on the sign-in page with error
-      if (userEmail !== AUTHORIZED_ADMIN_EMAIL && !(isSignInPath && hasErrorParam)) {
+      
+      // Allow the user to access /inquiries directly if they're authorized
+      if (userEmail === AUTHORIZED_ADMIN_EMAIL && isSignInPath) {
+        // User is authorized and on sign-in page, let them proceed without redirect
+        return NextResponse.next();
+      }
+      
+      if (userEmail !== AUTHORIZED_ADMIN_EMAIL && !isSignInPath) {
         // User is not authorized, redirect to sign-in page with an error message
         const signInUrl = new URL('/sign-in', req.url);
         signInUrl.searchParams.set('error', 'unauthorized_email');

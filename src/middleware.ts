@@ -51,8 +51,18 @@ export default authMiddleware({
       // If user is authenticated, check email
       const userEmail = auth.user?.emailAddresses?.[0]?.emailAddress || '';
       
+      // Check if we're already on the sign-in page
+      const path = req.nextUrl.pathname;
+      const isSignInPath = path.startsWith('/sign-in');
+      const hasErrorParam = req.nextUrl.searchParams.has('error');
+      
+      // Critical fix: If user is already on sign-in page with error param, don't redirect again
+      if (isSignInPath && hasErrorParam) {
+        return NextResponse.next();
+      }
+      
       // Allow access only if the email matches the authorized admin email
-      if (userEmail !== AUTHORIZED_ADMIN_EMAIL) {
+      if (userEmail !== AUTHORIZED_ADMIN_EMAIL && !isSignInPath) {
         // User is not authorized, redirect to sign-in page with an error message
         const signInUrl = new URL('/sign-in', req.url);
         signInUrl.searchParams.set('error', 'unauthorized_email');

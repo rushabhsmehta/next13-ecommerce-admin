@@ -4,6 +4,7 @@ import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
 import { auth, currentUser } from "@clerk/nextjs";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 interface InquiriesPageProps {
   searchParams: {
@@ -23,6 +24,11 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   
   // Get the current user from Clerk
   const { userId } = auth();
+  
+    if (!userId) {
+      redirect("/sign-in");
+    }
+  
   const user = await currentUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || '';
   

@@ -25,9 +25,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   // Get the current user from Clerk
   const { userId } = auth();
   
-    if (!userId) {
-      redirect("/sign-in");
-    }
+  if (!userId) {
+    redirect("/sign-in");
+  }
   
   const user = await currentUser();
   const userEmail = user?.emailAddresses[0]?.emailAddress || '';
@@ -60,6 +60,24 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     if (associatePartner) {
       associateId = associatePartner.id;
       isAssociateUser = true;
+    } else {
+      // If user is on associate domain but email doesn't match any associate,
+      // return empty results instead of showing all inquiries
+      if (isAssociateDomain) {
+        return (
+          <div className="flex-col">
+            <div className="flex-1 space-y-4 p-8 pt-6">
+              <InquiriesClient
+                data={[]}
+                associates={associates}
+                organization={organization}
+                isAssociateUser={true}
+                accessError="Your email is not associated with any registered associate. Please contact administration."
+              />
+            </div>
+          </div>
+        );
+      }
     }
   }
 

@@ -18,16 +18,23 @@ export default function Page() {
     console.log("User loaded:", isLoaded);
     console.log("Current error parameter:", error);
     console.log("Allowed email:", allowedEmail);
+    
     if (isLoaded && user) {
       const currentUserEmail = user.primaryEmailAddress?.emailAddress;
       console.log("Current user email:", currentUserEmail);
-      // If the user is authorized but the URL still has the error parameter, redirect to the protected page.
-      if (error === "unauthorized_email" && currentUserEmail === allowedEmail) {
+      
+      // If the user is authorized, redirect to the protected page.
+      if (currentUserEmail === allowedEmail) {
         console.log("Authorized user detected, redirecting to /inquiries...");
-        // Use a short timeout to ensure everything settles before redirecting.
-        setTimeout(() => {
+        
+        // Use a stronger redirect approach for more reliable URL update
+        if (window.location.href.includes("error=unauthorized_email")) {
+          // Hard redirect to completely refresh the page and clear query params
+          window.location.href = "/inquiries";
+        } else {
+          // If no error param, can use the router for a smoother transition
           router.replace("/inquiries");
-        }, 500);
+        }
       }
     }
   }, [isLoaded, user, error, router]);

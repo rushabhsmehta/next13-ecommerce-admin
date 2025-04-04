@@ -1,19 +1,36 @@
-'use client';
+"use client";
 
 import { SignIn, useUser } from "@clerk/nextjs";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-// Ensure the environment variable is exposed to the client by renaming it in your .env file to NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL
+// Ensure the environment variable is exposed to the client by using the NEXT_PUBLIC prefix
 const allowedEmail = process.env.NEXT_PUBLIC_AUTHORIZED_ADMIN_EMAIL;
 
 export default function Page() {
   const searchParams = useSearchParams();
-  const { user } = useUser();
+  const router = useRouter();
+  const { user, isLoaded } = useUser();
   const error = searchParams.get('error');
 
-  // Only show the unauthorized alert if an error exists and the user's email does not equal the allowed email.
+  useEffect(() => {
+    // Log current info for debugging
+    console.log("User loaded:", isLoaded);
+    console.log("Current error parameter:", error);
+    console.log("Allowed email:", allowedEmail);
+    if (isLoaded && user) {
+      console.log("Current user email:", user.primaryEmailAddress?.emailAddress);
+      // If the user is authorized and the URL still has the error parameter, remove it
+      if (error === 'unauthorized_email' && user.primaryEmailAddress?.emailAddress === allowedEmail) {
+        // Redirect to /sign-in without error query param
+        router.push('/sign-in');
+      }
+    }
+  }, [isLoaded, user, error, router]);
+
+  // Only show unauthorized alert if error exists and the user's email does not match the allowed email.
   const showUnauthorizedAlert =
     error === 'unauthorized_email' &&
     user?.primaryEmailAddress?.emailAddress !== allowedEmail;
@@ -33,4 +50,4 @@ export default function Page() {
       <SignIn />
     </div>
   );
-};
+}

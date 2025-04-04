@@ -5,20 +5,29 @@ import { useClerk } from "@clerk/clerk-react";
 import { useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Page() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
-  const { signOut } = useClerk();
+  const { signOut, session } = useClerk();
+  const [isProcessingSignOut, setIsProcessingSignOut] = useState(false);
   
   useEffect(() => {
-    if (error === 'unauthorized_email') {
-      // Automatically sign out unauthorized users
-      signOut();
+    if (error === 'unauthorized_email' && session && !isProcessingSignOut) {
+      // Only sign out if the user is actually authenticated
+      setIsProcessingSignOut(true);
       console.log("Unauthorized email detected, signing out user");
+      
+      // We're using setTimeout to ensure the UI can render first
+      setTimeout(() => {
+        signOut().catch(err => {
+          console.error("Sign out error:", err);
+          setIsProcessingSignOut(false);
+        });
+      }, 2000);
     }
-  }, [error, signOut]);
+  }, [error, signOut, session, isProcessingSignOut]);
   
   return (
     <div className="w-full flex flex-col items-center gap-4">

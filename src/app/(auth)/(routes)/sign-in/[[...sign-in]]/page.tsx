@@ -19,10 +19,15 @@ export default function Page() {
     console.log("Current error parameter:", error);
     console.log("Allowed email:", allowedEmail);
     if (isLoaded && user) {
-      console.log("Current user email:", user.primaryEmailAddress?.emailAddress);
-      // If the user is authorized but the URL still has the error parameter, redirect to home
-      if (error === "unauthorized_email" && user.primaryEmailAddress?.emailAddress === allowedEmail) {
-        router.push("/inquiries"); // Redirect authorized user to home or protected page
+      const currentUserEmail = user.primaryEmailAddress?.emailAddress;
+      console.log("Current user email:", currentUserEmail);
+      // If the user is authorized but the URL still has the error parameter, redirect to the protected page.
+      if (error === "unauthorized_email" && currentUserEmail === allowedEmail) {
+        console.log("Authorized user detected, redirecting to /inquiries...");
+        // Use a short timeout to ensure everything settles before redirecting.
+        setTimeout(() => {
+          router.replace("/inquiries");
+        }, 500);
       }
     }
   }, [isLoaded, user, error, router]);
@@ -32,7 +37,7 @@ export default function Page() {
     error === "unauthorized_email" &&
     user?.primaryEmailAddress?.emailAddress !== allowedEmail;
 
-  // If user is loaded and authorized, you can optionally show a loading/redirect message.
+  // If user is loaded and authorized, show a redirecting message.
   if (isLoaded && user && user.primaryEmailAddress?.emailAddress === allowedEmail) {
     return <p>Welcome, authorized user! Redirecting...</p>;
   }

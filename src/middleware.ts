@@ -55,7 +55,7 @@ export default authMiddleware({
       if (userEmail !== AUTHORIZED_ADMIN_EMAIL) {
         // User is not authorized, redirect to sign-in page with an error message
         const signInUrl = new URL('/sign-in', req.url);
-      //  signInUrl.searchParams.set('error', 'unauthorized_email');
+        signInUrl.searchParams.set('error', 'unauthorized_email');
         return NextResponse.redirect(signInUrl);
       }
     }

@@ -27,12 +27,13 @@ export default authMiddleware({
     if (isAssociateDomain) {
       const path = req.nextUrl.pathname;
       
-      // Associates are only allowed to access the inquiries page and API routes
+      // Associates are only allowed to access the inquiries page, sign-in, sign-up and API routes
       const isAllowedPath = 
         path.startsWith('/inquiries') || 
         path.startsWith('/api/inquiries') || 
         path === '/' || 
         path.startsWith('/sign-in') || 
+        path.startsWith('/sign-up') || 
         path.startsWith('/api/auth') ||
         path === '/api/associate-partners/me';
       

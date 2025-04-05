@@ -20,6 +20,9 @@ export async function PATCH(
     // Get existing query to toggle isFeatured
     const existingQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
+      include: {
+        inquiry: true  // Include the related inquiry
+      }
     });
 
     if (!existingQuery) {
@@ -27,14 +30,36 @@ export async function PATCH(
     }
 
     // Toggle isFeatured value (if true set to false, if false set to true)
+    const newFeaturedStatus = !existingQuery.isFeatured;
+    
     const updatedQuery = await prismadb.tourPackageQuery.update({
       where: {
         id: params.tourPackageQueryId
       },
       data: {
-        isFeatured: !existingQuery.isFeatured
+        isFeatured: newFeaturedStatus
       }
     });
+
+    // If query is being confirmed (isFeatured set to true) and has a related inquiry,
+    // update the inquiry status to CONFIRMED
+    if (newFeaturedStatus && existingQuery.inquiryId) {
+      console.log(`[QUERY_CONFIRM] Updating related inquiry ${existingQuery.inquiryId} status to CONFIRMED`);
+      
+      await prismadb.inquiry.update({
+        where: { id: existingQuery.inquiryId },
+        data: { status: "CONFIRMED" }
+      });
+      
+      // Optional: Add an action record for the status change
+      await prismadb.inquiryAction.create({
+        data: {
+          inquiryId: existingQuery.inquiryId,
+          actionType: "STATUS_CHANGE",
+          remarks: "Status updated to CONFIRMED automatically when tour package query was confirmed."
+        }
+      });
+    }
 
     return NextResponse.json(updatedQuery);
   } catch (error) {

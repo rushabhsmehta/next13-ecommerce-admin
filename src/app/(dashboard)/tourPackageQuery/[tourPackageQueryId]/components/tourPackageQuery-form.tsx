@@ -635,6 +635,45 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
+  const handleSaveToMasterItinerary = async (itinerary: any) => {
+    try {
+      setLoading(true);
+      
+      // Prepare the data for saving to master itinerary
+      const masterItineraryData = {
+        itineraryMasterTitle: itinerary.itineraryTitle,
+        itineraryMasterDescription: itinerary.itineraryDescription,
+        locationId: itinerary.locationId,
+        itineraryMasterImages: itinerary.itineraryImages,
+        activities: itinerary.activities.map((activity: any) => ({
+          activityTitle: activity.activityTitle,
+          activityDescription: activity.activityDescription,
+          activityImages: activity.activityImages,
+          locationId: itinerary.locationId
+        })),
+        // Include any additional fields required by the API
+        dayNumber: itinerary.dayNumber,
+        days: itinerary.days,
+        hotelId: itinerary.hotelId,
+        numberofRooms: itinerary.numberofRooms,
+        roomCategory: itinerary.roomCategory,
+        mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.join('-') : ''
+      };
+      
+      // Send to existing API endpoint
+      const response = await axios.post('/api/itinerariesMaster', masterItineraryData);
+      
+      toast.success('Saved to Master Itinerary successfully!');
+      console.log('Saved to master itinerary:', response.data);
+      
+    } catch (error: any) {
+      console.error('Error saving to master itinerary:', error);
+      toast.error(error.response?.data?.message || 'Failed to save to Master Itinerary');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <AlertModal
@@ -1834,7 +1873,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       }}
                                     >
                                       Remove Itinerary for Day {index + 1}
+                                    </Button>
 
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="ml-2"
+                                      onClick={() => handleSaveToMasterItinerary(itinerary)}
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Save to Master Itinerary
                                     </Button>
                                   </div>
                                 </AccordionContent>

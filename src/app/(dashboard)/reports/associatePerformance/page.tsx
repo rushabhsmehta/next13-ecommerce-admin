@@ -160,8 +160,10 @@ export default function AssociatePerformancePage() {
     : performanceData.filter(item => item.associateId === selectedAssociate);
 
   // Calculate summary statistics based on filtered data
-  const totalRevenue = filteredData.reduce((sum, item) => 
-    sum + parseInt(item.revenue.replace(/\$|,/g, '') || '0'), 0);
+  const totalRevenue = filteredData.length > 0 ? 
+    filteredData.reduce((sum, item) => 
+      sum + parseInt(item.revenue.replace(/Rs\.|₹|\$|,|\s/g, '') || '0'), 0) 
+    : 0;
   
   const avgPerformance = filteredData.length > 0 ? 
     filteredData.reduce((sum, item) => 
@@ -396,7 +398,7 @@ export default function AssociatePerformancePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <h3 className="font-semibold mb-2">Total Revenue</h3>
-          <p className="text-2xl">${totalRevenue.toLocaleString()}</p>
+          <p className="text-2xl">₹{totalRevenue.toLocaleString()}</p>
         </Card>
         <Card className="p-4">
           <h3 className="font-semibold mb-2">Average Performance</h3>

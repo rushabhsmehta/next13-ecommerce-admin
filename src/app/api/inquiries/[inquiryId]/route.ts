@@ -113,15 +113,50 @@ export async function DELETE(
       return new NextResponse("Inquiry id is required", { status: 400 });
     }
 
-    const inquiry = await prismadb.inquiry.deleteMany({
-      where: {
-        id: params.inquiryId,
+    console.log(`[INQUIRY_DELETE] Attempting to delete inquiry: ${params.inquiryId}`);
+
+    // First, check if the inquiry exists and get its related records
+    const inquiry = await prismadb.inquiry.findUnique({
+      where: { id: params.inquiryId },
+      include: {
+        actions: true,
+        tourPackageQueries: true
       }
     });
-  
-    return NextResponse.json(inquiry);
+
+    if (!inquiry) {
+      return new NextResponse("Inquiry not found", { status: 404 });
+    }
+
+    // Log the related records for debugging
+    console.log(`[INQUIRY_DELETE] Found inquiry with ${inquiry.actions.length} actions and ${inquiry.tourPackageQueries.length} package queries`);
+
+    // Delete the inquiry actions first (these are directly related)
+    if (inquiry.actions.length > 0) {
+      await prismadb.inquiryAction.deleteMany({
+        where: { inquiryId: params.inquiryId }
+      });
+      console.log(`[INQUIRY_DELETE] Deleted ${inquiry.actions.length} related inquiry actions`);
+    }
+
+    // Update tour package queries to remove reference to this inquiry
+    if (inquiry.tourPackageQueries.length > 0) {
+      await prismadb.tourPackageQuery.updateMany({
+        where: { inquiryId: params.inquiryId },
+        data: { inquiryId: null }
+      });
+      console.log(`[INQUIRY_DELETE] Updated ${inquiry.tourPackageQueries.length} related tour package queries`);
+    }
+
+    // Finally, delete the inquiry
+    const deletedInquiry = await prismadb.inquiry.delete({
+      where: { id: params.inquiryId }
+    });
+
+    console.log(`[INQUIRY_DELETE] Successfully deleted inquiry: ${params.inquiryId}`);
+    return NextResponse.json(deletedInquiry);
   } catch (error) {
-    console.log('[INQUIRY_DELETE]', error);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error('[INQUIRY_DELETE]', error);
+    return new NextResponse(`Internal error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
   }
 }

@@ -45,83 +45,54 @@ export async function updateBankBalance(
 /**
  * Recalculates the entire bank account balance from scratch based on all transactions
  */
-export async function recalculateBankBalance(bankAccountId: string) {
+export async function recalculateBankBalance(bankAccountId: string): Promise<number> {
+  console.log(`[RECALCULATE_BANK_BALANCE] Starting recalculation for bank account: ${bankAccountId}`);
+
+  // Get the bank account
   const bankAccount = await prismadb.bankAccount.findUnique({
     where: { id: bankAccountId }
   });
 
   if (!bankAccount) {
-    throw new Error(`Bank account with ID ${bankAccountId} not found`);
+    console.error(`[RECALCULATE_BANK_BALANCE] Bank account not found: ${bankAccountId}`);
+    throw new Error(`Bank account not found: ${bankAccountId}`);
   }
 
-  console.log(`\n[RECALCULATE_BALANCE] Starting recalculation for bank account: ${bankAccount.accountName} (${bankAccountId})`);
-  
-  // Start with opening balance
+  console.log(`[RECALCULATE_BANK_BALANCE] Found bank account: ${bankAccount.accountName} with opening balance: ${bankAccount.openingBalance}`);
+
+  // Start with the opening balance
   let currentBalance = bankAccount.openingBalance || 0;
-  console.log(`[RECALCULATE_BALANCE] Starting with opening balance: ${currentBalance}`);
 
-  // Add all receipts
+  // Get all inflows (receipts)
   const receipts = await prismadb.receiptDetail.findMany({
-    where: { bankAccountId },
-    include: {
-      customer: true,
-      tourPackageQuery: true
-    },
-    orderBy: {
-      receiptDate: 'asc'
-    }
+    where: { bankAccountId }
   });
-  
-  console.log(`[RECALCULATE_BALANCE] Found ${receipts.length} receipts (inflows)`);
-  for (const receipt of receipts) {
-    const previousBalance = currentBalance;
-    currentBalance += receipt.amount;
-    
-    const customerName = receipt.customer?.name || receipt.tourPackageQuery?.customerName || 'Unknown';
-    console.log(`[RECALCULATE_BALANCE] Receipt (${receipt.id}): ${customerName}, ${receipt.receiptDate.toISOString().split('T')[0]}, Amount: +${receipt.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
-  }
 
-  // Subtract all payments
+  // Add up all inflows
+  const totalReceipts = receipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0);
+  console.log(`[RECALCULATE_BANK_BALANCE] Total receipts: ${totalReceipts}`);
+  currentBalance += totalReceipts;
+
+  // Get all outflows (payments)
   const payments = await prismadb.paymentDetail.findMany({
-    where: { bankAccountId },
-    include: {
-      supplier: true,
-      tourPackageQuery: true
-    },
-    orderBy: {
-      paymentDate: 'asc'
-    }
+    where: { bankAccountId }
   });
-  
-  console.log(`[RECALCULATE_BALANCE] Found ${payments.length} payments (outflows)`);
-  for (const payment of payments) {
-    const previousBalance = currentBalance;
-    currentBalance -= payment.amount;
-    
-    const supplierName = payment.supplier?.name || 'Unknown';
-    console.log(`[RECALCULATE_BALANCE] Payment (${payment.id}): ${supplierName}, ${payment.paymentDate.toISOString().split('T')[0]}, Amount: -${payment.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
-  }
+
+  // Subtract all outflows
+  const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  console.log(`[RECALCULATE_BANK_BALANCE] Total payments: ${totalPayments}`);
+  currentBalance -= totalPayments;
+
+  // Get all expenses (outflows)
+  const expenses = await prismadb.expenseDetail.findMany({
+    where: { bankAccountId }
+  });
 
   // Subtract all expenses
-  const expenses = await prismadb.expenseDetail.findMany({
-    where: { bankAccountId },
-    include: {
-      tourPackageQuery: true,
-      expenseCategory: true  // Include the expense category relation
-    },
-    orderBy: {
-      expenseDate: 'asc'
-    }
-  });
-  
-  console.log(`[RECALCULATE_BALANCE] Found ${expenses.length} expenses (outflows)`);
-  for (const expense of expenses) {
-    const previousBalance = currentBalance;
-    currentBalance -= expense.amount;
-    
-    console.log(`[RECALCULATE_BALANCE] Expense (${expense.id}): ${expense.expenseCategory?.name || 'Uncategorized'}, ${expense.expenseDate.toISOString().split('T')[0]}, Amount: -${expense.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
-  }
-  
+  const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  console.log(`[RECALCULATE_BANK_BALANCE] Total expenses: ${totalExpenses}`);
+  currentBalance -= totalExpenses;
+
   // Account for transfers TO this bank account (inflows)
   const transfersIn = await prismadb.transfer.findMany({
     where: { 
@@ -131,15 +102,18 @@ export async function recalculateBankBalance(bankAccountId: string) {
       transferDate: 'asc'
     }
   });
-  
-  console.log(`[RECALCULATE_BALANCE] Found ${transfersIn.length} transfers TO this account (inflows)`);
+
+  console.log(`[RECALCULATE_BANK_BALANCE] Found ${transfersIn.length} transfers TO this bank account (inflows)`);
+  let totalTransfersIn = 0;
   for (const transfer of transfersIn) {
+    totalTransfersIn += transfer.amount;
     const previousBalance = currentBalance;
     currentBalance += transfer.amount;
-    
-    console.log(`[RECALCULATE_BALANCE] Transfer IN (${transfer.id}): From ${transfer.fromBankAccountId ? 'Bank' : 'Cash'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: +${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+
+    console.log(`[RECALCULATE_BANK_BALANCE] Transfer IN (${transfer.id}): From ${transfer.fromCashAccountId ? 'Cash' : 'Bank'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: +${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
   }
-  
+  console.log(`[RECALCULATE_BANK_BALANCE] Total transfers in: ${totalTransfersIn}`);
+
   // Account for transfers FROM this bank account (outflows)
   const transfersOut = await prismadb.transfer.findMany({
     where: { 
@@ -149,26 +123,31 @@ export async function recalculateBankBalance(bankAccountId: string) {
       transferDate: 'asc'
     }
   });
-  
-  console.log(`[RECALCULATE_BALANCE] Found ${transfersOut.length} transfers FROM this account (outflows)`);
+
+  console.log(`[RECALCULATE_BANK_BALANCE] Found ${transfersOut.length} transfers FROM this bank account (outflows)`);
+  let totalTransfersOut = 0;
   for (const transfer of transfersOut) {
+    totalTransfersOut += transfer.amount;
     const previousBalance = currentBalance;
     currentBalance -= transfer.amount;
-    
-    console.log(`[RECALCULATE_BALANCE] Transfer OUT (${transfer.id}): To ${transfer.toBankAccountId ? 'Bank' : 'Cash'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: -${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
+
+    console.log(`[RECALCULATE_BANK_BALANCE] Transfer OUT (${transfer.id}): To ${transfer.toCashAccountId ? 'Cash' : 'Bank'}, ${transfer.transferDate.toISOString().split('T')[0]}, Amount: -${transfer.amount}, Previous Balance: ${previousBalance}, New Balance: ${currentBalance}`);
   }
+  console.log(`[RECALCULATE_BANK_BALANCE] Total transfers out: ${totalTransfersOut}`);
 
-  console.log(`[RECALCULATE_BALANCE] Final balance: ${currentBalance}`);
-  console.log(`[RECALCULATE_BALANCE] Previous saved balance: ${bankAccount.currentBalance}`);
-  console.log(`[RECALCULATE_BALANCE] Updating bank account balance...`);
+  console.log(`[RECALCULATE_BANK_BALANCE] New calculated balance: ${currentBalance}`);
 
-  // Update the bank account with recalculated balance
+  // Update the bank account with the new balance and opening balance
   await prismadb.bankAccount.update({
     where: { id: bankAccountId },
-    data: { currentBalance }
+    data: { 
+      currentBalance,
+      openingBalance: currentBalance // Ensure opening balance is updated
+    }
   });
 
-  console.log(`[RECALCULATE_BALANCE] Recalculation complete. New balance set to: ${currentBalance}\n`);
+  console.log(`[RECALCULATE_BANK_BALANCE] Updated bank account with new balance: ${currentBalance}`);
+
   return currentBalance;
 }
 

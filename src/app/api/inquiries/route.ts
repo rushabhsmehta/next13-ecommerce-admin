@@ -183,3 +183,65 @@ export async function GET(req: Request) {
   }
 }
 
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
+    const url = new URL(req.url);
+    const inquiryId = url.searchParams.get('id');
+
+    if (!inquiryId) {
+      return new NextResponse("Inquiry ID is required", { status: 400 });
+    }
+
+    console.log(`[INQUIRIES_DELETE] Attempting to delete inquiry: ${inquiryId}`);
+
+    // First, check if the inquiry exists
+    const inquiry = await prismadb.inquiry.findUnique({
+      where: { id: inquiryId },
+      include: {
+        actions: true,
+        tourPackageQueries: true
+      }
+    });
+
+    if (!inquiry) {
+      return new NextResponse("Inquiry not found", { status: 404 });
+    }
+
+    // Log the related records for debugging
+    console.log(`[INQUIRIES_DELETE] Found inquiry with ${inquiry.actions.length} actions and ${inquiry.tourPackageQueries.length} package queries`);
+
+    // Delete the inquiry actions first (these are directly related and should cascade)
+    if (inquiry.actions.length > 0) {
+      await prismadb.inquiryAction.deleteMany({
+        where: { inquiryId: inquiryId }
+      });
+      console.log(`[INQUIRIES_DELETE] Deleted ${inquiry.actions.length} related inquiry actions`);
+    }
+
+    // Handle tour package queries - update them to remove reference to this inquiry
+    if (inquiry.tourPackageQueries.length > 0) {
+      await prismadb.tourPackageQuery.updateMany({
+        where: { inquiryId: inquiryId },
+        data: { inquiryId: null }
+      });
+      console.log(`[INQUIRIES_DELETE] Updated ${inquiry.tourPackageQueries.length} related tour package queries`);
+    }
+
+    // Finally, delete the inquiry
+    const deletedInquiry = await prismadb.inquiry.delete({
+      where: { id: inquiryId }
+    });
+
+    console.log(`[INQUIRIES_DELETE] Successfully deleted inquiry: ${inquiryId}`);
+    return NextResponse.json(deletedInquiry);
+  } catch (error) {
+    console.error('[INQUIRIES_DELETE]', error);
+    return new NextResponse(`Internal error: ${error instanceof Error ? error.message : 'Unknown error'}`, { status: 500 });
+  }
+}
+

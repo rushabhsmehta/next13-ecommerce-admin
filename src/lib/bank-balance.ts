@@ -137,12 +137,11 @@ export async function recalculateBankBalance(bankAccountId: string): Promise<num
 
   console.log(`[RECALCULATE_BANK_BALANCE] New calculated balance: ${currentBalance}`);
 
-  // Update the bank account with the new balance and opening balance
+  // Update ONLY the current balance, not the opening balance
   await prismadb.bankAccount.update({
     where: { id: bankAccountId },
     data: { 
-      currentBalance,
-      openingBalance: currentBalance // Ensure opening balance is updated
+      currentBalance
     }
   });
 

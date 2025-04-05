@@ -5,7 +5,7 @@ import { format, subMonths, isAfter, isBefore, parseISO } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, ArrowUpIcon, ArrowDownIcon, DollarSignIcon, TrendingUpIcon } from "lucide-react";
+import { CalendarIcon, ArrowUpIcon, ArrowDownIcon, TrendingUpIcon, IndianRupeeIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -456,7 +456,7 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                                <DollarSignIcon className="h-4 w-4 text-green-500" />
+                                <IndianRupeeIcon className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">₹{(financialMetrics.totalSales + financialMetrics.totalIncomes).toFixed(2)}</div>
@@ -468,7 +468,7 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <CardTitle className="text-sm font-medium">Total Costs</CardTitle>
-                                <DollarSignIcon className="h-4 w-4 text-red-500" />
+                                <IndianRupeeIcon className="h-4 w-4 text-red-500" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">₹{(financialMetrics.totalPurchases + financialMetrics.totalExpenses).toFixed(2)}</div>

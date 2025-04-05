@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { 
   CheckCircleIcon, 
   CreditCardIcon, 
-  DollarSignIcon, 
+  IndianRupeeIcon, 
   ArrowDownIcon,
   ArrowUpIcon,
   ReceiptIcon,
-  WalletIcon
+  WalletIcon,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -173,7 +173,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <AccordionTrigger className="px-6 hover:no-underline">
             <div className="flex justify-between w-full items-center">
               <div className="flex items-center">
-                <DollarSignIcon className="h-5 w-5 mr-2 text-green-600" />
+                <IndianRupeeIcon className="h-5 w-5 mr-2 text-green-600" />
                 <span className="font-semibold text-lg">Sales Details</span>
               </div>
               <span className="text-green-600 font-bold">₹{totalSales.toFixed(2)}</span>

@@ -82,6 +82,18 @@ export const PaymentLedgerClient: React.FC<PaymentLedgerClientProps> = ({
     setDateTo(undefined);
   };
   
+  // Helper function to format currency values for PDF to avoid rupee symbol issues
+  const formatCurrencyForPDF = (value: string | number) => {
+    if (typeof value === 'string') {
+      // Remove existing currency symbols and clean the string
+      const cleanValue = value.replace(/Rs\.|₹|\$|,|\s/g, '');
+      // Add "Rs. " prefix instead of ₹ symbol which might not render correctly in PDF
+      return `Rs. ${parseInt(cleanValue).toLocaleString()}`;
+    } else {
+      return `Rs. ${value.toLocaleString()}`;
+    }
+  };
+
   // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();

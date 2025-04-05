@@ -61,6 +61,18 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
     ? propsTotalGst
     : items.reduce((sum, item) => sum + (item.gstAmount || 0), 0);
   
+  // Create a helper function to format currency values for PDF
+  const formatCurrencyForPDF = (value: string | number) => {
+    if (typeof value === 'string') {
+      // Remove existing currency symbols and clean the string
+      const cleanValue = value.replace(/Rs\.|₹|\$|,|\s/g, '');
+      // Add "Rs. " prefix instead of ₹ symbol which might not render correctly in PDF
+      return `Rs. ${parseInt(cleanValue).toLocaleString()}`;
+    } else {
+      return `Rs. ${value.toLocaleString()}`;
+    }
+  };
+
   // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -75,8 +87,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
 
     // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: ₹ ${formatPrice(totalAmount, { forPDF: true })}`, 14, 40);
-    doc.text(`Total GST: ₹ ${formatPrice(totalGst, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Purchases: ${formatCurrencyForPDF(totalAmount)}`, 14, 40);
+    doc.text(`Total GST: ${formatCurrencyForPDF(totalGst)}`, 14, 48);
 
     // Add table data with proper formatting
     const tableData = items.map(purchase => [
@@ -84,8 +96,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
       purchase.supplierName,
       purchase.packageName,
       purchase.description,
-      `₹ ${formatPrice(purchase.amount, { forPDF: true })}`,
-      purchase.gstAmount ? `₹ ${formatPrice(purchase.gstAmount, { forPDF: true })}` : "-"
+      formatCurrencyForPDF(purchase.amount),
+      purchase.gstAmount ? formatCurrencyForPDF(purchase.gstAmount) : "-"
     ]);
 
     // Add the table

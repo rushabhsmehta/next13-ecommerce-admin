@@ -21,12 +21,24 @@ export const BankAccountsClient: React.FC<BankAccountsClientProps> = ({
 }) => {
   const router = useRouter();
 
+  // Helper function to format currency values for PDF to avoid rupee symbol issues
+  const formatCurrencyForPDF = (value: string | number) => {
+    if (typeof value === 'string') {
+      // Remove existing currency symbols and clean the string
+      const cleanValue = value.replace(/Rs\.|₹|\$|,|\s/g, '');
+      // Add "Rs. " prefix instead of ₹ symbol which might not render correctly in PDF
+      return `Rs. ${parseInt(cleanValue).toLocaleString()}`;
+    } else {
+      return `Rs. ${value.toLocaleString()}`;
+    }
+  };
+
   // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();
     // Add a Unicode font that supports the Rupee symbol
-    doc.addFont('https://cdn.jsdelivr.net/npm/@fontsource/noto-sans/files/noto-sans-all-400-normal.woff', 'NotoSans', 'normal');
-    doc.setFont('NotoSans');
+    doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.setFont('Roboto');
     // Add report title
     doc.setFontSize(18);
     doc.text("Bank Accounts Report", 14, 22);

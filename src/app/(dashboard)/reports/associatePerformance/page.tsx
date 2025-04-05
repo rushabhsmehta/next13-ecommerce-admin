@@ -189,6 +189,14 @@ export default function AssociatePerformancePage() {
     exportToCSV(exportData, `associate_performance_report${dateRangeStr}`);
   };
 
+  // Function to format currency values to ensure proper symbol rendering in PDF
+  const formatCurrencyForPDF = (value: string) => {
+    // Remove existing currency symbols and clean the string
+    const cleanValue = value.replace(/Rs\.|₹|\$|,|\s/g, '');
+    // Add "Rs. " prefix instead of ₹ symbol which might not render correctly in PDF
+    return `Rs. ${parseInt(cleanValue).toLocaleString()}`;
+  };
+
   // Function to generate and download PDF
   const generatePDF = () => {
     const doc = new jsPDF();
@@ -220,7 +228,7 @@ export default function AssociatePerformancePage() {
     doc.text("Summary Metrics", 14, 52);
     
     doc.setFontSize(10);
-    doc.text(`Total Revenue: ₹ ${totalRevenue.toLocaleString()}`, 14, 60);
+    doc.text(`Total Revenue: ${formatCurrencyForPDF(totalRevenue.toString())}`, 14, 60);
     doc.text(`Average Performance: ${avgPerformance.toFixed(1)}/5.0`, 160, 60);
     
     // Add table data
@@ -228,8 +236,8 @@ export default function AssociatePerformancePage() {
       item.associateName,
       item.confirmedBookings,
       item.cancellations,
-      item.revenue,
-      item.commission,
+      formatCurrencyForPDF(item.revenue),
+      formatCurrencyForPDF(item.commission),
       item.performance,
       item.totalInquiries
     ]);

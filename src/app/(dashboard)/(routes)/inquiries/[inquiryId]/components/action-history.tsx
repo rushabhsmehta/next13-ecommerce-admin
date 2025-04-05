@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import axios from "axios";
 
 import {
   Select,
@@ -16,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Trash } from "lucide-react";
+import { AlertModal } from "@/components/modals/alert-modal";
 
 interface ActionHistoryProps {
   inquiryId: string;
@@ -36,6 +39,11 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
   const [actionType, setActionType] = useState("");
   const [remarks, setRemarks] = useState("");
   const [actionDate, setActionDate] = useState<Date>(new Date());
+  
+  // For deletion confirmation
+  const [open, setOpen] = useState(false);
+  const [deletingActionId, setDeletingActionId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const onSubmit = async () => {
     try {
@@ -59,6 +67,24 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
     }
   };
 
+  const onDelete = async () => {
+    if (!deletingActionId) return;
+    
+    try {
+      setDeleteLoading(true);
+      await axios.delete(`/api/inquiries/${inquiryId}/actions/${deletingActionId}`);
+      toast.success("Action deleted successfully");
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting action:", error);
+      toast.error("Failed to delete action");
+    } finally {
+      setDeleteLoading(false);
+      setOpen(false);
+      setDeletingActionId(null);
+    }
+  };
+
   // Helper function to get action type color
   const getActionTypeColor = (type: string) => {
     switch (type) {
@@ -77,6 +103,13 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
 
   return (
     <div className="space-y-6">
+      <AlertModal 
+        isOpen={open} 
+        onClose={() => setOpen(false)}
+        onConfirm={onDelete}
+        loading={deleteLoading}
+      />
+      
       <div className="font-medium text-lg">Action History</div>
       
       {/* Add new action form - responsive layout */}
@@ -142,7 +175,7 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
           actions.map((action) => (
             <div 
               key={action.id}
-              className={`border-l-4 rounded-lg p-4 ${getActionTypeColor(action.actionType)}`}
+              className={`border-l-4 rounded-lg p-4 ${getActionTypeColor(action.actionType)} relative`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
                 <div className="flex items-center">
@@ -157,6 +190,17 @@ export const ActionHistory: React.FC<ActionHistoryProps> = ({
               <div className="text-sm mt-1">
                 {action.remarks}
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-8 w-8"
+                onClick={() => {
+                  setDeletingActionId(action.id);
+                  setOpen(true);
+                }}
+              >
+                <Trash className="h-4 w-4 text-red-500" />
+              </Button>
             </div>
           ))
         )}

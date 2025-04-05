@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { formatPrice } from "@/lib/utils";
 import { format } from "date-fns";
+import { CellAction } from "./cell-action";
 
 type Expense = {
   id: string;
@@ -39,12 +40,13 @@ export const ExpensesTable: React.FC<ExpensesTableProps> = ({ data }) => {
             <TableHead>Mode</TableHead>
             <TableHead>Account</TableHead>
             <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-center w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No expenses found
               </TableCell>
             </TableRow>
@@ -61,8 +63,18 @@ export const ExpensesTable: React.FC<ExpensesTableProps> = ({ data }) => {
                   <TableCell className="text-right font-medium text-red-600">
                     {formatPrice(item.amount)}
                   </TableCell>
+                  <TableCell>
+                    <CellAction data={item} />
+                  </TableCell>
                 </TableRow>
               ))}
+              <TableRow>
+                <TableCell colSpan={7} className="font-bold">Total</TableCell>
+                <TableCell className="text-right font-bold text-red-600">
+                  {formatPrice(data.reduce((total, item) => total + item.amount, 0))}
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
             </>
           )}
         </TableBody>

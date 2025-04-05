@@ -23,8 +23,6 @@ const IncomeCategoriesPage = async () => {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <Heading title="Income Categories" description="Manage income categories" />
-        <Separator />
         <IncomeCategoryClient data={formattedIncomeCategories} />
       </div>
     </div>

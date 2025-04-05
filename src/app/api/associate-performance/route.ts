@@ -152,8 +152,8 @@ export async function GET(req: Request) {
       associateName: associate.associateName,
       confirmedBookings: associate.confirmedBookings,
       cancellations: associate.cancellations,
-      revenue: `$${associate.revenue.toLocaleString()}`,
-      commission: `$${associate.commission.toLocaleString()}`,
+      revenue: `Rs. ${associate.revenue.toLocaleString()}`,
+      commission: `Rs. ${associate.commission.toLocaleString()}`,
       performance: associate.performanceScore === 5 ? "Excellent" :
                    associate.performanceScore === 4 ? "Good" :
                    associate.performanceScore === 3 ? "Average" :

@@ -218,7 +218,7 @@ export default function AssociatePerformancePage() {
     doc.text("Summary Metrics", 14, 52);
     
     doc.setFontSize(10);
-    doc.text(`Total Revenue: $${totalRevenue.toLocaleString()}`, 14, 60);
+    doc.text(`Total Revenue: Rs. ${totalRevenue.toLocaleString()}`, 14, 60);
     doc.text(`Average Performance: ${avgPerformance.toFixed(1)}/5.0`, 160, 60);
     
     // Add table data
@@ -273,7 +273,7 @@ export default function AssociatePerformancePage() {
         : associatedPartners.find(p => p.id === selectedAssociate)?.name || "Unknown"],
       [""],
       ["Summary Metrics:"],
-      ["Total Revenue:", `$${totalRevenue.toLocaleString()}`],
+      ["Total Revenue:", `Rs. ${totalRevenue.toLocaleString()}`],
       ["Average Performance:", `${avgPerformance.toFixed(1)}/5.0`],
       [""],
       [""] // Empty row before the table

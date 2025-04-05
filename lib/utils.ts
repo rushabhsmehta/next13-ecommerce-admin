@@ -26,7 +26,7 @@ export function formatPrice(
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
     });
-    return `Rs. ${formatter.format(numericPrice)}/-`;
+    return `₹ ${formatter.format(numericPrice)}/-`;
   }
 
   // For UI display, use currency symbol with proper Indian number formatting

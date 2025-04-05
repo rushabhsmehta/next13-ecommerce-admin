@@ -111,9 +111,9 @@ export const IncomeLedgerClient: React.FC<IncomeLedgerClientProps> = ({
 
     // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Total Income: Rs. ${formatPrice(totalIncomes, { forPDF: true })}`, 14, 40);
+    doc.text(`Total Income: ₹ ${formatPrice(totalIncomes, { forPDF: true })}`, 14, 40);
     if (filteredCategory || filteredPaymentMode || dateFrom || dateTo) {
-      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
+      doc.text(`Filtered Total: ₹ ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
     }
 
     // Add table data
@@ -124,7 +124,7 @@ export const IncomeLedgerClient: React.FC<IncomeLedgerClientProps> = ({
       income.description,
       income.paymentMode,
       income.account,
-      `Rs. ${formatPrice(income.amount, { forPDF: true })}`
+      `₹ ${formatPrice(income.amount, { forPDF: true })}`
     ]);
 
     // Add the table

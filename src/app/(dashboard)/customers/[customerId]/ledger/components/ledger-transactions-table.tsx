@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { CellAction } from "./cell-action";
 
 type Transaction = {
   id: string;
@@ -42,12 +43,13 @@ export const LedgerTransactionsTable: React.FC<LedgerTransactionsTableProps> = (
             <TableHead className="text-right">Debit</TableHead>
             <TableHead className="text-right">Credit</TableHead>
             <TableHead className="text-right">Balance</TableHead>
+            <TableHead className="w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No transactions found
               </TableCell>
             </TableRow>
@@ -83,6 +85,9 @@ export const LedgerTransactionsTable: React.FC<LedgerTransactionsTableProps> = (
                       runningBalance > 0 ? "text-red-600" : runningBalance < 0 ? "text-green-600" : ""
                     }`}>
                       {formatPrice(runningBalance)}
+                    </TableCell>
+                    <TableCell>
+                      <CellAction data={item} />
                     </TableCell>
                   </TableRow>
                 );

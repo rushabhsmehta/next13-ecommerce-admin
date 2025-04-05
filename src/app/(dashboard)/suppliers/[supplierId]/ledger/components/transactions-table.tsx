@@ -15,6 +15,7 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
+  DropdownMenuLabel,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -105,17 +106,18 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem 
                           onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}`)}
                         >
                           <Edit className="mr-2 h-4 w-4" />
-                          View Details
+                          Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}/voucher`)}
                         >
                           <FileText className="mr-2 h-4 w-4" />
-                          Generate Voucher
+                          View Voucher
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

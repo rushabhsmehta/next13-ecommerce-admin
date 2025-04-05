@@ -4,7 +4,7 @@ import prismadb from "@/lib/prismadb";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { queryId: string } }
+  { params }: { params: { tourPackageQueryId: string } }
 ) {
   try {
     const { userId } = auth();
@@ -13,13 +13,13 @@ export async function PATCH(
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
-    if (!params.queryId) {
+    if (!params.tourPackageQueryId) {
       return new NextResponse("Query ID is required", { status: 400 });
     }
 
     // Get existing query to toggle isFeatured
     const existingQuery = await prismadb.tourPackageQuery.findUnique({
-      where: { id: params.queryId },
+      where: { id: params.tourPackageQueryId },
     });
 
     if (!existingQuery) {
@@ -29,7 +29,7 @@ export async function PATCH(
     // Toggle isFeatured value (if true set to false, if false set to true)
     const updatedQuery = await prismadb.tourPackageQuery.update({
       where: {
-        id: params.queryId
+        id: params.tourPackageQueryId
       },
       data: {
         isFeatured: !existingQuery.isFeatured

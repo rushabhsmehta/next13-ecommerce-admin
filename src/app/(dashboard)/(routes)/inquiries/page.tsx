@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import prismadb from "@/lib/prismadb";
 import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
@@ -84,6 +84,69 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     }
   }
 
+  // Build date range filters based on period
+  let dateFilter = {};
+  const now = new Date();
+  
+  if (searchParams.period) {
+    switch (searchParams.period) {
+      case 'TODAY':
+        dateFilter = {
+          createdAt: {
+            gte: startOfDay(now),
+            lte: endOfDay(now)
+          }
+        };
+        break;
+      case 'THIS_WEEK':
+        dateFilter = {
+          createdAt: {
+            gte: startOfWeek(now, { weekStartsOn: 1 }),
+            lte: endOfWeek(now, { weekStartsOn: 1 })
+          }
+        };
+        break;
+      case 'THIS_MONTH':
+        dateFilter = {
+          createdAt: {
+            gte: startOfMonth(now),
+            lte: endOfMonth(now)
+          }
+        };
+        break;
+      case 'LAST_MONTH':
+        const lastMonth = subMonths(now, 1);
+        dateFilter = {
+          createdAt: {
+            gte: startOfMonth(lastMonth),
+            lte: endOfMonth(lastMonth)
+          }
+        };
+        break;
+      case 'CUSTOM':
+        if (searchParams.startDate && searchParams.endDate) {
+          try {
+            const parsedStartDate = parseISO(searchParams.startDate);
+            const parsedEndDate = parseISO(searchParams.endDate);
+            
+            // Set end date to end of day to include the entire day
+            const endDateWithTime = new Date(parsedEndDate);
+            endDateWithTime.setHours(23, 59, 59, 999);
+            
+            dateFilter = {
+              createdAt: {
+                gte: parsedStartDate,
+                lte: endDateWithTime
+              }
+            };
+          } catch (error) {
+            console.error("Invalid date format:", error);
+          }
+        }
+        break;
+    }
+  }
+
   // Build the where clause based on search params
   const where = {
     ...(associateId && {
@@ -92,6 +155,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     ...(searchParams.status && searchParams.status !== 'ALL' && {
       status: searchParams.status
     }),
+    ...dateFilter  // Add the date filter to the where clause
   };
 
   const inquiries = await prismadb.inquiry.findMany({

@@ -75,12 +75,20 @@ export const IncomeCategoryForm: React.FC<IncomeCategoryFormProps> = ({
       if (initialData) {
         await axios.patch(`/api/income-categories/${params.categoryId}`, data);
       } else {
-        await axios.post(`/api/income-categories`, data);
+        const response = await axios.post(`/api/income-categories`, data);
+        // Make sure we have the response data before continuing
+        if (!response.data || !response.data.id) {
+          console.log('Response data:', response.data);
+        }
       }
       router.refresh();
-      router.push(`/income-categories`);
-      toast.success(toastMessage);
+      // Add a small delay before navigation to ensure refresh completes
+      setTimeout(() => {
+        router.push(`/income-categories`);
+        toast.success(toastMessage);
+      }, 100);
     } catch (error: any) {
+      console.error('Error submitting form:', error);
       toast.error('Something went wrong.');
     } finally {
       setLoading(false);

@@ -38,65 +38,74 @@ export async function GET(
 
     // Calculate opening balance based on transactions before the start date
     let openingBalance = bankAccount.openingBalance;
+    
+    // For reports with start date close to account creation (or from the beginning of time),
+    // we don't need to calculate additional historic transactions
+    const isHistoricReport = startDate.getTime() > new Date(0).getTime() + 86400000; // More than 1 day after epoch
 
-    // Get all transactions before start date to calculate the actual opening balance for the selected period
-    const [receiptsBefore, paymentsBefore, incomesBefore, expensesBefore, transfersInBefore, transfersOutBefore] = await Promise.all([
-      // Receipts (inflows) before start date
-      prismadb.receiptDetail.findMany({
-        where: {
-          bankAccountId: params.bankAccountId,
-          receiptDate: { lt: startDate }
-        },
-        select: { amount: true }
-      }),
-      // Payments (outflows) before start date
-      prismadb.paymentDetail.findMany({
-        where: {
-          bankAccountId: params.bankAccountId,
-          paymentDate: { lt: startDate }
-        },
-        select: { amount: true }
-      }),
-      // Incomes (inflows) before start date
-      prismadb.incomeDetail.findMany({
-        where: {
-          bankAccountId: params.bankAccountId,
-          incomeDate: { lt: startDate }
-        },
-        select: { amount: true }
-      }),
-      // Expenses (outflows) before start date
-      prismadb.expenseDetail.findMany({
-        where: {
-          bankAccountId: params.bankAccountId,
-          expenseDate: { lt: startDate }
-        },
-        select: { amount: true }
-      }),
-      // Incoming transfers before start date
-      prismadb.transfer.findMany({
-        where: {
-          toBankAccountId: params.bankAccountId,
-          transferDate: { lt: startDate }
-        },
-        select: { amount: true }
-      }),
-      // Outgoing transfers before start date
-      prismadb.transfer.findMany({
-        where: {
-          fromBankAccountId: params.bankAccountId,
-          transferDate: { lt: startDate }
-        },
-        select: { amount: true }
-      }),
-    ]);
-    // Calculate the actual opening balance by adding/subtracting all transactions before start date
-    receiptsBefore.forEach(receipt => openingBalance += receipt.amount);
-    paymentsBefore.forEach(payment => openingBalance -= payment.amount);
-    incomesBefore.forEach(income => openingBalance += income.amount);
-    expensesBefore.forEach(expense => openingBalance -= expense.amount);
-    transfersInBefore.forEach(transfer => openingBalance += transfer.amount);
-    transfersOutBefore.forEach(transfer => openingBalance -= transfer.amount);
+    // Only adjust opening balance with historic transactions if we're looking at a specific date range
+    // and not the entire history of the account
+    if (isHistoricReport) {
+      // Get all transactions before start date to calculate the actual opening balance for the selected period
+      const [receiptsBefore, paymentsBefore, incomesBefore, expensesBefore, transfersInBefore, transfersOutBefore] = await Promise.all([
+        // Receipts (inflows) before start date
+        prismadb.receiptDetail.findMany({
+          where: {
+            bankAccountId: params.bankAccountId,
+            receiptDate: { lt: startDate }
+          },
+          select: { amount: true }
+        }),
+        // Payments (outflows) before start date
+        prismadb.paymentDetail.findMany({
+          where: {
+            bankAccountId: params.bankAccountId,
+            paymentDate: { lt: startDate }
+          },
+          select: { amount: true }
+        }),
+        // Incomes (inflows) before start date
+        prismadb.incomeDetail.findMany({
+          where: {
+            bankAccountId: params.bankAccountId,
+            incomeDate: { lt: startDate }
+          },
+          select: { amount: true }
+        }),
+        // Expenses (outflows) before start date
+        prismadb.expenseDetail.findMany({
+          where: {
+            bankAccountId: params.bankAccountId,
+            expenseDate: { lt: startDate }
+          },
+          select: { amount: true }
+        }),
+        // Incoming transfers before start date
+        prismadb.transfer.findMany({
+          where: {
+            toBankAccountId: params.bankAccountId,
+            transferDate: { lt: startDate }
+          },
+          select: { amount: true }
+        }),
+        // Outgoing transfers before start date
+        prismadb.transfer.findMany({
+          where: {
+            fromBankAccountId: params.bankAccountId,
+            transferDate: { lt: startDate }
+          },
+          select: { amount: true }
+        }),
+      ]);
+      
+      // Calculate the actual opening balance by adding/subtracting all transactions before start date
+      receiptsBefore.forEach(receipt => openingBalance += receipt.amount);
+      paymentsBefore.forEach(payment => openingBalance -= payment.amount);
+      incomesBefore.forEach(income => openingBalance += income.amount);
+      expensesBefore.forEach(expense => openingBalance -= expense.amount);
+      transfersInBefore.forEach(transfer => openingBalance += transfer.amount);
+      transfersOutBefore.forEach(transfer => openingBalance -= transfer.amount);
+    }
 
     // Now fetch all transactions for the selected date range
     const [receipts, payments, incomes, expenses, transfersIn, transfersOut] = await Promise.all([

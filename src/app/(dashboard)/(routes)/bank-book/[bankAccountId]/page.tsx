@@ -170,7 +170,7 @@ const BankBookPage = () => {
 
     // Create a custom formatter for PDF that won't cause formatting issues
     const formatCurrency = (value: number) => {
-      return `Rs. ${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+      return `₹ ${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     };
 
     // Add report title
@@ -332,10 +332,10 @@ const BankBookPage = () => {
       const outflowCell = XLSX.utils.encode_cell({r: R, c: 5}); // Column F (Outflow)
 
       if (worksheet[inflowCell] && worksheet[inflowCell].v) {
-        worksheet[inflowCell].z = '"Rs. "#,##0.00';
+        worksheet[inflowCell].z = '"₹ "#,##0.00';
       }
       if (worksheet[outflowCell] && worksheet[outflowCell].v) {
-        worksheet[outflowCell].z = '"Rs. "#,##0.00';
+        worksheet[outflowCell].z = '"₹ "#,##0.00';
       }
       
       // Apply bold formatting to the totals row

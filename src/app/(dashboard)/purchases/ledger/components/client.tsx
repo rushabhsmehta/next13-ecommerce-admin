@@ -102,11 +102,11 @@ export const PurchaseLedgerClient: React.FC<PurchaseLedgerClientProps> = ({
 
     // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: Rs. ${formatPrice(totalAmount, { forPDF: true })}`, 14, 40);
-    doc.text(`Total GST: Rs. ${formatPrice(totalGst, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Purchases: ₹ ${formatPrice(totalAmount, { forPDF: true })}`, 14, 40);
+    doc.text(`Total GST: ₹ ${formatPrice(totalGst, { forPDF: true })}`, 14, 48);
     if (filteredSupplier || dateFrom || dateTo) {
-      doc.text(`Filtered Total: Rs. ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 56);
-      doc.text(`Filtered GST: Rs. ${formatPrice(filteredGstTotal, { forPDF: true })}`, 14, 64);
+      doc.text(`Filtered Total: ₹ ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 56);
+      doc.text(`Filtered GST: ₹ ${formatPrice(filteredGstTotal, { forPDF: true })}`, 14, 64);
     }
 
     // Add table data with proper formatting
@@ -115,8 +115,8 @@ export const PurchaseLedgerClient: React.FC<PurchaseLedgerClientProps> = ({
       purchase.supplierName,
       purchase.packageName,
       purchase.description,
-      `Rs. ${formatPrice(purchase.amount, { forPDF: true })}`,
-      purchase.gstAmount ? `Rs. ${formatPrice(purchase.gstAmount, { forPDF: true })}` : "-"
+      `₹ ${formatPrice(purchase.amount, { forPDF: true })}`,
+      purchase.gstAmount ? `₹ ${formatPrice(purchase.gstAmount, { forPDF: true })}` : "-"
     ]);
 
     // Add the table

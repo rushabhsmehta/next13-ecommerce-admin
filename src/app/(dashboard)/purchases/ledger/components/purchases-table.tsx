@@ -75,8 +75,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
 
     // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: Rs. ${formatPrice(totalAmount, { forPDF: true })}`, 14, 40);
-    doc.text(`Total GST: Rs. ${formatPrice(totalGst, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Purchases: ₹ ${formatPrice(totalAmount, { forPDF: true })}`, 14, 40);
+    doc.text(`Total GST: ₹ ${formatPrice(totalGst, { forPDF: true })}`, 14, 48);
 
     // Add table data with proper formatting
     const tableData = items.map(purchase => [
@@ -84,8 +84,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
       purchase.supplierName,
       purchase.packageName,
       purchase.description,
-      `Rs. ${formatPrice(purchase.amount, { forPDF: true })}`,
-      purchase.gstAmount ? `Rs. ${formatPrice(purchase.gstAmount, { forPDF: true })}` : "-"
+      `₹ ${formatPrice(purchase.amount, { forPDF: true })}`,
+      purchase.gstAmount ? `₹ ${formatPrice(purchase.gstAmount, { forPDF: true })}` : "-"
     ]);
 
     // Add the table

@@ -9,7 +9,8 @@ import {
   startOfMonth, 
   endOfMonth, 
   subMonths,
-  parseISO
+  parseISO,
+  format
 } from "date-fns";
 
 export async function POST(req: Request) {
@@ -64,8 +65,38 @@ export async function POST(req: Request) {
         status,
         journeyDate: new Date(journeyDate),
         remarks: remarks || null // Store remarks, default to null if not provided
+      },
+      include: {
+        location: true,
+        associatePartner: true
       }
     });
+
+    // Create a notification for the new inquiry
+    try {
+      const journeyDateFormatted = format(new Date(journeyDate), 'dd MMM yyyy');
+      const locationName = inquiry.location?.label || 'Unknown location';
+      const associateName = inquiry.associatePartner?.name || 'Direct inquiry';
+      
+      await prismadb.notification.create({
+        data: {
+          type: 'NEW_INQUIRY',
+          title: 'New Inquiry Received',
+          message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
+          data: { 
+            inquiryId: inquiry.id,
+            customerName,
+            customerMobileNumber,
+            locationId,
+            locationName,
+            journeyDate
+          }
+        }
+      });
+    } catch (notificationError) {
+      // Log the error but don't fail the inquiry creation
+      console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
+    }
   
     return NextResponse.json(inquiry);
   } catch (error) {

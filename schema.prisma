@@ -830,3 +830,17 @@ model Passenger {
   
   @@index([flightTicketId])
 }
+
+model Notification {
+  id          String    @id @default(uuid())
+  type        String    // e.g., "NEW_INQUIRY", "INQUIRY_STATUS_CHANGE", etc.
+  title       String
+  message     String    @db.Text
+  read        Boolean   @default(false)
+  data        Json?     // Additional data related to the notification
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // If you want to add user-specific notifications in the future
+  // userId    String?
+}

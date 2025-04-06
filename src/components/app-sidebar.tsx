@@ -191,7 +191,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {isAssociateDomain && associateName ? associateName : userFullName}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {isAssociateDomain ? 'Aagam Holidays Associate Portal' : 'Admin Dashboard'}
+                    {isAssociateDomain ? (
+                      <>
+                        Associate Portal<br />
+                        Aagam Holidays
+                      </>
+                    ) : 'Admin Dashboard'}
                   </span>                  
                 </div>
               </div>

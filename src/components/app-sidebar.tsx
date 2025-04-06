@@ -188,7 +188,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="h-auto"
               priority
             />
-            <NotificationBell />
+            {/* Only show notification bell in admin domain, not in associate domain */}
+            {!isAssociateDomain && <NotificationBell />}
           </div>
           <div className="flex items-center space-x-2 mt-1">
             <Avatar className="h-7 w-7">

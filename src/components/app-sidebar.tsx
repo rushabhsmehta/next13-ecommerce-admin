@@ -29,6 +29,7 @@ import { useClerk, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -254,8 +255,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Add a footer with the theme switcher and sign out button */}
+      {/* Add a footer with the notification bell, theme switcher and sign out button */}
       <SidebarFooter className="border-t p-4">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm text-muted-foreground">Notifications</span>
+          <NotificationBell />
+        </div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />

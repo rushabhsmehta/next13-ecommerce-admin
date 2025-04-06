@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { 
   startOfDay, 
@@ -12,10 +12,12 @@ import {
   parseISO,
   format
 } from "date-fns";
+import { createAuditLog } from "@/lib/utils/audit-logger";
 
 export async function POST(req: Request) {
   try {
     const { userId } = auth();
+    const user = await currentUser();
     const body = await req.json();
 
     const { 
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
       numChildrenBelow5,
       status,
       journeyDate,
-      remarks // Add this to extract remarks from the request
+      remarks 
     } = body;
 
     if (!userId) {
@@ -52,6 +54,23 @@ export async function POST(req: Request) {
       return new NextResponse("Journey date is required", { status: 400 });
     }
 
+    // Determine user role (ADMIN or ASSOCIATE)
+    const userEmail = user?.emailAddresses[0]?.emailAddress || "";
+    let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
+
+    if (userEmail) {
+      const associatePartner = await prismadb.associatePartner.findFirst({
+        where: {
+          OR: [
+            { email: userEmail },
+            { gmail: userEmail }
+          ]
+        }
+      });
+      
+      userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
+    }
+
     const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
@@ -64,7 +83,7 @@ export async function POST(req: Request) {
         numChildrenBelow5,
         status,
         journeyDate: new Date(journeyDate),
-        remarks: remarks || null // Store remarks, default to null if not provided
+        remarks: remarks || null
       },
       include: {
         location: true,
@@ -97,6 +116,20 @@ export async function POST(req: Request) {
       // Log the error but don't fail the inquiry creation
       console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
     }
+
+    // Create audit log for the new inquiry
+    await createAuditLog({
+      entityId: inquiry.id,
+      entityType: "Inquiry",
+      action: "CREATE",
+      after: inquiry,
+      userRole,
+      metadata: {
+        locationName: inquiry.location?.label,
+        associatePartnerName: inquiry.associatePartner?.name,
+        journeyDate: format(new Date(journeyDate), 'yyyy-MM-dd')
+      }
+    });
   
     return NextResponse.json(inquiry);
   } catch (error) {

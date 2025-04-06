@@ -844,3 +844,24 @@ model Notification {
   // If you want to add user-specific notifications in the future
   // userId    String?
 }
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  entityId    String    // ID of the entity that was modified (e.g., inquiryId)
+  entityType  String    // Type of entity (e.g., "Inquiry")
+  action      String    // e.g., "CREATE", "UPDATE", "DELETE"
+  userId      String    // The Clerk user ID that made the change
+  userEmail   String    // The email of the user who made the change
+  userName    String    // The name of the user who made the change
+  userRole    String    // "ADMIN" or "ASSOCIATE"
+  before      Json?     // The data before the change (for "UPDATE" and "DELETE")
+  after       Json?     // The data after the change (for "CREATE" and "UPDATE")
+  metadata    Json?     // Additional metadata about the change
+  createdAt   DateTime  @default(now())
+  
+  @@index([entityId])
+  @@index([entityType])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}

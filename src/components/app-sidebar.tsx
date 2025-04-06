@@ -130,11 +130,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const hostname = window.location.hostname;
     const isAssociate = hostname.includes('associate.aagamholidays.com');
     setIsAssociateDomain(isAssociate);
-    
+
     // Set nav items based on domain
     if (isAssociate) {
       setNavItems(ASSOCIATE_NAV_ITEMS);
-      
+
       // Fetch associate information
       fetch('/api/associate-partners/me')
         .then(response => {
@@ -179,37 +179,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <LayoutGrid className="size-4" />
+              {/* User info section */}
+              <div className="px-4 py-3 border-b">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={user?.imageUrl} />
+                    <AvatarFallback>{userInitials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-sm">
+                      {isAssociateDomain && associateName ? associateName : userFullName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">Finance Manager</span>
-                  <span>v1.0.0</span>
-                </div>
-              </Link>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      {/* User info section */}
-      <div className="px-4 py-3 border-b">
-        <div className="flex items-center space-x-3">
-          <Avatar>
-            <AvatarImage src={user?.imageUrl} />
-            <AvatarFallback>{userInitials}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="font-medium text-sm">
-              {isAssociateDomain && associateName ? associateName : userFullName}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
-            </span>
-          </div>
-        </div>
-      </div>
+
 
       <SidebarContent>
         <SidebarGroup>

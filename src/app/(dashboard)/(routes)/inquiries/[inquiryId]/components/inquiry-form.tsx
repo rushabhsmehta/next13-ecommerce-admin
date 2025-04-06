@@ -200,6 +200,17 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             {description}
           </p>
         </div>
+        {/* Add a Back button for mobile users */}
+        <div className="md:hidden">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => router.push('/inquiries')}
+            className="text-sm"
+          >
+            Back
+          </Button>
+        </div>
       </div>
       <Separator />
       <Form {...form}>
@@ -601,8 +612,17 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
           )}
 
-          <div className="flex justify-end">
-            <Button disabled={loading} className="ml-auto" type="submit">
+          <div className="flex items-center justify-end gap-4 md:gap-6">
+            {/* Cancel button - more prominent on mobile */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/inquiries')}
+              className="md:hidden"
+            >
+              Cancel
+            </Button>
+            <Button disabled={loading} type="submit">
               {action}
             </Button>
           </div>

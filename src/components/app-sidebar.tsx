@@ -195,21 +195,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarHeader>
 
-      {/* User info section */}
+      {/* User info section with notification bell */}
       <div className="px-4 py-3 border-b">
-        <div className="flex items-center space-x-3">
-          <Avatar>
-            <AvatarImage src={user?.imageUrl} />
-            <AvatarFallback>{userInitials}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="font-medium text-sm">
-              {isAssociateDomain && associateName ? associateName : userFullName}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
-            </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar>
+              <AvatarImage src={user?.imageUrl} />
+              <AvatarFallback>{userInitials}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="font-medium text-sm">
+                {isAssociateDomain && associateName ? associateName : userFullName}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
+              </span>
+            </div>
           </div>
+          {/* Added notification bell next to user info */}
+          <NotificationBell />
         </div>
       </div>
 
@@ -257,13 +261,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Add a footer with the notification bell, theme switcher and sign out button */}
+      {/* Add a footer with theme switcher and sign out button */}
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-muted-foreground">Notifications</span>
-          <NotificationBell />
-        </div>
-        <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Theme</span>
           <ThemeToggle />
         </div>

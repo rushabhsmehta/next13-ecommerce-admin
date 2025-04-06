@@ -177,35 +177,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader className="pb-0">
-        {/* Combined Aagam Holidays Branding and User Info Section */}
+        {/* More compact user info section without logo */}
         <div className="px-3 py-2 border-b">
-          <div className="flex items-center justify-between mb-2">
-            <Image
-              src="/aagamholidays.png"
-              alt="Aagam Holidays"
-              width={60}
-              height={25}
-              className="h-auto"
-              priority
-            />
-            {/* Only show notification bell in admin domain, not in associate domain */}
-            {!isAssociateDomain && <NotificationBell />}
-          </div>
-          <div className="flex items-center space-x-2 mt-1">
-            <Avatar className="h-7 w-7">
-              <AvatarImage src={user?.imageUrl} />
-              <AvatarFallback>{userInitials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex flex-col">
-                <span className="font-medium text-xs">
-                  {isAssociateDomain && associateName ? associateName : userFullName}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {isAssociateDomain ? 'Associate Portal' : 'Admin Dashboard'}
-                </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={user?.imageUrl} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex flex-col">
+                  <span className="font-medium text-xs">
+                    {isAssociateDomain && associateName ? associateName : userFullName}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isAssociateDomain ? 'Associate Portal' : 'Admin Dashboard'}
+                  </span>
+                </div>
               </div>
             </div>
+            {/* Only show notification bell in admin domain, not in associate domain */}
+            {!isAssociateDomain && <NotificationBell />}
           </div>
         </div>
       </SidebarHeader>

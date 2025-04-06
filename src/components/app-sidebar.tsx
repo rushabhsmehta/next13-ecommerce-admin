@@ -177,45 +177,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader className="pb-0">
-        {/* Aagam Holidays Branding - More compact design */}
-        <div className="flex flex-col items-center px-3 pt-2 pb-2 border-b">
-          <div className="flex justify-center w-full">
+        {/* Combined Aagam Holidays Branding and User Info Section */}
+        <div className="px-3 py-2 border-b">
+          <div className="flex items-center justify-between mb-2">
             <Image
               src="/aagamholidays.png"
               alt="Aagam Holidays"
-              width={80}
-              height={30}
+              width={60}
+              height={25}
               className="h-auto"
               priority
             />
+            <NotificationBell />
           </div>
-          <h1 className="text-sm font-semibold text-primary tracking-tight mt-1">
-            {isAssociateDomain ? "Associate Portal" : "Admin Dashboard"}
-          </h1>
-        </div>
-      </SidebarHeader>
-
-      {/* User info section with notification bell */}
-      <div className="px-4 py-3 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Avatar>
+          <div className="flex items-center space-x-2 mt-1">
+            <Avatar className="h-7 w-7">
               <AvatarImage src={user?.imageUrl} />
               <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <span className="font-medium text-sm">
-                {isAssociateDomain && associateName ? associateName : userFullName}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
-              </span>
+            <div className="flex-1">
+              <div className="flex flex-col">
+                <span className="font-medium text-xs">
+                  {isAssociateDomain && associateName ? associateName : userFullName}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {isAssociateDomain ? 'Associate Portal' : 'Admin Dashboard'}
+                </span>
+              </div>
             </div>
           </div>
-          {/* Added notification bell next to user info */}
-          <NotificationBell />
         </div>
-      </div>
+      </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>

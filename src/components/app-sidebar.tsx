@@ -177,19 +177,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader className="pb-0">
-        {/* Aagam Holidays Branding */}
-        <div className="flex flex-col items-center px-4 pt-5 pb-4 border-b">
-          <div className="flex justify-center w-full mb-2">
+        {/* Aagam Holidays Branding - More compact design */}
+        <div className="flex flex-col items-center px-3 pt-2 pb-2 border-b">
+          <div className="flex justify-center w-full">
             <Image
               src="/aagamholidays.png"
               alt="Aagam Holidays"
-              width={120}
-              height={50}
+              width={80}
+              height={30}
               className="h-auto"
               priority
             />
           </div>
-          <h1 className="text-lg font-bold text-primary tracking-tight">
+          <h1 className="text-sm font-semibold text-primary tracking-tight mt-1">
             {isAssociateDomain ? "Associate Portal" : "Admin Dashboard"}
           </h1>
         </div>

@@ -27,7 +27,8 @@ export const createAuditLog = async (params: AuditLogParams): Promise<void> => {
     }
     
     const userEmail = user.emailAddresses[0]?.emailAddress || "unknown";
-    const userName = user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || userEmail;
+    // Fix: `fullName` doesn't exist on Clerk User type, construct it from firstName and lastName
+    const userName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || userEmail;
     
     // Make API call to create audit log
     const response = await fetch('/api/audit-logs', {

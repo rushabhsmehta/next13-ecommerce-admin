@@ -267,7 +267,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           
           {/* For content display, still use JS-based detection as a fallback */}
           <div className="block md:hidden">
-            <MobileInquiryCard data={filteredData} />
+            <MobileInquiryCard data={filteredData} isAssociateUser={isAssociateUser} />
           </div>
           
           <div className="hidden md:block">

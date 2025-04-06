@@ -1,13 +1,16 @@
 "use client";
 
 import { InquiryColumn } from "./columns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Phone, Calendar, MapPin } from "lucide-react";
+import { ChevronDown, ChevronUp, Phone, Calendar, MapPin, UserCircle } from "lucide-react";
 import { CellAction } from "./cell-action";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
@@ -30,10 +33,45 @@ const getStatusColor = (status: string) => {
 
 interface MobileInquiryCardProps {
   data: InquiryColumn[];
+  isAssociateUser?: boolean;
 }
 
-export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data }) => {
+export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ 
+  data,
+  isAssociateUser = false 
+}) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [isAssociateDomain, setIsAssociateDomain] = useState(false);
+  const [associateName, setAssociateName] = useState<string | null>(null);
+  const { user } = useUser();
+
+  // Get user display name
+  const userFullName = user?.firstName ? `${user?.firstName} ${user?.lastName || ''}`.trim() : "User";
+  const userInitials = user?.firstName?.charAt(0) || "U";
+
+  // Check if the domain is associate domain
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const isAssociate = hostname.includes('associate.aagamholidays.com');
+    setIsAssociateDomain(isAssociate);
+
+    // Fetch associate information if in associate domain
+    if (isAssociate || isAssociateUser) {
+      fetch('/api/associate-partners/me')
+        .then(response => {
+          if (response.ok) return response.json();
+          return null;
+        })
+        .then(data => {
+          if (data && data.name) {
+            setAssociateName(data.name);
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching associate details:", err);
+        });
+    }
+  }, [isAssociateUser]);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({
@@ -63,6 +101,32 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data }) =>
 
   return (
     <div className="space-y-4">
+      {/* Mobile User Info Header */}
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={user?.imageUrl} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex flex-col">
+                  <span className="font-medium text-xs">
+                    {isAssociateDomain && associateName ? associateName : userFullName}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isAssociateDomain || isAssociateUser ? 'Associate Portal' : 'Admin Dashboard'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {/* Only show notification bell in admin domain, not in associate domain */}
+            {!isAssociateDomain && !isAssociateUser && <NotificationBell />}
+          </div>
+        </CardContent>
+      </Card>
+
       {data.map(inquiry => (
         <Card key={inquiry.id} className="overflow-hidden">
           <CardContent className="p-0">

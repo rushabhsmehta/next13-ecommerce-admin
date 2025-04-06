@@ -261,23 +261,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Add a footer with theme switcher and sign out button */}
+      {/* Footer with combined theme toggle and sign out buttons */}
       <SidebarFooter className="border-t p-4">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-muted-foreground">Theme</span>
-          <ThemeToggle />
-        </div>
-        <div className="mt-4">
+        <div className="flex items-center justify-between">
           <Button
             onClick={handleSignOut}
             variant="outline"
             size="sm"
-            className="w-full flex items-center justify-center"
+            className="flex items-center"
           >
-            <LogOutIcon className="mr-2 h-4 w-4" />
+            <LogOutIcon className="h-4 w-4 mr-2" />
             <span>Sign out</span>
           </Button>
+          <ThemeToggle />
         </div>
+        
         {/* Copyright footer */}
         <div className="mt-6 text-center">
           <p className="text-xs text-muted-foreground">

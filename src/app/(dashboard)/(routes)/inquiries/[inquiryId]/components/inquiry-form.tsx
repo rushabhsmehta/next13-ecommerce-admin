@@ -5,7 +5,7 @@ import { Check, ChevronsUpDown, PlusCircle, X } from "lucide-react";
 import { Inquiry, Location, AssociatePartner, InquiryAction } from "@prisma/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -84,6 +84,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [isAssociateDomain, setIsAssociateDomain] = useState(false);
 
   const title = initialData ? "Edit inquiry" : "Create inquiry";
   const description = initialData ? "Edit an inquiry" : "Add a new inquiry";
@@ -124,6 +125,34 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       journeyDate: null,
     }
   });
+
+  // Check if we're on the associate domain and auto-select associate partner
+  useEffect(() => {
+    if (!initialData) { // Only do this for new inquiries, not when editing
+      const hostname = window.location.hostname;
+      const isAssociateHostname = hostname === 'associate.aagamholidays.com';
+
+      setIsAssociateDomain(isAssociateHostname);
+
+      if (isAssociateHostname) {
+        // Get associate info from API
+        fetch('/api/associate-partners/me')
+          .then(res => {
+            if (res.ok) return res.json();
+            return null;
+          })
+          .then(associate => {
+            if (associate && associate.id) {
+              // Set the associate partner in the form
+              form.setValue('associatePartnerId', associate.id);
+            }
+          })
+          .catch(err => {
+            console.error('Error fetching associate information:', err);
+          });
+      }
+    }
+  }, [form, initialData]);
 
   const onSubmit = async (data: InquiryFormValues) => {
     try {
@@ -184,7 +213,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Associate Partner</FormLabel>
-                  <Select disabled={loading} onValueChange={(value) => field.onChange(value)} value={field.value ?? undefined} defaultValue={field.value ?? undefined}>
+                  <Select
+                    disabled={loading || isAssociateDomain}
+                    onValueChange={(value) => field.onChange(value)}
+                    value={field.value ?? undefined}
+                    defaultValue={field.value ?? undefined}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue defaultValue={field.value ?? ''} placeholder="Select an associate" />
@@ -198,6 +232,11 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
+                  {isAssociateDomain && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Associate partner auto-selected from your domain
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -423,7 +462,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
             {/* Remarks field spans full width on all screen sizes */}
             <FormField
               control={form.control}

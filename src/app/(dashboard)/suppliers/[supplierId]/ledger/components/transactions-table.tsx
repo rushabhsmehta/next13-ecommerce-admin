@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import axios from "axios";
+import { toast } from "react-hot-toast";
 import {
   Table,
   TableBody,
@@ -19,7 +22,8 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, FileText } from "lucide-react";
+import { MoreHorizontal, Edit, FileText, Trash } from "lucide-react";
+import { AlertModal } from "@/components/modals/alert-modal";
 
 type SupplierTransaction = {
   id: string;
@@ -42,92 +46,120 @@ interface TransactionsTableProps {
 
 export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<SupplierTransaction | null>(null);
 
-  const navigateToTransaction = (transaction: SupplierTransaction) => {
-    // Navigate to the appropriate transaction page based on the type
-    if (transaction.type === "Purchase") {
-      router.push(`/purchases/${transaction.id}`);
-    } else if (transaction.type === "Payment") {
-      router.push(`/payments/${transaction.id}`);
-    }
-  };
-  
-  const handleGenerateVoucher = (transaction: SupplierTransaction) => {
-    if (transaction.type === "Purchase") {
-      router.push(`/purchases/${transaction.id}/voucher`);
-    } else if (transaction.type === "Payment") {
-      router.push(`/payments/${transaction.id}/voucher`);
+  const onDelete = async () => {
+    if (!itemToDelete) return;
+    
+    try {
+      setLoading(true);
+      
+      // Delete appropriate record based on transaction type
+      if (itemToDelete.type === "Purchase") {
+        await axios.delete(`/api/purchases/${itemToDelete.id}`);
+        toast.success('Purchase deleted.');
+      } else if (itemToDelete.type === "Payment") {
+        await axios.delete(`/api/payments/${itemToDelete.id}`);
+        toast.success('Payment deleted.');
+      }
+      
+      router.refresh();
+    } catch (error) {
+      toast.error('Something went wrong.');
+    } finally {
+      setLoading(false);
+      setOpen(false);
+      setItemToDelete(null);
     }
   };
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead className="text-right">Purchase</TableHead>
-            <TableHead className="text-right">Payment</TableHead>
-            <TableHead className="text-right">Balance</TableHead>
-            <TableHead className="w-[70px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
+    <>
+      <AlertModal 
+        isOpen={open} 
+        onClose={() => setOpen(false)}
+        onConfirm={onDelete}
+        loading={loading}
+      />
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
-                No transactions found
-              </TableCell>
+              <TableHead>Date</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Purchase</TableHead>
+              <TableHead className="text-right">Payment</TableHead>
+              <TableHead className="text-right">Balance</TableHead>
+              <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
-          ) : (
-            <>
-              {data.map((transaction) => (
-                <TableRow key={`${transaction.type}-${transaction.id}`}>
-                  <TableCell>{format(new Date(transaction.date), "MMM dd, yyyy")}</TableCell>
-                  <TableCell>{transaction.type}</TableCell>
-                  <TableCell>{transaction.description}</TableCell>
-                  <TableCell className="text-right">
-                    {transaction.isInflow ? formatPrice(transaction.amount) : "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {!transaction.isInflow ? formatPrice(transaction.amount) : "-"}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatPrice(transaction.balance)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem 
-                          onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}`)}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}/voucher`)}
-                        >
-                          <FileText className="mr-2 h-4 w-4" />
-                          View Voucher
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  No transactions found
+                </TableCell>
+              </TableRow>
+            ) : (
+              <>
+                {data.map((transaction) => (
+                  <TableRow key={`${transaction.type}-${transaction.id}`}>
+                    <TableCell>{format(new Date(transaction.date), "MMM dd, yyyy")}</TableCell>
+                    <TableCell>{transaction.type}</TableCell>
+                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell className="text-right">
+                      {transaction.isInflow ? formatPrice(transaction.amount) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {!transaction.isInflow ? formatPrice(transaction.amount) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatPrice(transaction.balance)}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem 
+                            onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}`)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}/voucher`)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Voucher
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setItemToDelete(transaction);
+                              setOpen(true);
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 };

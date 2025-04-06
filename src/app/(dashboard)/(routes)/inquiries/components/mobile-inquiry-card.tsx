@@ -176,29 +176,12 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                     )}
                   </div>
                 </div>
-                <Select
-                  defaultValue={inquiry.status}
-                  onValueChange={(value) => onStatusChange(inquiry.id, value)}
-                >
-                  <SelectTrigger className={`w-32 h-8 text-xs ${getStatusColor(inquiry.status)}`}>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem
-                        key={status.value}
-                        value={status.value}
-                        className={
-                          status.value === "CONFIRMED" ? "text-green-600" :
-                          status.value === "CANCELLED" ? "text-red-600" :
-                          "text-yellow-600"
-                        }
-                      >
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                
+                {/* Display status as a badge instead of dropdown in the header */}
+                <Badge className={`${getStatusColor(inquiry.status)}`}>
+                  {inquiry.status === "PENDING" ? "Pending" : 
+                   inquiry.status === "CONFIRMED" ? "Confirmed" : "Cancelled"}
+                </Badge>
               </div>
               
               <div className="grid grid-cols-2 gap-2 mt-3">
@@ -213,10 +196,37 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                 </div>
               </div>
               
-              <div className="mt-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
                 <Badge variant="outline" className="mr-2">
                   {inquiry.associatePartner}
                 </Badge>
+                
+                {/* Move the status dropdown here where it's less likely to interfere with scrolling */}
+                <div className="w-full mt-2">
+                  <Select
+                    defaultValue={inquiry.status}
+                    onValueChange={(value) => onStatusChange(inquiry.id, value)}
+                  >
+                    <SelectTrigger className={`w-full h-8 text-sm ${getStatusColor(inquiry.status)}`}>
+                      <SelectValue placeholder="Change status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((status) => (
+                        <SelectItem
+                          key={status.value}
+                          value={status.value}
+                          className={
+                            status.value === "CONFIRMED" ? "text-green-600" :
+                            status.value === "CANCELLED" ? "text-red-600" :
+                            "text-yellow-600"
+                          }
+                        >
+                          {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
             

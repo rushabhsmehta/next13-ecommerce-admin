@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronRight, LayoutGrid, LogOutIcon, User } from "lucide-react";
@@ -175,33 +176,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              {/* User info section */}
-              <div className="px-4 py-3 border-b">
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={user?.imageUrl} />
-                    <AvatarFallback>{userInitials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-sm">
-                      {isAssociateDomain && associateName ? associateName : userFullName}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="pb-0">
+        {/* Aagam Holidays Branding */}
+        <div className="flex flex-col items-center px-4 pt-5 pb-4 border-b">
+          <div className="flex justify-center w-full mb-2">
+            <Image
+              src="/aagamholidays.png"
+              alt="Aagam Holidays"
+              width={120}
+              height={50}
+              className="h-auto"
+              priority
+            />
+          </div>
+          <h1 className="text-lg font-bold text-primary tracking-tight">
+            {isAssociateDomain ? "Associate Portal" : "Admin Dashboard"}
+          </h1>
+        </div>
       </SidebarHeader>
 
-
+      {/* User info section */}
+      <div className="px-4 py-3 border-b">
+        <div className="flex items-center space-x-3">
+          <Avatar>
+            <AvatarImage src={user?.imageUrl} />
+            <AvatarFallback>{userInitials}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">
+              {isAssociateDomain && associateName ? associateName : userFullName}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
+            </span>
+          </div>
+        </div>
+      </div>
 
       <SidebarContent>
         <SidebarGroup>
@@ -267,6 +277,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <LogOutIcon className="mr-2 h-4 w-4" />
             <span>Sign out</span>
           </Button>
+        </div>
+        {/* Copyright footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} Aagam Holidays
+          </p>
         </div>
       </SidebarFooter>
       <SidebarRail />

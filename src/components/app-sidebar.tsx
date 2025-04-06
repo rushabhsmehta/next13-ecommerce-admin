@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { ChevronRight, LayoutGrid, LogOutIcon } from "lucide-react";
+import { ChevronRight, LayoutGrid, LogOutIcon, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,9 +25,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ThemeToggle } from "./theme-toggle";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -118,8 +119,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut } = useClerk();
+  const { user } = useUser();
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
   const [navItems, setNavItems] = useState(NAV_ITEMS);
+  const [associateName, setAssociateName] = useState<string | null>(null);
 
   // Check if the domain is associate domain
   useEffect(() => {
@@ -130,6 +133,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     // Set nav items based on domain
     if (isAssociate) {
       setNavItems(ASSOCIATE_NAV_ITEMS);
+      
+      // Fetch associate information
+      fetch('/api/associate-partners/me')
+        .then(response => {
+          if (response.ok) return response.json();
+          return null;
+        })
+        .then(data => {
+          if (data && data.name) {
+            setAssociateName(data.name);
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching associate details:", err);
+        });
     } else {
       setNavItems(NAV_ITEMS);
     }
@@ -150,6 +168,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   };
 
+  // Get user display name
+  const userFullName = user?.fullName || user?.firstName || "User";
+  const userInitials = user?.firstName?.charAt(0) || "U";
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -169,6 +191,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
+      {/* User info section */}
+      <div className="px-4 py-3 border-b">
+        <div className="flex items-center space-x-3">
+          <Avatar>
+            <AvatarImage src={user?.imageUrl} />
+            <AvatarFallback>{userInitials}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">
+              {isAssociateDomain && associateName ? associateName : userFullName}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {isAssociateDomain ? 'Associate Partner' : 'Admin User'}
+            </span>
+          </div>
+        </div>
+      </div>
 
       <SidebarContent>
         <SidebarGroup>

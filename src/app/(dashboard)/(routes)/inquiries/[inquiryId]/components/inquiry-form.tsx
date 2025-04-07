@@ -51,7 +51,6 @@ const formSchema = z.object({
   locationId: z.string().min(1, "Please select a location"),
   associatePartnerId: z.string().nullable(),
   numAdults: z.number().min(0),
-  numChildrenAbove11: z.number().min(0),
   numChildren5to11: z.number().min(0),
   numChildrenBelow5: z.number().min(0),
   remarks: z.string().nullable(),
@@ -100,7 +99,6 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       locationId: initialData.locationId,
       associatePartnerId: initialData.associatePartnerId,
       numAdults: initialData.numAdults,
-      numChildrenAbove11: initialData.numChildrenAbove11,
       numChildren5to11: initialData.numChildren5to11,
       numChildrenBelow5: initialData.numChildrenBelow5,
       remarks: initialData.remarks,
@@ -117,7 +115,6 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       locationId: '',
       associatePartnerId: null,
       numAdults: 0,
-      numChildrenAbove11: 0,
       numChildren5to11: 0,
       numChildrenBelow5: 0,
       remarks: '',
@@ -391,26 +388,6 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="numChildrenAbove11"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Children Above 11</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      disabled={loading}
-                      placeholder="Number of children above 11"
-                      {...field}
-                      onChange={e => field.onChange(+e.target.value)}
-                      value={field.value}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="numChildren5to11"

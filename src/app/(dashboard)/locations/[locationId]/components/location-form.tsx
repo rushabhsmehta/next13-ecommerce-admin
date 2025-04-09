@@ -6,7 +6,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Trash } from "lucide-react";
+import { Trash, Car } from "lucide-react";
 import { Location } from "@prisma/client";
 import { useParams, useRouter } from "next/navigation";
 
@@ -51,8 +51,8 @@ import {
 
 // Add imports for tabs
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileCheck, ListChecks, FileText, AlertCircle, ScrollText } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { FileCheck, ListChecks, FileText, AlertCircle, ScrollText, TruckIcon } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { PolicyListField } from "./policy-list-field";
 
 const formSchema = z.object({
@@ -232,7 +232,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                     Terms
                   </TabsTrigger>
                 </TabsList>
-            
+                
                 <TabsContent value="inclusions" className="space-y-4 mt-4">
                   <div className="grid gap-4">
                     <FormField control={form.control} name="inclusions" render={({ field }) => (

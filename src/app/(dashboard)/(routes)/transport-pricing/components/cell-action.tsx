@@ -2,9 +2,9 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Copy, Edit, MoreHorizontal, Trash, CalendarRange } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,40 +14,38 @@ import {
   DropdownMenuLabel, 
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { useHotelModal } from "@/hooks/use-hotel-modal";
 import { AlertModal } from "@/components/modals/alert-modal";
 
-import { HotelColumn } from "./columns";
+import { TransportPricingColumn } from "./columns";
 
 interface CellActionProps {
-  data: HotelColumn;
+  data: TransportPricingColumn;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
   data,
 }) => {
   const router = useRouter();
-  const params = useParams();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const onConfirm = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/hotels/${data.id}`);
-      toast.success('Hotel deleted.');
+      await axios.delete(`/api/transport-pricing/${data.id}`);
+      toast.success('Transport pricing deleted.');
       router.refresh();
     } catch (error) {
-      toast.error('Make sure you removed all products using this hotel first.');
+      toast.error('Something went wrong.');
     } finally {
-      setOpen(false);
       setLoading(false);
+      setOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
-    toast.success('Hotel ID copied to clipboard.');
+    toast.success('ID copied to clipboard.');
   }
 
   return (
@@ -70,17 +68,12 @@ export const CellAction: React.FC<CellActionProps> = ({
           <DropdownMenuItem
             onClick={() => onCopy(data.id)}
           >
-            <Copy className="mr-2 h-4 w-4" /> Copy Id
+            <Copy className="mr-2 h-4 w-4" /> Copy ID
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push(`/hotels/${data.id}`)}
+            onClick={() => router.push(`/transport-pricing/${data.id}`)}
           >
-            <Edit className="mr-2 h-4 w-4" /> Update
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/hotels/${data.id}/pricing`)}
-          >
-            <CalendarRange className="mr-2 h-4 w-4" /> Manage Pricing
+            <Edit className="mr-2 h-4 w-4" /> Edit
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setOpen(true)}
@@ -92,4 +85,3 @@ export const CellAction: React.FC<CellActionProps> = ({
     </>
   );
 };
-

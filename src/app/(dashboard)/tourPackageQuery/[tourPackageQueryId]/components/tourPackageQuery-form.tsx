@@ -4,14 +4,15 @@ import * as z from "zod"
 import axios from "axios"
 import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm, useFieldArray, UseFormReturn } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
+import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText, Calculator } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 // Import DevTool for better debugging (optional in production)
 import { DevTool } from "@hookform/devtools"
+import { useAutoCalculatePrice } from "@/hooks/use-auto-calculate-price"
 
 import {
   Command,
@@ -67,6 +68,241 @@ import { FileText, Users, MapPin, Plane, Tag, FileCheck } from "lucide-react"
 // Add PolicyField import
 import { PolicyField } from "./policy-fields";
 
+// Add interfaces for calculation results
+interface CalculationDayBreakdown {
+  dayNumber: number;
+  date?: string;
+  hotelName: string;
+  roomCost: number;
+  mealCost: number;
+  total: number;
+  roomsBreakdown?: string;
+}
+
+interface DatePeriodBreakdown {
+  startDate: string;
+  endDate: string;
+  days: number;
+  totalCost: number;
+}
+
+interface CalculationResult {
+  totalPrice: number;
+  roomCost: number;
+  mealCost: number;
+  totalRooms: number;
+  breakdown: CalculationDayBreakdown[];
+  datePeriodBreakdown?: DatePeriodBreakdown[];
+  pricingSection: Array<{ name: string, price: string, description?: string }>;
+}
+
+// Auto Calculate Price Button component with proper types
+const AutoCalculatePriceButton = ({ 
+  form, 
+  hotels 
+}: { 
+  form: UseFormReturn<TourPackageQueryFormValues>;
+  hotels: Hotel[];
+}) => {
+  const { calculatePackagePrice, isCalculating, error } = useAutoCalculatePrice();
+  const [showError, setShowError] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [calculationDetails, setCalculationDetails] = useState<CalculationResult | null>(null);
+
+  const handleAutoCalculate = async () => {
+    try {
+      setShowError(false);
+      setShowResults(false);
+
+      // Get required data from form
+      const tourStartsFrom = form.getValues('tourStartsFrom');
+      const tourEndsOn = form.getValues('tourEndsOn');
+      const itineraries = form.getValues('itineraries');
+      const numAdults = form.getValues('numAdults');
+      const numChild5to12 = form.getValues('numChild5to12');
+      const numChild0to5 = form.getValues('numChild0to5');
+
+      // Validate required data
+      if (!tourStartsFrom || !tourEndsOn) {
+        toast.error('Please select tour start and end dates first');
+        return;
+      }
+
+      // Check if we have valid itineraries with hotels
+      const validItineraries = itineraries.filter(itinerary => 
+        itinerary.hotelId && hotels.some(hotel => hotel.id === itinerary.hotelId)
+      );
+
+      if (validItineraries.length === 0) {
+        toast.error('Please select at least one hotel in your itinerary');
+        return;
+      }
+
+      // Call the API to calculate price
+      const result = await calculatePackagePrice({
+        tourStartsFrom,
+        tourEndsOn,
+        itineraries,
+        numAdults: numAdults || '2',  // Default to 2 adults if not specified
+        numChild5to12: numChild5to12 || '0',
+        numChild0to5: numChild0to5 || '0'
+      });
+
+      if (result) {
+        // Store detailed calculation results
+        setCalculationDetails(result);
+        setShowResults(true);
+        
+        // Update form with calculated results
+        form.setValue('pricingSection', result.pricingSection);
+        form.setValue('totalPrice', `₹${Math.round(result.totalPrice).toLocaleString()}`);
+
+        // Show a success toast
+        toast.success('Package price calculated successfully!');
+      }
+    } catch (err) {
+      console.error('Error calculating price:', err);
+      setShowError(true);
+    }
+  };
+
+  return (
+    <div className="flex flex-col w-full">
+      <div className="flex justify-end mb-2">
+        <Button 
+          type="button" 
+          onClick={handleAutoCalculate}
+          disabled={isCalculating}
+          variant="secondary"
+          className="mb-2"
+        >
+          {isCalculating ? (
+            <>
+              <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+              Calculating...
+            </>
+          ) : (
+            <>
+              <Calculator className="mr-2 h-4 w-4" />
+              Auto Calculate Price
+            </>
+          )}
+        </Button>
+      </div>
+      
+      {showError && error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mt-2 mb-4">
+          <p className="text-sm font-medium flex items-center">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            {error}
+          </p>
+        </div>
+      )}
+      
+      {showResults && calculationDetails && (
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md mt-2 mb-4">
+          <h3 className="text-blue-800 font-medium mb-2 flex items-center">
+            <Calculator className="h-4 w-4 mr-2" />
+            Price Calculation Details
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <div>
+              <h4 className="text-sm font-medium text-blue-700 mb-1">Room Configuration</h4>
+              <p className="text-sm text-blue-600">
+                Total Rooms: {calculationDetails.totalRooms || 'N/A'}
+              </p>
+              {calculationDetails.breakdown.length > 0 && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Room Split: {calculationDetails.breakdown[0].roomsBreakdown || 'N/A'}
+                </p>
+              )}
+            </div>
+            
+            <div>
+              <h4 className="text-sm font-medium text-blue-700 mb-1">Costs</h4>
+              <p className="text-sm text-blue-600">
+                Room Cost: ₹{Math.round(calculationDetails.roomCost || 0).toLocaleString()}
+              </p>
+              <p className="text-sm text-blue-600">
+                Meal Cost: ₹{Math.round(calculationDetails.mealCost || 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          
+          {calculationDetails.breakdown.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-blue-700 mb-2">Day-by-Day Breakdown</h4>
+              <div className="max-h-40 overflow-y-auto text-xs">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-blue-100">
+                      <th className="py-1 px-2 text-left">Day</th>
+                      <th className="py-1 px-2 text-left">Date</th>
+                      <th className="py-1 px-2 text-left">Hotel</th>
+                      <th className="py-1 px-2 text-left">Room Cost</th>
+                      <th className="py-1 px-2 text-left">Meal Cost</th>
+                      <th className="py-1 px-2 text-left">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calculationDetails.breakdown.map((day, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                        <td className="py-1 px-2">{day.dayNumber}</td>
+                        <td className="py-1 px-2">{day.date || 'N/A'}</td>
+                        <td className="py-1 px-2">{day.hotelName}</td>
+                        <td className="py-1 px-2">₹{Math.round(day.roomCost || 0).toLocaleString()}</td>
+                        <td className="py-1 px-2">₹{Math.round(day.mealCost || 0).toLocaleString()}</td>
+                        <td className="py-1 px-2">₹{Math.round(day.total || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          {calculationDetails.datePeriodBreakdown && calculationDetails.datePeriodBreakdown.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-sm font-medium text-blue-700 mb-2">Seasonal Pricing</h4>
+              <div className="max-h-32 overflow-y-auto text-xs">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="bg-blue-100">
+                      <th className="py-1 px-2 text-left">Period</th>
+                      <th className="py-1 px-2 text-left">Days</th>
+                      <th className="py-1 px-2 text-left">Total Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calculationDetails.datePeriodBreakdown.map((period, index) => (
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                        <td className="py-1 px-2">{period.startDate} to {period.endDate}</td>
+                        <td className="py-1 px-2">{period.days}</td>
+                        <td className="py-1 px-2">₹{Math.round(period.totalCost || 0).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-4 text-right">
+            <p className="text-sm text-blue-800 font-medium">
+              Total Package Price: ₹{Math.round(calculationDetails.totalPrice).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      )}
+      
+      <p className="text-sm text-gray-500 max-w-md text-right">
+        Automatically calculate package pricing based on selected hotels and dates
+      </p>
+    </div>
+  );
+};
+
 // Define a pricing item schema
 const pricingItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -88,26 +324,26 @@ const itinerarySchema = z.object({
   days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
-  hotelId: z.string(), // Array of hotel IDs
+  hotelId: z.string(), // Hotel ID
   numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
-  locationId: z.string(), // Array of hotel IDs
-
-  // hotel : z.string(),
+  roomType: z.string().optional(), // Added roomType field for pricing
+  mealPlan: z.string().optional(), // Added mealPlan field for pricing
+  occupancyType: z.string().optional(), // Added occupancyType for precise pricing
+  locationId: z.string(), // Location ID
+  vehicleType: z.string().optional(), // Added vehicleType field for transport pricing
 });
 
 
 const flightDetailsSchema = z.object({
-
   date: z.string().optional(),
   flightName: z.string().optional(),
-  flightNumber: z.string().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
+  flightNumber: z.string().optional(), // Added flightNumber
+  from: z.string().optional(), // Added from
+  to: z.string().optional(), // Added to
   departureTime: z.string().optional(),
   arrivalTime: z.string().optional(),
   flightDuration: z.string().optional(),
-
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
@@ -147,7 +383,7 @@ const formSchema = z.object({
   itineraries: z.array(itinerarySchema),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
-  associatePartnerId: z.string().optional(),
+  associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -345,6 +581,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
+        roomType: itinerary.roomType ?? '', // Added roomType field for pricing
+        mealPlan: itinerary.mealPlan ?? '', // Added mealPlan field for pricing
+        occupancyType: itinerary.occupancyType ?? '', // Added occupancyType for precise pricing
+        vehicleType: itinerary.vehicleType ?? '', // Added vehicleType field for transport pricing
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
@@ -505,9 +745,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           activityDescription: activity.activityDescription || ''
         })) || [],
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
-        hotelId: itinerary.hotelId || '',
-        numberofRooms: itinerary.numberofRooms || '',
-        roomCategory: itinerary.roomCategory || ''
+        hotelId: itinerary.hotelId || '',        numberofRooms: itinerary.numberofRooms ?? '',
+        roomCategory: itinerary.roomCategory ?? '',
+        roomType: itinerary.roomType ?? '', // Added roomType field for pricing
+        mealPlan: itinerary.mealPlan ?? '', // Added mealPlan field for pricing
+        occupancyType: itinerary.occupancyType ?? '', // Added occupancyType for precise pricing
+        vehicleType: itinerary.vehicleType ?? '', // Added vehicleType field for transport pricing
       })) || [];
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
@@ -1387,7 +1630,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
+                              onSelect={(date) => date && field.onChange(date)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1427,8 +1670,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
-
+                              onSelect={(date) => date && field.onChange(date)}
                               initialFocus
                             />
                           </PopoverContent>
@@ -1482,7 +1724,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           >
                                             {itinerary.itineraryTitle
                                               ? (itinerariesMaster && itinerariesMaster.find(
-                                                (itineraryMaster) => itineraryMaster.itineraryMasterTitle === itinerary.itineraryTitle
+                                                (itineraryMaster) => itinerary.itineraryTitle === itineraryMaster.itineraryMasterTitle
                                               )?.itineraryMasterTitle)
                                               : "Select an Itinerary Master"}
                                             <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -1714,6 +1956,93 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       </FormControl>
                                     </FormItem>
 
+                                    <FormField
+                                      control={form.control}
+                                      name={`itineraries.${index}.roomType`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Room Type</FormLabel>
+                                          <FormControl>
+                                            <Select
+                                              disabled={loading}
+                                              value={field.value}
+                                              onValueChange={field.onChange}
+                                            >
+                                              <SelectTrigger>
+                                                {field.value || 'Select Room Type'}
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="Standard">Standard</SelectItem>
+                                                <SelectItem value="Deluxe">Deluxe</SelectItem>
+                                                <SelectItem value="Super Deluxe">Super Deluxe</SelectItem>
+                                                <SelectItem value="Premium">Premium</SelectItem>
+                                                <SelectItem value="Suite">Suite</SelectItem>
+                                                <SelectItem value="Executive Suite">Executive Suite</SelectItem>
+                                                <SelectItem value="Presidential Suite">Presidential Suite</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={form.control}
+                                      name={`itineraries.${index}.mealPlan`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Meal Plan</FormLabel>
+                                          <FormControl>
+                                            <Select
+                                              disabled={loading}
+                                              value={field.value}
+                                              onValueChange={field.onChange}
+                                            >
+                                              <SelectTrigger>
+                                                {field.value || 'Select Meal Plan'}
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="No Meal Plan">No Meal Plan</SelectItem>
+                                                <SelectItem value="CP">CP (Breakfast Only)</SelectItem>
+                                                <SelectItem value="MAP">MAP (Breakfast + Dinner)</SelectItem>
+                                                <SelectItem value="AP">AP (All Meals)</SelectItem>
+                                                <SelectItem value="EP">EP (European Plan - No Meals)</SelectItem>
+                                                <SelectItem value="CP+B">CP+B (Breakfast Only)</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={form.control}
+                                      name={`itineraries.${index}.occupancyType`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Occupancy Type</FormLabel>
+                                          <FormControl>
+                                            <Select
+                                              disabled={loading}
+                                              value={field.value}
+                                              onValueChange={field.onChange}
+                                            >
+                                              <SelectTrigger>
+                                                {field.value || 'Select Occupancy Type'}
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="Single">Single</SelectItem>
+                                                <SelectItem value="Double">Double</SelectItem>
+                                                <SelectItem value="Triple">Triple</SelectItem>
+                                                <SelectItem value="Child with Bed">Child with Bed</SelectItem>
+                                                <SelectItem value="Child without Bed">Child without Bed</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
 
                                     <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                                       <FormLabel>Meal Plan</FormLabel>
@@ -1750,7 +2079,36 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       </FormControl>
                                     </FormItem>
 
-
+                                    <FormField
+                                      control={form.control}
+                                      name={`itineraries.${index}.vehicleType`}
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Vehicle Type</FormLabel>
+                                          <Select
+                                            disabled={loading}
+                                            value={field.value || ''}
+                                            onValueChange={field.onChange}
+                                          >
+                                            <SelectTrigger>
+                                              {field.value || 'Select Vehicle Type'}
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="">None</SelectItem>
+                                              <SelectItem value="Sedan">Sedan</SelectItem>
+                                              <SelectItem value="SUV">SUV</SelectItem>
+                                              <SelectItem value="Tempo Traveller">Tempo Traveller</SelectItem>
+                                              <SelectItem value="Mini Bus">Mini Bus</SelectItem>
+                                              <SelectItem value="Bus">Bus</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                          <FormDescription>
+                                            Select vehicle type for this day&apos;s transport
+                                          </FormDescription>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
 
                                     {itinerary.activities.map((activity, activityIndex) => (
                                       <div key={activityIndex} className="space-y-2">
@@ -2082,11 +2440,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <CardTitle>Pricing</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Move pricing form fields here */}
-              
+                  {/* Auto-calculate pricing section */}
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Package Pricing</h3>
+                    <AutoCalculatePriceButton form={form} hotels={hotels} />
+                  </div>
 
                   <div className="grid grid-cols-3 gap-8">            
-
                     <FormField
                       control={form.control}
                       name="totalPrice"
@@ -2102,7 +2462,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         </FormItem>
                       )}
                     />
-
                   </div>
                   <div className="border rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-4">Dynamic Pricing Options</h3>

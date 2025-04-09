@@ -54,13 +54,12 @@ const GeneratePDFPage = () => {
       setLoading(false);
     }
   };
-
   // Automatically generate PDF if a URL is provided
   useEffect(() => {
     if (url) {
       generatePDFfromURL();
     }
-  }, [url]);
+  }, [url, generatePDFfromURL]);
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">

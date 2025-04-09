@@ -50,7 +50,7 @@ export const PrintableFlightTicket: React.FC<PrintableFlightTicketProps> = ({
         img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
       }
     }
-  }, [qrCodeRef.current]);
+  }, []); // Removing qrCodeRef.current from dependencies as it's a mutable ref
 
   // Function to generate PDF using jsPDF
   const generatePDF = (download: boolean = false) => {

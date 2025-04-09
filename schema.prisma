@@ -21,6 +21,7 @@ model Location {
   activitiesMaster ActivityMaster[]
   itineraries      Itinerary[]
   itinerariesMaster      ItineraryMaster[]
+  transportPricings TransportPricing[]  // Added relation to TransportPricing
 
   tourPackages     TourPackage[]      @relation("LocationTotourPackage")
   tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
@@ -52,8 +53,48 @@ model Hotel {
   location     Location      @relation(fields: [locationId], references: [id])
   itineraries  Itinerary[]   @relation("ItineraryToHotel")
   itinerariesMaster  ItineraryMaster[]   @relation("ItineraryMasterToHotel")
+  seasonalPricing HotelPricing[]  // Add relation to seasonal pricing
 
   @@index([locationId])
+}
+
+// New model for hotel pricing during specific periods
+model HotelPricing {
+  id            String    @id @default(uuid())
+  hotelId       String
+  hotel         Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  startDate     DateTime
+  endDate       DateTime
+  roomType      String    // e.g., "Standard", "Deluxe", "Suite"
+  occupancyType String    // e.g., "Single", "Double", "Triple", "Child with Bed", "Child without Bed"
+  price         Float
+  mealPlan      String?   // e.g., "CP", "MAP", "AP", "EP"
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([hotelId])
+  @@index([startDate, endDate]) // For efficient date range queries
+}
+
+// New model for transport pricing based on vehicle type and location
+model TransportPricing {
+  id            String    @id @default(uuid())
+  locationId    String
+  location      Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  vehicleType   String    // e.g., "Sedan", "SUV", "Tempo Traveller", "Bus"
+  startDate     DateTime
+  endDate       DateTime
+  price         Float     // Per day or per trip based on transportType
+  transportType String    // "PerDay" or "PerTrip"
+  capacity      String?   // e.g., "4 Seater", "7 Seater", "12 Seater"
+  description   String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([locationId])
+  @@index([startDate, endDate]) // For efficient date range queries
 }
 
 model TourPackageQuery {
@@ -435,6 +476,10 @@ model Itinerary {
   hotel              Hotel?            @relation("ItineraryToHotel", fields: [hotelId], references: [id])
   numberofRooms      String?
   roomCategory       String?
+  roomType           String?           // Added field for pricing
+  mealPlan           String?           // Added field for pricing
+  occupancyType      String?           // Added field for precise pricing
+  vehicleType        String?           // Added field for transport pricing
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

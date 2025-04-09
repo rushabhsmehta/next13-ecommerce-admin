@@ -185,11 +185,10 @@ const AuditLogsPage = () => {
       setLoading(false);
     }
   };
-  
-  // Initial fetch and fetch when filters change
+    // Initial fetch and fetch when filters change
   useEffect(() => {
     fetchLogs();
-  }, [entityTypeFilter, actionFilter, userRoleFilter, paginationInfo.offset, paginationInfo.limit]);
+  }, [fetchLogs, entityTypeFilter, actionFilter, userRoleFilter, paginationInfo.offset, paginationInfo.limit]);
   
   // Handle search
   const handleSearch = () => {

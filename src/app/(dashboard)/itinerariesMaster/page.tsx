@@ -6,6 +6,12 @@ import { ItineraryMasterColumn } from "./components/columns"
 import { ItinerariesMasterClient } from "./components/client";
 import Navbar from "@/components/navbar";
 
+// Helper function to strip HTML tags from a string
+const stripHtmlTags = (html: string | null | undefined): string => {
+  if (!html) return '';
+  return html.replace(/<\/?[^>]+(>|$)/g, '');
+};
+
 
 
 const ItinerariesMasterPage = async ({
@@ -21,10 +27,9 @@ const ItinerariesMasterPage = async ({
     }
   });
 
-  
-  const formattedItinerariesMaster: ItineraryMasterColumn[] = itinerariesMaster.map((item) => ({
+    const formattedItinerariesMaster: ItineraryMasterColumn[] = itinerariesMaster.map((item) => ({
     id: item.id,
-    itineraryMasterTitle: item.itineraryMasterTitle || '',
+    itineraryMasterTitle: stripHtmlTags(item.itineraryMasterTitle) || '',
     //  itineraryDescription : item.itineraryDescription,    
     locationLabel: item.location.label,
     createdAt: format(item.createdAt, 'MMMM do, yyyy'),

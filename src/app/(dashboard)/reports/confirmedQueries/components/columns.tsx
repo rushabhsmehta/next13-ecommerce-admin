@@ -37,10 +37,9 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
   {
     accessorKey: "tourPackageQueryName",
     header: "Tour Package Query Name",
-  },
-  {
+  },  {
     accessorKey: "assignedTo",
-    header: "Assigned To",
+    header: "Associate Partner",
   },
   {
     accessorKey: "customerNumber",

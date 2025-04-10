@@ -6,7 +6,7 @@ import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEf
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, useFieldArray, UseFormReturn } from "react-hook-form"
 import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText, Calculator } from "lucide-react"
+import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText, Calculator, Download, BedDouble, UtensilsCrossed, Car, PlusCircle, Printer } from "lucide-react"
 import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
@@ -67,16 +67,36 @@ import { FileText, Users, MapPin, Plane, Tag, FileCheck } from "lucide-react"
 
 // Add PolicyField import
 import { PolicyField } from "./policy-fields";
+import RoomAllocationComponent from "./room-allocation"
+
+// Interface for transport detail inputs
+interface TransportDetailInput {
+  vehicleType: string;
+  quantity: number;
+  capacity?: string;
+  description?: string;
+}
+
+
 
 // Add interfaces for calculation results
+interface AccommodationDetail {
+  hotelName: string;
+  roomType: string;
+  roomCount: number;
+}
+
 interface CalculationDayBreakdown {
   dayNumber: number;
   date?: string;
   hotelName: string;
   roomCost: number;
   mealCost: number;
+  transportCost?: number;
   total: number;
   roomsBreakdown?: string;
+  accommodations?: AccommodationDetail[];
+  mealPlan?: string; // Added missing mealPlan property
 }
 
 interface DatePeriodBreakdown {
@@ -86,13 +106,42 @@ interface DatePeriodBreakdown {
   totalCost: number;
 }
 
+interface RoomDetail {
+  roomType: string;
+  occupancyType: string;
+  quantity: number;
+  pricePerRoom?: number;
+  totalCost?: number;
+  guestNames?: string;
+  warning?: string;
+}
+
+interface RoomAllocationBreakdown {
+  dayNumber: number;
+  date: string;
+  hotelName: string;
+  totalCost: number;
+  rooms: RoomDetail[];
+}
+
 interface CalculationResult {
   totalPrice: number;
   roomCost: number;
   mealCost: number;
+  transportCost: number;
   totalRooms: number;
   breakdown: CalculationDayBreakdown[];
   datePeriodBreakdown?: DatePeriodBreakdown[];
+  roomAllocations?: RoomAllocationBreakdown[];  transportDetails?: Array<{ 
+    vehicleType: string;
+    quantity: number;
+    capacity?: string;
+    cost: number;
+    description?: string;
+    dayRange?: string;
+    dayNumber?: number;
+    perDayOrTrip?: string;
+  }>;
   pricingSection: Array<{ name: string, price: string, description?: string }>;
 }
 
@@ -104,15 +153,18 @@ const AutoCalculatePriceButton = ({
   form: UseFormReturn<TourPackageQueryFormValues>;
   hotels: Hotel[];
 }) => {
-  const { calculatePackagePrice, isCalculating, error } = useAutoCalculatePrice();
-  const [showError, setShowError] = useState(false);
+  const { calculatePackagePrice, isCalculating, error } = useAutoCalculatePrice();  const [showError, setShowError] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [calculationDetails, setCalculationDetails] = useState<CalculationResult | null>(null);
-
+  const [markupType, setMarkupType] = useState<'percentage' | 'fixed'>('percentage');
+  const [markupValue, setMarkupValue] = useState<number>(0);
+  const [markupedPrice, setMarkupedPrice] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const handleAutoCalculate = async () => {
     try {
       setShowError(false);
       setShowResults(false);
+      setMarkupedPrice(null);
 
       // Get required data from form
       const tourStartsFrom = form.getValues('tourStartsFrom');
@@ -136,13 +188,21 @@ const AutoCalculatePriceButton = ({
       if (validItineraries.length === 0) {
         toast.error('Please select at least one hotel in your itinerary');
         return;
-      }
-
-      // Call the API to calculate price
+      }      // Call the API to calculate price
+      // Ensure all required fields have values and types are correct
+      const processedItineraries = itineraries.map(itinerary => ({
+        ...itinerary,
+        roomAllocations: itinerary.roomAllocations?.map(room => ({
+          ...room,
+          // Ensure occupancyType is always a string, default to 'Double' if undefined
+          occupancyType: room.occupancyType || 'Double'
+        })) || []
+      }));
+      
       const result = await calculatePackagePrice({
         tourStartsFrom,
         tourEndsOn,
-        itineraries,
+        itineraries: processedItineraries,
         numAdults: numAdults || '2',  // Default to 2 adults if not specified
         numChild5to12: numChild5to12 || '0',
         numChild0to5: numChild0to5 || '0'
@@ -153,9 +213,33 @@ const AutoCalculatePriceButton = ({
         setCalculationDetails(result);
         setShowResults(true);
         
+        // Calculate markup if any
+        let finalPrice = result.totalPrice;
+        if (markupValue > 0) {
+          if (markupType === 'percentage') {
+            finalPrice = finalPrice * (1 + markupValue / 100);
+          } else { // fixed amount
+            finalPrice = finalPrice + markupValue;
+          }
+          setMarkupedPrice(finalPrice);
+        }
+        
         // Update form with calculated results
-        form.setValue('pricingSection', result.pricingSection);
-        form.setValue('totalPrice', `₹${Math.round(result.totalPrice).toLocaleString()}`);
+        const updatedPricingSection = [...result.pricingSection];
+        
+        // Add markup to pricing section if applied
+        if (markupValue > 0) {
+          updatedPricingSection.push({
+            name: markupType === 'percentage' ? `Markup (${markupValue}%)` : 'Markup (Fixed)',
+            price: markupType === 'percentage' 
+              ? `₹${Math.round((result.totalPrice * markupValue / 100)).toLocaleString()}`
+              : `₹${Math.round(markupValue).toLocaleString()}`,
+            description: 'Additional charges'
+          });
+        }
+        
+        form.setValue('pricingSection', updatedPricingSection);
+        form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
 
         // Show a success toast
         toast.success('Package price calculated successfully!');
@@ -165,16 +249,89 @@ const AutoCalculatePriceButton = ({
       setShowError(true);
     }
   };
+  // Function to apply markup
+  const applyMarkup = () => {
+    if (!calculationDetails) return;
+
+    let finalPrice = calculationDetails.totalPrice;
+    if (markupValue > 0) {
+      if (markupType === 'percentage') {
+        finalPrice = finalPrice * (1 + markupValue / 100);
+      } else { // fixed amount
+        finalPrice = finalPrice + markupValue;
+      }
+      setMarkupedPrice(finalPrice);
+      
+      // Update form with marked up price
+      const updatedPricingSection = [...calculationDetails.pricingSection];
+      
+      // Remove existing markup entry if any
+      const markupIndex = updatedPricingSection.findIndex(p => p.name.includes('Markup'));
+      if (markupIndex !== -1) {
+        updatedPricingSection.splice(markupIndex, 1);
+      }
+      
+      // Add new markup entry
+      updatedPricingSection.push({
+        name: markupType === 'percentage' ? `Markup (${markupValue}%)` : 'Markup (Fixed)',
+        price: markupType === 'percentage' 
+          ? `₹${Math.round((calculationDetails.totalPrice * markupValue / 100)).toLocaleString()}`
+          : `₹${Math.round(markupValue).toLocaleString()}`,
+        description: 'Additional charges'
+      });
+      
+      form.setValue('pricingSection', updatedPricingSection);
+      form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
+    }
+  };
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex justify-end mb-2">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-2">
+        <div className="flex flex-col space-y-2 w-full md:w-auto">
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium">Markup Type:</label>
+            <Select
+              value={markupType}
+              onValueChange={(value) => setMarkupType(value as 'percentage' | 'fixed')}
+              disabled={isCalculating}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select markup type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage (%)</SelectItem>
+                <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Input 
+              type="number" 
+              className="w-24" 
+              placeholder={markupType === 'percentage' ? "%" : "₹"} 
+              value={markupValue || ''}
+              onChange={(e) => setMarkupValue(parseFloat(e.target.value) || 0)}
+              disabled={isCalculating}
+            />
+            
+            <Button 
+              type="button" 
+              onClick={applyMarkup} 
+              variant="outline"
+              size="sm"
+              disabled={isCalculating || !calculationDetails}
+            >
+              Apply Markup
+            </Button>
+          </div>
+        </div>
+        
         <Button 
           type="button" 
           onClick={handleAutoCalculate}
           disabled={isCalculating}
           variant="secondary"
-          className="mb-2"
+          className="mb-2 whitespace-nowrap"
         >
           {isCalculating ? (
             <>
@@ -197,100 +354,482 @@ const AutoCalculatePriceButton = ({
             {error}
           </p>
         </div>
-      )}
-      
-      {showResults && calculationDetails && (
+      )}        {showResults && calculationDetails && (
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-md mt-2 mb-4">
-          <h3 className="text-blue-800 font-medium mb-2 flex items-center">
-            <Calculator className="h-4 w-4 mr-2" />
-            Price Calculation Details
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-            <div>
-              <h4 className="text-sm font-medium text-blue-700 mb-1">Room Configuration</h4>
-              <p className="text-sm text-blue-600">
-                Total Rooms: {calculationDetails.totalRooms || 'N/A'}
-              </p>
-              {calculationDetails.breakdown.length > 0 && (
-                <p className="text-sm text-blue-600 mt-1">
-                  Room Split: {calculationDetails.breakdown[0].roomsBreakdown || 'N/A'}
-                </p>
-              )}
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-blue-700 mb-1">Costs</h4>
-              <p className="text-sm text-blue-600">
-                Room Cost: ₹{Math.round(calculationDetails.roomCost || 0).toLocaleString()}
-              </p>
-              <p className="text-sm text-blue-600">
-                Meal Cost: ₹{Math.round(calculationDetails.mealCost || 0).toLocaleString()}
-              </p>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-blue-800 font-medium flex items-center">
+              <Calculator className="h-4 w-4 mr-2" />
+              Price Calculation Details
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs px-2 py-1 h-7 bg-white"
+                onClick={() => {
+                  // Toggle all sections open/closed
+                  const allSections = document.querySelectorAll('[data-price-section]');
+                  const allClosed = Array.from(allSections).every(
+                    el => el.getAttribute('data-state') === 'closed'
+                  );
+                  
+                  allSections.forEach(section => {
+                    if (allClosed) {
+                      section.setAttribute('data-state', 'open');
+                    } else {
+                      section.setAttribute('data-state', 'closed');
+                    }
+                  });
+                  setExpanded(!expanded);
+                }}
+              >
+                {expanded ? 'Collapse All' : 'Expand All'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-800"
+                onClick={() => {
+                  // Print or export to PDF logic could be added here
+                  toast.success("Preparing print view...");
+                  // For now, we'll just open the browser print dialog
+                  window.print();
+                }}
+              >
+                <Printer className="h-3.5 w-3.5 mr-1" />
+                Print
+              </Button>
             </div>
           </div>
           
-          {calculationDetails.breakdown.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-blue-700 mb-2">Day-by-Day Breakdown</h4>
-              <div className="max-h-40 overflow-y-auto text-xs">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="bg-blue-100">
-                      <th className="py-1 px-2 text-left">Day</th>
-                      <th className="py-1 px-2 text-left">Date</th>
-                      <th className="py-1 px-2 text-left">Hotel</th>
-                      <th className="py-1 px-2 text-left">Room Cost</th>
-                      <th className="py-1 px-2 text-left">Meal Cost</th>
-                      <th className="py-1 px-2 text-left">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calculationDetails.breakdown.map((day, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                        <td className="py-1 px-2">{day.dayNumber}</td>
-                        <td className="py-1 px-2">{day.date || 'N/A'}</td>
-                        <td className="py-1 px-2">{day.hotelName}</td>
-                        <td className="py-1 px-2">₹{Math.round(day.roomCost || 0).toLocaleString()}</td>
-                        <td className="py-1 px-2">₹{Math.round(day.mealCost || 0).toLocaleString()}</td>
-                        <td className="py-1 px-2">₹{Math.round(day.total || 0).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* Main Summary Card - Always Visible */}
+          <div className="bg-white rounded-lg p-4 shadow border border-blue-200 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-blue-700 text-base">Package Pricing Summary</h4>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 font-medium">
+                {calculationDetails.breakdown.length} Days / {calculationDetails.totalRooms} Rooms
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-3">
+                <div>
+                  <div className="text-xs text-gray-500">TOUR DATES</div>
+                  <div className="font-medium text-sm flex items-center">
+                    <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                    {calculationDetails.breakdown.length > 0 && (
+                      <>
+                        {calculationDetails.breakdown[0].date} - {calculationDetails.breakdown[calculationDetails.breakdown.length-1].date}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">GUEST COMPOSITION</div>
+                  <div className="font-medium text-sm flex items-center">
+                    <Users className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                    {form.getValues('numAdults') || 2} Adults, {form.getValues('numChild5to12') || 0} Children (5-12), {form.getValues('numChild0to5') || 0} Infants
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-md bg-blue-50/50 p-3">
+                <h5 className="text-xs font-medium text-blue-800 mb-1.5">COST BREAKDOWN</h5>
+                <div className="grid grid-cols-1 gap-1.5 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 flex items-center">
+                      <BedDouble className="h-3.5 w-3.5 mr-1.5" />
+                      Accommodation
+                    </span>
+                    <span className="font-medium">₹{Math.round(calculationDetails.roomCost || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 flex items-center">
+                      <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
+                      Meals
+                    </span>
+                    <span className="font-medium">₹{Math.round(calculationDetails.mealCost || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 flex items-center">
+                      <Car className="h-3.5 w-3.5 mr-1.5" />
+                      Transport
+                    </span>
+                    <span className="font-medium">₹{Math.round(calculationDetails.transportCost || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="bg-gradient-to-r from-blue-100 to-blue-50 rounded-md p-3 shadow-sm">
+                  <h5 className="text-sm font-medium text-blue-700 mb-1">TOTAL PACKAGE PRICE</h5>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 text-sm">Base Price:</span>
+                    <span className="font-semibold text-lg">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</span>
+                  </div>
+                  
+                  {markupedPrice && (
+                    <>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-gray-600 text-sm flex items-center">
+                          <PlusCircle className="h-3 w-3 mr-1" />
+                          Markup ({markupType === 'percentage' ? `${markupValue}%` : `₹${markupValue.toLocaleString()}`}):
+                        </span>
+                        <span className="font-medium text-sm text-green-700">
+                          ₹{Math.round(markupedPrice - calculationDetails.totalPrice).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="border-t border-blue-200 mt-2 pt-2 flex items-center justify-between">
+                        <span className="text-gray-600 text-sm">Final Price:</span>
+                        <span className="font-bold text-blue-800 text-lg">₹{Math.round(markupedPrice).toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                
+                <div className="bg-blue-50/50 rounded-md p-2 text-xs text-center text-blue-600">
+                  {calculationDetails.totalRooms > 0 && (
+                    <div className="flex items-center justify-center">
+                      <BedDouble className="h-3 w-3 mr-1" />
+                      {calculationDetails.breakdown.length > 0 && calculationDetails.breakdown[0].roomsBreakdown}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
+            
+            {/* Per person price section */}
+            {calculationDetails.pricingSection && calculationDetails.pricingSection.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2 pt-3 border-t border-blue-100">
+                {calculationDetails.pricingSection
+                  .filter(item => item.name.includes("Per Person") || item.name.includes("Per Couple") || item.name.includes("Child"))
+                  .slice(0, 6)
+                  .map((item, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm px-2 py-1 rounded-sm bg-blue-50/30">
+                      <span className="text-gray-600">{item.name}:</span>
+                      <span className="font-medium">{item.price}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            )}
+          </div>
           
-          {calculationDetails.datePeriodBreakdown && calculationDetails.datePeriodBreakdown.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-blue-700 mb-2">Seasonal Pricing</h4>
-              <div className="max-h-32 overflow-y-auto text-xs">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="bg-blue-100">
-                      <th className="py-1 px-2 text-left">Period</th>
-                      <th className="py-1 px-2 text-left">Days</th>
-                      <th className="py-1 px-2 text-left">Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {calculationDetails.datePeriodBreakdown.map((period, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                        <td className="py-1 px-2">{period.startDate} to {period.endDate}</td>
-                        <td className="py-1 px-2">{period.days}</td>
-                        <td className="py-1 px-2">₹{Math.round(period.totalCost || 0).toLocaleString()}</td>
-                      </tr>
+          {/* Room Configuration Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
+              <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center justify-between">
+                <span className="flex items-center">
+                  <BedDouble className="h-4 w-4 mr-2" />
+                  Room Configuration
+                </span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-600 text-xs">
+                  {calculationDetails.totalRooms || 0} Rooms
+                </Badge>
+              </h4>
+              <p className="text-sm text-blue-600">
+                {calculationDetails.breakdown.length > 0 && calculationDetails.breakdown[0].roomsBreakdown || 'Room details not available'}
+              </p>
+            </div>
+            
+            <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
+              <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center">
+                <UtensilsCrossed className="h-4 w-4 mr-2" />
+                Meal Plan Details
+              </h4>              <div className="text-sm text-blue-600">
+                {calculationDetails.breakdown.some(day => day.mealPlan && day.mealPlan !== "N/A") ? (
+                  <div className="flex flex-col gap-1 text-xs">
+                    {/* Filter out undefined values first, then create a Set to deduplicate */}
+                    {Array.from(
+                      new Set(
+                        calculationDetails.breakdown
+                          .map(day => day.mealPlan)
+                          .filter((plan): plan is string => !!plan && plan !== "N/A")
+                      )
+                    ).map((plan, i) => (
+                      <div key={i} className="flex items-center">
+                        <div className="h-2 w-2 rounded-full bg-blue-400 mr-2"></div>
+                        <span>{plan}</span>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                ) : (
+                  <span>No meal plan specified</span>
+                )}
               </div>
             </div>
-          )}
+            
+            <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
+              <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center">
+                <Car className="h-4 w-4 mr-2" />
+                Transport Information
+              </h4>
+              <div className="text-sm text-blue-600">
+                {calculationDetails.transportDetails && calculationDetails.transportDetails.length > 0 ? (
+                  <div className="flex flex-col gap-1 text-xs">
+                    {calculationDetails.transportDetails.slice(0, 2).map((transport, i) => (
+                      <div key={i} className="flex items-center">
+                        <div className="h-2 w-2 rounded-full bg-blue-400 mr-2"></div>
+                        <span>{transport.quantity}x {transport.vehicleType} {transport.perDayOrTrip || 'Per Trip'}</span>
+                      </div>
+                    ))}
+                    {calculationDetails.transportDetails.length > 2 && (
+                      <div className="text-xs text-blue-500">+{calculationDetails.transportDetails.length - 2} more vehicles</div>
+                    )}
+                  </div>
+                ) : (
+                  <span>No transport details available</span>
+                )}
+              </div>
+            </div>
+          </div>
+            {/* Collapsible Sections */}
+          <Accordion type="multiple" className="mt-4 space-y-2">
+            {/* Day-by-Day Breakdown Section */}
+            {calculationDetails.breakdown.length > 0 && (
+              <AccordionItem value="day-breakdown" className="border rounded-md overflow-hidden" data-price-section>
+                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <div className="flex items-center">
+                      <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                      <span className="font-medium">Day-by-Day Breakdown</span>
+                    </div>
+                    <Badge variant="outline" className="bg-blue-100/30">
+                      {calculationDetails.breakdown.length} Days
+                    </Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="bg-white">
+                  <div className="overflow-x-auto">
+                    <div className="max-h-60 overflow-y-auto text-xs px-4 py-2">
+                      <table className="min-w-full border-collapse">
+                        <thead>
+                          <tr className="bg-blue-100 sticky top-0 z-10">
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Day</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Date</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Accommodations</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Meal Plan</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Room Cost</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Meal Cost</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Transport</th>
+                            <th className="py-2 px-2 text-left font-medium text-blue-800">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calculationDetails.breakdown.map((day, index) => (
+                            <tr 
+                              key={index} 
+                              className={`${index % 2 === 0 ? 'bg-white' : 'bg-blue-50'} border-b border-blue-100/30 hover:bg-blue-50/70 transition-colors`}
+                            >
+                              <td className="py-2 px-2 font-medium">{day.dayNumber}</td>
+                              <td className="py-2 px-2">{day.date || 'N/A'}</td>
+                              <td className="py-2 px-2">
+                                {day.accommodations && day.accommodations.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {day.accommodations.map((acc, i) => (
+                                      <div key={i} className="flex items-start gap-1 text-xs">
+                                        <BedDouble className="h-3 w-3 mt-0.5 text-blue-500 flex-shrink-0" />
+                                        <div>
+                                          <span className="font-medium">{acc.hotelName}</span>
+                                          <span className="text-gray-500"> ({acc.roomType} x{acc.roomCount})</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center">
+                                    <BedDouble className="h-3 w-3 mr-1 text-blue-500" />
+                                    {day.hotelName || 'No accommodation'}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-2 px-2">
+                                <Badge variant="outline" className={
+                                  day.mealPlan?.includes('AP') ? 'bg-green-50 text-green-700 border-green-200' :
+                                  day.mealPlan?.includes('MAP') ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                  day.mealPlan?.includes('CP') ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                  'bg-gray-50 text-gray-700 border-gray-200'
+                                }>
+                                  {day.mealPlan || 'None'}
+                                </Badge>
+                              </td>
+                              <td className="py-2 px-2 font-medium">₹{Math.round(day.roomCost || 0).toLocaleString()}</td>
+                              <td className="py-2 px-2 font-medium">₹{Math.round(day.mealCost || 0).toLocaleString()}</td>
+                              <td className="py-2 px-2 font-medium">
+                                {(day.transportCost && day.transportCost > 0) ? (
+                                  <div className="flex items-center">
+                                    <Car className="h-3 w-3 mr-1 text-blue-500" />
+                                    ₹{Math.round(day.transportCost).toLocaleString()}
+                                  </div>
+                                ) : '-'}
+                              </td>
+                              <td className="py-2 px-2 font-medium text-blue-800">₹{Math.round(day.total || 0).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-blue-100/50 font-medium">
+                            <td colSpan={4} className="py-2 px-2 text-blue-800">Total</td>
+                            <td className="py-2 px-2">₹{Math.round(calculationDetails.roomCost).toLocaleString()}</td>
+                            <td className="py-2 px-2">₹{Math.round(calculationDetails.mealCost).toLocaleString()}</td>
+                            <td className="py-2 px-2">₹{Math.round(calculationDetails.transportCost).toLocaleString()}</td>
+                            <td className="py-2 px-2 font-medium text-blue-800">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+            
+            {/* Room Allocation Details Section */}
+            {calculationDetails.roomAllocations && calculationDetails.roomAllocations.length > 0 && (
+              <AccordionItem value="room-allocation" className="border rounded-md overflow-hidden" data-price-section>
+                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-2 text-blue-600" />
+                    <span className="font-medium">Room Allocation Details</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="bg-white">
+                  <div className="max-h-36 overflow-y-auto text-xs px-4 py-2">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="bg-blue-100">
+                          <th className="py-1 px-2 text-left">Day</th>
+                          <th className="py-1 px-2 text-left">Date</th>
+                          <th className="py-1 px-2 text-left">Hotel</th>
+                          <th className="py-1 px-2 text-left">Room Type</th>
+                          <th className="py-1 px-2 text-left">Occupancy</th>
+                          <th className="py-1 px-2 text-left">Quantity</th>
+                          <th className="py-1 px-2 text-left">Price/Room</th>
+                          <th className="py-1 px-2 text-left">Total Cost</th>
+                          <th className="py-1 px-2 text-left">Guests</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calculationDetails.roomAllocations.flatMap((day) => 
+                          day.rooms.map((room, roomIndex) => (
+                            <tr key={`${day.dayNumber}-${roomIndex}`} className={
+                              day.dayNumber % 2 === 0 ? 
+                                (roomIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50') : 
+                                (roomIndex % 2 === 0 ? 'bg-blue-50' : 'bg-blue-100/30')
+                            }>
+                              <td className="py-1 px-2">{day.dayNumber}</td>
+                              <td className="py-1 px-2">{day.date || 'N/A'}</td>
+                              <td className="py-1 px-2">{day.hotelName}</td>
+                              <td className="py-1 px-2">{room.roomType}</td>
+                              <td className="py-1 px-2">{room.occupancyType}</td>
+                              <td className="py-1 px-2">{room.quantity}</td>
+                              <td className="py-1 px-2">{room.pricePerRoom ? `₹${Math.round(room.pricePerRoom).toLocaleString()}` : 'N/A'}</td>
+                              <td className="py-1 px-2">{room.pricePerRoom ? `₹${Math.round(room.totalCost || 0).toLocaleString()}` : room.warning}</td>
+                              <td className="py-1 px-2">{room.guestNames || '-'}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+            
+            {/* Transport Details Section */}
+            {calculationDetails.transportDetails && calculationDetails.transportDetails.length > 0 && (
+              <AccordionItem value="transport-details" className="border rounded-md overflow-hidden" data-price-section>
+                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
+                  <div className="flex items-center">
+                    <Plane className="h-4 w-4 mr-2 text-blue-600" />
+                    <span className="font-medium">Transport Details</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="bg-white">
+                  <div className="max-h-32 overflow-y-auto text-xs px-4 py-2">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="bg-blue-100">
+                          <th className="py-1 px-2 text-left">Vehicle Type</th>
+                          <th className="py-1 px-2 text-left">Quantity</th>
+                          <th className="py-1 px-2 text-left">Capacity</th>
+                          <th className="py-1 px-2 text-left">Days</th>
+                          <th className="py-1 px-2 text-left">Type</th>
+                          <th className="py-1 px-2 text-left">Description</th>
+                          <th className="py-1 px-2 text-left">Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calculationDetails.transportDetails.map((transport, index) => (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                            <td className="py-1 px-2">{transport.vehicleType}</td>
+                            <td className="py-1 px-2">{transport.quantity}</td>
+                            <td className="py-1 px-2">{transport.capacity || 'N/A'}</td>
+                            <td className="py-1 px-2">{transport.dayRange || (transport.dayNumber ? `Day ${transport.dayNumber}` : 'All days')}</td>
+                            <td className="py-1 px-2">{transport.perDayOrTrip || 'Per Trip'}</td>
+                            <td className="py-1 px-2">{transport.description || '-'}</td>
+                            <td className="py-1 px-2">₹{Math.round(transport.cost || 0).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+            
+            {/* Seasonal Pricing Section */}
+            {calculationDetails.datePeriodBreakdown && calculationDetails.datePeriodBreakdown.length > 0 && (
+              <AccordionItem value="seasonal-pricing" className="border rounded-md overflow-hidden" data-price-section>
+                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
+                  <div className="flex items-center">
+                    <Tag className="h-4 w-4 mr-2 text-blue-600" />
+                    <span className="font-medium">Seasonal Pricing</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="bg-white">
+                  <div className="max-h-32 overflow-y-auto text-xs px-4 py-2">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="bg-blue-100">
+                          <th className="py-1 px-2 text-left">Period</th>
+                          <th className="py-1 px-2 text-left">Days</th>
+                          <th className="py-1 px-2 text-left">Total Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calculationDetails.datePeriodBreakdown.map((period, index) => (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+                            <td className="py-1 px-2">{period.startDate} to {period.endDate}</td>
+                            <td className="py-1 px-2">{period.days}</td>
+                            <td className="py-1 px-2">₹{Math.round(period.totalCost || 0).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+          </Accordion>
           
-          <div className="mt-4 text-right">
+          <div className="mt-6 text-right flex items-center justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs mr-2"
+              onClick={() => {
+                // Save to PDF logic could be implemented here
+                toast.success("Price calculation details saved!");
+              }}
+            >
+              <Download className="h-3 w-3 mr-1" />
+              Export
+            </Button>
             <p className="text-sm text-blue-800 font-medium">
-              Total Package Price: ₹{Math.round(calculationDetails.totalPrice).toLocaleString()}
+              Total Package Price: <span className="text-lg">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</span>
+              {markupedPrice && (
+                <span className="ml-1 text-green-700">
+                  → ₹{Math.round(markupedPrice).toLocaleString()} (with markup)
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -316,6 +855,14 @@ const activitySchema = z.object({
   activityImages: z.object({ url: z.string() }).array(),
 });
 
+// Define room allocation schema for mixed occupancy
+const roomAllocationSchema = z.object({
+  roomType: z.string().optional(),
+  occupancyType: z.string(), // Make occupancyType required
+  quantity: z.number().or(z.string().transform(val => parseInt(val) || 1)),
+  guestNames: z.string().optional()
+});
+
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
@@ -327,11 +874,13 @@ const itinerarySchema = z.object({
   hotelId: z.string(), // Hotel ID
   numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
-  roomType: z.string().optional(), // Added roomType field for pricing
+  roomType: z.string().optional(), // Default roomType field for pricing
   mealPlan: z.string().optional(), // Added mealPlan field for pricing
-  occupancyType: z.string().optional(), // Added occupancyType for precise pricing
+  occupancyType: z.string().optional(), // Default occupancyType for pricing
   locationId: z.string(), // Location ID
   vehicleType: z.string().optional(), // Added vehicleType field for transport pricing
+  // Add support for mixed occupancy rooms
+  roomAllocations: z.array(roomAllocationSchema).optional(),
 });
 
 
@@ -480,8 +1029,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       return [field as string];
     }
   };
-
-  const handleUseLocationDefaultsChange = (field: string, checked: boolean) => {
+  const handleUseLocationDefaultsChange = (field: string, checked: boolean): void => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
     if (checked) {
       const selectedLocation = locations.find(location => location.id === form.getValues('locationId'));
@@ -955,7 +1503,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -2077,9 +2625,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           </label>
                                         </div>
                                       </FormControl>
-                                    </FormItem>
-
-                                    <FormField
+                                    </FormItem>                                    <FormField
                                       control={form.control}
                                       name={`itineraries.${index}.vehicleType`}
                                       render={({ field }) => (
@@ -2108,6 +2654,22 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           <FormMessage />
                                         </FormItem>
                                       )}
+                                    />
+
+                                    <RoomAllocationComponent
+                                      itinerary={itinerary}
+                                      index={index}
+                                      value={value}
+                                      onChange={onChange}
+                                      loading={loading}
+                                    />
+
+                                    <TransportDetailsComponent
+                                      itinerary={itinerary}
+                                      index={index}
+                                      value={value}
+                                      onChange={onChange}
+                                      loading={loading}
                                     />
 
                                     {itinerary.activities.map((activity, activityIndex) => (
@@ -2598,25 +3160,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <TabsContent value="inclusions" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="inclusions"
                           label="Inclusions"
                           loading={loading}
-                          checked={useLocationDefaults.inclusions}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('inclusions', checked)}
-                          switchDescription="Use Switch to Copy Inclusions from the Selected Location"
-                          placeholder="Add inclusion item..."
+                          useDefaultsChecked={useLocationDefaults.inclusions}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('inclusions', checked)}
+                          description="Inclusions for this tour package"
                         />
-
+                        
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="exclusions"
                           label="Exclusions"
                           loading={loading}
-                          checked={useLocationDefaults.exclusions}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('exclusions', checked)}
-                          switchDescription="Use Switch to Copy Exclusions from the Selected Location"
-                          placeholder="Add exclusion item..."
+                          useDefaultsChecked={useLocationDefaults.exclusions}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('exclusions', checked)}
+                          description="Exclusions for this tour package"
                         />
                       </div>
                     </TabsContent>
@@ -2624,25 +3184,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <TabsContent value="notes" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="importantNotes"
                           label="Important Notes"
                           loading={loading}
-                          checked={useLocationDefaults.importantNotes}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('importantNotes', checked)}
-                          switchDescription="Use Switch to Copy Important Notes from the Selected Location"
-                          placeholder="Add important note..."
+                          useDefaultsChecked={useLocationDefaults.importantNotes}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('importantNotes', checked)}
+                          description="Important notes for this tour package"
                         />
-
+                        
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="usefulTip"
                           label="Useful Tips"
                           loading={loading}
-                          checked={useLocationDefaults.usefulTip}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('usefulTip', checked)}
-                          switchDescription="Use Switch to Copy Useful Tips from the Selected Location"
-                          placeholder="Add useful tip..."
+                          useDefaultsChecked={useLocationDefaults.usefulTip}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('usefulTip', checked)}
+                          description="Useful tips for this tour package"
                         />
                       </div>
                     </TabsContent>
@@ -2650,25 +3208,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <TabsContent value="cancellation" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="cancellationPolicy"
                           label="General Cancellation Policy"
                           loading={loading}
-                          checked={useLocationDefaults.cancellationPolicy}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
-                          switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
-                          placeholder="Add cancellation policy item..."
+                          useDefaultsChecked={useLocationDefaults.cancellationPolicy}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
+                          description="Cancellation policy for this tour package"
                         />
 
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="airlineCancellationPolicy"
                           label="Airline Cancellation Policy"
                           loading={loading}
-                          checked={useLocationDefaults.airlineCancellationPolicy}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
-                          switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
-                          placeholder="Add airline cancellation policy item..."
+                          useDefaultsChecked={useLocationDefaults.airlineCancellationPolicy}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
+                          description="Airline cancellation policy for this tour package"
                         />
                       </div>
                     </TabsContent>
@@ -2676,25 +3232,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <TabsContent value="terms" className="space-y-4 mt-4">
                       <div className="grid gap-4">
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="paymentPolicy"
                           label="Payment Policy"
                           loading={loading}
-                          checked={useLocationDefaults.paymentPolicy}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
-                          switchDescription="Use Switch to Copy Payment Policy from the Selected Location"
-                          placeholder="Add payment policy item..."
+                          useDefaultsChecked={useLocationDefaults.paymentPolicy}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('paymentPolicy', checked)}
+                          description="Payment policy for this tour package"
                         />
 
                         <PolicyField
-                          control={form.control}
+                          form={form}
                           name="termsconditions"
                           label="Terms and Conditions"
                           loading={loading}
-                          checked={useLocationDefaults.termsconditions}
-                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
-                          switchDescription="Use Switch to Copy Terms and Conditions from the Selected Location"
-                          placeholder="Add terms and conditions item..."
+                          useDefaultsChecked={useLocationDefaults.termsconditions}
+                          onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('termsconditions', checked)}
+                          description="Terms and conditions for this tour package"
                         />
                       </div>
                     </TabsContent>
@@ -2728,3 +3282,141 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     </>
   )
 }
+
+// Transport Details Component for multiple vehicles
+const TransportDetailsComponent = ({ 
+  itinerary, 
+  index, 
+  value, 
+  onChange, 
+  loading 
+}: { 
+  itinerary: any; 
+  index: number; 
+  value: any[]; 
+  onChange: (value: any[]) => void; 
+  loading: boolean;
+}) => {
+  // Initialize transportDetails array if it doesn't exist
+  const transportDetails = itinerary.transportDetails || [];
+
+  const handleAddVehicle = () => {
+    const newTransportDetails = [...transportDetails, { 
+      vehicleType: '', 
+      quantity: 1,
+      capacity: ''
+    }];
+    
+    const newItineraries = [...value];
+    newItineraries[index] = { 
+      ...itinerary, 
+      transportDetails: newTransportDetails 
+    };
+    onChange(newItineraries);
+  };  const handleRemoveVehicle = (vehicleIndex: number) => {
+    const newTransportDetails: TransportDetailInput[] = transportDetails.filter((_: TransportDetailInput, i: number) => i !== vehicleIndex);
+    
+    const newItineraries = [...value];
+    newItineraries[index] = { 
+      ...itinerary, 
+      transportDetails: newTransportDetails 
+    };
+    onChange(newItineraries);
+  };
+
+  const updateVehicleDetail = (vehicleIndex: number, field: string, newValue: any) => {
+    const newTransportDetails = [...transportDetails];
+    newTransportDetails[vehicleIndex] = {
+      ...newTransportDetails[vehicleIndex],
+      [field]: field === 'quantity' ? parseInt(newValue) || 1 : newValue
+    };
+    
+    const newItineraries = [...value];
+    newItineraries[index] = { 
+      ...itinerary, 
+      transportDetails: newTransportDetails 
+    };
+    onChange(newItineraries);
+  };
+
+  return (
+    <div className="space-y-3 border p-3 rounded-md">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold">Transport Details</h4>
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm" 
+          onClick={handleAddVehicle}
+          disabled={loading}
+        >
+          <Plus className="h-4 w-4 mr-1" /> Add Vehicle
+        </Button>
+      </div>
+
+      {transportDetails.length === 0 ? (
+        <p className="text-sm text-gray-500">No vehicles added. Click "Add Vehicle" to add transport.</p>
+      ) : (
+        <div className="space-y-3">
+          {transportDetails.map((vehicle: any, vehicleIndex: number) => (
+            <div key={vehicleIndex} className="grid grid-cols-1 md:grid-cols-4 gap-2 py-2 border-b last:border-0">
+              <div>
+                <Select
+                  disabled={loading}
+                  value={vehicle.vehicleType || ''}
+                  onValueChange={(newValue) => updateVehicleDetail(vehicleIndex, 'vehicleType', newValue)}
+                >
+                  <SelectTrigger>
+                    {vehicle.vehicleType || 'Select Vehicle Type'}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="Sedan">Sedan</SelectItem>
+                    <SelectItem value="SUV">SUV</SelectItem>
+                    <SelectItem value="Innova">Innova</SelectItem>
+                    <SelectItem value="Tempo Traveller">Tempo Traveller</SelectItem>
+                    <SelectItem value="Mini Bus">Mini Bus</SelectItem>
+                    <SelectItem value="Bus">Bus</SelectItem>
+                    <SelectItem value="Luxury Van">Luxury Van</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Input
+                  disabled={loading}
+                  placeholder="Capacity (e.g., 4 Seater)"
+                  value={vehicle.capacity || ''}
+                  onChange={(e) => updateVehicleDetail(vehicleIndex, 'capacity', e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <Input
+                  disabled={loading}
+                  type="number"
+                  min="1"
+                  placeholder="Quantity"
+                  value={vehicle.quantity}
+                  onChange={(e) => updateVehicleDetail(vehicleIndex, 'quantity', e.target.value)}
+                />
+              </div>
+              
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleRemoveVehicle(vehicleIndex)}
+                  disabled={loading}
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

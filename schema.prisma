@@ -479,7 +479,9 @@ model Itinerary {
   roomType           String?           // Added field for pricing
   mealPlan           String?           // Added field for pricing
   occupancyType      String?           // Added field for precise pricing
-  vehicleType        String?           // Added field for transport pricing
+  vehicleType        String?           // Keeping for backward compatibility
+  transportDetails   TransportDetail[] // New relation to multiple vehicles
+  roomAllocations    RoomAllocation[]  // New relation to mixed room occupancy
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -874,6 +876,36 @@ model Passenger {
   updatedAt         DateTime  @updatedAt
   
   @@index([flightTicketId])
+}
+
+// New model for multiple vehicles per itinerary day
+model TransportDetail {
+  id              String    @id @default(uuid())
+  itineraryId     String
+  itinerary       Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  vehicleType     String    // e.g., "Sedan", "SUV", "Tempo Traveller", "Bus"
+  quantity        Int       @default(1) // Number of vehicles of this type
+  capacity        Int?      // How many passengers this vehicle can accommodate
+  description     String?   // Any additional details about the vehicle
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([itineraryId])
+}
+
+// New model for handling mixed room occupancy for multiple families
+model RoomAllocation {
+  id              String    @id @default(uuid())
+  itineraryId     String
+  itinerary       Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  roomType        String    // e.g., "Standard", "Deluxe", "Suite"
+  occupancyType   String    // e.g., "Single", "Double", "Triple", "Child with Bed", "Child without Bed"
+  quantity        Int       @default(1) // Number of rooms of this type/occupancy
+  guestNames      String?   // Optional names of guests in these rooms
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([itineraryId])
 }
 
 model Notification {

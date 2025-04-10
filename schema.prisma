@@ -901,6 +901,7 @@ model RoomAllocation {
   roomType        String    // e.g., "Standard", "Deluxe", "Suite"
   occupancyType   String    // e.g., "Single", "Double", "Triple", "Child with Bed", "Child without Bed"
   quantity        Int       @default(1) // Number of rooms of this type/occupancy
+  mealPlan        String?   // e.g., "CP (Breakfast Only)", "MAP (Breakfast + Dinner)", "AP (All Meals)", "EP (No Meals)"
   guestNames      String?   // Optional names of guests in these rooms
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

@@ -42,6 +42,7 @@ interface PricingData {
     rooms: Array<{
       roomType: string;
       occupancyType: string;
+      mealPlan?: string;
       quantity: number;
       pricePerRoom?: number;
       totalCost?: number;
@@ -77,7 +78,8 @@ interface TransportDetailItem {
 
 // Updated to match the full itinerary structure
 interface ItineraryItem {
-  itineraryImages?: { url: string }[];  itineraryTitle?: string;
+  itineraryImages?: { url: string }[];  
+  itineraryTitle?: string;
   itineraryDescription?: string;
   activities?: any[];
   hotelId: string;
@@ -91,12 +93,13 @@ interface ItineraryItem {
   mealPlan?: string;
   occupancyType?: string;
   vehicleType?: string; // Kept for backward compatibility
-  transportDetails?: TransportDetailItem[]; // Added support for multiple vehicles
+  transportDetails?: TransportDetailItem[]; // Added support for multiple vehicles  
   roomAllocations?: Array<{
     roomType?: string;
     occupancyType: string;
     quantity: number | string;
     guestNames?: string;
+    mealPlan?: string; // Added meal plan field for each room
   }>; // Added support for mixed occupancy room allocations
 }
 
@@ -104,6 +107,7 @@ export const useAutoCalculatePrice = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
   const calculatePackagePrice = async (data: {
     tourStartsFrom: Date;
     tourEndsOn: Date;
@@ -130,20 +134,23 @@ export const useAutoCalculatePrice = () => {
       // Transform the itineraries to include only the data needed by the API
       const transformedData = {
         ...data,
-        itineraries: validItineraries.map(item => {          // Process room allocations - use explicit allocations if available
+        itineraries: validItineraries.map(item => {
+          // Process room allocations - use explicit allocations if available
           // Ensure we have proper room type and occupancy type to find correct pricing
           const roomAllocationData = item.roomAllocations && item.roomAllocations.length > 0 
             ? item.roomAllocations.map(room => ({
                 roomType: room.roomType || item.roomType || item.roomCategory || 'Standard',
                 occupancyType: room.occupancyType || 'Double',
                 quantity: parseInt(room.quantity?.toString() || '1'),
-                guestNames: room.guestNames || ''
+                guestNames: room.guestNames || '',
+                mealPlan: room.mealPlan || item.mealPlan || 'CP' // Include meal plan from room or fallback to itinerary
               }))
             : [{
                 roomType: item.roomType || item.roomCategory || 'Standard',
                 occupancyType: item.occupancyType || 'Double',
                 quantity: parseInt(item.numberofRooms || '1'),
-                guestNames: ''
+                guestNames: '',
+                mealPlan: item.mealPlan || 'CP' // Add default meal plan
               }];
           
           // Process transport details - ensure proper structure

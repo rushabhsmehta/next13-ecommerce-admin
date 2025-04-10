@@ -14,6 +14,7 @@ interface RoomAllocationInput {
   occupancyType: string;
   quantity: number;
   guestNames?: string;
+  mealPlan?: string; // Add meal plan field
 }
 
 interface ItineraryInput {
@@ -151,31 +152,41 @@ export async function POST(req: Request) {
                 roomsNeeded: roomConfig.totalRooms,
                 mealPlan: dayItinerary.mealPlan || "N/A",
                 warning: `No pricing found for room type: ${roomType}`
-              });
-            } else {
+              });            } else {
               // Calculate cost for each room type needed
                 // Check if roomAllocations array is present and has items
               if (dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0) {
                 // Process mixed occupancy room configurations
                 let roomCostForDay = 0;
-                let roomBreakdown = [];
-                
-                for (const room of dayItinerary.roomAllocations) {
-                  // Find pricing for this room type and occupancy
-                  const roomPricing = matchingPricing.find(p => 
+                let roomBreakdown = [];                  for (const room of dayItinerary.roomAllocations) {
+                  // First try to find exact match with meal plan
+                  let roomPricing = hotelPricing.find(p => 
                     p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() && 
-                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase());
+                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase() && 
+                    p.mealPlan && room.mealPlan && 
+                    p.mealPlan.toLowerCase() === room.mealPlan.toLowerCase());
+                  
+                  // If no exact meal plan match, find by room type and occupancy type only
+                  if (!roomPricing) {
+                    roomPricing = hotelPricing.find(p => 
+                      p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() && 
+                      p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase());
+                    
+                    if (roomPricing) {
+                      console.log(`Found fallback pricing for ${room.roomType}/${room.occupancyType} without exact meal plan match`);
+                    }
+                  }
                   
                   if (roomPricing) {
                     // Calculate cost for this room configuration
                     const roomQuantity = room.quantity || 1;
                     const roomCost = roomPricing.price * roomQuantity;
                     roomCostForDay += roomCost;
-                    
-                    // Add to breakdown for detailed reporting
+                      // Add to breakdown for detailed reporting
                     roomBreakdown.push({
                       roomType: room.roomType || roomType,
                       occupancyType: room.occupancyType,
+                      mealPlan: room.mealPlan || dayItinerary.mealPlan || 'N/A', // Add meal plan information
                       quantity: roomQuantity,
                       pricePerRoom: roomPricing.price,
                       totalCost: roomCost,
@@ -191,9 +202,11 @@ export async function POST(req: Request) {
                     });
                   }
                 }
-                
-                // Add the total room cost for the day
+                  // Add the total room cost for the day                console.log(`Day ${dayItinerary.dayNumber}: Adding room cost of ${roomCostForDay} to daily cost`);
                 dailyCost += roomCostForDay;
+                // Explicitly add to room cost tracking
+                pricingData.roomCost += roomCostForDay;
+                console.log(`Day ${dayItinerary.dayNumber}: Total daily cost after adding room cost: ${dailyCost}`);
                 
                 // Store the room breakdown for this day
                 pricingData.roomAllocations = pricingData.roomAllocations || [];
@@ -439,29 +452,59 @@ export async function POST(req: Request) {
       pricingData.totalPrice += totalDailyCost;
       pricingData.roomCost += dailyCost;
       pricingData.mealCost += mealCost;
-      
-      // Save detailed breakdown
+        // Save detailed breakdown
       if (dayItinerary.hotelId || transportCost > 0) {
         const hotel = dayItinerary.hotelId ? await prismadb.hotel.findUnique({
           where: { id: dayItinerary.hotelId },
           select: { name: true }
-        }) : null;
-
-        pricingData.breakdown.push({
-          dayNumber: dayItinerary.dayNumber,
-          date: currentDate.toISOString().split('T')[0],
-          hotelName: hotel ? hotel.name : "N/A",
-          roomType: dayItinerary.roomType || dayItinerary.roomCategory || "Standard",
-          basePrice: dailyCost > 0 ? dailyCost / (parseInt(dayItinerary.numberofRooms || "1")) : 0,
-          roomCost: dailyCost,
-          mealCost: mealCost,
-          transportCost: transportCost,
-          transportType: transportDescription,
-          total: totalDailyCost,
-          roomsBreakdown: `Double: ${roomConfig.doubleRooms}, Triple: ${roomConfig.tripleRooms}, Single: ${roomConfig.singleRooms}`,
-          roomsNeeded: roomConfig.totalRooms,
-          mealPlan: dayItinerary.mealPlan || "N/A"
-        });
+        }) : null;        // Generate a summary of meal plans if room allocations exist
+        // Using a more compatible approach without Set
+        const mealPlanSummary = dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0
+          ? Array.from(new Set(dayItinerary.roomAllocations.map((r: RoomAllocationInput) => r.mealPlan || dayItinerary.mealPlan || 'N/A'))).join(', ')
+          : dayItinerary.mealPlan || "N/A";
+        
+        // Check if an entry for this day already exists in the breakdown
+        const existingDayIndex = pricingData.breakdown.findIndex(
+          item => item.dayNumber === dayItinerary.dayNumber && 
+                 item.date === currentDate.toISOString().split('T')[0]
+        );
+        
+        if (existingDayIndex >= 0) {
+          // Update the existing entry instead of creating a new one
+          const existingDay = pricingData.breakdown[existingDayIndex];
+          existingDay.roomCost += dailyCost;
+          existingDay.mealCost += mealCost;
+          existingDay.transportCost += transportCost;
+          existingDay.total += totalDailyCost;
+          
+          // Merge meal plans if they differ
+          if (existingDay.mealPlan !== mealPlanSummary && mealPlanSummary !== 'N/A') {
+            existingDay.mealPlan = [existingDay.mealPlan, mealPlanSummary]
+              .filter(plan => plan && plan !== 'N/A')
+              .join(', ') || 'N/A';
+          }
+          
+          console.log(`Updated existing day ${dayItinerary.dayNumber} in breakdown, new total: ${existingDay.total}`);
+        } else {
+          // Create a new entry if this is the first occurrence of this day
+          pricingData.breakdown.push({
+            dayNumber: dayItinerary.dayNumber,
+            date: currentDate.toISOString().split('T')[0],
+            hotelName: hotel ? hotel.name : "N/A",
+            roomType: dayItinerary.roomType || dayItinerary.roomCategory || "Standard",
+            basePrice: dailyCost > 0 ? dailyCost / (parseInt(dayItinerary.numberofRooms || "1")) : 0,
+            roomCost: dailyCost,
+            mealCost: mealCost,
+            transportCost: transportCost,
+            transportType: transportDescription,
+            total: totalDailyCost,
+            roomsBreakdown: `Double: ${roomConfig.doubleRooms}, Triple: ${roomConfig.tripleRooms}, Single: ${roomConfig.singleRooms}`,
+            roomsNeeded: roomConfig.totalRooms,
+            mealPlan: mealPlanSummary
+          });
+          
+          console.log(`Added new day ${dayItinerary.dayNumber} to breakdown, total: ${totalDailyCost}`);
+        }
       }
     }
     

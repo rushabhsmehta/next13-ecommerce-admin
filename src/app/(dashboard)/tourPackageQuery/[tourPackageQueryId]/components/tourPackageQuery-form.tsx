@@ -132,7 +132,7 @@ interface CalculationResult {
   totalRooms: number;
   breakdown: CalculationDayBreakdown[];
   datePeriodBreakdown?: DatePeriodBreakdown[];
-  roomAllocations?: RoomAllocationBreakdown[];  transportDetails?: Array<{ 
+  roomAllocations?: RoomAllocationBreakdown[]; transportDetails?: Array<{
     vehicleType: string;
     quantity: number;
     capacity?: string;
@@ -146,14 +146,15 @@ interface CalculationResult {
 }
 
 // Auto Calculate Price Button component with proper types
-const AutoCalculatePriceButton = ({ 
-  form, 
-  hotels 
-}: { 
+const AutoCalculatePriceButton = ({
+  form,
+  hotels
+}: {
   form: UseFormReturn<TourPackageQueryFormValues>;
   hotels: Hotel[];
 }) => {
-  const { calculatePackagePrice, isCalculating, error } = useAutoCalculatePrice();  const [showError, setShowError] = useState(false);
+  const { calculatePackagePrice, isCalculating, error } = useAutoCalculatePrice(); 
+  const [showError, setShowError] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [calculationDetails, setCalculationDetails] = useState<CalculationResult | null>(null);
   const [markupType, setMarkupType] = useState<'percentage' | 'fixed'>('percentage');
@@ -181,7 +182,7 @@ const AutoCalculatePriceButton = ({
       }
 
       // Check if we have valid itineraries with hotels
-      const validItineraries = itineraries.filter(itinerary => 
+      const validItineraries = itineraries.filter(itinerary =>
         itinerary.hotelId && hotels.some(hotel => hotel.id === itinerary.hotelId)
       );
 
@@ -189,16 +190,24 @@ const AutoCalculatePriceButton = ({
         toast.error('Please select at least one hotel in your itinerary');
         return;
       }      // Call the API to calculate price
-      // Ensure all required fields have values and types are correct
+      // Ensure all required fields have values and types are correct  
       const processedItineraries = itineraries.map(itinerary => ({
         ...itinerary,
+        roomType: itinerary.roomType || itinerary.roomCategory || 'Standard', // Ensure roomType is set
+        occupancyType: itinerary.occupancyType || 'Double', // Ensure default occupancy type
         roomAllocations: itinerary.roomAllocations?.map(room => ({
           ...room,
-          // Ensure occupancyType is always a string, default to 'Double' if undefined
+          roomType: room.roomType || itinerary.roomType || itinerary.roomCategory || 'Standard', // Ensure roomType is set
           occupancyType: room.occupancyType || 'Double'
-        })) || []
+        })) || [{
+          // Add default room allocation if none exists
+          roomType: itinerary.roomType || itinerary.roomCategory || 'Standard',
+          occupancyType: itinerary.occupancyType || 'Double',
+          quantity: parseInt(itinerary.numberofRooms || '1'),
+          guestNames: ''
+        }]
       }));
-      
+
       const result = await calculatePackagePrice({
         tourStartsFrom,
         tourEndsOn,
@@ -212,7 +221,7 @@ const AutoCalculatePriceButton = ({
         // Store detailed calculation results
         setCalculationDetails(result);
         setShowResults(true);
-        
+
         // Calculate markup if any
         let finalPrice = result.totalPrice;
         if (markupValue > 0) {
@@ -223,21 +232,21 @@ const AutoCalculatePriceButton = ({
           }
           setMarkupedPrice(finalPrice);
         }
-        
+
         // Update form with calculated results
         const updatedPricingSection = [...result.pricingSection];
-        
+
         // Add markup to pricing section if applied
         if (markupValue > 0) {
           updatedPricingSection.push({
             name: markupType === 'percentage' ? `Markup (${markupValue}%)` : 'Markup (Fixed)',
-            price: markupType === 'percentage' 
+            price: markupType === 'percentage'
               ? `₹${Math.round((result.totalPrice * markupValue / 100)).toLocaleString()}`
               : `₹${Math.round(markupValue).toLocaleString()}`,
             description: 'Additional charges'
           });
         }
-        
+
         form.setValue('pricingSection', updatedPricingSection);
         form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
 
@@ -261,25 +270,25 @@ const AutoCalculatePriceButton = ({
         finalPrice = finalPrice + markupValue;
       }
       setMarkupedPrice(finalPrice);
-      
+
       // Update form with marked up price
       const updatedPricingSection = [...calculationDetails.pricingSection];
-      
+
       // Remove existing markup entry if any
       const markupIndex = updatedPricingSection.findIndex(p => p.name.includes('Markup'));
       if (markupIndex !== -1) {
         updatedPricingSection.splice(markupIndex, 1);
       }
-      
+
       // Add new markup entry
       updatedPricingSection.push({
         name: markupType === 'percentage' ? `Markup (${markupValue}%)` : 'Markup (Fixed)',
-        price: markupType === 'percentage' 
+        price: markupType === 'percentage'
           ? `₹${Math.round((calculationDetails.totalPrice * markupValue / 100)).toLocaleString()}`
           : `₹${Math.round(markupValue).toLocaleString()}`,
         description: 'Additional charges'
       });
-      
+
       form.setValue('pricingSection', updatedPricingSection);
       form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
     }
@@ -304,19 +313,19 @@ const AutoCalculatePriceButton = ({
                 <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Input 
-              type="number" 
-              className="w-24" 
-              placeholder={markupType === 'percentage' ? "%" : "₹"} 
+
+            <Input
+              type="number"
+              className="w-24"
+              placeholder={markupType === 'percentage' ? "%" : "₹"}
               value={markupValue || ''}
               onChange={(e) => setMarkupValue(parseFloat(e.target.value) || 0)}
               disabled={isCalculating}
             />
-            
-            <Button 
-              type="button" 
-              onClick={applyMarkup} 
+
+            <Button
+              type="button"
+              onClick={applyMarkup}
               variant="outline"
               size="sm"
               disabled={isCalculating || !calculationDetails}
@@ -325,9 +334,9 @@ const AutoCalculatePriceButton = ({
             </Button>
           </div>
         </div>
-        
-        <Button 
-          type="button" 
+
+        <Button
+          type="button"
           onClick={handleAutoCalculate}
           disabled={isCalculating}
           variant="secondary"
@@ -346,7 +355,7 @@ const AutoCalculatePriceButton = ({
           )}
         </Button>
       </div>
-      
+
       {showError && error && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mt-2 mb-4">
           <p className="text-sm font-medium flex items-center">
@@ -362,9 +371,9 @@ const AutoCalculatePriceButton = ({
               Price Calculation Details
             </h3>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="text-xs px-2 py-1 h-7 bg-white"
                 onClick={() => {
                   // Toggle all sections open/closed
@@ -372,7 +381,7 @@ const AutoCalculatePriceButton = ({
                   const allClosed = Array.from(allSections).every(
                     el => el.getAttribute('data-state') === 'closed'
                   );
-                  
+
                   allSections.forEach(section => {
                     if (allClosed) {
                       section.setAttribute('data-state', 'open');
@@ -385,9 +394,9 @@ const AutoCalculatePriceButton = ({
               >
                 {expanded ? 'Collapse All' : 'Expand All'}
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-800"
                 onClick={() => {
                   // Print or export to PDF logic could be added here
@@ -401,7 +410,7 @@ const AutoCalculatePriceButton = ({
               </Button>
             </div>
           </div>
-          
+
           {/* Main Summary Card - Always Visible */}
           <div className="bg-white rounded-lg p-4 shadow border border-blue-200 mb-4">
             <div className="flex items-center justify-between mb-3">
@@ -410,7 +419,7 @@ const AutoCalculatePriceButton = ({
                 {calculationDetails.breakdown.length} Days / {calculationDetails.totalRooms} Rooms
               </Badge>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="space-y-3">
                 <div>
@@ -419,7 +428,7 @@ const AutoCalculatePriceButton = ({
                     <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
                     {calculationDetails.breakdown.length > 0 && (
                       <>
-                        {calculationDetails.breakdown[0].date} - {calculationDetails.breakdown[calculationDetails.breakdown.length-1].date}
+                        {calculationDetails.breakdown[0].date} - {calculationDetails.breakdown[calculationDetails.breakdown.length - 1].date}
                       </>
                     )}
                   </div>
@@ -432,7 +441,7 @@ const AutoCalculatePriceButton = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="rounded-md bg-blue-50/50 p-3">
                 <h5 className="text-xs font-medium text-blue-800 mb-1.5">COST BREAKDOWN</h5>
                 <div className="grid grid-cols-1 gap-1.5 text-sm">
@@ -459,7 +468,7 @@ const AutoCalculatePriceButton = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="bg-gradient-to-r from-blue-100 to-blue-50 rounded-md p-3 shadow-sm">
                   <h5 className="text-sm font-medium text-blue-700 mb-1">TOTAL PACKAGE PRICE</h5>
@@ -467,7 +476,7 @@ const AutoCalculatePriceButton = ({
                     <span className="text-gray-600 text-sm">Base Price:</span>
                     <span className="font-semibold text-lg">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</span>
                   </div>
-                  
+
                   {markupedPrice && (
                     <>
                       <div className="flex items-center justify-between mt-1">
@@ -486,7 +495,7 @@ const AutoCalculatePriceButton = ({
                     </>
                   )}
                 </div>
-                
+
                 <div className="bg-blue-50/50 rounded-md p-2 text-xs text-center text-blue-600">
                   {calculationDetails.totalRooms > 0 && (
                     <div className="flex items-center justify-center">
@@ -497,7 +506,7 @@ const AutoCalculatePriceButton = ({
                 </div>
               </div>
             </div>
-            
+
             {/* Per person price section */}
             {calculationDetails.pricingSection && calculationDetails.pricingSection.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2 pt-3 border-t border-blue-100">
@@ -514,7 +523,7 @@ const AutoCalculatePriceButton = ({
               </div>
             )}
           </div>
-          
+
           {/* Room Configuration Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
@@ -531,7 +540,7 @@ const AutoCalculatePriceButton = ({
                 {calculationDetails.breakdown.length > 0 && calculationDetails.breakdown[0].roomsBreakdown || 'Room details not available'}
               </p>
             </div>
-            
+
             <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
               <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center">
                 <UtensilsCrossed className="h-4 w-4 mr-2" />
@@ -558,7 +567,7 @@ const AutoCalculatePriceButton = ({
                 )}
               </div>
             </div>
-            
+
             <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
               <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center">
                 <Car className="h-4 w-4 mr-2" />
@@ -583,7 +592,7 @@ const AutoCalculatePriceButton = ({
               </div>
             </div>
           </div>
-            {/* Collapsible Sections */}
+          {/* Collapsible Sections */}
           <Accordion type="multiple" className="mt-4 space-y-2">
             {/* Day-by-Day Breakdown Section */}
             {calculationDetails.breakdown.length > 0 && (
@@ -617,8 +626,8 @@ const AutoCalculatePriceButton = ({
                         </thead>
                         <tbody>
                           {calculationDetails.breakdown.map((day, index) => (
-                            <tr 
-                              key={index} 
+                            <tr
+                              key={index}
                               className={`${index % 2 === 0 ? 'bg-white' : 'bg-blue-50'} border-b border-blue-100/30 hover:bg-blue-50/70 transition-colors`}
                             >
                               <td className="py-2 px-2 font-medium">{day.dayNumber}</td>
@@ -646,9 +655,9 @@ const AutoCalculatePriceButton = ({
                               <td className="py-2 px-2">
                                 <Badge variant="outline" className={
                                   day.mealPlan?.includes('AP') ? 'bg-green-50 text-green-700 border-green-200' :
-                                  day.mealPlan?.includes('MAP') ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                  day.mealPlan?.includes('CP') ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                  'bg-gray-50 text-gray-700 border-gray-200'
+                                    day.mealPlan?.includes('MAP') ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                      day.mealPlan?.includes('CP') ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                        'bg-gray-50 text-gray-700 border-gray-200'
                                 }>
                                   {day.mealPlan || 'None'}
                                 </Badge>
@@ -680,7 +689,7 @@ const AutoCalculatePriceButton = ({
                 </AccordionContent>
               </AccordionItem>
             )}
-            
+
             {/* Room Allocation Details Section */}
             {calculationDetails.roomAllocations && calculationDetails.roomAllocations.length > 0 && (
               <AccordionItem value="room-allocation" className="border rounded-md overflow-hidden" data-price-section>
@@ -707,11 +716,11 @@ const AutoCalculatePriceButton = ({
                         </tr>
                       </thead>
                       <tbody>
-                        {calculationDetails.roomAllocations.flatMap((day) => 
+                        {calculationDetails.roomAllocations.flatMap((day) =>
                           day.rooms.map((room, roomIndex) => (
                             <tr key={`${day.dayNumber}-${roomIndex}`} className={
-                              day.dayNumber % 2 === 0 ? 
-                                (roomIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50') : 
+                              day.dayNumber % 2 === 0 ?
+                                (roomIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50') :
                                 (roomIndex % 2 === 0 ? 'bg-blue-50' : 'bg-blue-100/30')
                             }>
                               <td className="py-1 px-2">{day.dayNumber}</td>
@@ -732,7 +741,7 @@ const AutoCalculatePriceButton = ({
                 </AccordionContent>
               </AccordionItem>
             )}
-            
+
             {/* Transport Details Section */}
             {calculationDetails.transportDetails && calculationDetails.transportDetails.length > 0 && (
               <AccordionItem value="transport-details" className="border rounded-md overflow-hidden" data-price-section>
@@ -774,7 +783,7 @@ const AutoCalculatePriceButton = ({
                 </AccordionContent>
               </AccordionItem>
             )}
-            
+
             {/* Seasonal Pricing Section */}
             {calculationDetails.datePeriodBreakdown && calculationDetails.datePeriodBreakdown.length > 0 && (
               <AccordionItem value="seasonal-pricing" className="border rounded-md overflow-hidden" data-price-section>
@@ -809,7 +818,7 @@ const AutoCalculatePriceButton = ({
               </AccordionItem>
             )}
           </Accordion>
-          
+
           <div className="mt-6 text-right flex items-center justify-end">
             <Button
               variant="outline"
@@ -834,7 +843,7 @@ const AutoCalculatePriceButton = ({
           </div>
         </div>
       )}
-      
+
       <p className="text-sm text-gray-500 max-w-md text-right">
         Automatically calculate package pricing based on selected hotels and dates
       </p>
@@ -1293,7 +1302,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           activityDescription: activity.activityDescription || ''
         })) || [],
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
-        hotelId: itinerary.hotelId || '',        numberofRooms: itinerary.numberofRooms ?? '',
+        hotelId: itinerary.hotelId || '', numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         roomType: itinerary.roomType ?? '', // Added roomType field for pricing
         mealPlan: itinerary.mealPlan ?? '', // Added mealPlan field for pricing
@@ -1429,7 +1438,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleSaveToMasterItinerary = async (itinerary: any) => {
     try {
       setLoading(true);
-      
+
       // Prepare the data for saving to master itinerary
       const masterItineraryData = {
         itineraryMasterTitle: itinerary.itineraryTitle,
@@ -1450,13 +1459,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         roomCategory: itinerary.roomCategory,
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.join('-') : ''
       };
-      
+
       // Send to existing API endpoint
       const response = await axios.post('/api/itinerariesMaster', masterItineraryData);
-      
+
       toast.success('Saved to Master Itinerary successfully!');
       console.log('Saved to master itinerary:', response.data);
-      
+
     } catch (error: any) {
       console.error('Error saving to master itinerary:', error);
       toast.error(error.response?.data?.message || 'Failed to save to Master Itinerary');
@@ -3008,7 +3017,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <AutoCalculatePriceButton form={form} hotels={hotels} />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-8">            
+                  <div className="grid grid-cols-3 gap-8">
                     <FormField
                       control={form.control}
                       name="totalPrice"
@@ -3168,7 +3177,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('inclusions', checked)}
                           description="Inclusions for this tour package"
                         />
-                        
+
                         <PolicyField
                           form={form}
                           name="exclusions"
@@ -3192,7 +3201,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           onUseDefaultsChange={(checked: boolean) => handleUseLocationDefaultsChange('importantNotes', checked)}
                           description="Important notes for this tour package"
                         />
-                        
+
                         <PolicyField
                           form={form}
                           name="usefulTip"
@@ -3284,42 +3293,42 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 }
 
 // Transport Details Component for multiple vehicles
-const TransportDetailsComponent = ({ 
-  itinerary, 
-  index, 
-  value, 
-  onChange, 
-  loading 
-}: { 
-  itinerary: any; 
-  index: number; 
-  value: any[]; 
-  onChange: (value: any[]) => void; 
+const TransportDetailsComponent = ({
+  itinerary,
+  index,
+  value,
+  onChange,
+  loading
+}: {
+  itinerary: any;
+  index: number;
+  value: any[];
+  onChange: (value: any[]) => void;
   loading: boolean;
 }) => {
   // Initialize transportDetails array if it doesn't exist
   const transportDetails = itinerary.transportDetails || [];
 
   const handleAddVehicle = () => {
-    const newTransportDetails = [...transportDetails, { 
-      vehicleType: '', 
+    const newTransportDetails = [...transportDetails, {
+      vehicleType: '',
       quantity: 1,
       capacity: ''
     }];
-    
+
     const newItineraries = [...value];
-    newItineraries[index] = { 
-      ...itinerary, 
-      transportDetails: newTransportDetails 
+    newItineraries[index] = {
+      ...itinerary,
+      transportDetails: newTransportDetails
     };
     onChange(newItineraries);
-  };  const handleRemoveVehicle = (vehicleIndex: number) => {
+  }; const handleRemoveVehicle = (vehicleIndex: number) => {
     const newTransportDetails: TransportDetailInput[] = transportDetails.filter((_: TransportDetailInput, i: number) => i !== vehicleIndex);
-    
+
     const newItineraries = [...value];
-    newItineraries[index] = { 
-      ...itinerary, 
-      transportDetails: newTransportDetails 
+    newItineraries[index] = {
+      ...itinerary,
+      transportDetails: newTransportDetails
     };
     onChange(newItineraries);
   };
@@ -3330,11 +3339,11 @@ const TransportDetailsComponent = ({
       ...newTransportDetails[vehicleIndex],
       [field]: field === 'quantity' ? parseInt(newValue) || 1 : newValue
     };
-    
+
     const newItineraries = [...value];
-    newItineraries[index] = { 
-      ...itinerary, 
-      transportDetails: newTransportDetails 
+    newItineraries[index] = {
+      ...itinerary,
+      transportDetails: newTransportDetails
     };
     onChange(newItineraries);
   };
@@ -3343,10 +3352,10 @@ const TransportDetailsComponent = ({
     <div className="space-y-3 border p-3 rounded-md">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold">Transport Details</h4>
-        <Button 
-          type="button" 
-          variant="outline" 
-          size="sm" 
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
           onClick={handleAddVehicle}
           disabled={loading}
         >
@@ -3381,7 +3390,7 @@ const TransportDetailsComponent = ({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div>
                 <Input
                   disabled={loading}
@@ -3390,7 +3399,7 @@ const TransportDetailsComponent = ({
                   onChange={(e) => updateVehicleDetail(vehicleIndex, 'capacity', e.target.value)}
                 />
               </div>
-              
+
               <div>
                 <Input
                   disabled={loading}
@@ -3401,7 +3410,7 @@ const TransportDetailsComponent = ({
                   onChange={(e) => updateVehicleDetail(vehicleIndex, 'quantity', e.target.value)}
                 />
               </div>
-              
+
               <div className="flex justify-end">
                 <Button
                   type="button"

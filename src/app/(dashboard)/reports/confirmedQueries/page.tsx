@@ -36,13 +36,13 @@ const confirmedTourPackageQueryPage = async ({
       lte: validEndDate
     }
   };
-
   const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
     where: whereClause,
     include: {
       images: true,
       location: true,
       flightDetails: true,
+      associatePartner: true,
       itineraries: {
         include: {
           itineraryImages: true,
@@ -64,13 +64,12 @@ const confirmedTourPackageQueryPage = async ({
     }
   });
  
-  
-  const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
+    const formattedtourPackageQuery: TourPackageQueryColumn[] = tourPackageQuery.map((item) => ({
     id: item.id,
     tourPackageQueryNumber: item.tourPackageQueryNumber ?? '',
     tourPackageQueryName: item.tourPackageQueryName ?? '',
     customerName: item.customerName ?? '',
-    assignedTo: item.assignedTo ?? '',
+    assignedTo: item.associatePartner?.name ?? item.assignedTo ?? '',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     customerNumber: item.customerNumber ?? '',

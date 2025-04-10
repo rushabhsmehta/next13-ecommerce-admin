@@ -20,24 +20,19 @@ interface RoomAllocationInput {
 interface ItineraryInput {
   hotelId: string;
   locationId?: string;
-  roomCategory: string;
   numberofRooms: string;
   dayNumber: number;
   mealsIncluded?: string[];
-  roomType?: string;        // New field
-  mealPlan?: string;        // New field
-  occupancyType?: string;   // New field
-  vehicleType?: string;     // Kept for backward compatibility
-  transportDetails?: TransportDetailInput[]; // Added for multiple vehicles support
-  roomAllocations?: RoomAllocationInput[]; // Added for mixed occupancy support
+  transportDetails?: TransportDetailInput[]; // Using this for vehicle information
+  roomAllocations?: RoomAllocationInput[]; // Using this for room occupancy information
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { 
-      tourStartsFrom, 
-      tourEndsOn, 
+    const {
+      tourStartsFrom,
+      tourEndsOn,
       itineraries,
       numAdults,
       numChild5to12,
@@ -54,7 +49,7 @@ export async function POST(req: Request) {
 
     const startDate = new Date(tourStartsFrom);
     const endDate = new Date(tourEndsOn);
-    
+
     // Calculate total tour duration
     const tourDurationDays = differenceInDays(endDate, startDate) + 1;    // Initialize pricing data
     const pricingData = {
@@ -79,7 +74,7 @@ export async function POST(req: Request) {
     const adultsCount = parseInt(numAdults || "2");
     const childrenCount = parseInt(numChild5to12 || "0");
     const infantsCount = parseInt(numChild0to5 || "0");
-    
+
     // Calculate optimal room configuration, taking into account specified occupancy type
     const roomConfig = calculateRoomConfiguration(adultsCount, childrenCount, infantsCount, itineraries);
     pricingData.totalRooms = roomConfig.totalRooms;
@@ -88,10 +83,10 @@ export async function POST(req: Request) {
     for (let day = 0; day < tourDurationDays; day++) {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + day);
-      
+
       // Find the itinerary for this day (match by dayNumber)
       const dayItinerary = itineraries.find((it: ItineraryInput) => it.dayNumber === (day + 1));
-      
+
       if (!dayItinerary) {
         // Skip days without itinerary
         continue;
@@ -119,27 +114,25 @@ export async function POST(req: Request) {
               startDate: { lte: currentDate },
               endDate: { gte: currentDate }
             }
-          });
-
-          if (hotelPricing.length === 0) {
+          }); if (hotelPricing.length === 0) {
             // No pricing found for this date, use fallback pricing
             pricingData.breakdown.push({
               dayNumber: dayItinerary.dayNumber,
               date: currentDate.toISOString().split('T')[0],
               hotelName: hotel.name,
-              roomType: dayItinerary.roomType || dayItinerary.roomCategory || "Standard",
+              roomType: "Standard", // Default room type
               basePrice: 0,
               total: 0,
               roomsNeeded: roomConfig.totalRooms,
-              mealPlan: dayItinerary.mealPlan || "N/A",
+              mealPlan: "N/A", // Default meal plan
               warning: "No pricing available for this date"
             });
           } else {
-            // Select room type-specific pricing (using either roomType or roomCategory)
-            const roomType = dayItinerary.roomType || dayItinerary.roomCategory || "Standard";
-            const matchingPricing = hotelPricing.filter(price => 
+            // Select room type-specific pricing from room allocations or default to Standard
+            const roomType = "Standard"; // Default to Standard if no specific room allocations
+            const matchingPricing = hotelPricing.filter(price =>
               price.roomType.toLowerCase() === roomType.toLowerCase());
-            
+
             if (matchingPricing.length === 0) {
               // No pricing for this room type, add warning and continue
               pricingData.breakdown.push({
@@ -150,43 +143,44 @@ export async function POST(req: Request) {
                 basePrice: 0,
                 total: 0,
                 roomsNeeded: roomConfig.totalRooms,
-                mealPlan: dayItinerary.mealPlan || "N/A",
+                mealPlan: "N/A",
                 warning: `No pricing found for room type: ${roomType}`
-              });            } else {
+              });
+            } else {
               // Calculate cost for each room type needed
-                // Check if roomAllocations array is present and has items
+              // Check if roomAllocations array is present and has items
               if (dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0) {
                 // Process mixed occupancy room configurations
                 let roomCostForDay = 0;
-                let roomBreakdown = [];                  for (const room of dayItinerary.roomAllocations) {
+                let roomBreakdown = []; for (const room of dayItinerary.roomAllocations) {
                   // First try to find exact match with meal plan
-                  let roomPricing = hotelPricing.find(p => 
-                    p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() && 
-                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase() && 
-                    p.mealPlan && room.mealPlan && 
+                  let roomPricing = hotelPricing.find(p =>
+                    p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() &&
+                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase() &&
+                    p.mealPlan && room.mealPlan &&
                     p.mealPlan.toLowerCase() === room.mealPlan.toLowerCase());
-                  
+
                   // If no exact meal plan match, find by room type and occupancy type only
                   if (!roomPricing) {
-                    roomPricing = hotelPricing.find(p => 
-                      p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() && 
+                    roomPricing = hotelPricing.find(p =>
+                      p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() &&
                       p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase());
-                    
+
                     if (roomPricing) {
                       console.log(`Found fallback pricing for ${room.roomType}/${room.occupancyType} without exact meal plan match`);
                     }
                   }
-                  
+
                   if (roomPricing) {
                     // Calculate cost for this room configuration
                     const roomQuantity = room.quantity || 1;
                     const roomCost = roomPricing.price * roomQuantity;
                     roomCostForDay += roomCost;
-                      // Add to breakdown for detailed reporting
+                    // Add to breakdown for detailed reporting
                     roomBreakdown.push({
                       roomType: room.roomType || roomType,
                       occupancyType: room.occupancyType,
-                      mealPlan: room.mealPlan || dayItinerary.mealPlan || 'N/A', // Add meal plan information
+                      mealPlan: room.mealPlan || 'N/A', // Add meal plan information from room allocation
                       quantity: roomQuantity,
                       pricePerRoom: roomPricing.price,
                       totalCost: roomCost,
@@ -202,12 +196,12 @@ export async function POST(req: Request) {
                     });
                   }
                 }
-                  // Add the total room cost for the day                console.log(`Day ${dayItinerary.dayNumber}: Adding room cost of ${roomCostForDay} to daily cost`);
+                // Add the total room cost for the day                console.log(`Day ${dayItinerary.dayNumber}: Adding room cost of ${roomCostForDay} to daily cost`);
                 dailyCost += roomCostForDay;
                 // Explicitly add to room cost tracking
                 pricingData.roomCost += roomCostForDay;
                 console.log(`Day ${dayItinerary.dayNumber}: Total daily cost after adding room cost: ${dailyCost}`);
-                
+
                 // Store the room breakdown for this day
                 pricingData.roomAllocations = pricingData.roomAllocations || [];
                 pricingData.roomAllocations.push({
@@ -217,109 +211,98 @@ export async function POST(req: Request) {
                   totalCost: roomCostForDay,
                   rooms: roomBreakdown
                 });
-                
-              } 
-              // Use specified occupancy type if available, otherwise use calculated configuration
-              else if (dayItinerary.occupancyType) {
-                // If occupancy type is explicitly specified, use that for pricing
-                const specificPricing = matchingPricing.find(p => 
-                  p.occupancyType.toLowerCase() === dayItinerary.occupancyType!.toLowerCase());
-                
-                if (specificPricing) {
-                  // Use the specified occupancy type pricing
-                  const numberOfRooms = parseInt(dayItinerary.numberofRooms || "1");
-                  dailyCost += specificPricing.price * numberOfRooms;
-                } else {
-                  // Fallback to calculated configuration
-                  calculateCostBasedOnRoomConfig(
-                    matchingPricing, 
-                    roomConfig, 
-                    dailyCost
-                  );
-                }
-              } else {                
-                // Use calculated room configuration
-                dailyCost = calculateCostBasedOnRoomConfig(
-                  matchingPricing, 
-                  roomConfig, 
-                  0  // Start with 0 to avoid accumulation
+              }
+              // Use calculated configuration since we removed the occupancyType field
+              else {
+                // Fallback to calculated configuration based on room allocations
+                calculateCostBasedOnRoomConfig(
+                  matchingPricing,
+                  roomConfig,
+                  dailyCost
                 );
               }
-              
-              // Add meal costs if not included in room price
-              // Prioritize the explicitly specified meal plan if available
-              const mealPlan = dayItinerary.mealPlan || matchingPricing[0].mealPlan || "EP (No Meals)";
-              const mealsIncluded = dayItinerary.mealsIncluded || [];
-              
-              // If hotel doesn't include all meals, calculate additional meal costs
-              if (!mealPlan.includes("AP")) { // Not All Meals
-                if (mealPlan.includes("No Meal Plan") || mealPlan.includes("EP")) {
-                  // No meals included - charge for all meals specified in the itinerary
-                  const breakfastCost = 350; // per person
-                  const lunchCost = 500; // per person
-                  const dinnerCost = 550; // per person
-                  
-                  const totalPeople = adultsCount + childrenCount; // Infants usually don't incur meal costs
-                  
-                  if (mealsIncluded.includes("Breakfast")) {
-                    mealCost += breakfastCost * totalPeople;
-                  }
-                  
-                  if (mealsIncluded.includes("Lunch")) {
-                    mealCost += lunchCost * totalPeople;
-                  }
-                  
-                  if (mealsIncluded.includes("Dinner")) {
-                    mealCost += dinnerCost * totalPeople;
-                  }
-                } else if (mealPlan.includes("CP") || mealPlan.includes("Breakfast")) {
-                  // Only breakfast included - charge for lunch and dinner
-                  const lunchCost = 500; // per person
-                  const dinnerCost = 550; // per person
-                  
-                  const totalPeople = adultsCount + childrenCount;
-                  
-                  if (mealsIncluded.includes("Lunch")) {
-                    mealCost += lunchCost * totalPeople;
-                  }
-                  
-                  if (mealsIncluded.includes("Dinner")) {
-                    mealCost += dinnerCost * totalPeople;
-                  }
-                } else if (mealPlan.includes("MAP")) {
-                  // Breakfast and dinner included - charge only for lunch
-                  const lunchCost = 500; // per person
-                  
-                  const totalPeople = adultsCount + childrenCount;
-                  
-                  if (mealsIncluded.includes("Lunch")) {
-                    mealCost += lunchCost * totalPeople;
-                  }
+              // Use calculated room configuration
+              dailyCost = calculateCostBasedOnRoomConfig(
+                matchingPricing,
+                roomConfig,
+                0  // Start with 0 to avoid accumulation
+              );
+            }
+
+            // Add meal costs if not included in room price
+            // Prioritize the explicitly specified meal plan if available
+            const mealPlan = dayItinerary.mealPlan || matchingPricing[0].mealPlan || "EP (No Meals)";
+            const mealsIncluded = dayItinerary.mealsIncluded || [];
+
+            // If hotel doesn't include all meals, calculate additional meal costs
+            if (!mealPlan.includes("AP")) { // Not All Meals
+              if (mealPlan.includes("No Meal Plan") || mealPlan.includes("EP")) {
+                // No meals included - charge for all meals specified in the itinerary
+                const breakfastCost = 350; // per person
+                const lunchCost = 500; // per person
+                const dinnerCost = 550; // per person
+
+                const totalPeople = adultsCount + childrenCount; // Infants usually don't incur meal costs
+
+                if (mealsIncluded.includes("Breakfast")) {
+                  mealCost += breakfastCost * totalPeople;
+                }
+
+                if (mealsIncluded.includes("Lunch")) {
+                  mealCost += lunchCost * totalPeople;
+                }
+
+                if (mealsIncluded.includes("Dinner")) {
+                  mealCost += dinnerCost * totalPeople;
+                }
+              } else if (mealPlan.includes("CP") || mealPlan.includes("Breakfast")) {
+                // Only breakfast included - charge for lunch and dinner
+                const lunchCost = 500; // per person
+                const dinnerCost = 550; // per person
+
+                const totalPeople = adultsCount + childrenCount;
+
+                if (mealsIncluded.includes("Lunch")) {
+                  mealCost += lunchCost * totalPeople;
+                }
+
+                if (mealsIncluded.includes("Dinner")) {
+                  mealCost += dinnerCost * totalPeople;
+                }
+              } else if (mealPlan.includes("MAP")) {
+                // Breakfast and dinner included - charge only for lunch
+                const lunchCost = 500; // per person
+
+                const totalPeople = adultsCount + childrenCount;
+
+                if (mealsIncluded.includes("Lunch")) {
+                  mealCost += lunchCost * totalPeople;
                 }
               }
-              
-              // Track costs for specific date periods for seasonal price differences
-              const periodKey = `${matchingPricing[0].startDate.toISOString().split('T')[0]}_${matchingPricing[0].endDate.toISOString().split('T')[0]}`;
-              
-              const existingPeriod = pricingData.datePeriodBreakdown.find(p => p.key === periodKey);
-              if (existingPeriod) {
-                existingPeriod.totalCost += (dailyCost + mealCost);
-                existingPeriod.days += 1;
-              } else {
-                pricingData.datePeriodBreakdown.push({
-                  key: periodKey,
-                  startDate: matchingPricing[0].startDate.toISOString().split('T')[0],
-                  endDate: matchingPricing[0].endDate.toISOString().split('T')[0],
-                  days: 1,
-                  totalCost: (dailyCost + mealCost)
-                });
-              }
+            }
+
+            // Track costs for specific date periods for seasonal price differences
+            const periodKey = `${matchingPricing[0].startDate.toISOString().split('T')[0]}_${matchingPricing[0].endDate.toISOString().split('T')[0]}`;
+
+            const existingPeriod = pricingData.datePeriodBreakdown.find(p => p.key === periodKey);
+            if (existingPeriod) {
+              existingPeriod.totalCost += (dailyCost + mealCost);
+              existingPeriod.days += 1;
+            } else {
+              pricingData.datePeriodBreakdown.push({
+                key: periodKey,
+                startDate: matchingPricing[0].startDate.toISOString().split('T')[0],
+                endDate: matchingPricing[0].endDate.toISOString().split('T')[0],
+                days: 1,
+                totalCost: (dailyCost + mealCost)
+              });
             }
           }
         }
-      }      // Calculate transport costs if vehicle type is specified (multiple vehicles or single)
+      }
+      // Calculate transport costs if vehicle type is specified (multiple vehicles or single)
       let transportDetailsArray = [];
-      
+
       // Check for multiple vehicles first (new approach)
       if (dayItinerary.transportDetails && Array.isArray(dayItinerary.transportDetails) && dayItinerary.transportDetails.length > 0) {
         const locationId = dayItinerary.locationId || itineraries[0].locationId;
@@ -327,10 +310,10 @@ export async function POST(req: Request) {
           // Process each vehicle in the transportDetails array
           for (const transportDetail of dayItinerary.transportDetails) {
             if (!transportDetail.vehicleType) continue;
-            
+
             const vehicleType = transportDetail.vehicleType;
             const quantity = transportDetail.quantity || 1;
-            
+
             // Get pricing for this vehicle type
             const transportPricing = await prismadb.transportPricing.findMany({
               where: {
@@ -341,12 +324,12 @@ export async function POST(req: Request) {
                 endDate: { gte: currentDate }
               }
             });
-            
+
             if (transportPricing.length > 0) {
               const pricing = transportPricing[0];
               let vehicleCost = 0;
               let vehicleDescription = '';
-              
+
               // Calculate cost based on transport type (per day or per trip)
               if (pricing.transportType === "PerDay") {
                 vehicleCost = pricing.price * quantity;
@@ -358,10 +341,10 @@ export async function POST(req: Request) {
                   vehicleDescription = `${quantity} x ${pricing.vehicleType} (${pricing.capacity || ''}) - One time`;
                 }
               }
-              
+
               // Add to total transport cost
               transportCost += vehicleCost;
-              
+
               // Track individual vehicle details
               if (vehicleCost > 0) {
                 transportDetailsArray.push({
@@ -383,92 +366,49 @@ export async function POST(req: Request) {
             }
           }
         }
-      } 
-      // Fallback to single vehicle type for backward compatibility
-      else if (dayItinerary.vehicleType) {
-        // Get the transport pricing for the location and vehicle type
+      }      // No fallback needed since we'll rely only on transportDetails
+      else {
+        // Skip transport cost calculation if no transportDetails are provided
         const locationId = dayItinerary.locationId || itineraries[0].locationId;
         if (locationId) {
-          const transportPricing = await prismadb.transportPricing.findMany({
-            where: {
-              locationId: locationId,
-              vehicleType: dayItinerary.vehicleType,
-              isActive: true,
-              startDate: { lte: currentDate },
-              endDate: { gte: currentDate }
-            }
-          });
+          // We'll add a default transport detail for tracking purposes
+          transportDescription = "No transport details specified";
 
-          if (transportPricing.length > 0) {
-            const pricing = transportPricing[0];
-            // Calculate transport cost based on transport type (per day or per trip)
-            if (pricing.transportType === "PerDay") {
-              transportCost = pricing.price;
-              transportDescription = `${pricing.vehicleType} (${pricing.capacity || ''}) - Per day`;
-              
-              // Add to tracked details
-              transportDetailsArray.push({
-                vehicleType: pricing.vehicleType,
-                quantity: 1,
-                capacity: pricing.capacity,
-                cost: pricing.price,
-                description: transportDescription
-              });
-            } else {
-              // For "PerTrip" type, we charge once for the entire duration
-              if (day === 0) { // Only charge on the first day to avoid duplicate charges
-                transportCost = pricing.price;
-                transportDescription = `${pricing.vehicleType} (${pricing.capacity || ''}) - One time`;
-                
-                // Add to tracked details
-                transportDetailsArray.push({
-                  vehicleType: pricing.vehicleType,
-                  quantity: 1,
-                  capacity: pricing.capacity,
-                  cost: pricing.price,
-                  description: transportDescription
-                });
-              }
-            }
-          } else {
-            // No transport pricing found for this date/vehicle
-            transportDescription = `${dayItinerary.vehicleType} - No pricing available`;
-            
-            transportDetailsArray.push({
-              vehicleType: dayItinerary.vehicleType,
-              quantity: 1,
-              cost: 0,
-              description: transportDescription
-            });
-          }
+          transportDetailsArray.push({
+            vehicleType: "Not specified",
+            quantity: 0,
+            cost: 0,
+            description: transportDescription
+          });
         }
       }
 
+
       // Add transport cost to the total
       pricingData.transportCost += transportCost;
-      
+
       // Calculate total daily cost
       const totalDailyCost = dailyCost + mealCost + transportCost;
       pricingData.totalPrice += totalDailyCost;
       pricingData.roomCost += dailyCost;
       pricingData.mealCost += mealCost;
-        // Save detailed breakdown
+      // Save detailed breakdown
       if (dayItinerary.hotelId || transportCost > 0) {
         const hotel = dayItinerary.hotelId ? await prismadb.hotel.findUnique({
           where: { id: dayItinerary.hotelId },
           select: { name: true }
         }) : null;        // Generate a summary of meal plans if room allocations exist
-        // Using a more compatible approach without Set
+        // Using a more compatible approach without Set 
         const mealPlanSummary = dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0
-          ? Array.from(new Set(dayItinerary.roomAllocations.map((r: RoomAllocationInput) => r.mealPlan || dayItinerary.mealPlan || 'N/A'))).join(', ')
-          : dayItinerary.mealPlan || "N/A";
-        
+          ? Array.from(new Set(dayItinerary.roomAllocations.map((r: RoomAllocationInput) => r.mealPlan || 'N/A'))).join(', ')
+          : "N/A";
+
         // Check if an entry for this day already exists in the breakdown
         const existingDayIndex = pricingData.breakdown.findIndex(
-          item => item.dayNumber === dayItinerary.dayNumber && 
-                 item.date === currentDate.toISOString().split('T')[0]
+          item => item.dayNumber === dayItinerary.dayNumber &&
+            item.date === currentDate.toISOString().split('T')[0]
         );
-        
+
         if (existingDayIndex >= 0) {
           // Update the existing entry instead of creating a new one
           const existingDay = pricingData.breakdown[existingDayIndex];
@@ -476,22 +416,21 @@ export async function POST(req: Request) {
           existingDay.mealCost += mealCost;
           existingDay.transportCost += transportCost;
           existingDay.total += totalDailyCost;
-          
+
           // Merge meal plans if they differ
           if (existingDay.mealPlan !== mealPlanSummary && mealPlanSummary !== 'N/A') {
             existingDay.mealPlan = [existingDay.mealPlan, mealPlanSummary]
               .filter(plan => plan && plan !== 'N/A')
               .join(', ') || 'N/A';
           }
-          
+
           console.log(`Updated existing day ${dayItinerary.dayNumber} in breakdown, new total: ${existingDay.total}`);
-        } else {
-          // Create a new entry if this is the first occurrence of this day
+        } else {          // Create a new entry if this is the first occurrence of this day
           pricingData.breakdown.push({
             dayNumber: dayItinerary.dayNumber,
             date: currentDate.toISOString().split('T')[0],
             hotelName: hotel ? hotel.name : "N/A",
-            roomType: dayItinerary.roomType || dayItinerary.roomCategory || "Standard",
+            roomType: "Standard", // Default room type since we're using roomAllocations for room details
             basePrice: dailyCost > 0 ? dailyCost / (parseInt(dayItinerary.numberofRooms || "1")) : 0,
             roomCost: dailyCost,
             mealCost: mealCost,
@@ -502,12 +441,12 @@ export async function POST(req: Request) {
             roomsNeeded: roomConfig.totalRooms,
             mealPlan: mealPlanSummary
           });
-          
+
           console.log(`Added new day ${dayItinerary.dayNumber} to breakdown, total: ${totalDailyCost}`);
         }
       }
     }
-    
+
     // Calculate per person prices based on accurate distribution
     if (adultsCount > 0) {
       pricingData.perPersonPrice = Math.round(pricingData.totalPrice / adultsCount);
@@ -516,7 +455,7 @@ export async function POST(req: Request) {
       pricingData.perChild5to12WithoutBed = Math.round(pricingData.perPersonPrice * 0.5);
       pricingData.perChildBelow5 = childrenCount > 0 ? Math.round(pricingData.perPersonPrice * 0.1) : 0; // Nominal charge
     }
-    
+
     // Generate detailed pricing section for the form
     pricingData.pricingSection = [
       {
@@ -535,7 +474,7 @@ export async function POST(req: Request) {
         description: "Per adult price based on triple sharing (where applicable)"
       }
     ];
-    
+
     // Add cost breakdown by category if any costs exist
     if (pricingData.roomCost > 0 || pricingData.mealCost > 0 || pricingData.transportCost > 0) {
       pricingData.pricingSection.push({
@@ -543,7 +482,7 @@ export async function POST(req: Request) {
         price: "",
         description: "Detailed cost breakdown by category"
       });
-      
+
       if (pricingData.roomCost > 0) {
         pricingData.pricingSection.push({
           name: "Accommodation",
@@ -551,7 +490,7 @@ export async function POST(req: Request) {
           description: "Total cost for all accommodations"
         });
       }
-      
+
       if (pricingData.mealCost > 0) {
         pricingData.pricingSection.push({
           name: "Meals",
@@ -559,7 +498,7 @@ export async function POST(req: Request) {
           description: "Total cost for all included meals"
         });
       }
-      
+
       if (pricingData.transportCost > 0) {
         pricingData.pricingSection.push({
           name: "Transport",
@@ -568,7 +507,7 @@ export async function POST(req: Request) {
         });
       }
     }
-    
+
     // Only add child prices if there are children
     if (childrenCount > 0 || infantsCount > 0) {
       pricingData.pricingSection.push(
@@ -584,7 +523,7 @@ export async function POST(req: Request) {
         }
       );
     }
-    
+
     if (infantsCount > 0) {
       pricingData.pricingSection.push({
         name: "Child Below 5 Years",
@@ -592,15 +531,15 @@ export async function POST(req: Request) {
         description: "With parents (sharing bed)"
       });
     }
-    
+
     // Add date period breakdown (for seasonal pricing display)
     if (pricingData.datePeriodBreakdown.length > 0) {
-      pricingData.pricingSection.push({ 
-        name: "Period-wise Breakdown", 
-        price: "", 
-        description: "Detailed cost breakdown by season" 
+      pricingData.pricingSection.push({
+        name: "Period-wise Breakdown",
+        price: "",
+        description: "Detailed cost breakdown by season"
       });
-      
+
       for (const period of pricingData.datePeriodBreakdown) {
         pricingData.pricingSection.push({
           name: `${period.startDate} to ${period.endDate} (${period.days} night${period.days > 1 ? 's' : ''})`,
@@ -622,51 +561,51 @@ export async function POST(req: Request) {
  * and respect specified occupancy preferences
  */
 function calculateRoomConfiguration(
-  adults: number, 
-  children: number, 
+  adults: number,
+  children: number,
   infants: number,
   itineraries: ItineraryInput[]
-) {
-  // Check if any itineraries have specific occupancy type preferences
-  const hasSpecificOccupancyType = itineraries.some(itinerary => 
-    itinerary.occupancyType && itinerary.occupancyType.trim() !== '');
-  
-  // If specific occupancy types are specified, adjust the calculation
+) {  // Check if any itineraries have specific occupancy type preferences in room allocations
+  const hasSpecificOccupancyType = itineraries.some(itinerary =>
+    itinerary.roomAllocations && itinerary.roomAllocations.length > 0);
+
+  // If room allocations are specified, adjust the calculation
   if (hasSpecificOccupancyType) {
     // Count rooms by occupancy type
     let doubleRooms = 0;
     let tripleRooms = 0;
     let singleRooms = 0;
     let childWithBed = 0;
-    let childWithoutBed = 0;
-    
-    // Go through the itineraries and count the rooms by type
+    let childWithoutBed = 0;      // Go through the itineraries and count the rooms by type from roomAllocations
     for (const itinerary of itineraries) {
-      if (!itinerary.occupancyType) continue;
-      
-      const roomCount = parseInt(itinerary.numberofRooms || '1');
-      
-      switch (itinerary.occupancyType.toLowerCase()) {
-        case 'double':
-          doubleRooms += roomCount;
-          break;
-        case 'triple':
-          tripleRooms += roomCount;
-          break;
-        case 'single':
-          singleRooms += roomCount;
-          break;
-        case 'child with bed':
-          childWithBed += roomCount;
-          break;
-        case 'child without bed':
-          childWithoutBed += roomCount;
-          break;
+      if (!itinerary.roomAllocations || itinerary.roomAllocations.length === 0) continue;
+
+      // Process each room allocation
+      for (const room of itinerary.roomAllocations) {
+        const roomCount = parseInt(room.quantity.toString() || '1');
+
+        switch (room.occupancyType.toLowerCase()) {
+          case 'double':
+            doubleRooms += roomCount;
+            break;
+          case 'triple':
+            tripleRooms += roomCount;
+            break;
+          case 'single':
+            singleRooms += roomCount;
+            break;
+          case 'child with bed':
+            childWithBed += roomCount;
+            break;
+          case 'child without bed':
+            childWithoutBed += roomCount;
+            break;
+        }
       }
     }
-    
+
     const totalRooms = doubleRooms + tripleRooms + singleRooms;
-    
+
     return {
       doubleRooms,
       tripleRooms,
@@ -684,30 +623,30 @@ function calculateRoomConfiguration(
   let singleRooms = 0;
   let childWithBed = 0;
   let childWithoutBed = 0;
-  
+
   // Base logic: Prioritize filling double rooms, then add triple or single as needed
-  
+
   // Step 1: Assign adults to rooms
   if (adults === 1) {
     singleRooms = 1;
   } else {
     // Calculate double rooms needed
     doubleRooms = Math.floor(adults / 2);
-    
+
     // Any remaining adults?
     const remainingAdults = adults % 2;
-    
+
     if (remainingAdults === 1) {
       // We have one adult left - they'll need their own room
       // Options: a) Put them in a single room, b) use a triple room with children if any
       if (children > 0) {
         // If we have children, we might be able to use a triple room
         tripleRooms = 1;
-        
+
         // This triple room can accommodate 1 adult + 2 children, or 1 adult + 1 child with bed
         childWithBed = Math.min(children, 1); // At most 1 child with bed in this room
         childWithoutBed = Math.min(children - childWithBed, 1); // At most 1 child without bed
-        
+
         // Remaining children will be handled later
       } else {
         // No children, so just use a single room
@@ -715,26 +654,26 @@ function calculateRoomConfiguration(
       }
     }
   }
-  
+
   // Step 2: Assign remaining children
   const remainingChildren = children - childWithBed - childWithoutBed;
-  
+
   if (remainingChildren > 0) {
     // Child allocation strategies:
     // 1. Children with parents in existing rooms (already handled above)
     // 2. Children in their own room (e.g., triple room for 3 children)
     // 3. Children with bed vs. without bed
-    
+
     // For simplicity, we'll use additional double rooms for remaining children
     // 2 children per room (with beds)
     const additionalRoomsForChildren = Math.ceil(remainingChildren / 2);
     doubleRooms += additionalRoomsForChildren;
     childWithBed += remainingChildren;
   }
-  
+
   // Total rooms
   const totalRooms = doubleRooms + tripleRooms + singleRooms;
-  
+
   return {
     doubleRooms,
     tripleRooms,
@@ -760,7 +699,7 @@ function calculateCostBasedOnRoomConfig(
       dailyCost += doublePricing.price * roomConfig.doubleRooms;
     }
   }
-  
+
   // Triple rooms
   if (roomConfig.tripleRooms > 0) {
     const triplePricing = matchingPricing.find(p => p.occupancyType === "Triple");
@@ -774,7 +713,7 @@ function calculateCostBasedOnRoomConfig(
       }
     }
   }
-  
+
   // Single rooms
   if (roomConfig.singleRooms > 0) {
     const singlePricing = matchingPricing.find(p => p.occupancyType === "Single");
@@ -788,7 +727,7 @@ function calculateCostBasedOnRoomConfig(
       }
     }
   }
-  
+
   // Child with bed
   if (roomConfig.childWithBed > 0) {
     const childWithBedPricing = matchingPricing.find(p => p.occupancyType === "Child with Bed");
@@ -796,7 +735,7 @@ function calculateCostBasedOnRoomConfig(
       dailyCost += childWithBedPricing.price * roomConfig.childWithBed;
     }
   }
-  
+
   // Child without bed
   if (roomConfig.childWithoutBed > 0) {
     const childWithoutBedPricing = matchingPricing.find(p => p.occupancyType === "Child without Bed");
@@ -804,6 +743,6 @@ function calculateCostBasedOnRoomConfig(
       dailyCost += childWithoutBedPricing.price * roomConfig.childWithoutBed;
     }
   }
-  
+
   return dailyCost;
 }

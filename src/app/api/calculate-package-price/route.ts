@@ -2,8 +2,23 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { differenceInDays, isWithinInterval, parseISO } from "date-fns";
 
+interface TransportDetailInput {
+  vehicleType: string;
+  quantity: number;
+  capacity?: number;
+  description?: string;
+}
+
+interface RoomAllocationInput {
+  roomType: string;
+  occupancyType: string;
+  quantity: number;
+  guestNames?: string;
+}
+
 interface ItineraryInput {
   hotelId: string;
+  locationId?: string;
   roomCategory: string;
   numberofRooms: string;
   dayNumber: number;
@@ -11,7 +26,9 @@ interface ItineraryInput {
   roomType?: string;        // New field
   mealPlan?: string;        // New field
   occupancyType?: string;   // New field
-  vehicleType?: string;     // Added vehicle type field for transport
+  vehicleType?: string;     // Kept for backward compatibility
+  transportDetails?: TransportDetailInput[]; // Added for multiple vehicles support
+  roomAllocations?: RoomAllocationInput[]; // Added for mixed occupancy support
 }
 
 export async function POST(req: Request) {
@@ -38,9 +55,7 @@ export async function POST(req: Request) {
     const endDate = new Date(tourEndsOn);
     
     // Calculate total tour duration
-    const tourDurationDays = differenceInDays(endDate, startDate) + 1;
-
-    // Initialize pricing data
+    const tourDurationDays = differenceInDays(endDate, startDate) + 1;    // Initialize pricing data
     const pricingData = {
       totalPrice: 0,
       perPersonPrice: 0,
@@ -54,7 +69,9 @@ export async function POST(req: Request) {
       mealCost: 0,
       roomCost: 0,
       transportCost: 0, // Added transport cost
-      datePeriodBreakdown: [] as any[]
+      datePeriodBreakdown: [] as any[],
+      roomAllocations: [] as any[], // Added for mixed room occupancy
+      transportDetails: [] as any[] // Added for multiple vehicles
     };
 
     // Parse guest numbers with fallbacks
@@ -137,9 +154,60 @@ export async function POST(req: Request) {
               });
             } else {
               // Calculate cost for each room type needed
-              
+                // Check if roomAllocations array is present and has items
+              if (dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0) {
+                // Process mixed occupancy room configurations
+                let roomCostForDay = 0;
+                let roomBreakdown = [];
+                
+                for (const room of dayItinerary.roomAllocations) {
+                  // Find pricing for this room type and occupancy
+                  const roomPricing = matchingPricing.find(p => 
+                    p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() && 
+                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase());
+                  
+                  if (roomPricing) {
+                    // Calculate cost for this room configuration
+                    const roomQuantity = room.quantity || 1;
+                    const roomCost = roomPricing.price * roomQuantity;
+                    roomCostForDay += roomCost;
+                    
+                    // Add to breakdown for detailed reporting
+                    roomBreakdown.push({
+                      roomType: room.roomType || roomType,
+                      occupancyType: room.occupancyType,
+                      quantity: roomQuantity,
+                      pricePerRoom: roomPricing.price,
+                      totalCost: roomCost,
+                      guestNames: room.guestNames || ''
+                    });
+                  } else {
+                    // No pricing found for this room configuration
+                    roomBreakdown.push({
+                      roomType: room.roomType || roomType,
+                      occupancyType: room.occupancyType,
+                      quantity: room.quantity || 1,
+                      warning: `No pricing found for ${room.roomType || roomType}/${room.occupancyType}`
+                    });
+                  }
+                }
+                
+                // Add the total room cost for the day
+                dailyCost += roomCostForDay;
+                
+                // Store the room breakdown for this day
+                pricingData.roomAllocations = pricingData.roomAllocations || [];
+                pricingData.roomAllocations.push({
+                  dayNumber: dayItinerary.dayNumber,
+                  date: currentDate.toISOString().split('T')[0],
+                  hotelName: hotel.name,
+                  totalCost: roomCostForDay,
+                  rooms: roomBreakdown
+                });
+                
+              } 
               // Use specified occupancy type if available, otherwise use calculated configuration
-              if (dayItinerary.occupancyType) {
+              else if (dayItinerary.occupancyType) {
                 // If occupancy type is explicitly specified, use that for pricing
                 const specificPricing = matchingPricing.find(p => 
                   p.occupancyType.toLowerCase() === dayItinerary.occupancyType!.toLowerCase());
@@ -156,12 +224,12 @@ export async function POST(req: Request) {
                     dailyCost
                   );
                 }
-              } else {
+              } else {                
                 // Use calculated room configuration
-                calculateCostBasedOnRoomConfig(
+                dailyCost = calculateCostBasedOnRoomConfig(
                   matchingPricing, 
                   roomConfig, 
-                  dailyCost
+                  0  // Start with 0 to avoid accumulation
                 );
               }
               
@@ -236,10 +304,75 @@ export async function POST(req: Request) {
             }
           }
         }
-      }
-
-      // Calculate transport costs if vehicle type is specified
-      if (dayItinerary.vehicleType) {
+      }      // Calculate transport costs if vehicle type is specified (multiple vehicles or single)
+      let transportDetailsArray = [];
+      
+      // Check for multiple vehicles first (new approach)
+      if (dayItinerary.transportDetails && Array.isArray(dayItinerary.transportDetails) && dayItinerary.transportDetails.length > 0) {
+        const locationId = dayItinerary.locationId || itineraries[0].locationId;
+        if (locationId) {
+          // Process each vehicle in the transportDetails array
+          for (const transportDetail of dayItinerary.transportDetails) {
+            if (!transportDetail.vehicleType) continue;
+            
+            const vehicleType = transportDetail.vehicleType;
+            const quantity = transportDetail.quantity || 1;
+            
+            // Get pricing for this vehicle type
+            const transportPricing = await prismadb.transportPricing.findMany({
+              where: {
+                locationId: locationId,
+                vehicleType: vehicleType,
+                isActive: true,
+                startDate: { lte: currentDate },
+                endDate: { gte: currentDate }
+              }
+            });
+            
+            if (transportPricing.length > 0) {
+              const pricing = transportPricing[0];
+              let vehicleCost = 0;
+              let vehicleDescription = '';
+              
+              // Calculate cost based on transport type (per day or per trip)
+              if (pricing.transportType === "PerDay") {
+                vehicleCost = pricing.price * quantity;
+                vehicleDescription = `${quantity} x ${pricing.vehicleType} (${pricing.capacity || ''}) - Per day`;
+              } else {
+                // For "PerTrip" type, charge once for the entire duration
+                if (day === 0) { // Only charge on the first day to avoid duplicate charges
+                  vehicleCost = pricing.price * quantity;
+                  vehicleDescription = `${quantity} x ${pricing.vehicleType} (${pricing.capacity || ''}) - One time`;
+                }
+              }
+              
+              // Add to total transport cost
+              transportCost += vehicleCost;
+              
+              // Track individual vehicle details
+              if (vehicleCost > 0) {
+                transportDetailsArray.push({
+                  vehicleType: pricing.vehicleType,
+                  quantity: quantity,
+                  capacity: pricing.capacity,
+                  cost: vehicleCost,
+                  description: vehicleDescription
+                });
+              }
+            } else {
+              // No pricing found for this vehicle
+              transportDetailsArray.push({
+                vehicleType: vehicleType,
+                quantity: quantity,
+                cost: 0,
+                description: `${vehicleType} - No pricing available`
+              });
+            }
+          }
+        }
+      } 
+      // Fallback to single vehicle type for backward compatibility
+      else if (dayItinerary.vehicleType) {
         // Get the transport pricing for the location and vehicle type
         const locationId = dayItinerary.locationId || itineraries[0].locationId;
         if (locationId) {
@@ -259,16 +392,41 @@ export async function POST(req: Request) {
             if (pricing.transportType === "PerDay") {
               transportCost = pricing.price;
               transportDescription = `${pricing.vehicleType} (${pricing.capacity || ''}) - Per day`;
+              
+              // Add to tracked details
+              transportDetailsArray.push({
+                vehicleType: pricing.vehicleType,
+                quantity: 1,
+                capacity: pricing.capacity,
+                cost: pricing.price,
+                description: transportDescription
+              });
             } else {
               // For "PerTrip" type, we charge once for the entire duration
               if (day === 0) { // Only charge on the first day to avoid duplicate charges
                 transportCost = pricing.price;
                 transportDescription = `${pricing.vehicleType} (${pricing.capacity || ''}) - One time`;
+                
+                // Add to tracked details
+                transportDetailsArray.push({
+                  vehicleType: pricing.vehicleType,
+                  quantity: 1,
+                  capacity: pricing.capacity,
+                  cost: pricing.price,
+                  description: transportDescription
+                });
               }
             }
           } else {
             // No transport pricing found for this date/vehicle
             transportDescription = `${dayItinerary.vehicleType} - No pricing available`;
+            
+            transportDetailsArray.push({
+              vehicleType: dayItinerary.vehicleType,
+              quantity: 1,
+              cost: 0,
+              description: transportDescription
+            });
           }
         }
       }

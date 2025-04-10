@@ -30,13 +30,14 @@ interface ItineraryInput {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    
+    // Log the full request data for diagnosis
+    console.log(`[CALCULATION_INPUT] Full request data:`, JSON.stringify(body, null, 2));
+    
     const {
       tourStartsFrom,
       tourEndsOn,
       itineraries,
-      numAdults,
-      numChild5to12,
-      numChild0to5
     } = body;
 
     if (!tourStartsFrom || !tourEndsOn) {
@@ -45,38 +46,29 @@ export async function POST(req: Request) {
 
     if (!itineraries || !Array.isArray(itineraries) || itineraries.length === 0) {
       return new NextResponse("Valid itineraries are required", { status: 400 });
-    }
-
-    const startDate = new Date(tourStartsFrom);
+    }const startDate = new Date(tourStartsFrom);
     const endDate = new Date(tourEndsOn);
 
     // Calculate total tour duration
-    const tourDurationDays = differenceInDays(endDate, startDate) + 1;    // Initialize pricing data
+    const tourDurationDays = differenceInDays(endDate, startDate) + 1;
+
+    // Initialize pricing data with simplified structure
     const pricingData = {
       totalPrice: 0,
-      perPersonPrice: 0,
-      perPersonTriplePrice: 0,
-      perChild5to12WithBed: 0,
-      perChild5to12WithoutBed: 0,
-      perChildBelow5: 0,
       totalRooms: 0,
       breakdown: [] as any[],
       pricingSection: [] as any[],
       mealCost: 0,
       roomCost: 0,
-      transportCost: 0, // Added transport cost
+      transportCost: 0,
       datePeriodBreakdown: [] as any[],
-      roomAllocations: [] as any[], // Added for mixed room occupancy
-      transportDetails: [] as any[] // Added for multiple vehicles
+      roomAllocations: [] as any[],
+      transportDetails: [] as any[]
     };
 
     // Parse guest numbers with fallbacks
-    const adultsCount = parseInt(numAdults || "2");
-    const childrenCount = parseInt(numChild5to12 || "0");
-    const infantsCount = parseInt(numChild0to5 || "0");
-
     // Calculate optimal room configuration, taking into account specified occupancy type
-    const roomConfig = calculateRoomConfiguration(adultsCount, childrenCount, infantsCount, itineraries);
+    const roomConfig = calculateRoomConfiguration(itineraries);
     pricingData.totalRooms = roomConfig.totalRooms;
 
     // Process each day of the itinerary individually
@@ -124,7 +116,7 @@ export async function POST(req: Request) {
               basePrice: 0,
               total: 0,
               roomsNeeded: roomConfig.totalRooms,
-              mealPlan: "N/A", // Default meal plan
+              mealPlan: "CP", // Default meal plan
               warning: "No pricing available for this date"
             });
           } else {
@@ -143,159 +135,212 @@ export async function POST(req: Request) {
                 basePrice: 0,
                 total: 0,
                 roomsNeeded: roomConfig.totalRooms,
-                mealPlan: "N/A",
+                mealPlan: "CP",
                 warning: `No pricing found for room type: ${roomType}`
+              });            } else {            // Always use room allocations for calculations              console.log(`[DEBUG] Day ${dayItinerary.dayNumber} - Processing room allocations`);
+              console.log(`[DEBUG] Original roomAllocations:`, JSON.stringify(dayItinerary.roomAllocations));
+              console.log(`[DEBUG] Hotel pricing available:`, JSON.stringify(hotelPricing));
+              
+              // If no room allocations are provided, create default ones based on numberofRooms
+              const roomAllocations = (dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0) 
+                ? dayItinerary.roomAllocations 
+                : [{
+                    roomType: 'Deluxe', // Match exactly what's in the database - "Deluxe" not "Standard"
+                    occupancyType: 'Double',
+                    quantity: parseInt(dayItinerary.numberofRooms || '1'),
+                    mealPlan: 'CP (Breakfast Only)' // Match exactly what's in the database
+                  }];
+              
+              console.log(`[DEBUG] Final roomAllocations being used:`, JSON.stringify(roomAllocations));
+              
+              // Process all room allocations
+              let roomCostForDay = 0;
+              let roomBreakdown = [];
+              
+              for (const room of roomAllocations) {
+                // First try to find exact match with meal plan  
+                let roomPricing = hotelPricing.find(p => {
+                  if (!p) return false;
+                  
+                  // Use roomType directly from the room allocation without fallbacks
+                  const roomTypeMatches = p.roomType.toLowerCase() === room.roomType.toLowerCase();
+                  const occupancyTypeMatches = p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase();
+                  
+                  // Only check meal plans if both exist
+                  if (roomTypeMatches && occupancyTypeMatches && p.mealPlan && room.mealPlan) {
+                    const pMealPlan = p.mealPlan.toLowerCase();
+                    const roomMealPlan = room.mealPlan.toLowerCase();
+                    return pMealPlan === roomMealPlan;
+                  }
+                  
+                  // If meal plans don't both exist, just match on room type and occupancy
+                  return roomTypeMatches && occupancyTypeMatches;
+                });
+                
+                // If no exact meal plan match, find by room type and occupancy type only
+                if (!roomPricing) {
+                  roomPricing = hotelPricing.find(p =>
+                    p.roomType.toLowerCase() === room.roomType.toLowerCase() &&
+                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase());
+                  
+                  if (roomPricing) {
+                    console.log(`Found fallback pricing for ${room.roomType}/${room.occupancyType} without exact meal plan match`);
+                  }
+                }
+                
+                if (roomPricing) {
+                  // Calculate cost for this room configuration
+                  const roomQuantity = room.quantity || 1;
+                  const roomCost = roomPricing.price * roomQuantity;
+                  roomCostForDay += roomCost;
+                  
+                  // Add to breakdown for detailed reporting
+                  roomBreakdown.push({
+                    roomType: room.roomType,
+                    occupancyType: room.occupancyType,
+                    mealPlan: room.mealPlan || 'N/A',
+                    quantity: roomQuantity,
+                    pricePerRoom: roomPricing.price,
+                    totalCost: roomCost,
+                    guestNames: room.guestNames || ''
+                  });
+                } else {
+                  // No pricing found for this room configuration
+                  roomBreakdown.push({
+                    roomType: room.roomType,
+                    occupancyType: room.occupancyType,
+                    quantity: room.quantity || 1,
+                    warning: `No pricing found for ${room.roomType}/${room.occupancyType}`
+                  });
+                }
+              }
+              
+              // Add the total room cost for the day
+              dailyCost = roomCostForDay; // Set dailyCost directly from room allocations
+              pricingData.roomCost += roomCostForDay;
+              console.log(`Day ${dayItinerary.dayNumber}: Total daily cost from room allocations: ${dailyCost}`);
+              
+              // Store the room breakdown for this day
+              pricingData.roomAllocations = pricingData.roomAllocations || [];
+              pricingData.roomAllocations.push({
+                dayNumber: dayItinerary.dayNumber,
+                date: currentDate.toISOString().split('T')[0],
+                hotelName: hotel.name,
+                totalCost: roomCostForDay,
+                rooms: roomBreakdown
               });
-            } else {
-              // Calculate cost for each room type needed
-              // Check if roomAllocations array is present and has items
-              if (dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0) {
-                // Process mixed occupancy room configurations
-                let roomCostForDay = 0;
-                let roomBreakdown = []; for (const room of dayItinerary.roomAllocations) {
-                  // First try to find exact match with meal plan
-                  let roomPricing = hotelPricing.find(p =>
-                    p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() &&
-                    p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase() &&
-                    p.mealPlan && room.mealPlan &&
-                    p.mealPlan.toLowerCase() === room.mealPlan.toLowerCase());
-
-                  // If no exact meal plan match, find by room type and occupancy type only
-                  if (!roomPricing) {
-                    roomPricing = hotelPricing.find(p =>
-                      p.roomType.toLowerCase() === (room.roomType || roomType).toLowerCase() &&
-                      p.occupancyType.toLowerCase() === room.occupancyType.toLowerCase());
-
-                    if (roomPricing) {
-                      console.log(`Found fallback pricing for ${room.roomType}/${room.occupancyType} without exact meal plan match`);
+            }            // Add meal costs if not included in room price - check each room allocation's meal plan
+            const mealsIncluded = dayItinerary.mealsIncluded || [];
+            
+            // Calculate total rooms from room allocations for more accurate meal costs
+            let totalRoomCount = 0;
+            const roomMealPlans = [];
+            
+            // Process each room allocation's meal plan separately
+            if (dayItinerary.roomAllocations && dayItinerary.roomAllocations.length > 0) {
+              for (const room of dayItinerary.roomAllocations) {
+                const roomQuantity = room.quantity || 1;
+                totalRoomCount += roomQuantity;
+                
+                // Get the meal plan for this specific room
+                const roomMealPlan = room.mealPlan || "EP (No Meals)";
+                roomMealPlans.push(roomMealPlan);
+                
+                // Calculate meal costs based on each room's meal plan
+                if (!roomMealPlan.includes("AP")) { // Not All Meals
+                  const breakfastCost = 350; // per room
+                  const lunchCost = 500; // per room
+                  const dinnerCost = 550; // per room
+                  
+                  if (roomMealPlan.includes("No Meal Plan") || roomMealPlan.includes("EP")) {
+                    // No meals included - charge for all meals specified in the itinerary
+                    if (mealsIncluded.includes("Breakfast")) {
+                      mealCost += breakfastCost * roomQuantity;
+                    }
+                    
+                    if (mealsIncluded.includes("Lunch")) {
+                      mealCost += lunchCost * roomQuantity;
+                    }
+                    
+                    if (mealsIncluded.includes("Dinner")) {
+                      mealCost += dinnerCost * roomQuantity;
+                    }
+                  } else if (roomMealPlan.includes("CP") || roomMealPlan.includes("Breakfast")) {
+                    // Only breakfast included - charge for lunch and dinner
+                    if (mealsIncluded.includes("Lunch")) {
+                      mealCost += lunchCost * roomQuantity;
+                    }
+                    
+                    if (mealsIncluded.includes("Dinner")) {
+                      mealCost += dinnerCost * roomQuantity;
+                    }
+                  } else if (roomMealPlan.includes("MAP")) {
+                    // Breakfast and dinner included - charge only for lunch
+                    if (mealsIncluded.includes("Lunch")) {
+                      mealCost += lunchCost * roomQuantity;
                     }
                   }
-
-                  if (roomPricing) {
-                    // Calculate cost for this room configuration
-                    const roomQuantity = room.quantity || 1;
-                    const roomCost = roomPricing.price * roomQuantity;
-                    roomCostForDay += roomCost;
-                    // Add to breakdown for detailed reporting
-                    roomBreakdown.push({
-                      roomType: room.roomType || roomType,
-                      occupancyType: room.occupancyType,
-                      mealPlan: room.mealPlan || 'N/A', // Add meal plan information from room allocation
-                      quantity: roomQuantity,
-                      pricePerRoom: roomPricing.price,
-                      totalCost: roomCost,
-                      guestNames: room.guestNames || ''
-                    });
-                  } else {
-                    // No pricing found for this room configuration
-                    roomBreakdown.push({
-                      roomType: room.roomType || roomType,
-                      occupancyType: room.occupancyType,
-                      quantity: room.quantity || 1,
-                      warning: `No pricing found for ${room.roomType || roomType}/${room.occupancyType}`
-                    });
+                }
+              }
+            } else {
+              // Fallback to simple calculation if no room allocations
+              const mealPlan = dayItinerary.mealPlan || "EP (No Meals)";
+              const numberOfRooms = parseInt(dayItinerary.numberofRooms || "1");
+              totalRoomCount = numberOfRooms;
+              
+              // Calculate meal costs based on meal plan
+              if (!mealPlan.includes("AP")) { // Not All Meals
+                const breakfastCost = 350; // per room
+                const lunchCost = 500; // per room
+                const dinnerCost = 550; // per room
+                
+                if (mealPlan.includes("No Meal Plan") || mealPlan.includes("EP")) {
+                  // No meals included - charge for all meals specified in the itinerary
+                  if (mealsIncluded.includes("Breakfast")) {
+                    mealCost += breakfastCost * numberOfRooms;
+                  }
+                  
+                  if (mealsIncluded.includes("Lunch")) {
+                    mealCost += lunchCost * numberOfRooms;
+                  }
+                  
+                  if (mealsIncluded.includes("Dinner")) {
+                    mealCost += dinnerCost * numberOfRooms;
+                  }
+                } else if (mealPlan.includes("CP") || mealPlan.includes("Breakfast")) {
+                  // Only breakfast included - charge for lunch and dinner
+                  if (mealsIncluded.includes("Lunch")) {
+                    mealCost += lunchCost * numberOfRooms;
+                  }
+                  
+                  if (mealsIncluded.includes("Dinner")) {
+                    mealCost += dinnerCost * numberOfRooms;
+                  }
+                } else if (mealPlan.includes("MAP")) {
+                  // Breakfast and dinner included - charge only for lunch
+                  if (mealsIncluded.includes("Lunch")) {
+                    mealCost += lunchCost * numberOfRooms;
                   }
                 }
-                // Add the total room cost for the day                console.log(`Day ${dayItinerary.dayNumber}: Adding room cost of ${roomCostForDay} to daily cost`);
-                dailyCost += roomCostForDay;
-                // Explicitly add to room cost tracking
-                pricingData.roomCost += roomCostForDay;
-                console.log(`Day ${dayItinerary.dayNumber}: Total daily cost after adding room cost: ${dailyCost}`);
+              }
+            }// Track costs for specific date periods for seasonal price differences
+            // Make sure matchingPricing[0] exists before accessing its properties
+            if (matchingPricing && matchingPricing[0]) {
+              const periodKey = `${matchingPricing[0].startDate.toISOString().split('T')[0]}_${matchingPricing[0].endDate.toISOString().split('T')[0]}`;
 
-                // Store the room breakdown for this day
-                pricingData.roomAllocations = pricingData.roomAllocations || [];
-                pricingData.roomAllocations.push({
-                  dayNumber: dayItinerary.dayNumber,
-                  date: currentDate.toISOString().split('T')[0],
-                  hotelName: hotel.name,
-                  totalCost: roomCostForDay,
-                  rooms: roomBreakdown
+              const existingPeriod = pricingData.datePeriodBreakdown.find(p => p.key === periodKey);
+              if (existingPeriod) {
+                existingPeriod.totalCost += (dailyCost + mealCost);
+                existingPeriod.days += 1;
+              } else {
+                pricingData.datePeriodBreakdown.push({
+                  key: periodKey,
+                  startDate: matchingPricing[0].startDate.toISOString().split('T')[0],
+                  endDate: matchingPricing[0].endDate.toISOString().split('T')[0],
+                  days: 1,
+                  totalCost: (dailyCost + mealCost)
                 });
               }
-              // Use calculated configuration since we removed the occupancyType field
-              else {
-                // Fallback to calculated configuration based on room allocations
-                calculateCostBasedOnRoomConfig(
-                  matchingPricing,
-                  roomConfig,
-                  dailyCost
-                );
-              }
-              // Use calculated room configuration
-              dailyCost = calculateCostBasedOnRoomConfig(
-                matchingPricing,
-                roomConfig,
-                0  // Start with 0 to avoid accumulation
-              );
-            }
-
-            // Add meal costs if not included in room price
-            // Prioritize the explicitly specified meal plan if available
-            const mealPlan = dayItinerary.mealPlan || matchingPricing[0].mealPlan || "EP (No Meals)";
-            const mealsIncluded = dayItinerary.mealsIncluded || [];
-
-            // If hotel doesn't include all meals, calculate additional meal costs
-            if (!mealPlan.includes("AP")) { // Not All Meals
-              if (mealPlan.includes("No Meal Plan") || mealPlan.includes("EP")) {
-                // No meals included - charge for all meals specified in the itinerary
-                const breakfastCost = 350; // per person
-                const lunchCost = 500; // per person
-                const dinnerCost = 550; // per person
-
-                const totalPeople = adultsCount + childrenCount; // Infants usually don't incur meal costs
-
-                if (mealsIncluded.includes("Breakfast")) {
-                  mealCost += breakfastCost * totalPeople;
-                }
-
-                if (mealsIncluded.includes("Lunch")) {
-                  mealCost += lunchCost * totalPeople;
-                }
-
-                if (mealsIncluded.includes("Dinner")) {
-                  mealCost += dinnerCost * totalPeople;
-                }
-              } else if (mealPlan.includes("CP") || mealPlan.includes("Breakfast")) {
-                // Only breakfast included - charge for lunch and dinner
-                const lunchCost = 500; // per person
-                const dinnerCost = 550; // per person
-
-                const totalPeople = adultsCount + childrenCount;
-
-                if (mealsIncluded.includes("Lunch")) {
-                  mealCost += lunchCost * totalPeople;
-                }
-
-                if (mealsIncluded.includes("Dinner")) {
-                  mealCost += dinnerCost * totalPeople;
-                }
-              } else if (mealPlan.includes("MAP")) {
-                // Breakfast and dinner included - charge only for lunch
-                const lunchCost = 500; // per person
-
-                const totalPeople = adultsCount + childrenCount;
-
-                if (mealsIncluded.includes("Lunch")) {
-                  mealCost += lunchCost * totalPeople;
-                }
-              }
-            }
-
-            // Track costs for specific date periods for seasonal price differences
-            const periodKey = `${matchingPricing[0].startDate.toISOString().split('T')[0]}_${matchingPricing[0].endDate.toISOString().split('T')[0]}`;
-
-            const existingPeriod = pricingData.datePeriodBreakdown.find(p => p.key === periodKey);
-            if (existingPeriod) {
-              existingPeriod.totalCost += (dailyCost + mealCost);
-              existingPeriod.days += 1;
-            } else {
-              pricingData.datePeriodBreakdown.push({
-                key: periodKey,
-                startDate: matchingPricing[0].startDate.toISOString().split('T')[0],
-                endDate: matchingPricing[0].endDate.toISOString().split('T')[0],
-                days: 1,
-                totalCost: (dailyCost + mealCost)
-              });
             }
           }
         }
@@ -445,33 +490,12 @@ export async function POST(req: Request) {
           console.log(`Added new day ${dayItinerary.dayNumber} to breakdown, total: ${totalDailyCost}`);
         }
       }
-    }
-
-    // Calculate per person prices based on accurate distribution
-    if (adultsCount > 0) {
-      pricingData.perPersonPrice = Math.round(pricingData.totalPrice / adultsCount);
-      pricingData.perPersonTriplePrice = Math.round(pricingData.perPersonPrice * 0.85); // Slight discount for triple
-      pricingData.perChild5to12WithBed = Math.round(pricingData.perPersonPrice * 0.8);
-      pricingData.perChild5to12WithoutBed = Math.round(pricingData.perPersonPrice * 0.5);
-      pricingData.perChildBelow5 = childrenCount > 0 ? Math.round(pricingData.perPersonPrice * 0.1) : 0; // Nominal charge
-    }
-
-    // Generate detailed pricing section for the form
+    }    // Generate simplified pricing section for the form
     pricingData.pricingSection = [
       {
         name: "Package Total",
         price: `₹${Math.round(pricingData.totalPrice).toLocaleString()}`,
-        description: `Total package cost for ${adultsCount} adult(s), ${childrenCount} child(ren) & ${infantsCount} infant(s)`
-      },
-      {
-        name: "Per Person (Double Occupancy)",
-        price: `₹${Math.round(pricingData.perPersonPrice).toLocaleString()}`,
-        description: "Per adult price based on double sharing"
-      },
-      {
-        name: "Per Person (Triple Occupancy)",
-        price: `₹${Math.round(pricingData.perPersonTriplePrice).toLocaleString()}`,
-        description: "Per adult price based on triple sharing (where applicable)"
+        description: "Total package cost"
       }
     ];
 
@@ -509,28 +533,7 @@ export async function POST(req: Request) {
     }
 
     // Only add child prices if there are children
-    if (childrenCount > 0 || infantsCount > 0) {
-      pricingData.pricingSection.push(
-        {
-          name: "Child (5-12 Years) with Extra Bed",
-          price: `₹${Math.round(pricingData.perChild5to12WithBed).toLocaleString()}`,
-          description: "Price per child with extra bed"
-        },
-        {
-          name: "Child (5-12 Years) without Bed",
-          price: `₹${Math.round(pricingData.perChild5to12WithoutBed).toLocaleString()}`,
-          description: "Price per child without extra bed"
-        }
-      );
-    }
 
-    if (infantsCount > 0) {
-      pricingData.pricingSection.push({
-        name: "Child Below 5 Years",
-        price: pricingData.perChildBelow5 > 0 ? `₹${Math.round(pricingData.perChildBelow5).toLocaleString()}` : "Complimentary",
-        description: "With parents (sharing bed)"
-      });
-    }
 
     // Add date period breakdown (for seasonal pricing display)
     if (pricingData.datePeriodBreakdown.length > 0) {
@@ -561,9 +564,6 @@ export async function POST(req: Request) {
  * and respect specified occupancy preferences
  */
 function calculateRoomConfiguration(
-  adults: number,
-  children: number,
-  infants: number,
   itineraries: ItineraryInput[]
 ) {  // Check if any itineraries have specific occupancy type preferences in room allocations
   const hasSpecificOccupancyType = itineraries.some(itinerary =>
@@ -624,52 +624,6 @@ function calculateRoomConfiguration(
   let childWithBed = 0;
   let childWithoutBed = 0;
 
-  // Base logic: Prioritize filling double rooms, then add triple or single as needed
-
-  // Step 1: Assign adults to rooms
-  if (adults === 1) {
-    singleRooms = 1;
-  } else {
-    // Calculate double rooms needed
-    doubleRooms = Math.floor(adults / 2);
-
-    // Any remaining adults?
-    const remainingAdults = adults % 2;
-
-    if (remainingAdults === 1) {
-      // We have one adult left - they'll need their own room
-      // Options: a) Put them in a single room, b) use a triple room with children if any
-      if (children > 0) {
-        // If we have children, we might be able to use a triple room
-        tripleRooms = 1;
-
-        // This triple room can accommodate 1 adult + 2 children, or 1 adult + 1 child with bed
-        childWithBed = Math.min(children, 1); // At most 1 child with bed in this room
-        childWithoutBed = Math.min(children - childWithBed, 1); // At most 1 child without bed
-
-        // Remaining children will be handled later
-      } else {
-        // No children, so just use a single room
-        singleRooms = 1;
-      }
-    }
-  }
-
-  // Step 2: Assign remaining children
-  const remainingChildren = children - childWithBed - childWithoutBed;
-
-  if (remainingChildren > 0) {
-    // Child allocation strategies:
-    // 1. Children with parents in existing rooms (already handled above)
-    // 2. Children in their own room (e.g., triple room for 3 children)
-    // 3. Children with bed vs. without bed
-
-    // For simplicity, we'll use additional double rooms for remaining children
-    // 2 children per room (with beds)
-    const additionalRoomsForChildren = Math.ceil(remainingChildren / 2);
-    doubleRooms += additionalRoomsForChildren;
-    childWithBed += remainingChildren;
-  }
 
   // Total rooms
   const totalRooms = doubleRooms + tripleRooms + singleRooms;

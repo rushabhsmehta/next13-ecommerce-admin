@@ -22,12 +22,11 @@ const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = ({
 }) => {
   // Initialize roomAllocations array if it doesn't exist
   const roomAllocations = itinerary.roomAllocations || [];
-
   const handleAddRoom = () => {
     const newRoomAllocations = [...roomAllocations, {
       roomType: itinerary.roomType || itinerary.roomCategory || 'Standard',
       occupancyType: 'Double',
-      mealPlan: itinerary.mealPlan || 'CP',
+      mealPlan: itinerary.mealPlan || 'CP (Breakfast Only)',
       quantity: 1,
       guestNames: ''
     }];
@@ -134,12 +133,11 @@ const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = ({
                   <SelectTrigger>
                     {room.mealPlan || 'Meal Plan'}
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="No Meal Plan">No Meal Plan</SelectItem>
-                    <SelectItem value="CP">CP (Breakfast Only)</SelectItem>
-                    <SelectItem value="MAP">MAP (Breakfast + Dinner)</SelectItem>
-                    <SelectItem value="AP">AP (All Meals)</SelectItem>
-                    <SelectItem value="EP">EP (European Plan - No Meals)</SelectItem>
+                  <SelectContent>                    <SelectItem value="No Meal Plan">No Meal Plan</SelectItem>
+                    <SelectItem value="CP (Breakfast Only)">CP (Breakfast Only)</SelectItem>
+                    <SelectItem value="MAP (Breakfast + Dinner)">MAP (Breakfast + Dinner)</SelectItem>
+                    <SelectItem value="AP (All Meals)">AP (All Meals)</SelectItem>
+                    <SelectItem value="EP (European Plan - No Meals)">EP (European Plan - No Meals)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

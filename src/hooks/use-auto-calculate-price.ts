@@ -102,16 +102,13 @@ export const useAutoCalculatePrice = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  const calculatePackagePrice = async (data: {
+    const calculatePackagePrice = async (data: {
     tourStartsFrom: Date;
     tourEndsOn: Date;
-    itineraries: ItineraryItem[];
-    numAdults: string;
-    numChild5to12: string;
-    numChild0to5: string;
+    itineraries: ItineraryItem[];   
   }) => {
     try {
+      console.log("Starting package price calculation with data:", data);
       setIsCalculating(true);
       setError(null);
 
@@ -119,17 +116,23 @@ export const useAutoCalculatePrice = () => {
       const validItineraries = data.itineraries.filter(
         (item) => item.hotelId && item.hotelId.trim() !== ''
       );
+      console.log("Valid itineraries after filtering:", validItineraries);
 
       if (validItineraries.length === 0) {
         setError('No valid hotel selections in itineraries');
         setIsCalculating(false);
+        console.error('No valid hotel selections in itineraries');
         return null;
       }      
-      
-      // Transform the itineraries to include only the data needed by the API
+        // Transform the itineraries to include only the data needed by the API
+      console.log("Starting data transformation for API");
       const transformedData = {
         ...data,
-        itineraries: validItineraries.map(item => {          // Process room allocations - use explicit allocations if available
+        itineraries: validItineraries.map(item => {
+          console.log("Processing itinerary item:", item);
+          console.log("Room allocations:", item.roomAllocations);
+          
+          // Process room allocations - use explicit allocations if available
           const roomAllocationData = item.roomAllocations && item.roomAllocations.length > 0 
             ? item.roomAllocations.map(room => ({
                 roomType: room.roomType || 'Standard',
@@ -145,6 +148,8 @@ export const useAutoCalculatePrice = () => {
                 guestNames: '',
                 mealPlan: 'CP' // Use default meal plan
               }];
+          
+          console.log("Processed room allocations:", roomAllocationData);
             // Process transport details - ensure proper structure
           const transportDetailsData = item.transportDetails && item.transportDetails.length > 0
             ? item.transportDetails.map(transport => ({
@@ -175,15 +180,27 @@ export const useAutoCalculatePrice = () => {
             accommodations: accommodationsData, // Add explicit accommodation array data
           };
         })
-      };
-
-      const response = await axios.post('/api/calculate-package-price', transformedData);
-
-      setPricingData(response.data);
-      setIsCalculating(false);
-      return response.data;
+      };      console.log("Sending data to API:", transformedData);
+      try {
+        const response = await axios.post('/api/calculate-package-price', transformedData);
+        console.log("API response received:", response.data);
+        
+        setPricingData(response.data);
+        setIsCalculating(false);
+        return response.data;
+      } catch (err: any) {
+        console.error('API request failed:', err);
+        console.error('Error details:', {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data
+        });
+        setError(err.response?.data || 'Failed to calculate package price');
+        setIsCalculating(false);
+        return null;
+      }
     } catch (err: any) {
-      console.error('Error calculating package price:', err);
+      console.error('Error in price calculation function:', err);
       setError(err.response?.data || 'Failed to calculate package price');
       setIsCalculating(false);
       return null;

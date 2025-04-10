@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from "@/lib/constants";
 
 // GET hotel pricing for a specific hotelId
 export async function GET(

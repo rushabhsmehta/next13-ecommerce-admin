@@ -13,6 +13,7 @@ import { useParams, useRouter } from "next/navigation"
 // Import DevTool for better debugging (optional in production)
 import { DevTool } from "@hookform/devtools"
 import { useAutoCalculatePrice } from "@/hooks/use-auto-calculate-price"
+import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from '@/lib/constants';
 
 import {
   Command,
@@ -109,6 +110,7 @@ interface DatePeriodBreakdown {
 interface RoomDetail {
   roomType: string;
   occupancyType: string;
+  mealPlan?: string;
   quantity: number;
   pricePerRoom?: number;
   totalCost?: number;
@@ -132,7 +134,8 @@ interface CalculationResult {
   totalRooms: number;
   breakdown: CalculationDayBreakdown[];
   datePeriodBreakdown?: DatePeriodBreakdown[];
-  roomAllocations?: RoomAllocationBreakdown[]; transportDetails?: Array<{
+  roomAllocations?: RoomAllocationBreakdown[]; 
+  transportDetails?: Array<{
     vehicleType: string;
     quantity: number;
     capacity?: string;
@@ -160,8 +163,7 @@ const AutoCalculatePriceButton = ({
   const [markupType, setMarkupType] = useState<'percentage' | 'fixed'>('percentage');
   const [markupValue, setMarkupValue] = useState<number>(0);
   const [markupedPrice, setMarkupedPrice] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const handleAutoCalculate = async () => {
+  const [expanded, setExpanded] = useState(false);  const handleAutoCalculate = async () => {
     try {
       setShowError(false);
       setShowResults(false);
@@ -171,10 +173,10 @@ const AutoCalculatePriceButton = ({
       const tourStartsFrom = form.getValues('tourStartsFrom');
       const tourEndsOn = form.getValues('tourEndsOn');
       const itineraries = form.getValues('itineraries');
-      const numAdults = form.getValues('numAdults');
-      const numChild5to12 = form.getValues('numChild5to12');
-      const numChild0to5 = form.getValues('numChild0to5');
-
+      
+      // We'll extract guest counts from room allocations rather than using 
+      // separate form fields, avoiding potential inconsistencies
+      
       // Validate required data
       if (!tourStartsFrom || !tourEndsOn) {
         toast.error('Please select tour start and end dates first');
@@ -189,30 +191,53 @@ const AutoCalculatePriceButton = ({
       if (validItineraries.length === 0) {
         toast.error('Please select at least one hotel in your itinerary');
         return;
-      }      // Call the API to calculate price
-      // Ensure all required fields have values and types are correct  
-          const processedItineraries = itineraries.map(itinerary => ({
-        ...itinerary,
-        roomAllocations: itinerary.roomAllocations?.map(room => ({
-          ...room,
-          roomType: room.roomType || 'Standard', // Use room allocation roomType or default
-          occupancyType: room.occupancyType || 'Double'
-        })) || [{
-          // Add default room allocation if none exists
-          roomType: 'Standard',
-          occupancyType: 'Double',
-          quantity: parseInt(itinerary.numberofRooms || '1'),
-          guestNames: ''
-        }]
-      }));
+      }
+        // Import constants (At the top of your file)      // Process itineraries and ensure all room allocations use standardized values with proper meal plans
+      const processedItineraries = itineraries.map(itinerary => {
+        // Debug output to help diagnose issues
+        console.log(`Processing itinerary with hotelId: ${itinerary.hotelId}, roomAllocations:`, itinerary.roomAllocations);
+        
+        // Get mealsIncluded array for this itinerary and convert to meal plan if present
+        const mealsArray = itinerary.mealsIncluded || [];
+        const derivedMealPlan = 
+          mealsArray.includes('breakfast') && mealsArray.includes('lunch') && mealsArray.includes('dinner') ? MEAL_PLANS.AP :
+          mealsArray.includes('breakfast') && mealsArray.includes('dinner') ? MEAL_PLANS.MAP :
+          mealsArray.includes('breakfast') ? MEAL_PLANS.CP : MEAL_PLANS.EP;
+        
+        console.log(`Derived meal plan from mealsIncluded: ${derivedMealPlan}`);
+        
+        return {
+          ...itinerary,
+          roomAllocations: itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? 
+            itinerary.roomAllocations.map(room => {
+              // Extract the meal plan explicitly or use derived value
+              const effectiveMealPlan = room.mealPlan || itinerary.mealPlan || derivedMealPlan;
+              console.log(`Room allocation: using meal plan: ${effectiveMealPlan}`);
+              
+              return {
+                ...room,
+                roomType: room.roomType || itinerary.roomType || ROOM_TYPES.DELUXE,
+                occupancyType: room.occupancyType || itinerary.occupancyType || OCCUPANCY_TYPES.DOUBLE,
+                mealPlan: effectiveMealPlan,
+                // Ensure quantity is a number
+                quantity: typeof room.quantity === 'string' ? parseInt(room.quantity) || 1 : (room.quantity || 1)
+              };
+            })
+            : [{ 
+              // Add default room allocation if none exists - with standardized values
+              roomType: itinerary.roomType || ROOM_TYPES.DELUXE,
+              occupancyType: itinerary.occupancyType || OCCUPANCY_TYPES.DOUBLE,
+              quantity: parseInt(itinerary.numberofRooms || '1'),
+              guestNames: '',
+              mealPlan: itinerary.mealPlan || derivedMealPlan
+            }]
+        };
+      });
 
       const result = await calculatePackagePrice({
         tourStartsFrom,
         tourEndsOn,
         itineraries: processedItineraries,
-        numAdults: numAdults || '2',  // Default to 2 adults if not specified
-        numChild5to12: numChild5to12 || '0',
-        numChild0to5: numChild0to5 || '0'
       });
 
       if (result) {
@@ -290,9 +315,7 @@ const AutoCalculatePriceButton = ({
       form.setValue('pricingSection', updatedPricingSection);
       form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
     }
-  };
-
-  return (
+  };  return (
     <div className="flex flex-col w-full">
       <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-2">
         <div className="flex flex-col space-y-2 w-full md:w-auto">
@@ -867,7 +890,8 @@ const roomAllocationSchema = z.object({
   roomType: z.string().optional(),
   occupancyType: z.string(), // Make occupancyType required
   quantity: z.number().or(z.string().transform(val => parseInt(val) || 1)),
-  guestNames: z.string().optional()
+  guestNames: z.string().optional(),
+  mealPlan: z.string().optional() // Add meal plan field
 });
 
 const itinerarySchema = z.object({
@@ -2492,176 +2516,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           }}
                                         />
                                       </FormControl>
-                                    </FormItem>
-
-                                    <FormItem>
-                                      <FormLabel>Room Category</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          placeholder="Room Category"
-                                          disabled={loading}
-
-                                          value={itinerary.roomCategory}
-                                          onChange={(e) => {
-                                            const newItineraries = [...value];
-                                            newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
-                                            onChange(newItineraries);
-                                          }}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-
-                                    <FormField
-                                      control={form.control}
-                                      name={`itineraries.${index}.roomType`}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Room Type</FormLabel>
-                                          <FormControl>
-                                            <Select
-                                              disabled={loading}
-                                              value={field.value}
-                                              onValueChange={field.onChange}
-                                            >
-                                              <SelectTrigger>
-                                                {field.value || 'Select Room Type'}
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="Standard">Standard</SelectItem>
-                                                <SelectItem value="Deluxe">Deluxe</SelectItem>
-                                                <SelectItem value="Super Deluxe">Super Deluxe</SelectItem>
-                                                <SelectItem value="Premium">Premium</SelectItem>
-                                                <SelectItem value="Suite">Suite</SelectItem>
-                                                <SelectItem value="Executive Suite">Executive Suite</SelectItem>
-                                                <SelectItem value="Presidential Suite">Presidential Suite</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormField
-                                      control={form.control}
-                                      name={`itineraries.${index}.mealPlan`}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Meal Plan</FormLabel>
-                                          <FormControl>
-                                            <Select
-                                              disabled={loading}
-                                              value={field.value}
-                                              onValueChange={field.onChange}
-                                            >
-                                              <SelectTrigger>
-                                                {field.value || 'Select Meal Plan'}
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="No Meal Plan">No Meal Plan</SelectItem>
-                                                <SelectItem value="CP">CP (Breakfast Only)</SelectItem>
-                                                <SelectItem value="MAP">MAP (Breakfast + Dinner)</SelectItem>
-                                                <SelectItem value="AP">AP (All Meals)</SelectItem>
-                                                <SelectItem value="EP">EP (European Plan - No Meals)</SelectItem>
-                                                <SelectItem value="CP+B">CP+B (Breakfast Only)</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-                                    <FormField
-                                      control={form.control}
-                                      name={`itineraries.${index}.occupancyType`}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Occupancy Type</FormLabel>
-                                          <FormControl>
-                                            <Select
-                                              disabled={loading}
-                                              value={field.value}
-                                              onValueChange={field.onChange}
-                                            >
-                                              <SelectTrigger>
-                                                {field.value || 'Select Occupancy Type'}
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="Single">Single</SelectItem>
-                                                <SelectItem value="Double">Double</SelectItem>
-                                                <SelectItem value="Triple">Triple</SelectItem>
-                                                <SelectItem value="Child with Bed">Child with Bed</SelectItem>
-                                                <SelectItem value="Child without Bed">Child without Bed</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                          </FormControl>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
-
-                                    <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
-                                      <FormLabel>Meal Plan</FormLabel>
-                                      <FormControl>
-                                        <div className="flex flex-col gap-2">
-                                          <label className="flex items-center gap-2">
-                                            <Checkbox
-                                              checked={itinerary.mealsIncluded?.includes('Breakfast')}
-                                              onCheckedChange={(isChecked) =>
-                                                handleMealChange('Breakfast', !!isChecked, index)
-                                              }
-                                            />
-                                            Breakfast
-                                          </label>
-                                          <label className="flex items-center gap-2">
-                                            <Checkbox
-                                              checked={itinerary.mealsIncluded?.includes('Lunch')}
-                                              onCheckedChange={(isChecked) =>
-                                                handleMealChange('Lunch', !!isChecked, index)
-                                              }
-                                            />
-                                            Lunch
-                                          </label>
-                                          <label className="flex items-center gap-2">
-                                            <Checkbox
-                                              checked={itinerary.mealsIncluded?.includes('Dinner')}
-                                              onCheckedChange={(isChecked) =>
-                                                handleMealChange('Dinner', !!isChecked, index)
-                                              }
-                                            />
-                                            Dinner
-                                          </label>
-                                        </div>
-                                      </FormControl>
-                                    </FormItem>                                    <FormField
-                                      control={form.control}
-                                      name={`itineraries.${index}.vehicleType`}
-                                      render={({ field }) => (
-                                        <FormItem>
-                                          <FormLabel>Vehicle Type</FormLabel>
-                                          <Select
-                                            disabled={loading}
-                                            value={field.value || ''}
-                                            onValueChange={field.onChange}
-                                          >
-                                            <SelectTrigger>
-                                              {field.value || 'Select Vehicle Type'}
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="">None</SelectItem>
-                                              <SelectItem value="Sedan">Sedan</SelectItem>
-                                              <SelectItem value="SUV">SUV</SelectItem>
-                                              <SelectItem value="Tempo Traveller">Tempo Traveller</SelectItem>
-                                              <SelectItem value="Mini Bus">Mini Bus</SelectItem>
-                                              <SelectItem value="Bus">Bus</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                          <FormDescription>
-                                            Select vehicle type for this day&apos;s transport
-                                          </FormDescription>
-                                          <FormMessage />
-                                        </FormItem>
-                                      )}
-                                    />
+                                    </FormItem>                                    {/* Room Type, Room Category, Meal Plan, and Occupancy Type fields removed - now handled by Room Allocation component */}                                    {/* Meal plan checkboxes removed - now handled by Room Allocation component */}
+                                    
+                                    {/* Vehicle Type field removed - now handled by Transport Details component */}
 
                                     <RoomAllocationComponent
                                       itinerary={itinerary}

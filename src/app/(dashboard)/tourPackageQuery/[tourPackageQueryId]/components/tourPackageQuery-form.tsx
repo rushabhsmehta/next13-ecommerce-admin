@@ -191,18 +191,16 @@ const AutoCalculatePriceButton = ({
         return;
       }      // Call the API to calculate price
       // Ensure all required fields have values and types are correct  
-      const processedItineraries = itineraries.map(itinerary => ({
+          const processedItineraries = itineraries.map(itinerary => ({
         ...itinerary,
-        roomType: itinerary.roomType || itinerary.roomCategory || 'Standard', // Ensure roomType is set
-        occupancyType: itinerary.occupancyType || 'Double', // Ensure default occupancy type
         roomAllocations: itinerary.roomAllocations?.map(room => ({
           ...room,
-          roomType: room.roomType || itinerary.roomType || itinerary.roomCategory || 'Standard', // Ensure roomType is set
+          roomType: room.roomType || 'Standard', // Use room allocation roomType or default
           occupancyType: room.occupancyType || 'Double'
         })) || [{
           // Add default room allocation if none exists
-          roomType: itinerary.roomType || itinerary.roomCategory || 'Standard',
-          occupancyType: itinerary.occupancyType || 'Double',
+          roomType: 'Standard',
+          occupancyType: 'Double',
           quantity: parseInt(itinerary.numberofRooms || '1'),
           guestNames: ''
         }]

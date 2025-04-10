@@ -88,12 +88,7 @@ interface ItineraryItem {
   days?: string;
   mealsIncluded?: string[];
   numberofRooms?: string;
-  roomCategory?: string;
-  roomType?: string;
-  mealPlan?: string;
-  occupancyType?: string;
-  vehicleType?: string; // Kept for backward compatibility
-  transportDetails?: TransportDetailItem[]; // Added support for multiple vehicles  
+  transportDetails?: TransportDetailItem[]; // Using this relation for vehicle information
   roomAllocations?: Array<{
     roomType?: string;
     occupancyType: string;
@@ -134,26 +129,23 @@ export const useAutoCalculatePrice = () => {
       // Transform the itineraries to include only the data needed by the API
       const transformedData = {
         ...data,
-        itineraries: validItineraries.map(item => {
-          // Process room allocations - use explicit allocations if available
-          // Ensure we have proper room type and occupancy type to find correct pricing
+        itineraries: validItineraries.map(item => {          // Process room allocations - use explicit allocations if available
           const roomAllocationData = item.roomAllocations && item.roomAllocations.length > 0 
             ? item.roomAllocations.map(room => ({
-                roomType: room.roomType || item.roomType || item.roomCategory || 'Standard',
+                roomType: room.roomType || 'Standard',
                 occupancyType: room.occupancyType || 'Double',
                 quantity: parseInt(room.quantity?.toString() || '1'),
                 guestNames: room.guestNames || '',
-                mealPlan: room.mealPlan || item.mealPlan || 'CP' // Include meal plan from room or fallback to itinerary
+                mealPlan: room.mealPlan || 'CP' // Use meal plan from room allocation
               }))
             : [{
-                roomType: item.roomType || item.roomCategory || 'Standard',
-                occupancyType: item.occupancyType || 'Double',
+                roomType: 'Standard',
+                occupancyType: 'Double',
                 quantity: parseInt(item.numberofRooms || '1'),
                 guestNames: '',
-                mealPlan: item.mealPlan || 'CP' // Add default meal plan
+                mealPlan: 'CP' // Use default meal plan
               }];
-          
-          // Process transport details - ensure proper structure
+            // Process transport details - ensure proper structure
           const transportDetailsData = item.transportDetails && item.transportDetails.length > 0
             ? item.transportDetails.map(transport => ({
                 vehicleType: transport.vehicleType || '',
@@ -161,21 +153,11 @@ export const useAutoCalculatePrice = () => {
                 capacity: transport.capacity,
                 description: transport.description || ''
               }))
-            : item.vehicleType 
-              ? [{ 
-                  vehicleType: item.vehicleType,
-                  quantity: 1,
-                  description: ''
-                }] 
-              : [];
-          
-          // Process meal plan information
-          const mealPlan = item.mealPlan || ''; // CP, MAP, AP, EP
-          
-          // Create full accommodation array data
+            : [];
+            // Create full accommodation array data
           const accommodationsData = [{
             hotelName: '', // Will be filled in by the API
-            roomType: item.roomType || 'Standard',
+            roomType: 'Standard',
             roomCount: parseInt(item.numberofRooms || '1'),
             pricePerRoom: 0, // Will be calculated by the API
             totalCost: 0 // Will be calculated by the API
@@ -184,17 +166,12 @@ export const useAutoCalculatePrice = () => {
           return {
             hotelId: item.hotelId,
             locationId: item.locationId || '',
-            roomCategory: item.roomCategory || '',
             numberofRooms: item.numberofRooms || '1',
             dayNumber: item.dayNumber || 0,
             days: item.days || '', // Include days for multi-day stays at the same hotel
             mealsIncluded: item.mealsIncluded || [],
-            roomType: item.roomType || '',
-            mealPlan: mealPlan,
-            occupancyType: item.occupancyType || '',
-            vehicleType: item.vehicleType || '', // Kept for backward compatibility
-            transportDetails: transportDetailsData, // Enhanced multiple vehicles support
-            roomAllocations: roomAllocationData, // Enhanced room allocations for mixed occupancy
+            transportDetails: transportDetailsData, // Using transportDetails for vehicle information
+            roomAllocations: roomAllocationData, // Using roomAllocations for room information
             accommodations: accommodationsData, // Add explicit accommodation array data
           };
         })

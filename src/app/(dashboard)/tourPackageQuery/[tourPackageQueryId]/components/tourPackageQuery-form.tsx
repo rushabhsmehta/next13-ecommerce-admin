@@ -3355,7 +3355,7 @@ const TransportDetailsComponent = ({
       </div>
 
       {transportDetails.length === 0 ? (
-        <p className="text-sm text-gray-500">No vehicles added. Click "Add Vehicle" to add transport.</p>
+        <p className="text-sm text-gray-500">No vehicles added. Click &quot;Add Vehicle&quot; to add transport.</p>
       ) : (
         <div className="space-y-3">
           {transportDetails.map((vehicle: any, vehicleIndex: number) => (

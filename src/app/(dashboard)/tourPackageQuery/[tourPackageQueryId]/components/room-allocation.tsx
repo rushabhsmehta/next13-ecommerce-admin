@@ -78,7 +78,7 @@ const RoomAllocationComponent = ({
       </div>
 
       {roomAllocations.length === 0 ? (
-        <p className="text-sm text-gray-500">No rooms allocated. Click "Add Room" to configure mixed occupancy rooms.</p>
+        <p className="text-sm text-gray-500">No rooms allocated. Click &quot;Add Room&quot; to configure mixed occupancy rooms.</p>
       ) : (
         <div className="space-y-3">
           {roomAllocations.map((room: any, roomIndex: number) => (

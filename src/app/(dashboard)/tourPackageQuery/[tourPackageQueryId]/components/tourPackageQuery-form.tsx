@@ -2105,9 +2105,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Auto-calculate pricing section */}
-                  <div className="border border-blue-100 bg-blue-50 rounded-lg p-4 mb-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-blue-800">Auto Price Calculation</h3>
+                  <div className="border border-blue-100 bg-blue-50 rounded-lg p-4 mb-6">                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-blue-800">Auto Price Calculation</h3>
+                        {/* Add spinner that shows during calculation */}
+                        <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-blue-800"></div>
+                      </div>
 
                       {/* Markup Input and Pricing Tier Selection */}
                       <div className="flex space-x-2 items-center">
@@ -2157,12 +2160,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
-
-                      <Button
+                      </div>                      <Button
                         type="button"
                         onClick={async () => {
                           try {
+                            // Set calculating state to true to show spinner
+                            const calculatingElement = document.getElementById('price-calculating-spinner');
+                            if (calculatingElement) calculatingElement.classList.remove('hidden');
+                            
                             console.log("Starting simple price calculation...");
 
                             // Get required data from form
@@ -2236,12 +2241,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   description: 'Hotel room costs only'
                                 }
                               ]);                              // Store the calculation result for display in the table
-                              (window as any).setPriceCalculationResult(result);
-
-                              toast.success('Price calculation complete!');
+                              (window as any).setPriceCalculationResult(result);                              toast.success('Price calculation complete!');
                             } else {
                               toast.error('Invalid price calculation result');
                             }
+                              // Hide spinner when calculation is complete
+                            const spinnerElement = document.getElementById('price-calculating-spinner');
+                            if (spinnerElement) spinnerElement.classList.add('hidden');
 
                           } catch (error: any) {
                             console.error('Price calculation error:', error);

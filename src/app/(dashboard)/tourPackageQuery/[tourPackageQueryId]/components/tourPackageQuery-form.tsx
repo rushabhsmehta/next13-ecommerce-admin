@@ -229,10 +229,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const [open, setOpen] = useState(false);
   const [openTemplate, setOpenTemplate] = useState(false);
-  const [loading, setLoading] = useState(false);  const [flightDetails, setFlightDetails] = useState([]);
+  const [loading, setLoading] = useState(false); const [flightDetails, setFlightDetails] = useState([]);
   const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const editor = useRef(null)
-  
+
   // Store price calculation result in window for access in nested functions
   useEffect(() => {
     (window as any).setPriceCalculationResult = setPriceCalculationResult;
@@ -2110,7 +2110,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <h3 className="text-lg font-semibold text-blue-800">Auto Price Calculation</h3>
 
                       {/* Markup Input and Pricing Tier Selection */}
-                      <div className="flex space-x-2 items-center">                        <div className="flex items-center">
+                      <div className="flex space-x-2 items-center">
+                        <div className="flex items-center">
                           <label htmlFor="markup" className="text-sm mr-2 text-blue-700">Markup %:</label>
                           <Input
                             id="markup"

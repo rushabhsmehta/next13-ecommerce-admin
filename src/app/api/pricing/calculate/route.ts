@@ -217,12 +217,15 @@ export async function POST(req: Request) {
 
       // Add to itinerary breakdown
       result.itineraryBreakdown.push(itineraryResult);
-    }    // Apply markup to the total cost
+    }    // Apply markup to the total cost (which is already the sum of accommodation and transport costs)
     const baseTotal = result.totalCost;
-    const markupAmount = baseTotal * (markup / 100);
+    
+    // Ensure markup is properly converted from string to number if needed
+    const markupPercentage = typeof markup === 'string' ? parseFloat(markup) : markup;
+    const markupAmount = baseTotal * (markupPercentage / 100);
     const totalWithMarkup = baseTotal + markupAmount;
     
-    // Add markup information to the result
+    // Calculate pricing tiers based on base total
     result.pricingTiers = {
       standardMarkup: Math.round(baseTotal * 1.1), // 10% markup
       premiumMarkup: Math.round(baseTotal * 1.2),  // 20% markup
@@ -233,7 +236,7 @@ export async function POST(req: Request) {
     result.totalCost = Math.round(totalWithMarkup);
     result.basePrice = baseTotal;
     result.appliedMarkup = {
-      percentage: markup,
+      percentage: markupPercentage,
       amount: markupAmount
     };
 

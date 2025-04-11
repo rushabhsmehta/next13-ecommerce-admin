@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
-const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED"];
+const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY"];
 
 export async function PATCH(
   req: Request,

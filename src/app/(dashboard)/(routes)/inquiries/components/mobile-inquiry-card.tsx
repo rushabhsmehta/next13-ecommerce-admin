@@ -16,6 +16,7 @@ import { toast } from "react-hot-toast";
 
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
+  { value: "HOT_QUERY", label: "Hot Query" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
@@ -26,6 +27,8 @@ const getStatusColor = (status: string) => {
       return "bg-green-100 text-green-800 hover:bg-green-200";
     case "CANCELLED":
       return "bg-red-100 text-red-800 hover:bg-red-200";
+    case "HOT_QUERY":
+      return "bg-orange-100 text-orange-800 hover:bg-orange-200";
     default:
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
   }
@@ -176,10 +179,10 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                     )}
                   </div>
                 </div>
-                
-                {/* Display status as a badge instead of dropdown in the header */}
+                  {/* Display status as a badge instead of dropdown in the header */}
                 <Badge className={`${getStatusColor(inquiry.status)}`}>
                   {inquiry.status === "PENDING" ? "Pending" : 
+                   inquiry.status === "HOT_QUERY" ? "Hot Query" :
                    inquiry.status === "CONFIRMED" ? "Confirmed" : "Cancelled"}
                 </Badge>
               </div>

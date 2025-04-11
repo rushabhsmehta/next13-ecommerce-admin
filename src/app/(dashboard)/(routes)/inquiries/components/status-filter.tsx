@@ -12,6 +12,7 @@ import {
 const statusOptions = [
   { value: "ALL", label: "All Status" },
   { value: "PENDING", label: "Pending" },
+  { value: "HOT_QUERY", label: "Hot Query" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
@@ -46,10 +47,10 @@ export const StatusFilter = () => {
           {statusOptions.map((status) => (
             <SelectItem 
               key={status.value} 
-              value={status.value}
-              className={
+              value={status.value}              className={
                 status.value === "CONFIRMED" ? "text-green-600" :
                 status.value === "CANCELLED" ? "text-red-600" :
+                status.value === "HOT_QUERY" ? "text-orange-600" :
                 status.value === "PENDING" ? "text-yellow-600" :
                 ""
               }

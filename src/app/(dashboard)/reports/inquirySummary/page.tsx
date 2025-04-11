@@ -89,13 +89,13 @@ export default function InquirySummaryPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
-
   // Add inquiry status options with correct mappings
   const statusOptions = [
     { value: "all", label: "All Status" },
-    { value: "PENDING", label: "Pending" },     // maps to 'pending' in database
-    { value: "CONFIRMED", label: "Confirmed" }, // maps to 'converted' in database
-    { value: "CANCELLED", label: "Cancelled" }, // maps to 'cancelled' in database
+    { value: "PENDING", label: "Pending" },
+    { value: "HOT_QUERY", label: "Hot Query" },
+    { value: "CONFIRMED", label: "Confirmed" },
+    { value: "CANCELLED", label: "Cancelled" },
   ];
 
   useEffect(() => {

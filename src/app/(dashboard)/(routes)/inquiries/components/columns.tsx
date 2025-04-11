@@ -18,6 +18,7 @@ import { TourPackageQuery } from "@prisma/client"
 
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
+  { value: "HOT_QUERY", label: "Hot Query" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
@@ -57,6 +58,7 @@ const StatusCell = ({ row }: { row: any }) => {
             className={
               status.value === "CONFIRMED" ? "text-green-600" :
               status.value === "CANCELLED" ? "text-red-600" :
+              status.value === "HOT_QUERY" ? "text-orange-600" :
               "text-yellow-600"
             }
           >
@@ -181,6 +183,7 @@ export const columns: ColumnDef<InquiryColumn>[] = [
               className={
                 status.value === "CONFIRMED" ? "text-green-600" :
                 status.value === "CANCELLED" ? "text-red-600" :
+                status.value === "HOT_QUERY" ? "text-orange-600" :
                 "text-yellow-600"
               }
             >

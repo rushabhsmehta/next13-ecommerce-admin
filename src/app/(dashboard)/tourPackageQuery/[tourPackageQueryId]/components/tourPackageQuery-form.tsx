@@ -2,18 +2,27 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, useFieldArray, UseFormReturn } from "react-hook-form"
-import { toast } from "react-hot-toast"
-import { CheckIcon, ChevronDown, ChevronUp, Trash, ListPlus, Plus, ListChecks, AlertCircle, ScrollText, Calculator, Download, BedDouble, UtensilsCrossed, Car, PlusCircle, Printer } from "lucide-react"
-import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier } from "@prisma/client"
+import { useForm, useFieldArray } from "react-hook-form";
+import { useState, useRef, useEffect, ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PricingItinerary, RoomAllocation, TransportDetail } from "@/lib/pricing-service";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
+import { useRouter, useParams } from "next/navigation";
+import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText } from "lucide-react";
+import { Activity, AssociatePartner, Images, ItineraryMaster } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
-import { useParams, useRouter } from "next/navigation"
+import { toast } from "react-hot-toast"
 // Import DevTool for better debugging (optional in production)
 import { DevTool } from "@hookform/devtools"
-import { useAutoCalculatePrice } from "@/hooks/use-auto-calculate-price"
-import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from '@/lib/constants';
 
 import {
   Command,
@@ -53,7 +62,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
-import { CalendarIcon } from "@radix-ui/react-icons"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { format } from "date-fns"
 import JoditEditor from "jodit-react";
@@ -64,818 +72,14 @@ import { Calendar } from "@/components/ui/calendar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Users, MapPin, Plane, Tag, FileCheck } from "lucide-react"
+import { PolicyField } from "./policy-fields"
 
 // Add PolicyField import
-import { PolicyField } from "./policy-fields";
-import RoomAllocationComponent from "./room-allocation"
 
-// Interface for transport detail inputs
-interface TransportDetailInput {
-  vehicleType: string;
-  quantity: number;
-  capacity?: string;
-  description?: string;
-}
-
-
-
-// Add interfaces for calculation results
-interface AccommodationDetail {
-  hotelName: string;
-  roomType: string;
-  roomCount: number;
-}
-
-interface CalculationDayBreakdown {
-  dayNumber: number;
-  date?: string;
-  hotelName: string;
-  roomCost: number;
-  mealCost: number;
-  transportCost?: number;
-  total: number;
-  roomsBreakdown?: string;
-  accommodations?: AccommodationDetail[];
-  mealPlan?: string; // Added missing mealPlan property
-}
-
-interface DatePeriodBreakdown {
-  startDate: string;
-  endDate: string;
-  days: number;
-  totalCost: number;
-}
-
-interface RoomDetail {
-  roomType: string;
-  occupancyType: string;
-  mealPlan?: string;
-  quantity: number;
-  pricePerRoom?: number;
-  totalCost?: number;
-  guestNames?: string;
-  warning?: string;
-}
-
-interface RoomAllocationBreakdown {
-  dayNumber: number;
-  date: string;
-  hotelName: string;
-  totalCost: number;
-  rooms: RoomDetail[];
-}
-
-interface CalculationResult {
-  totalPrice: number;
-  roomCost: number;
-  mealCost: number;
-  transportCost: number;
-  totalRooms: number;
-  breakdown: CalculationDayBreakdown[];
-  datePeriodBreakdown?: DatePeriodBreakdown[];
-  roomAllocations?: RoomAllocationBreakdown[]; 
-  transportDetails?: Array<{
-    vehicleType: string;
-    quantity: number;
-    capacity?: string;
-    cost: number;
-    description?: string;
-    dayRange?: string;
-    dayNumber?: number;
-    perDayOrTrip?: string;
-  }>;
-  pricingSection: Array<{ name: string, price: string, description?: string }>;
-}
-
-// Auto Calculate Price Button component with proper types
-const AutoCalculatePriceButton = ({
-  form,
-  hotels
-}: {
-  form: UseFormReturn<TourPackageQueryFormValues>;
-  hotels: Hotel[];
-}) => {
-  const { calculatePackagePrice, isCalculating, error } = useAutoCalculatePrice(); 
-  const [showError, setShowError] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [calculationDetails, setCalculationDetails] = useState<CalculationResult | null>(null);
-  const [markupType, setMarkupType] = useState<'percentage' | 'fixed'>('percentage');
-  const [markupValue, setMarkupValue] = useState<number>(0);
-  const [markupedPrice, setMarkupedPrice] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState(false);  const handleAutoCalculate = async () => {
-    try {
-      setShowError(false);
-      setShowResults(false);
-      setMarkupedPrice(null);
-
-      // Get required data from form
-      const tourStartsFrom = form.getValues('tourStartsFrom');
-      const tourEndsOn = form.getValues('tourEndsOn');
-      const itineraries = form.getValues('itineraries');
-      
-      // We'll extract guest counts from room allocations rather than using 
-      // separate form fields, avoiding potential inconsistencies
-      
-      // Validate required data
-      if (!tourStartsFrom || !tourEndsOn) {
-        toast.error('Please select tour start and end dates first');
-        return;
-      }
-
-      // Check if we have valid itineraries with hotels
-      const validItineraries = itineraries.filter(itinerary =>
-        itinerary.hotelId && hotels.some(hotel => hotel.id === itinerary.hotelId)
-      );
-
-      if (validItineraries.length === 0) {
-        toast.error('Please select at least one hotel in your itinerary');
-        return;
-      }
-        // Import constants (At the top of your file)      // Process itineraries and ensure all room allocations use standardized values with proper meal plans
-      const processedItineraries = itineraries.map(itinerary => {
-        // Debug output to help diagnose issues
-        console.log(`Processing itinerary with hotelId: ${itinerary.hotelId}, roomAllocations:`, itinerary.roomAllocations);
-        
-        // Get mealsIncluded array for this itinerary and convert to meal plan if present
-        const mealsArray = itinerary.mealsIncluded || [];
-        const derivedMealPlan = 
-          mealsArray.includes('breakfast') && mealsArray.includes('lunch') && mealsArray.includes('dinner') ? MEAL_PLANS.AP :
-          mealsArray.includes('breakfast') && mealsArray.includes('dinner') ? MEAL_PLANS.MAP :
-          mealsArray.includes('breakfast') ? MEAL_PLANS.CP : MEAL_PLANS.EP;
-        
-        console.log(`Derived meal plan from mealsIncluded: ${derivedMealPlan}`);
-        
-        return {
-          ...itinerary,
-          roomAllocations: itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? 
-            itinerary.roomAllocations.map(room => {
-              // Extract the meal plan explicitly or use derived value
-              const effectiveMealPlan = room.mealPlan || itinerary.mealPlan || derivedMealPlan;
-              console.log(`Room allocation: using meal plan: ${effectiveMealPlan}`);
-              
-              return {
-                ...room,
-                roomType: room.roomType || itinerary.roomType || ROOM_TYPES.DELUXE,
-                occupancyType: room.occupancyType || itinerary.occupancyType || OCCUPANCY_TYPES.DOUBLE,
-                mealPlan: effectiveMealPlan,
-                // Ensure quantity is a number
-                quantity: typeof room.quantity === 'string' ? parseInt(room.quantity) || 1 : (room.quantity || 1)
-              };
-            })
-            : [{ 
-              // Add default room allocation if none exists - with standardized values
-              roomType: itinerary.roomType || ROOM_TYPES.DELUXE,
-              occupancyType: itinerary.occupancyType || OCCUPANCY_TYPES.DOUBLE,
-              quantity: parseInt(itinerary.numberofRooms || '1'),
-              guestNames: '',
-              mealPlan: itinerary.mealPlan || derivedMealPlan
-            }]
-        };
-      });
-
-      const result = await calculatePackagePrice({
-        tourStartsFrom,
-        tourEndsOn,
-        itineraries: processedItineraries,
-      });
-
-      if (result) {
-        // Store detailed calculation results
-        setCalculationDetails(result);
-        setShowResults(true);
-
-        // Calculate markup if any
-        let finalPrice = result.totalPrice;
-        if (markupValue > 0) {
-          if (markupType === 'percentage') {
-            finalPrice = finalPrice * (1 + markupValue / 100);
-          } else { // fixed amount
-            finalPrice = finalPrice + markupValue;
-          }
-          setMarkupedPrice(finalPrice);
-        }
-
-        // Update form with calculated results
-        const updatedPricingSection = [...result.pricingSection];
-
-        // Add markup to pricing section if applied
-        if (markupValue > 0) {
-          updatedPricingSection.push({
-            name: markupType === 'percentage' ? `Markup (${markupValue}%)` : 'Markup (Fixed)',
-            price: markupType === 'percentage'
-              ? `₹${Math.round((result.totalPrice * markupValue / 100)).toLocaleString()}`
-              : `₹${Math.round(markupValue).toLocaleString()}`,
-            description: 'Additional charges'
-          });
-        }
-
-        form.setValue('pricingSection', updatedPricingSection);
-        form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
-
-        // Show a success toast
-        toast.success('Package price calculated successfully!');
-      }
-    } catch (err) {
-      console.error('Error calculating price:', err);
-      setShowError(true);
-    }
-  };
-  // Function to apply markup
-  const applyMarkup = () => {
-    if (!calculationDetails) return;
-
-    let finalPrice = calculationDetails.totalPrice;
-    if (markupValue > 0) {
-      if (markupType === 'percentage') {
-        finalPrice = finalPrice * (1 + markupValue / 100);
-      } else { // fixed amount
-        finalPrice = finalPrice + markupValue;
-      }
-      setMarkupedPrice(finalPrice);
-
-      // Update form with marked up price
-      const updatedPricingSection = [...calculationDetails.pricingSection];
-
-      // Remove existing markup entry if any
-      const markupIndex = updatedPricingSection.findIndex(p => p.name.includes('Markup'));
-      if (markupIndex !== -1) {
-        updatedPricingSection.splice(markupIndex, 1);
-      }
-
-      // Add new markup entry
-      updatedPricingSection.push({
-        name: markupType === 'percentage' ? `Markup (${markupValue}%)` : 'Markup (Fixed)',
-        price: markupType === 'percentage'
-          ? `₹${Math.round((calculationDetails.totalPrice * markupValue / 100)).toLocaleString()}`
-          : `₹${Math.round(markupValue).toLocaleString()}`,
-        description: 'Additional charges'
-      });
-
-      form.setValue('pricingSection', updatedPricingSection);
-      form.setValue('totalPrice', `₹${Math.round(finalPrice).toLocaleString()}`);
-    }
-  };  return (
-    <div className="flex flex-col w-full">
-      <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-2">
-        <div className="flex flex-col space-y-2 w-full md:w-auto">
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium">Markup Type:</label>
-            <Select
-              value={markupType}
-              onValueChange={(value) => setMarkupType(value as 'percentage' | 'fixed')}
-              disabled={isCalculating}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select markup type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="percentage">Percentage (%)</SelectItem>
-                <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Input
-              type="number"
-              className="w-24"
-              placeholder={markupType === 'percentage' ? "%" : "₹"}
-              value={markupValue || ''}
-              onChange={(e) => setMarkupValue(parseFloat(e.target.value) || 0)}
-              disabled={isCalculating}
-            />
-
-            <Button
-              type="button"
-              onClick={applyMarkup}
-              variant="outline"
-              size="sm"
-              disabled={isCalculating || !calculationDetails}
-            >
-              Apply Markup
-            </Button>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          onClick={handleAutoCalculate}
-          disabled={isCalculating}
-          variant="secondary"
-          className="mb-2 whitespace-nowrap"
-        >
-          {isCalculating ? (
-            <>
-              <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-              Calculating...
-            </>
-          ) : (
-            <>
-              <Calculator className="mr-2 h-4 w-4" />
-              Auto Calculate Price
-            </>
-          )}
-        </Button>
-      </div>
-
-      {showError && error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md mt-2 mb-4">
-          <p className="text-sm font-medium flex items-center">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            {error}
-          </p>
-        </div>
-      )}        {showResults && calculationDetails && (
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md mt-2 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-blue-800 font-medium flex items-center">
-              <Calculator className="h-4 w-4 mr-2" />
-              Price Calculation Details
-            </h3>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs px-2 py-1 h-7 bg-white"
-                onClick={() => {
-                  // Toggle all sections open/closed
-                  const allSections = document.querySelectorAll('[data-price-section]');
-                  const allClosed = Array.from(allSections).every(
-                    el => el.getAttribute('data-state') === 'closed'
-                  );
-
-                  allSections.forEach(section => {
-                    if (allClosed) {
-                      section.setAttribute('data-state', 'open');
-                    } else {
-                      section.setAttribute('data-state', 'closed');
-                    }
-                  });
-                  setExpanded(!expanded);
-                }}
-              >
-                {expanded ? 'Collapse All' : 'Expand All'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs px-2 py-1 h-7 text-blue-600 hover:text-blue-800"
-                onClick={() => {
-                  // Print or export to PDF logic could be added here
-                  toast.success("Preparing print view...");
-                  // For now, we'll just open the browser print dialog
-                  window.print();
-                }}
-              >
-                <Printer className="h-3.5 w-3.5 mr-1" />
-                Print
-              </Button>
-            </div>
-          </div>
-
-          {/* Main Summary Card - Always Visible */}
-          <div className="bg-white rounded-lg p-4 shadow border border-blue-200 mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-semibold text-blue-700 text-base">Package Pricing Summary</h4>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 font-medium">
-                {calculationDetails.breakdown.length} Days / {calculationDetails.totalRooms} Rooms
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="space-y-3">
-                <div>
-                  <div className="text-xs text-gray-500">TOUR DATES</div>
-                  <div className="font-medium text-sm flex items-center">
-                    <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
-                    {calculationDetails.breakdown.length > 0 && (
-                      <>
-                        {calculationDetails.breakdown[0].date} - {calculationDetails.breakdown[calculationDetails.breakdown.length - 1].date}
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">GUEST COMPOSITION</div>
-                  <div className="font-medium text-sm flex items-center">
-                    <Users className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
-                    {form.getValues('numAdults') || 2} Adults, {form.getValues('numChild5to12') || 0} Children (5-12), {form.getValues('numChild0to5') || 0} Infants
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-md bg-blue-50/50 p-3">
-                <h5 className="text-xs font-medium text-blue-800 mb-1.5">COST BREAKDOWN</h5>
-                <div className="grid grid-cols-1 gap-1.5 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 flex items-center">
-                      <BedDouble className="h-3.5 w-3.5 mr-1.5" />
-                      Accommodation
-                    </span>
-                    <span className="font-medium">₹{Math.round(calculationDetails.roomCost || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 flex items-center">
-                      <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
-                      Meals
-                    </span>
-                    <span className="font-medium">₹{Math.round(calculationDetails.mealCost || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 flex items-center">
-                      <Car className="h-3.5 w-3.5 mr-1.5" />
-                      Transport
-                    </span>
-                    <span className="font-medium">₹{Math.round(calculationDetails.transportCost || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="bg-gradient-to-r from-blue-100 to-blue-50 rounded-md p-3 shadow-sm">
-                  <h5 className="text-sm font-medium text-blue-700 mb-1">TOTAL PACKAGE PRICE</h5>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 text-sm">Base Price:</span>
-                    <span className="font-semibold text-lg">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</span>
-                  </div>
-
-                  {markupedPrice && (
-                    <>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-gray-600 text-sm flex items-center">
-                          <PlusCircle className="h-3 w-3 mr-1" />
-                          Markup ({markupType === 'percentage' ? `${markupValue}%` : `₹${markupValue.toLocaleString()}`}):
-                        </span>
-                        <span className="font-medium text-sm text-green-700">
-                          ₹{Math.round(markupedPrice - calculationDetails.totalPrice).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="border-t border-blue-200 mt-2 pt-2 flex items-center justify-between">
-                        <span className="text-gray-600 text-sm">Final Price:</span>
-                        <span className="font-bold text-blue-800 text-lg">₹{Math.round(markupedPrice).toLocaleString()}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="bg-blue-50/50 rounded-md p-2 text-xs text-center text-blue-600">
-                  {calculationDetails.totalRooms > 0 && (
-                    <div className="flex items-center justify-center">
-                      <BedDouble className="h-3 w-3 mr-1" />
-                      {calculationDetails.breakdown.length > 0 && calculationDetails.breakdown[0].roomsBreakdown}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Per person price section */}
-            {calculationDetails.pricingSection && calculationDetails.pricingSection.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2 pt-3 border-t border-blue-100">
-                {calculationDetails.pricingSection
-                  .filter(item => item.name.includes("Per Person") || item.name.includes("Per Couple") || item.name.includes("Child"))
-                  .slice(0, 6)
-                  .map((item, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm px-2 py-1 rounded-sm bg-blue-50/30">
-                      <span className="text-gray-600">{item.name}:</span>
-                      <span className="font-medium">{item.price}</span>
-                    </div>
-                  ))
-                }
-              </div>
-            )}
-          </div>
-
-          {/* Room Configuration Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
-              <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center justify-between">
-                <span className="flex items-center">
-                  <BedDouble className="h-4 w-4 mr-2" />
-                  Room Configuration
-                </span>
-                <Badge variant="outline" className="bg-blue-50 text-blue-600 text-xs">
-                  {calculationDetails.totalRooms || 0} Rooms
-                </Badge>
-              </h4>
-              <p className="text-sm text-blue-600">
-                {calculationDetails.breakdown.length > 0 && calculationDetails.breakdown[0].roomsBreakdown || 'Room details not available'}
-              </p>
-            </div>
-
-            <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
-              <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center">
-                <UtensilsCrossed className="h-4 w-4 mr-2" />
-                Meal Plan Details
-              </h4>              <div className="text-sm text-blue-600">
-                {calculationDetails.breakdown.some(day => day.mealPlan && day.mealPlan !== "N/A") ? (
-                  <div className="flex flex-col gap-1 text-xs">
-                    {/* Filter out undefined values first, then create a Set to deduplicate */}
-                    {Array.from(
-                      new Set(
-                        calculationDetails.breakdown
-                          .map(day => day.mealPlan)
-                          .filter((plan): plan is string => !!plan && plan !== "N/A")
-                      )
-                    ).map((plan, i) => (
-                      <div key={i} className="flex items-center">
-                        <div className="h-2 w-2 rounded-full bg-blue-400 mr-2"></div>
-                        <span>{plan}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span>No meal plan specified</span>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded p-3 shadow-sm border border-blue-100">
-              <h4 className="text-sm font-medium text-blue-700 mb-1 flex items-center">
-                <Car className="h-4 w-4 mr-2" />
-                Transport Information
-              </h4>
-              <div className="text-sm text-blue-600">
-                {calculationDetails.transportDetails && calculationDetails.transportDetails.length > 0 ? (
-                  <div className="flex flex-col gap-1 text-xs">
-                    {calculationDetails.transportDetails.slice(0, 2).map((transport, i) => (
-                      <div key={i} className="flex items-center">
-                        <div className="h-2 w-2 rounded-full bg-blue-400 mr-2"></div>
-                        <span>{transport.quantity}x {transport.vehicleType} {transport.perDayOrTrip || 'Per Trip'}</span>
-                      </div>
-                    ))}
-                    {calculationDetails.transportDetails.length > 2 && (
-                      <div className="text-xs text-blue-500">+{calculationDetails.transportDetails.length - 2} more vehicles</div>
-                    )}
-                  </div>
-                ) : (
-                  <span>No transport details available</span>
-                )}
-              </div>
-            </div>
-          </div>
-          {/* Collapsible Sections */}
-          <Accordion type="multiple" className="mt-4 space-y-2">
-            {/* Day-by-Day Breakdown Section */}
-            {calculationDetails.breakdown.length > 0 && (
-              <AccordionItem value="day-breakdown" className="border rounded-md overflow-hidden" data-price-section>
-                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <div className="flex items-center">
-                      <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
-                      <span className="font-medium">Day-by-Day Breakdown</span>
-                    </div>
-                    <Badge variant="outline" className="bg-blue-100/30">
-                      {calculationDetails.breakdown.length} Days
-                    </Badge>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="bg-white">
-                  <div className="overflow-x-auto">
-                    <div className="max-h-60 overflow-y-auto text-xs px-4 py-2">
-                      <table className="min-w-full border-collapse">
-                        <thead>
-                          <tr className="bg-blue-100 sticky top-0 z-10">
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Day</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Date</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Accommodations</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Meal Plan</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Room Cost</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Meal Cost</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Transport</th>
-                            <th className="py-2 px-2 text-left font-medium text-blue-800">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {calculationDetails.breakdown.map((day, index) => (
-                            <tr
-                              key={index}
-                              className={`${index % 2 === 0 ? 'bg-white' : 'bg-blue-50'} border-b border-blue-100/30 hover:bg-blue-50/70 transition-colors`}
-                            >
-                              <td className="py-2 px-2 font-medium">{day.dayNumber}</td>
-                              <td className="py-2 px-2">{day.date || 'N/A'}</td>
-                              <td className="py-2 px-2">
-                                {day.accommodations && day.accommodations.length > 0 ? (
-                                  <div className="space-y-1">
-                                    {day.accommodations.map((acc, i) => (
-                                      <div key={i} className="flex items-start gap-1 text-xs">
-                                        <BedDouble className="h-3 w-3 mt-0.5 text-blue-500 flex-shrink-0" />
-                                        <div>
-                                          <span className="font-medium">{acc.hotelName}</span>
-                                          <span className="text-gray-500"> ({acc.roomType} x{acc.roomCount})</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center">
-                                    <BedDouble className="h-3 w-3 mr-1 text-blue-500" />
-                                    {day.hotelName || 'No accommodation'}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="py-2 px-2">
-                                <Badge variant="outline" className={
-                                  day.mealPlan?.includes('AP') ? 'bg-green-50 text-green-700 border-green-200' :
-                                    day.mealPlan?.includes('MAP') ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                      day.mealPlan?.includes('CP') ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                        'bg-gray-50 text-gray-700 border-gray-200'
-                                }>
-                                  {day.mealPlan || 'None'}
-                                </Badge>
-                              </td>
-                              <td className="py-2 px-2 font-medium">₹{Math.round(day.roomCost || 0).toLocaleString()}</td>
-                              <td className="py-2 px-2 font-medium">₹{Math.round(day.mealCost || 0).toLocaleString()}</td>
-                              <td className="py-2 px-2 font-medium">
-                                {(day.transportCost && day.transportCost > 0) ? (
-                                  <div className="flex items-center">
-                                    <Car className="h-3 w-3 mr-1 text-blue-500" />
-                                    ₹{Math.round(day.transportCost).toLocaleString()}
-                                  </div>
-                                ) : '-'}
-                              </td>
-                              <td className="py-2 px-2 font-medium text-blue-800">₹{Math.round(day.total || 0).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                          <tr className="bg-blue-100/50 font-medium">
-                            <td colSpan={4} className="py-2 px-2 text-blue-800">Total</td>
-                            <td className="py-2 px-2">₹{Math.round(calculationDetails.roomCost).toLocaleString()}</td>
-                            <td className="py-2 px-2">₹{Math.round(calculationDetails.mealCost).toLocaleString()}</td>
-                            <td className="py-2 px-2">₹{Math.round(calculationDetails.transportCost).toLocaleString()}</td>
-                            <td className="py-2 px-2 font-medium text-blue-800">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Room Allocation Details Section */}
-            {calculationDetails.roomAllocations && calculationDetails.roomAllocations.length > 0 && (
-              <AccordionItem value="room-allocation" className="border rounded-md overflow-hidden" data-price-section>
-                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2 text-blue-600" />
-                    <span className="font-medium">Room Allocation Details</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="bg-white">
-                  <div className="max-h-36 overflow-y-auto text-xs px-4 py-2">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="bg-blue-100">
-                          <th className="py-1 px-2 text-left">Day</th>
-                          <th className="py-1 px-2 text-left">Date</th>
-                          <th className="py-1 px-2 text-left">Hotel</th>
-                          <th className="py-1 px-2 text-left">Room Type</th>
-                          <th className="py-1 px-2 text-left">Occupancy</th>
-                          <th className="py-1 px-2 text-left">Quantity</th>
-                          <th className="py-1 px-2 text-left">Price/Room</th>
-                          <th className="py-1 px-2 text-left">Total Cost</th>
-                          <th className="py-1 px-2 text-left">Guests</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {calculationDetails.roomAllocations.flatMap((day) =>
-                          day.rooms.map((room, roomIndex) => (
-                            <tr key={`${day.dayNumber}-${roomIndex}`} className={
-                              day.dayNumber % 2 === 0 ?
-                                (roomIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50') :
-                                (roomIndex % 2 === 0 ? 'bg-blue-50' : 'bg-blue-100/30')
-                            }>
-                              <td className="py-1 px-2">{day.dayNumber}</td>
-                              <td className="py-1 px-2">{day.date || 'N/A'}</td>
-                              <td className="py-1 px-2">{day.hotelName}</td>
-                              <td className="py-1 px-2">{room.roomType}</td>
-                              <td className="py-1 px-2">{room.occupancyType}</td>
-                              <td className="py-1 px-2">{room.quantity}</td>
-                              <td className="py-1 px-2">{room.pricePerRoom ? `₹${Math.round(room.pricePerRoom).toLocaleString()}` : 'N/A'}</td>
-                              <td className="py-1 px-2">{room.pricePerRoom ? `₹${Math.round(room.totalCost || 0).toLocaleString()}` : room.warning}</td>
-                              <td className="py-1 px-2">{room.guestNames || '-'}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Transport Details Section */}
-            {calculationDetails.transportDetails && calculationDetails.transportDetails.length > 0 && (
-              <AccordionItem value="transport-details" className="border rounded-md overflow-hidden" data-price-section>
-                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
-                  <div className="flex items-center">
-                    <Plane className="h-4 w-4 mr-2 text-blue-600" />
-                    <span className="font-medium">Transport Details</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="bg-white">
-                  <div className="max-h-32 overflow-y-auto text-xs px-4 py-2">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="bg-blue-100">
-                          <th className="py-1 px-2 text-left">Vehicle Type</th>
-                          <th className="py-1 px-2 text-left">Quantity</th>
-                          <th className="py-1 px-2 text-left">Capacity</th>
-                          <th className="py-1 px-2 text-left">Days</th>
-                          <th className="py-1 px-2 text-left">Type</th>
-                          <th className="py-1 px-2 text-left">Description</th>
-                          <th className="py-1 px-2 text-left">Cost</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {calculationDetails.transportDetails.map((transport, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                            <td className="py-1 px-2">{transport.vehicleType}</td>
-                            <td className="py-1 px-2">{transport.quantity}</td>
-                            <td className="py-1 px-2">{transport.capacity || 'N/A'}</td>
-                            <td className="py-1 px-2">{transport.dayRange || (transport.dayNumber ? `Day ${transport.dayNumber}` : 'All days')}</td>
-                            <td className="py-1 px-2">{transport.perDayOrTrip || 'Per Trip'}</td>
-                            <td className="py-1 px-2">{transport.description || '-'}</td>
-                            <td className="py-1 px-2">₹{Math.round(transport.cost || 0).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-
-            {/* Seasonal Pricing Section */}
-            {calculationDetails.datePeriodBreakdown && calculationDetails.datePeriodBreakdown.length > 0 && (
-              <AccordionItem value="seasonal-pricing" className="border rounded-md overflow-hidden" data-price-section>
-                <AccordionTrigger className="px-4 py-2 hover:no-underline bg-gradient-to-r from-blue-50 to-white">
-                  <div className="flex items-center">
-                    <Tag className="h-4 w-4 mr-2 text-blue-600" />
-                    <span className="font-medium">Seasonal Pricing</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="bg-white">
-                  <div className="max-h-32 overflow-y-auto text-xs px-4 py-2">
-                    <table className="min-w-full">
-                      <thead>
-                        <tr className="bg-blue-100">
-                          <th className="py-1 px-2 text-left">Period</th>
-                          <th className="py-1 px-2 text-left">Days</th>
-                          <th className="py-1 px-2 text-left">Total Cost</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {calculationDetails.datePeriodBreakdown.map((period, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-                            <td className="py-1 px-2">{period.startDate} to {period.endDate}</td>
-                            <td className="py-1 px-2">{period.days}</td>
-                            <td className="py-1 px-2">₹{Math.round(period.totalCost || 0).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
-          </Accordion>
-
-          <div className="mt-6 text-right flex items-center justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs mr-2"
-              onClick={() => {
-                // Save to PDF logic could be implemented here
-                toast.success("Price calculation details saved!");
-              }}
-            >
-              <Download className="h-3 w-3 mr-1" />
-              Export
-            </Button>
-            <p className="text-sm text-blue-800 font-medium">
-              Total Package Price: <span className="text-lg">₹{Math.round(calculationDetails.totalPrice).toLocaleString()}</span>
-              {markupedPrice && (
-                <span className="ml-1 text-green-700">
-                  → ₹{Math.round(markupedPrice).toLocaleString()} (with markup)
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <p className="text-sm text-gray-500 max-w-md text-right">
-        Automatically calculate package pricing based on selected hotels and dates
-      </p>
-    </div>
-  );
-};
-
-// Define a pricing item schema
+// Define the pricing item schema
 const pricingItemSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  price: z.string().optional(), // Changed from required to optional
+  name: z.string().optional(),
+  price: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -885,14 +89,6 @@ const activitySchema = z.object({
   activityImages: z.object({ url: z.string() }).array(),
 });
 
-// Define room allocation schema for mixed occupancy
-const roomAllocationSchema = z.object({
-  roomType: z.string().optional(),
-  occupancyType: z.string(), // Make occupancyType required
-  quantity: z.number().or(z.string().transform(val => parseInt(val) || 1)),
-  guestNames: z.string().optional(),
-  mealPlan: z.string().optional() // Add meal plan field
-});
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
@@ -910,8 +106,25 @@ const itinerarySchema = z.object({
   occupancyType: z.string().optional(), // Default occupancyType for pricing
   locationId: z.string(), // Location ID
   vehicleType: z.string().optional(), // Added vehicleType field for transport pricing
-  // Add support for mixed occupancy rooms
-  roomAllocations: z.array(roomAllocationSchema).optional(),
+  // Add support for room allocations for auto price calculation
+  roomAllocations: z.array(
+    z.object({
+      roomType: z.string().optional(),
+      occupancyType: z.string().optional(),
+      mealPlan: z.string().optional(),
+      quantity: z.string().optional(),
+      guestNames: z.string().optional()
+    })
+  ).optional(),
+  // Add support for transport details for price calculation
+  transportDetails: z.array(
+    z.object({
+      vehicleType: z.string().optional(),
+      transportType: z.string().optional(),
+      quantity: z.string().optional(),
+      description: z.string().optional()
+    })
+  ).optional(),
 });
 
 
@@ -1238,7 +451,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     /* itineraries: [{
       days: '',
       activities: [],
-      mealsIncluded: [],
+      mealsIncluded: false,
       hotelId: '',
     }],
      */
@@ -2410,7 +1623,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                     />
 
 
-
                                     <FormItem>
                                       <FormLabel>Title</FormLabel>
                                       <FormControl>
@@ -2495,6 +1707,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                   />
                                                 </CommandItem>
                                               ))}
+
                                             </CommandGroup>
                                           </Command>
                                         </PopoverContent>
@@ -2516,10 +1729,26 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           }}
                                         />
                                       </FormControl>
-                                    </FormItem>                                    {/* Room Type, Room Category, Meal Plan, and Occupancy Type fields removed - now handled by Room Allocation component */}                                    {/* Meal plan checkboxes removed - now handled by Room Allocation component */}
-                                    
-                                    {/* Vehicle Type field removed - now handled by Transport Details component */}
+                                    </FormItem>
 
+                                    <FormItem>
+                                      <FormLabel>Room Category</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Room Category"
+                                          disabled={loading}
+
+                                          value={itinerary.roomCategory}
+                                          onChange={(e) => {
+                                            const newItineraries = [...value];
+                                            newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
+                                            onChange(newItineraries);
+                                          }}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+
+                                    {/* Room Allocation Component */}
                                     <RoomAllocationComponent
                                       itinerary={itinerary}
                                       index={index}
@@ -2528,6 +1757,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       loading={loading}
                                     />
 
+                                    {/* Transport Details Component */}
                                     <TransportDetailsComponent
                                       itinerary={itinerary}
                                       index={index}
@@ -2550,7 +1780,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             </SelectTrigger>
                                           </FormControl>
                                           <SelectContent>
-                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
+                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
                                               <SelectItem key={activityMaster.id}
                                                 value={activityMaster.id}>
                                                 {activityMaster.activityMasterTitle}
@@ -2625,7 +1855,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           size="sm"
                                           onClick={() => {
                                             const newItineraries = [...value];
-                                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
                                             onChange(newItineraries);
                                           }}
                                         >
@@ -2652,7 +1882,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       variant="destructive"
                                       size="sm"
                                       onClick={() => {
-                                        const newItineraries = value.filter((_, i) => i !== index);
+                                        const newItineraries = value.filter((_, i: number) => i !== index);
                                         onChange(newItineraries);
                                       }}
                                     >
@@ -2674,6 +1904,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                               </AccordionItem>
                             </Accordion>
                           ))}
+
                           <Button
                             type="button"
                             size="sm"
@@ -2837,7 +2068,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   size="sm"
                                   disabled={loading}
                                   onClick={() => {
-                                    const newFlightDetails = value.filter((_, i) => i != index);
+                                    const newFlightDetails = value.filter((_, i: number) => i != index);
                                     onChange(newFlightDetails);
                                   }}>
                                   Remove Flight
@@ -2848,7 +2079,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <FormControl>
                           <Button type="button" size="sm"
                             disabled={loading}
-                            onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
+                                                       onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
                           >
                             Add Flight
                           </Button>
@@ -2858,18 +2089,246 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
+              {/* Add state variable declaration in a proper React way */}
+              {(() => {
+                // This is an immediately-invoked function expression that returns nothing visible
+                const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
+                // Store the state setter in a variable accessible to the whole component
+                (window as any).setPriceCalculationResult = setPriceCalculationResult;
+                (window as any).priceCalculationResult = priceCalculationResult;
+                // Return null so nothing is rendered
+                return null;
+              })()}
 
-            <TabsContent value="pricing" className="space-y-4 mt-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Pricing</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Auto-calculate pricing section */}
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Package Pricing</h3>
-                    <AutoCalculatePriceButton form={form} hotels={hotels} />
+                  <div className="border border-blue-100 bg-blue-50 rounded-lg p-4 mb-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-blue-800">Auto Price Calculation</h3>
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            console.log("Starting simple price calculation...");
+
+                            // Get required data from form
+                            const tourStartsFrom = form.getValues('tourStartsFrom');
+                            const tourEndsOn = form.getValues('tourEndsOn');
+                            const itineraries = form.getValues('itineraries');
+
+                            // Validate required data
+                            if (!tourStartsFrom || !tourEndsOn) {
+                              const errorMsg = 'Please select tour start and end dates first';
+                              console.error(errorMsg);
+                              toast.error(errorMsg);
+                              return;
+                            }
+
+                            // Check if we have any itineraries with hotels
+                            const validItineraries = itineraries.filter(itinerary => {
+                              return itinerary.hotelId &&
+                                hotels.some(hotel => hotel.id === itinerary.hotelId);
+                            });
+
+                            if (validItineraries.length === 0) {
+                              toast.error('Please select hotels for at least one day to calculate pricing');
+                              return;
+                            }
+
+                            toast.success('Calculating room prices...');
+
+                            // Convert to PricingItinerary type by ensuring all required fields are present
+                            const pricingItineraries = validItineraries.map(itinerary => ({
+                              locationId: itinerary.locationId,
+                              dayNumber: itinerary.dayNumber || 0, // Default to day 0 if not specified
+                              hotelId: itinerary.hotelId,
+                              // Add room allocations if available
+                              roomAllocations: itinerary.roomAllocations || [],
+                              transportDetails: itinerary.transportDetails || [],
+                            }));
+ 
+                            console.log('Sending data to price calculation API:', {
+                              tourStartsFrom,
+                              tourEndsOn,
+                              itineraries: pricingItineraries
+                            });
+
+                            // Call the API to calculate price with our simplified approach
+                            const response = await axios.post('/api/pricing/calculate', {
+                              tourStartsFrom,
+                              tourEndsOn,
+                              itineraries: pricingItineraries
+                            });
+
+                            const result = response.data;
+                            console.log('Price calculation result:', result);                            // Update form with the calculated prices
+                            if (result && result.totalCost) {
+                              form.setValue('totalPrice', result.totalCost.toString());
+
+                              // Update pricing section with basic room cost
+                              form.setValue('pricingSection', [
+                                {
+                                  name: 'Total Room Cost',
+                                  price: result.totalCost.toString(),
+                                  description: 'Total accommodation cost'
+                                },
+                                {
+                                  name: 'Accommodation Breakdown',
+                                  price: result.breakdown.accommodation.toString(),
+                                  description: 'Hotel room costs only'
+                                }
+                              ]);                              // Store the calculation result for display in the table
+                              (window as any).setPriceCalculationResult(result);
+
+                              toast.success('Price calculation complete!');
+                            } else {
+                              toast.error('Invalid price calculation result');
+                            }
+
+                          } catch (error: any) {
+                            console.error('Price calculation error:', error);
+
+                            let errorMessage = 'Error calculating price';
+
+                            if (error instanceof Error) {
+                              errorMessage = error.message;
+                              console.error('Error details:', error.stack);
+                            }
+
+                            if (error.response) {
+                              console.error('API response error data:', error.response.data);
+                              console.error('API response error status:', error.response.status);
+
+                              if (error.response.data) {
+                                errorMessage = typeof error.response.data === 'string'
+                                  ? `API Error: ${error.response.data}`
+                                  : `API Error: Status ${error.response.status}`;
+                              }
+                            }
+
+                            toast.error(`Price calculation failed: ${errorMessage}`);
+                          }
+                        }}
+                        variant="outline"
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                      >
+                        <Calculator className="mr-2 h-4 w-4" />
+                        Calculate Price
+                      </Button>
+                    </div>                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-blue-700">How simplified pricing works:</p>
+                        <ul className="list-disc list-inside text-sm text-blue-600 space-y-1">
+                          <li>Select hotels in your itinerary</li>
+                          <li>System finds the base price for each hotel</li>
+                          <li>Calculation is based only on hotel selection</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-blue-700">Simple price includes:</p>
+                        <ul className="list-disc list-inside text-sm text-blue-600 space-y-1">
+                          <li>Basic room rates for selected hotels</li>
+                          <li>Total accommodation cost</li>
+                          <li>Day-by-day breakdown</li>
+                        </ul>
+                      </div>
+                    </div>                    {/* Price Calculation Result Table */}
+                    {(window as any).priceCalculationResult && (window as any).priceCalculationResult.itineraryBreakdown && (window as any).priceCalculationResult.itineraryBreakdown.length > 0 && (
+                      <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+                        <Table>
+                          <TableCaption>Detailed Price Calculation</TableCaption>
+                          <TableHeader>
+                            <TableRow className="bg-blue-50">
+                              <TableHead className="w-[80px]">Day</TableHead>
+                              <TableHead>Hotel</TableHead>
+                              <TableHead className="text-right">Room Cost</TableHead>
+                              <TableHead className="text-right">Quantity</TableHead>
+                              <TableHead className="text-right">Subtotal</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>                            {(window as any).priceCalculationResult.itineraryBreakdown.map((item: any, index: number) => {
+                            // Find the original itinerary to get hotel name
+                            const formItineraries = form.getValues('itineraries');
+                            const originalItinerary = formItineraries.find((it: any) => it.dayNumber === item.day);
+                            const hotelName = originalItinerary && hotels.find((h: any) => h.id === originalItinerary.hotelId)?.name;
+                            const roomAllocation = originalItinerary?.roomAllocations?.[0];
+                            const quantity = roomAllocation?.quantity || "1";
+
+                            return (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">Day {item.day}</TableCell>
+                                <TableCell>{hotelName || 'Unknown Hotel'}</TableCell>
+                                <TableCell className="text-right">
+                                  {(item.accommodationCost / parseInt(quantity)).toFixed(2)}
+                                </TableCell>
+                                <TableCell className="text-right">{quantity}</TableCell>                              <TableCell className="text-right font-medium">
+                                  {item.accommodationCost.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                            <TableRow className="bg-blue-50">
+                              <TableCell colSpan={4} className="font-medium text-right">
+                                Total Accommodation Cost
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                {(window as any).priceCalculationResult.totalCost.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {/* Transport Calculation Result Table */}
+                    {(window as any).priceCalculationResult && 
+                     (window as any).priceCalculationResult.transportDetails && 
+                     (window as any).priceCalculationResult.transportDetails.length > 0 && (
+                      <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+                        <Table>
+                          <TableCaption>Transport Details Breakdown</TableCaption>
+                          <TableHeader>
+                            <TableRow className="bg-blue-50">
+                              <TableHead className="w-[80px]">Day</TableHead>
+                              <TableHead>Vehicle Type</TableHead>
+                              <TableHead className="text-right">Quantity</TableHead>
+                              <TableHead className="text-right">Capacity</TableHead>
+                              <TableHead className="text-right">Price Per Unit</TableHead>
+                              <TableHead className="text-right">Pricing Type</TableHead>
+                              <TableHead className="text-right">Subtotal</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(window as any).priceCalculationResult.transportDetails.map((transport: any, index: number) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium">Day {transport.day}</TableCell>
+                                <TableCell>{transport.vehicleType || 'N/A'}</TableCell>
+                                <TableCell className="text-right">{transport.quantity}</TableCell>
+                                <TableCell className="text-right">{transport.capacity}</TableCell>
+                                <TableCell className="text-right">{transport.pricePerUnit.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">{transport.pricingType}</TableCell>
+                                <TableCell className="text-right font-medium">
+                                  {transport.totalCost.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-blue-50">
+                              <TableCell colSpan={6} className="font-medium text-right">
+                                Total Transport Cost
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                {(window as any).priceCalculationResult.breakdown.transport.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-8">
@@ -2878,7 +2337,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       name="totalPrice"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Total Price</FormLabel>
+                          <FormLabel>Total Price
+                          </FormLabel>
                           <FormControl>
                             <Input disabled={loading} placeholder="Total Price" {...field}
                               value={field.value || ''}
@@ -3132,7 +2592,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               {loading && (
                 <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               )}
               {action}
@@ -3147,140 +2607,4 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   )
 }
 
-// Transport Details Component for multiple vehicles
-const TransportDetailsComponent = ({
-  itinerary,
-  index,
-  value,
-  onChange,
-  loading
-}: {
-  itinerary: any;
-  index: number;
-  value: any[];
-  onChange: (value: any[]) => void;
-  loading: boolean;
-}) => {
-  // Initialize transportDetails array if it doesn't exist
-  const transportDetails = itinerary.transportDetails || [];
 
-  const handleAddVehicle = () => {
-    const newTransportDetails = [...transportDetails, {
-      vehicleType: '',
-      quantity: 1,
-      capacity: ''
-    }];
-
-    const newItineraries = [...value];
-    newItineraries[index] = {
-      ...itinerary,
-      transportDetails: newTransportDetails
-    };
-    onChange(newItineraries);
-  }; const handleRemoveVehicle = (vehicleIndex: number) => {
-    const newTransportDetails: TransportDetailInput[] = transportDetails.filter((_: TransportDetailInput, i: number) => i !== vehicleIndex);
-
-    const newItineraries = [...value];
-    newItineraries[index] = {
-      ...itinerary,
-      transportDetails: newTransportDetails
-    };
-    onChange(newItineraries);
-  };
-
-  const updateVehicleDetail = (vehicleIndex: number, field: string, newValue: any) => {
-    const newTransportDetails = [...transportDetails];
-    newTransportDetails[vehicleIndex] = {
-      ...newTransportDetails[vehicleIndex],
-      [field]: field === 'quantity' ? parseInt(newValue) || 1 : newValue
-    };
-
-    const newItineraries = [...value];
-    newItineraries[index] = {
-      ...itinerary,
-      transportDetails: newTransportDetails
-    };
-    onChange(newItineraries);
-  };
-
-  return (
-    <div className="space-y-3 border p-3 rounded-md">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Transport Details</h4>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleAddVehicle}
-          disabled={loading}
-        >
-          <Plus className="h-4 w-4 mr-1" /> Add Vehicle
-        </Button>
-      </div>
-
-      {transportDetails.length === 0 ? (
-        <p className="text-sm text-gray-500">No vehicles added. Click &quot;Add Vehicle&quot; to add transport.</p>
-      ) : (
-        <div className="space-y-3">
-          {transportDetails.map((vehicle: any, vehicleIndex: number) => (
-            <div key={vehicleIndex} className="grid grid-cols-1 md:grid-cols-4 gap-2 py-2 border-b last:border-0">
-              <div>
-                <Select
-                  disabled={loading}
-                  value={vehicle.vehicleType || ''}
-                  onValueChange={(newValue) => updateVehicleDetail(vehicleIndex, 'vehicleType', newValue)}
-                >
-                  <SelectTrigger>
-                    {vehicle.vehicleType || 'Select Vehicle Type'}
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">None</SelectItem>
-                    <SelectItem value="Sedan">Sedan</SelectItem>
-                    <SelectItem value="SUV">SUV</SelectItem>
-                    <SelectItem value="Innova">Innova</SelectItem>
-                    <SelectItem value="Tempo Traveller">Tempo Traveller</SelectItem>
-                    <SelectItem value="Mini Bus">Mini Bus</SelectItem>
-                    <SelectItem value="Bus">Bus</SelectItem>
-                    <SelectItem value="Luxury Van">Luxury Van</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Input
-                  disabled={loading}
-                  placeholder="Capacity (e.g., 4 Seater)"
-                  value={vehicle.capacity || ''}
-                  onChange={(e) => updateVehicleDetail(vehicleIndex, 'capacity', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Input
-                  disabled={loading}
-                  type="number"
-                  min="1"
-                  placeholder="Quantity"
-                  value={vehicle.quantity}
-                  onChange={(e) => updateVehicleDetail(vehicleIndex, 'quantity', e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleRemoveVehicle(vehicleIndex)}
-                  disabled={loading}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};

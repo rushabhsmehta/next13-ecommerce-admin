@@ -482,7 +482,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
   const handleRemovePricingItem = (index: number) => {
     const currentPricing = form.getValues('pricingSection') || [];
-    form.setValue('pricingSection', currentPricing.filter((_, i) => i !== index));
+    form.setValue('pricingSection', currentPricing.filter((_, i: number) => i !== index));
   };
 
   return (
@@ -1227,7 +1227,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                           size="sm"
                                           onClick={() => {
                                             const newItineraries = [...value];
-                                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
                                             onChange(newItineraries);
                                           }}
                                         >
@@ -1254,7 +1254,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                       variant="destructive"
                                       size="sm"
                                       onClick={() => {
-                                        const newItineraries = value.filter((_, i) => i !== index);
+                                        const newItineraries = value.filter((_, i: number) => i !== index);
                                         onChange(newItineraries);
                                       }}
                                     >
@@ -1429,7 +1429,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                   size="sm"
                                   disabled={loading}
                                   onClick={() => {
-                                    const newFlightDetails = value.filter((_, i) => i != index);
+                                    const newFlightDetails = value.filter((_, i: number) => i != index);
                                     onChange(newFlightDetails);
                                   }}>
                                   Remove Flight

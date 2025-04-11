@@ -1299,7 +1299,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                                               size="sm"
                                               onClick={() => {
                                                 const newItineraries = [...value];
-                                                newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                                                newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
                                                 onChange(newItineraries);
                                               }}
                                             >
@@ -1326,7 +1326,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                                           variant="destructive"
                                           size="sm"
                                           onClick={() => {
-                                            const newItineraries = value.filter((_, i) => i !== index);
+                                            const newItineraries = value.filter((_, i: number) => i !== index);
                                             onChange(newItineraries);
                                           }}
                                         >
@@ -1501,7 +1501,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                                       size="sm"
                                       disabled={loading}
                                       onClick={() => {
-                                        const newFlightDetails = value.filter((_, i) => i != index);
+                                        const newFlightDetails = value.filter((_, i: number) => i != index);
                                         onChange(newFlightDetails);
                                       }}>
                                       Remove Flight

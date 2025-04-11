@@ -2199,19 +2199,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                               // Add room allocations if available
                               roomAllocations: itinerary.roomAllocations || [],
                               transportDetails: itinerary.transportDetails || [],
-                            }));
+                            }));                            // Get the markup value from the window object that's storing the user's selection
+                            const markupValue = (window as any).customMarkupValue || '0';
+                            const markupPercentage = parseFloat(markupValue);
 
                             console.log('Sending data to price calculation API:', {
                               tourStartsFrom,
                               tourEndsOn,
-                              itineraries: pricingItineraries
-                            });                            // Get the markup value
-                            const pricingTier = form.getValues('pricingTier') || 'standard';
-                            const customMarkup = form.getValues('customMarkup');                            // Determine markup percentage based on pricing tier
-                            let markupPercentage = 10; // default to standard
-                            if (pricingTier === 'premium') markupPercentage = 20;
-                            else if (pricingTier === 'luxury') markupPercentage = 30;
-                            else if (pricingTier === 'custom') markupPercentage = parseFloat(customMarkup || '0') || 0;
+                              itineraries: pricingItineraries,
+                              markup: markupPercentage
+                            });
 
                             // Call the API to calculate price with our simplified approach
                             const response = await axios.post('/api/pricing/calculate', {
@@ -2275,127 +2272,164 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       >
                         <Calculator className="mr-2 h-4 w-4" />
                         Calculate Price
-                      </Button>
-                    </div>                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-blue-700">How simplified pricing works:</p>
-                        <ul className="list-disc list-inside text-sm text-blue-600 space-y-1">
-                          <li>Select hotels in your itinerary</li>
-                          <li>System finds the base price for each hotel</li>
-                          <li>Calculation is based only on hotel selection</li>
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-blue-700">Simple price includes:</p>
-                        <ul className="list-disc list-inside text-sm text-blue-600 space-y-1">
-                          <li>Basic room rates for selected hotels</li>
-                          <li>Total accommodation cost</li>
-                          <li>Day-by-day breakdown</li>
-                        </ul>
-                      </div>
-                    </div>                    {/* Price Calculation Result Table */}
-                    {(window as any).priceCalculationResult && (window as any).priceCalculationResult.itineraryBreakdown && (window as any).priceCalculationResult.itineraryBreakdown.length > 0 && (
-                      <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
-                        <Table>
-                          <TableCaption>Detailed Price Calculation</TableCaption>
-                          <TableHeader>
-                            <TableRow className="bg-blue-50">
-                              <TableHead className="w-[80px]">Day</TableHead>
-                              <TableHead>Hotel</TableHead>
-                              <TableHead className="text-right">Room Cost</TableHead>
-                              <TableHead className="text-right">Quantity</TableHead>
-                              <TableHead className="text-right">Subtotal</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>                            {(window as any).priceCalculationResult.itineraryBreakdown.map((item: any, index: number) => {
-                            // Find the original itinerary to get hotel name
-                            const formItineraries = form.getValues('itineraries');
-                            const originalItinerary = formItineraries.find((it: any) => it.dayNumber === item.day);
-                            const hotelName = originalItinerary && hotels.find((h: any) => h.id === originalItinerary.hotelId)?.name;
-                            const roomAllocation = originalItinerary?.roomAllocations?.[0];
-                            const quantity = roomAllocation?.quantity || "1";
-
-                            return (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium">Day {item.day}</TableCell>
-                                <TableCell>{hotelName || 'Unknown Hotel'}</TableCell>
-                                <TableCell className="text-right">
-                                  {(item.accommodationCost / parseInt(quantity)).toFixed(2)}
-                                </TableCell>
-                                <TableCell className="text-right">{quantity}</TableCell>                              <TableCell className="text-right font-medium">
-                                  {item.accommodationCost.toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}                            <TableRow className="bg-blue-50">
-                              <TableCell colSpan={4} className="font-medium text-right">
-                                Base Accommodation Cost
-                              </TableCell>
-                              <TableCell className="text-right font-bold">
-                                {(window as any).priceCalculationResult.breakdown.accommodation.toFixed(2)}
-                              </TableCell>
-                            </TableRow>
-                            {(window as any).priceCalculationResult.appliedMarkup && (
-                              <TableRow className="bg-blue-100">
-                                <TableCell colSpan={4} className="font-medium text-right">
-                                  Markup ({(window as any).priceCalculationResult.appliedMarkup.percentage}%)
-                                </TableCell>
-                                <TableCell className="text-right font-bold">
-                                  {(window as any).priceCalculationResult.appliedMarkup.amount.toFixed(2)}
-                                </TableCell>
-                              </TableRow>
-                            )}
-                            <TableRow className="bg-blue-200">
-                              <TableCell colSpan={4} className="font-medium text-right">
-                                Final Total Cost
-                              </TableCell>
-                              <TableCell className="text-right font-bold">
-                                {(window as any).priceCalculationResult.totalCost.toFixed(2)}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-
-                    {/* Transport Calculation Result Table */}
-                    {(window as any).priceCalculationResult &&
-                      (window as any).priceCalculationResult.transportDetails &&
-                      (window as any).priceCalculationResult.transportDetails.length > 0 && (
+                      </Button>                    </div>
+                    {/* Integrated Price Calculation Result Table */}
+                    {(window as any).priceCalculationResult && ((window as any).priceCalculationResult.itineraryBreakdown?.length > 0 ||
+                      (window as any).priceCalculationResult.transportDetails?.length > 0) && (
                         <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
                           <Table>
-                            <TableCaption>Transport Details Breakdown</TableCaption>
+                            <TableCaption>Complete Pricing Details</TableCaption>
                             <TableHeader>
                               <TableRow className="bg-blue-50">
                                 <TableHead className="w-[80px]">Day</TableHead>
-                                <TableHead>Vehicle Type</TableHead>
-                                <TableHead className="text-right">Quantity</TableHead>
-                                <TableHead className="text-right">Capacity</TableHead>
-                                <TableHead className="text-right">Price Per Unit</TableHead>
-                                <TableHead className="text-right">Pricing Type</TableHead>
-                                <TableHead className="text-right">Subtotal</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="text-right">Room Cost</TableHead>
+                                <TableHead className="text-right">Transport Cost</TableHead>
+                                <TableHead className="text-right">Day Total</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {(window as any).priceCalculationResult.transportDetails.map((transport: any, index: number) => (
-                                <TableRow key={index}>
-                                  <TableCell className="font-medium">Day {transport.day}</TableCell>
-                                  <TableCell>{transport.vehicleType || 'N/A'}</TableCell>
-                                  <TableCell className="text-right">{transport.quantity}</TableCell>
-                                  <TableCell className="text-right">{transport.capacity}</TableCell>
-                                  <TableCell className="text-right">{transport.pricePerUnit.toFixed(2)}</TableCell>
-                                  <TableCell className="text-right">{transport.pricingType}</TableCell>
-                                  <TableCell className="text-right font-medium">
-                                    {transport.totalCost.toFixed(2)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {/* Create a day-by-day breakdown combining accommodation and transport */}
+                              {(() => {
+                                // Get all unique days from both itineraries and transport
+                                const days = new Set<number>();
+                                
+                                // Add days from accommodation
+                                (window as any).priceCalculationResult.itineraryBreakdown?.forEach((item: any) => {
+                                  days.add(item.day);
+                                });
+                                
+                                // Add days from transport
+                                (window as any).priceCalculationResult.transportDetails?.forEach((transport: any) => {
+                                  days.add(transport.day);
+                                });
+                                
+                                // Convert to sorted array
+                                const sortedDays = Array.from(days).sort((a, b) => a - b);
+                                
+                                // Create a row for each day
+                                return sortedDays.map(day => {
+                                  // Find accommodation for this day
+                                  const accommodation = (window as any).priceCalculationResult.itineraryBreakdown?.find((item: any) => item.day === day);
+                                  
+                                  // Find transport for this day
+                                  const transports = (window as any).priceCalculationResult.transportDetails?.filter((transport: any) => transport.day === day);
+                                  
+                                  // Calculate transport cost for this day
+                                  const transportCost = transports?.reduce((sum: number, transport: any) => sum + transport.totalCost, 0) || 0;
+                                  
+                                  // Get accommodation info
+                                  const formItineraries = form.getValues('itineraries');
+                                  const originalItinerary = formItineraries.find((it: any) => it.dayNumber === day);
+                                  const hotelName = originalItinerary && hotels.find((h: any) => h.id === originalItinerary.hotelId)?.name;
+                                  
+                                  // Accommodation details
+                                  const roomAllocation = originalItinerary?.roomAllocations?.[0];
+                                  const roomType = roomAllocation?.roomType || "Standard";
+                                  const occupancyType = roomAllocation?.occupancyType || "Single";
+                                  const quantity = roomAllocation?.quantity || "1";
+                                  
+                                  // Transport details summary
+                                  interface TransportDetail {
+                                    vehicleType: string;
+                                    quantity: number;
+                                    totalCost: number;
+                                    day: number;
+                                  }
+
+                                  const transportSummary: string | undefined = transports?.map((t: TransportDetail) => 
+                                    `${t.vehicleType}${t.quantity > 1 ? ` (x${t.quantity})` : ''}`
+                                  ).join(", ");
+                                  
+                                  const accommodationCost = accommodation?.accommodationCost || 0;
+                                  const dayTotal = accommodationCost + transportCost;
+                                  
+                                  return (
+                                    <TableRow key={`day-${day}`}>
+                                      <TableCell className="font-medium">Day {day}</TableCell>
+                                      <TableCell>
+                                        {hotelName ? (
+                                          <div>
+                                            <span className="font-medium">{hotelName}</span>
+                                            <span className="text-xs text-gray-500 block">
+                                              {roomType}, {occupancyType} {quantity && parseInt(quantity) > 1 ? `(x${quantity})` : ''}
+                                            </span>
+                                            {transportSummary && (
+                                              <span className="text-xs text-gray-500 block mt-1">
+                                                Transport: {transportSummary}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : transportSummary ? (
+                                          <div>
+                                            <span className="text-xs text-gray-500 block">
+                                              Transport only: {transportSummary}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          'N/A'
+                                        )}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {accommodationCost ? accommodationCost.toFixed(2) : '-'}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        {transportCost ? transportCost.toFixed(2) : '-'}
+                                      </TableCell>
+                                      <TableCell className="text-right font-medium">
+                                        {dayTotal.toFixed(2)}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                });
+                              })()}
+
+                              {/* Summary Section */}
                               <TableRow className="bg-blue-50">
-                                <TableCell colSpan={6} className="font-medium text-right">
-                                  Total Transport Cost
+                                <TableCell colSpan={5} className="font-medium text-right">
+                                  Base Accommodation Cost
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {(window as any).priceCalculationResult.breakdown.accommodation.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+
+                              <TableRow className="bg-blue-50">
+                                <TableCell colSpan={5} className="font-medium text-right">
+                                  Base Transport Cost
                                 </TableCell>
                                 <TableCell className="text-right font-bold">
                                   {(window as any).priceCalculationResult.breakdown.transport.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+
+                              <TableRow className="bg-blue-50">
+                                <TableCell colSpan={5} className="font-medium text-right">
+                                  Total Base Cost
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {((window as any).priceCalculationResult.breakdown.accommodation +
+                                    (window as any).priceCalculationResult.breakdown.transport).toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+
+                              {(window as any).priceCalculationResult.appliedMarkup && (
+                                <TableRow className="bg-blue-100">
+                                  <TableCell colSpan={5} className="font-medium text-right">
+                                    Markup ({(window as any).priceCalculationResult.appliedMarkup.percentage}%)
+                                  </TableCell>
+                                  <TableCell className="text-right font-bold">
+                                    {(window as any).priceCalculationResult.appliedMarkup.amount.toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              )}
+
+                              <TableRow className="bg-blue-200">
+                                <TableCell colSpan={5} className="font-medium text-right">
+                                  Final Total Cost
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {(window as any).priceCalculationResult.totalCost.toFixed(2)}
                                 </TableCell>
                               </TableRow>
                             </TableBody>

@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     const { 
       tourStartsFrom, 
       tourEndsOn, 
-      itineraries,   
+      itineraries,
+      markup = 0, // Default markup percentage is 0%
     } = body;
 
     // Validate required fields
@@ -62,16 +63,21 @@ export async function POST(req: Request) {
       pricePerUnit: number;
       pricingType: string; // "PerDay" or "PerTrip"
       totalCost: number;
+    }    interface AppliedMarkup {
+      percentage: number;
+      amount: number;
     }
 
     interface PriceCalculationResult {
       totalCost: number;
+      basePrice?: number;
       breakdown: PriceBreakdown;
       dailyBreakdown: any[];
       itineraryBreakdown: ItineraryResultItem[];
       transportDetails: TransportDetail[];
       perPersonCosts?: PerPersonCosts;
       pricingTiers?: PricingTiers;
+      appliedMarkup?: AppliedMarkup;
     }
       // Initialize result data structure
     const result: PriceCalculationResult = {
@@ -211,8 +217,25 @@ export async function POST(req: Request) {
 
       // Add to itinerary breakdown
       result.itineraryBreakdown.push(itineraryResult);
-    }    // Per-person cost calculation removed as requested
-    // Markup tier calculation removed as requested
+    }    // Apply markup to the total cost
+    const baseTotal = result.totalCost;
+    const markupAmount = baseTotal * (markup / 100);
+    const totalWithMarkup = baseTotal + markupAmount;
+    
+    // Add markup information to the result
+    result.pricingTiers = {
+      standardMarkup: Math.round(baseTotal * 1.1), // 10% markup
+      premiumMarkup: Math.round(baseTotal * 1.2),  // 20% markup
+      luxuryMarkup: Math.round(baseTotal * 1.3)    // 30% markup
+    };
+    
+    // Update the total cost to include markup
+    result.totalCost = Math.round(totalWithMarkup);
+    result.basePrice = baseTotal;
+    result.appliedMarkup = {
+      percentage: markup,
+      amount: markupAmount
+    };
 
     return NextResponse.json(result);
     

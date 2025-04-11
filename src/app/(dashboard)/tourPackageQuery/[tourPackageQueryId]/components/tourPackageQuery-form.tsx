@@ -5,7 +5,7 @@ import axios from "axios"
 import { useForm, useFieldArray } from "react-hook-form";
 import { useState, useRef, useEffect, ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PricingItinerary, RoomAllocation, TransportDetail } from "@/lib/pricing-service";
+
 import {
   Table,
   TableBody,
@@ -160,6 +160,8 @@ const formSchema = z.object({
   numChild0to5: z.string().optional(),
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
+  pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
+  customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
   locationId: z.string().min(1, "Location is required"),
   flightDetails: flightDetailsSchema.array(),
@@ -227,9 +229,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const [open, setOpen] = useState(false);
   const [openTemplate, setOpenTemplate] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [flightDetails, setFlightDetails] = useState([]);
+  const [loading, setLoading] = useState(false);  const [flightDetails, setFlightDetails] = useState([]);
+  const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const editor = useRef(null)
+  
+  // Store price calculation result in window for access in nested functions
+  useEffect(() => {
+    (window as any).setPriceCalculationResult = setPriceCalculationResult;
+    (window as any).priceCalculationResult = priceCalculationResult;
+  }, [priceCalculationResult]);
 
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
@@ -2079,7 +2087,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <FormControl>
                           <Button type="button" size="sm"
                             disabled={loading}
-                                                       onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
+                            onClick={() => onChange([...value, { date: '', flightName: '', flightNumber: '', from: '', to: '', departureTime: '', arrivalTime: '', flightDuration: '' }])}
                           >
                             Add Flight
                           </Button>
@@ -2090,17 +2098,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </CardContent>
               </Card>
             </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
-              {/* Add state variable declaration in a proper React way */}
-              {(() => {
-                // This is an immediately-invoked function expression that returns nothing visible
-                const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
-                // Store the state setter in a variable accessible to the whole component
-                (window as any).setPriceCalculationResult = setPriceCalculationResult;
-                (window as any).priceCalculationResult = priceCalculationResult;
-                // Return null so nothing is rendered
-                return null;
-              })()}
-
+              {/* Price calculation results are now managed at the component level */}
               <Card>
                 <CardHeader>
                   <CardTitle>Pricing</CardTitle>
@@ -2110,6 +2108,47 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <div className="border border-blue-100 bg-blue-50 rounded-lg p-4 mb-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-blue-800">Auto Price Calculation</h3>
+
+                      {/* Markup Input and Pricing Tier Selection */}
+                      <div className="flex space-x-2 items-center">
+                        <div className="flex items-center">
+                          <label htmlFor="markup" className="text-sm mr-2 text-blue-700">Markup %:</label>
+                          <Input
+                            id="markup"
+                            type="number"
+                            className="w-20 h-8"
+                            defaultValue="0"
+                            min="0"
+                            max="100"
+                            ref={(el) => {
+                              if (el) (window as any).markupInput = el;
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Select onValueChange={(value) => {
+                            // When a tier is selected, set the corresponding markup percentage
+                            if (value === 'standard') {
+                              if ((window as any).markupInput) (window as any).markupInput.value = '10';
+                            } else if (value === 'premium') {
+                              if ((window as any).markupInput) (window as any).markupInput.value = '20';
+                            } else if (value === 'luxury') {
+                              if ((window as any).markupInput) (window as any).markupInput.value = '30';
+                            }
+                          }}>
+                            <SelectTrigger className="w-32 h-8">
+                              <SelectValue placeholder="Pricing Tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard (10%)</SelectItem>
+                              <SelectItem value="premium">Premium (20%)</SelectItem>
+                              <SelectItem value="luxury">Luxury (30%)</SelectItem>
+                              <SelectItem value="custom">Custom</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
                       <Button
                         type="button"
                         onClick={async () => {
@@ -2151,18 +2190,25 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                               roomAllocations: itinerary.roomAllocations || [],
                               transportDetails: itinerary.transportDetails || [],
                             }));
- 
+
                             console.log('Sending data to price calculation API:', {
                               tourStartsFrom,
                               tourEndsOn,
                               itineraries: pricingItineraries
-                            });
+                            });                            // Get the markup value
+                            const pricingTier = form.getValues('pricingTier') || 'standard';
+                            const customMarkup = form.getValues('customMarkup');                            // Determine markup percentage based on pricing tier
+                            let markupPercentage = 10; // default to standard
+                            if (pricingTier === 'premium') markupPercentage = 20;
+                            else if (pricingTier === 'luxury') markupPercentage = 30;
+                            else if (pricingTier === 'custom') markupPercentage = parseFloat(customMarkup || '0') || 0;
 
                             // Call the API to calculate price with our simplified approach
                             const response = await axios.post('/api/pricing/calculate', {
                               tourStartsFrom,
                               tourEndsOn,
-                              itineraries: pricingItineraries
+                              itineraries: pricingItineraries,
+                              markup: markupPercentage
                             });
 
                             const result = response.data;
@@ -2271,10 +2317,27 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 </TableCell>
                               </TableRow>
                             );
-                          })}
-                            <TableRow className="bg-blue-50">
+                          })}                            <TableRow className="bg-blue-50">
                               <TableCell colSpan={4} className="font-medium text-right">
-                                Total Accommodation Cost
+                                Base Accommodation Cost
+                              </TableCell>
+                              <TableCell className="text-right font-bold">
+                                {(window as any).priceCalculationResult.breakdown.accommodation.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                            {(window as any).priceCalculationResult.appliedMarkup && (
+                              <TableRow className="bg-blue-100">
+                                <TableCell colSpan={4} className="font-medium text-right">
+                                  Markup ({(window as any).priceCalculationResult.appliedMarkup.percentage}%)
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {(window as any).priceCalculationResult.appliedMarkup.amount.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                            <TableRow className="bg-blue-200">
+                              <TableCell colSpan={4} className="font-medium text-right">
+                                Final Total Cost
                               </TableCell>
                               <TableCell className="text-right font-bold">
                                 {(window as any).priceCalculationResult.totalCost.toFixed(2)}
@@ -2286,49 +2349,49 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     )}
 
                     {/* Transport Calculation Result Table */}
-                    {(window as any).priceCalculationResult && 
-                     (window as any).priceCalculationResult.transportDetails && 
-                     (window as any).priceCalculationResult.transportDetails.length > 0 && (
-                      <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
-                        <Table>
-                          <TableCaption>Transport Details Breakdown</TableCaption>
-                          <TableHeader>
-                            <TableRow className="bg-blue-50">
-                              <TableHead className="w-[80px]">Day</TableHead>
-                              <TableHead>Vehicle Type</TableHead>
-                              <TableHead className="text-right">Quantity</TableHead>
-                              <TableHead className="text-right">Capacity</TableHead>
-                              <TableHead className="text-right">Price Per Unit</TableHead>
-                              <TableHead className="text-right">Pricing Type</TableHead>
-                              <TableHead className="text-right">Subtotal</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(window as any).priceCalculationResult.transportDetails.map((transport: any, index: number) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium">Day {transport.day}</TableCell>
-                                <TableCell>{transport.vehicleType || 'N/A'}</TableCell>
-                                <TableCell className="text-right">{transport.quantity}</TableCell>
-                                <TableCell className="text-right">{transport.capacity}</TableCell>
-                                <TableCell className="text-right">{transport.pricePerUnit.toFixed(2)}</TableCell>
-                                <TableCell className="text-right">{transport.pricingType}</TableCell>
-                                <TableCell className="text-right font-medium">
-                                  {transport.totalCost.toFixed(2)}
+                    {(window as any).priceCalculationResult &&
+                      (window as any).priceCalculationResult.transportDetails &&
+                      (window as any).priceCalculationResult.transportDetails.length > 0 && (
+                        <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+                          <Table>
+                            <TableCaption>Transport Details Breakdown</TableCaption>
+                            <TableHeader>
+                              <TableRow className="bg-blue-50">
+                                <TableHead className="w-[80px]">Day</TableHead>
+                                <TableHead>Vehicle Type</TableHead>
+                                <TableHead className="text-right">Quantity</TableHead>
+                                <TableHead className="text-right">Capacity</TableHead>
+                                <TableHead className="text-right">Price Per Unit</TableHead>
+                                <TableHead className="text-right">Pricing Type</TableHead>
+                                <TableHead className="text-right">Subtotal</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {(window as any).priceCalculationResult.transportDetails.map((transport: any, index: number) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-medium">Day {transport.day}</TableCell>
+                                  <TableCell>{transport.vehicleType || 'N/A'}</TableCell>
+                                  <TableCell className="text-right">{transport.quantity}</TableCell>
+                                  <TableCell className="text-right">{transport.capacity}</TableCell>
+                                  <TableCell className="text-right">{transport.pricePerUnit.toFixed(2)}</TableCell>
+                                  <TableCell className="text-right">{transport.pricingType}</TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {transport.totalCost.toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              <TableRow className="bg-blue-50">
+                                <TableCell colSpan={6} className="font-medium text-right">
+                                  Total Transport Cost
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  {(window as any).priceCalculationResult.breakdown.transport.toFixed(2)}
                                 </TableCell>
                               </TableRow>
-                            ))}
-                            <TableRow className="bg-blue-50">
-                              <TableCell colSpan={6} className="font-medium text-right">
-                                Total Transport Cost
-                              </TableCell>
-                              <TableCell className="text-right font-bold">
-                                {(window as any).priceCalculationResult.breakdown.transport.toFixed(2)}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-8">

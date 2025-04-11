@@ -3,7 +3,7 @@ import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 
-const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED"];
+const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY"];
 
 export async function GET(
   req: Request,

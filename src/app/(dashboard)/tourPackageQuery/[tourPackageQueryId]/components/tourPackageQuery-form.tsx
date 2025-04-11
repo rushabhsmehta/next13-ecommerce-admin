@@ -2110,8 +2110,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                       <h3 className="text-lg font-semibold text-blue-800">Auto Price Calculation</h3>
 
                       {/* Markup Input and Pricing Tier Selection */}
-                      <div className="flex space-x-2 items-center">
-                        <div className="flex items-center">
+                      <div className="flex space-x-2 items-center">                        <div className="flex items-center">
                           <label htmlFor="markup" className="text-sm mr-2 text-blue-700">Markup %:</label>
                           <Input
                             id="markup"
@@ -2120,6 +2119,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             defaultValue="0"
                             min="0"
                             max="100"
+                            onChange={(e) => {
+                              // Store the custom markup value for calculations
+                              (window as any).customMarkupValue = e.target.value;
+                            }}
                             ref={(el) => {
                               if (el) (window as any).markupInput = el;
                             }}
@@ -2130,10 +2133,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                             // When a tier is selected, set the corresponding markup percentage
                             if (value === 'standard') {
                               if ((window as any).markupInput) (window as any).markupInput.value = '10';
+                              (window as any).customMarkupValue = '10';
                             } else if (value === 'premium') {
                               if ((window as any).markupInput) (window as any).markupInput.value = '20';
+                              (window as any).customMarkupValue = '20';
                             } else if (value === 'luxury') {
                               if ((window as any).markupInput) (window as any).markupInput.value = '30';
+                              (window as any).customMarkupValue = '30';
+                            } else if (value === 'custom') {
+                              // For custom option, keep the current value
+                              (window as any).customMarkupValue = (window as any).markupInput.value;
                             }
                           }}>
                             <SelectTrigger className="w-32 h-8">

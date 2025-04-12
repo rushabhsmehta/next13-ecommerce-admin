@@ -213,33 +213,61 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           {/* Changed from grid-cols-3 to a responsive grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-            <FormField
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">            <FormField
               control={form.control}
               name="associatePartnerId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Associate Partner</FormLabel>
-                  <Select
-                    disabled={loading || isAssociateDomain}
-                    onValueChange={(value) => field.onChange(value)}
-                    value={field.value ?? undefined}
-                    defaultValue={field.value ?? undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue defaultValue={field.value ?? ''} placeholder="Select an associate" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {associates.map((associate) => (
-                        <SelectItem key={associate.id} value={associate.id}>
-                          {associate.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={loading || isAssociateDomain}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? associates.find(
+                                (associate) => associate.id === field.value
+                              )?.name
+                            : "Search associate..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search associate..." />
+                        <CommandEmpty>No associate found.</CommandEmpty>
+                        <CommandGroup>
+                          {associates.map((associate) => (
+                            <CommandItem
+                              key={associate.id}
+                              value={associate.name}
+                              onSelect={() => {
+                                field.onChange(associate.id);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  associate.id === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {associate.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {isAssociateDomain && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Associate partner auto-selected from your domain
@@ -452,17 +480,17 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
 
             {/* Remarks field spans full width on all screen sizes */}
-            <FormField
-              control={form.control}
+            <FormField              control={form.control}
               name="remarks"
               render={({ field }) => (
                 <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
                   <FormLabel>Remarks</FormLabel>
                   <FormControl>
                     <Textarea
-                      className="min-h-[80px] w-full"
+                      className="min-h-[150px] w-full"
                       disabled={loading}
                       placeholder="Add any additional remarks"
+                      rows={6}
                       {...field}
                       value={field.value ?? ''}
                     />

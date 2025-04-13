@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { SaleFormDialog } from "@/components/forms/sale-form-dialog";
 import { Loader } from "lucide-react";
-import { SaleFormProps } from "@/types/index";
+import { SaleFormProps } from "../../../types";
 
 interface SaleFormWrapperProps extends SaleFormProps {
   isModal?: boolean;

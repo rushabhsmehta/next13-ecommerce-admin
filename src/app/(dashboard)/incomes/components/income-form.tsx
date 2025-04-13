@@ -1,8 +1,8 @@
 "use client";
 
 import { IncomeFormWrapper } from "@/components/forms/income-form-wrapper";
-import { IncomeFormProps } from "@/types/index";
 import { useRouter } from "next/navigation";
+import { IncomeFormProps } from "../../../../../types";
 
 export const IncomeForm = ({ 
   initialData, 

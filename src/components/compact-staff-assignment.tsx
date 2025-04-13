@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -14,6 +14,13 @@ interface OperationalStaff {
   email: string;
   role: string;
   isActive: boolean;
+}
+
+interface AssociatePartner {
+  id: string;
+  name: string;
+  email: string | null;
+  gmail: string | null;
 }
 
 interface CompactStaffAssignmentProps {
@@ -33,6 +40,30 @@ export function CompactStaffAssignment({
   const [loading, setLoading] = useState(false);
   const [staffList, setStaffList] = useState<OperationalStaff[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
+  const [isAssociatePartner, setIsAssociatePartner] = useState(false);
+  
+  // Check if current user is an associate partner
+  useEffect(() => {
+    const checkAssociatePartner = async () => {
+      try {
+        const response = await fetch('/api/associate-partners/me');
+        if (response.ok) {
+          // If we get a successful response, user is an associate partner
+          setIsAssociatePartner(true);
+        }
+      } catch (error) {
+        // If there's an error, assume user is not an associate partner
+        console.error('Error checking associate partner status:', error);
+      }
+    };
+    
+    checkAssociatePartner();
+  }, []);
+
+  // Don't render the component if user is an associate partner
+  if (isAssociatePartner) {
+    return null;
+  }
 
   // Fetch staff members when popover is opened
   const handleOpenChange = async (newOpen: boolean) => {

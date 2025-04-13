@@ -1,9 +1,23 @@
 import { authMiddleware } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { NextRequest } from "next/server";
 
 // Middleware to verify the staff's authentication token
-async function verifyStaffToken(req) {
+// Interface for JWT payload structure
+interface StaffJwtPayload {
+  sub?: string;      // subject identifier
+  iat?: number;      // issued at timestamp
+  exp?: number;      // expiration timestamp
+  [key: string]: any; // additional custom claims
+}
+
+/**
+ * Verifies the staff authentication token from cookies
+ * @param req The Next.js request object
+ * @returns The decoded JWT payload or null if verification fails
+ */
+async function verifyStaffToken(req: NextRequest): Promise<StaffJwtPayload | null> {
   const token = req.cookies.get('ops_token')?.value;
 
   if (!token) {
@@ -16,7 +30,7 @@ async function verifyStaffToken(req) {
     );
 
     const { payload } = await jwtVerify(token, secret);
-    return payload;
+    return payload as StaffJwtPayload;
   } catch (error) {
     console.error("Token verification failed:", error);
     return null;

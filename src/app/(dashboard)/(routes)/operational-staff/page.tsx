@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Copy, Loader2, PlusCircle, Search, TrashIcon } from "lucide-react";
+import { Copy, Edit2, Loader2, PlusCircle, Search, TrashIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
@@ -59,7 +59,9 @@ export default function OperationalStaffPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStaff, setCurrentStaff] = useState<OperationalStaff | null>(null);
   const router = useRouter();
   
   // Form state for creating new staff
@@ -69,6 +71,14 @@ export default function OperationalStaffPage() {
   const [role, setRole] = useState<"OPERATIONS" | "ADMIN">("OPERATIONS");
   const [isActive, setIsActive] = useState(true);
   
+  // Form state for editing staff
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editRole, setEditRole] = useState<"OPERATIONS" | "ADMIN">("OPERATIONS");
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [editId, setEditId] = useState("");
+
   // Load staff list if not loaded
   const loadStaff = async () => {
     if (isLoaded && !loading) return;
@@ -146,6 +156,70 @@ export default function OperationalStaffPage() {
     }
   };
   
+  // Handle edit staff form submission
+  const handleEditStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setIsSubmitting(true);
+      
+      const payload: any = {
+        name: editName,
+        email: editEmail,
+        role: editRole,
+        isActive: editIsActive
+      };
+      
+      // Only include password in the payload if it's not empty
+      if (editPassword.trim()) {
+        payload.password = editPassword;
+      }
+      
+      const res = await fetch(`/api/operational-staff/${editId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to update operational staff");
+      }
+      
+      const updatedStaff = await res.json();
+      
+      // Update the staff list
+      setStaffList(prev => 
+        prev.map(staff => 
+          staff.id === editId ? updatedStaff : staff
+        )
+      );
+      
+      // Close dialog
+      setIsEditDialogOpen(false);
+      
+      toast.success("Operational staff member updated successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update operational staff");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Open edit dialog and populate with staff data
+  const openEditDialog = (staff: OperationalStaff) => {
+    setEditId(staff.id);
+    setEditName(staff.name);
+    setEditEmail(staff.email);
+    setEditPassword("");
+    setEditRole(staff.role);
+    setEditIsActive(staff.isActive);
+    setCurrentStaff(staff);
+    setIsEditDialogOpen(true);
+  };
+  
   // Toggle staff active status
   const toggleStaffStatus = async (staffId: string, currentStatus: boolean) => {
     try {
@@ -212,6 +286,16 @@ export default function OperationalStaffPage() {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setPassword(password);
+  };
+  
+  // Create temporary password for edit form
+  const generateEditRandomPassword = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+    let password = "";
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setEditPassword(password);
   };
   
   // Filter staff list based on search term
@@ -334,6 +418,111 @@ export default function OperationalStaffPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Staff Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleEditStaff}>
+              <DialogHeader>
+                <DialogTitle>Edit Operational Staff</DialogTitle>
+                <DialogDescription>
+                  Update information for this staff member.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editName" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="editName"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editEmail" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="editEmail"
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editPassword" className="text-right">
+                    Password
+                  </Label>
+                  <div className="col-span-3 flex gap-2">
+                    <Input
+                      id="editPassword"
+                      type="text"
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      className="flex-1"
+                      placeholder="Leave blank to keep current password"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={generateEditRandomPassword}
+                    >
+                      Generate
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editRole" className="text-right">
+                    Role
+                  </Label>
+                  <Select value={editRole} onValueChange={(value: "OPERATIONS" | "ADMIN") => setEditRole(value)}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OPERATIONS">Operations</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="editStatus" className="text-right">
+                    Active
+                  </Label>
+                  <div className="flex items-center space-x-2 col-span-3">
+                    <Switch
+                      id="editStatus"
+                      checked={editIsActive}
+                      onCheckedChange={setEditIsActive}
+                    />
+                    <Label htmlFor="editStatus">
+                      {editIsActive ? "Enabled" : "Disabled"}
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Staff"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
       
       <div className="mb-6">
@@ -392,6 +581,13 @@ export default function OperationalStaffPage() {
                       <TableCell>{format(new Date(staff.createdAt), "MMM d, yyyy")}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(staff)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"

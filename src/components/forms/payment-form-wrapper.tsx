@@ -5,9 +5,10 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { PaymentFormDialog } from "@/components/forms/payment-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { PaymentFormProps } from "types";
+import { PaymentFormProps } from "@/types/index"; // Fixed import path
 
 interface PaymentFormWrapperProps extends PaymentFormProps {
+  initialData?: any; // Explicitly add initialData
   isModal?: boolean;
   redirectPath?: string;
 }

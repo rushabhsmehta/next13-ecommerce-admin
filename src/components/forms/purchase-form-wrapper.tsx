@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { PurchaseFormDialog } from "@/components/forms/purchase-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { PurchaseFormProps } from "types";
+import { PurchaseFormProps } from "@/types/index"; // Fixed import path
 
 interface PurchaseFormWrapperProps extends PurchaseFormProps {
   initialData?: any; // Explicitly add initialData

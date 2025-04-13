@@ -5,9 +5,10 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { ExpenseFormDialog } from "@/components/forms/expense-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { ExpenseFormProps } from "../../../types";
+import { ExpenseFormProps } from "@/types/index"; // Fixed import path
 
 interface ExpenseFormWrapperProps extends ExpenseFormProps {
+  initialData?: any; // Explicitly add initialData
   isModal?: boolean;
   redirectPath?: string;
 }

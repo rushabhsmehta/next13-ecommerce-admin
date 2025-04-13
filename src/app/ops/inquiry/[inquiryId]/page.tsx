@@ -78,9 +78,8 @@ export default function InquiryDetail({
         </Button>
         
         <div className="text-center py-12 mt-6 bg-gray-50 rounded-lg">
-          <h3 className="text-lg font-medium">Inquiry not found</h3>
-          <p className="text-gray-500 mt-2">
-            The inquiry you're looking for doesn't exist or you don't have access to it.
+          <h3 className="text-lg font-medium">Inquiry not found</h3>          <p className="text-gray-500 mt-2">
+            The inquiry you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
           <Button className="mt-4" onClick={() => router.push('/')}>
             Return to Dashboard

@@ -5,11 +5,11 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { ExpenseFormDialog } from "@/components/forms/expense-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { ExpenseFormProps, FormWrapperProps } from "@/types/index"; // Import both needed interfaces
+import { ExpenseFormProps } from "@/types/index"; // Fixed import path
 
-// Properly combine the ExpenseFormProps with FormWrapperProps
-interface ExpenseFormWrapperProps extends ExpenseFormProps, FormWrapperProps {
-  // All properties from ExpenseFormProps and FormWrapperProps are now available
+interface ExpenseFormWrapperProps extends ExpenseFormProps {
+  isModal?: boolean;
+  redirectPath?: string;
 }
 
 export const ExpenseFormWrapper = ({

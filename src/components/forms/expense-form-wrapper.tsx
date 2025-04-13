@@ -7,7 +7,14 @@ import { ExpenseFormDialog } from "@/components/forms/expense-form-dialog"; // U
 import { Loader } from "lucide-react";
 import { ExpenseFormProps } from "@/types/index"; // Fixed import path
 
-interface ExpenseFormWrapperProps extends ExpenseFormProps {
+interface ExpenseFormWrapperProps {
+  initialData?: any;
+  expenseCategories?: any[];
+  bankAccounts?: any[];
+  cashAccounts?: any[];
+  tourPackageQueryId?: string;
+  onSuccess: () => void;
+  submitButtonText?: string;
   isModal?: boolean;
   redirectPath?: string;
 }

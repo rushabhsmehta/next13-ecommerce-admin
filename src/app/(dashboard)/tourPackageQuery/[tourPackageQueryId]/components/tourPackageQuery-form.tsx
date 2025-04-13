@@ -1795,22 +1795,31 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         </FormItem>
 
                                         {/* Display selected hotel images */}
-                                        {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId)?.images?.length > 0 && (
-                                          <div className="mt-4">
-                                            <h4 className="text-sm font-medium mb-2">Hotel Images</h4>                                            <div className="grid grid-cols-3 gap-2">
-                                              {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images?.map((image, imgIndex) => (
-                                                <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
-                                                  <Image
-                                                    src={image.url}
-                                                    alt={`Hotel Image ${imgIndex + 1}`}
-                                                    fill
-                                                    className="object-cover"
-                                                  />
+                                        {(() => {
+                                          const hotel = itinerary.hotelId ? hotels.find(h => h.id === itinerary.hotelId) : undefined;
+                                          if (hotel && hotel.images && hotel.images.length > 0) {
+                                            return (
+                                              <div className="mt-4">
+                                                <h4 className="text-sm font-medium mb-2">Hotel Images</h4>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                  {hotel.images.map((image, imgIndex) => (
+                                                    <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
+                                                      <Image
+                                                        src={image.url}
+                                                        alt={`Hotel Image ${imgIndex + 1}`}
+                                                        fill
+                                                        className="object-cover"
+                                                      />
+                                                    </div>
+                                                  ))}
                                                 </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
+                                              </div>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+
+
 
                                         <div className="grid grid-cols-2 gap-4">
                                           <FormItem>

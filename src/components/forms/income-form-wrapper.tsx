@@ -5,12 +5,18 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { IncomeFormDialog } from "@/components/forms/income-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { IncomeFormProps } from "../../../types";
+import { IncomeFormProps } from "@/types/index"; // Fixed import path
 
-interface IncomeFormWrapperProps extends IncomeFormProps {
+interface IncomeFormWrapperProps {
+  initialData?: any;
+  tourPackageQueryId?: string;
+  incomeCategories?: any[];
+  bankAccounts?: any[];
+  cashAccounts?: any[];
+  onSuccess: () => void;
+  submitButtonText?: string;
   isModal?: boolean;
   redirectPath?: string;
-  submitButtonText?: string;
 }
 
 export const IncomeFormWrapper = ({

@@ -7,8 +7,14 @@ import { PurchaseFormDialog } from "@/components/forms/purchase-form-dialog"; //
 import { Loader } from "lucide-react";
 import { PurchaseFormProps } from "@/types/index"; // Fixed import path
 
-interface PurchaseFormWrapperProps extends PurchaseFormProps {
-  initialData?: any; // Explicitly add initialData
+interface PurchaseFormWrapperProps {
+  initialData?: any;
+  tourPackageQueryId?: string;
+  taxSlabs?: any[];
+  units?: any[];
+  suppliers?: any[];
+  onSuccess: () => void;
+  submitButtonText?: string;
   isModal?: boolean;
   redirectPath?: string;
 }

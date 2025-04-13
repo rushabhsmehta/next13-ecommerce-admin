@@ -8,7 +8,6 @@ import { Loader } from "lucide-react";
 import { ExpenseFormProps } from "@/types/index"; // Fixed import path
 
 interface ExpenseFormWrapperProps extends ExpenseFormProps {
-  initialData?: any; // Explicitly add initialData
   isModal?: boolean;
   redirectPath?: string;
 }

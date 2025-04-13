@@ -23,8 +23,6 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
   onCancel,
   isOpen
 }) => {
-  if (!isOpen) return null;
-
   const [isLoading, setIsLoading] = useState(false);
   const [shareText, setShareText] = useState(defaultText);
   const [whatsappNumber, setWhatsappNumber] = useState('');
@@ -36,6 +34,8 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
     pinterest: false,
     whatsapp: false
   });
+  
+  if (!isOpen) return null;
 
   const handlePlatformChange = (platform: keyof typeof platforms) => {
     setPlatforms(prev => ({

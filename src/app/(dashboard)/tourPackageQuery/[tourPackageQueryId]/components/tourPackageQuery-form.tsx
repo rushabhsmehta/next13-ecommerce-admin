@@ -53,6 +53,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -1792,18 +1793,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           </Popover>
                                           <FormMessage />
                                         </FormItem>
-                                        
+
                                         {/* Display selected hotel images */}
                                         {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId)?.images?.length > 0 && (
                                           <div className="mt-4">
-                                            <h4 className="text-sm font-medium mb-2">Hotel Images</h4>
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <h4 className="text-sm font-medium mb-2">Hotel Images</h4>                                            <div className="grid grid-cols-3 gap-2">
                                               {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images?.map((image, imgIndex) => (
                                                 <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
-                                                  <img
+                                                  <Image
                                                     src={image.url}
                                                     alt={`Hotel Image ${imgIndex + 1}`}
-                                                    className="object-cover w-full h-full"
+                                                    fill
+                                                    className="object-cover"
                                                   />
                                                 </div>
                                               ))}

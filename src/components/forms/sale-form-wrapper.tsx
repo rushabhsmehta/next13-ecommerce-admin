@@ -5,9 +5,16 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { SaleFormDialog } from "@/components/forms/sale-form-dialog";
 import { Loader } from "lucide-react";
-import { SaleFormProps } from "../../../types";
+import { SaleFormProps } from "@/types/index"; // Fixed import path
 
-interface SaleFormWrapperProps extends SaleFormProps {
+interface SaleFormWrapperProps {
+  initialData?: any;
+  tourPackageQueryId?: string;
+  taxSlabs?: any[];
+  units?: any[];
+  customers?: any[];
+  onSuccess: () => void;
+  submitButtonText?: string;
   isModal?: boolean;
   redirectPath?: string;
 }

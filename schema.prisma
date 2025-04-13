@@ -623,6 +623,28 @@ model AssociatePartner {
   tourPackageQueries    TourPackageQuery[]
 }
 
+// New enum for Operational Staff Roles
+enum OperationalStaffRole {
+  OPERATIONS
+  ADMIN
+}
+
+// New model for Operational Staff
+model OperationalStaff {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   // Store hashed password
+  role      OperationalStaffRole @default(OPERATIONS) // Role for permissions
+  isActive  Boolean  @default(true) // To enable/disable accounts
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedInquiries Inquiry[] @relation("AssignedOperationalStaffToInquiry") // Relation to assigned inquiries
+
+  @@index([email])
+}
+
 model Inquiry {
   id                    String           @id @default(uuid())
   customerName          String
@@ -639,6 +661,7 @@ model Inquiry {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
+  // Existing relations
   location            Location         @relation("LocationToInquiry", fields: [locationId], references: [id])
   associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   actions             InquiryAction[]
@@ -646,8 +669,14 @@ model Inquiry {
   // Modified: Change to one-to-many relationship
   tourPackageQueries    TourPackageQuery[]
 
+  // New Operational Assignment Fields
+  assignedToStaffId String? // Foreign key to OperationalStaff model
+  assignedStaff     OperationalStaff? @relation("AssignedOperationalStaffToInquiry", fields: [assignedToStaffId], references: [id])
+  assignedStaffAt   DateTime? // Optional: Timestamp when assignment happened
+
   @@index([locationId])
   @@index([associatePartnerId])
+  @@index([assignedToStaffId]) // Index for faster lookup of assigned inquiries
 }
 
 model InquiryAction {
@@ -941,5 +970,24 @@ model AuditLog {
   @@index([entityType])
   @@index([userId])
   @@index([action])
+  @@index([createdAt])
+}
+
+model AiGeneratedImage {
+  id                String    @id @default(cuid())
+  prompt            String    @db.Text // Use Text for potentially long prompts
+  referenceImageUrl String?   @db.Text // Optional reference image URL
+  generatedImageUrl String    @db.Text // URL of the generated image - changed to Text type
+  isApproved        Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Optional fields for tracking social media posts
+  xPostId           String?
+  instagramPostId   String?
+  linkedInPostId    String?
+  pinterestPinId    String?
+  // WhatsApp sharing might not have a persistent ID in the same way
+
   @@index([createdAt])
 }

@@ -55,6 +55,7 @@ const NAV_ITEMS = [
     title: "Business",
     items: [
       { title: "Associates", url: "/associate-partners" },
+      { title: "Operational Staff", url: "/operational-staff" },
       { title: "Customers", url: "/customers" },
       { title: "Suppliers", url: "/suppliers" },
       { title: "Cash Account", url: "/cashaccounts" },
@@ -94,6 +95,11 @@ const NAV_ITEMS = [
       { title: "Confirmed Queries", url: "/reports/confirmedQueries" },
       { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
       { title: "Associate Performance", url: "/reports/associatePerformance" },
+    ],
+  },  {
+    title: "Tools",
+    items: [
+      { title: "AI Image Generator", url: "/ai-image-generator" },
     ],
   },
   {

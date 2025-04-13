@@ -12,6 +12,7 @@ interface ImageUploadProps {
   onChange: (value: string) => void;
   onRemove: (value: string) => void;
   value: string[];
+  maxFiles?: number; // Add maxFiles property as optional
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({

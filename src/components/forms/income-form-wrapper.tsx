@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { IncomeFormDialog } from "@/components/forms/income-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { IncomeFormProps } from "@/types/index";
+import { IncomeFormProps } from "../../../types";
 
 interface IncomeFormWrapperProps extends IncomeFormProps {
   isModal?: boolean;

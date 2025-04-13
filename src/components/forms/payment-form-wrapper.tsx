@@ -7,8 +7,14 @@ import { PaymentFormDialog } from "@/components/forms/payment-form-dialog"; // U
 import { Loader } from "lucide-react";
 import { PaymentFormProps } from "@/types/index"; // Fixed import path
 
-interface PaymentFormWrapperProps extends PaymentFormProps {
-  initialData?: any; // Explicitly add initialData
+interface PaymentFormWrapperProps {
+  initialData?: any;
+  tourPackageQueryId?: string; // Explicitly add tourPackageQueryId
+  suppliers?: any[];
+  bankAccounts?: any[];
+  cashAccounts?: any[];
+  onSuccess: () => void;
+  submitButtonText?: string;
   isModal?: boolean;
   redirectPath?: string;
 }

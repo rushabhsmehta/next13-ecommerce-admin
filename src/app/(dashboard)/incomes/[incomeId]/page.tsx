@@ -60,10 +60,9 @@ export default async function IncomePage({ params }: IncomePageProps) {
         <Heading
           title={isEdit ? "Edit Income" : "Create Income"}
           description={isEdit ? "Update income details" : "Add a new income record"}
-        />
-        <Separator />
+        />        <Separator />
         <IncomeForm
-          initialData={income}
+          initialData={income || undefined}
           incomeCategories={incomeCategories}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts}

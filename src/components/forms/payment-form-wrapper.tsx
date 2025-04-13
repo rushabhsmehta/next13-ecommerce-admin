@@ -9,7 +9,7 @@ import { PaymentFormProps } from "@/types/index"; // Fixed import path
 
 interface PaymentFormWrapperProps {
   initialData?: any;
-  tourPackageQueryId?: string; // Explicitly add tourPackageQueryId
+  tourPackageQueryId?: string; // Explicitly include tourPackageQueryId
   suppliers?: any[];
   bankAccounts?: any[];
   cashAccounts?: any[];

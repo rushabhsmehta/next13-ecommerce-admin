@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { PaymentFormDialog } from "@/components/forms/payment-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { PaymentFormProps } from "@/types/index";
+import { PaymentFormProps } from "../../../types";
 
 interface PaymentFormWrapperProps extends PaymentFormProps {
   isModal?: boolean;

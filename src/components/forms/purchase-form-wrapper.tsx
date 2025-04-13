@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { PurchaseFormDialog } from "@/components/forms/purchase-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { PurchaseFormProps } from "@/types/index";
+import { PurchaseFormProps } from "../../../types";
 
 interface PurchaseFormWrapperProps extends PurchaseFormProps {
   isModal?: boolean;

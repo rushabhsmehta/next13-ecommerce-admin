@@ -44,9 +44,9 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ExpenseFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import { FormDatePicker } from "@/components/ui/form-date-picker";
-import { ExpenseFormProps } from "../../../types";
 
 const formSchema = z.object({
   expenseDate: z.date({
@@ -400,4 +400,3 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
     </div>
   );
 };
-

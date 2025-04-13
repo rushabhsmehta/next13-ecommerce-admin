@@ -5,16 +5,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { PaymentFormDialog } from "@/components/forms/payment-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { PaymentFormProps } from "@/types/index"; // Fixed import path
+import { PaymentFormProps } from "@/types";
 
-interface PaymentFormWrapperProps {
-  initialData?: any;
-  tourPackageQueryId?: string; // Explicitly include tourPackageQueryId
-  suppliers?: any[];
-  bankAccounts?: any[];
-  cashAccounts?: any[];
-  onSuccess: () => void;
-  submitButtonText?: string;
+interface PaymentFormWrapperProps extends PaymentFormProps {
   isModal?: boolean;
   redirectPath?: string;
 }
@@ -76,4 +69,3 @@ export const PaymentFormWrapper = ({
     />
   );
 };
-

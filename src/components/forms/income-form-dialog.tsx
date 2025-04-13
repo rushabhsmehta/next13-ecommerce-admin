@@ -429,4 +429,3 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
     </div>
   );
 };
-

@@ -5,16 +5,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { ExpenseFormDialog } from "@/components/forms/expense-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { ExpenseFormProps } from "@/types/index"; // Fixed import path
+import { ExpenseFormProps } from "../../../types";
 
-interface ExpenseFormWrapperProps {
-  initialData?: any;
-  expenseCategories?: any[];
-  bankAccounts?: any[];
-  cashAccounts?: any[];
-  tourPackageQueryId?: string;
-  onSuccess: () => void;
-  submitButtonText?: string;
+interface ExpenseFormWrapperProps extends ExpenseFormProps {
   isModal?: boolean;
   redirectPath?: string;
 }
@@ -76,4 +69,3 @@ export const ExpenseFormWrapper = ({
     />
   );
 };
-

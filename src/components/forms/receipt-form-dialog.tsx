@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReceiptFormProps } from "@/types/index";
+import { ReceiptFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import { FormDatePicker } from "@/components/ui/form-date-picker";
 
@@ -411,4 +411,3 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     </div>
   );
 };
-

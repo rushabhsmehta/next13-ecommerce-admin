@@ -20,10 +20,10 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PurchaseFormProps } from "@/types";
 import { CommandEmpty, CommandGroup, CommandItem } from "../ui/command";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import { FormDatePicker } from "@/components/ui/form-date-picker";
-import { PurchaseFormProps } from "@/types/index"; // Corrected import path
 
 const purchaseItemSchema = z.object({
   id: z.string().optional(),
@@ -804,4 +804,3 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     </div>
   );
 };
-

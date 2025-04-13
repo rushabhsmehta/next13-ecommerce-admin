@@ -5,16 +5,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { SaleFormDialog } from "@/components/forms/sale-form-dialog";
 import { Loader } from "lucide-react";
-import { SaleFormProps } from "@/types/index"; // Fixed import path
+import { SaleFormProps } from "@/types/index";
 
-interface SaleFormWrapperProps {
-  initialData?: any;
-  tourPackageQueryId?: string;
-  taxSlabs?: any[];
-  units?: any[];
-  customers?: any[];
-  onSuccess: () => void;
-  submitButtonText?: string;
+interface SaleFormWrapperProps extends SaleFormProps {
   isModal?: boolean;
   redirectPath?: string;
 }
@@ -76,4 +69,3 @@ export const SaleFormWrapper = ({
     />
   );
 };
-

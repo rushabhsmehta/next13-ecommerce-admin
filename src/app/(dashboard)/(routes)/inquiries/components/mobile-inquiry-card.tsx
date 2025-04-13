@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Phone, Calendar, MapPin, MessageCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Phone, Calendar, MapPin, MessageCircle, UserRound } from "lucide-react";
 import { CellAction } from "./cell-action";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +13,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { CompactStaffAssignment } from "@/components/compact-staff-assignment";
 
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
@@ -198,11 +199,29 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                   <span>{inquiry.journeyDate}</span>
                 </div>
               </div>
-              
-              <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
+                <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
                 <Badge variant="outline" className="mr-2">
                   {inquiry.associatePartner}
                 </Badge>
+                
+                {/* Staff Assignment Component */}
+                <div className="flex items-center">
+                  {inquiry.assignedStaffName && (
+                    <span className="text-xs text-gray-600 mr-1 flex items-center">
+                      <UserRound className="h-3 w-3 mr-1 text-gray-600" />
+                      {inquiry.assignedStaffName}
+                    </span>
+                  )}
+                  <CompactStaffAssignment 
+                    inquiryId={inquiry.id}
+                    assignedStaffId={inquiry.assignedToStaffId}
+                    onAssignmentComplete={() => {
+                      toast.success("Staff assignment updated");
+                      // Refresh data by redirecting to the current URL
+                      window.location.reload();
+                    }}
+                  />
+                </div>
                 
                 {/* Move the status dropdown here where it's less likely to interfere with scrolling */}
                 <div className="w-full mt-2">
@@ -232,9 +251,30 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                 </div>
               </div>
             </div>
-            
-            {expandedRows[inquiry.id] && (
+              {expandedRows[inquiry.id] && (
               <div className="p-4 bg-gray-50">
+                {inquiry.assignedToStaffId && (
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium mb-2">Staff Assignment</h4>
+                    <div className="text-xs p-2 bg-blue-50 border-l-2 border-blue-500 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium flex items-center">
+                          <UserRound className="h-3 w-3 mr-1" />
+                          {inquiry.assignedStaffName}
+                        </span>
+                        {inquiry.assignedStaffAt && (
+                          <span className="text-muted-foreground">
+                            Assigned: {new Date(inquiry.assignedStaffAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="mb-3">
                   <h4 className="text-sm font-medium mb-2">Recent Actions</h4>
                   {inquiry.actionHistory && inquiry.actionHistory.length > 0 ? (

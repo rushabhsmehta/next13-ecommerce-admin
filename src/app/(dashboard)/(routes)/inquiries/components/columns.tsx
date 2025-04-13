@@ -4,7 +4,7 @@ import { useState } from "react"
 import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
 import { QueryLink } from "./query-link"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight, UserRound } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import {
 import axios from "axios"
 import { toast } from "react-hot-toast"
 import { TourPackageQuery } from "@prisma/client"
+import { CompactStaffAssignment } from "@/components/compact-staff-assignment"
 
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
@@ -136,6 +137,9 @@ export type InquiryColumn = {
   associatePartner: string
   status: string
   journeyDate: string
+  assignedToStaffId: string | null
+  assignedStaffName: string | null
+  assignedStaffAt: string | null
   tourPackageQueries: TourPackageQuery[]
   actionHistory: {
     status: string
@@ -222,6 +226,31 @@ export const columns: ColumnDef<InquiryColumn>[] = [
         </ol>
       );
     }
+  },  {
+    accessorKey: "assignedStaffName",
+    header: "Assigned Staff",
+    cell: ({ row }) => {
+      const inquiry = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          {inquiry.assignedStaffName && (
+            <span className="text-sm text-slate-700 flex items-center">
+              <UserRound className="h-3 w-3 mr-1.5 text-slate-500" />
+              {inquiry.assignedStaffName}
+            </span>
+          )}
+          <CompactStaffAssignment
+            inquiryId={inquiry.id}
+            assignedStaffId={inquiry.assignedToStaffId}
+            onAssignmentComplete={() => {
+              toast.success("Staff assignment updated");
+              // Refresh the page to update the data
+              window.location.reload();
+            }}
+          />
+        </div>
+      );
+    },
   },
   {
     id: "actions",

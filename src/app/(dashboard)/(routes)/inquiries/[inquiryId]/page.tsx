@@ -1,5 +1,6 @@
 import prismadb from "@/lib/prismadb";
 import { InquiryForm } from "./components/inquiry-form";
+import { InquiryStaffAssignmentWrapper } from "@/components/InquiryStaffAssignmentWrapper";
 
 const InquiryPage = async ({
   params
@@ -33,6 +34,18 @@ const InquiryPage = async ({
           associates={associates}
           actions={inquiry?.actions || []}
         />
+
+        {/* Staff Assignment Section */}
+        {inquiry && (
+          <div className="mt-6 border rounded-md shadow-sm p-4 bg-card">
+            <h3 className="text-lg font-medium mb-4">Operational Staff Assignment</h3>
+            <InquiryStaffAssignmentWrapper
+              inquiryId={inquiry.id}
+              assignedStaffId={inquiry.assignedToStaffId || null}
+              assignedStaffAt={inquiry.assignedStaffAt?.toISOString() || null}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

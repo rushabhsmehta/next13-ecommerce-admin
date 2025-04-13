@@ -157,12 +157,12 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     }),
     ...dateFilter  // Add the date filter to the where clause
   };
-
   const inquiries = await prismadb.inquiry.findMany({
     where,
     include: {
       location: true,
       associatePartner: true,
+      assignedStaff: true,
       tourPackageQueries: true,
       actions: {
         orderBy: {
@@ -174,7 +174,6 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       createdAt: 'desc'
     }
   });
-
   const formattedInquiries: InquiryColumn[] = inquiries.map((item) => ({
     id: item.id,
     customerName: item.customerName,
@@ -183,6 +182,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     associatePartner: item.associatePartner?.name || 'Direct',
     status: item.status,
     journeyDate: item.journeyDate ? format(new Date(item.journeyDate), 'dd MMM yyyy') : 'No date',
+    assignedToStaffId: item.assignedToStaffId || null,
+    assignedStaffName: item.assignedStaff?.name || null,
+    assignedStaffAt: item.assignedStaffAt ? format(new Date(item.assignedStaffAt), 'dd MMM yyyy HH:mm') : null,
     tourPackageQueries: item.tourPackageQueries || 'Not specified',
     actionHistory: item.actions?.map(action => ({
       status: action.actionType,

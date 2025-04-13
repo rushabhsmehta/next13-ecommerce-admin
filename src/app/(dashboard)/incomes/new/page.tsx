@@ -37,7 +37,7 @@ export default async function NewIncomePage() {
         />
         <Separator />
         <IncomeForm
-          initialData={null}
+          initialData={undefined}
           incomeCategories={incomeCategories}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts}

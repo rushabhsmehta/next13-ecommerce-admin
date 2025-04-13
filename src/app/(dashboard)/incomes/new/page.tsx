@@ -14,17 +14,17 @@ export default async function NewIncomePage() {
 
   // Get the data we need for the form
   const [incomeCategories, bankAccounts, cashAccounts] = await Promise.all([
-    prismadb.incomeCategory.findMany({ 
+    prismadb.incomeCategory.findMany({
       where: { isActive: true },
-      orderBy: { name: 'asc' } 
+      orderBy: { name: 'asc' }
     }),
-    prismadb.bankAccount.findMany({ 
+    prismadb.bankAccount.findMany({
       where: { isActive: true },
-      orderBy: { accountName: 'asc' } 
+      orderBy: { accountName: 'asc' }
     }),
-    prismadb.cashAccount.findMany({ 
+    prismadb.cashAccount.findMany({
       where: { isActive: true },
-      orderBy: { accountName: 'asc' } 
+      orderBy: { accountName: 'asc' }
     })
   ]);
 
@@ -41,6 +41,7 @@ export default async function NewIncomePage() {
           incomeCategories={incomeCategories}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts}
+          onSuccess={() => { }}
         />
       </div>
     </div>

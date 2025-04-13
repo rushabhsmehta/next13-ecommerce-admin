@@ -154,12 +154,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
           
           <div className="mt-4">
             <PaymentFormWrapper
-              initialData={editItem || {
-                tourPackageQueryId: tourPackageId,
-                tourPackageQuery: {
-                  tourPackageQueryName: tourPackageName
-                }
-              }}
+              initialData={editItem || undefined} // Pass undefined when creating a new item
+              tourPackageQueryId={tourPackageId} // Pass tourPackageQueryId directly
               suppliers={suppliers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}

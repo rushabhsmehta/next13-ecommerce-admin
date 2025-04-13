@@ -8,6 +8,7 @@ import { Loader } from "lucide-react";
 import { PurchaseFormProps } from "types";
 
 interface PurchaseFormWrapperProps extends PurchaseFormProps {
+  initialData?: any; // Explicitly add initialData
   isModal?: boolean;
   redirectPath?: string;
 }

@@ -5,16 +5,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { ReceiptFormDialog } from "@/components/forms/receipt-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { ReceiptFormProps } from "@/types/index"; // Fixed import path
+import { ReceiptFormProps } from "@/types";
 
-interface ReceiptFormWrapperProps {
-  initialData?: any;
-  tourPackageQueryId?: string;
-  customers?: any[];
-  bankAccounts?: any[];
-  cashAccounts?: any[];
-  onSuccess: () => void;
-  submitButtonText?: string;
+interface ReceiptFormWrapperProps extends ReceiptFormProps {
   isModal?: boolean;
   redirectPath?: string;
 }
@@ -76,4 +69,3 @@ export const ReceiptFormWrapper = ({
     />
   );
 };
-

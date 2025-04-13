@@ -5,16 +5,9 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { PurchaseFormDialog } from "@/components/forms/purchase-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { PurchaseFormProps } from "@/types/index"; // Fixed import path
+import { PurchaseFormProps } from "@/types";
 
-interface PurchaseFormWrapperProps {
-  initialData?: any;
-  tourPackageQueryId?: string;
-  taxSlabs?: any[];
-  units?: any[];
-  suppliers?: any[];
-  onSuccess: () => void;
-  submitButtonText?: string;
+interface PurchaseFormWrapperProps extends PurchaseFormProps {
   isModal?: boolean;
   redirectPath?: string;
 }
@@ -76,4 +69,3 @@ export const PurchaseFormWrapper = ({
     />
   );
 };
-

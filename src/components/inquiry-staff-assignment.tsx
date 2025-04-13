@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -36,6 +36,47 @@ export function InquiryStaffAssignment({
   const [loading, setLoading] = useState(false);
   const [staffList, setStaffList] = useState<OperationalStaff[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
+  const [isAssociatePartner, setIsAssociatePartner] = useState(false);
+  
+  // Check if current user is an associate partner
+  useEffect(() => {
+    const checkAssociatePartner = async () => {
+      try {
+        const response = await fetch('/api/associate-partners/me');
+        if (response.ok) {
+          // If we get a successful response, user is an associate partner
+          setIsAssociatePartner(true);
+        }
+      } catch (error) {
+        // If there's an error, assume user is not an associate partner
+        console.error('Error checking associate partner status:', error);
+      }
+    };
+    
+    checkAssociatePartner();
+  }, []);
+
+  // Don't render the component if user is an associate partner
+  if (isAssociatePartner) {
+    // For associate partners, return only the staff name if assigned, otherwise null
+    if (assignedStaffId && assignedStaffAt) {
+      return (
+        <div className={cn("flex flex-col space-y-1", className)}>
+          <span className="text-sm font-medium text-slate-700">Assigned Staff</span>
+          <div className="flex items-center text-sm text-slate-600">
+            <User className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+            {staffList.find(staff => staff.id === assignedStaffId)?.name || "Staff Member"}
+            {assignedStaffAt && (
+              <span className="ml-2 text-xs text-slate-500">
+                (Assigned on {format(new Date(assignedStaffAt), "MMM d, yyyy")})
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
 
   // Fetch staff members when popover is opened
   const handleOpenChange = async (newOpen: boolean) => {

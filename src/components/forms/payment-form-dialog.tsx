@@ -44,9 +44,9 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PaymentFormProps } from "@/types/index";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
 import { FormDatePicker } from "@/components/ui/form-date-picker";
+import { PaymentFormProps } from "@/types/index"; // Update the import path
 
 const formSchema = z.object({
   paymentDate: z.date({

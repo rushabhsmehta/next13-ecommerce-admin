@@ -54,15 +54,25 @@ export default async function IncomePage({ params }: IncomePageProps) {
     })
   ]);
 
+  // Transform the income object to ensure null nested properties are converted to undefined
+  const transformedIncome = income ? {
+    ...income,
+    incomeCategory: income.incomeCategory || undefined,
+    bankAccount: income.bankAccount || undefined, 
+    cashAccount: income.cashAccount || undefined,
+    tourPackageQuery: income.tourPackageQuery || undefined
+  } : undefined;
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
         <Heading
           title={isEdit ? "Edit Income" : "Create Income"}
           description={isEdit ? "Update income details" : "Add a new income record"}
-        />        <Separator />
+        />  
+              <Separator />
         <IncomeForm
-          initialData={income || undefined}
+          initialData={transformedIncome}
           incomeCategories={incomeCategories}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts}

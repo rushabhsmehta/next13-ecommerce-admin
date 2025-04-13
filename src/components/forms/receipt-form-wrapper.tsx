@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { ReceiptFormDialog } from "@/components/forms/receipt-form-dialog"; // Updated path
 import { Loader } from "lucide-react";
-import { ReceiptFormProps } from "@/types/index";
+import { ReceiptFormProps } from "../../../types";
 
 interface ReceiptFormWrapperProps extends ReceiptFormProps {
   isModal?: boolean;

@@ -27,13 +27,16 @@ export async function GET(
           { endDate: { gte: new Date(startDate) } }
         ]
       };
-    }
-
-    const hotelPricing = await prismadb.hotelPricing.findMany({
+    }    const hotelPricing = await prismadb.hotelPricing.findMany({
       where: {
         hotelId: params.hotelId,
         isActive: true,
         ...dateFilter
+      },
+      include: {
+        roomType: true,
+        occupancyType: true,
+        mealPlan: true
       },
       orderBy: {
         startDate: 'asc'
@@ -60,23 +63,21 @@ export async function POST(
 
     if (!params.hotelId) {
       return new NextResponse("Hotel ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       startDate, 
       endDate, 
-      roomType, 
-      occupancyType, 
-      price, 
-      mealPlan 
+      roomTypeId, 
+      occupancyTypeId, 
+      price,
+      mealPlanId 
     } = body;
 
     if (!startDate || !endDate) {
       return new NextResponse("Start date and end date are required", { status: 400 });
     }
 
-    if (!roomType || !occupancyType) {
+    if (!roomTypeId || !occupancyTypeId) {
       return new NextResponse("Room type and occupancy type are required", { status: 400 });
     }
 
@@ -93,18 +94,16 @@ export async function POST(
 
     if (!hotel) {
       return new NextResponse("Hotel not found", { status: 404 });
-    }
-
-    // Create the hotel pricing record
+    }    // Create the hotel pricing record
     const hotelPricing = await prismadb.hotelPricing.create({
       data: {
         hotelId: params.hotelId,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        roomType,
-        occupancyType,
+        roomTypeId,
+        occupancyTypeId,
         price,
-        mealPlan: mealPlan || null,
+        mealPlanId: mealPlanId || null,
         isActive: true
       }
     });

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 import { MainNav } from "@/components/main-nav";
+import { SettingsNav } from "@/components/settings-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import prismadb from "@/lib/prismadb";
@@ -50,8 +51,10 @@ const Navbar = async () => {
   return ( 
     <div className="border-b">
       <div className="flex h-16 items-center px-4">
-        <MainNav className="mx-6" />
-        <div className="ml-auto flex items-center space-x-4">
+        <MainNav className="mx-6" />        <div className="ml-auto flex items-center space-x-4">
+          {/* Settings Navigation */}
+          <SettingsNav />
+          
           {/* User info display */}
           <div className="mr-2 text-sm">
             <span className="font-medium">

@@ -62,12 +62,20 @@ const NAV_ITEMS = [
       { title: "Bank Account", url: "/bankaccounts" },
       { title: "Fund Transfers", url: "/transfers" },
     ],
-  },
-  {
+  },  {
     title: "Categories",
     items: [
       { title: "Income Categories", url: "/income-categories" },
       { title: "Expense Categories", url: "/expense-categories" },
+    ],
+  },
+  {
+    title: "Configuration",
+    items: [
+      { title: "Meal Plans", url: "/settings/meal-plans" },
+      { title: "Room Types", url: "/settings/room-types" },
+      { title: "Occupancy Types", url: "/settings/occupancy-types" },
+      { title: "Vehicle Types", url: "/settings/vehicle-types" },
     ],
   },
   {

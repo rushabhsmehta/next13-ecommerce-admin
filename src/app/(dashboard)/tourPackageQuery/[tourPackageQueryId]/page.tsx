@@ -19,10 +19,20 @@ const tourPackageQueryPage = async ({
       itineraries: {
         include: {
           itineraryImages: true,
-          activities:
-          {
-            include:
-            {
+          roomAllocations: {
+            include: {
+              roomType: true,
+              occupancyType: true,
+              mealPlan  : true,
+            }
+          },
+          transportDetails: {
+            include: {
+              vehicleType: true,
+            }
+          },
+          activities: {
+            include: {
               activityImages: true,
             }
           }

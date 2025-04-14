@@ -7,14 +7,11 @@ export async function POST(
 ) {
   try {
     const { userId } = auth();
-    const body = await req.json();
-
-    const { 
+    const body = await req.json();    const { 
       locationId,
-      vehicleType,
+      vehicleTypeId,
       price,
       transportType,
-      capacity,
       description,
       startDate,
       endDate,
@@ -29,8 +26,8 @@ export async function POST(
       return new NextResponse("Location ID is required", { status: 400 });
     }
 
-    if (!vehicleType) {
-      return new NextResponse("Vehicle type is required", { status: 400 });
+    if (!vehicleTypeId) {
+      return new NextResponse("Vehicle type ID is required", { status: 400 });
     }
 
     if (!price) {
@@ -43,15 +40,12 @@ export async function POST(
 
     if (!startDate || !endDate) {
       return new NextResponse("Start and end dates are required", { status: 400 });
-    }
-
-    const transportPricing = await prismadb.transportPricing.create({
+    }    const transportPricing = await prismadb.transportPricing.create({
       data: {
         locationId,
-        vehicleType,
+        vehicleTypeId,
         price,
         transportType,
-        capacity,
         description,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
@@ -69,26 +63,24 @@ export async function POST(
 export async function GET(
   req: Request
 ) {
-  try {
-    const { searchParams } = new URL(req.url);
+  try {    const { searchParams } = new URL(req.url);
     const locationId = searchParams.get("locationId");
-    const vehicleType = searchParams.get("vehicleType");
+    const vehicleTypeId = searchParams.get("vehicleTypeId");
     const transportType = searchParams.get("transportType");
     const isActive = searchParams.get("isActive");
     
     // Parse date parameters if provided
     const dateString = searchParams.get("date");
     let date = dateString ? new Date(dateString) : null;
-    
-    // Build the query filter
+      // Build the query filter
     let whereClause: any = {};
 
     if (locationId) {
       whereClause.locationId = locationId;
     }
 
-    if (vehicleType) {
-      whereClause.vehicleType = vehicleType;
+    if (vehicleTypeId) {
+      whereClause.vehicleTypeId = vehicleTypeId;
     }
 
     if (transportType) {

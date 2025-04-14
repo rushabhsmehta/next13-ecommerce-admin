@@ -20,6 +20,11 @@ export async function GET(
       where: {
         id: params.pricingId,
         hotelId: params.hotelId
+      },
+      include: {
+        roomType: true,
+        occupancyType: true,
+        mealPlan: true
       }
     });
 
@@ -51,23 +56,21 @@ export async function PATCH(
 
     if (!params.pricingId) {
       return new NextResponse("Pricing ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       startDate, 
       endDate, 
-      roomType, 
-      occupancyType, 
+      roomTypeId, 
+      occupancyTypeId, 
       price, 
-      mealPlan 
+      mealPlanId 
     } = body;
 
     if (!startDate || !endDate) {
       return new NextResponse("Start date and end date are required", { status: 400 });
     }
 
-    if (!roomType || !occupancyType) {
+    if (!roomTypeId || !occupancyTypeId) {
       return new NextResponse("Room type and occupancy type are required", { status: 400 });
     }
 
@@ -84,9 +87,7 @@ export async function PATCH(
 
     if (!hotel) {
       return new NextResponse("Hotel not found", { status: 404 });
-    }
-
-    // Update the hotel pricing record
+    }    // Update the hotel pricing record
     const updatedPricing = await prismadb.hotelPricing.update({
       where: {
         id: params.pricingId,
@@ -95,10 +96,10 @@ export async function PATCH(
       data: {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        roomType,
-        occupancyType,
+        roomTypeId,
+        occupancyTypeId,
         price,
-        mealPlan: mealPlan || null,
+        mealPlanId: mealPlanId || null,
         isActive: true
       }
     });

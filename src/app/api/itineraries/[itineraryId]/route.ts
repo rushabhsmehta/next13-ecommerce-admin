@@ -82,9 +82,7 @@ export async function PATCH(
   try {
     const { userId } = auth();
 
-    const body = await req.json();
-
-    const {
+    const body = await req.json();    const {
       itineraryTitle,
       itineraryDescription,
       itineraryImages,
@@ -98,6 +96,11 @@ export async function PATCH(
       numberofRooms,
       roomCategory,
       mealsIncluded,
+      roomAllocations,
+      transportDetails,
+      roomTypeId,
+      mealPlanId,
+      occupancyTypeId,
     } = body;
 
     itineraryImages.forEach((itineraryImage: any) => {
@@ -139,8 +142,7 @@ export async function PATCH(
 
     
 
-    const operations = [];
-    const itineraryUpdateData =
+    const operations = [];    const itineraryUpdateData =
     {
       locationId,
       tourPackageId,  // Update tourPackageId
@@ -153,6 +155,10 @@ export async function PATCH(
       numberofRooms,  // Update numberofRooms
       roomCategory,  // Update roomCategory
       mealsIncluded,  // Update mealsIncluded
+      // Add relations to lookup tables if provided
+      roomTypeId,
+      mealPlanId,
+      occupancyTypeId,
       itineraryImages: itineraryImages && itineraryImages.length > 0 ? {
         deleteMany: {},
         createMany: {
@@ -188,8 +194,54 @@ export async function PATCH(
       operations.push(prismadb.activity.create({ data: activityData }));
     });
      
-     
+       // Delete existing room allocations and transport details
+    operations.push(prismadb.roomAllocation.deleteMany({
+      where: { itineraryId: params.itineraryId }
+    }));
+    
+    operations.push(prismadb.transportDetail.deleteMany({
+      where: { itineraryId: params.itineraryId }
+    }));
+    
+    // Execute all database operations in a transaction
     await prismadb.$transaction(operations);
+    
+    // After the main transaction, create new room allocations if provided
+    if (roomAllocations && roomAllocations.length > 0) {
+      await Promise.all(roomAllocations.map(async (allocation: any) => {
+        await prismadb.roomAllocation.create({
+          data: {
+            itineraryId: params.itineraryId,
+            roomTypeId: allocation.roomTypeId,
+            occupancyTypeId: allocation.occupancyTypeId,
+            mealPlanId: allocation.mealPlanId,
+            quantity: allocation.quantity || 1,
+            guestNames: allocation.guestNames,
+            notes: allocation.notes
+          }
+        });
+      }));
+    }
+    
+    // Create new transport details if provided
+    if (transportDetails && transportDetails.length > 0) {
+      await Promise.all(transportDetails.map(async (transport: any) => {
+        await prismadb.transportDetail.create({
+          data: {
+            itineraryId: params.itineraryId,
+            vehicleTypeId: transport.vehicleTypeId,
+            quantity: transport.quantity || 1,
+            capacity: transport.capacity,
+            isAirportPickupRequired: transport.isAirportPickupRequired,
+            isAirportDropRequired: transport.isAirportDropRequired,
+            pickupLocation: transport.pickupLocation,
+            dropLocation: transport.dropLocation,
+            description: transport.description,
+            notes: transport.notes
+          }
+        });
+      }));
+    }
 
     const itinerary = await prismadb.itinerary.findUnique({
       where: { id: params.itineraryId },
@@ -199,6 +251,18 @@ export async function PATCH(
         activities: {
           include: {
             activityImages: true,
+          }
+        },
+        roomAllocations: {
+          include: {
+            roomType: true,
+            occupancyType: true,
+            mealPlan: true
+          }
+        },
+        transportDetails: {
+          include: {
+            vehicleType: true
           }
         }
       },

@@ -39,15 +39,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { TransportPricing, Location } from "@prisma/client";
+import { TransportPricing, Location, VehicleType } from "@prisma/client";
 const formSchema = z.object({
   locationId: z.string().min(1, "Location is required"),
-  vehicleType: z.string().min(1, "Vehicle type is required"),
+  vehicleTypeId: z.string().min(1, "Vehicle type is required"),
   price: z.coerce.number().min(0, "Price must be a positive number"),
   transportType: z.enum(["PerDay", "PerTrip"], {
     required_error: "Transport type is required",
   }),
-  capacity: z.string().optional(),
   description: z.string().optional(),
   startDate: z.date({
     required_error: "Start date is required",
@@ -63,11 +62,13 @@ type TransportPricingFormValues = z.infer<typeof formSchema>;
 interface TransportPricingFormProps {
   initialData: TransportPricing;
   locations: Location[];
+  vehicleTypes: VehicleType[];
 }
 
 export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
   initialData,
-  locations
+  locations,
+  vehicleTypes
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -75,14 +76,12 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
   const title = "Edit Transport Pricing";
   const description = "Update transport pricing information";
   const toastMessage = "Transport pricing updated successfully.";
-  const action = "Save changes";
-
+  const action = "Save changes";  
   const defaultValues = {
     locationId: initialData.locationId,
-    vehicleType: initialData.vehicleType,
+    vehicleTypeId: initialData.vehicleTypeId || "",
     price: parseFloat(String(initialData.price)),
     transportType: initialData.transportType as "PerDay" | "PerTrip",
-    capacity: initialData.capacity || "",
     description: initialData.description || "",
     startDate: new Date(initialData.startDate),
     endDate: new Date(initialData.endDate),
@@ -151,17 +150,15 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )}
-            />
-
-            <FormField
+            />            <FormField
               control={form.control}
-              name="vehicleType"
+              name="vehicleTypeId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vehicle Type</FormLabel>
                   <Select
                     disabled={loading}
-                    onValueChange={(value: string) => field.onChange(value as "PerDay" | "PerTrip")}
+                    onValueChange={field.onChange}
                     value={field.value}
                     defaultValue={field.value}
                   >
@@ -174,52 +171,16 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Sedan">Sedan</SelectItem>
-                      <SelectItem value="SUV">SUV</SelectItem>
-                      <SelectItem value="Tempo Traveller">Tempo Traveller</SelectItem>
-                      <SelectItem value="Mini Bus">Mini Bus</SelectItem>
-                      <SelectItem value="Bus">Bus</SelectItem>
+                      {vehicleTypes.map((vehicleType) => (
+                        <SelectItem key={vehicleType.id} value={vehicleType.id}>
+                          {vehicleType.name} ({vehicleType.capacity} Seater)
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacity</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value || ""}
-                    defaultValue={field.value || ""}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          defaultValue={field.value}
-                          placeholder="Select capacity"
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="4 Seater">4 Seater</SelectItem>
-                      <SelectItem value="5 Seater">5 Seater</SelectItem>
-                      <SelectItem value="7 Seater">7 Seater</SelectItem>
-                      <SelectItem value="9 Seater">9 Seater</SelectItem>
-                      <SelectItem value="12 Seater">12 Seater</SelectItem>
-                      <SelectItem value="15 Seater">15 Seater</SelectItem>
-                      <SelectItem value="20 Seater">20 Seater</SelectItem>
-                      <SelectItem value="25 Seater">25 Seater</SelectItem>
-                      <SelectItem value="35 Seater">35 Seater</SelectItem>
-                      <SelectItem value="40 Seater">40 Seater</SelectItem>
-                      <SelectItem value="49 Seater">49 Seater</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormDescription>
+                    Vehicle capacity will be determined by the selected vehicle type
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

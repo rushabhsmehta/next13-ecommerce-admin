@@ -78,30 +78,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 
-const roomTypes = [
-  "Standard",
-  "Deluxe",
-  "Super Deluxe",
-  "Premium",
-  "Suite",
-  "Executive Suite",
-  "Presidential Suite",
-]
-
-const occupancyTypes = [
-  "Single",
-  "Double",
-  "Triple",
-  "Child with Bed",
-  "Child without Bed",
-]
-
-const mealPlans = [
-  "CP (Breakfast Only)",
-  "MAP (Breakfast + Dinner)",
-  "AP (All Meals)",
-  "EP (No Meals)",
-]
+// Room types, occupancy types, and meal plans will be fetched from the database
+// instead of using hardcoded arrays
 
 const pricingFormSchema = z.object({
   startDate: z.date({
@@ -110,19 +88,18 @@ const pricingFormSchema = z.object({
   endDate: z.date({
     required_error: "End date is required",
   }),
-  roomType: z.string({
+  roomTypeId: z.string({
     required_error: "Room type is required",
   }),
-  occupancyType: z.string({
+  occupancyTypeId: z.string({
     required_error: "Occupancy type is required",
-  }),
-  price: z.coerce.number({
+  }),  price: z.coerce.number({
     required_error: "Price is required",
     invalid_type_error: "Price must be a number",
   }).min(0, {
     message: "Price must be at least 0",
   }),
-  mealPlan: z.string().optional(),
+  mealPlanId: z.string().optional(),
 }).refine(
   (values) => {
     // Simple check that end date is after start date
@@ -147,20 +124,23 @@ export default function HotelPricingPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  // Add state variables for configuration items
+  const [roomTypes, setRoomTypes] = useState<any[]>([])
+  const [occupancyTypes, setOccupancyTypes] = useState<any[]>([])
+  const [mealPlans, setMealPlans] = useState<any[]>([])
   
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
       startDate: new Date(),
       endDate: new Date(),
-      roomType: "",
-      occupancyType: "",
+      roomTypeId: "", // Changed from roomType to roomTypeId
+      occupancyTypeId: "", // Changed from occupancyType to occupancyTypeId
       price: 0,
-      mealPlan: "",
+      mealPlanId: "", // Changed from mealPlan to mealPlanId
     }
   })
-  
-  useEffect(() => {
+    useEffect(() => {
     const fetchHotel = async () => {
       try {
         const response = await axios.get(`/api/hotels/${hotelId}`)
@@ -178,6 +158,25 @@ export default function HotelPricingPage() {
       } catch (error) {
         toast.error("Failed to fetch pricing periods")
         console.error(error)
+      }
+    }
+    
+    const fetchConfigurationData = async () => {
+      try {
+        // Fetch room types
+        const roomTypesResponse = await axios.get('/api/room-types')
+        setRoomTypes(roomTypesResponse.data.filter((rt: any) => rt.isActive))
+        
+        // Fetch occupancy types
+        const occupancyTypesResponse = await axios.get('/api/occupancy-types')
+        setOccupancyTypes(occupancyTypesResponse.data.filter((ot: any) => ot.isActive))
+        
+        // Fetch meal plans
+        const mealPlansResponse = await axios.get('/api/meal-plans')
+        setMealPlans(mealPlansResponse.data.filter((mp: any) => mp.isActive))
+      } catch (error) {
+        toast.error("Failed to fetch configuration data")
+        console.error(error)
       } finally {
         setLoading(false)
       }
@@ -185,6 +184,7 @@ export default function HotelPricingPage() {
     
     fetchHotel()
     fetchPricingPeriods()
+    fetchConfigurationData()
   }, [hotelId])
   
   const onSubmit = async (data: PricingFormValues) => {
@@ -216,16 +216,18 @@ export default function HotelPricingPage() {
       setLoading(false)
     }
   }
-  
-  const handleEdit = (pricing: any) => {
+    const handleEdit = (pricing: any) => {
     setIsEditMode(true)
     setEditId(pricing.id)
     form.setValue("startDate", new Date(pricing.startDate))
     form.setValue("endDate", new Date(pricing.endDate))
-    form.setValue("roomType", pricing.roomType)
-    form.setValue("occupancyType", pricing.occupancyType)
+    // Properly handle the room type ID from the relation or direct field
+    form.setValue("roomTypeId", pricing.roomTypeId)
+    // Properly handle the occupancy type ID from the relation or direct field
+    form.setValue("occupancyTypeId", pricing.occupancyTypeId)
     form.setValue("price", pricing.price)
-    form.setValue("mealPlan", pricing.mealPlan || "")
+    // Properly handle the meal plan ID from the relation or direct field
+    form.setValue("mealPlanId", pricing.mealPlanId || "")
     setIsDialogOpen(true)
   }
   
@@ -294,15 +296,28 @@ export default function HotelPricingPage() {
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {pricingPeriods.map((pricing) => (
+                <TableBody>                  {pricingPeriods.map((pricing) => (
                     <TableRow key={pricing.id}>
                       <TableCell>
                         {format(new Date(pricing.startDate), "PPP")} to {format(new Date(pricing.endDate), "PPP")}
                       </TableCell>
-                      <TableCell>{pricing.roomType}</TableCell>
-                      <TableCell>{pricing.occupancyType}</TableCell>
-                      <TableCell>{pricing.mealPlan || "-"}</TableCell>
+                      <TableCell>
+                        {pricing.roomType?.name || 
+                         (roomTypes.find(rt => rt.id === pricing.roomTypeId)?.name) ||
+                         pricing.roomTypeId}
+                      </TableCell>
+                      <TableCell>
+                        {pricing.occupancyType?.name || 
+                         (occupancyTypes.find(ot => ot.id === pricing.occupancyTypeId)?.name) ||
+                         pricing.occupancyTypeId}
+                      </TableCell>
+                      <TableCell>
+                        {pricing.mealPlan?.code 
+                          ? `${pricing.mealPlan.code} - ${pricing.mealPlan.name}`
+                          : pricing.mealPlanId 
+                            ? (mealPlans.find(mp => mp.id === pricing.mealPlanId)?.code || pricing.mealPlanId)
+                            : "-"}
+                      </TableCell>
                       <TableCell>₹{pricing.price.toLocaleString()}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(pricing)}>
@@ -411,10 +426,9 @@ export default function HotelPricingPage() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
+                <div className="grid grid-cols-2 gap-4">                  <FormField
                     control={form.control}
-                    name="roomType"
+                    name="roomTypeId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Room Type</FormLabel>
@@ -428,9 +442,9 @@ export default function HotelPricingPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {roomTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
+                            {roomTypes.map((roomType) => (
+                              <SelectItem key={roomType.id} value={roomType.id}>
+                                {roomType.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -439,10 +453,9 @@ export default function HotelPricingPage() {
                       </FormItem>
                     )}
                   />
-                  
-                  <FormField
+                    <FormField
                     control={form.control}
-                    name="occupancyType"
+                    name="occupancyTypeId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Occupancy Type</FormLabel>
@@ -456,9 +469,9 @@ export default function HotelPricingPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {occupancyTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
+                            {occupancyTypes.map((occupancyType) => (
+                              <SelectItem key={occupancyType.id} value={occupancyType.id}>
+                                {occupancyType.name} (Max: {occupancyType.maxPersons} persons)
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -491,10 +504,9 @@ export default function HotelPricingPage() {
                       </FormItem>
                     )}
                   />
-                  
-                  <FormField
+                    <FormField
                     control={form.control}
-                    name="mealPlan"
+                    name="mealPlanId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Meal Plan (Optional)</FormLabel>
@@ -509,9 +521,9 @@ export default function HotelPricingPage() {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="">No meal plan</SelectItem>
-                            {mealPlans.map((plan) => (
-                              <SelectItem key={plan} value={plan}>
-                                {plan}
+                            {mealPlans.map((mealPlan) => (
+                              <SelectItem key={mealPlan.id} value={mealPlan.id}>
+                                {mealPlan.code} - {mealPlan.name} ({mealPlan.description})
                               </SelectItem>
                             ))}
                           </SelectContent>

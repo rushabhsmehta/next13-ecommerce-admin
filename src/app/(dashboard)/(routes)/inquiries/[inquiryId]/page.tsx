@@ -21,18 +21,25 @@ const InquiryPage = async ({
       }
     }
   });
-
   const locations = await prismadb.location.findMany();
   const associates = await prismadb.associatePartner.findMany();
+  const roomTypes = await prismadb.roomType.findMany();
+  const occupancyTypes = await prismadb.occupancyType.findMany();
+  const mealPlans = await prismadb.mealPlan.findMany();
+  const vehicleTypes = await prismadb.vehicleType.findMany();
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <InquiryForm 
+        <InquiryForm
           initialData={inquiry}
           locations={locations}
           associates={associates}
           actions={inquiry?.actions || []}
+          roomTypes={roomTypes}
+          occupancyTypes={occupancyTypes}
+          mealPlans={mealPlans}
+          vehicleTypes={vehicleTypes}
         />
 
         {/* Staff Assignment Section */}

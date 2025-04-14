@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
@@ -143,9 +143,8 @@ const AuditLogsPage = () => {
   const [userRoleFilter, setUserRoleFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
-  
-  // Fetch audit logs
-  const fetchLogs = async () => {
+    // Fetch audit logs - wrapped in useCallback to prevent recreation on every render
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       // Build query parameters
@@ -184,7 +183,7 @@ const AuditLogsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [entityTypeFilter, actionFilter, userRoleFilter, searchQuery, paginationInfo.limit, paginationInfo.offset]);
     // Initial fetch and fetch when filters change
   useEffect(() => {
     fetchLogs();

@@ -23,11 +23,20 @@ const TransportPricingPage: React.FC<TransportPricingPageProps> = async ({
   if (!transportPricing) {
     redirect("/transport-pricing");
   }
-
   // Fetch all locations for the location dropdown
   const locations = await prismadb.location.findMany({
     orderBy: {
       label: 'asc'
+    }
+  });
+  
+  // Fetch all vehicle types for the vehicle type dropdown
+  const vehicleTypes = await prismadb.vehicleType.findMany({
+    where: {
+      isActive: true
+    },
+    orderBy: {
+      name: 'asc'
     }
   });
 
@@ -37,6 +46,7 @@ const TransportPricingPage: React.FC<TransportPricingPageProps> = async ({
         <TransportPricingForm 
           initialData={transportPricing}
           locations={locations}
+          vehicleTypes={vehicleTypes}
         />
       </div>
     </div>

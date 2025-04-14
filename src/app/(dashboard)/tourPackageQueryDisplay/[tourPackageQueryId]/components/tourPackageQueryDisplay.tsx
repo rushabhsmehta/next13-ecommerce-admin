@@ -620,13 +620,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                         Room #{roomIndex + 1}
                                       </span>
                                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                        {room.roomType || 'Standard'}
+                                        {room.roomType.name || 'Standard'}
                                       </span>
                                       <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-                                        {room.occupancyType || 'Double'}
+                                        {room.occupancyType.name || 'Double'}
                                       </span>
                                       <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                                        {room.mealPlan || 'CP (Breakfast Only)'}
+                                        {room.mealPlan.name || 'CP (Breakfast Only)'}
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
@@ -760,7 +760,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                   Transport #{transportIndex + 1}
                                 </span>
                                 <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                  {transport.vehicleType || 'Car'}
+                                  {transport.vehicleType.name || 'Car'}
                                 </span>
                                 <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                                   {transport.transportType || 'Per Day'}

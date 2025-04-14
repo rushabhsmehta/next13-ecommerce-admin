@@ -12,15 +12,25 @@ export async function GET(
   try {
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
-    }
-
-    const inquiry = await prismadb.inquiry.findUnique({
+    }    const inquiry = await prismadb.inquiry.findUnique({
       where: {
         id: params.inquiryId,
       },
       include: {
         location: true,
-        associatePartner: true
+        associatePartner: true,
+        roomAllocations: {
+          include: {
+            roomType: true,
+            occupancyType: true,
+            mealPlan: true
+          }
+        },
+        transportDetails: {
+          include: {
+            vehicleType: true
+          }
+        }
       }
     });
   

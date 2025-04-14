@@ -58,42 +58,121 @@ model Hotel {
   @@index([locationId])
 }
 
+// Model for configurable meal plans
+model MealPlan {
+  id          String    @id @default(uuid())
+  name        String    // e.g., "Continental Plan"
+  code        String    @unique // e.g., "CP"
+  description String    // e.g., "Breakfast Only"
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations to other models that use meal plans
+  hotelPricings      HotelPricing[]
+  roomAllocations    RoomAllocation[]
+  itineraries        Itinerary[]      // Added relation to Itinerary
+  itinerariesMaster  ItineraryMaster[] // Added relation to ItineraryMaster
+}
+
+// Model for configurable room types
+model RoomType {
+  id          String    @id @default(uuid())
+  name        String    @unique // e.g., "Standard Room"
+  description String?   // Optional description
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations to other models that use room types
+  hotelPricings      HotelPricing[]
+  roomAllocations    RoomAllocation[]
+  itineraries        Itinerary[]       // Relation to Itinerary
+  itinerariesMaster  ItineraryMaster[] // Added missing relation to ItineraryMaster
+}
+
+// Model for configurable occupancy types
+model OccupancyType {
+  id          String    @id @default(uuid())
+  name        String    @unique // e.g., "Single"
+  description String?   // Optional description
+  maxPersons  Int       // e.g., 1 for Single, 2 for Double, etc.
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations to other models that use occupancy types
+  hotelPricings      HotelPricing[]
+  roomAllocations    RoomAllocation[]
+  itineraries        Itinerary[]       // Added relation to Itinerary
+  itinerariesMaster  ItineraryMaster[] // Added relation to ItineraryMaster
+}
+
+// Model for configurable vehicle types
+model VehicleType {
+  id          String    @id @default(uuid())
+  name        String    @unique // e.g., "Sedan"
+  description String?   // Optional description
+  capacity    Int       // e.g., 4 for Sedan, 7 for SUV, etc.
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations to other models that use vehicle types
+  transportPricings   TransportPricing[]
+  transportDetails    TransportDetail[]
+}
+
 // New model for hotel pricing during specific periods
 model HotelPricing {
-  id            String    @id @default(uuid())
-  hotelId       String
-  hotel         Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  startDate     DateTime
-  endDate       DateTime
-  roomType      String    // e.g., "Standard", "Deluxe", "Suite"
-  occupancyType String    // e.g., "Single", "Double", "Triple", "Child with Bed", "Child without Bed"
-  price         Float
-  mealPlan      String?   // e.g., "CP", "MAP", "AP", "EP"
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String       @id @default(uuid())
+  hotelId         String
+  hotel           Hotel        @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  startDate       DateTime
+  endDate         DateTime
+    // Change from string to relations - made nullable for migration
+  roomTypeId      String?
+  roomType        RoomType?     @relation(fields: [roomTypeId], references: [id])
+  
+  occupancyTypeId String?
+  occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id])
+  
+  mealPlanId      String?
+  mealPlan        MealPlan?    @relation(fields: [mealPlanId], references: [id])
+  
+  price           Float
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   @@index([hotelId])
+  @@index([roomTypeId])
+  @@index([occupancyTypeId])
+  @@index([mealPlanId])
   @@index([startDate, endDate]) // For efficient date range queries
 }
 
 // New model for transport pricing based on vehicle type and location
 model TransportPricing {
-  id            String    @id @default(uuid())
-  locationId    String
-  location      Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  vehicleType   String    // e.g., "Sedan", "SUV", "Tempo Traveller", "Bus"
-  startDate     DateTime
-  endDate       DateTime
-  price         Float     // Per day or per trip based on transportType
-  transportType String    // "PerDay" or "PerTrip"
-  capacity      String?   // e.g., "4 Seater", "7 Seater", "12 Seater"
-  description   String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String      @id @default(uuid())
+  locationId      String
+  location        Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  
+  // Change from string to relation - made nullable for migration
+  vehicleTypeId   String?
+  vehicleType     VehicleType? @relation(fields: [vehicleTypeId], references: [id])
+  
+  startDate       DateTime
+  endDate         DateTime
+  price           Float       // Per day or per trip based on transportType
+  transportType   String      // "PerDay" or "PerTrip"
+  description     String?
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   @@index([locationId])
+  @@index([vehicleTypeId])
   @@index([startDate, endDate]) // For efficient date range queries
 }
 
@@ -476,10 +555,19 @@ model Itinerary {
   hotel              Hotel?            @relation("ItineraryToHotel", fields: [hotelId], references: [id])
   numberofRooms      String?
   roomCategory       String?
-  roomType           String?           // Added field for pricing
-  mealPlan           String?           // Added field for pricing
-  occupancyType      String?           // Added field for precise pricing
-  vehicleType        String?           // Keeping for backward compatibility
+  
+  // Replace string fields with relation fields
+  roomTypeId         String?
+  roomType           RoomType?         @relation(fields: [roomTypeId], references: [id])
+  
+  mealPlanId         String?
+  mealPlan           MealPlan?         @relation(fields: [mealPlanId], references: [id])
+  
+  occupancyTypeId    String?
+  occupancyType      OccupancyType?    @relation(fields: [occupancyTypeId], references: [id])
+  
+  // Remove vehicleType field as it's handled by TransportDetail
+  
   transportDetails   TransportDetail[] // New relation to multiple vehicles
   roomAllocations    RoomAllocation[]  // New relation to mixed room occupancy
   mealsIncluded      String?
@@ -493,6 +581,9 @@ model Itinerary {
   @@index([locationId])
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
+  @@index([roomTypeId])
+  @@index([mealPlanId])
+  @@index([occupancyTypeId])
 }
 
 model ItineraryMaster {
@@ -512,6 +603,22 @@ model ItineraryMaster {
   hotel              Hotel?            @relation("ItineraryMasterToHotel", fields: [hotelId], references: [id])
   numberofRooms      String?
   roomCategory       String?
+  
+  // Add relation fields for room details
+  
+  roomTypeId         String?
+  roomType           RoomType?         @relation(fields: [roomTypeId], references: [id])
+  
+  mealPlanId         String?
+  mealPlan           MealPlan?         @relation(fields: [mealPlanId], references: [id])
+  
+  occupancyTypeId    String?
+  occupancyType      OccupancyType?    @relation(fields: [occupancyTypeId], references: [id])
+  
+  // New relations for vehicle and room management
+  transportDetails   TransportDetail[] // Relation to vehicle details
+  roomAllocations    RoomAllocation[]  // Relation to room allocations
+  
   mealsIncluded      String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -522,6 +629,9 @@ model ItineraryMaster {
   @@index([locationId])
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
+  @@index([roomTypeId])
+  @@index([mealPlanId])
+  @@index([occupancyTypeId])
 }
 
 model Images {
@@ -673,6 +783,10 @@ model Inquiry {
   assignedToStaffId String? // Foreign key to OperationalStaff model
   assignedStaff     OperationalStaff? @relation("AssignedOperationalStaffToInquiry", fields: [assignedToStaffId], references: [id])
   assignedStaffAt   DateTime? // Optional: Timestamp when assignment happened
+
+  // New fields for room and transport details at inquiry stage
+  roomAllocations   RoomAllocation[]    // Relation to room allocation details
+  transportDetails  TransportDetail[]   // Relation to transport details
 
   @@index([locationId])
   @@index([associatePartnerId])
@@ -907,35 +1021,83 @@ model Passenger {
   @@index([flightTicketId])
 }
 
-// New model for multiple vehicles per itinerary day
+// Model for vehicles in both itineraries and inquiries
 model TransportDetail {
-  id              String    @id @default(uuid())
-  itineraryId     String
-  itinerary       Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  vehicleType     String    // e.g., "Sedan", "SUV", "Tempo Traveller", "Bus"
-  quantity        Int       @default(1) // Number of vehicles of this type
-  capacity        Int?      // How many passengers this vehicle can accommodate
-  description     String?   // Any additional details about the vehicle
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id              String      @id @default(uuid())
   
-  @@index([itineraryId])
+  // Optional relation to Itinerary - one of these two must exist
+  itineraryId     String?
+  itinerary       Itinerary?  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  
+  // Optional relation to Inquiry
+  inquiryId       String?
+  inquiry         Inquiry?    @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  
+  // Optional relation to ItineraryMaster
+  itineraryMasterId String?
+  itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
+  
+  // Change from string to relation
+  vehicleTypeId   String
+  vehicleType     VehicleType @relation(fields: [vehicleTypeId], references: [id])
+  
+  quantity        Int         @default(1) // Number of vehicles of this type
+  capacity        Int?        // Override the default capacity if needed
+  
+  // Fields specific to inquiry transport
+  isAirportPickupRequired Boolean? @default(false)
+  isAirportDropRequired   Boolean? @default(false)
+  pickupLocation  String?     // Pickup location details
+  dropLocation    String?     // Drop location details
+  requirementDate DateTime?   // When the vehicle is needed
+  
+  description     String?     // Any additional details about the vehicle
+  notes           String?     @db.Text // Additional requirements or notes
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+    @@index([itineraryId])
+  @@index([inquiryId])
+  @@index([itineraryMasterId])
+  @@index([vehicleTypeId])
 }
 
-// New model for handling mixed room occupancy for multiple families
+// Model for handling room allocation in both itineraries and inquiries
 model RoomAllocation {
-  id              String    @id @default(uuid())
-  itineraryId     String
-  itinerary       Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  roomType        String    // e.g., "Standard", "Deluxe", "Suite"
-  occupancyType   String    // e.g., "Single", "Double", "Triple", "Child with Bed", "Child without Bed"
-  quantity        Int       @default(1) // Number of rooms of this type/occupancy
-  mealPlan        String?   // e.g., "CP (Breakfast Only)", "MAP (Breakfast + Dinner)", "AP (All Meals)", "EP (No Meals)"
-  guestNames      String?   // Optional names of guests in these rooms
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id              String         @id @default(uuid())
+  
+  // Optional relation to Itinerary - one of these two must exist
+  itineraryId     String?
+  itinerary       Itinerary?     @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  
+  // Optional relation to Inquiry
+  inquiryId       String?
+  inquiry         Inquiry?       @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  
+  // Optional relation to ItineraryMaster
+  itineraryMasterId String?
+  itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
+  
+  // Change from strings to relations
+  roomTypeId      String
+  roomType        RoomType       @relation(fields: [roomTypeId], references: [id])
+  
+  occupancyTypeId String
+  occupancyType   OccupancyType  @relation(fields: [occupancyTypeId], references: [id])
+  
+  mealPlanId      String?
+  mealPlan        MealPlan?      @relation(fields: [mealPlanId], references: [id])
+  
+  quantity        Int            @default(1) // Number of rooms of this type/occupancy
+  guestNames      String?        // Optional names of guests in these rooms
+  notes           String?        @db.Text // Additional notes specific to this allocation
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   
   @@index([itineraryId])
+  @@index([inquiryId])
+  @@index([roomTypeId])
+  @@index([occupancyTypeId])
+  @@index([mealPlanId])
 }
 
 model Notification {
@@ -991,3 +1153,4 @@ model AiGeneratedImage {
 
   @@index([createdAt])
 }
+

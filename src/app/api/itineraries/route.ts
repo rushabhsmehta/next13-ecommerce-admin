@@ -10,9 +10,7 @@ export async function POST(
   try {
     const { userId } = auth();
 
-    const body = await req.json();
-
-    const {
+    const body = await req.json();    const {
       itineraryTitle,
       itineraryDescription,
       itineraryImages,
@@ -26,6 +24,11 @@ export async function POST(
       numberofRooms,
       roomCategory,
       mealsIncluded,
+      roomAllocations,
+      transportDetails,
+      roomTypeId,
+      mealPlanId,
+      occupancyTypeId,
     } = body;
 
     if (!userId) {
@@ -51,8 +54,7 @@ export async function POST(
 
 
 
-
-
+    // Create the main itinerary
     const itinerary = await prismadb.itinerary.create({
       data: {
         locationId,
@@ -66,6 +68,10 @@ export async function POST(
         numberofRooms,
         roomCategory,
         mealsIncluded,
+        // Add relations to lookup tables if provided
+        roomTypeId,
+        mealPlanId,
+        occupancyTypeId,
         itineraryImages: {
           createMany: {
             data: itineraryImages.map((img: { url: any; }) => ({ url: img.url })),
@@ -90,6 +96,43 @@ export async function POST(
         },
       }
     });
+    
+    // Create room allocations if provided
+    if (roomAllocations && roomAllocations.length > 0) {
+      await Promise.all(roomAllocations.map(async (allocation: any) => {
+        await prismadb.roomAllocation.create({
+          data: {
+            itineraryId: itinerary.id,
+            roomTypeId: allocation.roomTypeId,
+            occupancyTypeId: allocation.occupancyTypeId,
+            mealPlanId: allocation.mealPlanId,
+            quantity: allocation.quantity || 1,
+            guestNames: allocation.guestNames,
+            notes: allocation.notes
+          }
+        });
+      }));
+    }
+    
+    // Create transport details if provided
+    if (transportDetails && transportDetails.length > 0) {
+      await Promise.all(transportDetails.map(async (transport: any) => {
+        await prismadb.transportDetail.create({
+          data: {
+            itineraryId: itinerary.id,
+            vehicleTypeId: transport.vehicleTypeId,
+            quantity: transport.quantity || 1,
+            capacity: transport.capacity,
+            isAirportPickupRequired: transport.isAirportPickupRequired,
+            isAirportDropRequired: transport.isAirportDropRequired,
+            pickupLocation: transport.pickupLocation,
+            dropLocation: transport.dropLocation,
+            description: transport.description,
+            notes: transport.notes
+          }
+        });
+      }));
+    }
 
     return NextResponse.json(itinerary);
   } catch (error) {

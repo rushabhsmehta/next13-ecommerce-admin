@@ -16,7 +16,8 @@ export async function GET(
         id: params.transportPricingId
       },
       include: {
-        location: true
+        location: true,
+        vehicleType: true
       }
     });
 
@@ -34,13 +35,11 @@ export async function PATCH(
   try {
     const { userId } = auth();
     const body = await req.json();
-    
-    const { 
+      const { 
       locationId,
-      vehicleType,
+      vehicleTypeId,
       price,
       transportType,
-      capacity,
       description,
       startDate,
       endDate,
@@ -53,16 +52,13 @@ export async function PATCH(
 
     if (!params.transportPricingId) {
       return new NextResponse("Transport pricing ID is required", { status: 400 });
-    }
-
-    // Create the update data object with all fields that might be updated
+    }    // Create the update data object with all fields that might be updated
     const updateData: any = {};
     
     if (locationId !== undefined) updateData.locationId = locationId;
-    if (vehicleType !== undefined) updateData.vehicleType = vehicleType;
+    if (vehicleTypeId !== undefined) updateData.vehicleTypeId = vehicleTypeId;
     if (price !== undefined) updateData.price = price;
     if (transportType !== undefined) updateData.transportType = transportType;
-    if (capacity !== undefined) updateData.capacity = capacity;
     if (description !== undefined) updateData.description = description;
     if (startDate !== undefined) updateData.startDate = new Date(startDate);
     if (endDate !== undefined) updateData.endDate = new Date(endDate);

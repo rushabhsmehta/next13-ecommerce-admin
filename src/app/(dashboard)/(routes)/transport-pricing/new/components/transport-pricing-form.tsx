@@ -49,12 +49,11 @@ import {
 
 const formSchema = z.object({
     locationId: z.string().min(1, "Location is required"),
-    vehicleType: z.string().min(1, "Vehicle type is required"),
+    vehicleTypeId: z.string().min(1, "Vehicle type is required"),
     price: z.coerce.number().min(0, "Price must be a positive number"),
     transportType: z.enum(["PerDay", "PerTrip"], {
         required_error: "Transport type is required",
     }),
-    capacity: z.string().optional(),
     description: z.string().optional(),
     startDate: z.date({
         required_error: "Start date is required",
@@ -69,20 +68,21 @@ type TransportPricingFormValues = z.infer<typeof formSchema>;
 
 interface TransportPricingFormProps {
     locations: any[];
+    vehicleTypes: any[];
 }
 
 export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
-    locations
+    locations,
+    vehicleTypes
 }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const defaultValues = {
         locationId: "",
-        vehicleType: "",
+        vehicleTypeId: "",
         price: 0,
         transportType: "PerDay" as const,
-        capacity: "",
         description: "",
         startDate: new Date(),
         endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
@@ -176,11 +176,10 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        />
-
+                            />
                         <FormField
                             control={form.control}
-                            name="vehicleType"
+                            name="vehicleTypeId"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Vehicle Type</FormLabel>
@@ -209,46 +208,7 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="capacity"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Capacity</FormLabel>
-                                    <Select
-                                        disabled={loading}
-                                        onValueChange={field.onChange}
-                                        value={field.value || ""}
-                                        defaultValue={field.value || ""}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue
-                                                    defaultValue={field.value}
-                                                    placeholder="Select capacity"
-                                                />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="4 Seater">4 Seater</SelectItem>
-                                            <SelectItem value="5 Seater">5 Seater</SelectItem>
-                                            <SelectItem value="7 Seater">7 Seater</SelectItem>
-                                            <SelectItem value="9 Seater">9 Seater</SelectItem>
-                                            <SelectItem value="12 Seater">12 Seater</SelectItem>
-                                            <SelectItem value="15 Seater">15 Seater</SelectItem>
-                                            <SelectItem value="20 Seater">20 Seater</SelectItem>
-                                            <SelectItem value="25 Seater">25 Seater</SelectItem>
-                                            <SelectItem value="35 Seater">35 Seater</SelectItem>
-                                            <SelectItem value="40 Seater">40 Seater</SelectItem>
-                                            <SelectItem value="49 Seater">49 Seater</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        />                        {/* Capacity is now part of the vehicle type model, so we removed the separate field */}
 
                         <FormField
                             control={form.control}

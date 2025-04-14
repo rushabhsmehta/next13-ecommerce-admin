@@ -18,9 +18,7 @@ export async function POST(req: Request) {
   try {
     const { userId } = auth();
     const user = await currentUser();
-    const body = await req.json();
-
-    const { 
+    const body = await req.json();    const { 
       customerName, 
       customerMobileNumber, 
       associatePartnerId,
@@ -31,7 +29,9 @@ export async function POST(req: Request) {
       numChildrenBelow5,
       status,
       journeyDate,
-      remarks 
+      remarks,
+      roomAllocations,
+      transportDetails
     } = body;
 
     if (!userId) {
@@ -69,9 +69,7 @@ export async function POST(req: Request) {
       });
       
       userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
-    }
-
-    const inquiry = await prismadb.inquiry.create({
+    }    const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
         customerMobileNumber,
@@ -83,11 +81,45 @@ export async function POST(req: Request) {
         numChildrenBelow5,
         status,
         journeyDate: new Date(journeyDate),
-        remarks: remarks || null
+        remarks: remarks || null,
+        roomAllocations: roomAllocations ? {
+          create: roomAllocations.map((allocation: any) => ({
+            roomTypeId: allocation.roomTypeId,
+            occupancyTypeId: allocation.occupancyTypeId,
+            mealPlanId: allocation.mealPlanId,
+            quantity: allocation.quantity || 1,
+            guestNames: allocation.guestNames || null,
+            notes: allocation.notes || null
+          }))
+        } : undefined,
+        transportDetails: transportDetails ? {
+          create: transportDetails.map((detail: any) => ({
+            vehicleTypeId: detail.vehicleTypeId,
+            quantity: detail.quantity || 1,
+            isAirportPickupRequired: detail.isAirportPickupRequired || false,
+            isAirportDropRequired: detail.isAirportDropRequired || false,
+            pickupLocation: detail.pickupLocation || null,
+            dropLocation: detail.dropLocation || null,
+            requirementDate: detail.requirementDate ? new Date(detail.requirementDate) : null,
+            notes: detail.notes || null
+          }))
+        } : undefined
       },
       include: {
         location: true,
-        associatePartner: true
+        associatePartner: true,
+        roomAllocations: {
+          include: {
+            roomType: true,
+            occupancyType: true,
+            mealPlan: true
+          }
+        },
+        transportDetails: {
+          include: {
+            vehicleType: true
+          }
+        }
       }
     });
 
@@ -221,9 +253,7 @@ export async function GET(req: Request) {
       ...(associateId && { associatePartnerId: associateId }),
       ...(status && status !== 'ALL' && { status }),
       ...dateFilter
-    };
-
-    const inquiries = await prismadb.inquiry.findMany({
+    };    const inquiries = await prismadb.inquiry.findMany({
       where,
       include: {
         location: true,
@@ -232,6 +262,18 @@ export async function GET(req: Request) {
         actions: {
           orderBy: {
             createdAt: 'desc'
+          }
+        },
+        roomAllocations: {
+          include: {
+            roomType: true,
+            occupancyType: true,
+            mealPlan: true
+          }
+        },
+        transportDetails: {
+          include: {
+            vehicleType: true
           }
         }
       },

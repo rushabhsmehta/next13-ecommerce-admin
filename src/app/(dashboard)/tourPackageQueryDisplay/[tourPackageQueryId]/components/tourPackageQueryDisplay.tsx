@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner, RoomAllocation, TransportDetail } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
 import { Separator } from '@radix-ui/react-separator';
@@ -16,6 +16,8 @@ interface TourPackageQueryDisplayProps {
       activities: (Activity & {
         activityImages: Images[];
       })[];
+      roomAllocations? : RoomAllocation[];
+      transportDetails? : TransportDetail[];
     })[];
     flightDetails: FlightDetails[];
     associatePartner: AssociatePartner | null;
@@ -585,8 +587,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
                     Hotel Details
                   </CardHeader>
-                  <div className="p-4">
-                    {/* Hotel Images */}
+                  <div className="p-4">                    {/* Hotel Images */}
                     {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
                       <div className="flex items-start mb-4">
                         <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
@@ -606,24 +607,61 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                           <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
-                          {itinerary.numberofRooms && (
-                            <>
-                              <div className="text-xl font-bold">Number of Rooms:</div>
-                              <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                            </>
+                          
+                          {/* Room Allocations Section */}
+                          {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
+                            <div className="mt-4">
+                              <div className="text-xl font-bold border-b pb-2 mb-3">Room Details:</div>
+                              <div className="space-y-3">
+                                {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
+                                  <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                                        Room #{roomIndex + 1}
+                                      </span>
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                        {room.roomType || 'Standard'}
+                                      </span>
+                                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                                        {room.occupancyType || 'Double'}
+                                      </span>
+                                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                                        {room.mealPlan || 'CP (Breakfast Only)'}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-medium">Quantity:</span> {room.quantity || '1'} 
+                                      {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
-
-                          {itinerary.roomCategory && (
+                          
+                          {/* Fallback to old structure if roomAllocations is not available */}
+                          {!itinerary.roomAllocations?.length && (
                             <>
-                              <div className="text-xl font-bold">Room Category:</div>
-                              <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                            </>
-                          )}
+                              {itinerary.numberofRooms && (
+                                <>
+                                  <div className="text-xl font-bold">Number of Rooms:</div>
+                                  <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                                </>
+                              )}
 
-                          {itinerary.mealsIncluded && (
-                            <>
-                              <div className="text-xl font-bold">Meal Plan:</div>
-                              <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                              {itinerary.roomCategory && (
+                                <>
+                                  <div className="text-xl font-bold">Room Category:</div>
+                                  <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                                </>
+                              )}
+
+                              {itinerary.mealsIncluded && (
+                                <>
+                                  <div className="text-xl font-bold">Meal Plan:</div>
+                                  <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                                </>
+                              )}
                             </>
                           )}
                         </div>
@@ -650,26 +688,90 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                           <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
-                          {itinerary.numberofRooms && (
-                            <>
-                              <div className="text-xl font-bold">Number of Rooms:</div>
-                              <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                            </>
+                          
+                          {/* Room Allocations Section */}
+                          {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
+                            <div className="mt-4">
+                              <div className="text-xl font-bold border-b pb-2 mb-3">Room Details:</div>
+                              <div className="space-y-3">
+                                {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
+                                  <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                                        Room #{roomIndex + 1}
+                                      </span>
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                        {room.roomType || 'Standard'}
+                                      </span>
+                                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                                        {room.occupancyType || 'Double'}
+                                      </span>
+                                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                                        {room.mealPlan || 'CP (Breakfast Only)'}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600">
+                                      <span className="font-medium">Quantity:</span> {room.quantity || '1'} 
+                                      {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
+                          
+                          {/* Fallback to old structure if roomAllocations is not available */}
+                          {!itinerary.roomAllocations?.length && (
+                            <>
+                              {itinerary.numberofRooms && (
+                                <>
+                                  <div className="text-xl font-bold">Number of Rooms:</div>
+                                  <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                                </>
+                              )}
 
-                          {itinerary.roomCategory && (
-                            <>
-                              <div className="text-xl font-bold">Room Category:</div>
-                              <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                            </>
-                          )}
+                              {itinerary.roomCategory && (
+                                <>
+                                  <div className="text-xl font-bold">Room Category:</div>
+                                  <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                                </>
+                              )}
 
-                          {itinerary.mealsIncluded && (
-                            <>
-                              <div className="text-xl font-bold">Meal Plan:</div>
-                              <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                              {itinerary.mealsIncluded && (
+                                <>
+                                  <div className="text-xl font-bold">Meal Plan:</div>
+                                  <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                                </>
+                              )}
                             </>
                           )}
+                        </div>
+                      </div>                    )}
+                    
+                    {/* Transport Details Section */}
+                    {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
+                      <div className="mt-6">
+                        <div className="text-xl font-bold border-b pb-2 mb-3">Transport Details:</div>
+                        <div className="space-y-3">
+                          {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
+                            <div key={transportIndex} className="bg-gray-50 rounded-lg p-3 border">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                                  Transport #{transportIndex + 1}
+                                </span>
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                  {transport.vehicleType || 'Car'}
+                                </span>
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                                  {transport.transportType || 'Per Day'}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                <span className="font-medium">Quantity:</span> {transport.quantity || '1'} 
+                                {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
+                              </p>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}

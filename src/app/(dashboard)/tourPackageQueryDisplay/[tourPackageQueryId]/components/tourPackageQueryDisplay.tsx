@@ -16,8 +16,8 @@ interface TourPackageQueryDisplayProps {
       activities: (Activity & {
         activityImages: Images[];
       })[];
-      roomAllocations? : RoomAllocation[];
-      transportDetails? : TransportDetail[];
+      roomAllocations?: RoomAllocation[];
+      transportDetails?: TransportDetail[];
     })[];
     flightDetails: FlightDetails[];
     associatePartner: AssociatePartner | null;

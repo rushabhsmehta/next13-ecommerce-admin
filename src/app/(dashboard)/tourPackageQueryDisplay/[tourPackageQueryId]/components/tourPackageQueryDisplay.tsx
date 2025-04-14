@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner, RoomAllocation, TransportDetail } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
 import { Separator } from '@radix-ui/react-separator';
@@ -16,8 +16,8 @@ interface TourPackageQueryDisplayProps {
       activities: (Activity & {
         activityImages: Images[];
       })[];
-      roomAllocations?: RoomAllocation[];
-      transportDetails?: TransportDetail[];
+      roomAllocations? : any[];
+      transportDetails? : any[];
     })[];
     flightDetails: FlightDetails[];
     associatePartner: AssociatePartner | null;

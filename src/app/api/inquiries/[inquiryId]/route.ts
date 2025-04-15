@@ -12,7 +12,7 @@ export async function GET(
   try {
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
-    }    const inquiry = await prismadb.inquiry.findUnique({
+    } const inquiry = await prismadb.inquiry.findUnique({
       where: {
         id: params.inquiryId,
       },
@@ -33,7 +33,7 @@ export async function GET(
         }
       }
     });
-  
+
     return NextResponse.json(inquiry);
   } catch (error) {
     console.log('[INQUIRY_GET]', error);
@@ -44,11 +44,12 @@ export async function GET(
 export async function PATCH(
   req: Request,
   { params }: { params: { inquiryId: string } }
-) {
-  try {
+) {  try {
     const { userId } = auth();
     const user = await currentUser();
     const body = await req.json();
+    
+    console.log('[INQUIRY_PATCH] Received request body:', JSON.stringify(body, null, 2));
 
     const {
       customerName,
@@ -112,12 +113,14 @@ export async function PATCH(
           ]
         }
       });
-      
+
       isAssociate = !!associatePartner;
       userRole = isAssociate ? "ASSOCIATE" : "ADMIN";
     }
 
-    // Create the updated data object
+    // Create the updated data object  
+    const { roomAllocations, transportDetails, ...mainFields } = body;
+
     const updatedData = {
       customerName,
       customerMobileNumber,
@@ -130,17 +133,103 @@ export async function PATCH(
       status,
       journeyDate: new Date(journeyDate),
       remarks: remarks || null
-    };
+    };    // First, check if roomAllocations and transportDetails are actually present in the request
+    console.log('[INQUIRY_PATCH] Room allocations present:', roomAllocations ? `Yes, count: ${roomAllocations.length}` : 'No');
+    console.log('[INQUIRY_PATCH] Transport details present:', transportDetails ? `Yes, count: ${transportDetails.length}` : 'No');
+    
+    if (roomAllocations) {
+      console.log('[INQUIRY_PATCH] Room allocations data:', JSON.stringify(roomAllocations, null, 2));
+      // Delete existing room allocations
+      const deletedRooms = await prismadb.roomAllocation.deleteMany({
+        where: { inquiryId: params.inquiryId }
+      });
+      console.log(`[INQUIRY_PATCH] Deleted ${deletedRooms.count} existing room allocations`);
+    }
+    
+    if (transportDetails) {
+      console.log('[INQUIRY_PATCH] Transport details data:', JSON.stringify(transportDetails, null, 2));
+      // Delete existing transport details
+      const deletedTransport = await prismadb.transportDetail.deleteMany({
+        where: { inquiryId: params.inquiryId }
+      });
+      console.log(`[INQUIRY_PATCH] Deleted ${deletedTransport.count} existing transport details`);
+    }    // Prepare the room allocations data for creation
+    let roomAllocationsCreateData = undefined;
+    if (roomAllocations && roomAllocations.length > 0) {
+      try {
+        roomAllocationsCreateData = {
+          create: roomAllocations.map((allocation: any) => {
+            console.log('[INQUIRY_PATCH] Processing room allocation:', allocation);
+            return {
+              roomTypeId: allocation.roomTypeId,
+              occupancyTypeId: allocation.occupancyTypeId,
+              mealPlanId: allocation.mealPlanId === "" ? null : allocation.mealPlanId,
+              quantity: Number(allocation.quantity) || 1,
+              guestNames: allocation.guestNames || null,
+              notes: allocation.notes || null
+            };
+          })
+        };
+        console.log('[INQUIRY_PATCH] Prepared room allocations create data:', JSON.stringify(roomAllocationsCreateData, null, 2));
+      } catch (error) {
+        console.error('[INQUIRY_PATCH] Error preparing room allocations:', error);
+      }
+    }
 
+    // Prepare the transport details data for creation
+    let transportDetailsCreateData = undefined;
+    if (transportDetails && transportDetails.length > 0) {
+      try {
+        transportDetailsCreateData = {
+          create: transportDetails.map((detail: any) => {
+            console.log('[INQUIRY_PATCH] Processing transport detail:', detail);
+            return {
+              vehicleTypeId: detail.vehicleTypeId,
+              quantity: Number(detail.quantity) || 1,
+              isAirportPickupRequired: detail.isAirportPickupRequired || false,
+              isAirportDropRequired: detail.isAirportDropRequired || false,
+              pickupLocation: detail.pickupLocation || null,
+              dropLocation: detail.dropLocation || null,
+              requirementDate: detail.requirementDate ? new Date(detail.requirementDate) : null,
+              notes: detail.notes || null
+            };
+          })
+        };
+        console.log('[INQUIRY_PATCH] Prepared transport details create data:', JSON.stringify(transportDetailsCreateData, null, 2));
+      } catch (error) {
+        console.error('[INQUIRY_PATCH] Error preparing transport details:', error);
+      }
+    }
+
+    console.log('[INQUIRY_PATCH] Updating inquiry with prepared data');
+    
     // Update the inquiry in the database
     const inquiry = await prismadb.inquiry.update({
       where: {
         id: params.inquiryId,
       },
-      data: updatedData,
+      data: {
+        ...updatedData,
+        // Create new room allocations if provided
+        roomAllocations: roomAllocationsCreateData,
+        // Create new transport details if provided
+        transportDetails: transportDetailsCreateData
+      },
       include: {
         location: true,
-        associatePartner: true
+        associatePartner: true,
+        roomAllocations: {
+          include: {
+            roomType: true,
+            occupancyType: true,
+            mealPlan: true
+          }
+        },
+        transportDetails: {
+          include: {
+            vehicleType: true
+          }
+        }
       }
     });
 
@@ -162,7 +251,7 @@ export async function PATCH(
         statusChangedTo: inquiry.status,
       }
     });
-  
+
     return NextResponse.json(inquiry);
   } catch (error) {
     console.log('[INQUIRY_PATCH]', error);
@@ -216,7 +305,7 @@ export async function DELETE(
           ]
         }
       });
-      
+
       userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
     }
 

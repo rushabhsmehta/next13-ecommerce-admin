@@ -2,7 +2,7 @@
 
 import * as z from "zod";
 import { Check, ChevronsUpDown, PlusCircle, X, Trash2, Plus } from "lucide-react";
-import { Inquiry, Location, AssociatePartner, InquiryAction, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
+import { Inquiry, Location, AssociatePartner, InquiryAction, RoomType, OccupancyType, MealPlan, VehicleType, RoomAllocation, TransportDetail } from "@prisma/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
@@ -94,14 +94,8 @@ interface InquiryFormProps {
     location: Location;
     associatePartner: AssociatePartner | null;
     actions: InquiryAction[];
-    roomAllocations?: (any & {
-      roomType: RoomType;
-      occupancyType: OccupancyType;
-      mealPlan: MealPlan | null;
-    })[];
-    transportDetails?: (any & {
-      vehicleType: VehicleType;
-    })[];
+    roomAllocations?: RoomAllocation[];
+    transportDetails?: TransportDetail[];
   }) | null;
   locations: Location[];
   associates: AssociatePartner[];
@@ -124,18 +118,36 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
 }) => {  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
-  
-  // States for managing room allocations and transport details
+    // States for managing room allocations and transport details
   const [showAddRoomAllocation, setShowAddRoomAllocation] = useState(false);
   const [editingRoomAllocationIndex, setEditingRoomAllocationIndex] = useState<number | null>(null);
   const [showAddTransportDetail, setShowAddTransportDetail] = useState(false);
   const [editingTransportDetailIndex, setEditingTransportDetailIndex] = useState<number | null>(null);
+    // State to track the current room allocation and transport detail being added
+  // Use proper TypeScript interfaces instead of schema types
+  const [newRoomAllocation, setNewRoomAllocation] = useState<Partial<{
+    roomTypeId: string;
+    occupancyTypeId: string;
+    mealPlanId?: string | null;
+    quantity: number;
+    guestNames?: string | null;
+    notes?: string | null;
+  }>>({});
+  const [newTransportDetail, setNewTransportDetail] = useState<Partial<{
+    vehicleTypeId: string;
+    quantity: number;
+    isAirportPickupRequired: boolean;
+    isAirportDropRequired: boolean;
+    pickupLocation?: string | null;
+    dropLocation?: string | null;
+    requirementDate?: Date | null;
+    notes?: string | null;
+  }>>({});
 
   const title = initialData ? "Edit inquiry" : "Create inquiry";
   const description = initialData ? "Edit an inquiry" : "Add a new inquiry";
   const toastMessage = initialData ? "Inquiry updated." : "Inquiry created.";
-  const action = initialData ? "Save changes" : "Create";
-  const form = useForm<InquiryFormValues>({
+  const action = initialData ? "Save changes" : "Create";  const form = useForm<InquiryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
       status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY",
@@ -143,8 +155,9 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       customerMobileNumber: initialData.customerMobileNumber,
       locationId: initialData.locationId,
       associatePartnerId: initialData.associatePartnerId,
-      roomAllocations: initialData.roomAllocations || [],
-      transportDetails: initialData.transportDetails || [],
+      // Cast the arrays to the expected types to satisfy TypeScript
+      roomAllocations: (initialData.roomAllocations || []) as unknown as z.infer<typeof roomAllocationSchema>[],
+      transportDetails: (initialData.transportDetails || []) as unknown as z.infer<typeof transportDetailSchema>[],
       numAdults: initialData.numAdults,
       numChildren5to11: initialData.numChildren5to11,
       numChildrenBelow5: initialData.numChildrenBelow5,
@@ -170,43 +183,94 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     }
   });
 
-  // Check if we're on the associate domain and auto-select associate partner  // Handle adding a new room allocation
-  const handleAddRoomAllocation = (allocation: any) => {
+  // Check if we're on the associate domain and auto-select associate partner  // Check if we're on the associate domain and auto-select associate partner
+  
+  // Handle adding a new room allocation
+  const handleAddRoomAllocation = () => {
+    // Only add if we have the required fields
+    if (!newRoomAllocation.roomTypeId || !newRoomAllocation.occupancyTypeId) {
+      toast.error("Room type and occupancy type are required");
+      return;
+    }
+    
+    // Ensure quantity is set and is a number
+    const completeAllocation = {
+      ...newRoomAllocation,
+      quantity: typeof newRoomAllocation.quantity === 'number' ? newRoomAllocation.quantity : 1
+    };
+      // Add to form
     const currentAllocations = form.getValues("roomAllocations") || [];
-    form.setValue("roomAllocations", [...currentAllocations, allocation]);
+    // Cast the completeAllocation to the expected type to satisfy TypeScript
+    const typedAllocation = completeAllocation as typeof roomAllocationSchema._type;
+    form.setValue("roomAllocations", [...currentAllocations, typedAllocation]);
+    
+    // Reset state
     setShowAddRoomAllocation(false);
+    setNewRoomAllocation({});
   };
-
   // Handle updating an existing room allocation
-  const handleUpdateRoomAllocation = (allocation: any, index: number) => {
+  const handleUpdateRoomAllocation = (allocation: any, index: number, closeDialog: boolean = false) => {
     const currentAllocations = form.getValues("roomAllocations") || [];
     const updatedAllocations = [...currentAllocations];
-    updatedAllocations[index] = allocation;
+    updatedAllocations[index] = {
+      ...allocation,
+      quantity: allocation.quantity || 1
+    };
     form.setValue("roomAllocations", updatedAllocations);
-    setEditingRoomAllocationIndex(null);
+    
+    // Only close the dialog if explicitly requested (via the Save button)
+    if (closeDialog) {
+      setEditingRoomAllocationIndex(null);
+    }
   };
-
   // Handle removing a room allocation
   const handleRemoveRoomAllocation = (index: number) => {
     const currentAllocations = form.getValues("roomAllocations") || [];
     const updatedAllocations = currentAllocations.filter((_, i) => i !== index);
     form.setValue("roomAllocations", updatedAllocations);
   };
-
+  
   // Handle adding a new transport detail
-  const handleAddTransportDetail = (detail: any) => {
+  const handleAddTransportDetail = () => {
+    // Only add if we have the required fields
+    if (!newTransportDetail.vehicleTypeId) {
+      toast.error("Vehicle type is required");
+      return;
+    }
+    
+    // Ensure quantity and boolean fields are set with proper types
+    const completeDetail = {
+      ...newTransportDetail,
+      quantity: typeof newTransportDetail.quantity === 'number' ? newTransportDetail.quantity : 1,
+      isAirportPickupRequired: Boolean(newTransportDetail.isAirportPickupRequired),
+      isAirportDropRequired: Boolean(newTransportDetail.isAirportDropRequired)
+    };
+      // Add to form
     const currentDetails = form.getValues("transportDetails") || [];
-    form.setValue("transportDetails", [...currentDetails, detail]);
+    // Cast the completeDetail to the expected type to satisfy TypeScript
+    const typedDetail = completeDetail as typeof transportDetailSchema._type;
+    form.setValue("transportDetails", [...currentDetails, typedDetail]);
+    
+    // Reset state
     setShowAddTransportDetail(false);
+    setNewTransportDetail({});
   };
-
   // Handle updating an existing transport detail
-  const handleUpdateTransportDetail = (detail: any, index: number) => {
+  const handleUpdateTransportDetail = (detail: any, index: number, closeDialog: boolean = false) => {
     const currentDetails = form.getValues("transportDetails") || [];
     const updatedDetails = [...currentDetails];
-    updatedDetails[index] = detail;
+    updatedDetails[index] = {
+      ...detail,
+      quantity: detail.quantity || 1,
+      isAirportPickupRequired: detail.isAirportPickupRequired || false, 
+      isAirportDropRequired: detail.isAirportDropRequired || false
+    };
     form.setValue("transportDetails", updatedDetails);
-    setEditingTransportDetailIndex(null);
+    
+    // Only close the dialog if explicitly requested (via the Save button)
+    if (closeDialog) {
+      setEditingTransportDetailIndex(null);
+    }
   };
 
   // Handle removing a transport detail
@@ -793,16 +857,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Room Type</label>
-                    <Select
+                    <label className="text-sm font-medium">Room Type</label>                    <Select
                       onValueChange={(value) => {
-                        const allocation = editingRoomAllocationIndex !== null
-                          ? {...form.getValues("roomAllocations")[editingRoomAllocationIndex], roomTypeId: value}
-                          : {roomTypeId: value}
                         if (editingRoomAllocationIndex !== null) {
+                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], roomTypeId: value};
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          handleAddRoomAllocation(allocation);
+                          setNewRoomAllocation({...newRoomAllocation, roomTypeId: value});
                         }
                       }}
                       defaultValue={editingRoomAllocationIndex !== null 
@@ -822,16 +883,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Occupancy Type</label>
-                    <Select
+                    <label className="text-sm font-medium">Occupancy Type</label>                    <Select
                       onValueChange={(value) => {
-                        const allocation = editingRoomAllocationIndex !== null
-                          ? {...form.getValues("roomAllocations")[editingRoomAllocationIndex], occupancyTypeId: value}
-                          : {occupancyTypeId: value}
                         if (editingRoomAllocationIndex !== null) {
+                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], occupancyTypeId: value};
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          handleAddRoomAllocation(allocation);
+                          setNewRoomAllocation({...newRoomAllocation, occupancyTypeId: value});
                         }
                       }}
                       defaultValue={editingRoomAllocationIndex !== null 
@@ -851,18 +909,15 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Meal Plan (Optional)</label>
-                    <Select
+                    <label className="text-sm font-medium">Meal Plan (Optional)</label>                    <Select
                       onValueChange={(value) => {
-                        const allocation = editingRoomAllocationIndex !== null
-                          ? {...form.getValues("roomAllocations")[editingRoomAllocationIndex], mealPlanId: value}
-                          : {mealPlanId: value}
                         if (editingRoomAllocationIndex !== null) {
+                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], mealPlanId: value};
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          handleAddRoomAllocation(allocation);
+                          setNewRoomAllocation({...newRoomAllocation, mealPlanId: value});
                         }
-                      }}                      defaultValue={editingRoomAllocationIndex !== null 
+                      }}defaultValue={editingRoomAllocationIndex !== null 
                         ? form.getValues("roomAllocations")[editingRoomAllocationIndex].mealPlanId || undefined 
                         : undefined}
                     >
@@ -885,15 +940,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       min="1"
                       defaultValue={editingRoomAllocationIndex !== null 
                         ? form.getValues("roomAllocations")[editingRoomAllocationIndex].quantity 
-                        : "1"}
-                      onChange={(e) => {
-                        const allocation = editingRoomAllocationIndex !== null
-                          ? {...form.getValues("roomAllocations")[editingRoomAllocationIndex], quantity: parseInt(e.target.value)}
-                          : {quantity: parseInt(e.target.value)}
+                        : "1"}                      onChange={(e) => {
                         if (editingRoomAllocationIndex !== null) {
+                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], quantity: parseInt(e.target.value)};
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          handleAddRoomAllocation(allocation);
+                          setNewRoomAllocation({...newRoomAllocation, quantity: parseInt(e.target.value)});
                         }
                       }}
                     />
@@ -903,38 +955,37 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       placeholder="Enter any special requirements or notes"
                       defaultValue={editingRoomAllocationIndex !== null 
                         ? form.getValues("roomAllocations")[editingRoomAllocationIndex].notes || ""
-                        : ""}
-                      onChange={(e) => {
-                        const allocation = editingRoomAllocationIndex !== null
-                          ? {...form.getValues("roomAllocations")[editingRoomAllocationIndex], notes: e.target.value}
-                          : {notes: e.target.value}
+                        : ""}                      onChange={(e) => {
                         if (editingRoomAllocationIndex !== null) {
+                          const allocation = {...form.getValues("roomAllocations")[editingRoomAllocationIndex], notes: e.target.value};
                           handleUpdateRoomAllocation(allocation, editingRoomAllocationIndex);
                         } else {
-                          handleAddRoomAllocation(allocation);
+                          setNewRoomAllocation({...newRoomAllocation, notes: e.target.value});
                         }
                       }}
                     />
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button
+                <div className="flex justify-end space-x-2 mt-4">                  <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
                       setShowAddRoomAllocation(false);
                       setEditingRoomAllocationIndex(null);
+                      setNewRoomAllocation({}); // Reset state to prevent stale data
                     }}
                   >
                     Cancel
-                  </Button>
-                  <Button
+                  </Button>                  <Button
                     type="button"
                     onClick={() => {
                       if (editingRoomAllocationIndex !== null) {
-                        setEditingRoomAllocationIndex(null);
+                        // Get the current allocation and explicitly call update with closeDialog=true
+                        const currentAllocation = form.getValues("roomAllocations")[editingRoomAllocationIndex];
+                        handleUpdateRoomAllocation(currentAllocation, editingRoomAllocationIndex, true);
                       } else {
-                        setShowAddRoomAllocation(false);
+                        // Call the handler that validates and adds the room allocation
+                        handleAddRoomAllocation();
                       }
                     }}
                   >
@@ -1045,16 +1096,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Vehicle Type</label>
-                    <Select
+                    <label className="text-sm font-medium">Vehicle Type</label>                    <Select
                       onValueChange={(value) => {
-                        const detail = editingTransportDetailIndex !== null
-                          ? {...form.getValues("transportDetails")[editingTransportDetailIndex], vehicleTypeId: value}
-                          : {vehicleTypeId: value}
                         if (editingTransportDetailIndex !== null) {
+                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], vehicleTypeId: value};
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          handleAddTransportDetail(detail);
+                          setNewTransportDetail({...newTransportDetail, vehicleTypeId: value});
                         }
                       }}
                       defaultValue={editingTransportDetailIndex !== null 
@@ -1080,15 +1128,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       min="1"
                       defaultValue={editingTransportDetailIndex !== null 
                         ? form.getValues("transportDetails")[editingTransportDetailIndex].quantity 
-                        : "1"}
-                      onChange={(e) => {
-                        const detail = editingTransportDetailIndex !== null
-                          ? {...form.getValues("transportDetails")[editingTransportDetailIndex], quantity: parseInt(e.target.value)}
-                          : {quantity: parseInt(e.target.value)}
+                        : "1"}                      onChange={(e) => {
                         if (editingTransportDetailIndex !== null) {
+                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], quantity: parseInt(e.target.value)};
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          handleAddTransportDetail(detail);
+                          setNewTransportDetail({...newTransportDetail, quantity: parseInt(e.target.value)});
                         }
                       }}
                     />
@@ -1098,15 +1143,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       placeholder="Enter pickup location"
                       defaultValue={editingTransportDetailIndex !== null 
                         ? form.getValues("transportDetails")[editingTransportDetailIndex].pickupLocation ?? ""
-                        : ""}
-                      onChange={(e) => {
-                        const detail = editingTransportDetailIndex !== null
-                          ? {...form.getValues("transportDetails")[editingTransportDetailIndex], pickupLocation: e.target.value}
-                          : {pickupLocation: e.target.value}
+                        : ""}                      onChange={(e) => {
                         if (editingTransportDetailIndex !== null) {
+                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], pickupLocation: e.target.value};
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          handleAddTransportDetail(detail);
+                          setNewTransportDetail({...newTransportDetail, pickupLocation: e.target.value});
                         }
                       }}
                     />
@@ -1119,41 +1161,36 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         editingTransportDetailIndex !== null
                           ? form.getValues("transportDetails")[editingTransportDetailIndex].dropLocation ?? ""
                           : ""
-                      }
-                      onChange={(e) => {
-                        const detail =
-                          editingTransportDetailIndex !== null
-                            ? { ...form.getValues("transportDetails")[editingTransportDetailIndex], dropLocation: e.target.value }
-                            : { dropLocation: e.target.value };
+                      }                      onChange={(e) => {
                         if (editingTransportDetailIndex !== null) {
+                          const detail = { ...form.getValues("transportDetails")[editingTransportDetailIndex], dropLocation: e.target.value };
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          handleAddTransportDetail(detail);
+                          setNewTransportDetail({...newTransportDetail, dropLocation: e.target.value});
                         }
                       }}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Date Required (Optional)</label>
-                    <Popover>
-                      <PopoverTrigger asChild>                        <Button variant="outline" className="w-full justify-start">
+                    <label className="text-sm font-medium">Date Required (Optional)</label>                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" className="w-full justify-start">
                           {editingTransportDetailIndex !== null && form.getValues("transportDetails")[editingTransportDetailIndex]?.requirementDate
                             ? format(new Date(form.getValues("transportDetails")[editingTransportDetailIndex].requirementDate as Date), "PPP")
                             : "Pick a date"}
                         </Button>
-                      </PopoverTrigger>                      <PopoverContent className="w-auto p-0">                        <Calendar
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
                           mode="single"
                           selected={editingTransportDetailIndex !== null && form.getValues("transportDetails")[editingTransportDetailIndex]?.requirementDate
                             ? new Date(form.getValues("transportDetails")[editingTransportDetailIndex].requirementDate as Date)
-                            : undefined}
-                          onSelect={(date) => {
-                            const detail = editingTransportDetailIndex !== null
-                              ? {...form.getValues("transportDetails")[editingTransportDetailIndex], requirementDate: date}
-                              : {requirementDate: date}
+                            : undefined}                          onSelect={(date) => {
                             if (editingTransportDetailIndex !== null) {
+                              const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], requirementDate: date};
                               handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                             } else {
-                              handleAddTransportDetail(detail);
+                              setNewTransportDetail({...newTransportDetail, requirementDate: date});
                             }
                           }}
                           initialFocus
@@ -1168,15 +1205,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         id="airportPickup"
                         defaultChecked={editingTransportDetailIndex !== null
                           ? form.getValues("transportDetails")[editingTransportDetailIndex].isAirportPickupRequired
-                          : false}
-                        onChange={(e) => {
-                          const detail = editingTransportDetailIndex !== null
-                            ? {...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportPickupRequired: e.target.checked}
-                            : {isAirportPickupRequired: e.target.checked}
+                          : false}                        onChange={(e) => {
                           if (editingTransportDetailIndex !== null) {
+                            const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportPickupRequired: e.target.checked};
                             handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                           } else {
-                            handleAddTransportDetail(detail);
+                            setNewTransportDetail({...newTransportDetail, isAirportPickupRequired: e.target.checked});
                           }
                         }}
                       />
@@ -1188,15 +1222,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         id="airportDrop"
                         defaultChecked={editingTransportDetailIndex !== null
                           ? form.getValues("transportDetails")[editingTransportDetailIndex].isAirportDropRequired
-                          : false}
-                        onChange={(e) => {
-                          const detail = editingTransportDetailIndex !== null
-                            ? {...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportDropRequired: e.target.checked}
-                            : {isAirportDropRequired: e.target.checked}
+                          : false}                        onChange={(e) => {
                           if (editingTransportDetailIndex !== null) {
+                            const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], isAirportDropRequired: e.target.checked};
                             handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                           } else {
-                            handleAddTransportDetail(detail);
+                            setNewTransportDetail({...newTransportDetail, isAirportDropRequired: e.target.checked});
                           }
                         }}
                       />
@@ -1208,38 +1239,37 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       placeholder="Enter any special requirements or notes"
                       defaultValue={editingTransportDetailIndex !== null 
                         ? form.getValues("transportDetails")[editingTransportDetailIndex].notes ?? "" 
-                        : ""}
-                      onChange={(e) => {
-                        const detail = editingTransportDetailIndex !== null
-                          ? {...form.getValues("transportDetails")[editingTransportDetailIndex], notes: e.target.value}
-                          : {notes: e.target.value}
+                        : ""}                      onChange={(e) => {
                         if (editingTransportDetailIndex !== null) {
+                          const detail = {...form.getValues("transportDetails")[editingTransportDetailIndex], notes: e.target.value};
                           handleUpdateTransportDetail(detail, editingTransportDetailIndex);
                         } else {
-                          handleAddTransportDetail(detail);
+                          setNewTransportDetail({...newTransportDetail, notes: e.target.value});
                         }
                       }}
                     />
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2 mt-4">
-                  <Button
+                <div className="flex justify-end space-x-2 mt-4">                  <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
                       setShowAddTransportDetail(false);
                       setEditingTransportDetailIndex(null);
+                      setNewTransportDetail({}); // Reset state to prevent stale data
                     }}
                   >
                     Cancel
-                  </Button>
-                  <Button
+                  </Button>                  <Button
                     type="button"
                     onClick={() => {
                       if (editingTransportDetailIndex !== null) {
-                        setEditingTransportDetailIndex(null);
+                        // Get the current detail and explicitly call update with closeDialog=true
+                        const currentDetail = form.getValues("transportDetails")[editingTransportDetailIndex];
+                        handleUpdateTransportDetail(currentDetail, editingTransportDetailIndex, true);
                       } else {
-                        setShowAddTransportDetail(false);
+                        // Call the handler that validates and adds the transport detail
+                        handleAddTransportDetail();
                       }
                     }}
                   >

@@ -22,21 +22,22 @@ export const PolicyListField: React.FC<PolicyListFieldProps> = ({
   loading,
   placeholder = "Add item..."
 }) => {
+  // Ensure value is always an array
+  const policyItems = Array.isArray(value) ? value : value ? [String(value)] : [];
   const [newItem, setNewItem] = useState("");
   // Track which item is currently being edited and its temporary value
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
-
   const handleAddItem = () => {
     if (newItem.trim() !== "") {
-      const updatedItems = [...value, newItem.trim()];
+      const updatedItems = [...policyItems, newItem.trim()];
       onChange(updatedItems);
       setNewItem("");
     }
   };
 
   const handleRemoveItem = (index: number) => {
-    const updatedItems = [...value];
+    const updatedItems = [...policyItems];
     updatedItems.splice(index, 1);
     onChange(updatedItems);
     // If removing the item being edited, exit edit mode
@@ -47,12 +48,11 @@ export const PolicyListField: React.FC<PolicyListFieldProps> = ({
 
   const handleStartEdit = (index: number) => {
     setEditIndex(index);
-    setEditValue(value[index]);
+    setEditValue(policyItems[index]);
   };
-
   const handleSaveEdit = (index: number) => {
     if (editValue.trim() !== "") {
-      const updatedItems = [...value];
+      const updatedItems = [...policyItems];
       updatedItems[index] = editValue.trim();
       onChange(updatedItems);
     }
@@ -62,10 +62,9 @@ export const PolicyListField: React.FC<PolicyListFieldProps> = ({
   const handleCancelEdit = () => {
     setEditIndex(null);
   };
-
   const handleMoveItem = (dragIndex: number, hoverIndex: number) => {
-    const dragItem = value[dragIndex];
-    const updatedItems = [...value];
+    const dragItem = policyItems[dragIndex];
+    const updatedItems = [...policyItems];
     updatedItems.splice(dragIndex, 1);
     updatedItems.splice(hoverIndex, 0, dragItem);
     onChange(updatedItems);
@@ -108,10 +107,9 @@ export const PolicyListField: React.FC<PolicyListFieldProps> = ({
             >
               <Plus className="h-4 w-4" />
             </Button>
-          </div>
-          <DndProvider backend={HTML5Backend}>
+          </div>          <DndProvider backend={HTML5Backend}>
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {value.map((item, index) => (
+              {policyItems.map((item, index) => (
                 <DraggableItem
                   key={index}
                   id={index}
@@ -129,7 +127,7 @@ export const PolicyListField: React.FC<PolicyListFieldProps> = ({
                   onKeyDown={(e) => handleKeyPress(e, true, index)}
                 />
               ))}
-              {value.length === 0 && (
+              {policyItems.length === 0 && (
                 <div className="text-sm text-gray-500 italic p-2">No items added yet.</div>
               )}
             </div>

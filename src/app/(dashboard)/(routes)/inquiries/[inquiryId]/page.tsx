@@ -14,6 +14,18 @@ const InquiryPage = async ({
     include: {
       location: true,
       associatePartner: true,
+      roomAllocations: {
+        include: {
+          roomType: true,
+          occupancyType: true,
+          mealPlan: true
+        }
+      },
+      transportDetails: {
+        include: {
+          vehicleType: true
+        }
+      },
       actions: {
         orderBy: {
           actionDate: 'desc'

@@ -28,10 +28,13 @@ export const createAuditLog = async (params: AuditLogParams): Promise<void> => {
     
     const userEmail = user.emailAddresses[0]?.emailAddress || "unknown";
     // Fix: `fullName` doesn't exist on Clerk User type, construct it from firstName and lastName
-    const userName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || userEmail;
+    const userName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || userEmail;    
+    // Get the base URL for the API call
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                  (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     
-    // Make API call to create audit log
-    const response = await fetch('/api/audit-logs', {
+    // Make API call to create audit log with absolute URL
+    const response = await fetch(`${baseUrl}/api/audit-logs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

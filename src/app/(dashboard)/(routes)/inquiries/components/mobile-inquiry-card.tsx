@@ -222,33 +222,6 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                     }}
                   />
                 </div>
-                
-                {/* Move the status dropdown here where it's less likely to interfere with scrolling */}
-                <div className="w-full mt-2">
-                  <Select
-                    defaultValue={inquiry.status}
-                    onValueChange={(value) => onStatusChange(inquiry.id, value)}
-                  >
-                    <SelectTrigger className={`w-full h-8 text-sm ${getStatusColor(inquiry.status)}`}>
-                      <SelectValue placeholder="Change status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((status) => (
-                        <SelectItem
-                          key={status.value}
-                          value={status.value}
-                          className={
-                            status.value === "CONFIRMED" ? "text-green-600" :
-                            status.value === "CANCELLED" ? "text-red-600" :
-                            "text-yellow-600"
-                          }
-                        >
-                          {status.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
               {expandedRows[inquiry.id] && (
@@ -345,8 +318,34 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                 <>More info <ChevronDown className="h-3 w-3" /></>
               )}
             </Button>
-            
-            <CellAction data={inquiry} />
+
+            {/* Status dropdown moved to actions/footer area */}
+            <div className="flex items-center gap-2">
+              <Select
+                defaultValue={inquiry.status}
+                onValueChange={(value) => onStatusChange(inquiry.id, value)}
+              >
+                <SelectTrigger className={`h-8 text-xs ${getStatusColor(inquiry.status)}`} style={{ minWidth: 110 }}>
+                  <SelectValue placeholder="Change status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((status) => (
+                    <SelectItem
+                      key={status.value}
+                      value={status.value}
+                      className={
+                        status.value === "CONFIRMED" ? "text-green-600" :
+                        status.value === "CANCELLED" ? "text-red-600" :
+                        "text-yellow-600"
+                      }
+                    >
+                      {status.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <CellAction data={inquiry} />
+            </div>
           </CardFooter>
         </Card>
       ))}

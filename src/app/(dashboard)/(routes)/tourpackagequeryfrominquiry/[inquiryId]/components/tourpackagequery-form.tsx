@@ -363,16 +363,15 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', String(selectedTourPackage.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
-      form.setValue('tour_highlights', String(selectedTourPackage.tour_highlights || ''));
-      form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
-      form.setValue('inclusions', selectedTourPackage.inclusions ? [String(selectedTourPackage.inclusions)] : []);
-      form.setValue('exclusions', selectedTourPackage.exclusions ? [String(selectedTourPackage.exclusions)] : []);
-      form.setValue('importantNotes', selectedTourPackage.importantNotes ? [String(selectedTourPackage.importantNotes)] : []);
-      form.setValue('paymentPolicy', selectedTourPackage.paymentPolicy ? [String(selectedTourPackage.paymentPolicy)] : []);
-      form.setValue('usefulTip', selectedTourPackage.usefulTip ? [String(selectedTourPackage.usefulTip)] : []);
-      form.setValue('cancellationPolicy', selectedTourPackage.cancellationPolicy ? [String(selectedTourPackage.cancellationPolicy)] : []);
-      form.setValue('airlineCancellationPolicy', selectedTourPackage.airlineCancellationPolicy ? [String(selectedTourPackage.airlineCancellationPolicy)] : []);
-      form.setValue('termsconditions', selectedTourPackage.termsconditions ? [String(selectedTourPackage.termsconditions)] : []);
+      form.setValue('tour_highlights', String(selectedTourPackage.tour_highlights || ''));      form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
+      form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
+      form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
+      form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
+      form.setValue('paymentPolicy', parseJsonField(selectedTourPackage.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
+      form.setValue('usefulTip', parseJsonField(selectedTourPackage.usefulTip) || USEFUL_TIPS_DEFAULT);
+      form.setValue('cancellationPolicy', parseJsonField(selectedTourPackage.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
+      form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackage.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
+      form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackage.images || []);
 
       const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => ({

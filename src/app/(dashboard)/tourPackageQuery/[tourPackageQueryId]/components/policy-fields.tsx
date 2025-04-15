@@ -17,8 +17,7 @@ interface PolicyFieldProps {
   onUseDefaultsChange: (checked: boolean) => void;
 }
 
-export const PolicyField: React.FC<PolicyFieldProps> = ({
-  form,
+export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
   name,
   label,
   description,
@@ -26,7 +25,9 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({
   useDefaultsChecked,
   onUseDefaultsChange,
 }) => {
-  const policyItems = form.watch(name) || [];
+  const watchedValue = form.watch(name);
+  // Ensure policyItems is always an array
+  const policyItems = Array.isArray(watchedValue) ? watchedValue : [];
   const [newPolicyItem, setNewPolicyItem] = useState('');
 
   const handleAddPolicyItem = () => {

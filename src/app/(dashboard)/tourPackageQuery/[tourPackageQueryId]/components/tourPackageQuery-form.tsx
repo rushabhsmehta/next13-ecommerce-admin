@@ -443,20 +443,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     fields: pricingFields,
     append: appendPricing,
     remove: removePricing,
-    insert: insertPricing  } = useFieldArray({
-    control: form.control,
-    name: "pricingSection"
-  });
-  
+    insert: insertPricing } = useFieldArray({
+      control: form.control,
+      name: "pricingSection"
+    });
+
   // Auto-save form data to localStorage every 30 seconds - moved after form initialization
   useEffect(() => {
     // Don't auto-save if we're in loading state
     if (loading) return;
-    
+
     // Get the current form ID (either tourPackageQueryId or 'new')
     const formId = params.tourPackageQueryId || 'new';
     const autoSaveKey = `tourPackageQuery_autosave_${formId}`;
-    
+
     // Set up auto-save interval
     const saveInterval = setInterval(() => {
       const formData = form.getValues();
@@ -470,7 +470,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         console.error('Error auto-saving form:', err);
       }
     }, 30000); // Every 30 seconds
-    
+
     // On component mount, check if we have saved data
     const savedData = localStorage.getItem(autoSaveKey);
     if (savedData) {
@@ -479,7 +479,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         const saveDate = new Date(timestamp);
         const now = new Date();
         const hoursSinceSave = (now.getTime() - saveDate.getTime()) / (1000 * 60 * 60);
-        
+
         // If the saved data is less than 24 hours old, offer to restore it
         if (hoursSinceSave < 24 && !initialData) {
           const shouldRestore = window.confirm(
@@ -500,7 +500,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         console.error('Error parsing saved form data:', err);
       }
     }
-    
+
     // Clean up interval on component unmount
     return () => {
       clearInterval(saveInterval);
@@ -1956,9 +1956,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         /* Make sure these props are defined in the component interface */
                                         /* You may need to update the component definition to accept these props */
                                         />
-
                                       </div>
-
                                       {/* Transport Details Component */}
                                       <div className="mb-6">
                                         <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
@@ -2247,236 +2245,236 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                         <div id="calculation-status" className="hidden text-sm text-blue-700 bg-blue-100 px-2 py-1 rounded">Calculating...</div>
                       </div>
 
-                    {/* Markup Input and Pricing Tier Selection */}                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
-                      <div className="flex items-center">
-                        <label htmlFor="markup" className="text-sm mr-2 text-blue-700">Markup %:</label>
-                        <Input
-                          id="markup"
-                          type="number"
-                          className="w-20 h-8"
-                          defaultValue="0"
-                          min="0"
-                          max="100"
-                          onChange={(e) => {
-                            // Store the custom markup value for calculations
-                            (window as any).customMarkupValue = e.target.value;
-                          }}
-                          ref={(el) => {
-                            if (el) (window as any).markupInput = el;
-                          }}
-                        />
-                      </div>
-                      <div className="w-full sm:w-auto">
-                        <Select onValueChange={(value) => {
-                          // When a tier is selected, set the corresponding markup percentage
-                          if (value === 'standard') {
-                            if ((window as any).markupInput) (window as any).markupInput.value = '10';
-                            (window as any).customMarkupValue = '10';
-                          } else if (value === 'premium') {
-                            if ((window as any).markupInput) (window as any).markupInput.value = '20';
-                            (window as any).customMarkupValue = '20';
-                          } else if (value === 'luxury') {
-                            if ((window as any).markupInput) (window as any).markupInput.value = '30';
-                            (window as any).customMarkupValue = '30';
-                          } else if (value === 'custom') {
-                            // For custom option, keep the current value
-                            (window as any).customMarkupValue = (window as any).markupInput.value;
-                          }
-                        }}>
-                          <SelectTrigger className="w-32 h-8">
-                            <SelectValue placeholder="Pricing Tier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="standard">Standard (10%)</SelectItem>
-                            <SelectItem value="premium">Premium (20%)</SelectItem>
-                            <SelectItem value="luxury">Luxury (30%)</SelectItem>
-                            <SelectItem value="custom">Custom</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>                    <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
-                      <Button
-                        type="button"
-                        onClick={async () => {
-                          try {                          // Hide previous results and show loading state
-                            setPriceCalculationResult(null);
-
-                            // Show calculation in progress UI elements
-                            const calculatingElement = document.getElementById('price-calculating-spinner');
-                            const calculationStatus = document.getElementById('calculation-status');
-                            if (calculatingElement) calculatingElement.classList.remove('hidden');
-                            if (calculationStatus) {
-                              calculationStatus.classList.remove('hidden');
-                              calculationStatus.textContent = 'Calculating...';
+                      {/* Markup Input and Pricing Tier Selection */}                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
+                        <div className="flex items-center">
+                          <label htmlFor="markup" className="text-sm mr-2 text-blue-700">Markup %:</label>
+                          <Input
+                            id="markup"
+                            type="number"
+                            className="w-20 h-8"
+                            defaultValue="0"
+                            min="0"
+                            max="100"
+                            onChange={(e) => {
+                              // Store the custom markup value for calculations
+                              (window as any).customMarkupValue = e.target.value;
+                            }}
+                            ref={(el) => {
+                              if (el) (window as any).markupInput = el;
+                            }}
+                          />
+                        </div>
+                        <div className="w-full sm:w-auto">
+                          <Select onValueChange={(value) => {
+                            // When a tier is selected, set the corresponding markup percentage
+                            if (value === 'standard') {
+                              if ((window as any).markupInput) (window as any).markupInput.value = '10';
+                              (window as any).customMarkupValue = '10';
+                            } else if (value === 'premium') {
+                              if ((window as any).markupInput) (window as any).markupInput.value = '20';
+                              (window as any).customMarkupValue = '20';
+                            } else if (value === 'luxury') {
+                              if ((window as any).markupInput) (window as any).markupInput.value = '30';
+                              (window as any).customMarkupValue = '30';
+                            } else if (value === 'custom') {
+                              // For custom option, keep the current value
+                              (window as any).customMarkupValue = (window as any).markupInput.value;
                             }
+                          }}>
+                            <SelectTrigger className="w-32 h-8">
+                              <SelectValue placeholder="Pricing Tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="standard">Standard (10%)</SelectItem>
+                              <SelectItem value="premium">Premium (20%)</SelectItem>
+                              <SelectItem value="luxury">Luxury (30%)</SelectItem>
+                              <SelectItem value="custom">Custom</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>                    <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            try {                          // Hide previous results and show loading state
+                              setPriceCalculationResult(null);
 
-                          console.log("Starting simple price calculation...");
+                              // Show calculation in progress UI elements
+                              const calculatingElement = document.getElementById('price-calculating-spinner');
+                              const calculationStatus = document.getElementById('calculation-status');
+                              if (calculatingElement) calculatingElement.classList.remove('hidden');
+                              if (calculationStatus) {
+                                calculationStatus.classList.remove('hidden');
+                                calculationStatus.textContent = 'Calculating...';
+                              }
 
-                          // Get required data from form
-                          const tourStartsFrom = form.getValues('tourStartsFrom');
-                          const tourEndsOn = form.getValues('tourEndsOn');
-                          const itineraries = form.getValues('itineraries');
+                              console.log("Starting simple price calculation...");
 
-                          // Validate required data
-                          if (!tourStartsFrom || !tourEndsOn) {
-                            const errorMsg = 'Please select tour start and end dates first';
-                            console.error(errorMsg);
-                            toast.error(errorMsg);
-                            return;
-                          }
+                              // Get required data from form
+                              const tourStartsFrom = form.getValues('tourStartsFrom');
+                              const tourEndsOn = form.getValues('tourEndsOn');
+                              const itineraries = form.getValues('itineraries');
 
-                          // Check if we have any itineraries with hotels
-                          const validItineraries = itineraries.filter(itinerary => {
-                            return itinerary.hotelId &&
-                              hotels.some(hotel => hotel.id === itinerary.hotelId);
-                          });
+                              // Validate required data
+                              if (!tourStartsFrom || !tourEndsOn) {
+                                const errorMsg = 'Please select tour start and end dates first';
+                                console.error(errorMsg);
+                                toast.error(errorMsg);
+                                return;
+                              }
 
-                          if (validItineraries.length === 0) {
-                            toast.error('Please select hotels for at least one day to calculate pricing');
-                            return;
-                          }
-
-                          toast.success('Calculating room prices...');
-
-                          // Convert to PricingItinerary type by ensuring all required fields are present
-                          const pricingItineraries = validItineraries.map(itinerary => ({
-                            locationId: itinerary.locationId,
-                            dayNumber: itinerary.dayNumber || 0, // Default to day 0 if not specified
-                            hotelId: itinerary.hotelId,
-                            // Add room allocations if available
-                            roomAllocations: itinerary.roomAllocations || [],
-                            transportDetails: itinerary.transportDetails || [],
-                          }));                            // Get the markup value from the window object that's storing the user's selection
-                          const markupValue = (window as any).customMarkupValue || '0';
-                          const markupPercentage = parseFloat(markupValue);
-
-                          console.log('Sending data to price calculation API:', {
-                            tourStartsFrom,
-                            tourEndsOn,
-                            itineraries: pricingItineraries,
-                            markup: markupPercentage
-                          });
-
-                          // Call the API to calculate price with our simplified approach
-                          const response = await axios.post('/api/pricing/calculate', {
-                            tourStartsFrom,
-                            tourEndsOn,
-                            itineraries: pricingItineraries,
-                            markup: markupPercentage
-                          });
-
-                          const result = response.data;
-                          console.log('Price calculation result:', result);
-
-                          // More robust validation of the result
-                          if (result && typeof result === 'object') {
-                            // Even if some properties are missing, try to use what we have
-                            const totalCost = result.totalCost || 0;
-                            form.setValue('totalPrice', totalCost.toString());
-
-                            // Create pricing section with available data
-                            const pricingItems = [];
-
-                            // Add total cost
-                            pricingItems.push({
-                              name: 'Total Cost',
-                              price: totalCost.toString(),
-                              description: 'Total package cost with markup'
-                            });
-
-                            // Add accommodation breakdown if available
-                            if (result.breakdown && typeof result.breakdown === 'object') {
-                              const accommodationCost = result.breakdown.accommodation || 0;
-                              pricingItems.push({
-                                name: 'Accommodation',
-                                price: accommodationCost.toString(),
-                                description: 'Hotel room costs'
+                              // Check if we have any itineraries with hotels
+                              const validItineraries = itineraries.filter(itinerary => {
+                                return itinerary.hotelId &&
+                                  hotels.some(hotel => hotel.id === itinerary.hotelId);
                               });
 
-                              const transportCost = result.breakdown.transport || 0;
-                              if (transportCost > 0) {
-                                pricingItems.push({
-                                  name: 'Transport',
-                                  price: transportCost.toString(),
-                                  description: 'Vehicle costs'
-                                });
+                              if (validItineraries.length === 0) {
+                                toast.error('Please select hotels for at least one day to calculate pricing');
+                                return;
                               }
+
+                              toast.success('Calculating room prices...');
+
+                              // Convert to PricingItinerary type by ensuring all required fields are present
+                              const pricingItineraries = validItineraries.map(itinerary => ({
+                                locationId: itinerary.locationId,
+                                dayNumber: itinerary.dayNumber || 0, // Default to day 0 if not specified
+                                hotelId: itinerary.hotelId,
+                                // Add room allocations if available
+                                roomAllocations: itinerary.roomAllocations || [],
+                                transportDetails: itinerary.transportDetails || [],
+                              }));                            // Get the markup value from the window object that's storing the user's selection
+                              const markupValue = (window as any).customMarkupValue || '0';
+                              const markupPercentage = parseFloat(markupValue);
+
+                              console.log('Sending data to price calculation API:', {
+                                tourStartsFrom,
+                                tourEndsOn,
+                                itineraries: pricingItineraries,
+                                markup: markupPercentage
+                              });
+
+                              // Call the API to calculate price with our simplified approach
+                              const response = await axios.post('/api/pricing/calculate', {
+                                tourStartsFrom,
+                                tourEndsOn,
+                                itineraries: pricingItineraries,
+                                markup: markupPercentage
+                              });
+
+                              const result = response.data;
+                              console.log('Price calculation result:', result);
+
+                              // More robust validation of the result
+                              if (result && typeof result === 'object') {
+                                // Even if some properties are missing, try to use what we have
+                                const totalCost = result.totalCost || 0;
+                                form.setValue('totalPrice', totalCost.toString());
+
+                                // Create pricing section with available data
+                                const pricingItems = [];
+
+                                // Add total cost
+                                pricingItems.push({
+                                  name: 'Total Cost',
+                                  price: totalCost.toString(),
+                                  description: 'Total package cost with markup'
+                                });
+
+                                // Add accommodation breakdown if available
+                                if (result.breakdown && typeof result.breakdown === 'object') {
+                                  const accommodationCost = result.breakdown.accommodation || 0;
+                                  pricingItems.push({
+                                    name: 'Accommodation',
+                                    price: accommodationCost.toString(),
+                                    description: 'Hotel room costs'
+                                  });
+
+                                  const transportCost = result.breakdown.transport || 0;
+                                  if (transportCost > 0) {
+                                    pricingItems.push({
+                                      name: 'Transport',
+                                      price: transportCost.toString(),
+                                      description: 'Vehicle costs'
+                                    });
+                                  }
+                                }
+
+                                // Update pricing section with what we have
+                                form.setValue('pricingSection', pricingItems);
+                                // Store the calculation result for display in the table
+                                // First set the result in the window object for consistency
+                                (window as any).priceCalculationResult = result;
+                                // Then update the React state to trigger a re-render 
+                                setPriceCalculationResult(result);
+                                toast.success('Price calculation complete!');
+                              } else {
+                                console.error('Invalid price calculation result structure:', result);
+                                toast.error('Invalid price calculation result: The server returned an unexpected response');
+                              }                          // Hide spinner and update status when calculation is complete
+                              const spinnerElement = document.getElementById('price-calculating-spinner');
+                              const statusElement = document.getElementById('calculation-status');
+                              if (spinnerElement) spinnerElement.classList.add('hidden');
+                              if (statusElement) {
+                                statusElement.textContent = 'Calculation Complete';
+                                statusElement.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
+                                statusElement.classList.add('bg-green-100', 'text-green-700');
+                                // Hide the status after 3 seconds
+                                setTimeout(() => {
+                                  statusElement.classList.add('hidden');
+                                }, 3000);
+                              }
+
+                            } catch (error: any) {
+                              console.error('Price calculation error:', error);
+
+                              let errorMessage = 'Error calculating price';
+
+                              if (error instanceof Error) {
+                                errorMessage = error.message;
+                                console.error('Error details:', error.stack);
+                              }
+
+                              if (error.response) {
+                                console.error('API response error data:', error.response.data);
+                                console.error('API response error status:', error.response.status);
+
+                                if (error.response.data) {
+                                  errorMessage = typeof error.response.data === 'string'
+                                    ? `API Error: ${error.response.data}`
+                                    : `API Error: Status ${error.response.status}`;
+                                }
+                              }
+
+                              toast.error(`Price calculation failed: ${errorMessage}`);
                             }
-
-                            // Update pricing section with what we have
-                            form.setValue('pricingSection', pricingItems);
-                            // Store the calculation result for display in the table
-                            // First set the result in the window object for consistency
-                            (window as any).priceCalculationResult = result;
-                            // Then update the React state to trigger a re-render 
-                            setPriceCalculationResult(result);
-                            toast.success('Price calculation complete!');
-                          } else {
-                            console.error('Invalid price calculation result structure:', result);
-                            toast.error('Invalid price calculation result: The server returned an unexpected response');
-                          }                          // Hide spinner and update status when calculation is complete
-                          const spinnerElement = document.getElementById('price-calculating-spinner');
-                          const statusElement = document.getElementById('calculation-status');
-                          if (spinnerElement) spinnerElement.classList.add('hidden');
-                          if (statusElement) {
-                            statusElement.textContent = 'Calculation Complete';
-                            statusElement.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
-                            statusElement.classList.add('bg-green-100', 'text-green-700');
-                            // Hide the status after 3 seconds
-                            setTimeout(() => {
-                              statusElement.classList.add('hidden');
-                            }, 3000);
-                          }
-
-                        } catch (error: any) {
-                          console.error('Price calculation error:', error);
-
-                          let errorMessage = 'Error calculating price';
-
-                          if (error instanceof Error) {
-                            errorMessage = error.message;
-                            console.error('Error details:', error.stack);
-                          }
-
-                          if (error.response) {
-                            console.error('API response error data:', error.response.data);
-                            console.error('API response error status:', error.response.status);
-
-                            if (error.response.data) {
-                              errorMessage = typeof error.response.data === 'string'
-                                ? `API Error: ${error.response.data}`
-                                : `API Error: Status ${error.response.status}`;
+                          }}
+                          variant="outline"
+                          className="bg-blue-500 hover:bg-blue-600 text-white"
+                        >
+                          <Calculator className="mr-2 h-4 w-4" />
+                          Calculate Price
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            // Reset the price calculation result
+                            setPriceCalculationResult(null);
+                            (window as any).priceCalculationResult = null;
+                            // Reset the markup to default
+                            if ((window as any).markupInput) {
+                              (window as any).markupInput.value = '0';
+                              (window as any).customMarkupValue = '0';
                             }
-                          }
-
-                          toast.error(`Price calculation failed: ${errorMessage}`);
-                        }
-                      }}
-                      variant="outline"
-                      className="bg-blue-500 hover:bg-blue-600 text-white"
-                    >
-                      <Calculator className="mr-2 h-4 w-4" />
-                      Calculate Price
-                    </Button>
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          // Reset the price calculation result
-                          setPriceCalculationResult(null);
-                          (window as any).priceCalculationResult = null;
-                          // Reset the markup to default
-                          if ((window as any).markupInput) {
-                            (window as any).markupInput.value = '0';
-                            (window as any).customMarkupValue = '0';
-                          }
-                          toast.success('Price calculation reset');
-                        }}
-                        variant="outline"
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800"
-                      >
-                        Reset
-                      </Button>
-                    </div>                    </div>                    {/* Integrated Price Calculation Result Table */}
+                            toast.success('Price calculation reset');
+                          }}
+                          variant="outline"
+                          className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+                        >
+                          Reset
+                        </Button>
+                      </div>                    </div>                    {/* Integrated Price Calculation Result Table */}
                     {/* Only show when pricing calculation is complete and data exists */}
                     {priceCalculationResult && priceCalculationResult.itineraryBreakdown?.length > 0 && (
                       <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
@@ -2526,11 +2524,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                 const originalItinerary = formItineraries.find((it: any) => it.dayNumber === day);
                                 const hotelName = originalItinerary && hotels.find((h: any) => h.id === originalItinerary.hotelId)?.name;
 
-                                // Accommodation details - Use IDs and lookup names
-                                const roomAllocation = originalItinerary?.roomAllocations?.[0]; // Assuming first allocation for summary
-                                const roomTypeName = roomTypes.find(rt => rt.id === roomAllocation?.roomTypeId)?.name || "N/A";
-                                const occupancyTypeName = occupancyTypes.find(ot => ot.id === roomAllocation?.occupancyTypeId)?.name || "N/A";
-                                const quantity = roomAllocation?.quantity || 1;                                  // Transport details summary - Use helper function to handle both vehicleTypeId and vehicleType
+                                // Get ALL room allocations for this day, not just the first one
+                                const roomAllocations = originalItinerary?.roomAllocations || [];
+
+                                // Transport details summary
                                 const transportSummary: string | undefined = transports?.map((t: any) => {
                                   // Try vehicleTypeId first, then fall back to direct vehicleType property if needed
                                   let vehicleTypeName = "Unknown";
@@ -2560,10 +2557,28 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       {hotelName ? (
                                         <div>
                                           <span className="font-medium">{hotelName}</span>
-                                          <span className="text-xs text-gray-500 block">
-                                            {/* Display looked-up names */}
-                                            {roomTypeName}, {occupancyTypeName} {quantity && quantity > 1 ? `(x${quantity})` : ''}
-                                          </span>
+                                          {/* Display ALL room allocations, not just the first one */}                                          {roomAllocations.map((allocation, allocIdx) => {
+                                            const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
+                                            const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
+                                            const quantity = allocation.quantity || 1;
+                                            
+                                            // Find room cost for this allocation in the price calculation results
+                                            const roomBreakdown = (window as any).priceCalculationResult?.roomBreakdown;
+                                            const roomCost = roomBreakdown?.find((rb: any) => 
+                                              rb.day === day && 
+                                              rb.roomTypeId === allocation.roomTypeId && 
+                                              rb.occupancyTypeId === allocation.occupancyTypeId
+                                            );
+                                            const costPerRoom = roomCost ? roomCost.cost : 0;
+                                            const totalRoomCost = costPerRoom * quantity;
+                                            
+                                            return (
+                                              <span key={allocIdx} className="text-xs text-gray-500 block">
+                                                <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''} 
+                                                {totalRoomCost > 0 && <span className="font-medium text-blue-600 ml-2">{totalRoomCost.toFixed(2)}</span>}
+                                              </span>
+                                            );
+                                          })}
                                           {transportSummary && (
                                             <span className="text-xs text-gray-500 block mt-1">
                                               {/* Display looked-up names */}

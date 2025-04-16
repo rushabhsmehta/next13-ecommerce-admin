@@ -18,6 +18,24 @@ const tourPackageQueryVoucherPage = async ({
       itineraries: {
         include: {
           itineraryImages: true,
+          roomAllocations: {
+            include: {
+              roomType: true,
+              occupancyType: true,
+              mealPlan: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+          transportDetails: {
+            include: {
+              vehicleType: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
           activities:
           {
             include: {

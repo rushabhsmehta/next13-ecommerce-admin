@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner, RoomAllocation, TransportDetail } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
 import { Separator } from '@radix-ui/react-separator';
@@ -16,8 +16,8 @@ interface TourPackageQueryDisplayProps {
       activities: (Activity & {
         activityImages: Images[];
       })[];
-      roomAllocations? : any[];
-      transportDetails? : any[];
+      roomAllocations?: RoomAllocation[];
+      transportDetails?: TransportDetail[];
     })[];
     flightDetails: FlightDetails[];
     associatePartner: AssociatePartner | null;
@@ -162,8 +162,6 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
     </Card>
   );
 };
-
-
 
 export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = ({
   initialData,
@@ -607,7 +605,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                           <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
-                          
+
                           {/* Room Allocations Section */}
                           {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
                             <div className="mt-4">
@@ -630,7 +628,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Quantity:</span> {room.quantity || '1'} 
+                                      <span className="font-medium">Number of Rooms :</span> {room.quantity || '1'}
                                       {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
                                     </p>
                                   </div>
@@ -638,7 +636,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Fallback to old structure if roomAllocations is not available */}
                           {!itinerary.roomAllocations?.length && (
                             <>
@@ -688,7 +686,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                           <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
-                          
+
                           {/* Room Allocations Section */}
                           {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
                             <div className="mt-4">
@@ -711,7 +709,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Quantity:</span> {room.quantity || '1'} 
+                                      <span className="font-medium">Quantity:</span> {room.quantity || '1'}
                                       {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
                                     </p>
                                   </div>
@@ -719,7 +717,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Fallback to old structure if roomAllocations is not available */}
                           {!itinerary.roomAllocations?.length && (
                             <>
@@ -746,8 +744,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             </>
                           )}
                         </div>
-                      </div>                    )}
-                    
+                      </div>)}
+
                     {/* Transport Details Section */}
                     {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
                       <div className="mt-6">
@@ -767,7 +765,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                 </span>
                               </div>
                               <p className="text-sm text-gray-600">
-                                <span className="font-medium">Quantity:</span> {transport.quantity || '1'} 
+                                <span className="font-medium">Quantity:</span> {transport.quantity || '1'}
                                 {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
                               </p>
                             </div>

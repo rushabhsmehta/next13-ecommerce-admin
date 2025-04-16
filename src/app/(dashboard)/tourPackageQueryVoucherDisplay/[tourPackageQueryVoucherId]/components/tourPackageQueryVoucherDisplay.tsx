@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
 import { table } from 'console';
 import { format, parseISO } from 'date-fns';
@@ -15,6 +15,14 @@ interface TourPackageQueryVoucherDisplayProps {
       itineraryImages: Images[];
       activities: (Activity & {
         activityImages: Images[];
+      })[];
+    roomAllocations?: (RoomAllocation & {
+        roomType: RoomType;
+        occupancyType: OccupancyType;
+        mealPlan: MealPlan;
+      })[];
+      transportDetails?: (TransportDetail & {
+        vehicleType: VehicleType;
       })[];
     })[];
     flightDetails: FlightDetails[];
@@ -145,7 +153,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
   // Update the PolicySection component with larger font sizes
-  
+
 
   if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
@@ -488,69 +496,72 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             </CardContent>
           ))}
         </Card>
-      )}
-
-
-      {/* Itineraries and Hotel Details */}
+      )}      {/* Itineraries and Hotel Details */}
       {initialData.itineraries && initialData.itineraries.length > 0 && (
         <Card className="break-inside-avoid border shadow-lg rounded-lg">
           <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <h2 className="text-2xl font-bold">Accomodation Details</h2>
           </CardHeader>
           <CardContent>
-            <table className="min-w-full divide-y divide-gray-200 mt-2">
-              <thead className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
-                <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                    Day/Date
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                    Hotel Name
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                    Number of Rooms
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                    Room Category
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                    Meal Plan
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {initialData.itineraries.map((itinerary, idx) => {
-                  const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
-                  return (
-                    <tr key={idx}>
-                      <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
-                        {itinerary.days ? itinerary.days : itinerary.dayNumber}
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-normal text-sm font-medium text-gray-900">
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                          {hotelDetails?.name}
-                        </Link>
-                      </td>
-
-                      <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
-                        {itinerary.numberofRooms}
-                      </td>
-                      <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
-                        {itinerary.roomCategory}
-                      </td>
-                      <td className="px-3 py-2 whitespace-normal text-sm text-gray-500">
-                        {itinerary.mealsIncluded}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            {initialData.itineraries.map((itinerary, itineraryIdx) => {
+              const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
+              
+              return (
+                <div key={itineraryIdx} className="mb-6">
+                  <h3 className="text-xl font-bold mb-3 px-3 py-2 bg-orange-100 text-orange-800 rounded-md">
+                    Day {itinerary.dayNumber}: {itinerary.days} - {hotelDetails?.name || 'Hotel'}
+                  </h3>
+                  
+                  {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? (
+                    <table className="min-w-full divide-y divide-gray-200 mt-2 border">
+                      <thead className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
+                        <tr>
+                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                            Room Type
+                          </th>
+                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                            Occupancy
+                          </th>
+                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                            Meal Plan
+                          </th>
+                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                            Quantity
+                          </th>
+                        
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {itinerary.roomAllocations.map((room, roomIdx) => (
+                          <tr key={roomIdx} className={roomIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
+                              {room.roomType?.name || '-'}
+                            </td>
+                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
+                              {room.occupancyType?.name || '-'}
+                            </td>
+                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
+                              {room.mealPlan?.name || '-'}
+                            </td>
+                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
+                              {(room as any).quantity || '-'}
+                            </td>                           
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="text-center py-4 bg-gray-100 rounded-md text-gray-600">
+                      No room allocation details available
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}
-  {/* Replace individual policy sections with a single organized section */}
+      {/* Replace individual policy sections with a single organized section */}
       <Card className="break-before-all border rounded-lg shadow-lg overflow-hidden mb-8">
         <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 text-center">
           <CardTitle className="text-4xl font-bold">Policies & Terms</CardTitle>

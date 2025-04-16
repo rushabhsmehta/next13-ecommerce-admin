@@ -169,10 +169,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
 
       {selectedOption !== 'Empty' && (
 
-        <Card className="border-b">
-          <CardDescription className="flex justify-between items-center px-4">
+        <Card className="border-b">          <CardDescription className="flex justify-between items-center px-4">
             <div className="inline-block relative w-48 h-48">
-              <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
+              <Image src={currentCompany.logo} alt={`${currentCompany.name || 'Company'} Logo`} fill className="object-contain" />
             </div>
             <ul>
               <li>{currentCompany.address}</li>
@@ -209,14 +208,11 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               </CardDescription>
             )}
           </div>
-        </CardHeader>
-
-
-        {initialData.images.map((image, index) => (
+        </CardHeader>        {initialData.images.map((image, index) => (
           <div key={index} className="w-full h-[500px]">
             <Image
               src={image.url}
-              alt={`Tour Image ${index + 1}`}
+              alt={`${initialData.tourPackageQueryName || 'Tour'} Image ${index + 1}`}
               width={1200}
               height={500}
               className="object-cover w-full h-full"// Ensures images are responsive and maintain aspect ratio

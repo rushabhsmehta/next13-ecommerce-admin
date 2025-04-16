@@ -15,11 +15,10 @@ interface TourPackageQueryVoucherDisplayProps {
       itineraryImages: Images[];
       activities: (Activity & {
         activityImages: Images[];
-      })[];
-    roomAllocations?: (RoomAllocation & {
+      })[];    roomAllocations?: (RoomAllocation & {
         roomType: RoomType;
         occupancyType: OccupancyType;
-        mealPlan: MealPlan;
+        mealPlan: MealPlan | null;
       })[];
       transportDetails?: (TransportDetail & {
         vehicleType: VehicleType;

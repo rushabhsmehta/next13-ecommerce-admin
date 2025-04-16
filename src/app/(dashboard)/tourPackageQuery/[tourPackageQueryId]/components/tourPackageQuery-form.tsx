@@ -377,60 +377,58 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
 
-  const defaultValues = initialData ? transformInitialData(initialData) : {
-    inquiryId: '',
-    tourPackageTemplate: '',
-    tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
-    tourPackageQueryName: '',
-    associatePartnerId: '',
-    tourPackageQueryType: '',
-    customerName: '',
-    customerNumber: '',
-    numDaysNight: '',
-    period: '',
-    tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
-    tourStartsFrom: '',
-    tourEndsOn: '',
-    transport: '',
-    pickup_location: '',
-    drop_location: '',
-    numAdults: '',
-    numChild5to12: '',
-    numChild0to5: '',
-    totalPrice: '',
-    remarks: '',
-    //  assignedTo: '',
-    //  assignedToMobileNumber: '',
-    //  assignedToEmail: '',
-
-    flightDetails: [],
-
-    // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT,
-    exclusions: EXCLUSIONS_DEFAULT,
-    importantNotes: IMPORTANT_NOTES_DEFAULT,
-    paymentPolicy: PAYMENT_TERMS_DEFAULT,
-    usefulTip: USEFUL_TIPS_DEFAULT,
-    cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-    airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
-    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
-    disclaimer: DISCLAIMER_DEFAULT,
-    images: [],
-    itineraries: [],
-    /* itineraries: [{
-      days: '',
-      activities: [],
-      mealsIncluded: false,
-      hotelId: '',
-    }],
-     */
-    locationId: '',
-    //location : '',
-    // hotelId: '',
-    isFeatured: false,
-    isArchived: false,
-    pricingSection: DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
-  };
+  const defaultValues = initialData
+    ? {
+        ...transformInitialData(initialData),
+        inclusions: parseJsonField(initialData.inclusions),
+        exclusions: parseJsonField(initialData.exclusions),
+        importantNotes: parseJsonField(initialData.importantNotes),
+        paymentPolicy: parseJsonField(initialData.paymentPolicy),
+        usefulTip: parseJsonField(initialData.usefulTip),
+        cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
+        airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
+        termsconditions: parseJsonField(initialData.termsconditions),
+        pricingSection: parsePricingSection(initialData.pricingSection),
+      }
+    : {
+        inquiryId: '',
+        tourPackageTemplate: '',
+        tourPackageQueryNumber: getCurrentDateTimeString(),
+        tourPackageQueryName: '',
+        associatePartnerId: '',
+        tourPackageQueryType: '',
+        customerName: '',
+        customerNumber: '',
+        numDaysNight: '',
+        period: '',
+        tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
+        tourStartsFrom: '',
+        tourEndsOn: '',
+        transport: '',
+        pickup_location: '',
+        drop_location: '',
+        numAdults: '',
+        numChild5to12: '',
+        numChild0to5: '',
+        totalPrice: '',
+        remarks: '',
+        flightDetails: [],
+        inclusions: INCLUSIONS_DEFAULT,
+        exclusions: EXCLUSIONS_DEFAULT,
+        importantNotes: IMPORTANT_NOTES_DEFAULT,
+        paymentPolicy: PAYMENT_TERMS_DEFAULT,
+        usefulTip: USEFUL_TIPS_DEFAULT,
+        cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+        airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+        termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+        disclaimer: DISCLAIMER_DEFAULT,
+        images: [],
+        itineraries: [],
+        locationId: '',
+        isFeatured: false,
+        isArchived: false,
+        pricingSection: DEFAULT_PRICING_SECTION,
+      };
 
   const form = useForm<TourPackageQueryFormValues>({
     resolver: zodResolver(formSchema),
@@ -1954,6 +1952,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           onChange={onChange}
                                           loading={loading || lookupLoading} // Pass loading state
                                         /* Make sure these props are defined in the component interface */
+                                        /* You may need to update the component definition to accept```tsx
                                         /* You may need to update the component definition to accept these props */
                                         />
                                       </div>
@@ -2978,5 +2977,3 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     </>
   )
 }
-
-

@@ -196,13 +196,12 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                                                     placeholder="Select a vehicle type"
                                                 />
                                             </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Sedan">Sedan</SelectItem>
-                                            <SelectItem value="SUV">SUV</SelectItem>
-                                            <SelectItem value="Tempo Traveller">Tempo Traveller</SelectItem>
-                                            <SelectItem value="Mini Bus">Mini Bus</SelectItem>
-                                            <SelectItem value="Bus">Bus</SelectItem>
+                                        </FormControl>                                        <SelectContent>
+                                            {vehicleTypes.map((vehicleType) => (
+                                                <SelectItem key={vehicleType.id} value={vehicleType.id}>
+                                                    {vehicleType.name} ({vehicleType.capacity} Seater)
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />

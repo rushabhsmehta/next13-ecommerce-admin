@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 
+interface RoomCostDetail {
+  roomTypeId: string;
+  occupancyTypeId: string;
+  mealPlanId: string | undefined;
+  quantity: number;
+  pricePerNight: number;
+  totalCost: number;
+}
+
 interface ItineraryResult {
   day: number;
   accommodationCost: number;
   transportCost: number;
   totalCost: number;
+  roomCostDetails?: RoomCostDetail[];
+  roomBreakdown?: any[];
 }
 
 interface TransportDetail {
@@ -99,10 +110,23 @@ export async function POST(req: Request) {
             orderBy: {
               startDate: 'desc'
             }
-          });
-
-          if (pricing) {
+          });          if (pricing) {
             const roomCost = pricing.price * quantity;
+            
+            // Store the detailed room pricing information for the frontend
+            if (!itineraryResult.roomCostDetails) {
+              itineraryResult.roomCostDetails = [];
+            }
+            
+            itineraryResult.roomCostDetails.push({
+              roomTypeId,
+              occupancyTypeId,
+              mealPlanId,
+              quantity,
+              pricePerNight: pricing.price,
+              totalCost: roomCost
+            });
+            
             itineraryResult.accommodationCost += roomCost;
           }
         }

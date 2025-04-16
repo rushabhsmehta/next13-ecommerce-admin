@@ -2561,8 +2561,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
                                             const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
                                             const quantity = allocation.quantity || 1;
-                                            
-                                            // Get the breakdown for the current room allocation
+                                              // Get the breakdown for the current room allocation
                                             let costPerRoom = 0;
                                             
                                             // Access costs properly from the price calculation result structure
@@ -2578,7 +2577,24 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                               }
                                             }
                                             
-                                            // If we don't find a specific breakdown, try to extract cost from the accommodation total and number of rooms
+                                            // If we don't find a specific breakdown or the cost is not what we expect, try to get the real price 
+                                            // by examining the detailed breakdown data
+                                            if (accommodation) {
+                                              // Check if we have roomCostDetails for more specific pricing
+                                              if (accommodation.roomCostDetails && Array.isArray(accommodation.roomCostDetails)) {
+                                                // Find the specific room cost detail for this allocation
+                                                const roomDetail = accommodation.roomCostDetails.find((rd: any) => 
+                                                  rd.roomTypeId === allocation.roomTypeId && 
+                                                  rd.occupancyTypeId === allocation.occupancyTypeId
+                                                );
+                                                
+                                                if (roomDetail && roomDetail.pricePerNight) {
+                                                  costPerRoom = roomDetail.pricePerNight;
+                                                }
+                                              }
+                                            }
+                                            
+                                            // As a last resort, estimate based on allocation counts
                                             if (costPerRoom === 0 && accommodation) {
                                               // Count similar allocations (with same room and occupancy type)
                                               const similarAllocations = roomAllocations.filter(ra => 
@@ -2594,11 +2610,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             
                                             // Calculate total cost for this room allocation
                                             const totalRoomCost = costPerRoom * quantity;
-                                            
-                                            return (
+                                              return (
                                               <span key={allocIdx} className="text-xs text-gray-500 block">
                                                 <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''} 
-                                                <span className="font-medium text-blue-600 ml-2">{accommodationCost > 0 ? (accommodationCost / roomAllocations.length).toFixed(2) : '-'}</span>
+                                                <span className="font-medium text-blue-600 ml-2">{costPerRoom > 0 ? `${costPerRoom.toFixed(2)} × ${quantity} = ${totalRoomCost.toFixed(2)}` : '-'}</span>
                                               </span>
                                             );
                                           })}

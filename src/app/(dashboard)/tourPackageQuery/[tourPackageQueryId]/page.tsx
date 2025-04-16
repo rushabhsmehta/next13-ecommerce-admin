@@ -26,7 +26,7 @@ const tourPackageQueryPage = async ({
               mealPlan  : true,
             },
             orderBy: {
-              createdAt: 'desc' // or 'desc', depending on the desired order
+              createdAt: 'asc' // or 'desc', depending on the desired order
             },
           },
           transportDetails: {

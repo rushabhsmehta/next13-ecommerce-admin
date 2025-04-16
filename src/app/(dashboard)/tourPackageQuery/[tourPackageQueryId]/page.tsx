@@ -24,7 +24,10 @@ const tourPackageQueryPage = async ({
               roomType: true,
               occupancyType: true,
               mealPlan  : true,
-            }
+            },
+            orderBy: {
+              createdAt: 'desc' // or 'desc', depending on the desired order
+            },
           },
           transportDetails: {
             include: {

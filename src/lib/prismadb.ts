@@ -1,16 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+// Re-export the main prisma client to prevent duplicate connections
 
-// Prevent multiple instances of Prisma Client in development
-const globalForPrisma = global as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-// Create a singleton instance of PrismaClient
-const prismadb = globalForPrisma.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prismadb;
-}
+import prismadb from "../../lib/prismadb";
 
 export default prismadb;
 

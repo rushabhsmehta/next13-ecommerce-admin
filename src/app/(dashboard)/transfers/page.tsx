@@ -5,16 +5,32 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 
 const TransfersPage = async () => {
-  const transfers = await prismadb.transfer.findMany({
-    include: {
-      fromBankAccount: true,
-      fromCashAccount: true,
-      toBankAccount: true,
-      toCashAccount: true,
-    },
-    orderBy: {
-      transferDate: 'desc',
-    },
+  // Use transaction to batch all database queries into a single connection
+  const { transfers, bankAccounts, cashAccounts } = await prismadb.$transaction(async (tx) => {
+    const transfers = await tx.transfer.findMany({
+      include: {
+        fromBankAccount: true,
+        fromCashAccount: true,
+        toBankAccount: true,
+        toCashAccount: true,
+      },
+      orderBy: {
+        transferDate: 'desc',
+      },
+    });
+    
+    // Get all bank and cash accounts for the transfer form
+    const bankAccounts = await tx.bankAccount.findMany({
+      where: { isActive: true },
+      orderBy: { accountName: 'asc' }
+    });
+    
+    const cashAccounts = await tx.cashAccount.findMany({
+      where: { isActive: true },
+      orderBy: { accountName: 'asc' }
+    });
+    
+    return { transfers, bankAccounts, cashAccounts };
   });
 
   const formattedTransfers = transfers.map((item) => ({
@@ -28,17 +44,6 @@ const TransfersPage = async () => {
     toType: getAccountType(item, 'to'),
     description: item.description || "",
   }));
-
-  // Get all bank and cash accounts for the transfer form
-  const bankAccounts = await prismadb.bankAccount.findMany({
-    where: { isActive: true },
-    orderBy: { accountName: 'asc' }
-  });
-  
-  const cashAccounts = await prismadb.cashAccount.findMany({
-    where: { isActive: true },
-    orderBy: { accountName: 'asc' }
-  });
 
   return (
     <div className="flex-col">

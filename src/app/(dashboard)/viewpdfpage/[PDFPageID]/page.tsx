@@ -7,43 +7,44 @@ const ViewPDFPage = async ({
 }: {
   params: { PDFPageID: string }
 }) => {
-  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
-    where: {
-      id: params.PDFPageID,
-    },
-    include: {
-      images: true,
-      flightDetails: true,
-      itineraries: {
-        include: {
-          itineraryImages: true,
-          activities:
-          {
-            include: {
-              activityImages: true,
-            },
-            orderBy: {
-              createdAt: 'asc',
+  // Use transaction to batch all database queries into a single connection
+  const { tourPackageQuery, locations, hotels } = await prismadb.$transaction(async (tx) => {
+    const tourPackageQuery = await tx.tourPackageQuery.findUnique({
+      where: {
+        id: params.PDFPageID,
+      },
+      include: {
+        images: true,
+        flightDetails: true,
+        itineraries: {
+          include: {
+            itineraryImages: true,
+            activities:
+            {
+              include: {
+                activityImages: true,
+              },
+              orderBy: {
+                createdAt: 'asc',
+              },
             },
           },
-        },
-        orderBy: {
-          dayNumber: 'asc',
+          orderBy: {
+            dayNumber: 'asc',
+          }
         }
       }
-    }
-  });
-  // console.log("Fetched tourPackage Query:", tourPackageQuery);
-
-  const locations = await prismadb.location.findMany({
+    });
     
-  });
-
-  const hotels = await prismadb.hotel.findMany({
+    const locations = await tx.location.findMany({});
     
-    include: {
-      images: true,
-    }
+    const hotels = await tx.hotel.findMany({
+      include: {
+        images: true,
+      }
+    });
+    
+    return { tourPackageQuery, locations, hotels };
   });
 
   return (

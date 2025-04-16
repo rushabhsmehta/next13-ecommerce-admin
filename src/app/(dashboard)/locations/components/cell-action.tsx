@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, Car } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 
@@ -79,7 +79,7 @@ export const CellAction: React.FC<CellActionProps> = ({
           <DropdownMenuItem
             onClick={() => router.push(`/transport-pricing?locationId=${data.id}`)}
           >
-            <Edit className="mr-2 h-4 w-4" /> Manage Transport Pricing
+            <Car className="mr-2 h-4 w-4" /> Manage Transport Pricing
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setOpen(true)}

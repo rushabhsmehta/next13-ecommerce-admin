@@ -379,56 +379,56 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const defaultValues = initialData
     ? {
-        ...transformInitialData(initialData),
-        inclusions: parseJsonField(initialData.inclusions),
-        exclusions: parseJsonField(initialData.exclusions),
-        importantNotes: parseJsonField(initialData.importantNotes),
-        paymentPolicy: parseJsonField(initialData.paymentPolicy),
-        usefulTip: parseJsonField(initialData.usefulTip),
-        cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
-        airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
-        termsconditions: parseJsonField(initialData.termsconditions),
-        pricingSection: parsePricingSection(initialData.pricingSection),
-      }
+      ...transformInitialData(initialData),
+      inclusions: parseJsonField(initialData.inclusions),
+      exclusions: parseJsonField(initialData.exclusions),
+      importantNotes: parseJsonField(initialData.importantNotes),
+      paymentPolicy: parseJsonField(initialData.paymentPolicy),
+      usefulTip: parseJsonField(initialData.usefulTip),
+      cancellationPolicy: parseJsonField(initialData.cancellationPolicy),
+      airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
+      termsconditions: parseJsonField(initialData.termsconditions),
+      pricingSection: parsePricingSection(initialData.pricingSection),
+    }
     : {
-        inquiryId: '',
-        tourPackageTemplate: '',
-        tourPackageQueryNumber: getCurrentDateTimeString(),
-        tourPackageQueryName: '',
-        associatePartnerId: '',
-        tourPackageQueryType: '',
-        customerName: '',
-        customerNumber: '',
-        numDaysNight: '',
-        period: '',
-        tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
-        tourStartsFrom: '',
-        tourEndsOn: '',
-        transport: '',
-        pickup_location: '',
-        drop_location: '',
-        numAdults: '',
-        numChild5to12: '',
-        numChild0to5: '',
-        totalPrice: '',
-        remarks: '',
-        flightDetails: [],
-        inclusions: INCLUSIONS_DEFAULT,
-        exclusions: EXCLUSIONS_DEFAULT,
-        importantNotes: IMPORTANT_NOTES_DEFAULT,
-        paymentPolicy: PAYMENT_TERMS_DEFAULT,
-        usefulTip: USEFUL_TIPS_DEFAULT,
-        cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
-        airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
-        termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
-        disclaimer: DISCLAIMER_DEFAULT,
-        images: [],
-        itineraries: [],
-        locationId: '',
-        isFeatured: false,
-        isArchived: false,
-        pricingSection: DEFAULT_PRICING_SECTION,
-      };
+      inquiryId: '',
+      tourPackageTemplate: '',
+      tourPackageQueryNumber: getCurrentDateTimeString(),
+      tourPackageQueryName: '',
+      associatePartnerId: '',
+      tourPackageQueryType: '',
+      customerName: '',
+      customerNumber: '',
+      numDaysNight: '',
+      period: '',
+      tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
+      tourStartsFrom: '',
+      tourEndsOn: '',
+      transport: '',
+      pickup_location: '',
+      drop_location: '',
+      numAdults: '',
+      numChild5to12: '',
+      numChild0to5: '',
+      totalPrice: '',
+      remarks: '',
+      flightDetails: [],
+      inclusions: INCLUSIONS_DEFAULT,
+      exclusions: EXCLUSIONS_DEFAULT,
+      importantNotes: IMPORTANT_NOTES_DEFAULT,
+      paymentPolicy: PAYMENT_TERMS_DEFAULT,
+      usefulTip: USEFUL_TIPS_DEFAULT,
+      cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
+      airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+      termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
+      disclaimer: DISCLAIMER_DEFAULT,
+      images: [],
+      itineraries: [],
+      locationId: '',
+      isFeatured: false,
+      isArchived: false,
+      pricingSection: DEFAULT_PRICING_SECTION,
+    };
 
   const form = useForm<TourPackageQueryFormValues>({
     resolver: zodResolver(formSchema),
@@ -2560,39 +2560,75 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
                                             const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
                                             const quantity = allocation.quantity || 1;
-                                            
+
                                             // Find room cost for this allocation in the price calculation results
-                                            const roomBreakdown = (window as any).priceCalculationResult?.roomBreakdown;
-                                            const roomCost = roomBreakdown?.find((rb: any) => 
-                                              rb.day === day && 
-                                              rb.roomTypeId === allocation.roomTypeId && 
-                                              rb.occupancyTypeId === allocation.occupancyTypeId
+                                            const roomBreakdown = (window as any).priceCalculationResult?.itineraryBreakdown?.find((ib: any) => ib.day === day)?.roomBreakdown;
+                                            const roomCost = roomBreakdown?.find((rb: any) =>
+                                              rb.roomTypeId === allocation.roomTypeId &&
+                                              rb.occupancyTypeId === allocation.occupancyTypeId &&
+                                              rb.mealPlanId === allocation.mealPlanId // Added mealPlanId for stricter matching
                                             );
-                                            const costPerRoom = roomCost ? roomCost.cost : 0;
-                                            const totalRoomCost = costPerRoom * quantity;
-                                            
+                                            const allocationTotalCost = roomCost ? roomCost.totalCost : 0; // Use totalCost from backend
+                                            const pricePerNight = roomCost ? roomCost.pricePerNight : 0; // Get price per night from backend
                                             return (
                                               <span key={allocIdx} className="text-xs text-gray-500 block">
-                                                <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''} 
-                                                {totalRoomCost > 0 && <span className="font-medium text-blue-600 ml-2">{totalRoomCost.toFixed(2)}</span>}
+                                                <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''}
+                                                {/* Display calculation if cost > 0 and quantity > 1, otherwise display total or 0.00 */}
+                                                <span className="font-medium text-blue-600 ml-2">
+                                                  {allocationTotalCost > 0 && pricePerNight > 0 && quantity > 1
+                                                    ? `₹${pricePerNight.toFixed(2)} x ${quantity} = ₹${allocationTotalCost.toFixed(2)}`
+                                                    : allocationTotalCost > 0
+                                                      ? `₹${allocationTotalCost.toFixed(2)}` // Show total if quantity is 1 or pricePerNight is missing
+                                                      : '₹0.00'}
+                                                </span>
                                               </span>
                                             );
                                           })}
-                                          {transportSummary && (
-                                            <span className="text-xs text-gray-500 block mt-1">
-                                              {/* Display looked-up names */}
-                                              Transport: {transportSummary}
-                                            </span>
-                                          )}
+                                          {/* Display individual transport costs instead of summary */}
+                                          {transports && transports.length > 0 && transports.map((transport: any, transportIdx: number) => {
+                                            // Look up vehicle type name
+                                            const vehicleTypeName = vehicleTypes.find(vt => vt.id === transport.vehicleTypeId)?.name || transport.vehicleType || "Unknown";
+                                            const transportCost = transport.totalCost || 0;
+                                            const pricePerUnit = transport.pricePerUnit || 0; // Get price per unit
+                                            const quantity = transport.quantity || 1; // Get quantity
+                                            return (
+                                              <span key={`transport-${transportIdx}`} className="text-xs text-gray-500 block mt-1">
+                                                Transport: {vehicleTypeName} {quantity > 1 ? `(x${quantity})` : ''}
+                                                <span className="font-medium text-blue-600 ml-2">
+                                                  {/* Display calculation if cost > 0, pricePerUnit > 0 and quantity > 1 */}
+                                                  {transportCost > 0 && pricePerUnit > 0 && quantity > 1
+                                                    ? `₹${pricePerUnit.toFixed(2)} x ${quantity} = ₹${transportCost.toFixed(2)}`
+                                                    : transportCost > 0
+                                                      ? `₹${transportCost.toFixed(2)}` // Show total if quantity is 1 or pricePerUnit is missing
+                                                      : '₹0.00'}
+                                                </span>
+                                              </span>
+                                            );
+                                          })}
                                         </div>
                                       ) : transportSummary ? (
+                                        // Handle case where there's only transport, no hotel
                                         <div>
-                                          <span className="text-xs text-gray-500 block">
-                                            {/* Display looked-up names */}
-                                            Transport only: {transportSummary}
-                                          </span>
-                                        </div>
-                                      ) : (
+                                          {transports && transports.length > 0 && transports.map((transport: any, transportIdx: number) => {
+                                            const vehicleTypeName = vehicleTypes.find(vt => vt.id === transport.vehicleTypeId)?.name || transport.vehicleType || "Unknown";
+                                            const transportCost = transport.totalCost || 0;
+                                            const pricePerUnit = transport.pricePerUnit || 0; // Get price per unit
+                                            const quantity = transport.quantity || 1; // Get quantity
+                                            return (
+                                              <span key={`transport-only-${transportIdx}`} className="text-xs text-gray-500 block">
+                                                Transport: {vehicleTypeName} {quantity > 1 ? `(x${quantity})` : ''}
+                                                <span className="font-medium text-blue-600 ml-2">
+                                                  {/* Display calculation if cost > 0, pricePerUnit > 0 and quantity > 1 */}
+                                                  {transportCost > 0 && pricePerUnit > 0 && quantity > 1
+                                                    ? `₹${pricePerUnit.toFixed(2)} x ${quantity} = ₹${transportCost.toFixed(2)}`
+                                                    : transportCost > 0
+                                                      ? `₹${transportCost.toFixed(2)}` // Show total if quantity is 1 or pricePerUnit is missing
+                                                      : '₹0.00'}
+                                                </span>
+                                              </span>
+                                            );
+                                          })}
+                                        </div>) : (
                                         'N/A'
                                       )}
                                     </TableCell>

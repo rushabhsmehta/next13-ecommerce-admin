@@ -124,7 +124,7 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
         <>      {roomAllocations.map((room: any, roomIndex: number) => (
             <div key={roomIndex} className="border rounded-lg p-3 bg-white shadow-sm mb-3">
               <div className="flex items-center justify-between mb-2 pb-2 border-b">
-                <h4 className="text-sm font-medium">Room #{roomIndex + 1}</h4>
+                <h4 className="text-sm font-medium">Room Details</h4>
                 <Button
                   type="button"
                   variant="destructive"

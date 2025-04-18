@@ -9,122 +9,97 @@ const tourPackageQueryPage = async ({
 }: {
   params: { tourPackageQueryId: string }
 }) => {
-  // Use transaction to batch all database queries into a single connection
-  // Split into two transactions to avoid timeout due to complex queries
-  const { 
-    tourPackageQuery,
-    associatePartners,
-    locations,
-    hotels,
-    activitiesMaster,
-    itinerariesMaster
-  } = await prismadb.$transaction(async (tx) => {
-    const tourPackageQuery = await tx.tourPackageQuery.findUnique({
-      where: {
-        id: params.tourPackageQueryId,
-      },
-      include: {
-        images: true,      
-        flightDetails: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            roomAllocations: {
-              include: {
-                roomType: true,
-                occupancyType: true,
-                mealPlan  : true,
-              },
-              orderBy: {
-                createdAt: 'asc'
-              },
-            },
-            transportDetails: {
-              include: {
-                vehicleType: true,
-              }
-            },
-            activities: {
-              include: {
-                activityImages: true,
-              }
+  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+    where: {
+      id: params.tourPackageQueryId,
+    },
+    include: {
+      images: true,      
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          roomAllocations: {
+            include: {
+              roomType: true,
+              occupancyType: true,
+              mealPlan  : true,
             }
           },
-          orderBy: {
-            dayNumber: 'asc'
+          transportDetails: {
+            include: {
+              vehicleType: true,
+            }
+          },
+          activities: {
+            include: {
+              activityImages: true,
+            }
           }
         },
-      }
-    });
-    
-    const associatePartners = await tx.associatePartner.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-    
-    const locations = await tx.location.findMany({});
-
-    const hotels = await tx.hotel.findMany({
-      include: {
-        images: true
-      }
-    });
-
-    const activitiesMaster = await tx.activityMaster.findMany({
-      include: {
-        activityMasterImages: true,
+        orderBy: {
+          dayNumber: 'asc' // or 'desc', depending on the desired order
+        }
       },
-    });
-
-    const itinerariesMaster = await tx.itineraryMaster.findMany({
-      where: {
-        locationId: tourPackageQuery?.locationId ?? '',
-      },
-      include: {
-        itineraryMasterImages: true,
-        activities: {
-          include: {
-            activityImages: true,
-          }
-        },
-      }
-    });
-    
-    return {
-      tourPackageQuery,
-      associatePartners,
-      locations,
-      hotels,
-      activitiesMaster,
-      itinerariesMaster
-    };
+    }
   });
-  
-  // Use a separate transaction for the tour packages query
-  // to avoid transaction timeout with large data sets
-  const { tourPackages } = await prismadb.$transaction(async (tx) => {
-    const tourPackages = await tx.tourPackage.findMany({
-      where: {
-        isArchived: false
+  // console.log("Fetched tourPackage Query:", tourPackageQuery);
+
+  const associatePartners = await prismadb.associatePartner.findMany({
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+  const locations = await prismadb.location.findMany({
+  });
+
+  const hotels = await prismadb.hotel.findMany({
+    include: {
+      images: true // Ensure images are included in the query result
+    }
+  });
+
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+
+    include: {
+      activityMasterImages: true,
+    },
+  }
+  );
+
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+
+    where: {
+      locationId: tourPackageQuery?.locationId ?? '',
+    },
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true,
+        }
       },
-      include: {
-        images: true,
-        flightDetails: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            activities: {
-              include: {
-                activityImages: true
-              }
+    }
+  });
+
+  const tourPackages = await prismadb.tourPackage.findMany({
+    where: {
+      isArchived: false
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
             }
           }
         }
       }
-    });
-    
-    return { tourPackages };
+    }
   });
 
   return (

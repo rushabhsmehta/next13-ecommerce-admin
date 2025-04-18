@@ -2560,6 +2560,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
                                             const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
                                             const quantity = allocation.quantity || 1;
+<<<<<<< HEAD
                                               // Get the breakdown for the current room allocation
                                             let costPerRoom = 0;
                                             
@@ -2608,11 +2609,26 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             }
                                             
                                             // Calculate total cost for this room allocation
+=======
+                                            
+                                            // Find room cost for this allocation in the price calculation results
+                                            const roomBreakdown = (window as any).priceCalculationResult?.roomBreakdown;
+                                            const roomCost = roomBreakdown?.find((rb: any) => 
+                                              rb.day === day && 
+                                              rb.roomTypeId === allocation.roomTypeId && 
+                                              rb.occupancyTypeId === allocation.occupancyTypeId
+                                            );
+                                            const costPerRoom = roomCost ? roomCost.cost : 0;
+>>>>>>> parent of 2f23c33 (.)
                                             const totalRoomCost = costPerRoom * quantity;
                                               return (
                                               <span key={allocIdx} className="text-xs text-gray-500 block">
                                                 <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''} 
+<<<<<<< HEAD
                                                 <span className="font-medium text-blue-600 ml-2">{costPerRoom > 0 ? `${costPerRoom.toFixed(2)} × ${quantity} = ${totalRoomCost.toFixed(2)}` : '-'}</span>
+=======
+                                                {totalRoomCost > 0 && <span className="font-medium text-blue-600 ml-2">{totalRoomCost.toFixed(2)}</span>}
+>>>>>>> parent of 2f23c33 (.)
                                               </span>
                                             );
                                           })}

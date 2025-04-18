@@ -15,8 +15,7 @@ interface ItineraryResult {
   accommodationCost: number;
   transportCost: number;
   totalCost: number;
-  roomCostDetails?: RoomCostDetail[];
-  roomBreakdown?: any[];
+  roomBreakdown?: RoomCostDetail[]; // Renamed from roomCostDetails
 }
 
 interface TransportDetail {
@@ -114,17 +113,17 @@ export async function POST(req: Request) {
             const roomCost = pricing.price * quantity;
             
             // Store the detailed room pricing information for the frontend
-            if (!itineraryResult.roomCostDetails) {
-              itineraryResult.roomCostDetails = [];
+            if (!itineraryResult.roomBreakdown) { // Use renamed property
+              itineraryResult.roomBreakdown = []; // Use renamed property
             }
             
-            itineraryResult.roomCostDetails.push({
+            itineraryResult.roomBreakdown.push({ // Use renamed property
               roomTypeId,
               occupancyTypeId,
               mealPlanId,
               quantity,
-              pricePerNight: pricing.price,
-              totalCost: roomCost
+              pricePerNight: pricing.price, // Store price per night
+              totalCost: roomCost // Store total cost for this allocation
             });
             
             itineraryResult.accommodationCost += roomCost;

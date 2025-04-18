@@ -2560,56 +2560,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
                                             const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
                                             const quantity = allocation.quantity || 1;
-<<<<<<< HEAD
-                                              // Get the breakdown for the current room allocation
-                                            let costPerRoom = 0;
-                                            
-                                            // Access costs properly from the price calculation result structure
-                                            if (accommodation && accommodation.roomBreakdown) {
-                                              // Find the specific room breakdown for this allocation
-                                              const matchingBreakdown = accommodation.roomBreakdown.find((rb: any) => 
-                                                rb.roomTypeId === allocation.roomTypeId && 
-                                                rb.occupancyTypeId === allocation.occupancyTypeId
-                                              );
-                                              
-                                              if (matchingBreakdown) {
-                                                costPerRoom = matchingBreakdown.costPerRoom || 0;
-                                              }
-                                            }
-                                            
-                                            // If we don't find a specific breakdown or the cost is not what we expect, try to get the real price 
-                                            // by examining the detailed breakdown data
-                                            if (accommodation) {
-                                              // Check if we have roomCostDetails for more specific pricing
-                                              if (accommodation.roomCostDetails && Array.isArray(accommodation.roomCostDetails)) {
-                                                // Find the specific room cost detail for this allocation
-                                                const roomDetail = accommodation.roomCostDetails.find((rd: any) => 
-                                                  rd.roomTypeId === allocation.roomTypeId && 
-                                                  rd.occupancyTypeId === allocation.occupancyTypeId
-                                                );
-                                                
-                                                if (roomDetail && roomDetail.pricePerNight) {
-                                                  costPerRoom = roomDetail.pricePerNight;
-                                                }
-                                              }
-                                            }
-                                            
-                                            // As a last resort, estimate based on allocation counts
-                                            if (costPerRoom === 0 && accommodation) {
-                                              // Count similar allocations (with same room and occupancy type)
-                                              const similarAllocations = roomAllocations.filter(ra => 
-                                                ra.roomTypeId === allocation.roomTypeId && 
-                                                ra.occupancyTypeId === allocation.occupancyTypeId
-                                              ).length;
-                                              
-                                              if (similarAllocations > 0) {
-                                                // Estimate cost per room based on total accommodation cost
-                                                costPerRoom = accommodationCost / similarAllocations;
-                                              }
-                                            }
-                                            
-                                            // Calculate total cost for this room allocation
-=======
                                             
                                             // Find room cost for this allocation in the price calculation results
                                             const roomBreakdown = (window as any).priceCalculationResult?.roomBreakdown;
@@ -2619,16 +2569,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                               rb.occupancyTypeId === allocation.occupancyTypeId
                                             );
                                             const costPerRoom = roomCost ? roomCost.cost : 0;
->>>>>>> parent of 2f23c33 (.)
                                             const totalRoomCost = costPerRoom * quantity;
-                                              return (
+                                            
+                                            return (
                                               <span key={allocIdx} className="text-xs text-gray-500 block">
                                                 <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''} 
-<<<<<<< HEAD
-                                                <span className="font-medium text-blue-600 ml-2">{costPerRoom > 0 ? `${costPerRoom.toFixed(2)} × ${quantity} = ${totalRoomCost.toFixed(2)}` : '-'}</span>
-=======
                                                 {totalRoomCost > 0 && <span className="font-medium text-blue-600 ml-2">{totalRoomCost.toFixed(2)}</span>}
->>>>>>> parent of 2f23c33 (.)
                                               </span>
                                             );
                                           })}

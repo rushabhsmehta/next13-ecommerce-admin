@@ -56,48 +56,43 @@ export async function DELETE(
   { params }: { params: { vehicleTypeId: string } }
 ) {
   try {
-    // Use transaction to batch all database queries into a single connection
-    const result = await prismadb.$transaction(async (tx) => {
-      // Check if vehicle type is being used
-      const transportDetailsCount = await tx.transportDetail.count({
-        where: {
-          vehicleTypeId: params.vehicleTypeId
-        }
-      });
-      
-      const transportPricingsCount = await tx.transportPricing.count({
-        where: {
-          vehicleTypeId: params.vehicleTypeId
-        }
-      });
-      
-      const totalUsageCount = transportDetailsCount + transportPricingsCount;
-      
-      // Either update or delete based on usage count
-      if (totalUsageCount > 0) {
-        // Set to inactive instead of deleting
-        const vehicleType = await tx.vehicleType.update({
-          where: {
-            id: params.vehicleTypeId
-          },
-          data: {
-            isActive: false
-          }
-        });
-          return vehicleType;
+    // Check if vehicle type is being used
+    const transportDetailsCount = await prismadb.transportDetail.count({
+      where: {
+        vehicleTypeId: params.vehicleTypeId
       }
-      
-      // If not used, safe to delete
-      const vehicleType = await tx.vehicleType.delete({
-        where: {
-          id: params.vehicleTypeId
-        }
-      });
-      
-      return vehicleType;
     });
     
-    return NextResponse.json(result);
+    const transportPricingsCount = await prismadb.transportPricing.count({
+      where: {
+        vehicleTypeId: params.vehicleTypeId
+      }
+    });
+    
+    const totalUsageCount = transportDetailsCount + transportPricingsCount;
+    
+    if (totalUsageCount > 0) {
+      // Set to inactive instead of deleting
+      const vehicleType = await prismadb.vehicleType.update({
+        where: {
+          id: params.vehicleTypeId
+        },
+        data: {
+          isActive: false
+        }
+      });
+      
+      return NextResponse.json(vehicleType);
+    }
+    
+    // If not used, safe to delete
+    const vehicleType = await prismadb.vehicleType.delete({
+      where: {
+        id: params.vehicleTypeId
+      }
+    });
+    
+    return NextResponse.json(vehicleType);
   } catch (error) {
     console.log('[VEHICLE_TYPE_DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });

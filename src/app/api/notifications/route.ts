@@ -21,25 +21,21 @@ export async function GET(req: Request) {
     if (unreadOnly) {
       whereClause.read = false;
     }
-      // Use transaction to batch queries and reduce connection usage
-    const { notifications, unreadCount } = await prismadb.$transaction(async (tx) => {
-      // Fetch notifications
-      const notifications = await tx.notification.findMany({
-        where: whereClause,
-        orderBy: {
-          createdAt: 'desc'
-        },
-        take: limit
-      });
-      
-      // Count total unread notifications
-      const unreadCount = await tx.notification.count({
-        where: {
-          read: false
-        }
-      });
-      
-      return { notifications, unreadCount };
+    
+    // Fetch notifications
+    const notifications = await prismadb.notification.findMany({
+      where: whereClause,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      take: limit
+    });
+    
+    // Count total unread notifications
+    const unreadCount = await prismadb.notification.count({
+      where: {
+        read: false
+      }
     });
     
     return NextResponse.json({

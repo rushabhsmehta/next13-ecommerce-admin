@@ -10,36 +10,37 @@ const ItineraryMasterPage = async ({
 }: {
   params: { itineraryMasterId: string }
 }) => {
-  // Use transaction to batch all database queries into a single connection
-  const { itineraryMaster, activitiesMaster, locations, hotels } = await prismadb.$transaction(async (tx) => {
-    const itineraryMaster = await tx.itineraryMaster.findUnique({
-      where: {
-        id: params.itineraryMasterId
-      },
-      include: {
-        location: true,
-        hotel: true,
-        itineraryMasterImages: true,
-        activities:
-        {
-          include: {
-            activityImages: true,
-          }
+  const itineraryMaster = await prismadb.itineraryMaster.findUnique({
+    where: {
+      id: params.itineraryMasterId
+    },
+    include: {
+      location: true,
+      hotel: true,
+      itineraryMasterImages: true,
+      activities:
+      {
+        include: {
+          activityImages: true,
         }
       }
-    });
+    }
+  });
 
-    const activitiesMaster = await tx.activityMaster.findMany({
-      include: {
-        activityMasterImages: true,
-      },
-    });
+  const activitiesMaster = await prismadb.activityMaster.findMany({
 
-    const locations = await tx.location.findMany({});
+    include: {
+      activityMasterImages: true,
+    },
+  }
+  );
 
-    const hotels = await tx.hotel.findMany({});
-    
-    return { itineraryMaster, activitiesMaster, locations, hotels };
+  const locations = await prismadb.location.findMany({
+
+  });
+
+  const hotels = await prismadb.hotel.findMany({
+
   });
 
 

@@ -2572,7 +2572,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             const pricePerNight = roomCost ? roomCost.pricePerNight : 0; // Get price per night from backend
                                             return (
                                               <span key={allocIdx} className="text-xs text-gray-500 block">
-                                                <strong>Room {allocIdx + 1}:</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''}
+                                                <strong>Room Type :</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''}
                                                 {/* Display calculation if cost > 0 and quantity > 1, otherwise display total or 0.00 */}
                                                 <span className="font-medium text-blue-600 ml-2">
                                                   {allocationTotalCost > 0 && pricePerNight > 0 && quantity > 1

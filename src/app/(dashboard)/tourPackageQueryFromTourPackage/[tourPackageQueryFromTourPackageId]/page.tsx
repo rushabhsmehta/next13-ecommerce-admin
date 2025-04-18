@@ -7,75 +7,65 @@ const tourPackageQueryFromTourPackagePage = async ({
 }: {
   params: { tourPackageQueryFromTourPackageId: string }
 }) => {
-  // Use transaction to batch all database queries into a single connection
-  const { 
-    tourPackage, 
-    locations, 
-    hotels, 
-    activitiesMaster, 
-    itinerariesMaster,
-    associatePartners 
-  } = await prismadb.$transaction(async (tx) => {
-    const tourPackage = await tx.tourPackage.findUnique({
-      where: {
-        id: params.tourPackageQueryFromTourPackageId,
-      },
-      include: {
-        images: true,
-        flightDetails: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            activities:
+  const tourPackage = await prismadb.tourPackage.findUnique({
+    where: {
+      id: params.tourPackageQueryFromTourPackageId,
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities:
+          {
+            include:
             {
-              include:
-              {
-                activityImages: true,
-              }
+              activityImages: true,
             }
-          },
-          orderBy: {
-            dayNumber: 'asc' // or 'desc', depending on the desired order
-          }
-        }
-      }
-    });
-    
-    const locations = await tx.location.findMany({});
-    
-    const hotels = await tx.hotel.findMany({});
-    
-    const activitiesMaster = await tx.activityMaster.findMany({
-      include: {
-        activityMasterImages: true,
-      },
-    });
-    
-    const itinerariesMaster = await tx.itineraryMaster.findMany({
-      where: {
-        locationId: tourPackage?.locationId ?? '',
-      },
-      include: {
-        itineraryMasterImages: true,
-        activities: {
-          include: {
-            activityImages: true,
           }
         },
+        orderBy: {
+          dayNumber: 'asc' // or 'desc', depending on the desired order
+        }
       }
-    });
-    
-    const associatePartners = await tx.associatePartner.findMany();
-    
-    return {
-      tourPackage,
-      locations,
-      hotels,
-      activitiesMaster,
-      itinerariesMaster,
-      associatePartners
-    };
+    }
   });
+  
+  // console.log("Fetched tourPackage Query:", tourPackageQuery);
+
+  const locations = await prismadb.location.findMany({
+
+  });
+
+  const hotels = await prismadb.hotel.findMany({
+
+  });
+
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+
+    include: {
+      activityMasterImages: true,
+    },
+  }
+  );
+
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+    where: {
+      locationId: tourPackage?.locationId ?? '',
+    },
+
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true,
+        }
+      },
+    }
+  });
+
+  const associatePartners = await prismadb.associatePartner.findMany(); // Add this line
 
   return (
     <>{/*       <Navbar /> */}

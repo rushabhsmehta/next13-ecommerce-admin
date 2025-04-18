@@ -52,29 +52,24 @@ export async function POST(req: Request) {
 
     if (!journeyDate) {
       return new NextResponse("Journey date is required", { status: 400 });
-    }    // Determine user role and create inquiry in a single transaction
+    }
+
+    // Determine user role (ADMIN or ASSOCIATE)
     const userEmail = user?.emailAddresses[0]?.emailAddress || "";
-    
-    // Use transaction to batch all database operations into a single connection
-    const { inquiry, userRole } = await prismadb.$transaction(async (tx) => {
-      // Determine user role (ADMIN or ASSOCIATE)
-      let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
+    let userRole: "ADMIN" | "ASSOCIATE" = "ADMIN";
+
+    if (userEmail) {
+      const associatePartner = await prismadb.associatePartner.findFirst({
+        where: {
+          OR: [
+            { email: userEmail },
+            { gmail: userEmail }
+          ]
+        }
+      });
       
-      if (userEmail) {
-        const associatePartner = await tx.associatePartner.findFirst({
-          where: {
-            OR: [
-              { email: userEmail },
-              { gmail: userEmail }
-            ]
-          }
-        });
-        
-        userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
-      }
-      
-      // Create the inquiry using the same transaction
-      const inquiry = await tx.inquiry.create({
+      userRole = associatePartner ? "ASSOCIATE" : "ADMIN";
+    }    const inquiry = await prismadb.inquiry.create({
       data: {
         customerName,
         customerMobileNumber,
@@ -123,41 +118,38 @@ export async function POST(req: Request) {
         transportDetails: {
           include: {
             vehicleType: true
-          }        }
-      }
-    });
-    
-      // Create a notification for the new inquiry inside the same transaction
-      try {
-        const journeyDateFormatted = format(new Date(journeyDate), 'dd MMM yyyy');
-        const locationName = inquiry.location?.label || 'Unknown location';
-        const associateName = inquiry.associatePartner?.name || 'Direct inquiry';
-        
-        await tx.notification.create({
-          data: {
-            type: 'NEW_INQUIRY',
-            title: 'New Inquiry Received',
-            message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
-            data: { 
-              inquiryId: inquiry.id,
-              customerName,
-              customerMobileNumber,
-              locationId,
-              locationName,
-              journeyDate
-            }
           }
-        });
-      } catch (notificationError) {
-        // Log the error but don't fail the inquiry creation
-        console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
+        }
       }
-      
-      return { inquiry, userRole };
     });
-    
+
+    // Create a notification for the new inquiry
+    try {
+      const journeyDateFormatted = format(new Date(journeyDate), 'dd MMM yyyy');
+      const locationName = inquiry.location?.label || 'Unknown location';
+      const associateName = inquiry.associatePartner?.name || 'Direct inquiry';
+      
+      await prismadb.notification.create({
+        data: {
+          type: 'NEW_INQUIRY',
+          title: 'New Inquiry Received',
+          message: `${customerName} has inquired about ${locationName} for ${journeyDateFormatted}${associatePartnerId ? ` through ${associateName}` : ''}.`,
+          data: { 
+            inquiryId: inquiry.id,
+            customerName,
+            customerMobileNumber,
+            locationId,
+            locationName,
+            journeyDate
+          }
+        }
+      });
+    } catch (notificationError) {
+      // Log the error but don't fail the inquiry creation
+      console.error('[INQUIRY_NOTIFICATION_ERROR]', notificationError);
+    }
+
     // Create audit log for the new inquiry
-    // Note: This is kept outside the transaction since it might involve other external calls
     await createAuditLog({
       entityId: inquiry.id,
       entityType: "Inquiry",

@@ -6,100 +6,73 @@ const TourPackageQueryPage = async ({
 }: {
   params: { inquiryId: string }
 }) => {
-  // Use transaction to batch all database queries into a single connection
-  const {
-    inquiry,
-    locations,
-    hotels,
-    activitiesMaster,
-    itinerariesMaster,
-    associatePartners
-  } = await prismadb.$transaction(async (tx) => {
-    const inquiry = await tx.inquiry.findUnique({
-      where: {
-        id: params.inquiryId
-      },
-      include: {
-        associatePartner: true
-      }
-    });
+  const inquiry = await prismadb.inquiry.findUnique({
+    where: {
+      id: params.inquiryId
+    },
+    include: {
+      associatePartner: true
+    }
+  });
 
-    const locations = await tx.location.findMany();
-    const hotels = await tx.hotel.findMany();
-    const activitiesMaster = await tx.activityMaster.findMany({
-      include: {
-        activityMasterImages: true
-      }
-    });
-    const itinerariesMaster = await tx.itineraryMaster.findMany({
-      include: {
-        itineraryMasterImages: true,
-        activities: {
-          include: {
-            activityImages: true
-          }
+  const locations = await prismadb.location.findMany();
+  const hotels = await prismadb.hotel.findMany();
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    include: {
+      activityMasterImages: true
+    }
+  });
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true
         }
       }
-    });
-    const associatePartners = await tx.associatePartner.findMany();
-    
-    return {
-      inquiry,
-      locations,
-      hotels,
-      activitiesMaster,
-      itinerariesMaster,
-      associatePartners
-    };  });
+    }
+  });
+  const associatePartners = await prismadb.associatePartner.findMany();
 
-  // Use a second transaction for the heavy tour package queries - splitting into two transactions
-  // to avoid timeouts while still minimizing connection usage
-  const { tourPackages, tourPackageQueries } = await prismadb.$transaction(async (tx) => {
-    const tourPackages = await tx.tourPackage.findMany({
-      where: {
-        isArchived: false
-      },
-      include: {
-        images: true,
-        flightDetails: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            activities: {
-              include: {
-                activityImages: true
-              }
+  const tourPackages = await prismadb.tourPackage.findMany({
+    where: {
+      isArchived: false
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
             }
           }
         }
       }
-    });
-  
-    // Fetch tour package queries
-    const tourPackageQueries = await tx.tourPackageQuery.findMany({
-      where: {
-        isArchived: false
-      },
-      include: {
-        images: true,
-        flightDetails: true,
-        itineraries: {
-          include: {
-            itineraryImages: true,
-            activities: {
-              include: {
-                activityImages: true
-              }
+    }
+  });
+
+  // Fetch tour package queries
+  const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
+    where: {
+      isArchived: false
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
             }
           }
         }
       }
-    });
-
-    return { tourPackages, tourPackageQueries };
-  }, {
-    // Set a longer timeout for this transaction since it's querying large datasets
-    timeout: 10000 // 10 seconds
+    }
   });
 
   return (

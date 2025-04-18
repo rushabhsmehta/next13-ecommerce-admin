@@ -9,7 +9,6 @@ const tourPackageQueryPage = async ({
 }: {
   params: { tourPackageQueryId: string }
 }) => {
-<<<<<<< HEAD
   // Use transaction to batch all database queries into a single connection
   // Split into two transactions to avoid timeout due to complex queries
   const { 
@@ -49,28 +48,6 @@ const tourPackageQueryPage = async ({
               include: {
                 activityImages: true,
               }
-=======
-  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
-    where: {
-      id: params.tourPackageQueryId,
-    },
-    include: {
-      images: true,      
-      flightDetails: true,
-      itineraries: {
-        include: {
-          itineraryImages: true,
-          roomAllocations: {
-            include: {
-              roomType: true,
-              occupancyType: true,
-              mealPlan  : true,
-            }
-          },
-          transportDetails: {
-            include: {
-              vehicleType: true,
->>>>>>> parent of 2f23c33 (.)
             }
           },
           orderBy: {

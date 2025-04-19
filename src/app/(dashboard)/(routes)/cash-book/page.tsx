@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { getBankAccountTransactions } from "@/lib/transaction-service";
 
 const formatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -32,32 +33,43 @@ interface CashAccount {
   createdAt: string;
 }
 
+interface Transaction {
+    id: string;
+    accountId: string;
+    amount: number;
+    isInflow: boolean;
+  }
+
 const CashBookPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
-  
-  // Calculate consolidated balance
-  const consolidatedBalance = cashAccounts.reduce((total, account) => 
-    total + (account.isActive ? account.currentBalance : 0), 0);
-  
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   // Calculate active accounts
   const activeAccounts = cashAccounts.filter(account => account.isActive);
 
   useEffect(() => {
-    const fetchCashAccounts = async () => {
+    const fetchCashAccountsAndTransactions = async () => {
       try {
-        const response = await axios.get("/api/cash-accounts");
-        setCashAccounts(response.data);
+        const accountsResponse = await axios.get("/api/cash-accounts");
+        const cashAccounts = accountsResponse.data;
+
+        const transactions = await Promise.all(
+          cashAccounts.map((account: CashAccount) => getBankAccountTransactions(account.id))
+        );
+
+        setCashAccounts(cashAccounts);
+        setTransactions(transactions.flat());
       } catch (error) {
-        console.error("Failed to fetch cash accounts:", error);
+        console.error("Failed to fetch data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCashAccounts();
+    fetchCashAccountsAndTransactions();
   }, []);
 
   const handleRefreshBalances = async () => {
@@ -74,6 +86,16 @@ const CashBookPage = () => {
       setRefreshing(false);
     }
   };
+
+  const consolidatedBalance = cashAccounts.reduce((total, account) => {
+    const accountTransactions = transactions.filter(
+      (transaction) => transaction.accountId === account.id
+    );
+    const transactionBalance = accountTransactions.reduce((sum, transaction) => {
+      return sum + (transaction.isInflow ? transaction.amount : -transaction.amount);
+    }, 0);
+    return total + (account.isActive ? account.openingBalance + transactionBalance : 0);
+  }, 0);
 
   return (
     <div className="p-8 pt-6">

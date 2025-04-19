@@ -93,6 +93,16 @@ export async function recalculateBankBalance(bankAccountId: string): Promise<num
   console.log(`[RECALCULATE_BANK_BALANCE] Total expenses: ${totalExpenses}`);
   currentBalance -= totalExpenses;
 
+  // Get all incomes (inflows)
+  const incomes = await prismadb.incomeDetail.findMany({
+    where: { bankAccountId }
+  });
+
+  // Add up all incomes
+  const totalIncomes = incomes.reduce((sum, income) => sum + (income.amount || 0), 0);
+  console.log(`[RECALCULATE_BANK_BALANCE] Total incomes: ${totalIncomes}`);
+  currentBalance += totalIncomes;
+
   // Account for transfers TO this bank account (inflows)
   const transfersIn = await prismadb.transfer.findMany({
     where: { 

@@ -41,7 +41,6 @@ export default async function NewIncomePage() {
           incomeCategories={incomeCategories}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts}
-          onSuccess={() => { }}
         />
       </div>
     </div>

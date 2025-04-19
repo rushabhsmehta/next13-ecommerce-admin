@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import axios from "axios";
+import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { MoreHorizontal } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { AlertModal } from "@/components/modals/alert-modal";
 
 import {
   DropdownMenu,
@@ -28,9 +32,37 @@ interface IncomesListTableProps {
 
 export const IncomesListTable: React.FC<IncomesListTableProps> = ({ data }) => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [incomeToDelete, setIncomeToDelete] = useState<string | null>(null);
+
+  // Handle delete confirmation
+  const onDelete = async () => {
+    if (!incomeToDelete) return;
+
+    try {
+      setLoading(true);
+      await axios.delete(`/api/incomes/${incomeToDelete}`);
+      router.refresh();
+      toast.success('Income deleted successfully');
+    } catch (error) {
+      toast.error('Something went wrong');
+      console.error("Failed to delete income:", error);
+    } finally {
+      setLoading(false);
+      setOpen(false);
+      setIncomeToDelete(null);
+    }
+  };
 
   return (
     <div className="rounded-md border">
+      <AlertModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={onDelete}
+        loading={loading}
+      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -51,7 +83,7 @@ export const IncomesListTable: React.FC<IncomesListTableProps> = ({ data }) => {
             </TableRow>
           )}
           {data.map((income) => (
-            <TableRow key={income.id} className="hover:bg-muted/30">
+            <TableRow key={income.id}>
               <TableCell>{format(new Date(income.incomeDate), "MMM d, yyyy")}</TableCell>
               <TableCell>{income.incomeCategory?.name || "Uncategorized"}</TableCell>
               <TableCell>
@@ -65,13 +97,22 @@ export const IncomesListTable: React.FC<IncomesListTableProps> = ({ data }) => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => router.push(`/incomes/${income.id}`)}>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setIncomeToDelete(income.id);
+                        setOpen(true);
+                      }}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push(`/incomes/${income.id}/edit`)}
+                    >
                       Edit
                     </DropdownMenuItem>
                   </DropdownMenuContent>

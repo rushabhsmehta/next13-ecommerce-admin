@@ -80,52 +80,65 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
       {receiptsData.length > 0 ? (
         <Card className="shadow-lg rounded-lg border-l-4 border-emerald-500">
           <CardHeader className="py-3 bg-gray-50">
-            <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_2fr_80px] gap-4">
+            <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_80px] gap-4">
               <div>Customer</div>
               <div>Date</div>
+              <div>Account Type</div>
+              <div>Account Name</div>
               <div>Amount</div>
               <div>Description</div>
               <div>Actions</div>
             </CardTitle>
           </CardHeader>
           <CardContent className="max-h-[250px] overflow-y-auto p-0">
-            {receiptsData.map((receipt) => (
-              <div key={receipt.id} 
-                className="grid grid-cols-[2fr_1fr_1fr_2fr_80px] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
-                <div className="font-medium flex items-center">
-                  <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
-                  {customers.find(c => c.id === receipt.customerId)?.name || 'N/A'}
-                </div>
-                <div className="flex items-center">
-                  <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
-                  {format(new Date(receipt.receiptDate), "dd MMM yyyy")}
-                </div>
-                <div className="font-bold text-emerald-700">
-                  <div>{formatPrice(receipt.amount)}</div>
-                </div>
-                <div className="truncate text-gray-600">{receipt.note || 'No description'}</div>
-                <div className="flex justify-center">
-                  <div className="flex space-x-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleEdit(receipt)}
-                      className="h-7 w-7 p-0"
-                    >
-                      <Edit className="h-3.5 w-3.5 text-blue-600" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleDelete(receipt.id)}
-                      className="h-7 w-7 p-0"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                    </Button>
+            {receiptsData.map((receipt) => {
+              const isBank = !!receipt.bankAccountId;
+              const accountType = isBank ? "Bank" : receipt.cashAccountId ? "Cash" : "-";
+              const accountName = isBank
+                ? bankAccounts.find(b => b.id === receipt.bankAccountId)?.accountName || "-"
+                : receipt.cashAccountId
+                  ? cashAccounts.find(c => c.id === receipt.cashAccountId)?.accountName || "-"
+                  : "-";
+              return (
+                <div key={receipt.id}
+                  className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_80px] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
+                  <div className="font-medium flex items-center">
+                    <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
+                    {customers.find(c => c.id === receipt.customerId)?.name || 'N/A'}
+                  </div>
+                  <div className="flex items-center">
+                    <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
+                    {format(new Date(receipt.receiptDate), "dd MMM yyyy")}
+                  </div>
+                  <div>{accountType}</div>
+                  <div>{accountName}</div>
+                  <div className="font-bold text-emerald-700">
+                    <div>{formatPrice(receipt.amount)}</div>
+                  </div>
+                  <div className="truncate text-gray-600">{receipt.note || 'No description'}</div>
+                  <div className="flex justify-center">
+                    <div className="flex space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleEdit(receipt)}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Edit className="h-3.5 w-3.5 text-blue-600" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleDelete(receipt.id)}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
           <CardContent className="border-t bg-gray-50 py-2">
             <div className="flex justify-end items-center space-x-4">

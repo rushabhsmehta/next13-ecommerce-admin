@@ -129,7 +129,7 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                   type="button"
                   variant="destructive"
                   size="sm"
-                  disabled={loading || roomAllocations.length <= 1}
+                  disabled={loading} // allow removing the last room (removed roomAllocations.length check)
                   onClick={() => handleRemoveRoom(roomIndex)}
                   className="h-8 px-2"
                 >

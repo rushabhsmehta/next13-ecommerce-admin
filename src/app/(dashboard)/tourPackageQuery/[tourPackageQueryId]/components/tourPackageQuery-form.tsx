@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import { useRouter, useParams } from "next/navigation";
-import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, BuildingIcon, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle } from "lucide-react";
+import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, BuildingIcon, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle, ImageIcon, BedIcon } from "lucide-react";
 import { Activity, AssociatePartner, Images, ItineraryMaster, RoomAllocation, TransportDetail } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Add prisma types
 import { toast } from "react-hot-toast"
@@ -74,6 +74,7 @@ import { PolicyField } from "./policy-fields"
 import JoditEditor from "jodit-react";
 import { Calendar } from "@/components/ui/calendar";
 import { ro } from "date-fns/locale";
+import { Textarea } from "@/components/ui/textarea";
 
 // Define the pricing item schema
 const pricingItemSchema = z.object({
@@ -1680,6 +1681,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pt-4 px-4 pb-6">
+                                  <div className="flex justify-end mb-4">
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={loading}
+                                      onClick={() => onChange(value.filter((_: any, i: number) => i !== index))}
+                                      className="h-8 px-2"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Remove Day
+                                    </Button>
+                                  </div>
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                   </div>
                                   <div className="flex flex-col gap-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
@@ -1720,7 +1734,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                 key={itineraryMaster.id} onSelect={() => {
                                                   const updatedItineraries = [...value];
                                                   updatedItineraries[index] = {
-                                                    ...value[index],
+                                                    ...itinerary,
                                                     itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
                                                     itineraryDescription: itineraryMaster.itineraryMasterDescription || '',
                                                     itineraryImages: itineraryMaster.itineraryMasterImages?.map((image) => ({ url: image.url })) || [],
@@ -1750,7 +1764,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                     </Popover>
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-4">
+                                  <div className="grid md:grid-cols-2 gap-4">
                                     <FormItem>
                                       <FormLabel>Day</FormLabel>
                                       <FormControl>
@@ -1787,57 +1801,32 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                     </FormItem>
                                   </div>
 
+                                  {/* Destination Images */}
                                   <div className="bg-slate-50 p-3 rounded-md mb-4">
-                                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">Destination Images</h3>
+                                    <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                                      <ImageIcon className="h-4 w-4 text-primary" />
+                                      Destination Images
+                                    </h3>
                                     <ImageUpload
-                                      value={itinerary.itineraryImages?.map((image) => image.url) || []}
+                                      value={itinerary.itineraryImages.map(img => img.url)}
                                       disabled={loading}
-                                      onChange={(newItineraryUrl) => {
-                                        const updatedImages = [...itinerary.itineraryImages, { url: newItineraryUrl }];
-                                        // Update the itinerary with the new images array
-                                        const updatedItineraries = [...value];
-                                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                                        onChange(updatedItineraries);
+                                      onChange={(url) => {
+                                        const newItineraries = [...value];
+                                        newItineraries[index] = {
+                                          ...itinerary,
+                                          itineraryImages: [...itinerary.itineraryImages, { url }]
+                                        };
+                                        onChange(newItineraries);
                                       }}
-                                      onRemove={(itineraryURLToRemove) => {
-                                        // Filter out the image to remove
-                                        const updatedImages = itinerary.itineraryImages.filter((image) => image.url !== itineraryURLToRemove);
-                                        // Update the itinerary with the new images array
-                                        const updatedItineraries = [...value];
-                                        updatedItineraries[index] = { ...itinerary, itineraryImages: updatedImages };
-                                        onChange(updatedItineraries);
+                                      onRemove={(url) => {
+                                        const newItineraries = [...value];
+                                        newItineraries[index] = {
+                                          ...itinerary,
+                                          itineraryImages: itinerary.itineraryImages.filter(img => img.url !== url)
+                                        };
+                                        onChange(newItineraries);
                                       }}
                                     />
-                                  </div>
-
-                                  <div className="grid md:grid-cols-2 gap-4">
-                                    <FormItem>
-                                      <FormLabel>Title</FormLabel>
-                                      <FormControl>
-                                        <JoditEditor
-                                          ref={editor}
-                                          value={itinerary.itineraryTitle || ''}
-                                          onChange={(e) => {
-                                            const newItineraries = [...value]
-                                            newItineraries[index] = { ...itinerary, itineraryTitle: e }
-                                            onChange(newItineraries)
-                                          }} />
-                                      </FormControl>
-                                    </FormItem>
-
-                                    <FormItem>
-                                      <FormLabel>Description</FormLabel>
-                                      <FormControl>
-                                        <JoditEditor
-                                          ref={editor}
-                                          value={itinerary.itineraryDescription || ''}
-                                          onChange={(e) => {
-                                            const newItineraries = [...value]
-                                            newItineraries[index] = { ...itinerary, itineraryDescription: e }
-                                            onChange(newItineraries)
-                                          }} />
-                                      </FormControl>
-                                    </FormItem>
                                   </div>
 
                                   <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
@@ -1903,15 +1892,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                     />
                                                   </CommandItem>
                                                 ))}
-
                                               </CommandGroup>
                                             </Command>
                                           </PopoverContent>
                                         </Popover>
                                         <FormMessage />
-                                      </FormItem>
-
-                                      {/* Display selected hotel images */}
+                                      </FormItem>                                      {/* Display selected hotel images */}
                                       {(() => {
                                         const hotel = itinerary.hotelId ? hotels.find(h => h.id === itinerary.hotelId) : undefined;
                                         if (hotel && hotel.images && hotel.images.length > 0) {
@@ -1935,113 +1921,185 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         }
                                         return null;
                                       })()}
-
+                                    </div>                                    {/* Room Allocation Section */}
+                                    <div className="mt-4 border-t border-slate-100 pt-4">
+                                      <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                                        <BedIcon className="h-4 w-4 text-primary" />
+                                        Room Allocation
+                                      </h4>
+                                      <RoomAllocationComponent 
+                                        itinerary={itinerary}
+                                        index={index}
+                                        value={value}
+                                        onChange={onChange}
+                                        loading={loading}
+                                      />
                                     </div>
-
-                                    <div className="md:col-span-2">
-                                      {/* Room Allocation Component */}
-                                      <div className="mb-6">
-                                        <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
-                                          <BedDoubleIcon className="h-4 w-4 text-primary" />
-                                          Room Allocation
-                                        </h3>
-                                        <RoomAllocationComponent
-                                          itinerary={itinerary}
-                                          index={index}
-                                          value={value}
-                                          onChange={onChange}
-                                          loading={loading || lookupLoading} // Pass loading state
-                                        /* Make sure these props are defined in the component interface */
-                                        /* You may need to update the component definition toaccept these props */
-                                        />
-                                      </div>
-                                      {/* Transport Details Component */}
-                                      <div className="mb-6">
-                                        <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
-                                          <CarIcon className="h-4 w-4 text-primary" />
-                                          Transport Details
-                                        </h3>
-                                        <TransportDetailsComponent
-                                          itinerary={itinerary}
-                                          index={index}
-                                          value={value}
-                                          onChange={onChange}
-                                          loading={loading || lookupLoading}
-                                        />
-                                      </div>
+                                    
+                                    {/* Transport Details Section */}
+                                    <div className="mt-4 border-t border-slate-100 pt-4">
+                                      <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                                        <CarIcon className="h-4 w-4 text-primary" />
+                                        Transport Details
+                                      </h4>
+                                      <TransportDetailsComponent
+                                        itinerary={itinerary}
+                                        index={index}
+                                        value={value}
+                                        onChange={onChange}
+                                        loading={loading}
+                                      />
                                     </div>
+                                  </div>
 
-                                    <div className="md:col-span-2">
-                                      <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-slate-700">
-                                        <MapPinIcon className="h-4 w-4 text-primary" />
-                                        Activities
-                                      </h3>
-                                      {itinerary.activities.map((activity, activityIndex) => (
-                                        <div key={activityIndex} className="mb-6 p-4 border border-slate-200 rounded-lg bg-white shadow-sm">
-                                          <div className="flex justify-between items-center mb-4">
-                                            <h4 className="text-sm font-medium text-slate-700">Activity {activityIndex + 1}</h4>
-                                            <Button
-                                              type="button"
-                                              variant="destructive"
-                                              size="sm"
-                                              onClick={() => {
-                                                const newItineraries = [...value];
-                                                newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
-                                                onChange(newItineraries);
-                                              }}
-                                              className="h-8 px-3"
-                                            >
-                                              <Trash2 className="h-4 w-4 mr-1" />
-                                              Remove
-                                            </Button>
-                                          </div>
-                                          <div className="space-y-4">
-                                            <FormItem>
-                                              <div className="space-y-4">
-                                                <FormItem>
-                                                  <Select
-                                                    disabled={loading}
-                                                    onValueChange={(selectedActivityId) =>
-                                                      handleActivitySelection(selectedActivityId, index, activityIndex)
-                                                    }
-                                                  >
-                                                    <FormControl>
-                                                      <SelectTrigger className="bg-white">
-                                                        <SelectValue placeholder="Select an Activity" />
-                                                      </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                      {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
-                                                        <SelectItem key={activityMaster.id}
-                                                          value={activityMaster.id}>
-                                                          {activityMaster.activityMasterTitle}
-                                                        </SelectItem>
-                                                      ))}
-                                                    </SelectContent>
-                                                  </Select>
-                                                  <FormMessage />
-                                                </FormItem>
-                                              </div>
-                                            </FormItem>
-                                          </div>
+                                  <div className="md:col-span-2">
+                                    <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-slate-700">
+                                      <MapPinIcon className="h-4 w-4 text-primary" />
+                                      Activities
+                                    </h3>
+                                    {itinerary.activities.map((activity, activityIndex) => (
+                                      <div key={activityIndex} className="mb-6 p-4 border border-slate-200 rounded-lg bg-white shadow-sm">
+                                        <div className="flex justify-between items-center mb-4">
+                                          <h4 className="text-sm font-medium text-slate-700">Activity {activityIndex + 1}</h4>
+                                          <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => {
+                                              const newItineraries = [...value];
+                                              newItineraries[index].activities = newItineraries[index].activities.filter((_, idx: number) => idx !== activityIndex);
+                                              onChange(newItineraries);
+                                            }}
+                                            className="h-8 px-3"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-1" />
+                                            Remove
+                                          </Button>
                                         </div>
-                                      ))}
+                                        <div className="space-y-4">
+                                          <FormItem>
+                                            <div className="space-y-4">                                              <FormItem>
+                                                <Select
+                                                  disabled={loading}
+                                                  onValueChange={(selectedActivityId) =>
+                                                    handleActivitySelection(selectedActivityId, index, activityIndex)
+                                                  }
+                                                >
+                                                  <SelectTrigger className="bg-white">
+                                                    <SelectValue placeholder="Select an Activity" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    {activitiesMaster?.map((activityMaster) => (
+                                                      <SelectItem key={activityMaster.id} value={activityMaster.id}>
+                                                        {activityMaster.activityMasterTitle}
+                                                      </SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                              </FormItem>
+                                              
+                                              {/* Activity Title */}
+                                              <FormItem>
+                                                <FormLabel>Activity Title</FormLabel>
+                                                <FormControl>
+                                                  <Input
+                                                    disabled={loading}
+                                                    placeholder="Activity Title"
+                                                    value={activity.activityTitle || ''}
+                                                    onChange={(e) => {
+                                                      const newItineraries = [...value];
+                                                      newItineraries[index].activities[activityIndex].activityTitle = e.target.value;
+                                                      onChange(newItineraries);
+                                                    }}
+                                                    className="bg-white"
+                                                  />
+                                                </FormControl>
+                                              </FormItem>
+                                              
+                                              {/* Activity Description */}
+                                              <FormItem>
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl>
+                                                  <Textarea
+                                                    disabled={loading}
+                                                    placeholder="Activity Description"
+                                                    value={activity.activityDescription || ''}
+                                                    onChange={(e) => {
+                                                      const newItineraries = [...value];
+                                                      newItineraries[index].activities[activityIndex].activityDescription = e.target.value;
+                                                      onChange(newItineraries);
+                                                    }}
+                                                    className="bg-white min-h-[100px]"
+                                                  />
+                                                </FormControl>
+                                              </FormItem>
+                                              
+                                              {/* Activity Images */}
+                                              <FormItem>
+                                                <FormLabel>Activity Images</FormLabel>
+                                                <div className="bg-slate-50 p-3 rounded-md">
+                                                  <ImageUpload
+                                                    value={activity.activityImages?.map(img => img.url) || []}
+                                                    disabled={loading}
+                                                    onChange={(url) => {
+                                                      const newItineraries = [...value];
+                                                      if (!newItineraries[index].activities[activityIndex].activityImages) {
+                                                        newItineraries[index].activities[activityIndex].activityImages = [];
+                                                      }
+                                                      newItineraries[index].activities[activityIndex].activityImages.push({ url });
+                                                      onChange(newItineraries);
+                                                    }}
+                                                    onRemove={(url) => {
+                                                      const newItineraries = [...value];
+                                                      newItineraries[index].activities[activityIndex].activityImages = 
+                                                        newItineraries[index].activities[activityIndex].activityImages?.filter(img => img.url !== url) || [];
+                                                      onChange(newItineraries);
+                                                    }}
+                                                  />
+                                                </div>
+                                              </FormItem>
+                                            </div>
+                                          </FormItem>
+                                        </div>
+                                      </div>
+                                    ))}
 
+                                    <div className="flex justify-end mt-2">
                                       <Button
                                         type="button"
+                                        variant="outline"
                                         size="sm"
-                                        className="ml-2"
-                                        onClick={() => handleSaveToMasterItinerary(itinerary)}
+                                        disabled={loading}
+                                        onClick={() => {
+                                          const newItineraries = [...value];
+                                          newItineraries[index].activities = [
+                                            ...newItineraries[index].activities,
+                                            { activityTitle: '', activityDescription: '', activityImages: [] }
+                                          ];
+                                          onChange(newItineraries);
+                                        }}
                                       >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Save to Master Itinerary
+                                        <Plus className="mr-1 h-4 w-4" />
+                                        Add Activity
                                       </Button>
                                     </div>
+
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="ml-2"
+                                      onClick={() => handleSaveToMasterItinerary(itinerary)}
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Save to Master Itinerary
+                                    </Button>
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
                           ))}
+
                           <Button
                             type="button"
                             size="default"
@@ -2064,8 +2122,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                           </Button>
                         </div>
                       </FormItem>
-                    )}
-                  />
+                    )} />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -2591,7 +2648,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             const pricePerUnit = transport.pricePerUnit || 0; // Get price per unit
                                             const quantity = transport.quantity || 1; // Get quantity
                                             return (
-                                              <span key={`transport-${transportIdx}`} className="text-xs text-gray-500 block mt-1">
+                                              <span key={`transport-${transportIdx}`} className="text-xs text-gray-500 block">
                                                 Transport: {vehicleTypeName} {quantity > 1 ? `(x${quantity})` : ''}
                                                 <span className="font-medium text-blue-600 ml-2">
                                                   {/* Display calculation if cost > 0, pricePerUnit > 0 and quantity > 1 */}

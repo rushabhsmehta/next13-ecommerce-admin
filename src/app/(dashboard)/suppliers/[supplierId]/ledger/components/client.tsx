@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatPrice } from "@/lib/utils";
+import { cn, formatPrice, formatSafeDate } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { TransactionsTable } from "./transactions-table";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
@@ -97,19 +96,18 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
     doc.text(`Total Purchases: ₹ ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
     doc.text(`Total Payments: ₹ ${formatPrice(totalPayments, { forPDF: true })}`, 14, 56);
     doc.text(`Current Balance: ₹ ${formatPrice(currentBalance, { forPDF: true })}`, 14, 64);
-    
-    // Add date filters if applied
+      // Add date filters if applied
     if (dateFrom || dateTo) {
       let filterText = "Date Filter: ";
-      if (dateFrom) filterText += `From ${format(dateFrom, 'MM/dd/yyyy')}`;
+      if (dateFrom) filterText += `From ${formatSafeDate(dateFrom, 'MM/dd/yyyy')}`;
       if (dateFrom && dateTo) filterText += " ";
-      if (dateTo) filterText += `To ${format(dateTo, 'MM/dd/yyyy')}`;
+      if (dateTo) filterText += `To ${formatSafeDate(dateTo, 'MM/dd/yyyy')}`;
       doc.text(filterText, 14, 72);
     }
     
     // Prepare transaction data for table with proper formatting
     const tableData = filteredTransactions.map(transaction => [
-      format(new Date(transaction.date), 'MM/dd/yyyy'),
+      formatSafeDate(transaction.date, 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
       transaction.isInflow ? `₹ ${formatPrice(transaction.amount, { forPDF: true })}` : "-",

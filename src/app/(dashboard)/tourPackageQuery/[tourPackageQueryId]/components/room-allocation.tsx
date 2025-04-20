@@ -124,9 +124,8 @@ const TransportDetailsComponent: React.FC<TransportDetailsComponentProps> = ({ i
         <Button type="button" variant="outline" size="sm" onClick={() => append({ vehicleTypeId: '', transportType: '', quantity: 1, description: '' })} disabled={loading}>
           <Plus className="h-4 w-4 mr-1" /> Add Transport
         </Button>
-      </div>
-      {fields.length === 0 ? (
-        <p className="text-sm text-gray-500">No transport details. Click "Add Transport".</p>
+      </div>      {fields.length === 0 ? (
+        <p className="text-sm text-gray-500">No transport details. Click &quot;Add Transport&quot;.</p>
       ) : (
         <div className="space-y-3">
           {fields.map((field, idx) => (

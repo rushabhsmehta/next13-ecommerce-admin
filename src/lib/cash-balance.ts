@@ -116,3 +116,19 @@ export async function recalculateCashBalance(cashAccountId: string): Promise<num
   return currentBalance;
 }
 
+export async function recalculateAllCashBalances(): Promise<void> {
+  console.log("[RECALCULATE_ALL_CASH_BALANCES] Starting recalculation for all cash accounts");
+
+  const cashAccounts = await prismadb.cashAccount.findMany();
+
+  for (const account of cashAccounts) {
+    try {
+      await recalculateCashBalance(account.id);
+    } catch (error) {
+      console.error(`[RECALCULATE_ALL_CASH_BALANCES] Failed to recalculate balance for account ID: ${account.id}`, error);
+    }
+  }
+
+  console.log("[RECALCULATE_ALL_CASH_BALANCES] Recalculation completed for all cash accounts");
+}
+

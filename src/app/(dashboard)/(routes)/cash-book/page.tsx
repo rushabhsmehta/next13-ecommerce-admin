@@ -53,12 +53,15 @@ const CashBookPage = () => {
   useEffect(() => {
     const fetchCashAccountsAndTransactions = async () => {
       try {
+        console.log("Fetching initial cash accounts and transactions...");
         const accountsResponse = await axios.get("/api/cash-accounts");
         const cashAccounts = accountsResponse.data;
+        console.log("Fetched cash accounts:", cashAccounts);
 
         const transactions = await Promise.all(
           cashAccounts.map((account: CashAccount) => getBankAccountTransactions(account.id))
         );
+        console.log("Fetched transactions:", transactions);
 
         setCashAccounts(cashAccounts);
         setTransactions(transactions.flat());
@@ -75,10 +78,13 @@ const CashBookPage = () => {
   const handleRefreshBalances = async () => {
     setRefreshing(true);
     try {
+      console.log("Refreshing balances...");
       // Call an API endpoint to recalculate all cash account balances
       await axios.post("/api/cash-accounts/recalculate-all");
+      console.log("Recalculation completed. Fetching updated cash accounts...");
       // Refetch the cash accounts with updated balances
       const response = await axios.get("/api/cash-accounts");
+      console.log("Updated cash accounts:", response.data);
       setCashAccounts(response.data);
     } catch (error) {
       console.error("Failed to refresh balances:", error);
@@ -88,13 +94,7 @@ const CashBookPage = () => {
   };
 
   const consolidatedBalance = cashAccounts.reduce((total, account) => {
-    const accountTransactions = transactions.filter(
-      (transaction) => transaction.accountId === account.id
-    );
-    const transactionBalance = accountTransactions.reduce((sum, transaction) => {
-      return sum + (transaction.isInflow ? transaction.amount : -transaction.amount);
-    }, 0);
-    return total + (account.isActive ? account.openingBalance + transactionBalance : 0);
+    return total + (account.isActive ? account.currentBalance : 0);
   }, 0);
 
   return (

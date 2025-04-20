@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatSafeDate } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import {
@@ -104,10 +103,9 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                 </TableCell>
               </TableRow>
             ) : (
-              <>
-                {data.map((transaction) => (
+              <>                {data.map((transaction) => (
                   <TableRow key={`${transaction.type}-${transaction.id}`}>
-                    <TableCell>{format(new Date(transaction.date), "MMM dd, yyyy")}</TableCell>
+                    <TableCell>{formatSafeDate(transaction.date, "MMM dd, yyyy")}</TableCell>
                     <TableCell>{transaction.type}</TableCell>
                     <TableCell>{transaction.description}</TableCell>
                     <TableCell className="text-right">

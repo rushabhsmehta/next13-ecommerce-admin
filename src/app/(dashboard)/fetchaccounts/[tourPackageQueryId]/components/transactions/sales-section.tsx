@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { CalendarIcon, Edit, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +10,7 @@ import { SaleFormWrapper } from "@/components/forms/sale-form-wrapper"; // Updat
 import DeleteConfirmation from "./delete-confirmation";
 import toast from 'react-hot-toast';
 import { Customer, UnitOfMeasure, SaleDetail, TaxSlab } from '@prisma/client';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, formatSafeDate } from '@/lib/utils';
 
 interface SalesSectionProps {
   salesData: (SaleDetail & {
@@ -126,10 +125,9 @@ const SalesSection: React.FC<SalesSectionProps> = ({
                   <div className="font-medium flex items-center">
                     <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
                     {sale.customer?.name || getCustomerName(sale.customerId)}
-                  </div>
-                  <div className="flex items-center">
+                  </div>                  <div className="flex items-center">
                     <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    {format(new Date(sale.saleDate), "dd MMM yyyy")}
+                    {formatSafeDate(sale.saleDate, "dd MMM yyyy")}
                   </div>
                   <div className="font-bold text-emerald-700">
                     <div>{formatPrice(saleWithGst)}</div>

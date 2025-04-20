@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { CalendarIcon, Edit, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PurchaseFormWrapper } from "@/components/forms/purchase-form-wrapper"; // Updated import
 import DeleteConfirmation from "./delete-confirmation";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatSafeDate } from "@/lib/utils";
 import toast from 'react-hot-toast';
 import { PurchaseDetail, Supplier, TaxSlab, UnitOfMeasure } from '@prisma/client';
 
@@ -113,10 +112,9 @@ const PurchasesSection: React.FC<PurchasesSectionProps> = ({
                   <div className="font-medium flex items-center">
                     <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
                     {suppliers.find(supplier => supplier.id === purchase.supplierId)?.name || 'N/A'}
-                  </div>
-                  <div className="flex items-center">
+                  </div>                  <div className="flex items-center">
                     <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    {format(new Date(purchase.purchaseDate), "dd MMM yyyy")}
+                    {formatSafeDate(purchase.purchaseDate, "dd MMM yyyy")}
                   </div>
                   <div className="font-bold text-blue-700">
                     <div>{formatPrice(purchaseWithGst)}</div>

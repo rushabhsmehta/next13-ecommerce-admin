@@ -1,8 +1,40 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format, parseISO } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Safely format a date string or Date object consistently, preserving the original date
+ * regardless of timezone issues
+ */
+export function formatSafeDate(dateInput: string | Date, formatString: string = "dd MMM yyyy"): string {
+  try {
+    // If it's already a Date object, format it directly
+    if (dateInput instanceof Date) {
+      // Create a new date with only the date portion to avoid timezone issues
+      const year = dateInput.getFullYear();
+      const month = dateInput.getMonth();
+      const day = dateInput.getDate();
+      const safeDateObj = new Date(year, month, day);
+      return format(safeDateObj, formatString);
+    }
+    
+    // If it's an ISO string, parse it first then format
+    if (typeof dateInput === "string") {
+      // Extract just the date portion from the ISO string to avoid timezone shifts
+      const datePart = dateInput.split('T')[0];
+      const safeDateObj = parseISO(datePart);
+      return format(safeDateObj, formatString);
+    }
+    
+    return "Invalid date";
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
 }
 
 

@@ -178,7 +178,7 @@ const formSchema = z.object({
   associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema
 });
 
-type TourPackageQueryFormValues = z.infer<typeof formSchema>
+export type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
   initialData: TourPackageQuery & {
@@ -1952,8 +1952,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                           onChange={onChange}
                                           loading={loading || lookupLoading} // Pass loading state
                                         /* Make sure these props are defined in the component interface */
-                                        /* You may need to update the component definition to accept```tsx
-                                        /* You may need to update the component definition to accept these props */
+                                        /* You may need to update the component definition toaccept these props */
                                         />
                                       </div>
                                       {/* Transport Details Component */}

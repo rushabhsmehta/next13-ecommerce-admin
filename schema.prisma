@@ -100,12 +100,12 @@ model OccupancyType {
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
-  // Relations to other models that use occupancy types
-  hotelPricings      HotelPricing[]
-  roomAllocations    RoomAllocation[]
-  itineraries        Itinerary[]       // Added relation to Itinerary
-  itinerariesMaster  ItineraryMaster[] // Added relation to ItineraryMaster
+    // Relations to other models that use occupancy types
+  hotelPricings        HotelPricing[]
+  roomAllocations      RoomAllocation[]
+  itineraries          Itinerary[]       // Added relation to Itinerary
+  itinerariesMaster    ItineraryMaster[] // Added relation to ItineraryMaster
+  tourPackagePricings  TourPackagePricing[] // Added relation to TourPackagePricing
 }
 
 // Model for configurable vehicle types
@@ -495,7 +495,39 @@ model TourPackage {
   assignedToMobileNumber     String?
   assignedToEmail            String?
   slug                       String?
+  
+  // New relation to tour package pricing
+  tourPackagePricings       TourPackagePricing[]
+  
   @@index([locationId])
+}
+
+// New model for tour package pricing with occupancy types and PAX counts
+model TourPackagePricing {
+  id                String       @id @default(uuid())
+  tourPackageId     String
+  tourPackage       TourPackage  @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Relation to occupancy type
+  occupancyTypeId   String
+  occupancyType     OccupancyType @relation(fields: [occupancyTypeId], references: [id])
+  
+  // PAX (passenger) specific fields
+  numPax            Int          @default(1)    // number of passengers
+  tourPackagePrice  Int                         // Price for Tou Package
+  // Additional fields
+  isPromotional     Boolean      @default(false)  // Whether this is a promotional rate
+  promotionName     String?                      // Name of promotion if applicable
+  isActive          Boolean      @default(true)
+  description       String?      @db.Text        // Description or notes about this pricing
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([tourPackageId])
+  @@index([occupancyTypeId])
+  @@index([startDate, endDate]) // For efficient date range queries
 }
 
 model Activity {

@@ -628,7 +628,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Number of Rooms :</span> {room.quantity || '1'}
+                                      <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
                                       {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
                                     </p>
                                   </div>
@@ -642,7 +642,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             <>
                               {itinerary.numberofRooms && (
                                 <>
-                                  <div className="text-xl font-bold">Number of Rooms:</div>
+                                  <div className="text-xl font-bold">Number of Rooms/Occupancy:</div>
                                   <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
                                 </>
                               )}
@@ -709,7 +709,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Number of Rooms :</span> {room.quantity || '1'}
+                                      <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
                                       {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
                                     </p>
                                   </div>
@@ -723,7 +723,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             <>
                               {itinerary.numberofRooms && (
                                 <>
-                                  <div className="text-xl font-bold">Number of Rooms:</div>
+                                  <div className="text-xl font-bold">Number of Rooms/Occupancy:</div>
                                   <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
                                 </>
                               )}

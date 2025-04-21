@@ -1,0 +1,167 @@
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs";
+import prismadb from "@/lib/prismadb";
+
+// GET a specific pricing record
+export async function GET(
+  req: Request,
+  { params }: { params: { tourPackageId: string; pricingId: string } }
+) {
+  try {
+    if (!params.tourPackageId) {
+      return new NextResponse("Tour Package ID is required", { status: 400 });
+    }
+
+    if (!params.pricingId) {
+      return new NextResponse("Pricing ID is required", { status: 400 });
+    }
+
+    const pricingPeriod = await prismadb.tourPackagePricing.findUnique({
+      where: {
+        id: params.pricingId,
+        tourPackageId: params.tourPackageId
+      },
+      include: {
+        occupancyType: true,
+      }
+    });
+
+    if (!pricingPeriod) {
+      return new NextResponse("Pricing period not found", { status: 404 });
+    }
+
+    return NextResponse.json(pricingPeriod);
+  } catch (error) {
+    console.error("[TOUR_PACKAGE_PRICING_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+// PATCH to update a specific pricing record
+export async function PATCH(
+  req: Request,
+  { params }: { params: { tourPackageId: string; pricingId: string } }
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    if (!params.tourPackageId) {
+      return new NextResponse("Tour Package ID is required", { status: 400 });
+    }
+
+    if (!params.pricingId) {
+      return new NextResponse("Pricing ID is required", { status: 400 });
+    }
+
+    const body = await req.json();
+    const { 
+      startDate, 
+      endDate, 
+      occupancyTypeId, 
+      numPax,
+      tourPackagePrice,
+      isPromotional,
+      promotionName,
+      isActive,
+      description
+    } = body;
+
+    if (!startDate || !endDate) {
+      return new NextResponse("Start date and end date are required", { status: 400 });
+    }
+
+    if (!occupancyTypeId) {
+      return new NextResponse("Occupancy type is required", { status: 400 });
+    }
+
+    if (typeof tourPackagePrice !== "number" || tourPackagePrice < 0) {
+      return new NextResponse("Valid price is required", { status: 400 });
+    }
+
+    if (typeof numPax !== "number" || numPax < 1) {
+      return new NextResponse("Valid number of PAX is required", { status: 400 });
+    }
+
+    // Check if the tour package exists
+    const tourPackage = await prismadb.tourPackage.findUnique({
+      where: {
+        id: params.tourPackageId
+      }
+    });
+
+    if (!tourPackage) {
+      return new NextResponse("Tour Package not found", { status: 404 });
+    }
+
+    // Update the pricing record
+    const updatedPricing = await prismadb.tourPackagePricing.update({
+      where: {
+        id: params.pricingId
+      },
+      data: {
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        occupancyTypeId,
+        numPax,
+        tourPackagePrice,
+        isPromotional: isPromotional || false,
+        promotionName: promotionName || null,
+        isActive: isActive !== undefined ? isActive : true,
+        description: description || null
+      }
+    });
+
+    return NextResponse.json(updatedPricing);
+  } catch (error) {
+    console.error("[TOUR_PACKAGE_PRICING_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+// DELETE a specific pricing record
+export async function DELETE(
+  req: Request,
+  { params }: { params: { tourPackageId: string; pricingId: string } }
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    if (!params.tourPackageId) {
+      return new NextResponse("Tour Package ID is required", { status: 400 });
+    }
+
+    if (!params.pricingId) {
+      return new NextResponse("Pricing ID is required", { status: 400 });
+    }
+
+    // Verify the pricing record exists and belongs to the specified tour package
+    const pricingPeriod = await prismadb.tourPackagePricing.findUnique({
+      where: {
+        id: params.pricingId,
+        tourPackageId: params.tourPackageId
+      }
+    });
+
+    if (!pricingPeriod) {
+      return new NextResponse("Pricing period not found", { status: 404 });
+    }
+
+    // Delete the pricing record
+    await prismadb.tourPackagePricing.delete({
+      where: {
+        id: params.pricingId
+      }
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("[TOUR_PACKAGE_PRICING_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}

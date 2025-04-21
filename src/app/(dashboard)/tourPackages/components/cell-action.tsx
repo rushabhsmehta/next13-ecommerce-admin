@@ -91,11 +91,16 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
 
-          
-          <DropdownMenuItem
+            <DropdownMenuItem
             onClick={() => router.push(`/tourPackagePDFGenerator/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Download PDF
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem
+            onClick={() => router.push(`/tourPackages/${data.id}/pricing`)}
+          >
+            <Edit className="mr-2 h-4 w-4" /> Manage Seasonal Pricing
           </DropdownMenuItem>
 
 

@@ -363,7 +363,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', String(selectedTourPackage.transport || ''));
       form.setValue('pickup_location', String(selectedTourPackage.pickup_location || ''));
       form.setValue('drop_location', String(selectedTourPackage.drop_location || ''));
-      form.setValue('tour_highlights', String(selectedTourPackage.tour_highlights || ''));      form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
+      form.setValue('tour_highlights', String(selectedTourPackage.tour_highlights || '')); form.setValue('totalPrice', String(selectedTourPackage.totalPrice || ''));
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
       form.setValue('importantNotes', parseJsonField(selectedTourPackage.importantNotes) || IMPORTANT_NOTES_DEFAULT);
@@ -1598,7 +1598,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                 config={{
                                                   readonly: loading,
                                                   toolbar: true,
-                                                  theme: 'default',                                         
+                                                  theme: 'default',
                                                 }}
                                                 onChange={(e) => {
                                                   const newItineraries = [...value]
@@ -1792,133 +1792,133 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                             </FormControl>
                                           </FormItem>
                                         </div>
-                                        </div>
                                       </div>
-    
-                                          {itinerary.activities.map((activity, activityIndex) => (
-                                        <div key={activityIndex} className="space-y-2">
-                                          <Select
-                                            disabled={loading}
-                                            onValueChange={(selectedActivityId) =>
-                                              handleActivitySelection(selectedActivityId, index, activityIndex)
-                                            }
-                                          >
-                                            <FormControl>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select an Activity" />
-                                              </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                              {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
-                                                <SelectItem key={activityMaster.id}
-                                                  value={activityMaster.id}>
-                                                  {activityMaster.activityMasterTitle}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <FormItem>
-                                            <FormLabel>Activity Title</FormLabel>
-                                            <FormControl>
-                                              <JoditEditor
-                                                ref={editor}
-                                                value={activity.activityTitle || ''}
-                                                onChange={(e) => {
-                                                  const newItineraries = [...value]
-                                                  newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
-                                                  onChange(newItineraries)
-                                                }} />
-                                            </FormControl>
-                                          </FormItem>
-
-                                          <FormItem>
-                                            <FormLabel>Activity Description</FormLabel>
-                                            <FormControl>
-
-                                              <JoditEditor
-                                                ref={editor}
-                                                value={activity.activityDescription || ''}
-                                                onChange={(e) => {
-                                                  const newItineraries = [...value]
-                                                  newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
-                                                  onChange(newItineraries)
-                                                }} />
-
-                                            </FormControl>
-                                          </FormItem>
-
-
-                                          <ImageUpload
-                                            value={activity.activityImages?.map((image) => image.url)}
-                                            disabled={loading}
-                                            onChange={(newActivityURL) => {
-                                              // Add new image URL to the activity's images
-                                              const updatedImages = [...activity.activityImages, { url: newActivityURL }];
-                                              // Update the specific activity in the itinerary
-                                              const updatedActivities = [...itinerary.activities];
-                                              updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                                              // Update the specific itinerary in the itineraries array
-                                              const updatedItineraries = [...value];
-                                              updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                                              onChange(updatedItineraries);
-                                            }}
-                                            onRemove={(activityURLToRemove) => {
-                                              // Filter out the image to remove
-                                              const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
-                                              // Update the specific activity in the itinerary
-                                              const updatedActivities = [...itinerary.activities];
-                                              updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
-
-                                              // Update the specific itinerary in the itineraries array
-                                              const updatedItineraries = [...value];
-                                              updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
-                                              onChange(updatedItineraries);
-                                            }}
-                                          />
-
-
-                                          <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => {
-                                              const newItineraries = [...value];
-                                              newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
-                                              onChange(newItineraries);
-                                            }}
-                                          >
-                                            Remove Activity
-                                          </Button>
-                                        </div>
-                                      ))}
-                                      <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={() => {
-                                          const newItineraries = [...value];
-                                          newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
-                                          onChange(newItineraries);
-                                        }}
-                                      >
-                                        Add Activity
-                                      </Button>
-
-
-
-                                      <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => {
-                                          const newItineraries = value.filter((_, i) => i !== index);
-                                          onChange(newItineraries);
-                                        }}
-                                      >
-                                        Remove Itinerary for Day {index + 1}
-
-                                      </Button>
                                     </div>
+
+                                    {itinerary.activities.map((activity, activityIndex) => (
+                                      <div key={activityIndex} className="space-y-2">
+                                        <Select
+                                          disabled={loading}
+                                          onValueChange={(selectedActivityId) =>
+                                            handleActivitySelection(selectedActivityId, index, activityIndex)
+                                          }
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select an Activity" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {activitiesMaster?.map((activityMaster: { id: string; activityMasterTitle: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined }) => (
+                                              <SelectItem key={activityMaster.id}
+                                                value={activityMaster.id}>
+                                                {activityMaster.activityMasterTitle}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormItem>
+                                          <FormLabel>Activity Title</FormLabel>
+                                          <FormControl>
+                                            <JoditEditor
+                                              ref={editor}
+                                              value={activity.activityTitle || ''}
+                                              onChange={(e) => {
+                                                const newItineraries = [...value]
+                                                newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
+                                                onChange(newItineraries)
+                                              }} />
+                                          </FormControl>
+                                        </FormItem>
+
+                                        <FormItem>
+                                          <FormLabel>Activity Description</FormLabel>
+                                          <FormControl>
+
+                                            <JoditEditor
+                                              ref={editor}
+                                              value={activity.activityDescription || ''}
+                                              onChange={(e) => {
+                                                const newItineraries = [...value]
+                                                newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
+                                                onChange(newItineraries)
+                                              }} />
+
+                                          </FormControl>
+                                        </FormItem>
+
+
+                                        <ImageUpload
+                                          value={activity.activityImages?.map((image) => image.url)}
+                                          disabled={loading}
+                                          onChange={(newActivityURL) => {
+                                            // Add new image URL to the activity's images
+                                            const updatedImages = [...activity.activityImages, { url: newActivityURL }];
+                                            // Update the specific activity in the itinerary
+                                            const updatedActivities = [...itinerary.activities];
+                                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                                            // Update the specific itinerary in the itineraries array
+                                            const updatedItineraries = [...value];
+                                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                                            onChange(updatedItineraries);
+                                          }}
+                                          onRemove={(activityURLToRemove) => {
+                                            // Filter out the image to remove
+                                            const updatedImages = activity.activityImages.filter((image) => image.url !== activityURLToRemove);
+                                            // Update the specific activity in the itinerary
+                                            const updatedActivities = [...itinerary.activities];
+                                            updatedActivities[activityIndex] = { ...activity, activityImages: updatedImages };
+
+                                            // Update the specific itinerary in the itineraries array
+                                            const updatedItineraries = [...value];
+                                            updatedItineraries[index] = { ...itinerary, activities: updatedActivities };
+                                            onChange(updatedItineraries);
+                                          }}
+                                        />
+
+
+                                        <Button
+                                          type="button"
+                                          variant="destructive"
+                                          size="sm"
+                                          onClick={() => {
+                                            const newItineraries = [...value];
+                                            newItineraries[index].activities = newItineraries[index].activities.filter((_, idx) => idx !== activityIndex);
+                                            onChange(newItineraries);
+                                          }}
+                                        >
+                                          Remove Activity
+                                        </Button>
+                                      </div>
+                                    ))}
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newItineraries = [...value];
+                                        newItineraries[index].activities = [...newItineraries[index].activities, { activityImages: [], activityTitle: '', activityDescription: '' }];
+                                        onChange(newItineraries);
+                                      }}
+                                    >
+                                      Add Activity
+                                    </Button>
+
+
+
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newItineraries = value.filter((_, i) => i !== index);
+                                        onChange(newItineraries);
+                                      }}
+                                    >
+                                      Remove Itinerary for Day {index + 1}
+
+                                    </Button>
+                                  </div>
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>))}

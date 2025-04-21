@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import { useRouter, useParams } from "next/navigation";
-import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, BuildingIcon, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle, ImageIcon, BedIcon } from "lucide-react";
+import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, BuildingIcon, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle, ImageIcon, BedIcon, Type, AlignLeft } from "lucide-react";
 import { Activity, AssociatePartner, Images, ItineraryMaster, RoomAllocation, TransportDetail } from "@prisma/client"
 import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Add prisma types
 import { toast } from "react-hot-toast"
@@ -1763,7 +1763,55 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                       </PopoverContent>
                                     </Popover>
                                   </div>
+                                  <div className="col-span-2">
+                                    <div className="grid grid-cols-1 gap-5">
+                                      <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
+                                        <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
+                                          <Type className="h-4 w-4" />
+                                          <span>Title</span>
+                                        </FormLabel>
+                                        <FormControl>
+                                          <JoditEditor
+                                            ref={editor}
+                                            value={itinerary.itineraryTitle || ''}
+                                            config={{
+                                              readonly: loading,
+                                              toolbar: true,
+                                              theme: 'default',
+                                            }}
+                                            onChange={(e) => {
+                                              const newItineraries = [...value]
+                                              newItineraries[index] = { ...itinerary, itineraryTitle: e }
+                                              onChange(newItineraries)
+                                            }}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
 
+                                      <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
+                                        <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
+                                          <AlignLeft className="h-4 w-4" />
+                                          <span>Description</span>
+                                        </FormLabel>
+                                        <FormControl>
+                                          <JoditEditor
+                                            ref={editor}
+                                            value={itinerary.itineraryDescription || ''}
+                                            config={{
+                                              readonly: loading,
+                                              toolbar: true,
+                                              theme: 'default',
+                                            }}
+                                            onChange={(e) => {
+                                              const newItineraries = [...value]
+                                              newItineraries[index] = { ...itinerary, itineraryDescription: e }
+                                              onChange(newItineraries)
+                                            }}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    </div>
+                                  </div>
                                   <div className="grid md:grid-cols-2 gap-4">
                                     <FormItem>
                                       <FormLabel>Day</FormLabel>
@@ -1927,7 +1975,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         <BedIcon className="h-4 w-4 text-primary" />
                                         Room Allocation
                                       </h4>
-                                      <RoomAllocationComponent 
+                                      <RoomAllocationComponent
                                         itinerary={itinerary}
                                         index={index}
                                         value={value}
@@ -1935,7 +1983,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         loading={loading}
                                       />
                                     </div>
-                                    
+
                                     {/* Transport Details Section */}
                                     <div className="mt-4 border-t border-slate-100 pt-4">
                                       <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
@@ -1979,26 +2027,26 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                         <div className="space-y-4">
                                           <FormItem>
                                             <div className="space-y-4">                                              <FormItem>
-                                                <Select
-                                                  disabled={loading}
-                                                  onValueChange={(selectedActivityId) =>
-                                                    handleActivitySelection(selectedActivityId, index, activityIndex)
-                                                  }
-                                                >
-                                                  <SelectTrigger className="bg-white">
-                                                    <SelectValue placeholder="Select an Activity" />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    {activitiesMaster?.map((activityMaster) => (
-                                                      <SelectItem key={activityMaster.id} value={activityMaster.id}>
-                                                        {activityMaster.activityMasterTitle}
-                                                      </SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                              </FormItem>
-                                              
+                                              <Select
+                                                disabled={loading}
+                                                onValueChange={(selectedActivityId) =>
+                                                  handleActivitySelection(selectedActivityId, index, activityIndex)
+                                                }
+                                              >
+                                                <SelectTrigger className="bg-white">
+                                                  <SelectValue placeholder="Select an Activity" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {activitiesMaster?.map((activityMaster) => (
+                                                    <SelectItem key={activityMaster.id} value={activityMaster.id}>
+                                                      {activityMaster.activityMasterTitle}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                              <FormMessage />
+                                            </FormItem>
+
                                               {/* Activity Title */}
                                               <FormItem>
                                                 <FormLabel>Activity Title</FormLabel>
@@ -2016,7 +2064,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                   />
                                                 </FormControl>
                                               </FormItem>
-                                              
+
                                               {/* Activity Description */}
                                               <FormItem>
                                                 <FormLabel>Description</FormLabel>
@@ -2034,7 +2082,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                   />
                                                 </FormControl>
                                               </FormItem>
-                                              
+
                                               {/* Activity Images */}
                                               <FormItem>
                                                 <FormLabel>Activity Images</FormLabel>
@@ -2052,7 +2100,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                                                     }}
                                                     onRemove={(url) => {
                                                       const newItineraries = [...value];
-                                                      newItineraries[index].activities[activityIndex].activityImages = 
+                                                      newItineraries[index].activities[activityIndex].activityImages =
                                                         newItineraries[index].activities[activityIndex].activityImages?.filter(img => img.url !== url) || [];
                                                       onChange(newItineraries);
                                                     }}

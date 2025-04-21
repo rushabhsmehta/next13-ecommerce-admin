@@ -760,9 +760,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                 <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
                                   {transport.vehicleType.name || 'Car'}
                                 </span>
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                                {/* <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                                   {transport.transportType || 'Per Day'}
-                                </span>
+                                </span> */}
                               </div>
                               <p className="text-sm text-gray-600">
                                 <span className="font-medium">Number of Vehicles:</span> {transport.quantity || '1'}

@@ -615,7 +615,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                   <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
                                       <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
-                                        Room #{roomIndex + 1}
+                                        Occupancy Type #{roomIndex + 1}
                                       </span>
                                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
                                         {room.roomType.name || 'Standard'}
@@ -696,7 +696,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                   <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
                                       <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
-                                        Room #{roomIndex + 1}
+                                        Occupancy Type #{roomIndex + 1}
                                       </span>
                                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
                                         {room.roomType || 'Standard'}
@@ -709,7 +709,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Quantity:</span> {room.quantity || '1'}
+                                      <span className="font-medium">Number of Rooms :</span> {room.quantity || '1'}
                                       {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
                                     </p>
                                   </div>
@@ -765,7 +765,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                 </span>
                               </div>
                               <p className="text-sm text-gray-600">
-                                <span className="font-medium">Quantity:</span> {transport.quantity || '1'}
+                                <span className="font-medium">Number of Vehicles:</span> {transport.quantity || '1'}
                                 {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
                               </p>
                             </div>

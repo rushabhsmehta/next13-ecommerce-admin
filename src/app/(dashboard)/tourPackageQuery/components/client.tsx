@@ -35,35 +35,36 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
   const uniqueAssignedTo = Array.from(
     new Set(data.map(item => item.assignedTo))
   ).filter(Boolean).sort();
-
   // Apply filters whenever filter state changes
   useEffect(() => {
-    applyFilters(assigneeFilter, confirmationFilter);
+    // Define applyFilters inside useEffect to fix dependency warnings
+    const applyFilters = () => {
+      console.log(`Applying filters - Assignee: ${assigneeFilter}, Status: ${confirmationFilter}`);
+      
+      let result = [...data];
+      
+      // Filter by assignee if not "all"
+      if (assigneeFilter !== "all") {
+        result = result.filter(item => item.assignedTo === assigneeFilter);
+      }
+      
+      // Filter by confirmation status if not "all"
+      if (confirmationFilter !== "all") {
+        const isConfirmed = confirmationFilter === "confirmed";
+        console.log(`Filtering for isConfirmed=${isConfirmed}`);
+        result = result.filter(item => {
+          console.log(`Item ${item.tourPackageQueryName}: isFeatured=${item.isFeatured}`);
+          return item.isFeatured === isConfirmed;
+        });
+      }
+      
+      console.log(`Filter result: ${result.length} items`);
+      setFilteredData(result);
+    };
+    
+    // Apply filters immediately
+    applyFilters();
   }, [assigneeFilter, confirmationFilter, data]);
-
-  const applyFilters = (assignee: string, confirmation: string) => {
-    console.log(`Applying filters - Assignee: ${assignee}, Status: ${confirmation}`);
-    
-    let result = [...data];
-    
-    // Filter by assignee if not "all"
-    if (assignee !== "all") {
-      result = result.filter(item => item.assignedTo === assignee);
-    }
-    
-    // Filter by confirmation status if not "all"
-    if (confirmation !== "all") {
-      const isConfirmed = confirmation === "confirmed";
-      console.log(`Filtering for isConfirmed=${isConfirmed}`);
-      result = result.filter(item => {
-        console.log(`Item ${item.tourPackageQueryName}: isFeatured=${item.isFeatured}`);
-        return item.isFeatured === isConfirmed;
-      });
-    }
-    
-    console.log(`Filter result: ${result.length} items`);
-    setFilteredData(result);
-  };
 
   const handleAssigneeFilterChange = (value: string) => {
     console.log(`Setting assignee filter to: ${value}`);

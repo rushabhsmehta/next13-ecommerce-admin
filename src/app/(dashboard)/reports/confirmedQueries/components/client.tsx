@@ -77,14 +77,29 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
     params.set('startDate', yearStart.toISOString().split('T')[0]);
     params.set('endDate', yearEnd.toISOString().split('T')[0]);
     router.push(`?${params.toString()}`);
-  };
-
-  // Initialize filter on first load if no params are present
+  };  // Initialize filter on first load if no params are present
   useEffect(() => {
+    // Only apply the filter when neither parameter exists
+    // This prevents unnecessary navigation loops
     if (!searchParams.has('startDate') && !searchParams.has('endDate')) {
-      applyDateFilter();
+      // Create a local version of applyDateFilter to avoid dependency issues
+      const initializeFilter = () => {
+        const params = new URLSearchParams(searchParams.toString());
+        
+        if (startDateValue) {
+          params.set('startDate', startDateValue.toISOString().split('T')[0]);
+        }
+        
+        if (endDateValue) {
+          params.set('endDate', endDateValue.toISOString().split('T')[0]);
+        }
+        
+        router.push(`?${params.toString()}`);
+      };
+      
+      initializeFilter();
     }
-  }, []);
+  }, [searchParams, startDateValue, endDateValue, router]);
 
   return (
     <> 

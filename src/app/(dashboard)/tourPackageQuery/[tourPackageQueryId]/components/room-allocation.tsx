@@ -116,15 +116,16 @@ const TransportDetailsComponent: React.FC<TransportDetailsComponentProps> = ({ i
   const { fields, append, remove } = useFieldArray({
     control,
     name: `itineraries.${itineraryIndex}.transportDetails`
-  });
-  return (
+  });  return (
     <div className="space-y-3 border p-3 rounded-md">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold">Transport Details</h4>
         <Button type="button" variant="outline" size="sm" onClick={() => append({ vehicleTypeId: '', transportType: '', quantity: 1, description: '' })} disabled={loading}>
           <Plus className="h-4 w-4 mr-1" /> Add Transport
         </Button>
-      </div>      {fields.length === 0 ? (
+      </div>
+      
+      {fields.length === 0 ? (
         <p className="text-sm text-gray-500">No transport details. Click &quot;Add Transport&quot;.</p>
       ) : (
         <div className="space-y-3">

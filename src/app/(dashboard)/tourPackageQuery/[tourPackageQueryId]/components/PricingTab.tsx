@@ -28,6 +28,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
+import { format } from "date-fns"; // Import format
 
 // Define the props interface
 interface PricingTabProps {
@@ -62,6 +63,9 @@ const PricingTab: React.FC<PricingTabProps> = ({
 }) => {
   // State for selected calculation method
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>('manual');
+  // State for Tour Package Pricing selection criteria
+  const [selectedOccupancyTypeId, setSelectedOccupancyTypeId] = useState<string | null>(null);
+  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);
 
   // Set up field array for pricing section
   const {
@@ -102,8 +106,31 @@ const PricingTab: React.FC<PricingTabProps> = ({
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
     }
+    // --- Get selection criteria --- 
+    if (!selectedOccupancyTypeId) {
+      toast.error("Please select an Occupancy Type for Tour Package Pricing.");
+      return;
+    }
+    if (!selectedMealPlanId) {
+      toast.error("Please select a Meal Plan for Tour Package Pricing.");
+      return;
+    }
+    const queryStartDate = form.getValues('tourStartsFrom');
+    const queryEndDate = form.getValues('tourEndsOn');
+    if (!queryStartDate || !queryEndDate) {
+      toast.error("Please select Tour Start and End Dates first.");
+      return;
+    }
+    const numAdults = parseInt(form.getValues('numAdults') || '0');
+    const numChild5to12 = parseInt(form.getValues('numChild5to12') || '0');
+    const numChild0to5 = parseInt(form.getValues('numChild0to5') || '0');
+    const totalQueryPax = numAdults + numChild5to12 + numChild0to5;
+    if (totalQueryPax <= 0) {
+      toast.error("Please enter the number of guests first.");
+      return;
+    }
 
-    toast.loading("Fetching tour package pricing...");
+    toast.loading("Fetching and matching tour package pricing...");
     try {
       const response = await axios.get(`/api/tourPackages/${tourPackageTemplateId}/pricing`);
       const tourPackagePricings = response.data;
@@ -114,32 +141,38 @@ const PricingTab: React.FC<PricingTabProps> = ({
         return;
       }
 
-      // --- Simplified Logic: Use the first applicable pricing period --- 
-      // TODO: Implement more robust matching based on dates, occupancy, etc.
-      const queryStartDate = form.getValues('tourStartsFrom');
-      const queryEndDate = form.getValues('tourEndsOn');
+      // --- Enhanced Filtering Logic --- 
+      const matchedPricings = tourPackagePricings.filter((p: any) => {
+        const periodStart = new Date(p.startDate);
+        const periodEnd = new Date(p.endDate);
+        const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
+        const isOccupancyMatch = p.occupancyTypeId === selectedOccupancyTypeId;
+        const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
+        const isPaxMatch = p.numPax === totalQueryPax;
 
-      let selectedPricing = null;
-      if (queryStartDate && queryEndDate) {
-        selectedPricing = tourPackagePricings.find((p: any) => {
-          const periodStart = new Date(p.startDate);
-          const periodEnd = new Date(p.endDate);
-          return queryStartDate >= periodStart && queryEndDate <= periodEnd;
-        });
+        return isDateMatch && isOccupancyMatch && isMealPlanMatch && isPaxMatch;
+      });
+
+      if (matchedPricings.length === 0) {
+        toast.error("No matching pricing period found for the selected criteria (Date, Occupancy, Meal Plan, Pax).");
+        return;
       }
 
-      // Fallback to the first pricing if no date match
-      if (!selectedPricing) {
-        selectedPricing = tourPackagePricings[0];
+      if (matchedPricings.length > 1) {
+        // TODO: Handle multiple matches - maybe show a selection dialog?
+        console.warn("Multiple matching pricing periods found:", matchedPricings);
+        toast.error("Multiple pricing periods match the criteria. Cannot automatically apply price. Please refine Tour Package pricing definitions.");
+        return;
       }
 
-      // Calculate total price from components
-      const totalPriceFromComponents = selectedPricing.pricingComponents.reduce((sum: number, comp: any) => {
-        const price = parseFloat(comp.price || '0');
-        return sum + (isNaN(price) ? 0 : price);
-      }, 0);
+      // --- Apply the uniquely matched pricing --- 
+      const selectedPricing = matchedPricings[0];
 
-      form.setValue('totalPrice', totalPriceFromComponents.toString());
+      // Use the pre-calculated tourPackagePrice from the matched period
+      const matchedTotalPrice = parseFloat(selectedPricing.tourPackagePrice || '0');
+
+      // Always attempt to set the price, even if it's 0 or NaN resulted in 0
+      form.setValue('totalPrice', matchedTotalPrice.toString());
       // Map TourPackagePricing components to TourPackageQuery pricingSection
       form.setValue('pricingSection', selectedPricing.pricingComponents.map((comp: any) => ({
         name: comp.name || '',
@@ -151,7 +184,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
     } catch (error) {
       toast.dismiss();
-      console.error("Error fetching tour package pricing:", error);
+      console.error("Error fetching/applying tour package pricing:", error);
       toast.error("Failed to fetch or apply tour package pricing.");
     }
   };
@@ -585,18 +618,84 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
         {/* Use Tour Package Pricing Section */}
         {calculationMethod === 'autoTourPackage' && (
-          <div className="border border-green-100 bg-green-50 rounded-lg p-4">
+          <div className="border border-green-100 bg-green-50 rounded-lg p-4 space-y-4"> {/* Added space-y-4 */}
             <h3 className="text-lg font-semibold text-green-800 mb-3">Use Tour Package Pricing</h3>
-            <p className="text-sm text-green-700 mb-4">
-              Fetch pre-defined pricing periods from the selected Tour Package Template (in Basic Info tab).
+            <p className="text-sm text-green-700">
+              Fetch pre-defined pricing based on the selected Tour Package Template, Occupancy, Meal Plan, and Pax count.
               This will overwrite the current Total Price and Pricing Options below.
             </p>
+
+            {/* Selection Criteria Inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Occupancy Type Select */}
+              <FormItem>
+                <FormLabel>Occupancy Type</FormLabel>
+                <Select
+                  disabled={loading}
+                  onValueChange={setSelectedOccupancyTypeId} // Use state setter
+                  value={selectedOccupancyTypeId || undefined} // Use state value
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Occupancy Type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {occupancyTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Basic validation message if needed */}
+                {!selectedOccupancyTypeId && <p className="text-sm text-red-500 pt-1">Required</p>}
+              </FormItem>
+
+              {/* Meal Plan Select */}
+              <FormItem>
+                <FormLabel>Meal Plan</FormLabel>
+                <Select
+                  disabled={loading}
+                  onValueChange={setSelectedMealPlanId} // Use state setter
+                  value={selectedMealPlanId || undefined} // Use state value
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Meal Plan" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {mealPlans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Basic validation message if needed */}
+                {!selectedMealPlanId && <p className="text-sm text-red-500 pt-1">Required</p>}
+              </FormItem>
+
+              {/* Display Pax Count (Readonly from main form) */}
+              <FormItem>
+                <FormLabel>Number of Pax (from Guests tab)</FormLabel>
+                <Input
+                  readOnly
+                  disabled
+                  value={`${parseInt(form.getValues('numAdults') || '0') + parseInt(form.getValues('numChild5to12') || '0') + parseInt(form.getValues('numChild0to5') || '0')} Pax`}
+                  className="bg-gray-100"
+                />
+              </FormItem>
+            </div>
+
+            {/* Fetch Button */}
             <Button
               type="button"
               onClick={handleFetchTourPackagePricing}
               variant="outline"
               className="bg-green-500 hover:bg-green-600 text-white"
-              disabled={loading || !form.getValues('tourPackageTemplate')}
+              disabled={loading || !form.getValues('tourPackageTemplate') || !selectedOccupancyTypeId || !selectedMealPlanId}
             >
               <Calculator className="mr-2 h-4 w-4" />
               Fetch & Apply Tour Package Price
@@ -604,7 +703,6 @@ const PricingTab: React.FC<PricingTabProps> = ({
             {!form.getValues('tourPackageTemplate') && (
               <p className="text-xs text-red-600 mt-2">Select a Tour Package Template in the &apos;Basic Info&apos; tab first.</p>
             )}
-            {/* TODO: Display fetched pricing periods here for selection? */}
           </div>
         )}
 

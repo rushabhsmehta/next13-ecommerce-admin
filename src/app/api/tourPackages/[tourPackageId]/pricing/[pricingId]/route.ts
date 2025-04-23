@@ -14,15 +14,15 @@ export async function GET(
 
     if (!params.pricingId) {
       return new NextResponse("Pricing ID is required", { status: 400 });
-    }
-
-    const pricingPeriod = await prismadb.tourPackagePricing.findUnique({
+    }    const pricingPeriod = await prismadb.tourPackagePricing.findUnique({
       where: {
         id: params.pricingId,
         tourPackageId: params.tourPackageId
       },
       include: {
         occupancyType: true,
+        mealPlan: true,
+        pricingComponents: true,
       }
     });
 
@@ -54,19 +54,19 @@ export async function PATCH(
 
     if (!params.pricingId) {
       return new NextResponse("Pricing ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       startDate, 
       endDate, 
       occupancyTypeId, 
+      mealPlanId,
       numPax,
       tourPackagePrice,
       isPromotional,
       promotionName,
       isActive,
-      description
+      description,
+      pricingComponents
     } = body;
 
     if (!startDate || !endDate) {
@@ -94,8 +94,15 @@ export async function PATCH(
 
     if (!tourPackage) {
       return new NextResponse("Tour Package not found", { status: 404 });
+    }    // First, delete existing pricing components if we're updating them
+    if (pricingComponents) {
+      await prismadb.pricingComponent.deleteMany({
+        where: {
+          tourPackagePricingId: params.pricingId
+        }
+      });
     }
-
+    
     // Update the pricing record
     const updatedPricing = await prismadb.tourPackagePricing.update({
       where: {
@@ -105,12 +112,24 @@ export async function PATCH(
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         occupancyTypeId,
+        mealPlanId: mealPlanId || null,
         numPax,
         tourPackagePrice,
         isPromotional: isPromotional || false,
         promotionName: promotionName || null,
         isActive: isActive !== undefined ? isActive : true,
-        description: description || null
+        description: description || null,
+        // Create new pricing components if provided
+        pricingComponents: pricingComponents?.length > 0 ? {
+          create: pricingComponents.map((component: any) => ({
+            name: component.name,
+            price: component.price?.toString() || "",
+            description: component.description || ""
+          }))
+        } : undefined
+      },
+      include: {
+        pricingComponents: true
       }
     });
 

@@ -26,9 +26,7 @@ export async function GET(
           { endDate: { gte: new Date(startDate) } }
         ]
       };
-    }
-    
-    const tourPackagePricing = await prismadb.tourPackagePricing.findMany({
+    }    const tourPackagePricing = await prismadb.tourPackagePricing.findMany({
       where: {
         tourPackageId: params.tourPackageId,
         isActive: true,
@@ -36,6 +34,8 @@ export async function GET(
       },
       include: {
         occupancyType: true,
+        mealPlan: true,
+        pricingComponents: true,
       },
       orderBy: {
         startDate: 'asc'
@@ -63,17 +63,18 @@ export async function POST(
     if (!params.tourPackageId) {
       return new NextResponse("Tour Package ID is required", { status: 400 });
     }
-    
-    const body = await req.json();
+      const body = await req.json();
     const { 
       startDate, 
       endDate, 
-      occupancyTypeId, 
+      occupancyTypeId,
+      mealPlanId, 
       numPax,
       tourPackagePrice,
       isPromotional,
       promotionName,
-      description
+      description,
+      pricingComponents
     } = body;
 
     if (!startDate || !endDate) {
@@ -101,21 +102,31 @@ export async function POST(
 
     if (!tourPackage) {
       return new NextResponse("Tour Package not found", { status: 404 });
-    }
-
-    // Create the tour package pricing record
+    }    // Create the tour package pricing record
     const tourPackagePricing = await prismadb.tourPackagePricing.create({
       data: {
         tourPackageId: params.tourPackageId,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         occupancyTypeId,
+        mealPlanId: mealPlanId || null,
         numPax,
         tourPackagePrice,
         isPromotional: isPromotional || false,
         promotionName: promotionName || null,
         description: description || null,
-        isActive: true
+        isActive: true,
+        // Add pricing components if provided
+        pricingComponents: pricingComponents?.length > 0 ? {
+          create: pricingComponents.map((component: any) => ({
+            name: component.name,
+            price: component.price?.toString() || "",
+            description: component.description || ""
+          }))
+        } : undefined
+      },
+      include: {
+        pricingComponents: true
       }
     });
 

@@ -602,7 +602,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
               Fetch & Apply Tour Package Price
             </Button>
             {!form.getValues('tourPackageTemplate') && (
-              <p className="text-xs text-red-600 mt-2">Select a Tour Package Template in the 'Basic Info' tab first.</p>
+              <p className="text-xs text-red-600 mt-2">Select a Tour Package Template in the &apos;Basic Info&apos; tab first.</p>
             )}
             {/* TODO: Display fetched pricing periods here for selection? */}
           </div>

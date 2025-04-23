@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
 import { toast } from "react-hot-toast"
+import { DEFAULT_PRICING_SECTION } from "../components/defaultValues"
 import { 
   CalendarIcon, 
   Check, 
@@ -193,8 +194,7 @@ export default function TourPackagePricingPage() {
         console.error(error)
       }
     }
-    
-    const fetchPricingComponents = async () => {
+      const fetchPricingComponents = async () => {
       try {
         const response = await axios.get('/api/pricing-components')
         const components = response.data
@@ -208,10 +208,22 @@ export default function TourPackagePricingPage() {
             price: comp.price || '',
             description: comp.description || ''
           })))
+        } else {
+          // If no components are returned from the API, use the default pricing components
+          setAvailablePricingComponents(DEFAULT_PRICING_SECTION)
+          
+          // Update the form with the default pricing components
+          form.setValue('pricingComponents', DEFAULT_PRICING_SECTION)
+          console.log('Loaded default pricing components:', DEFAULT_PRICING_SECTION)
         }
       } catch (error) {
-        toast.error("Failed to fetch pricing components")
+        // If there's an error fetching components, also use the default pricing
+        toast.error("Failed to fetch pricing components, using defaults")
         console.error(error)
+        
+        // Set available components and form value to default pricing
+        setAvailablePricingComponents(DEFAULT_PRICING_SECTION)
+        form.setValue('pricingComponents', DEFAULT_PRICING_SECTION)
       } finally {
         setLoading(false)
       }
@@ -325,11 +337,66 @@ export default function TourPackagePricingPage() {
     } finally {
       setLoading(false)
     }
+  };  
+  const addComponent = () => {
+    // Check if we have default components to use as a template
+    if (availablePricingComponents.length > 0) {
+      // Get the last component from available components to use as template
+      const templateComponent = availablePricingComponents[availablePricingComponents.length - 1];
+      append({ 
+        name: templateComponent.name || "", 
+        price: templateComponent.price || "", 
+        description: templateComponent.description || "" 
+      });
+    } else {
+      // If no defaults available, add empty component
+      append({ name: "", price: "", description: "" });
+    }
   }
 
-  const addComponent = () => {
-    append({ name: "", price: "", description: "" });
-  }
+  const loadDefaultPricing = async () => {
+    try {
+      setLoading(true);
+      toast.loading('Loading default pricing components...');
+      
+      // Fetch the tour package details which should include default pricing components
+      const response = await axios.get(`/api/tourPackages/${tourPackageId}/default-pricing`);
+      
+      if (response.data && response.data.components) {
+        // Update form with default pricing components from the tour package
+        form.setValue('pricingComponents', response.data.components.map((comp: any) => ({
+          name: comp.name || '',
+          price: comp.price || '',
+          description: comp.description || ''
+        })));
+        
+        // If there are other default values we want to set, we can do that here
+        if (response.data.occupancyTypeId) {
+          form.setValue('occupancyTypeId', response.data.occupancyTypeId);
+        }
+        
+        if (response.data.mealPlanId) {
+          form.setValue('mealPlanId', response.data.mealPlanId);
+        }
+        
+        if (response.data.numPax) {
+          form.setValue('numPax', response.data.numPax);
+        }
+
+        toast.dismiss();
+        toast.success('Default pricing components loaded successfully!');
+      } else {
+        toast.dismiss();
+        toast.error('No default pricing components found for this tour package');
+      }
+    } catch (error) {
+      console.error('Error loading default pricing:', error);
+      toast.dismiss();
+      toast.error('Failed to load default pricing components');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex-col">
@@ -378,8 +445,7 @@ export default function TourPackagePricingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Hidden tourPackagePrice field - required by schema but not shown */}
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">                  {/* Hidden tourPackagePrice field - required by schema but not shown */}
                   <FormField
                     control={form.control}
                     name="tourPackagePrice"
@@ -626,14 +692,13 @@ export default function TourPackagePricingPage() {
                     </p>
                     <div className="border rounded-md p-4 space-y-4">
                       {fields.map((component, index) => (
-                        <div key={component.id} className="grid grid-cols-12 gap-3 items-center">
-                          <div className="col-span-5">
+                        <div key={component.id} className="grid grid-cols-12 gap-3 items-center">                          <div className="col-span-5">
                             <FormField
                               control={form.control}
                               name={`pricingComponents.${index}.name`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Name</FormLabel>
+                                  {index === 0 && <FormLabel>Name</FormLabel>}
                                   <FormControl>
                                     <Input {...field} placeholder="Component Name" />
                                   </FormControl>
@@ -648,9 +713,9 @@ export default function TourPackagePricingPage() {
                               name={`pricingComponents.${index}.price`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Price</FormLabel>
+                                  {index === 0 && <FormLabel>Price</FormLabel>}
                                   <FormControl>
-                                    <Input {...field} placeholder="Price" />
+                                    <Input {...field} placeholder="Enter amount" />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -663,9 +728,9 @@ export default function TourPackagePricingPage() {
                               name={`pricingComponents.${index}.description`}
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Description</FormLabel>
+                                  {index === 0 && <FormLabel>Description</FormLabel>}
                                   <FormControl>
-                                    <Input {...field} placeholder="Description" />
+                                    <Input {...field} placeholder="Optional note" />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>

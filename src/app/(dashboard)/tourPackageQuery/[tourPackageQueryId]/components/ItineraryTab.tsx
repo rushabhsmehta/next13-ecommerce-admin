@@ -65,8 +65,8 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   itinerariesMaster,
   form
 }) => {
-  const editor = useRef(null);
-  
+  // Create a refs object to store multiple editor references instead of a single ref
+  const editorsRef = useRef<{[key: string]: any}>({});
   // Handle saving to master itinerary
   const handleSaveToMasterItinerary = async (itinerary: any) => {
     try {
@@ -289,49 +289,48 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                           </Popover>
                         </div>
                         <div className="col-span-2">
-                          <div className="grid grid-cols-1 gap-5">
-                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
+                          <div className="grid grid-cols-1 gap-5">                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
                               <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
                                 <Type className="h-4 w-4" />
                                 <span>Title</span>
                               </FormLabel>
                               <FormControl>
                                 <JoditEditor
-                                  ref={editor}
+                                  ref={(node) => editorsRef.current[`title-${index}`] = node}
                                   value={itinerary.itineraryTitle || ''}
                                   config={{
                                     readonly: loading,
                                     toolbar: true,
                                     theme: 'default',
                                   }}
-                                  onChange={(e) => {
+                                  onBlur={(newContent) => {
                                     const newItineraries = [...value]
-                                    newItineraries[index] = { ...itinerary, itineraryTitle: e }
+                                    newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
                                     onChange(newItineraries)
                                   }}
+                                  onChange={() => {}} // Empty onChange to prevent focus loss
                                 />
                               </FormControl>
-                            </FormItem>
-
-                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
+                            </FormItem>                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
                               <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
                                 <AlignLeft className="h-4 w-4" />
                                 <span>Description</span>
                               </FormLabel>
                               <FormControl>
                                 <JoditEditor
-                                  ref={editor}
+                                  ref={(node) => editorsRef.current[`description-${index}`] = node}
                                   value={itinerary.itineraryDescription || ''}
                                   config={{
                                     readonly: loading,
                                     toolbar: true,
                                     theme: 'default',
                                   }}
-                                  onChange={(e) => {
+                                  onBlur={(newContent) => {
                                     const newItineraries = [...value]
-                                    newItineraries[index] = { ...itinerary, itineraryDescription: e }
+                                    newItineraries[index] = { ...itinerary, itineraryDescription: newContent }
                                     onChange(newItineraries)
                                   }}
+                                  onChange={() => {}} // Empty onChange to prevent focus loss
                                 />
                               </FormControl>
                             </FormItem>

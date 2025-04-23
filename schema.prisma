@@ -73,6 +73,7 @@ model MealPlan {
   roomAllocations    RoomAllocation[]
   itineraries        Itinerary[]      // Added relation to Itinerary
   itinerariesMaster  ItineraryMaster[] // Added relation to ItineraryMaster
+  tourPackagePricings TourPackagePricing[] // Added relation to TourPackagePricing
 }
 
 // Model for configurable room types
@@ -502,6 +503,24 @@ model TourPackage {
   @@index([locationId])
 }
 
+// Model for pricing components that can be associated with tour packages
+model PricingComponent {
+  id                String       @id @default(uuid())
+  name              String       // E.g., "Per Person Cost", "Air Fare", etc.
+  price             String?      // Price as string to allow for flexible formatting
+  description       String?      @db.Text
+  
+  // Relation to tour package pricing
+  tourPackagePricingId String?
+  tourPackagePricing   TourPackagePricing? @relation(fields: [tourPackagePricingId], references: [id], onDelete: Cascade)
+  
+  // Track creation and updates
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  @@index([tourPackagePricingId])
+}
+
 // New model for tour package pricing with occupancy types and PAX counts
 model TourPackagePricing {
   id                String       @id @default(uuid())
@@ -514,9 +533,16 @@ model TourPackagePricing {
   occupancyTypeId   String
   occupancyType     OccupancyType @relation(fields: [occupancyTypeId], references: [id])
   
+  // Relation to meal plan
+  mealPlanId        String?
+  mealPlan          MealPlan?    @relation(fields: [mealPlanId], references: [id])
+  
+  // Relation to pricing components
+  pricingComponents PricingComponent[]
+  
   // PAX (passenger) specific fields
   numPax            Int          @default(1)    // number of passengers
-  tourPackagePrice  Int                         // Price for Tou Package
+  tourPackagePrice  Int                         // Price for Tour Package
   // Additional fields
   isPromotional     Boolean      @default(false)  // Whether this is a promotional rate
   promotionName     String?                      // Name of promotion if applicable
@@ -527,6 +553,7 @@ model TourPackagePricing {
 
   @@index([tourPackageId])
   @@index([occupancyTypeId])
+  @@index([mealPlanId])
   @@index([startDate, endDate]) // For efficient date range queries
 }
 

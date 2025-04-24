@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
 import { toast } from "react-hot-toast"
-import { DEFAULT_PRICING_SECTION } from "../components/defaultValues"
 import { 
   CalendarIcon, 
   Check, 
@@ -52,6 +51,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -65,12 +71,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { Badge } from "@/components/ui/badge"
 
-// Define a schema for pricing components
+// Define a schema for pricing components using the new model structure
 const pricingComponentSchema = z.object({
-  name: z.string(),
-  price: z.string().optional(),
-  description: z.string().optional(),
+  pricingAttributeId: z.string({
+    required_error: "Pricing attribute is required",
+  }),
+  price: z.coerce.number().min(0, {
+    message: "Price must be at least 0",
+  }),
 });
 
 const pricingFormSchema = z.object({
@@ -90,7 +100,7 @@ const pricingFormSchema = z.object({
   }).min(1, {
     message: "Number of PAX must be at least 1",
   }),
-  pricingComponents: z.array(pricingComponentSchema).optional(),
+  pricingComponents: z.array(pricingComponentSchema),
   tourPackagePrice: z.coerce.number({
     required_error: "Price is required",
     invalid_type_error: "Price must be a number",
@@ -107,12 +117,9 @@ const pricingFormSchema = z.object({
   },
   {
     message: "End date must be after start date",
-    path: ["endDate"], // This indicates which field has the error
+    path: ["endDate"],
   }
 )
-
-// We'll dynamically fetch pricing components from the API
-// No hardcoded fallbacks - strictly using model values
 
 type PricingFormValues = z.infer<typeof pricingFormSchema>
 
@@ -127,10 +134,11 @@ export default function TourPackagePricingPage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  // Add state variables for configuration items
+  
+  // Configuration items
   const [occupancyTypes, setOccupancyTypes] = useState<any[]>([])
   const [mealPlans, setMealPlans] = useState<any[]>([])
-  const [availablePricingComponents, setAvailablePricingComponents] = useState<any[]>([])
+  const [pricingAttributes, setPricingAttributes] = useState<any[]>([])
   
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
@@ -140,11 +148,11 @@ export default function TourPackagePricingPage() {
       occupancyTypeId: "",
       mealPlanId: "",
       numPax: 1,
-      tourPackagePrice: 0, // Always set to 0 since we're not using this field
+      tourPackagePrice: 0,
       isPromotional: false,
       promotionName: "",
       description: "",
-      pricingComponents: [], // Empty array - will be populated from API
+      pricingComponents: [],
     }
   })
   
@@ -194,36 +202,15 @@ export default function TourPackagePricingPage() {
         console.error(error)
       }
     }
-      const fetchPricingComponents = async () => {
+    
+    const fetchPricingAttributes = async () => {
       try {
-        const response = await axios.get('/api/pricing-components')
-        const components = response.data
-        
-        if (components.length > 0) {
-          setAvailablePricingComponents(components)
-          
-          // Update the form with the fetched components
-          form.setValue('pricingComponents', components.map((comp: { name: string, price?: string, description?: string }) => ({
-            name: comp.name,
-            price: comp.price || '',
-            description: comp.description || ''
-          })))
-        } else {
-          // If no components are returned from the API, use the default pricing components
-          setAvailablePricingComponents(DEFAULT_PRICING_SECTION)
-          
-          // Update the form with the default pricing components
-          form.setValue('pricingComponents', DEFAULT_PRICING_SECTION)
-          console.log('Loaded default pricing components:', DEFAULT_PRICING_SECTION)
-        }
+        // Only fetch active pricing attributes
+        const response = await axios.get('/api/pricing-attributes?isActive=true')
+        setPricingAttributes(response.data)
       } catch (error) {
-        // If there's an error fetching components, also use the default pricing
-        toast.error("Failed to fetch pricing components, using defaults")
+        toast.error("Failed to fetch pricing attributes")
         console.error(error)
-        
-        // Set available components and form value to default pricing
-        setAvailablePricingComponents(DEFAULT_PRICING_SECTION)
-        form.setValue('pricingComponents', DEFAULT_PRICING_SECTION)
       } finally {
         setLoading(false)
       }
@@ -233,619 +220,622 @@ export default function TourPackagePricingPage() {
     fetchPricingPeriods()
     fetchOccupancyTypes()
     fetchMealPlans()
-    fetchPricingComponents()
-  }, [tourPackageId, form])
+    fetchPricingAttributes()
+  }, [tourPackageId])
 
   const onSubmit = async (data: PricingFormValues) => {
     try {
       setLoading(true)
       
-      // Always set tourPackagePrice to 0 since we're focusing only on components
-      data.tourPackagePrice = 0;
-      
       if (isEditMode && editId) {
-        // Update existing pricing period
         await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${editId}`, data)
-        toast.success("Pricing period updated")
+        toast.success("Pricing period updated successfully")
       } else {
-        // Create new pricing period
         await axios.post(`/api/tourPackages/${tourPackageId}/pricing`, data)
-        toast.success("Pricing period created")
+        toast.success("Pricing period created successfully")
       }
       
-      // Refresh the pricing periods
-      const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
-      setPricingPeriods(response.data)
-      
-      // Reset the form and UI state
-      form.reset({
-        startDate: new Date(),
-        endDate: new Date(),
-        occupancyTypeId: "",
-        mealPlanId: "",
-        numPax: 1,
-        tourPackagePrice: 0,
-        isPromotional: false,
-        promotionName: "",
-        description: "",
-        pricingComponents: availablePricingComponents.map(comp => ({
-          name: comp.name,
-          price: comp.price || '',
-          description: comp.description || ''
-        })),
-      })
-      
+      // Reset form state
+      setShowForm(false)
       setIsEditMode(false)
       setEditId(null)
-      setShowForm(false)
-    } catch (error) {
+      form.reset()
+      
+      // Refresh pricing periods
+      const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
+      setPricingPeriods(response.data)
+    } catch (error: any) {
+      toast.error(error.response?.data || "Failed to save pricing period")
       console.error(error)
-      toast.error("Something went wrong")
     } finally {
       setLoading(false)
     }
   }
 
-  const onDelete = async (id: string) => {
+  const handleEdit = async (pricingPeriod: any) => {
+    setIsEditMode(true)
+    setEditId(pricingPeriod.id)
+    setShowForm(true)
+    
+    // Map pricing components to the form schema structure
+    const formattedPricingComponents = pricingPeriod.pricingComponents.map((comp: any) => ({
+      pricingAttributeId: comp.pricingAttributeId,
+      price: parseFloat(comp.price),
+    }))
+
+    form.reset({
+      startDate: new Date(pricingPeriod.startDate),
+      endDate: new Date(pricingPeriod.endDate),
+      occupancyTypeId: pricingPeriod.occupancyTypeId,
+      mealPlanId: pricingPeriod.mealPlanId || "",
+      numPax: pricingPeriod.numPax,
+      tourPackagePrice: pricingPeriod.tourPackagePrice,
+      isPromotional: pricingPeriod.isPromotional,
+      promotionName: pricingPeriod.promotionName || "",
+      description: pricingPeriod.description || "",
+      pricingComponents: formattedPricingComponents,
+    })
+
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDelete = async (id: string) => {
     try {
       setLoading(true)
       await axios.delete(`/api/tourPackages/${tourPackageId}/pricing/${id}`)
-      toast.success("Pricing period deleted")
+      toast.success("Pricing period deleted successfully")
       
-      // Refresh the pricing periods
+      // Refresh pricing periods
       const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
       setPricingPeriods(response.data)
     } catch (error) {
+      toast.error("Failed to delete pricing period")
       console.error(error)
-      toast.error("Something went wrong")
     } finally {
       setLoading(false)
     }
   }
 
-  const onEdit = async (id: string) => {
-    try {
-      setLoading(true)
-      const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing/${id}`)
-      const pricingPeriod = response.data
-      
-      form.reset({
-        startDate: new Date(pricingPeriod.startDate),
-        endDate: new Date(pricingPeriod.endDate),
-        occupancyTypeId: pricingPeriod.occupancyTypeId,
-        mealPlanId: pricingPeriod.mealPlanId || "",
-        numPax: pricingPeriod.numPax,
-        tourPackagePrice: 0, // Always set to 0 since we're focusing only on components
-        isPromotional: pricingPeriod.isPromotional,
-        promotionName: pricingPeriod.promotionName || "",
-        description: pricingPeriod.description || "",
-        pricingComponents: pricingPeriod.pricingComponents?.length > 0 
-          ? pricingPeriod.pricingComponents 
-          : availablePricingComponents.map(comp => ({
-              name: comp.name,
-              price: comp.price || '',
-              description: comp.description || ''
-            })),
+  const handleAddComponent = () => {
+    // Only add if there are pricing attributes available
+    if (pricingAttributes.length > 0) {
+      append({
+        pricingAttributeId: pricingAttributes[0].id,
+        price: 0,
       })
-      
-      setIsEditMode(true)
-      setEditId(id)
-      setShowForm(true)
-    } catch (error) {
-      console.error(error)
-      toast.error("Something went wrong")
-    } finally {
-      setLoading(false)
-    }
-  };  
-  const addComponent = () => {
-    // Check if we have default components to use as a template
-    if (availablePricingComponents.length > 0) {
-      // Get the last component from available components to use as template
-      const templateComponent = availablePricingComponents[availablePricingComponents.length - 1];
-      append({ 
-        name: templateComponent.name || "", 
-        price: templateComponent.price || "", 
-        description: templateComponent.description || "" 
-      });
     } else {
-      // If no defaults available, add empty component
-      append({ name: "", price: "", description: "" });
+      toast.error("No pricing attributes available. Please create pricing attributes first.")
     }
   }
 
-  const loadDefaultPricing = async () => {
-    try {
-      setLoading(true);
-      toast.loading('Loading default pricing components...');
-      
-      // Fetch the tour package details which should include default pricing components
-      const response = await axios.get(`/api/tourPackages/${tourPackageId}/default-pricing`);
-      
-      if (response.data && response.data.components) {
-        // Update form with default pricing components from the tour package
-        form.setValue('pricingComponents', response.data.components.map((comp: any) => ({
-          name: comp.name || '',
-          price: comp.price || '',
-          description: comp.description || ''
-        })));
-        
-        // If there are other default values we want to set, we can do that here
-        if (response.data.occupancyTypeId) {
-          form.setValue('occupancyTypeId', response.data.occupancyTypeId);
-        }
-        
-        if (response.data.mealPlanId) {
-          form.setValue('mealPlanId', response.data.mealPlanId);
-        }
-        
-        if (response.data.numPax) {
-          form.setValue('numPax', response.data.numPax);
-        }
-
-        toast.dismiss();
-        toast.success('Default pricing components loaded successfully!');
-      } else {
-        toast.dismiss();
-        toast.error('No default pricing components found for this tour package');
-      }
-    } catch (error) {
-      console.error('Error loading default pricing:', error);
-      toast.dismiss();
-      toast.error('Failed to load default pricing components');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Helper function to find pricing attribute name by ID
+  const getPricingAttributeName = (id: string) => {
+    const attribute = pricingAttributes.find(attr => attr.id === id)
+    return attribute ? attribute.name : "Unknown Attribute"
+  }
 
   return (
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between">
-          <Heading
-            title="Pricing Components"
-            description={`Manage component-based pricing for ${tourPackage?.tourPackageName || 'this tour package'}`}
-          />
-          {!showForm && (
-            <Button onClick={() => {
-              setIsEditMode(false)
-              setEditId(null)
-              form.reset({
-                startDate: new Date(),
-                endDate: new Date(),
-                occupancyTypeId: "",
-                mealPlanId: "",
-                numPax: 1,
-                tourPackagePrice: 0,
-                isPromotional: false,
-                promotionName: "",
-                description: "",
-                pricingComponents: availablePricingComponents.map(comp => ({
-                  name: comp.name,
-                  price: comp.price || '',
-                  description: comp.description || ''
-                })),
-              })
-              setShowForm(true)
-            }}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add New Pricing
-            </Button>
-          )}
-        </div>
-        <Separator />
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <Heading
+          title="Seasonal Pricing"
+          description={`Manage pricing for ${tourPackage?.tourPackageName || 'this tour package'}`}
+        />
         
-        {/* Pricing Form - Only shown when adding/editing */}
-        {showForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{isEditMode ? "Edit Pricing Components" : "Add New Pricing Components"}</CardTitle>
-              <CardDescription>
-                Define a set of pricing components for this tour package for a specific period and occupancy type.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">                  {/* Hidden tourPackagePrice field - required by schema but not shown */}
+        {!showForm && (
+          <Button onClick={() => {
+            setIsEditMode(false)
+            setEditId(null)
+            form.reset({
+              startDate: new Date(),
+              endDate: new Date(),
+              occupancyTypeId: "",
+              mealPlanId: "",
+              numPax: 1,
+              tourPackagePrice: 0,
+              isPromotional: false,
+              promotionName: "",
+              description: "",
+              pricingComponents: [],
+            })
+            setShowForm(true)
+          }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Pricing Period
+          </Button>
+        )}
+      </div>
+      
+      <Separator className="my-4" />
+      
+      {/* Form for adding/editing pricing periods */}
+      {showForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{isEditMode ? "Edit Pricing Period" : "Add New Pricing Period"}</CardTitle>
+            <CardDescription>
+              Define pricing for a specific date range, occupancy type, and number of people
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {/* Start Date */}
                   <FormField
                     control={form.control}
-                    name="tourPackagePrice"
+                    name="startDate"
                     render={({ field }) => (
-                      <FormItem className="hidden">
-                        <FormControl>
-                          <Input type="number" {...field} value={0} />
-                        </FormControl>
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => date && field.onChange(date)}
+                              disabled={(date) =>
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  {/* Basic Details - First Section */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Period & Occupancy</h3>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="startDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Start Date</FormLabel>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <FormControl>
-                                      <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                          "w-full pl-3 text-left font-normal",
-                                          !field.value && "text-muted-foreground"
-                                        )}
-                                      >
-                                        {field.value ? (
-                                          format(field.value, "PPP")
-                                        ) : (
-                                          <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                      </Button>
-                                    </FormControl>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                      mode="single"
-                                      selected={field.value}
-                                      onSelect={(date) => date && field.onChange(date)}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="endDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>End Date</FormLabel>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <FormControl>
-                                      <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                          "w-full pl-3 text-left font-normal",
-                                          !field.value && "text-muted-foreground"
-                                        )}
-                                      >
-                                        {field.value ? (
-                                          format(field.value, "PPP")
-                                        ) : (
-                                          <span>Pick a date</span>
-                                        )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                      </Button>
-                                    </FormControl>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                      mode="single"
-                                      selected={field.value}
-                                      onSelect={(date) => date && field.onChange(date)}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <FormField
-                          control={form.control}
-                          name="occupancyTypeId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Occupancy Type</FormLabel>
-                              <Select 
-                                disabled={loading} 
-                                onValueChange={field.onChange} 
-                                value={field.value}
-                                defaultValue={field.value}
+                  {/* End Date */}
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>End Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
                               >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select an occupancy type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {occupancyTypes.map((type) => (
-                                    <SelectItem key={type.id} value={type.id}>
-                                      {type.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="numPax"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Number of PAX</FormLabel>
-                              <FormControl>
-                                <Input type="number" min={1} {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                The number of passengers for this pricing.
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Additional Details</h3>
-                      <div className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="mealPlanId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Meal Plan (Optional)</FormLabel>
-                              <Select 
-                                disabled={loading} 
-                                onValueChange={field.onChange} 
-                                value={field.value}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a meal plan" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
-                                  {mealPlans.map((plan) => (
-                                    <SelectItem key={plan.id} value={plan.id}>
-                                      {plan.name} ({plan.code})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="isPromotional"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={(checked) => field.onChange(checked === "indeterminate" ? false : checked)}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>
-                                  Promotional Price
-                                </FormLabel>
-                                <FormDescription>
-                                  Mark this as a promotional or special offer price.
-                                </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                        
-                        {form.watch("isPromotional") && (
-                          <FormField
-                            control={form.control}
-                            name="promotionName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Promotion Name</FormLabel>
-                                <FormControl>
-                                  <Input {...field} placeholder="Summer Special" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                        
-                        <FormField
-                          control={form.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description (Optional)</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  {...field} 
-                                  placeholder="Additional notes about these pricing components..."
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>                  </div>
+                                {field.value ? (
+                                  format(field.value, "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => date && field.onChange(date)}
+                              disabled={(date) =>
+                                date < new Date(new Date().setHours(0, 0, 0, 0))
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
-                  {/* Pricing Components Section - Now below basic details */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-medium mb-2">Pricing Components</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Define the pricing components for this tour package. Each component represents a specific pricing element.
-                    </p>
-                    <div className="border rounded-md p-4 space-y-4">
-                      {fields.map((component, index) => (
-                        <div key={component.id} className="grid grid-cols-12 gap-3 items-center">                          <div className="col-span-5">
-                            <FormField
-                              control={form.control}
-                              name={`pricingComponents.${index}.name`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  {index === 0 && <FormLabel>Name</FormLabel>}
-                                  <FormControl>
-                                    <Input {...field} placeholder="Component Name" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <div className="col-span-3">
-                            <FormField
-                              control={form.control}
-                              name={`pricingComponents.${index}.price`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  {index === 0 && <FormLabel>Price</FormLabel>}
-                                  <FormControl>
-                                    <Input {...field} placeholder="Enter amount" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <div className="col-span-3">
-                            <FormField
-                              control={form.control}
-                              name={`pricingComponents.${index}.description`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  {index === 0 && <FormLabel>Description</FormLabel>}
-                                  <FormControl>
-                                    <Input {...field} placeholder="Optional note" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <div className="col-span-1">
-                            <Button 
-                              type="button" 
-                              variant="destructive" 
-                              size="icon" 
-                              onClick={() => remove(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
+                  {/* Number of PAX */}
+                  <FormField
+                    control={form.control}
+                    name="numPax"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of PAX</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Total number of passengers
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* Occupancy Type */}
+                  <FormField
+                    control={form.control}
+                    name="occupancyTypeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Occupancy Type</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select occupancy type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {occupancyTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Meal Plan */}
+                  <FormField
+                    control={form.control}
+                    name="mealPlanId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Meal Plan</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select meal plan" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {mealPlans.map((plan) => (
+                              <SelectItem key={plan.id} value={plan.id}>
+                                {plan.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {/* Tour Package Price */}
+                  <FormField
+                    control={form.control}
+                    name="tourPackagePrice"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tour Package Price</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" step="0.01" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Total package price
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Is Promotional */}
+                  <FormField
+                    control={form.control}
+                    name="isPromotional"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) => field.onChange(checked === true)}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Promotional Rate
+                          </FormLabel>
+                          <FormDescription>
+                            Mark this as a special promotional rate
+                          </FormDescription>
                         </div>
-                      ))}
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {/* Promotion Name - only shown if isPromotional is true */}
+                {form.watch("isPromotional") && (
+                  <FormField
+                    control={form.control}
+                    name="promotionName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Promotion Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                {/* Description */}
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Pricing Components Section */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Pricing Components</h3>
+                    <Button 
+                      type="button" 
+                      onClick={handleAddComponent}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Component
+                    </Button>
+                  </div>
+                  
+                  {fields.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-4 border rounded">
+                      No pricing components added. Click "Add Component" to add pricing components.
+                    </p>
+                  ) : (
+                    <div className="border rounded">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Pricing Attribute</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead className="w-[100px]">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {fields.map((field, index) => (
+                            <TableRow key={field.id}>
+                              <TableCell>
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingComponents.${index}.pricingAttributeId`}
+                                  render={({ field }) => (
+                                    <FormItem className="space-y-0">
+                                      <FormControl>
+                                        <Select
+                                          onValueChange={field.onChange}
+                                          defaultValue={field.value}
+                                          value={field.value}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Select pricing attribute" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {pricingAttributes.map((attr) => (
+                                              <SelectItem key={attr.id} value={attr.id}>
+                                                {attr.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingComponents.${index}.price`}
+                                  render={({ field }) => (
+                                    <FormItem className="space-y-0">
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  variant="ghost"
+                                  size="sm"
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowForm(false)
+                      setIsEditMode(false)
+                      setEditId(null)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {isEditMode ? "Update" : "Create"} Pricing Period
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* List of existing pricing periods */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Pricing Periods</h2>
+        
+        {pricingPeriods.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <p className="text-muted-foreground mb-4">No pricing periods defined yet.</p>
+              <Button onClick={() => setShowForm(true)}>Add First Pricing Period</Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {pricingPeriods.map((period) => (
+              <Card key={period.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {format(new Date(period.startDate), 'MMM dd, yyyy')} to {format(new Date(period.endDate), 'MMM dd, yyyy')}
+                        {period.isPromotional && (
+                          <Badge variant="secondary" className="ml-2">
+                            {period.promotionName || 'Promotional'}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        <span className="font-medium">Occupancy:</span> {period.occupancyType?.name} | 
+                        <span className="font-medium"> PAX:</span> {period.numPax} | 
+                        <span className="font-medium"> Meal Plan:</span> {period.mealPlan?.name || 'None'}
+                      </CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
                       <Button
-                        type="button"
                         variant="outline"
-                        onClick={addComponent}
+                        size="sm"
+                        onClick={() => handleEdit(period)}
                       >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Component
+                        <Edit className="h-4 w-4 mr-1" /> Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(period.id)}
+                      >
+                        <Trash className="h-4 w-4 mr-1" /> Delete
                       </Button>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-between pt-4">
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => {
-                        setShowForm(false)
-                        setIsEditMode(false)
-                        setEditId(null)
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {isEditMode ? "Update Pricing Components" : "Create Pricing Components"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        )}
-        
-        {/* Table of existing pricing periods */}
-        <div>
-          {pricingPeriods.length === 0 ? (
-            <div className="flex items-center justify-center h-40">
-              <p className="text-gray-500">No pricing components found. Add one to get started.</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Period</TableHead>
-                  <TableHead>Occupancy Type</TableHead>
-                  <TableHead>Meal Plan</TableHead>
-                  <TableHead>PAX</TableHead>
-                  <TableHead>Pricing Components</TableHead>
-                  <TableHead>Promotion</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pricingPeriods.map((period) => (
-                  <TableRow key={period.id}>
-                    <TableCell>
-                      {format(new Date(period.startDate), "d MMM yyyy")} - {format(new Date(period.endDate), "d MMM yyyy")}
-                    </TableCell>
-                    <TableCell>{period.occupancyType?.name || "Unknown"}</TableCell>
-                    <TableCell>{period.mealPlan ? `${period.mealPlan.name} (${period.mealPlan.code})` : "-"}</TableCell>
-                    <TableCell>{period.numPax}</TableCell>
-                    <TableCell>
-                      {period.pricingComponents?.length ? (
-                        <div className="flex flex-wrap gap-1">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => onEdit(period.id)}
-                          >
-                            {period.pricingComponents.length} components
-                          </Button>
-                        </div>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {period.isPromotional ? (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                          {period.promotionName || "Promo"}
-                        </span>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={() => onEdit(period.id)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => onDelete(period.id)}>
-                          <Trash className="h-4 w-4" />
-                        </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="font-semibold text-base">Total Price:</span>{" "}
+                      {new Intl.NumberFormat('en-IN', { 
+                        style: 'currency',
+                        currency: 'INR' 
+                      }).format(period.tourPackagePrice)}
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-1">Pricing Components:</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Component</TableHead>
+                            <TableHead>Price</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {period.pricingComponents.map((comp: any) => (
+                            <TableRow key={comp.id}>
+                              <TableCell>
+                                {comp.pricingAttribute?.name || "Unknown Component"}
+                              </TableCell>
+                              <TableCell>
+                                {new Intl.NumberFormat('en-IN', { 
+                                  style: 'currency',
+                                  currency: 'INR' 
+                                }).format(parseFloat(comp.price))}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {period.description && (
+                      <div>
+                        <h4 className="font-medium">Notes:</h4>
+                        <p className="text-muted-foreground">{period.description}</p>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Back to Tour Package Button */}
+      <div className="mt-6">
+        <Button
+          variant="outline"
+          onClick={() => router.push(`/tourPackages/${tourPackageId}`)}
+        >
+          Back to Tour Package
+        </Button>
       </div>
     </div>
   )

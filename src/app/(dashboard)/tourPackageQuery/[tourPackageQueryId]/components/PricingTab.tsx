@@ -49,6 +49,13 @@ interface PricingTabProps {
 // Define calculation methods
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'autoTourPackage';
 
+// Define interface for occupancy selection with occurrences
+interface OccupancySelection {
+  occupancyTypeId: string;
+  count: number;
+  paxPerUnit: number;
+}
+
 const PricingTab: React.FC<PricingTabProps> = ({
   control,
   loading,
@@ -64,8 +71,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // State for selected calculation method
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>('manual');
   // State for Tour Package Pricing selection criteria
-  const [selectedOccupancyTypeId, setSelectedOccupancyTypeId] = useState<string | null>(null);
   const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);
+  // State for multiple occupancy selections with counts
+  const [occupancySelections, setOccupancySelections] = useState<OccupancySelection[]>([]);
+  // State for new occupancy being added
+  const [newOccupancyTypeId, setNewOccupancyTypeId] = useState<string>("");
+  const [newOccupancyCount, setNewOccupancyCount] = useState<number>(1);
 
   // Set up field array for pricing section
   const {
@@ -99,6 +110,70 @@ const PricingTab: React.FC<PricingTabProps> = ({
     console.log("Removed pricing item at index", indexToRemove);
   };
 
+  // Function to add a new occupancy selection
+  const handleAddOccupancySelection = () => {
+    if (!newOccupancyTypeId) {
+      toast.error("Please select an occupancy type");
+      return;
+    }
+    
+    // Find the occupancy type to get paxPerUnit
+    const occupancyType = occupancyTypes.find(ot => ot.id === newOccupancyTypeId);
+    if (!occupancyType) {
+      toast.error("Invalid occupancy type selected");
+      return;
+    }
+    
+    // Determine pax per unit based on occupancy type name
+    // This logic can be adjusted based on your specific occupancy types
+    let paxPerUnit = 1; // Default
+    if (occupancyType.name?.toLowerCase().includes('double')) {
+      paxPerUnit = 2;
+    } else if (occupancyType.name?.toLowerCase().includes('triple')) {
+      paxPerUnit = 3;
+    } else if (occupancyType.name?.toLowerCase().includes('quad')) {
+      paxPerUnit = 4;
+    }
+    
+    // Add to selections
+    setOccupancySelections([
+      ...occupancySelections,
+      {
+        occupancyTypeId: newOccupancyTypeId,
+        count: newOccupancyCount,
+        paxPerUnit
+      }
+    ]);
+    
+    // Reset form fields
+    setNewOccupancyTypeId("");
+    setNewOccupancyCount(1);
+  };
+
+  // Function to remove an occupancy selection
+  const handleRemoveOccupancySelection = (index: number) => {
+    setOccupancySelections(occupancySelections.filter((_, i) => i !== index));
+  };
+  // Function to calculate total PAX based on occupancy selections
+  const calculateTotalPax = (): number => {
+    return occupancySelections.reduce((total, selection) => {
+      return total + (selection.count * selection.paxPerUnit);
+    }, 0);
+  };
+  
+  // Function to calculate PAX for pricing matches (only counting Double occupancy)
+  const calculatePricingPax = (): number => {
+    return occupancySelections.reduce((total, selection) => {
+      // Find the occupancy type to check if it's Double
+      const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+      // Only count Double occupancy for pricing match
+      if (occupancyType && occupancyType.name?.toLowerCase().includes('double')) {
+        return total + (selection.count * selection.paxPerUnit);
+      }
+      return total;
+    }, 0);
+  };
+
   // Function to handle fetching and applying Tour Package Pricing
   const handleFetchTourPackagePricing = async () => {
     const tourPackageTemplateId = form.getValues('tourPackageTemplate');
@@ -106,27 +181,37 @@ const PricingTab: React.FC<PricingTabProps> = ({
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
     }
-    // --- Get selection criteria --- 
-    if (!selectedOccupancyTypeId) {
-      toast.error("Please select an Occupancy Type for Tour Package Pricing.");
-      return;
-    }
+    
+    // Check meal plan selection
     if (!selectedMealPlanId) {
       toast.error("Please select a Meal Plan for Tour Package Pricing.");
       return;
     }
+    
+    // Check occupancy selections
+    if (occupancySelections.length === 0) {
+      toast.error("Please add at least one occupancy selection.");
+      return;
+    }
+    
     const queryStartDate = form.getValues('tourStartsFrom');
     const queryEndDate = form.getValues('tourEndsOn');
     if (!queryStartDate || !queryEndDate) {
       toast.error("Please select Tour Start and End Dates first.");
       return;
     }
-    const numAdults = parseInt(form.getValues('numAdults') || '0');
-    const numChild5to12 = parseInt(form.getValues('numChild5to12') || '0');
-    const numChild0to5 = parseInt(form.getValues('numChild0to5') || '0');
-    const totalQueryPax = numAdults + numChild5to12 + numChild0to5;
+      // Calculate pax from Double occupancy selections only for pricing match
+    const pricingQueryPax = calculatePricingPax();
+    // Calculate total pax for validation and display
+    const totalQueryPax = calculateTotalPax();
+    
     if (totalQueryPax <= 0) {
-      toast.error("Please enter the number of guests first.");
+      toast.error("Total number of guests must be greater than 0.");
+      return;
+    }
+    
+    if (pricingQueryPax <= 0) {
+      toast.error("You need at least one Double occupancy selection for tour package pricing.");
       return;
     }
 
@@ -139,46 +224,130 @@ const PricingTab: React.FC<PricingTabProps> = ({
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
         toast.error("No pricing periods found for the selected tour package.");
         return;
-      }
-
-      // --- Enhanced Filtering Logic --- 
+      }      // --- Enhanced Filtering Logic --- 
+      // First, find all possible matches for date range, meal plan and pax count
       const matchedPricings = tourPackagePricings.filter((p: any) => {
         const periodStart = new Date(p.startDate);
         const periodEnd = new Date(p.endDate);
         const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
-        const isOccupancyMatch = p.occupancyTypeId === selectedOccupancyTypeId;
         const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
-        const isPaxMatch = p.numPax === totalQueryPax;
+        // Use ONLY Double occupancy for PAX matching
+        const isPaxMatch = p.numPax === pricingQueryPax;
 
-        return isDateMatch && isOccupancyMatch && isMealPlanMatch && isPaxMatch;
+        return isDateMatch && isMealPlanMatch && isPaxMatch;
       });
 
       if (matchedPricings.length === 0) {
-        toast.error("No matching pricing period found for the selected criteria (Date, Occupancy, Meal Plan, Pax).");
+        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${pricingQueryPax} Double PAX).`);
         return;
       }
 
       if (matchedPricings.length > 1) {
-        // TODO: Handle multiple matches - maybe show a selection dialog?
         console.warn("Multiple matching pricing periods found:", matchedPricings);
         toast.error("Multiple pricing periods match the criteria. Cannot automatically apply price. Please refine Tour Package pricing definitions.");
         return;
+      }      // --- Apply the uniquely matched pricing --- 
+      const selectedPricing = matchedPricings[0];      // First, extract Per Person and Per Couple costs (required for Double occupancy)
+      const perPersonComponent = selectedPricing.pricingComponents.find((comp: any) => 
+        comp.pricingAttribute?.name?.toLowerCase().includes('per person')
+      );
+      
+      const perCoupleComponent = selectedPricing.pricingComponents.find((comp: any) => 
+        comp.pricingAttribute?.name?.toLowerCase().includes('per couple')
+      );
+        // Extract costs ONLY for the specific selected occupancy types
+      const otherOccupancyComponents = occupancySelections
+        .filter(selection => {
+          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+          return occupancyType && !occupancyType.name?.toLowerCase().includes('double');
+        })
+        .map(selection => {
+          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+          const occupancyName = occupancyType?.name?.toLowerCase() || '';
+            // Find components that specifically match this occupancy type
+          return selectedPricing.pricingComponents.find((comp: any) => {
+            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
+            // Exact or close matches for specific occupancy types
+            if (occupancyName.includes('cnb') && compName.includes('cnb')) return true;
+            if (occupancyName.includes('child') && !compName.includes('adult') && 
+                (compName.includes('child') || compName.includes('kid'))) return true;
+            if (occupancyName.includes('extra bed') && 
+                (compName.includes('extra bed') || compName.includes('extrabed'))) return true;
+            if (occupancyName.includes('infant') && compName.includes('infant')) return true;
+            
+            // More specific matching to avoid false positives
+            const occupancyWords = occupancyName.split(/\s+/);
+            for (const word of occupancyWords) {
+              if (word.length > 2 && compName.includes(word)) return true;
+            }
+            
+            return false;
+          });
+        })
+        .filter(Boolean); // Remove any undefined components
+      
+      // Create the final pricing components array
+      const finalPricingComponents = [];
+        // Always add Per Person and Per Couple if available (for Double occupancy)
+      if (perPersonComponent) {
+        finalPricingComponents.push({
+          name: perPersonComponent.pricingAttribute?.name || 'Per Person Cost',
+          price: perPersonComponent.price || '0',
+          description: 'Cost per person'
+        });
       }
+      
+      if (perCoupleComponent) {
+        finalPricingComponents.push({
+          name: perCoupleComponent.pricingAttribute?.name || 'Per Couple Cost',
+          price: perCoupleComponent.price || '0',
+          description: 'Cost per couple'
+        });
+      }
+        // Add other occupancy type specific components
+      otherOccupancyComponents.forEach((comp: any) => {
+        if (comp) {
+          finalPricingComponents.push({
+            name: comp.pricingAttribute?.name || 'Other Cost',
+            price: comp.price || '0',
+            description: ''
+          });
+        }
+      });
+      
+      // Calculate the total price based on all applied components
+      const doubleOccupancySelections = occupancySelections.filter(selection => {
+        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+        return occupancyType && occupancyType.name?.toLowerCase().includes('double');
+      });
+      
+      let totalPrice = 0;
+      
+      // Apply Double occupancy pricing (using Per Couple price)
+      if (perCoupleComponent && doubleOccupancySelections.length > 0) {
+        const perCouplePrice = parseFloat(perCoupleComponent.price || '0');
+        const doubleCoupleCount = doubleOccupancySelections.reduce((total, selection) => {
+          return total + selection.count;
+        }, 0);
+        totalPrice += perCouplePrice * doubleCoupleCount;
+      }
+      
+      // Apply other occupancy pricing
+      occupancySelections.forEach(selection => {
+        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+        if (occupancyType && !occupancyType.name?.toLowerCase().includes('double')) {
+          const matchedComp = selectedPricing.pricingComponents.find((comp: any) => 
+            comp.name?.toLowerCase().includes(occupancyType.name?.toLowerCase() || '')
+          );
+          if (matchedComp) {
+            totalPrice += parseFloat(matchedComp.price || '0') * selection.count;
+          }
+        }
+      });
 
-      // --- Apply the uniquely matched pricing --- 
-      const selectedPricing = matchedPricings[0];
-
-      // Use the pre-calculated tourPackagePrice from the matched period
-      const matchedTotalPrice = parseFloat(selectedPricing.tourPackagePrice || '0');
-
-      // Always attempt to set the price, even if it's 0 or NaN resulted in 0
-      form.setValue('totalPrice', matchedTotalPrice.toString());
-      // Map TourPackagePricing components to TourPackageQuery pricingSection
-      form.setValue('pricingSection', selectedPricing.pricingComponents.map((comp: any) => ({
-        name: comp.name || '',
-        price: comp.price || '',
-        description: comp.description || ''
-      })));
+      // Always attempt to set the price and components
+      form.setValue('totalPrice', totalPrice.toString());
+      form.setValue('pricingSection', finalPricingComponents);
 
       toast.success("Tour package pricing applied successfully!");
 
@@ -618,75 +787,119 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
         {/* Use Tour Package Pricing Section */}
         {calculationMethod === 'autoTourPackage' && (
-          <div className="border border-green-100 bg-green-50 rounded-lg p-4 space-y-4"> {/* Added space-y-4 */}
+          <div className="border border-green-100 bg-green-50 rounded-lg p-4 space-y-4">
             <h3 className="text-lg font-semibold text-green-800 mb-3">Use Tour Package Pricing</h3>
             <p className="text-sm text-green-700">
-              Fetch pre-defined pricing based on the selected Tour Package Template, Occupancy, Meal Plan, and Pax count.
+              Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
               This will overwrite the current Total Price and Pricing Options below.
             </p>
 
-            {/* Selection Criteria Inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Occupancy Type Select */}
-              <FormItem>
-                <FormLabel>Occupancy Type</FormLabel>
-                <Select
-                  disabled={loading}
-                  onValueChange={setSelectedOccupancyTypeId} // Use state setter
-                  value={selectedOccupancyTypeId || undefined} // Use state value
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Occupancy Type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {occupancyTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Basic validation message if needed */}
-                {!selectedOccupancyTypeId && <p className="text-sm text-red-500 pt-1">Required</p>}
-              </FormItem>
+            {/* Meal Plan Selection First */}
+            <FormItem className="space-y-2">
+              <FormLabel>Meal Plan</FormLabel>
+              <Select
+                disabled={loading}
+                onValueChange={setSelectedMealPlanId}
+                value={selectedMealPlanId || undefined}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Meal Plan" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {mealPlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!selectedMealPlanId && <p className="text-sm text-red-500 pt-1">Required</p>}
+            </FormItem>
 
-              {/* Meal Plan Select */}
-              <FormItem>
-                <FormLabel>Meal Plan</FormLabel>
-                <Select
-                  disabled={loading}
-                  onValueChange={setSelectedMealPlanId} // Use state setter
-                  value={selectedMealPlanId || undefined} // Use state value
-                >
-                  <FormControl>
+            {/* Occupancy Selections */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-green-800">Occupancy Selections</h4>
+              
+              {/* Show current selections */}
+              {occupancySelections.length > 0 ? (
+                <div className="space-y-2">
+                  {occupancySelections.map((selection, index) => {
+                    const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+                    return (
+                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200">
+                        <div>
+                          <span className="font-medium">{occupancyType?.name}</span>
+                          <span className="text-sm text-gray-600 ml-2">
+                            × {selection.count} = {selection.count * selection.paxPerUnit} PAX
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveOccupancySelection(index)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  
+                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                    <span className="font-semibold">Total: {calculateTotalPax()} PAX</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-amber-600">No occupancy selections added yet</p>
+              )}
+              
+              {/* Add new occupancy selection */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                <div>
+                  <FormLabel className="text-xs">Occupancy Type</FormLabel>
+                  <Select
+                    disabled={loading}
+                    onValueChange={setNewOccupancyTypeId}
+                    value={newOccupancyTypeId || undefined}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Meal Plan" />
+                      <SelectValue placeholder="Select Type" />
                     </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {mealPlans.map((plan) => (
-                      <SelectItem key={plan.id} value={plan.id}>
-                        {plan.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {/* Basic validation message if needed */}
-                {!selectedMealPlanId && <p className="text-sm text-red-500 pt-1">Required</p>}
-              </FormItem>
-
-              {/* Display Pax Count (Readonly from main form) */}
-              <FormItem>
-                <FormLabel>Number of Pax (from Guests tab)</FormLabel>
-                <Input
-                  readOnly
-                  disabled
-                  value={`${parseInt(form.getValues('numAdults') || '0') + parseInt(form.getValues('numChild5to12') || '0') + parseInt(form.getValues('numChild0to5') || '0')} Pax`}
-                  className="bg-gray-100"
-                />
-              </FormItem>
+                    <SelectContent>
+                      {occupancyTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <FormLabel className="text-xs">Count</FormLabel>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newOccupancyCount}
+                    onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
+                    disabled={loading}
+                    className="w-full"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleAddOccupancySelection}
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-100 hover:bg-green-200 text-green-800"
+                  disabled={loading || !newOccupancyTypeId}
+                >
+                  <Plus className="mr-1 h-4 w-4" />
+                  Add
+                </Button>
+              </div>
             </div>
 
             {/* Fetch Button */}
@@ -694,8 +907,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
               type="button"
               onClick={handleFetchTourPackagePricing}
               variant="outline"
-              className="bg-green-500 hover:bg-green-600 text-white"
-              disabled={loading || !form.getValues('tourPackageTemplate') || !selectedOccupancyTypeId || !selectedMealPlanId}
+              className="bg-green-500 hover:bg-green-600 text-white mt-4"
+              disabled={loading || !form.getValues('tourPackageTemplate') || !selectedMealPlanId || occupancySelections.length === 0}
             >
               <Calculator className="mr-2 h-4 w-4" />
               Fetch & Apply Tour Package Price

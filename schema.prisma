@@ -503,12 +503,31 @@ model TourPackage {
   @@index([locationId])
 }
 
+// Model for standardized pricing attributes that can be used across the system
+model PricingAttribute {
+  id                String       @id @default(uuid())
+  name              String       @unique // E.g., "Per Person Cost", "Per Couple Cost", "Child with No Bed", etc.
+  sortOrder         Int          @default(0) // For controlling display order
+  isActive          Boolean      @default(true)
+  isDefault         Boolean      @default(false) // Whether this is a default option
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  // Relation to pricing components
+  pricingComponents PricingComponent[]
+  
+  @@index([name])
+  @@index([isDefault])
+}
+
 // Model for pricing components that can be associated with tour packages
 model PricingComponent {
   id                String       @id @default(uuid())
-  name              String       // E.g., "Per Person Cost", "Air Fare", etc.
-  price             String?      // Price as string to allow for flexible formatting
-  description       String?      @db.Text
+  pricingAttributeId String
+  pricingAttribute   PricingAttribute @relation(fields: [pricingAttributeId], references: [id])
+  price              Decimal      @db.Decimal(10, 2) // Using Decimal for accurate pricing
+  
+  // Relation to pricing attribute
   
   // Relation to tour package pricing
   tourPackagePricingId String?
@@ -518,6 +537,7 @@ model PricingComponent {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   
+  @@index([pricingAttributeId])
   @@index([tourPackagePricingId])
 }
 

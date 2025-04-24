@@ -118,13 +118,11 @@ export async function PATCH(
         isPromotional: isPromotional || false,
         promotionName: promotionName || null,
         isActive: isActive !== undefined ? isActive : true,
-        description: description || null,
-        // Create new pricing components if provided
+        description: description || null,        // Create new pricing components if provided
         pricingComponents: pricingComponents?.length > 0 ? {
           create: pricingComponents.map((component: any) => ({
-            name: component.name,
-            price: component.price?.toString() || "",
-            description: component.description || ""
+            pricingAttributeId: component.pricingAttributeId,
+            price: parseFloat(component.price || 0)
           }))
         } : undefined
       },

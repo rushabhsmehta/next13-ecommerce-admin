@@ -6,10 +6,13 @@ export async function GET(
   req: Request
 ) {
   try {
-    // Get all pricing components
+    // Get all pricing components with their related pricing attributes
     const pricingComponents = await prismadb.pricingComponent.findMany({
+      include: {
+        pricingAttribute: true,
+      },
       orderBy: {
-        name: 'asc'
+        createdAt: 'desc'
       }
     });
 
@@ -30,18 +33,37 @@ export async function POST(
     }
     
     const body = await req.json();
-    const { name, price, description } = body;
+    const { pricingAttributeId, price, description, tourPackagePricingId } = body;
 
-    if (!name) {
-      return new NextResponse("Name is required", { status: 400 });
+    if (!pricingAttributeId) {
+      return new NextResponse("Pricing attribute is required", { status: 400 });
+    }
+
+    if (price === undefined || price === null) {
+      return new NextResponse("Price is required", { status: 400 });
+    }
+
+    // Verify the pricing attribute exists
+    const pricingAttributeExists = await prismadb.pricingAttribute.findUnique({
+      where: {
+        id: pricingAttributeId
+      }
+    });
+
+    if (!pricingAttributeExists) {
+      return new NextResponse("Pricing attribute not found", { status: 404 });
     }
 
     // Create a new pricing component
     const pricingComponent = await prismadb.pricingComponent.create({
       data: {
-        name,
-        price: price || null,
+        pricingAttributeId,
+        price: price,
         description: description || null,
+        tourPackagePricingId: tourPackagePricingId || null,
+      },
+      include: {
+        pricingAttribute: true
       }
     });
 

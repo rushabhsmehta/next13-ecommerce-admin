@@ -75,7 +75,7 @@ const NAV_ITEMS = [
       { title: "Room Types", url: "/settings/room-types" },
       { title: "Occupancy Types", url: "/settings/occupancy-types" },
       { title: "Vehicle Types", url: "/settings/vehicle-types" },
-      { title: "Pricing Components", url: "/settings/pricing-components" },
+      { title: "Pricing Attributes", url: "/settings/pricing-attributes" },
     ],
   },
   {

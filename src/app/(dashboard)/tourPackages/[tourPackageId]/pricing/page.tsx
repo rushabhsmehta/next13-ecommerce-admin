@@ -621,10 +621,9 @@ export default function TourPackagePricingPage() {
                       Add Component
                     </Button>
                   </div>
-                  
-                  {fields.length === 0 ? (
+                    {fields.length === 0 ? (
                     <p className="text-sm text-muted-foreground p-4 border rounded">
-                      No pricing components added. Click "Add Component" to add pricing components.
+                      No pricing components added. Click &quot;Add Component&quot; to add pricing components.
                     </p>
                   ) : (
                     <div className="border rounded">

@@ -724,8 +724,108 @@ export default function TourPackagePricingPage() {
             </Form>
           </CardContent>
         </Card>
-      )}     
+      )}
+      
+      {/* List of existing pricing periods */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Pricing Periods</h2>
+        
+        {pricingPeriods.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center p-6">
+              <p className="text-muted-foreground mb-4">No pricing periods defined yet.</p>
+              <Button onClick={() => setShowForm(true)}>Add First Pricing Period</Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {pricingPeriods.map((period) => (
+              <Card key={period.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {format(new Date(period.startDate), 'MMM dd, yyyy')} to {format(new Date(period.endDate), 'MMM dd, yyyy')}
+                        {period.isPromotional && (
+                          <Badge variant="secondary" className="ml-2">
+                            {period.promotionName || 'Promotional'}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription>
+                        <span className="font-medium">Occupancy:</span> {period.occupancyType?.name} | 
+                        <span className="font-medium"> PAX:</span> {period.numPax} | 
+                        <span className="font-medium"> Meal Plan:</span> {period.mealPlan?.name || 'None'}
+                      </CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(period)}
+                      >
+                        <Edit className="h-4 w-4 mr-1" /> Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(period.id)}
+                      >
+                        <Trash className="h-4 w-4 mr-1" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="font-semibold text-base">Total Price:</span>{" "}
+                      {new Intl.NumberFormat('en-IN', { 
+                        style: 'currency',
+                        currency: 'INR' 
+                      }).format(period.tourPackagePrice)}
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-1">Pricing Components:</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Component</TableHead>
+                            <TableHead>Price</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {period.pricingComponents.map((comp: any) => (
+                            <TableRow key={comp.id}>
+                              <TableCell>
+                                {comp.pricingAttribute?.name || "Unknown Component"}
+                              </TableCell>
+                              <TableCell>
+                                {new Intl.NumberFormat('en-IN', { 
+                                  style: 'currency',
+                                  currency: 'INR' 
+                                }).format(parseFloat(comp.price))}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
+                    {period.description && (
+                      <div>
+                        <h4 className="font-medium">Notes:</h4>
+                        <p className="text-muted-foreground">{period.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
       
       {/* Back to Tour Package Button */}
       <div className="mt-6">

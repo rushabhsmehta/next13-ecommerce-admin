@@ -1,4 +1,3 @@
-// Re-export the main prisma client to prevent duplicate connections
-const prisma = require('../../../lib/prismadb');
+import prismadb from '../../lib/prismadb';
 
-module.exports = prisma;
+export default prismadb;

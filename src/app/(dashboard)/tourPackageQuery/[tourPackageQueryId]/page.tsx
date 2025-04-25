@@ -81,7 +81,6 @@ const tourPackageQueryPage = async ({
       },
     }
   });
-
   const tourPackages = await prismadb.tourPackage.findMany({
     where: {
       isArchived: false
@@ -101,12 +100,37 @@ const tourPackageQueryPage = async ({
       }
     }
   });
+  
+  // Fetch tour package queries for templates
+  const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
+    where: {
+      // Exclude the current query from results to avoid self-referencing
+      id: { not: params.tourPackageQueryId === "new" ? undefined : params.tourPackageQueryId },
+      // Only include confirmed or featured queries as templates
+      isFeatured: true
+    },
+    take: 50, // Limit to 50 templates for performance
+    orderBy: {
+      createdAt: 'desc'
+    },
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
+            }
+          }
+        }
+      }
+    }
+  });
 
   return (
-    <>{/*       <Navbar /> */}
-
-
-      <div className="flex-col">
+    <>{/*       <Navbar /> */}      <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
           <TourPackageQueryForm
             initialData={tourPackageQuery}
@@ -116,6 +140,7 @@ const tourPackageQueryPage = async ({
             itinerariesMaster={itinerariesMaster}
             associatePartners={associatePartners}
             tourPackages={tourPackages}
+            tourPackageQueries={tourPackageQueries}
           />
         </div>
 

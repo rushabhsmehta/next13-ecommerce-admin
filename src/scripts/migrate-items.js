@@ -1,10 +1,6 @@
 // Use CommonJS syntax for the migration script
-const { PrismaClient } = require('@prisma/client');
-
-// Create a new prisma client instance with logging
-const prisma = new PrismaClient({
-  log: ['error', 'warn', 'info'],
-});
+// Import the singleton Prisma client
+const prisma = require('../../lib/prismadb');
 
 async function migrateItems() {
   try {

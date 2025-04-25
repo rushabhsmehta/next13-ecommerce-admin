@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+// Import the singleton Prisma client using CommonJS syntax
+const prisma = require('../../lib/prismadb');
 
 // Define default policy data
 const DEFAULT_POLICIES = {

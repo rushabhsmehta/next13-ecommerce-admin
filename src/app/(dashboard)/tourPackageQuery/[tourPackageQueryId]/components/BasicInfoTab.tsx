@@ -5,7 +5,7 @@ import { FileText, ChevronDown, CheckIcon } from "lucide-react";
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
-import { AssociatePartner, TourPackage } from "@prisma/client";
+import { AssociatePartner, TourPackage, TourPackageQuery } from "@prisma/client";
 
 import {
   Command,
@@ -41,10 +41,14 @@ interface BasicInfoProps {
   control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   associatePartners: AssociatePartner[];
-  tourPackages: TourPackage[] | null; // Updated to accept null
+  tourPackages: TourPackage[] | null;
+  tourPackageQueries: TourPackageQuery[] | null;
   openTemplate: boolean;
   setOpenTemplate: (open: boolean) => void;
+  openQueryTemplate: boolean;
+  setOpenQueryTemplate: (open: boolean) => void;
   handleTourPackageSelection: (id: string) => void;
+  handleTourPackageQuerySelection: (id: string) => void;
   form: any; // Use a more specific type if available
 }
 
@@ -53,9 +57,13 @@ const BasicInfo: React.FC<BasicInfoProps> = ({
   loading,
   associatePartners,
   tourPackages,
+  tourPackageQueries,
   openTemplate,
   setOpenTemplate,
+  openQueryTemplate,
+  setOpenQueryTemplate,
   handleTourPackageSelection,
+  handleTourPackageQuerySelection,
   form
 }) => {
   const editor = useRef(null);
@@ -437,6 +445,63 @@ const BasicInfo: React.FC<BasicInfoProps> = ({
               <FormDescription>
                 Legal disclaimers and important information for the client
               </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Tour Package Query Template Selection */}
+        <FormField
+          control={control}
+          name="tourPackageQueryTemplate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Load from Tour Package Query</FormLabel>
+              <Popover open={openQueryTemplate} onOpenChange={setOpenQueryTemplate}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search tour package query..." />
+                    <CommandEmpty>No tour package query found.</CommandEmpty>
+                    <CommandGroup>
+                      {tourPackageQueries
+                        ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
+                        .map((query) => (
+                          <CommandItem
+                            key={query.id}
+                            value={query.id}
+                            onSelect={(value) => {
+                              handleTourPackageQuerySelection(value);
+                              setOpenQueryTemplate(false);
+                            }}
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                query.id === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {query.tourPackageQueryName}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}

@@ -147,7 +147,7 @@ export const useNotifications = () => {
     // Set up polling to check for new notifications every minute
     const intervalId = setInterval(() => {
       fetchNotifications();
-    }, 180000); // 3 minutes    
+    }, 600000); // 10 minutes    
     return () => clearInterval(intervalId);
   }, [fetchNotifications]);
 

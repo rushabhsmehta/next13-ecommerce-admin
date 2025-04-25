@@ -148,6 +148,7 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
+  tourPackageQueryTemplate: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
@@ -219,6 +220,16 @@ interface TourPackageQueryFormProps {
       })[] | null;
     })[] | null;
   })[] | null;
+  tourPackageQueries: (TourPackageQuery & {
+    images: Images[];
+    flightDetails: FlightDetails[];
+    itineraries: (Itinerary & {
+      itineraryImages: Images[];
+      activities: (Activity & {
+        activityImages: Images[];
+      })[] | null;
+    })[] | null;
+  })[] | null;
 };
 
 export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
@@ -227,16 +238,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
-  associatePartners, // Add this
+  associatePartners, 
   tourPackages,
+  tourPackageQueries,
 }) => {
   const params = useParams();
   const router = useRouter();
 
   //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
-
   const [open, setOpen] = useState(false);
   const [openTemplate, setOpenTemplate] = useState(false);
+  const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const editor = useRef(null)
@@ -504,7 +516,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       clearInterval(saveInterval);
     };
   }, [params.tourPackageQueryId, form, initialData, loading]);
-
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
@@ -557,6 +568,68 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         flightDuration: flight.flightDuration || undefined
       })));
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
+    }
+  };
+  const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
+    // Find the selected tour package query template
+    const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
+    
+    if (selectedTourPackageQuery) {
+      // Update the tourPackageQueryTemplate field
+      form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
+      
+      // Copy values from the selected template
+      form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
+      form.setValue('locationId', selectedTourPackageQuery.locationId);
+      form.setValue('numDaysNight', selectedTourPackageQuery.numDaysNight || '');
+      form.setValue('transport', selectedTourPackageQuery.transport || '');
+      form.setValue('pickup_location', selectedTourPackageQuery.pickup_location || '');
+      form.setValue('drop_location', selectedTourPackageQuery.drop_location || '');
+      form.setValue('tour_highlights', selectedTourPackageQuery.tour_highlights || '');
+      form.setValue('totalPrice', selectedTourPackageQuery.totalPrice || '');
+      form.setValue('inclusions', parseJsonField(selectedTourPackageQuery.inclusions) || INCLUSIONS_DEFAULT);
+      form.setValue('exclusions', parseJsonField(selectedTourPackageQuery.exclusions) || EXCLUSIONS_DEFAULT);
+      form.setValue('importantNotes', parseJsonField(selectedTourPackageQuery.importantNotes) || IMPORTANT_NOTES_DEFAULT);
+      form.setValue('paymentPolicy', parseJsonField(selectedTourPackageQuery.paymentPolicy) || PAYMENT_TERMS_DEFAULT);
+      form.setValue('usefulTip', parseJsonField(selectedTourPackageQuery.usefulTip) || USEFUL_TIPS_DEFAULT);
+      form.setValue('cancellationPolicy', parseJsonField(selectedTourPackageQuery.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
+      form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackageQuery.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
+      form.setValue('termsconditions', parseJsonField(selectedTourPackageQuery.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+      form.setValue('images', selectedTourPackageQuery.images || []);
+      form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection) || DEFAULT_PRICING_SECTION);
+      
+      // Convert and set itineraries
+      const transformedItineraries = selectedTourPackageQuery.itineraries?.map(itinerary => ({
+        locationId: itinerary.locationId,
+        itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
+        itineraryTitle: itinerary.itineraryTitle || '',
+        itineraryDescription: itinerary.itineraryDescription || '',
+        dayNumber: itinerary.dayNumber || 0,
+        days: itinerary.days || '',
+        activities: itinerary.activities?.map(activity => ({
+          activityImages: activity.activityImages?.map(img => ({ url: img.url })) || [],
+          activityTitle: activity.activityTitle || '',
+          activityDescription: activity.activityDescription || ''
+        })) || [],
+        hotelId: itinerary.hotelId || '',
+        roomAllocations: (itinerary as any).roomAllocations || [],
+        transportDetails: (itinerary as any).transportDetails || [],
+      })) || [];
+      form.setValue('itineraries', transformedItineraries);
+      
+      // Set flight details
+      form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
+        date: flight.date || undefined,
+        flightName: flight.flightName || undefined,
+        flightNumber: flight.flightNumber || undefined,
+        from: flight.from || undefined,
+        to: flight.to || undefined,
+        departureTime: flight.departureTime || undefined,
+        arrivalTime: flight.arrivalTime || undefined,
+        flightDuration: flight.flightDuration || undefined
+      })));
+
+      toast.success('Tour Package Query template applied successfully');
     }
   };
   // These functions are now handled in the PricingTab component
@@ -858,16 +931,19 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FileCheck className="h-4 w-4" />
                 Policies
               </TabsTrigger>
-            </TabsList>
-            <TabsContent value="basic" className="space-y-4 mt-4">
+            </TabsList>            <TabsContent value="basic" className="space-y-4 mt-4">
               <BasicInfo
                 control={form.control}
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
+                tourPackageQueries={tourPackageQueries}
                 openTemplate={openTemplate}
                 setOpenTemplate={setOpenTemplate}
+                openQueryTemplate={openQueryTemplate}
+                setOpenQueryTemplate={setOpenQueryTemplate}
                 handleTourPackageSelection={handleTourPackageSelection}
+                handleTourPackageQuerySelection={handleTourPackageQuerySelection}
                 form={form}
               />
             </TabsContent>

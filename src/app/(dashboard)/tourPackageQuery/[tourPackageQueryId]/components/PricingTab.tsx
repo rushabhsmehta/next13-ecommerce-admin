@@ -264,18 +264,33 @@ const PricingTab: React.FC<PricingTabProps> = ({
         .map(selection => {
           const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
           const occupancyName = occupancyType?.name?.toLowerCase() || '';
-            // Find components that specifically match this occupancy type
+          
+          // Find components that specifically match this occupancy type based on well-defined mappings
           return selectedPricing.pricingComponents.find((comp: any) => {
             const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            // Exact or close matches for specific occupancy types
-            if (occupancyName.includes('cnb') && compName.includes('cnb')) return true;
-            if (occupancyName.includes('child') && !compName.includes('adult') && 
-                (compName.includes('child') || compName.includes('kid'))) return true;
-            if (occupancyName.includes('extra bed') && 
-                (compName.includes('extra bed') || compName.includes('extrabed'))) return true;
-            if (occupancyName.includes('infant') && compName.includes('infant')) return true;
             
-            // More specific matching to avoid false positives
+            // Double occupancy uses Per Person Cost or Per Couple Cost
+            if (occupancyName.includes('double')) {
+              return compName.includes('per person') || compName.includes('per couple');
+            }
+            // CNB (Child with No Bed) uses Child With No Bed pricing
+            if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
+              return compName.includes('cnb') || (compName.includes('child') && compName.includes('no bed'));
+            }
+            // Extra Bed uses Extra Bed/Mattress pricing
+            if (occupancyName.includes('extra bed') || occupancyName.includes('extra mattress')) {
+              return compName.includes('extra bed') || compName.includes('extrabed') || compName.includes('mattress');
+            }
+            // Child With Bed uses Child With Bed pricing
+            if (occupancyName.includes('child') && occupancyName.includes('with bed')) {
+              return compName.includes('child') && compName.includes('with bed');
+            }
+            // Infant pricing
+            if (occupancyName.includes('infant')) {
+              return compName.includes('infant');
+            }
+            
+            // More specific matching as fallback
             const occupancyWords = occupancyName.split(/\s+/);
             for (const word of occupancyWords) {
               if (word.length > 2 && compName.includes(word)) return true;
@@ -314,8 +329,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
           });
         }
       });
-      
-      // Calculate the total price based on all applied components
+        // Calculate the total price based on all applied components
       const doubleOccupancySelections = occupancySelections.filter(selection => {
         const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
         return occupancyType && occupancyType.name?.toLowerCase().includes('double');
@@ -323,25 +337,75 @@ const PricingTab: React.FC<PricingTabProps> = ({
       
       let totalPrice = 0;
       
-      // Apply Double occupancy pricing (using Per Couple price)
-      if (perCoupleComponent && doubleOccupancySelections.length > 0) {
-        const perCouplePrice = parseFloat(perCoupleComponent.price || '0');
-        const doubleCoupleCount = doubleOccupancySelections.reduce((total, selection) => {
-          return total + selection.count;
-        }, 0);
-        totalPrice += perCouplePrice * doubleCoupleCount;
+      // Apply Double occupancy pricing with correct multiplication
+      if (doubleOccupancySelections.length > 0) {
+        // Prefer Per Couple price if available, otherwise use Per Person price
+        if (perCoupleComponent) {
+          const perCouplePrice = parseFloat(perCoupleComponent.price || '0');
+          // Each double room counts as 1 couple
+          const doubleCoupleCount = doubleOccupancySelections.reduce((total, selection) => {
+            return total + selection.count;
+          }, 0);
+          totalPrice += perCouplePrice * doubleCoupleCount;
+        } else if (perPersonComponent) {
+          const perPersonPrice = parseFloat(perPersonComponent.price || '0');
+          // Each double room counts as 2 persons
+          const doublePersonCount = doubleOccupancySelections.reduce((total, selection) => {
+            // Multiply by 2 since each Double occupancy has 2 people
+            return total + (selection.count * 2);
+          }, 0);
+          totalPrice += perPersonPrice * doublePersonCount;
+        }
       }
       
-      // Apply other occupancy pricing
+      // Apply other occupancy pricing with correct multiplication for each type
       occupancySelections.forEach(selection => {
         const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-        if (occupancyType && !occupancyType.name?.toLowerCase().includes('double')) {
-          const matchedComp = selectedPricing.pricingComponents.find((comp: any) => 
-            comp.name?.toLowerCase().includes(occupancyType.name?.toLowerCase() || '')
-          );
-          if (matchedComp) {
-            totalPrice += parseFloat(matchedComp.price || '0') * selection.count;
-          }
+        if (!occupancyType) return;
+        
+        // Skip double occupancy as it's already handled above
+        if (occupancyType.name?.toLowerCase().includes('double')) return;
+        
+        const occupancyName = occupancyType.name?.toLowerCase() || '';
+        let matchedComp;
+        
+        // Find the matching price component based on occupancy type
+        if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
+          // Find Child With No Bed pricing
+          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
+            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
+            return compName.includes('cnb') || (compName.includes('child') && compName.includes('no bed'));
+          });
+        } else if (occupancyName.includes('extra bed') || occupancyName.includes('extra mattress')) {
+          // Find Extra Bed pricing
+          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
+            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
+            return compName.includes('extra bed') || compName.includes('extrabed') || compName.includes('mattress');
+          });
+        } else if (occupancyName.includes('child') && occupancyName.includes('with bed')) {
+          // Find Child With Bed pricing
+          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
+            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
+            return compName.includes('child') && compName.includes('with bed');
+          });
+        } else if (occupancyName.includes('infant')) {
+          // Find Infant pricing
+          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
+            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
+            return compName.includes('infant');
+          });
+        } else {
+          // Fallback for any other occupancy types
+          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
+            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
+            return compName.includes(occupancyName);
+          });
+        }
+        
+        // Apply the price if a matching component is found
+        if (matchedComp) {
+          const unitPrice = parseFloat(matchedComp.price || '0');
+          totalPrice += unitPrice * selection.count; // Multiply by the number of this occupancy type
         }
       });
 

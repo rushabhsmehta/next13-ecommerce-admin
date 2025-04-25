@@ -1,6 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+// Import the singleton Prisma client using CommonJS syntax
+const prisma = require('./lib/prismadb');
 
 async function updateLocationsToTitleCase() {
   try {

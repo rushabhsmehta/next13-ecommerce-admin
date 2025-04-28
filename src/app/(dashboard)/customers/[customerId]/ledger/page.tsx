@@ -23,7 +23,6 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
   if (!customer) {
     return notFound();
   }
-
   // Get all sales for this customer
   const sales = await prismadb.saleDetail.findMany({
     where: {
@@ -31,6 +30,7 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
     },
     include: {
       tourPackageQuery: true,
+      items: true, // Include items for displaying in transaction history
     },
     orderBy: {
       saleDate: 'asc',
@@ -51,12 +51,28 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
       receiptDate: 'asc',
     },
   });
-
   // Format transactions for display with proper typing
-  const formattedSales = sales.map((sale: SaleDetail) => {
+  const formattedSales = sales.map((sale: SaleDetail & { items?: any[] }) => {
     // Calculate total including GST for each sale
     const gstAmount = sale.gstAmount || 0;
     const totalAmount = sale.salePrice + gstAmount;
+    
+    // Format items for display if they exist
+    let formattedItems = [];
+    let itemsSummary = "";
+    
+    if (sale.items && sale.items.length > 0) {
+      formattedItems = sale.items.map(item => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        pricePerUnit: item.pricePerUnit,
+        totalAmount: item.totalAmount
+      }));
+      
+      itemsSummary = sale.items.map(item => 
+        `${item.productName} (${item.quantity})`
+      ).join(", ");
+    }
     
     return {
       id: sale.id,
@@ -72,6 +88,10 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
       baseAmount: sale.salePrice,
       gstAmount: gstAmount,
       reference: sale.invoiceNumber || '', // Add the missing reference property
+      packageId: sale.tourPackageQueryId,
+      packageName: sale.tourPackageQuery?.tourPackageQueryName,
+      items: formattedItems,
+      itemsSummary: itemsSummary
     };
   });
 

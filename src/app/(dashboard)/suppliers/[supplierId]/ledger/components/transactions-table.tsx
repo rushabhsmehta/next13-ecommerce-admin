@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, FileText, Trash } from "lucide-react";
+import { MoreHorizontal, Edit, FileText, Trash, ChevronDown, ChevronRight } from "lucide-react";
 import { AlertModal } from "@/components/modals/alert-modal";
 
 type SupplierTransaction = {
@@ -37,6 +37,13 @@ type SupplierTransaction = {
   paymentMode?: string;
   accountName?: string;
   balance: number;
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalAmount: number;
+  }>;
+  itemsSummary?: string;
 };
 
 interface TransactionsTableProps {
@@ -48,6 +55,14 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<SupplierTransaction | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
   const onDelete = async () => {
     if (!itemToDelete) return;
@@ -82,10 +97,10 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
         onConfirm={onDelete}
         loading={loading}
       />
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border">        <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10"></TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Description</TableHead>
@@ -97,17 +112,32 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
           </TableHeader>
           <TableBody>
             {data.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+              <TableRow>                <TableCell colSpan={8} className="h-24 text-center">
                   No transactions found
                 </TableCell>
               </TableRow>
-            ) : (
-              <>                {data.map((transaction) => (
+            ) : (              <>
+                {data.map((transaction) => (
+                <>
                   <TableRow key={`${transaction.type}-${transaction.id}`}>
+                    <TableCell>
+                      {transaction.type === "Purchase" && transaction.items && transaction.items.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0"
+                          onClick={() => toggleRow(transaction.id)}
+                        >
+                          {expandedRows[transaction.id] ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </Button>
+                      )}
+                    </TableCell>
                     <TableCell>{formatSafeDate(transaction.date, "MMM dd, yyyy")}</TableCell>
                     <TableCell>{transaction.type}</TableCell>
-                    <TableCell>{transaction.description}</TableCell>
+                    <TableCell>
+                      {transaction.description}
+                      {transaction.packageName && <div className="text-xs text-muted-foreground mt-1">Package: {transaction.packageName}</div>}
+                    </TableCell>
                     <TableCell className="text-right">
                       {transaction.isInflow ? formatPrice(transaction.amount) : "-"}
                     </TableCell>
@@ -150,8 +180,39 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                    </TableCell>                  </TableRow>
+                  
+                  {/* Expandable Row for Item Details */}
+                  {expandedRows[transaction.id] && transaction.items && transaction.items.length > 0 && (
+                    <TableRow className="bg-muted/50">
+                      <TableCell colSpan={8} className="p-2">
+                        <div className="pl-8 py-2">
+                          <h5 className="font-medium mb-2">Items:</h5>
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr>
+                                <th className="text-left py-1">Item</th>
+                                <th className="text-right py-1">Qty</th>
+                                <th className="text-right py-1">Unit Price</th>
+                                <th className="text-right py-1">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {transaction.items.map((item, index) => (
+                                <tr key={index}>
+                                  <td className="py-1">{item.productName}</td>
+                                  <td className="text-right py-1">{item.quantity}</td>
+                                  <td className="text-right py-1">{formatPrice(item.pricePerUnit)}</td>
+                                  <td className="text-right py-1">{formatPrice(item.totalAmount)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
                 ))}
               </>
             )}

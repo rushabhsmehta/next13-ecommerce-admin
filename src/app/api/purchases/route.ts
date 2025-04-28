@@ -57,25 +57,49 @@ export async function POST(req: Request) {
         description: description || null,
         status: status || "pending",
       }
-    });
-
-    // Create purchase items
+    });    // Create purchase items
     if (items && Array.isArray(items) && items.length > 0) {
       for (const item of items) {
         await prismadb.purchaseItem.create({
-          data: {
-            purchaseDetailId: purchaseDetail.id,
-            productName: item.productName,
+          data: {            purchaseDetailId: purchaseDetail.id,
+            productName: item.productName || "Item",
             description: item.description || null,
-            quantity: parseFloat(item.quantity.toString()),
+            quantity: item.quantity != null ? parseFloat(String(item.quantity)) : 1,
             unitOfMeasureId: item.unitOfMeasureId || null,
-            pricePerUnit: parseFloat(item.pricePerUnit.toString()),
+            pricePerUnit: item.pricePerUnit != null ? parseFloat(String(item.pricePerUnit)) : 0,
             taxSlabId: item.taxSlabId || null,
-            taxAmount: item.taxAmount ? parseFloat(item.taxAmount.toString()) : null,
-            totalAmount: parseFloat(item.totalAmount.toString()),
+            taxAmount: item.taxAmount != null ? parseFloat(String(item.taxAmount)) : null,
+            totalAmount: item.totalAmount != null ? parseFloat(String(item.totalAmount)) : 0,
           }
         });
       }
+    }    // If no items were provided but price > 0, create a default item
+    else if (price > 0) {
+      // Get tour package query name if available
+      let productName = "Purchase";
+      if (tourPackageQueryId) {
+        const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+          where: { id: tourPackageQueryId },
+          select: { tourPackageQueryName: true }
+        });
+        if (tourPackageQuery?.tourPackageQueryName) {
+          productName = tourPackageQuery.tourPackageQueryName;
+        }
+      }
+      
+      // Create a single item representing the total purchase amount
+      await prismadb.purchaseItem.create({
+        data: {          purchaseDetailId: purchaseDetail.id,
+          productName: description || productName,
+          description: description || `${productName} dated ${new Date(purchaseDate).toLocaleDateString()}`,
+          quantity: 1,
+          pricePerUnit: price != null ? parseFloat(String(price)) : 0,
+          totalAmount: price != null ? parseFloat(String(price)) : 0,
+          taxAmount: gstAmount != null ? parseFloat(String(gstAmount)) : null,
+          taxSlabId: null,
+          unitOfMeasureId: null
+        }
+      });
     }
 
     return NextResponse.json(purchaseDetail);

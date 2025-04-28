@@ -1,5 +1,5 @@
 import prismadb from "@/lib/prismadb";
-import { SaleDetail, ReceiptDetail, TourPackageQuery } from "@prisma/client"; // Add TourPackageQuery to imports
+import { SaleDetail, ReceiptDetail, TourPackageQuery, SaleItem } from "@prisma/client"; // Add TourPackageQuery and SaleItem to imports
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { CustomerIndividualLedgerClient } from "./components/client";
@@ -51,7 +51,10 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
       receiptDate: 'asc',
     },
   });  // Format transactions for display with proper typing
-  const formattedSales = sales.map((sale: SaleDetail & { items?: any[] }) => {
+  const formattedSales = sales.map((sale: SaleDetail & { 
+    items?: SaleItem[], 
+    tourPackageQuery?: { tourPackageQueryName?: string } | null
+  }) => {
     // Calculate total including GST for each sale
     const gstAmount = sale.gstAmount || 0;
     const totalAmount = sale.salePrice + gstAmount;

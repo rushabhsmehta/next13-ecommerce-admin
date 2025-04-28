@@ -4,6 +4,7 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { SupplierIndividualLedgerClient } from "./components/client";
 import { notFound } from "next/navigation";
+import { PurchaseDetail, PaymentDetail, PurchaseItem, TourPackageQuery } from "@prisma/client";
 
 interface SupplierLedgerPageProps {
   params: {
@@ -49,10 +50,11 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     orderBy: {
       paymentDate: 'asc',
     },
-  });
-
-    // Format transactions for display
-  const formattedPurchases = purchases.map(purchase => {
+  });    // Format transactions for display
+  const formattedPurchases = purchases.map((purchase: PurchaseDetail & { 
+    items?: PurchaseItem[];
+    tourPackageQuery?: { tourPackageQueryName?: string } | null;
+  }) => {
     // Calculate total including GST for each purchase
     const gstAmount = purchase.gstAmount || 0;
     const totalAmount = purchase.price + gstAmount;

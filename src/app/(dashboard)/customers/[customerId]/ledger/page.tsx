@@ -90,15 +90,14 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
       amount: totalAmount, // Include GST in the amount
       baseAmount: sale.salePrice,
       gstAmount: gstAmount,
-      reference: sale.invoiceNumber || '', // Add the missing reference property
+      reference: sale.invoiceNumber || '', // Add the missing reference property 
       packageId: sale.tourPackageQueryId,
-      packageName: sale.tourPackageQuery?.tourPackageQueryName,
+      packageName: sale.tourPackageQuery?.tourPackageQueryName || undefined, // Convert null to undefined
       items: formattedItems,
       itemsSummary: itemsSummary
     };
   });
-
-  const formattedReceipts = receipts.map((receipt: ReceiptDetail) => ({
+  const formattedReceipts = receipts.map((receipt) => ({
     id: receipt.id,
     date: receipt.receiptDate,
     type: "Receipt",
@@ -110,6 +109,8 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
     isInflow: true,
     amount: receipt.amount,
     reference: receipt.reference || '', // Add the missing reference property
+    packageId: receipt.tourPackageQueryId,
+    packageName: receipt.tourPackageQuery?.tourPackageQueryName || undefined, // Use undefined instead of null
   }));
 
   // Combine transactions and sort by date

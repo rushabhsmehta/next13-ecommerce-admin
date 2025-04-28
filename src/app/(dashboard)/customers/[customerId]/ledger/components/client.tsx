@@ -24,10 +24,18 @@ type CustomerTransaction = {
   isInflow: boolean;
   reference?: string; // Make reference optional
   packageId?: string;
-  packageName?: string;
+  packageName?: string; // Note this is string | undefined, not null
   paymentMode?: string;
   accountName?: string;
   balance: number; // Running balance
+  // Add the new item-related fields
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalAmount: number;
+  }>;
+  itemsSummary?: string;
 };
 
 type Customer = {

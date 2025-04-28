@@ -23,10 +23,18 @@ type SupplierTransaction = {
   isInflow: boolean;
   reference: string;
   packageId?: string;
-  packageName?: string;
+  packageName?: string; // This is string | undefined, not null
   paymentMode?: string;
   accountName?: string;
   balance: number; // Running balance
+  // Add the new item-related fields
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalAmount: number;
+  }>;
+  itemsSummary?: string;
 };
 
 type Supplier = {

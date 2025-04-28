@@ -394,9 +394,7 @@ export default function TourPackagePricingPage() {
                               mode="single"
                               selected={field.value}
                               onSelect={(date) => date && field.onChange(date)}
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0))
-                              }
+                              // Removed date restriction to allow selecting past dates
                               initialFocus
                             />
                           </PopoverContent>
@@ -437,9 +435,6 @@ export default function TourPackagePricingPage() {
                               mode="single"
                               selected={field.value}
                               onSelect={(date) => date && field.onChange(date)}
-                              disabled={(date) =>
-                                date < new Date(new Date().setHours(0, 0, 0, 0))
-                              }
                               initialFocus
                             />
                           </PopoverContent>

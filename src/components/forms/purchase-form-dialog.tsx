@@ -77,9 +77,21 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
   );
-
   const defaultItems = initialData?.items?.length > 0
     ? initialData.items
+    : initialData?.id && initialData?.price > 0
+    // For existing purchases with no items, create a default item using the purchase details
+    ? [{
+      productName: initialData.description || initialData.tourPackageQuery?.tourPackageQueryName || "Purchase",
+      description: initialData.description || "",
+      quantity: 1,
+      unitOfMeasureId: "",
+      pricePerUnit: initialData.price,
+      taxSlabId: "",
+      taxAmount: initialData.gstAmount || 0,
+      totalAmount: initialData.price + (initialData.gstAmount || 0)
+    }]
+    // For new purchases, create an empty item
     : [{
       productName: initialData?.tourPackageQueryName || "",
       description: "",
@@ -244,13 +256,23 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
 
     return () => subscription.unsubscribe();
   }, [form, isCalculating, fields.length]);
-
   // For item length changes
   useEffect(() => {
     if (fields.length > 0) {
       recalculateTotals();
     }
   }, [fields.length]);
+  
+  // Recalculate totals when the form initially loads with purchase data
+  useEffect(() => {
+    if (initialData?.id) {
+      // Small delay to ensure the form is fully initialized
+      const timer = setTimeout(() => {
+        recalculateTotals();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [initialData?.id]);
 
   const onSubmit = async (data: FormValues) => {
     try {

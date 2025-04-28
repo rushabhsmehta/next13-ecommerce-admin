@@ -91,16 +91,7 @@ export async function PATCH(
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
-    }
-
-    // Delete existing items
-    await prismadb.purchaseItem.deleteMany({
-      where: {
-        purchaseDetailId: params.purchaseId
-      }
-    });
-
-    try {
+    }    try {
       // Update purchase detail - REMOVED connect syntax
       const updatedPurchase = await prismadb.purchaseDetail.update({
         where: {
@@ -121,29 +112,68 @@ export async function PATCH(
           status: status || "pending",
         }
       });
+      
+      // Check if the purchase has items or if we need to create a default item
+      const existingItems = await prismadb.purchaseItem.findMany({
+        where: { purchaseDetailId: params.purchaseId }
+      });
 
-      console.log("Purchase updated, now creating items");
+      // Only proceed with item operations if explicitly provided in the request
+      if (items !== undefined) {
+        console.log("Purchase updated, now handling items");
+        
+        // Delete existing items only if we're replacing them
+        await prismadb.purchaseItem.deleteMany({
+          where: { purchaseDetailId: params.purchaseId }
+        });
 
-      // Create new purchase items
-      if (items && Array.isArray(items) && items.length > 0) {
-        for (const item of items) {
-          try {
-            await prismadb.purchaseItem.create({
-              data: {
-                purchaseDetailId: params.purchaseId,
-                productName: item.productName,
-                description: item.description ?? null,
-                quantity: parseFloat(item.quantity.toString()),
-                unitOfMeasureId: item.unitOfMeasureId ?? null,
-                pricePerUnit: parseFloat(item.pricePerUnit.toString()),
-                taxSlabId: item.taxSlabId ?? null,
-                taxAmount: item.taxAmount !== undefined ? parseFloat(item.taxAmount.toString()) : null,
-                totalAmount: parseFloat(item.totalAmount.toString()),
-              }
-            });
-          } catch (itemError) {
-            console.error(`Error creating purchase item:`, itemError);
+        // Create new purchase items if provided
+        if (Array.isArray(items) && items.length > 0) {
+          for (const item of items) {
+            try {
+              await prismadb.purchaseItem.create({
+                data: {                  purchaseDetailId: params.purchaseId,
+                  productName: item.productName || "Item",
+                  description: item.description ?? null,
+                  quantity: item.quantity != null ? parseFloat(String(item.quantity)) : 1,
+                  unitOfMeasureId: item.unitOfMeasureId ?? null,
+                  pricePerUnit: item.pricePerUnit != null ? parseFloat(String(item.pricePerUnit)) : 0,
+                  taxSlabId: item.taxSlabId ?? null,
+                  taxAmount: item.taxAmount != null ? parseFloat(String(item.taxAmount)) : null,
+                  totalAmount: item.totalAmount != null ? parseFloat(String(item.totalAmount)) : 0,
+                }
+              });
+            } catch (itemError) {
+              console.error(`Error creating purchase item:`, itemError);
+            }
           }
+        }        // If no items were provided but the purchase has a price, create a default item
+        else if (price > 0) {
+          // Get tour package query name if available
+          let productName = "Purchase";
+          if (tourPackageQueryId) {
+            const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+              where: { id: tourPackageQueryId },
+              select: { tourPackageQueryName: true }
+            });
+            if (tourPackageQuery?.tourPackageQueryName) {
+              productName = tourPackageQuery.tourPackageQueryName;
+            }
+          }
+          
+          // Create a single item representing the full purchase amount
+          await prismadb.purchaseItem.create({
+            data: {              purchaseDetailId: params.purchaseId,
+              productName: description || productName,
+              description: description || `${productName} dated ${new Date(purchaseDate).toLocaleDateString()}`,
+              quantity: 1,
+              pricePerUnit: price != null ? parseFloat(String(price)) : 0,
+              totalAmount: price != null ? parseFloat(String(price)) : 0,
+              taxAmount: gstAmount != null ? parseFloat(String(gstAmount)) : null,
+              taxSlabId: null,
+              unitOfMeasureId: null
+            }
+          });
         }
       }
 

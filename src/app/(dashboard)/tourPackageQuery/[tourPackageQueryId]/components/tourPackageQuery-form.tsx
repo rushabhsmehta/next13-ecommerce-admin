@@ -60,7 +60,7 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+
 import { cn } from "@/lib/utils"
 import { DatePickerWithRange } from "@/components/DatePickerWithRange"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -70,19 +70,19 @@ import { format } from "date-fns"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { PolicyField } from "./policy-fields"
 import JoditEditor from "jodit-react";
 import { Calendar } from "@/components/ui/calendar";
 import { ro } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
-import BasicInfo from "./BasicInfoTab";
-import Guests from "./GuestsTab";
-import LocationTab from "./LocationTab";
-import DatesTab from "./DatesTab";
-import ItineraryTab from "./ItineraryTab";
-import FlightsTab from "./FlightsTab";
-import PricingTab from "./PricingTab";
-import PoliciesTab from "./PoliciesTab";
+import BasicInfo from "../../components/BasicInfoTab";
+import DatesTab from "../../components/DatesTab";
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "../../components/defaultValues";
+import FlightsTab from "../../components/FlightsTab";
+import Guests from "../../components/GuestsTab";
+import ItineraryTab from "../../components/ItineraryTab";
+import LocationTab from "../../components/LocationTab";
+import PoliciesTab from "../../components/PoliciesTab";
+import PricingTab from "../../components/PricingTab";
 
 // Define the pricing item schema
 const pricingItemSchema = z.object({

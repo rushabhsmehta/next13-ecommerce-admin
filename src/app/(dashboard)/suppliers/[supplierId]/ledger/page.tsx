@@ -51,10 +51,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
       paymentDate: 'asc',
     },
   });    // Format transactions for display
-  const formattedPurchases = purchases.map((purchase: PurchaseDetail & { 
-    items?: PurchaseItem[];
-    tourPackageQuery?: { tourPackageQueryName?: string } | null;
-  }) => {
+  const formattedPurchases = purchases.map((purchase) => {
     // Calculate total including GST for each purchase
     const gstAmount = purchase.gstAmount || 0;
     const totalAmount = purchase.price + gstAmount;

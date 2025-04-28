@@ -22,7 +22,6 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
   if (!supplier) {
     return notFound();
   }
-
   // Get all purchases for this supplier
   const purchases = await prismadb.purchaseDetail.findMany({
     where: {
@@ -30,6 +29,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     },
     include: {
       tourPackageQuery: true,
+      items: true, // Include purchase items
     },
     orderBy: {
       purchaseDate: 'asc',
@@ -51,12 +51,28 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     },
   });
 
-  
-  // Format transactions for display
+    // Format transactions for display
   const formattedPurchases = purchases.map(purchase => {
     // Calculate total including GST for each purchase
     const gstAmount = purchase.gstAmount || 0;
     const totalAmount = purchase.price + gstAmount;
+    
+    // Format items for display if they exist
+    let formattedItems = [];
+    let itemsSummary = "";
+    
+    if (purchase.items && purchase.items.length > 0) {
+      formattedItems = purchase.items.map(item => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        pricePerUnit: item.pricePerUnit,
+        totalAmount: item.totalAmount
+      }));
+      
+      itemsSummary = purchase.items.map(item => 
+        `${item.productName} (${item.quantity})`
+      ).join(", ");
+    }
     
     return {
       id: purchase.id,
@@ -70,6 +86,8 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
       reference: purchase.id,
       packageId: purchase.tourPackageQueryId,
       packageName: purchase.tourPackageQuery?.tourPackageQueryName || "-",
+      items: formattedItems,
+      itemsSummary: itemsSummary
     };
   });
 

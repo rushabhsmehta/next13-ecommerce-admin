@@ -87,13 +87,12 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
       gstAmount: gstAmount,
       isInflow: true, // Purchases are inflows from supplier perspective (we owe them)
       reference: purchase.id,
-      packageId: purchase.tourPackageQueryId,
-      packageName: purchase.tourPackageQuery?.tourPackageQueryName || "-",
+            packageId: purchase.tourPackageQueryId,
+      packageName: purchase.tourPackageQuery?.tourPackageQueryName || undefined, // Use undefined instead of null or "-"
       items: formattedItems,
       itemsSummary: itemsSummary
     };
   });
-
   const formattedPayments = payments.map(payment => ({
     id: payment.id,
     date: payment.paymentDate,
@@ -103,7 +102,9 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     isInflow: false, // Payments are outflows from supplier perspective (we pay them)
     reference: payment.transactionId || payment.id,
     paymentMode: payment.method || (payment.bankAccount ? "Bank" : payment.cashAccount ? "Cash" : "Unknown"),
-    accountName: payment.bankAccount?.accountName || payment.cashAccount?.accountName || "-",
+    accountName: payment.bankAccount?.accountName || payment.cashAccount?.accountName || undefined,
+    packageId: payment.tourPackageQueryId,
+    packageName: payment.tourPackageQuery?.tourPackageQueryName || undefined,
   }));
 
   // Combine transactions and sort by date

@@ -49,12 +49,8 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
     },
     orderBy: {
       receiptDate: 'asc',
-    },
-  });  // Format transactions for display with proper typing
-  const formattedSales = sales.map((sale: SaleDetail & { 
-    items?: SaleItem[], 
-    tourPackageQuery?: { tourPackageQueryName?: string } | null
-  }) => {
+    },  });  // Format transactions for display with proper typing
+  const formattedSales = sales.map((sale) => {
     // Calculate total including GST for each sale
     const gstAmount = sale.gstAmount || 0;
     const totalAmount = sale.salePrice + gstAmount;

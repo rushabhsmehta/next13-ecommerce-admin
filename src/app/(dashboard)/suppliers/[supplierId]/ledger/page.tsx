@@ -56,9 +56,13 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     // Calculate total including GST for each purchase
     const gstAmount = purchase.gstAmount || 0;
     const totalAmount = purchase.price + gstAmount;
-    
-    // Format items for display if they exist
-    let formattedItems = [];
+      // Format items for display if they exist
+    let formattedItems: Array<{
+      productName: string;
+      quantity: number;
+      pricePerUnit: number;
+      totalAmount: number;
+    }> = [];
     let itemsSummary = "";
     
     if (purchase.items && purchase.items.length > 0) {

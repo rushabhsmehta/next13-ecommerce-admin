@@ -50,15 +50,19 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
     orderBy: {
       receiptDate: 'asc',
     },
-  });
-  // Format transactions for display with proper typing
+  });  // Format transactions for display with proper typing
   const formattedSales = sales.map((sale: SaleDetail & { items?: any[] }) => {
     // Calculate total including GST for each sale
     const gstAmount = sale.gstAmount || 0;
     const totalAmount = sale.salePrice + gstAmount;
     
     // Format items for display if they exist
-    let formattedItems = [];
+    let formattedItems: Array<{
+      productName: string;
+      quantity: number;
+      pricePerUnit: number;
+      totalAmount: number;
+    }> = [];
     let itemsSummary = "";
     
     if (sale.items && sale.items.length > 0) {

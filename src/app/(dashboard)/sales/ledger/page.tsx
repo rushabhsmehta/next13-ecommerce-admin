@@ -29,10 +29,20 @@ const SalesPage = async () => {
       name: true,
     }
   });
-
   // Transform data for the table component
 
   const formattedSales = sales.map((item: any) => {
+    // Format items if they exist
+    let formattedItems = [];
+    if (item.items && item.items.length > 0) {
+      formattedItems = item.items.map((itemDetail: any) => ({
+        productName: itemDetail.productName,
+        quantity: itemDetail.quantity,
+        pricePerUnit: itemDetail.pricePerUnit,
+        totalAmount: itemDetail.totalAmount,
+      }));
+    }
+    
     return {
       id: item.id,
       date: format(item.saleDate, 'MMMM do, yyyy'),
@@ -43,6 +53,7 @@ const SalesPage = async () => {
       description: item.description || "",
       gstAmount: item.gstAmount || 0,
       gstPercentage: item.gstPercentage || 0,
+      items: formattedItems,
     };
   });
 

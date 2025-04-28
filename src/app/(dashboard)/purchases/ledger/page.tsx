@@ -29,20 +29,32 @@ const PurchasesPage = async () => {
         name: true,
         contact: true,
       }
+    });    // Transform data for the table component
+    const formattedPurchases = purchases.map((item : any) => {
+      // Format items if they exist
+      let formattedItems = [];
+      if (item.items && item.items.length > 0) {
+        formattedItems = item.items.map((itemDetail: any) => ({
+          productName: itemDetail.productName,
+          quantity: itemDetail.quantity,
+          pricePerUnit: itemDetail.pricePerUnit,
+          totalAmount: itemDetail.totalAmount,
+        }));
+      }
+      
+      return {
+        id: item.id,
+        date: format(item.purchaseDate, 'MMMM do, yyyy'),
+        amount: item.price,
+        description: item.description || "",
+        packageName: item.tourPackageQuery?.tourPackageQueryName || "",
+        supplierName: item.supplier?.name || "",
+        supplierContact: item.supplier?.contact || "",
+        gstAmount: item.gstAmount || 0,
+        gstPercentage: item.gstPercentage || 0,
+        items: formattedItems,
+      };
     });
-
-    // Transform data for the table component
-    const formattedPurchases = purchases.map((item : any) => ({
-      id: item.id,
-      date: format(item.purchaseDate, 'MMMM do, yyyy'),
-      amount: item.price,
-      description: item.description || "",
-      packageName: item.tourPackageQuery?.tourPackageQueryName || "",
-      supplierName: item.supplier?.name || "",
-      supplierContact: item.supplier?.contact || "",
-      gstAmount: item.gstAmount || 0,
-      gstPercentage: item.gstPercentage || 0,
-    }));
 
     // Transform suppliers to match the expected type (converting null to undefined)
     const formattedSuppliers = suppliers.map(supplier => ({

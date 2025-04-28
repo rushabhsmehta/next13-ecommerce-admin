@@ -37,6 +37,12 @@ type Sale = {
   customerContact: string;
   gstAmount?: number;
   gstPercentage?: number;
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalAmount: number;
+  }>;
 };
 
 interface SaleLedgerClientProps {

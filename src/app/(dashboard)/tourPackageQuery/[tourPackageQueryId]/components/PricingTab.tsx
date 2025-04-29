@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
 import { format } from "date-fns"; // Import format
-import { TourPackageQueryFormValues } from "../[tourPackageQueryId]/components/tourPackageQuery-form";
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 
 // Define the props interface
 interface PricingTabProps {

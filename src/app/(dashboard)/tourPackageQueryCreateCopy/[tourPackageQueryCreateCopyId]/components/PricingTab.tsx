@@ -940,16 +940,42 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
+                </div>                <div>
                   <FormLabel className="text-xs">Count</FormLabel>
-                  <Input
-                    type="number"           
-                    value={newOccupancyCount}
-                    onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                    disabled={loading}
-                    className="w-full"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full w-8 h-8 flex-shrink-0"
+                      onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
+                      disabled={loading || newOccupancyCount <= 1}
+                    >
+                      <span className="sr-only">Decrease</span>
+                      <span className="text-lg font-bold">-</span>
+                    </Button>
+                    <Input
+                      type="number"           
+                      value={newOccupancyCount}
+                      onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
+                      min="1"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      disabled={loading}
+                      className="w-full text-center"
+                    />
+                    <Button 
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full w-8 h-8 flex-shrink-0"
+                      onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
+                      disabled={loading}
+                    >
+                      <span className="sr-only">Increase</span>
+                      <span className="text-lg font-bold">+</span>
+                    </Button>
+                  </div>
                 </div>
                 <Button
                   type="button"

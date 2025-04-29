@@ -74,15 +74,16 @@ import JoditEditor from "jodit-react";
 import { Calendar } from "@/components/ui/calendar";
 import { ro } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
-import BasicInfo from "../../components/BasicInfoTab";
-import DatesTab from "../../components/DatesTab";
-import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "../../components/defaultValues";
-import FlightsTab from "../../components/FlightsTab";
-import Guests from "../../components/GuestsTab";
-import ItineraryTab from "../../components/ItineraryTab";
-import LocationTab from "../../components/LocationTab";
-import PoliciesTab from "../../components/PoliciesTab";
-import PricingTab from "../../components/PricingTab";
+import BasicInfo from "./BasicInfoTab";
+import DatesTab from "./DatesTab";
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues";
+import FlightsTab from "./FlightsTab";
+import Guests from "./GuestsTab";
+import ItineraryTab from "./ItineraryTab";
+import LocationTab from "./LocationTab";
+import PoliciesTab from "./PoliciesTab";
+import PricingTab from "./PricingTab";
+
 
 // Define the pricing item schema
 const pricingItemSchema = z.object({

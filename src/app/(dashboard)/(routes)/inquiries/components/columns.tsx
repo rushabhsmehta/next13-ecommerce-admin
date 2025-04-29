@@ -41,33 +41,48 @@ const StatusCell = ({ row }: { row: any }) => {
       setLoading(false);
     }
   };
-
+  // Helper function to get status styling
+  const getStatusStyles = (status: string) => {
+    switch(status) {
+      case "CONFIRMED":
+        return "bg-green-50 text-green-700 border border-green-200";
+      case "CANCELLED":
+        return "bg-red-50 text-red-700 border border-red-200";
+      case "HOT_QUERY":
+        return "bg-orange-50 text-orange-700 border border-orange-200";
+      default:
+        return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+    }
+  };
   return (
-    <Select
-      defaultValue={initialStatus}
-      onValueChange={onStatusChange}
-      disabled={loading}
-    >
-      <SelectTrigger className="w-[130px]">
-        <SelectValue placeholder="Select status" />
-      </SelectTrigger>
-      <SelectContent>
-        {statusOptions.map((status) => (
-          <SelectItem
-            key={status.value}
-            value={status.value}
-            className={
-              status.value === "CONFIRMED" ? "text-green-600" :
-              status.value === "CANCELLED" ? "text-red-600" :
-              status.value === "HOT_QUERY" ? "text-orange-600" :
-              "text-yellow-600"
-            }
-          >
-            {status.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex items-center">
+      <Select
+        defaultValue={initialStatus}
+        onValueChange={onStatusChange}
+        disabled={loading}
+      >
+        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-auto hover:bg-transparent focus:ring-0">          <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(initialStatus)} flex items-center`}>
+            <span>{statusOptions.find(s => s.value === initialStatus)?.label || "Unknown Status"}</span>
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {statusOptions.map((status) => (
+            <SelectItem
+              key={status.value}
+              value={status.value}
+              className={
+                status.value === "CONFIRMED" ? "text-green-600" :
+                status.value === "CANCELLED" ? "text-red-600" :
+                status.value === "HOT_QUERY" ? "text-orange-600" :
+                "text-yellow-600"
+              }
+            >
+              {status.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
 
@@ -180,37 +195,69 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   {
     accessorKey: "associatePartner",
     header: "Associate Partner",
-  },
-  {
+  },  {
     accessorKey: "status",
-    header: ({ column }) => (
-      <Select
-        onValueChange={(value) => {
-          column.setFilterValue(value === "ALL" ? "" : value)
-        }}
-      >
-        <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Filter status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ALL">All Status</SelectItem>
-          {statusOptions.map((status) => (
-            <SelectItem
-              key={status.value}
-              value={status.value}
-              className={
-                status.value === "CONFIRMED" ? "text-green-600" :
-                status.value === "CANCELLED" ? "text-red-600" :
-                status.value === "HOT_QUERY" ? "text-orange-600" :
-                "text-yellow-600"
-              }
-            >
-              {status.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    ),
+    header: ({ column }) => {
+      const currentFilter = column.getFilterValue() as string;
+      
+      // Get label for the current filter
+      const getCurrentStatusLabel = () => {
+        if (!currentFilter) return "All Status";
+        const option = statusOptions.find(s => s.value === currentFilter);
+        return option ? option.label : "Filter status";
+      };
+      
+      // Get styling for status badges
+      const getStatusBadgeStyle = (status: string) => {
+        switch(status) {
+          case "CONFIRMED":
+            return "bg-green-50 text-green-700 border border-green-200";
+          case "CANCELLED":
+            return "bg-red-50 text-red-700 border border-red-200";
+          case "HOT_QUERY":
+            return "bg-orange-50 text-orange-700 border border-orange-200";
+          case "PENDING":
+            return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+          default:
+            return "";
+        }
+      };
+
+      return (
+        <Select
+          value={currentFilter || "ALL"}
+          onValueChange={(value) => {
+            column.setFilterValue(value === "ALL" ? "" : value);
+          }}
+        >        <SelectTrigger className="w-[140px]">
+            {currentFilter ? (
+              <div className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${getStatusBadgeStyle(currentFilter)} flex items-center`}>
+                <span>{getCurrentStatusLabel()}</span>
+              </div>
+            ) : (
+              <SelectValue placeholder="Filter status" />
+            )}
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Status</SelectItem>
+            {statusOptions.map((status) => (
+              <SelectItem
+                key={status.value}
+                value={status.value}
+                className={
+                  status.value === "CONFIRMED" ? "text-green-600" :
+                  status.value === "CANCELLED" ? "text-red-600" :
+                  status.value === "HOT_QUERY" ? "text-orange-600" :
+                  "text-yellow-600"
+                }
+              >
+                {status.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    },
     cell: ({ row }) => <StatusCell row={row} />,
     filterFn: (row, id, value) => value ? row.getValue(id) === value : true
   },

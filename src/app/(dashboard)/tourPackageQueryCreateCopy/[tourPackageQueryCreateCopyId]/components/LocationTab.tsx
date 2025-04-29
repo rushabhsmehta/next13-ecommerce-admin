@@ -1,6 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\LocationTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { ChevronDown, MapPin, Check as CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Location } from "@prisma/client";
@@ -28,9 +27,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
 interface LocationTabProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   locations: Location[];
   form: any; // Use a more specific type if available

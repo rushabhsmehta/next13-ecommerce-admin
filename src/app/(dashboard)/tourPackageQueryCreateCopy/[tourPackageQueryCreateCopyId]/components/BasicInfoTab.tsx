@@ -36,9 +36,10 @@ import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form";
+import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
 interface BasicInfoProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   associatePartners: AssociatePartner[];
   tourPackages: TourPackage[] | null;

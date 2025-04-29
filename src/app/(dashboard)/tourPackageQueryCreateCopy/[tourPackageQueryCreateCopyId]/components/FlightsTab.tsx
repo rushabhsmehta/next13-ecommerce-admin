@@ -1,6 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\FlightsTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { Trash } from "lucide-react";
 
 // Import necessary UI components
@@ -13,10 +12,11 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
 // Define the props interface
 interface FlightsTabProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any;
 }

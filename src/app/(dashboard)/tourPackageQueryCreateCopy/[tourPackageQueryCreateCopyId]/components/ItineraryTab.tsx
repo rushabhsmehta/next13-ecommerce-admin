@@ -1,7 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\ItineraryTab.tsx
 import { useState, useRef } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
@@ -37,10 +36,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import ImageUpload from "@/components/ui/image-upload";
+import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
 // Define the props interface
 interface ItineraryTabProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   hotels: (Hotel & {
     images: Images[];

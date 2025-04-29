@@ -1,6 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\DatesTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -20,9 +19,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
 interface DatesTabProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any; // Use a more specific type if available
 }

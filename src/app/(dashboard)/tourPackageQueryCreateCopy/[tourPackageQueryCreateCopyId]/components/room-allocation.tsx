@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Plus, Trash } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { MealPlan, OccupancyType, RoomType } from '@prisma/client';
+import { TourPackageQueryCreateCopyFormValues } from './tourPackageQueryCreateCopy-form';
 
 interface RoomAllocationComponentProps {
   itineraryIndex: number;
@@ -23,7 +23,7 @@ interface TransportDetailsComponentProps {
 
 // Component for handling multiple room allocations with different occupancy types
 const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = ({ itineraryIndex, loading, roomTypes, occupancyTypes, mealPlans }) => {
-  const { control, register } = useFormContext<TourPackageQueryFormValues>();
+  const { control, register } = useFormContext<TourPackageQueryCreateCopyFormValues>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: `itineraries.${itineraryIndex}.roomAllocations`
@@ -112,7 +112,7 @@ const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = ({ itine
 
 // Component for transport details per itinerary
 const TransportDetailsComponent: React.FC<TransportDetailsComponentProps> = ({ itineraryIndex, loading, vehicleTypes }) => {
-  const { control, register } = useFormContext<TourPackageQueryFormValues>();
+  const { control, register } = useFormContext<TourPackageQueryCreateCopyFormValues>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: `itineraries.${itineraryIndex}.transportDetails`

@@ -1,6 +1,5 @@
 // filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\PoliciesTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { FileCheck, ListChecks, FileText, AlertCircle, ScrollText } from "lucide-react";
 
 // Import necessary UI components
@@ -17,10 +16,11 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { PolicyField } from "./policy-fields";
+import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
 // Define the props interface
 interface PoliciesTabProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any;
   useLocationDefaults: {

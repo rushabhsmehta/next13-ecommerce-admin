@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { InquiryColumn, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
+import { InquiriesDataTable } from "./inquiries-data-table";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -268,10 +269,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           {/* For content display, still use JS-based detection as a fallback */}
           <div className="block md:hidden">
             <MobileInquiryCard data={filteredData} isAssociateUser={isAssociateUser} />
-          </div>
-          
-          <div className="hidden md:block">
-            <DataTable searchKey="customerName" columns={columns} data={data} />
+          </div>          <div className="hidden md:block">
+            <InquiriesDataTable
+              columns={columns}
+              data={data}
+            />
           </div>
         </>
       )}

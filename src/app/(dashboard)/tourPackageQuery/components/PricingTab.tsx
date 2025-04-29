@@ -1,5 +1,4 @@
 import { Control, useFieldArray } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { Calculator, Plus, Trash } from "lucide-react";
 import { useState } from "react"; // Import useState
 import axios from "axios";
@@ -29,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
 import { format } from "date-fns"; // Import format
+import { TourPackageQueryFormValues } from "../[tourPackageQueryId]/components/tourPackageQuery-form";
 
 // Define the props interface
 interface PricingTabProps {
@@ -944,8 +944,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 <div>
                   <FormLabel className="text-xs">Count</FormLabel>
                   <Input
-                    type="number"
-                    min="1"
+                    type="number"           
                     value={newOccupancyCount}
                     onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
                     disabled={loading}

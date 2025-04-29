@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
 import { QueryLink } from "./query-link"
@@ -26,7 +27,8 @@ const statusOptions = [
 
 const StatusCell = ({ row }: { row: any }) => {
   const [loading, setLoading] = useState(false);
-  const initialStatus = row.original.status;
+  const [currentStatus, setCurrentStatus] = useState(row.original.status);
+  const router = useRouter();
 
   const onStatusChange = async (newStatus: string) => {
     try {
@@ -34,7 +36,17 @@ const StatusCell = ({ row }: { row: any }) => {
       await axios.patch(`/api/inquiries/${row.original.id}/status`, {
         status: newStatus
       });
+      // Update the local state immediately
+      setCurrentStatus(newStatus);
       toast.success("Status updated");
+        // Update the original data in the row to ensure filtering works
+      row.original.status = newStatus;
+      
+      // Optional: refresh the page data to ensure other components are updated
+      // This is more expensive but ensures full consistency
+      setTimeout(() => {
+        router.refresh();
+      }, 1000); // Delay refresh slightly to let UI update first
     } catch (error) {
       toast.error("Failed to update status");
     } finally {
@@ -53,16 +65,15 @@ const StatusCell = ({ row }: { row: any }) => {
       default:
         return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
-  };
-  return (
+  };  return (
     <div className="flex items-center">
       <Select
-        defaultValue={initialStatus}
+        value={currentStatus}
         onValueChange={onStatusChange}
         disabled={loading}
       >
-        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-auto hover:bg-transparent focus:ring-0">          <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(initialStatus)} flex items-center`}>
-            <span>{statusOptions.find(s => s.value === initialStatus)?.label || "Unknown Status"}</span>
+        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-auto hover:bg-transparent focus:ring-0">          <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(currentStatus)} flex items-center`}>
+            <span>{statusOptions.find(s => s.value === currentStatus)?.label || "Unknown Status"}</span>
           </div>
         </SelectTrigger>
         <SelectContent>

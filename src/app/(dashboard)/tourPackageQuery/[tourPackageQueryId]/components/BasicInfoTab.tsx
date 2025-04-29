@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { FileText, ChevronDown, CheckIcon } from "lucide-react";
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues";
 import { cn } from "@/lib/utils";
@@ -36,6 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 
 interface BasicInfoProps {
   control: Control<TourPackageQueryFormValues>;

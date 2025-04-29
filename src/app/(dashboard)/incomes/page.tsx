@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import Link from "next/link";
-import { IncomesListTable } from "./components/incomes-list-table";
+import { IncomesClient } from "./components/incomes-client";
 
 export default async function IncomesPage() {
   const { userId } = auth();
@@ -18,7 +15,8 @@ export default async function IncomesPage() {
     include: {
       incomeCategory: {
         select: {
-          name: true
+          name: true,
+          id: true
         }
       },
       bankAccount: {
@@ -34,18 +32,23 @@ export default async function IncomesPage() {
     }
   });
 
+  // Get all income categories for filtering
+  const categories = await prismadb.incomeCategory.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      name: true
+    }
+  });
+
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tight">Incomes</h2>
-          <Link href="/incomes/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Add New
-            </Button>
-          </Link>
-        </div>
-        <IncomesListTable data={incomes} />
+        <IncomesClient 
+          incomes={incomes}
+          categories={categories}
+        />
       </div>
     </div>
   );

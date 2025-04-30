@@ -19,14 +19,17 @@ export const ExpenseForm = ({ initialData, expenseCategories, bankAccounts, cash
     router.refresh();
   };
   
+  // Explicitly check if initialData is null to avoid issues with optional chaining on null
+  const isEdit = initialData !== null && initialData !== undefined && 'id' in initialData;
+  
   return (
     <ExpenseFormWrapper
-      initialData={initialData}
+      initialData={initialData || {}}
       expenseCategories={expenseCategories}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}
       onSuccess={onSuccess}
-      submitButtonText={initialData?.id ? "Update Expense" : "Create Expense"}
+      submitButtonText={isEdit ? "Update Expense" : "Create Expense"}
     />
   );
 };

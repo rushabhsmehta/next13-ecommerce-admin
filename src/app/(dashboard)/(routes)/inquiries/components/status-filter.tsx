@@ -54,10 +54,9 @@ export const StatusFilter = () => {
       <Select
         value={currentStatus}
         onValueChange={onStatusChange}
-      >
-        <SelectTrigger className="w-[180px]">
+      >        <SelectTrigger className="w-[130px]">
           {currentStatus !== "ALL" ? (
-            <div className={`rounded-md px-2 py-0.5 text-xs font-medium ${getStatusBadgeStyle(currentStatus)} flex items-center`}>
+            <div className={`rounded-md px-2.5 py-1 text-xs font-medium ${getStatusBadgeStyle(currentStatus)} flex items-center w-full justify-center`}>
               <span>{statusOptions.find(s => s.value === currentStatus)?.label || "Unknown"}</span>
             </div>
           ) : (

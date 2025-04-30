@@ -71,8 +71,8 @@ const StatusCell = ({ row }: { row: any }) => {
         value={currentStatus}
         onValueChange={onStatusChange}
         disabled={loading}
-      >
-        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-auto hover:bg-transparent focus:ring-0">          <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(currentStatus)} flex items-center`}>
+      >        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-[130px] hover:bg-transparent focus:ring-0">          
+          <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(currentStatus)} flex items-center w-full justify-center`}>
             <span>{statusOptions.find(s => s.value === currentStatus)?.label || "Unknown Status"}</span>
           </div>
         </SelectTrigger>
@@ -239,10 +239,9 @@ export const columns: ColumnDef<InquiryColumn>[] = [
           value={currentFilter || "ALL"}
           onValueChange={(value) => {
             column.setFilterValue(value === "ALL" ? "" : value);
-          }}
-        >        <SelectTrigger className="w-[140px]">
+          }}        >        <SelectTrigger className="w-[130px]">
             {currentFilter ? (
-              <div className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${getStatusBadgeStyle(currentFilter)} flex items-center`}>
+              <div className={`rounded-md px-2.5 py-1 text-xs font-medium ${getStatusBadgeStyle(currentFilter)} flex items-center w-full justify-center`}>
                 <span>{getCurrentStatusLabel()}</span>
               </div>
             ) : (

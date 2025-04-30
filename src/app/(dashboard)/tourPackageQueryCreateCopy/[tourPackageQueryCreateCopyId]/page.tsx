@@ -6,11 +6,11 @@ import { TourPackageQueryCreateCopyForm } from "./components/tourPackageQueryCre
 const tourPackageQueryPage = async ({
   params
 }: {
-  params: { tourPackageQueryId: string }
+  params: { tourPackageQueryCreateCopyId: string }
 }) => {
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
-      id: params.tourPackageQueryId,
+      id: params.tourPackageQueryCreateCopyId,
     },
     include: {
       images: true,      
@@ -104,7 +104,7 @@ const tourPackageQueryPage = async ({
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {
       // Exclude the current query from results to avoid self-referencing
-      id: { not: params.tourPackageQueryId === "new" ? undefined : params.tourPackageQueryId },
+      id: { not: params.tourPackageQueryCreateCopyId === "new" ? undefined : params.tourPackageQueryCreateCopyId },
       // Only include confirmed or featured queries as templates
       isFeatured: true
     },

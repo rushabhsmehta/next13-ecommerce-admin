@@ -128,8 +128,7 @@ const BasicInfo: React.FC<BasicInfoProps> = ({
                     </CommandGroup>
                   </Command>
                 </PopoverContent>
-              </Popover>
-              <FormDescription>
+              </Popover>              <FormDescription>
                 {!form.getValues('locationId')
                   ? "Please select a location first to view available tour packages"
                   : "Select an existing tour package to use as a template"}
@@ -138,6 +137,66 @@ const BasicInfo: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
+
+        <FormField
+          control={control}
+          name="tourPackageQueryTemplate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Load from Tour Package Query</FormLabel>
+              <Popover open={openQueryTemplate} onOpenChange={setOpenQueryTemplate}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className={cn(
+                        "w-full justify-between",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search tour package query..." />
+                    <CommandEmpty>No tour package query found.</CommandEmpty>
+                    <CommandGroup>
+                      {tourPackageQueries
+                        ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
+                        .map((query) => (
+                          <CommandItem
+                            key={query.id}
+                            value={query.tourPackageQueryName ?? ''}
+                            onSelect={() => {
+                              handleTourPackageQuerySelection(query.id);
+                              setOpenQueryTemplate(false);
+                            }}
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                query.id === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {query.tourPackageQueryName}
+                          </CommandItem>
+                        ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                Load initial data from an existing tour package query template
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
         <div className="grid grid-cols-3 gap-8">
           <FormField
             control={control}
@@ -448,64 +507,7 @@ const BasicInfo: React.FC<BasicInfoProps> = ({
               <FormMessage />
             </FormItem>
           )}
-        />
-
-        {/* Tour Package Query Template Selection */}
-        <FormField
-          control={control}
-          name="tourPackageQueryTemplate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Load from Tour Package Query</FormLabel>
-              <Popover open={openQueryTemplate} onOpenChange={setOpenQueryTemplate}>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "w-full justify-between",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"}
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search tour package query..." />
-                    <CommandEmpty>No tour package query found.</CommandEmpty>
-                    <CommandGroup>
-                      {tourPackageQueries
-                        ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
-                        .map((query) => (
-                          <CommandItem
-                            key={query.id}
-                            value={query.id}
-                            onSelect={(value) => {
-                              handleTourPackageQuerySelection(value);
-                              setOpenQueryTemplate(false);
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                query.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {query.tourPackageQueryName}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        />        {/* Tour Package Query Template Selection has been moved up in the form, right after Load from Tour Package */}
       </CardContent>
     </Card>
   );

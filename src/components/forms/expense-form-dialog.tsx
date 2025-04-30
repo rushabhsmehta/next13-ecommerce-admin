@@ -75,7 +75,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   expenseCategories,
   bankAccounts,
   cashAccounts,
-  onSuccess,
+  onSuccess = () => {},
   submitButtonText = "Create"
 }) => {
   const [loading, setLoading] = useState(false);
@@ -87,18 +87,17 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   const filteredCategories = expenseCategories.filter(category => 
     category.name.toLowerCase().includes(categorySearch.toLowerCase())
   );
-
   let defaultValues: Partial<ExpenseFormValues> = {
     expenseDate: new Date(),
     amount: 0,
     expenseCategoryId: "",
     description: "",
-    tourPackageQueryId: initialData?.tourPackageQueryId || undefined,
+    tourPackageQueryId: initialData && initialData.tourPackageQueryId ? initialData.tourPackageQueryId : undefined,
     accountId: "",
     accountType: "",
   };
-
-  if (initialData && Object.keys(initialData).length > 1) {
+  if (initialData && initialData.id) {
+    // Only set these values when we have an existing expense (has an id)
     defaultValues = {
       expenseDate: initialData.expenseDate ? new Date(initialData.expenseDate) : new Date(),
       amount: initialData.amount,
@@ -107,6 +106,12 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
       tourPackageQueryId: initialData.tourPackageQueryId || undefined,
       accountId: initialData.bankAccountId || initialData.cashAccountId || "",
       accountType: initialData.bankAccountId ? "bank" : "cash",
+    };
+  } else if (initialData && initialData.tourPackageQueryId) {
+    // If we're creating a new expense for a tour package, just pass the tour package ID
+    defaultValues = {
+      ...defaultValues,
+      tourPackageQueryId: initialData.tourPackageQueryId
     };
   }
 
@@ -119,11 +124,29 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
     const category = expenseCategories.find(cat => cat.id === id);
     return category ? category.name : "";
   };
-
   const onSubmit = async (data: ExpenseFormValues) => {
     try {
+      console.log("Expense form submission initiated with data:", { 
+        ...data, 
+        initialDataProps: initialData ? Object.keys(initialData) : "No initialData" 
+      });
       setLoading(true);
       setFormErrors([]);
+      
+      // Validate required fields before API call
+      if (!data.expenseCategoryId) {
+        setFormErrors(["Expense category is required"]);
+        toast.error("Expense category is required");
+        setLoading(false);
+        return;
+      }
+      
+      if (!data.accountType || !data.accountId) {
+        setFormErrors(["Account information is required"]);
+        toast.error("Account information is required");
+        setLoading(false);
+        return;
+      }
       
       // Prepare the API data with correct account type field
       const apiData = {
@@ -134,15 +157,20 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
       delete apiData.accountId;
       delete apiData.accountType;
       
+      console.log("Submitting expense data:", apiData);
+      
       if (initialData && initialData.id) {
-        await axios.patch(`/api/expenses/${initialData.id}`, apiData);
+        const response = await axios.patch(`/api/expenses/${initialData.id}`, apiData);
+        console.log("Update response:", response.data);
       } else {
-        await axios.post('/api/expenses', apiData);
+        const response = await axios.post('/api/expenses', apiData);
+        console.log("Create response:", response.data);
       }
       
-      toast.success(initialData.id ? "Expense updated." : "Expense created.");
-      onSuccess();
+      toast.success(initialData && initialData.id ? "Expense updated." : "Expense created.");
+      if (onSuccess) onSuccess();
     } catch (error: any) {
+      console.error("Error submitting expense form:", error);
       const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
       toast.error(errorMessage);
       setFormErrors([errorMessage]);
@@ -371,21 +399,26 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                 />
               </div>
             </CardContent>
-          </Card>
-
-          {/* Submit Button */}
+          </Card>          {/* Submit Button */}
           <div className="flex justify-end gap-4 mt-8">
             <Button 
               type="button" 
               variant="outline"
-              onClick={() => window.history.back()}
+              onClick={() => {
+                // If onSuccess is provided, use it as a cancel callback too
+                if (typeof onSuccess === 'function') {
+                  onSuccess();
+                } else {
+                  window.history.back();
+                }
+              }}
             >
               Cancel
             </Button>
             <Button 
               disabled={loading} 
               type="submit"
-              className="px-8"
+              className="px-8 bg-primary hover:bg-primary/90"
             >
               {loading ? (
                 <>

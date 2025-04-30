@@ -49,8 +49,7 @@ export const ExpenseFormWrapper = ({
     
     fetchData();
   }, [props.expenseCategories, props.bankAccounts, props.cashAccounts]);
-  
-  if (isLoading) {
+    if (isLoading) {
     return (
       <div className="flex justify-center items-center h-24">
         <Loader className="w-6 h-6 animate-spin" />
@@ -60,7 +59,7 @@ export const ExpenseFormWrapper = ({
   
   return (
     <ExpenseFormDialog
-      initialData={initialData}
+      initialData={initialData || {}}  // Ensure initialData is at least an empty object
       expenseCategories={expenseCategories}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}

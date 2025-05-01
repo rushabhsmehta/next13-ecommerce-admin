@@ -82,7 +82,10 @@ const tourPackageQueryPage = async ({
   });
   const tourPackages = await prismadb.tourPackage.findMany({
     where: {
-      isArchived: false
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
     },
     include: {
       images: true,
@@ -103,12 +106,11 @@ const tourPackageQueryPage = async ({
   // Fetch tour package queries for templates
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {
-      // Exclude the current query from results to avoid self-referencing
-      id: { not: params.tourPackageQueryCreateCopyId === "new" ? undefined : params.tourPackageQueryCreateCopyId },
-      // Only include confirmed or featured queries as templates
-      isFeatured: true
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
     },
-    take: 50, // Limit to 50 templates for performance
     orderBy: {
       createdAt: 'desc'
     },

@@ -36,7 +36,10 @@ const TourPackageQueryPage = async ({
 
   const tourPackages = await prismadb.tourPackage.findMany({
     where: {
-      isArchived: false
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
     },
     include: {
       images: true,
@@ -57,7 +60,10 @@ const TourPackageQueryPage = async ({
   // Fetch tour package queries
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {
-      isArchived: false
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
     },
     include: {
       images: true,

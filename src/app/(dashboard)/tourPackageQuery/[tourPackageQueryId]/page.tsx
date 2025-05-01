@@ -14,7 +14,7 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,      
+      images: true,
       flightDetails: true,
       itineraries: {
         include: {
@@ -23,7 +23,7 @@ const tourPackageQueryPage = async ({
             include: {
               roomType: true,
               occupancyType: true,
-              mealPlan  : true,
+              mealPlan: true,
             }
           },
           transportDetails: {
@@ -83,7 +83,10 @@ const tourPackageQueryPage = async ({
   });
   const tourPackages = await prismadb.tourPackage.findMany({
     where: {
-      isArchived: false
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
     },
     include: {
       images: true,
@@ -100,16 +103,15 @@ const tourPackageQueryPage = async ({
       }
     }
   });
-  
+
   // Fetch tour package queries for templates
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
     where: {
-      // Exclude the current query from results to avoid self-referencing
-      id: { not: params.tourPackageQueryId === "new" ? undefined : params.tourPackageQueryId },
-      // Only include confirmed or featured queries as templates
-      isFeatured: true
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
     },
-    take: 50, // Limit to 50 templates for performance
     orderBy: {
       createdAt: 'desc'
     },
@@ -130,7 +132,8 @@ const tourPackageQueryPage = async ({
   });
 
   return (
-    <>{/*       <Navbar /> */}      <div className="flex-col">
+    <>{/*       <Navbar /> */}
+      <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
           <TourPackageQueryForm
             initialData={tourPackageQuery}

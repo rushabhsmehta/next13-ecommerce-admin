@@ -16,7 +16,11 @@ const TourPackageQueryPage = async ({
   });
 
   const locations = await prismadb.location.findMany();
-  const hotels = await prismadb.hotel.findMany();
+  const hotels = await prismadb.hotel.findMany({
+    include: {
+      images: true // Include the images relation
+    }
+  });
   const activitiesMaster = await prismadb.activityMaster.findMany({
     include: {
       activityMasterImages: true

@@ -993,6 +993,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 activitiesMaster={activitiesMaster}
                 itinerariesMaster={itinerariesMaster}
                 form={form}
+                // Pass lookup data down to ItineraryTab
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
             <TabsContent value="flights" className="space-y-4 mt-4">

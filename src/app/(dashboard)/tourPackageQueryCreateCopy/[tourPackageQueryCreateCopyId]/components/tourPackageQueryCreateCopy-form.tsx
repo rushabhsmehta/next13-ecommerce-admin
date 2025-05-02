@@ -962,6 +962,11 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 activitiesMaster={activitiesMaster}
                 itinerariesMaster={itinerariesMaster}
                 form={form}
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
+
               />
             </TabsContent>
             <TabsContent value="flights" className="space-y-4 mt-4">

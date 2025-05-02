@@ -168,6 +168,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     <CommandGroup>
                       {tourPackageQueries
                         ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
+                        ?.filter(tpq => !form.getValues('locationId') || tpq.locationId === form.getValues('locationId')) // Filter by selected locationId
                         .map((query) => (
                           <CommandItem
                             key={query.id}

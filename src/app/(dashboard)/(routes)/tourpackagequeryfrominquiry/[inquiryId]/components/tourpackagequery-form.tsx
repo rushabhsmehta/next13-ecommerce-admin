@@ -136,10 +136,14 @@ const pricingItemSchema = z.object({
 });
 
 const formSchema = z.object({
+  inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryTemplate: z.string().optional(),
+  // Add fields to store the selected template ID and type
+  selectedTemplateId: z.string().optional(),
+  selectedTemplateType: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
-  tourPackageQueryName: z.string().min(1),
+  tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
@@ -268,6 +272,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const defaultValues = {
     tourPackageTemplate: '',
     tourPackageQueryTemplate: '',
+    // Add defaults for the new fields
+    selectedTemplateId: '',
+    selectedTemplateType: '',
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
     associatePartnerId: inquiry?.associatePartnerId || '',
     tourPackageQueryType: '',
@@ -401,8 +408,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field
-
       form.setValue('tourPackageTemplate', selectedTourPackageId);
+      // Set the selected template info
+      form.setValue('selectedTemplateId', selectedTourPackageId);
+      form.setValue('selectedTemplateType', 'TourPackage');
       form.setValue('tourPackageQueryTemplate', ''); // Clear the query template field
       const customerName = form.getValues('customerName');
       const packageName = selectedTourPackage.tourPackageName || '';
@@ -485,9 +494,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
     const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
     if (selectedTourPackageQuery) {
-
       form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
-      form.setValue('tourPackageTemplate', '')
+      // Set the selected template info
+      form.setValue('selectedTemplateId', selectedTourPackageQueryId);
+      form.setValue('selectedTemplateType', 'TourPackageQuery');
+      form.setValue('tourPackageTemplate', ''); // Clear the package template field
       // Update form fields with selected tour package query data
       form.setValue('tourPackageQueryName', selectedTourPackageQuery.tourPackageQueryName || '');
       form.setValue('tourPackageQueryType', String(selectedTourPackageQuery.tourPackageQueryType || ''));
@@ -577,46 +588,46 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     // --- ADJUST onSubmit TO MATCH SCHEMA ---
     const formattedData = {
-      ...data,
+      ...data, // selectedTemplateId and selectedTemplateType are included here
       inquiryId: params.inquiryId,
-      // Ensure optional fields are handled (use empty string if null/undefined)
       transport: data.transport || '',
       pickup_location: data.pickup_location || '',
       drop_location: data.drop_location || '',
       totalPrice: data.totalPrice || '',
       disclaimer: data.disclaimer || '',
-      // Map itineraries according to the adjusted schema
-      itineraries: data.itineraries.map(itinerary => ({
+      // Explicitly type the 'itinerary' parameter
+      itineraries: data.itineraries.map((itinerary: z.infer<typeof itinerarySchema>) => ({
         ...itinerary,
-        locationId: data.locationId, // Ensure locationId is set from main form
-        // Ensure activities have locationId if required by backend
+        locationId: data.locationId,
         activities: itinerary.activities?.map((activity) => ({
           ...activity,
-          locationId: data.locationId, // Example: Add locationId if needed
+          locationId: data.locationId,
         })),
-        // Ensure roomAllocations and transportDetails quantities are numbers if backend expects numbers
-        roomAllocations: itinerary.roomAllocations?.map(alloc => ({
+        // Ensure correct spelling and explicit types
+        roomAllocations: itinerary.roomAllocations?.map((alloc: z.infer<typeof roomAllocationSchema>) => ({
             ...alloc,
-            quantity: Number(alloc.quantity) || 1 // Convert quantity to number
+            quantity: Number(alloc.quantity) || 1 // Ensure quantity is a number
         })),
-        transportDetails: itinerary.transportDetails?.map(detail => ({
+        transportDetails: itinerary.transportDetails?.map((detail: z.infer<typeof transportDetailsSchema>) => ({
             ...detail,
-            quantity: Number(detail.quantity) || 1 // Convert quantity to number
+            quantity: Number(detail.quantity) || 1 // Ensure quantity is a number
         })),
       })),
-      // Ensure pricingSection is handled correctly (pass as array or stringify if needed)
-      pricingSection: data.pricingSection || [], // Pass as array by default
-      // pricingSection: JSON.stringify(data.pricingSection || []), // Uncomment if backend needs JSON string
+      pricingSection: data.pricingSection || [],
     };
+
     // --- END ADJUST onSubmit ---
     try {
       setLoading(true);
-      await axios.post(`/api/tourPackageQuery`, formattedData);
+      console.log("Submitting data:", formattedData); // Log data before sending
+      const response = await axios.post(`/api/tourPackageQuery`, formattedData);
+      console.log("API Response:", response.data); // Log API response
       router.refresh();
-      router.push(`/tourPackageQuery`);
-      toast.success('Tour Package Query created from inquiry.');
+      router.push(`/tourPackageQuery`); // Redirect after successful creation
+      toast.success("Tour Package Query created successfully!");
     } catch (error: any) {
-      toast.error('Something went wrong.');
+      console.error("Submission error:", error.response?.data || error.message);
+      toast.error(error.response?.data?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }

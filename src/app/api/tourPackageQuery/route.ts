@@ -117,6 +117,8 @@ export async function POST(
             locationId,
             period,
             tour_highlights,
+            selectedTemplateId,
+            selectedTemplateType,
             tourStartsFrom,
             tourEndsOn,
             transport,
@@ -149,6 +151,9 @@ export async function POST(
             assignedToEmail,
             associatePartnerId,  // Add this line
             inquiryId,
+            // Add the new template fields
+            selectedTemplateId,
+            selectedTemplateType,
             isFeatured,
             isArchived } = body;
 
@@ -199,6 +204,9 @@ export async function POST(
                 locationId,
                 period,
                 tour_highlights,
+                // Add the new template fields to the data object
+                selectedTemplateId,
+                selectedTemplateType,
                 tourStartsFrom,
                 tourEndsOn,
                 transport,

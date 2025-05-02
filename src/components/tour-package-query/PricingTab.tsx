@@ -1,8 +1,13 @@
+// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PricingTab.tsx
 import { Control, useFieldArray } from "react-hook-form";
-import { Calculator, Plus, Trash } from "lucide-react";
-import { useState } from "react"; // Import useState
+import { Calculator, Plus, Trash, DollarSign } from "lucide-react"; // Added DollarSign
+import { useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+
+// Import form value types
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 
 // Import necessary UI components
 import { Input } from "@/components/ui/input";
@@ -26,15 +31,14 @@ import {
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import RadioGroup
-import { format } from "date-fns"; // Import format
-import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { format } from "date-fns";
 
-// Define the props interface
+// Define the props interface with a union type for control
 interface PricingTabProps {
-  control: Control<TourPackageQueryFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
-  form: any;
+  form: any; // Consider using a more specific type or a union type if form methods differ
   hotels: (Hotel & {
     images: any[];
   })[];
@@ -116,16 +120,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
       toast.error("Please select an occupancy type");
       return;
     }
-    
+
     // Find the occupancy type to get paxPerUnit
     const occupancyType = occupancyTypes.find(ot => ot.id === newOccupancyTypeId);
     if (!occupancyType) {
       toast.error("Invalid occupancy type selected");
       return;
     }
-    
+
     // Determine pax per unit based on occupancy type name
-    // This logic can be adjusted based on your specific occupancy types
     let paxPerUnit = 1; // Default
     if (occupancyType.name?.toLowerCase().includes('double')) {
       paxPerUnit = 2;
@@ -134,7 +137,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
     } else if (occupancyType.name?.toLowerCase().includes('quad')) {
       paxPerUnit = 4;
     }
-    
+
     // Add to selections
     setOccupancySelections([
       ...occupancySelections,
@@ -144,7 +147,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
         paxPerUnit
       }
     ]);
-    
+
     // Reset form fields
     setNewOccupancyTypeId("");
     setNewOccupancyCount(1);
@@ -160,7 +163,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       return total + (selection.count * selection.paxPerUnit);
     }, 0);
   };
-  
+
   // Function to calculate PAX for pricing matches (only counting Double occupancy)
   const calculatePricingPax = (): number => {
     return occupancySelections.reduce((total, selection) => {
@@ -181,19 +184,19 @@ const PricingTab: React.FC<PricingTabProps> = ({
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
     }
-    
+
     // Check meal plan selection
     if (!selectedMealPlanId) {
       toast.error("Please select a Meal Plan for Tour Package Pricing.");
       return;
     }
-    
+
     // Check occupancy selections
     if (occupancySelections.length === 0) {
       toast.error("Please add at least one occupancy selection.");
       return;
     }
-    
+
     const queryStartDate = form.getValues('tourStartsFrom');
     const queryEndDate = form.getValues('tourEndsOn');
     if (!queryStartDate || !queryEndDate) {
@@ -204,12 +207,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
     const pricingQueryPax = calculatePricingPax();
     // Calculate total pax for validation and display
     const totalQueryPax = calculateTotalPax();
-    
+
     if (totalQueryPax <= 0) {
       toast.error("Total number of guests must be greater than 0.");
       return;
     }
-    
+
     if (pricingQueryPax <= 0) {
       toast.error("You need at least one Double occupancy selection for tour package pricing.");
       return;
@@ -248,11 +251,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
         return;
       }      // --- Apply the uniquely matched pricing --- 
       const selectedPricing = matchedPricings[0];      // First, extract Per Person and Per Couple costs (required for Double occupancy)
-      const perPersonComponent = selectedPricing.pricingComponents.find((comp: any) => 
+      const perPersonComponent = selectedPricing.pricingComponents.find((comp: any) =>
         comp.pricingAttribute?.name?.toLowerCase().includes('per person')
       );
-      
-      const perCoupleComponent = selectedPricing.pricingComponents.find((comp: any) => 
+
+      const perCoupleComponent = selectedPricing.pricingComponents.find((comp: any) =>
         comp.pricingAttribute?.name?.toLowerCase().includes('per couple')
       );
         // Extract costs ONLY for the specific selected occupancy types
@@ -264,11 +267,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
         .map(selection => {
           const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
           const occupancyName = occupancyType?.name?.toLowerCase() || '';
-          
+
           // Find components that specifically match this occupancy type based on well-defined mappings
           return selectedPricing.pricingComponents.find((comp: any) => {
             const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            
+
             // Double occupancy uses Per Person Cost or Per Couple Cost
             if (occupancyName.includes('double')) {
               return compName.includes('per person') || compName.includes('per couple');
@@ -289,18 +292,18 @@ const PricingTab: React.FC<PricingTabProps> = ({
             if (occupancyName.includes('infant')) {
               return compName.includes('infant');
             }
-            
+
             // More specific matching as fallback
             const occupancyWords = occupancyName.split(/\s+/);
             for (const word of occupancyWords) {
               if (word.length > 2 && compName.includes(word)) return true;
             }
-            
+
             return false;
           });
         })
         .filter(Boolean); // Remove any undefined components
-      
+
       // Create the final pricing components array
       const finalPricingComponents = [];
         // Always add Per Person and Per Couple if available (for Double occupancy)
@@ -311,7 +314,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
           description: 'Cost per person'
         });
       }
-      
+
       if (perCoupleComponent) {
         finalPricingComponents.push({
           name: perCoupleComponent.pricingAttribute?.name || 'Per Couple Cost',
@@ -334,9 +337,9 @@ const PricingTab: React.FC<PricingTabProps> = ({
         const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
         return occupancyType && occupancyType.name?.toLowerCase().includes('double');
       });
-      
+
       let totalPrice = 0;
-      
+
       // Apply Double occupancy pricing with correct multiplication
       if (doubleOccupancySelections.length > 0) {
         // Prefer Per Couple price if available, otherwise use Per Person price
@@ -357,18 +360,18 @@ const PricingTab: React.FC<PricingTabProps> = ({
           totalPrice += perPersonPrice * doublePersonCount;
         }
       }
-      
+
       // Apply other occupancy pricing with correct multiplication for each type
       occupancySelections.forEach(selection => {
         const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
         if (!occupancyType) return;
-        
+
         // Skip double occupancy as it's already handled above
         if (occupancyType.name?.toLowerCase().includes('double')) return;
-        
+
         const occupancyName = occupancyType.name?.toLowerCase() || '';
         let matchedComp;
-        
+
         // Find the matching price component based on occupancy type
         if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
           // Find Child With No Bed pricing
@@ -401,7 +404,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
             return compName.includes(occupancyName);
           });
         }
-        
+
         // Apply the price if a matching component is found
         if (matchedComp) {
           const unitPrice = parseFloat(matchedComp.price || '0');
@@ -425,64 +428,63 @@ const PricingTab: React.FC<PricingTabProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pricing</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5" /> {/* Added icon */}
+          Pricing
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6"> {/* Increased spacing */}
+      <CardContent className="space-y-6">
 
         {/* Pricing Calculation Method Selection */}
-        {/* Removed FormField wrapper as pricingMethod is local state, not part of the main form schema */}
         <FormItem className="space-y-3">
-          <FormLabel>Pricing Calculation Method</FormLabel>
+          <FormLabel className="text-base font-semibold">Pricing Calculation Method</FormLabel>
           <FormControl>
             <RadioGroup
               onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
               defaultValue={calculationMethod}
-              className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4"
+              className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 pt-2"
             >
               <FormItem className="flex items-center space-x-3 space-y-0">
                 <FormControl>
-                  <RadioGroupItem value="manual" />
+                  <RadioGroupItem value="manual" id="manual-pricing" />
                 </FormControl>
-                <FormLabel className="font-normal">Manual Pricing</FormLabel>
+                <FormLabel htmlFor="manual-pricing" className="font-normal cursor-pointer">Manual Pricing</FormLabel>
               </FormItem>
               <FormItem className="flex items-center space-x-3 space-y-0">
                 <FormControl>
-                  <RadioGroupItem value="autoHotelTransport" />
+                  <RadioGroupItem value="autoHotelTransport" id="auto-hotel-transport" />
                 </FormControl>
-                <FormLabel className="font-normal">Auto Calculate (Hotel & Transport)</FormLabel>
+                <FormLabel htmlFor="auto-hotel-transport" className="font-normal cursor-pointer">Auto Calculate (Hotel & Transport)</FormLabel>
               </FormItem>
               <FormItem className="flex items-center space-x-3 space-y-0">
                 <FormControl>
-                  <RadioGroupItem value="autoTourPackage" />
+                  <RadioGroupItem value="autoTourPackage" id="auto-tour-package" />
                 </FormControl>
-                <FormLabel className="font-normal">Use Tour Package Pricing</FormLabel>
+                <FormLabel htmlFor="auto-tour-package" className="font-normal cursor-pointer">Use Tour Package Pricing</FormLabel>
               </FormItem>
             </RadioGroup>
           </FormControl>
-          {/* <FormMessage /> */ /* Removed as it's not a FormField anymore */}
         </FormItem>
 
         {/* Conditional Sections based on calculationMethod */}
 
         {/* Auto-calculate pricing section (Hotel & Transport) */}
         {calculationMethod === 'autoHotelTransport' && (
-          <div className="border border-blue-100 bg-blue-50 rounded-lg p-4">
+          <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-semibold text-blue-800">Auto Price (Hotel & Transport)</h3>
-                {/* ... existing spinner and status ... */}
                 <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-blue-800"></div>
-                <div id="calculation-status" className="hidden text-sm text-blue-700 bg-blue-100 px-2 py-1 rounded">Calculating...</div>
+                <div id="calculation-status" className="hidden text-sm px-2 py-1 rounded"></div>
               </div>
 
-              {/* ... existing Markup Input and Pricing Tier Selection ... */}
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
                 <div className="flex items-center">
-                  <label htmlFor="markup" className="text-sm mr-2 text-blue-700">Markup %:</label>
+                  <label htmlFor="markup" className="text-sm mr-2 text-blue-700 whitespace-nowrap">Markup %:</label>
                   <Input
                     id="markup"
                     type="number"
-                    className="w-20 h-8"
+                    className="w-20 h-8 bg-white"
                     defaultValue="0"
                     min="0"
                     max="100"
@@ -509,7 +511,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       (window as any).customMarkupValue = (window as any).markupInput.value;
                     }
                   }}>
-                    <SelectTrigger className="w-32 h-8">
+                    <SelectTrigger className="w-36 h-8 bg-white">
                       <SelectValue placeholder="Pricing Tier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -532,7 +534,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       const calculationStatus = document.getElementById('calculation-status');
                       if (calculatingElement) calculatingElement.classList.remove('hidden');
                       if (calculationStatus) {
-                        calculationStatus.classList.remove('hidden');
+                        calculationStatus.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+                        calculationStatus.classList.add('bg-blue-100', 'text-blue-700');
                         calculationStatus.textContent = 'Calculating...';
                       }
                       console.log("Starting simple price calculation...");
@@ -543,6 +546,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         const errorMsg = 'Please select tour start and end dates first';
                         console.error(errorMsg);
                         toast.error(errorMsg);
+                        if (calculationStatus) {
+                          calculationStatus.textContent = 'Error';
+                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        }
+                        if (calculatingElement) calculatingElement.classList.add('hidden');
                         return;
                       }
                       const validItineraries = itineraries.filter((itinerary: any) => {
@@ -551,9 +560,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       });
                       if (validItineraries.length === 0) {
                         toast.error('Please select hotels for at least one day to calculate pricing');
+                        if (calculationStatus) {
+                          calculationStatus.textContent = 'Error';
+                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        }
+                        if (calculatingElement) calculatingElement.classList.add('hidden');
                         return;
                       }
-                      toast.success('Calculating room prices...');
+                      toast('Calculating room prices...'); // Changed to info -> Changed to base toast
                       const pricingItineraries = validItineraries.map((itinerary: any) => ({
                         locationId: itinerary.locationId,
                         dayNumber: itinerary.dayNumber || 0,
@@ -606,21 +621,24 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         (window as any).priceCalculationResult = result;
                         setPriceCalculationResult(result);
                         toast.success('Price calculation complete!');
+                        if (calculationStatus) {
+                          calculationStatus.textContent = 'Complete';
+                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                          calculationStatus.classList.add('bg-green-100', 'text-green-700');
+                          setTimeout(() => {
+                            calculationStatus.classList.add('hidden');
+                          }, 3000);
+                        }
                       } else {
                         console.error('Invalid price calculation result structure:', result);
                         toast.error('Invalid price calculation result: The server returned an unexpected response');
+                        if (calculationStatus) {
+                          calculationStatus.textContent = 'Error';
+                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        }
                       }
-                      const spinnerElement = document.getElementById('price-calculating-spinner');
-                      const statusElement = document.getElementById('calculation-status');
-                      if (spinnerElement) spinnerElement.classList.add('hidden');
-                      if (statusElement) {
-                        statusElement.textContent = 'Calculation Complete';
-                        statusElement.classList.remove('hidden', 'bg-blue-100', 'text-blue-700');
-                        statusElement.classList.add('bg-green-100', 'text-green-700');
-                        setTimeout(() => {
-                          statusElement.classList.add('hidden');
-                        }, 3000);
-                      }
+                      if (calculatingElement) calculatingElement.classList.add('hidden');
                     } catch (error: any) {
                       console.error('Price calculation error:', error);
                       let errorMessage = 'Error calculating price';
@@ -638,10 +656,19 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         }
                       }
                       toast.error(`Price calculation failed: ${errorMessage}`);
+                      const spinnerElement = document.getElementById('price-calculating-spinner');
+                      const statusElement = document.getElementById('calculation-status');
+                      if (spinnerElement) spinnerElement.classList.add('hidden');
+                      if (statusElement) {
+                        statusElement.textContent = 'Error';
+                        statusElement.classList.remove('bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
+                        statusElement.classList.add('bg-red-100', 'text-red-700');
+                      }
                     }
                   }}
                   variant="outline"
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-600"
+                  disabled={loading}
                 >
                   <Calculator className="mr-2 h-4 w-4" />
                   Calculate Price
@@ -655,23 +682,29 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       (window as any).markupInput.value = '0';
                       (window as any).customMarkupValue = '0';
                     }
+                    // Optionally reset total price and pricing section in the form
+                    // form.setValue('totalPrice', '0');
+                    // form.setValue('pricingSection', []);
                     toast.success('Price calculation reset');
+                    const statusElement = document.getElementById('calculation-status');
+                    if (statusElement) statusElement.classList.add('hidden');
                   }}
                   variant="outline"
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300"
+                  disabled={loading}
                 >
                   Reset
                 </Button>
               </div>
             </div>
 
-            {/* ... existing Price Calculation Result Table ... */}
+            {/* Price Calculation Result Table */}
             {priceCalculationResult && priceCalculationResult.itineraryBreakdown?.length > 0 && (
-              <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden">
+              <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden bg-white shadow-sm">
                 <Table>
-                  <TableCaption>Complete Pricing Details</TableCaption>
+                  <TableCaption className="py-3 bg-blue-50">Detailed Pricing Breakdown</TableCaption>
                   <TableHeader>
-                    <TableRow className="bg-blue-50">
+                    <TableRow className="bg-blue-100">
                       <TableHead className="w-[80px]">Day</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-right">Room Cost</TableHead>
@@ -682,33 +715,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   <TableBody>
                     {(() => {
                       const days = new Set<number>();
-                      (window as any).priceCalculationResult.itineraryBreakdown?.forEach((item: any) => {
+                      priceCalculationResult.itineraryBreakdown?.forEach((item: any) => {
                         days.add(item.day);
                       });
-                      (window as any).priceCalculationResult.transportDetails?.forEach((transport: any) => {
+                      priceCalculationResult.transportDetails?.forEach((transport: any) => {
                         days.add(transport.day);
                       });
                       const sortedDays = Array.from(days).sort((a, b) => a - b);
                       return sortedDays.map(day => {
-                        const accommodation = (window as any).priceCalculationResult.itineraryBreakdown?.find((item: any) => item.day === day);
-                        const transports = (window as any).priceCalculationResult.transportDetails?.filter((transport: any) => transport.day === day);
+                        const accommodation = priceCalculationResult.itineraryBreakdown?.find((item: any) => item.day === day);
+                        const transports = priceCalculationResult.transportDetails?.filter((transport: any) => transport.day === day);
                         const transportCost = transports?.reduce((sum: number, transport: any) => sum + transport.totalCost, 0) || 0;
                         const formItineraries = form.getValues('itineraries');
                         const originalItinerary = formItineraries.find((it: any) => it.dayNumber === day);
                         const hotelName = originalItinerary && hotels.find((h: any) => h.id === originalItinerary.hotelId)?.name;
                         const roomAllocations = originalItinerary?.roomAllocations || [];
-                        const transportSummary: string | undefined = transports?.map((t: any) => {
-                          let vehicleTypeName = "Unknown";
-                          if (t.vehicleTypeId) {
-                            const vehicleType = vehicleTypes.find(vt => vt.id === t.vehicleTypeId);
-                            if (vehicleType) {
-                              vehicleTypeName = vehicleType.name || "Unknown";
-                            }
-                          } else if (t.vehicleType) {
-                            vehicleTypeName = t.vehicleType;
-                          }
-                          return `${vehicleTypeName}${t.quantity > 1 ? ` (x${t.quantity})` : ''}`;
-                        }).join(", ");
                         const accommodationCost = accommodation?.accommodationCost || 0;
                         const dayTotal = accommodationCost + transportCost;
                         return (
@@ -717,12 +738,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                             <TableCell>
                               {hotelName ? (
                                 <div>
-                                  <span className="font-medium">{hotelName}</span>
+                                  <span className="font-medium text-sm text-gray-800 block mb-1">{hotelName}</span>
                                   {roomAllocations.map((allocation: any, allocIdx: number) => {
                                     const roomTypeName = roomTypes.find(rt => rt.id === allocation.roomTypeId)?.name || "N/A";
                                     const occupancyTypeName = occupancyTypes.find(ot => ot.id === allocation.occupancyTypeId)?.name || "N/A";
                                     const quantity = allocation.quantity || 1;
-                                    const roomBreakdown = (window as any).priceCalculationResult?.itineraryBreakdown?.find((ib: any) => ib.day === day)?.roomBreakdown;
+                                    const roomBreakdown = priceCalculationResult?.itineraryBreakdown?.find((ib: any) => ib.day === day)?.roomBreakdown;
                                     const roomCost = roomBreakdown?.find((rb: any) =>
                                       rb.roomTypeId === allocation.roomTypeId &&
                                       rb.occupancyTypeId === allocation.occupancyTypeId &&
@@ -731,16 +752,16 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                     const allocationTotalCost = roomCost ? roomCost.totalCost : 0;
                                     const pricePerNight = roomCost ? roomCost.pricePerNight : 0;
                                     return (
-                                      <span key={allocIdx} className="text-xs text-gray-500 block">
-                                        <strong>Room Type :</strong> {roomTypeName} | <strong>Occupancy:</strong> {occupancyTypeName} {quantity > 1 ? `(x${quantity})` : ''}
-                                        <span className="font-medium text-blue-600 ml-2">
+                                      <div key={allocIdx} className="text-xs text-gray-600 mb-1 pl-2 border-l-2 border-blue-100">
+                                        <span>{roomTypeName} ({occupancyTypeName}) {quantity > 1 ? `x ${quantity}` : ''}</span>
+                                        <span className="font-medium text-blue-700 ml-2">
                                           {allocationTotalCost > 0 && pricePerNight > 0 && quantity > 1
                                             ? `₹${pricePerNight.toFixed(2)} x ${quantity} = ₹${allocationTotalCost.toFixed(2)}`
                                             : allocationTotalCost > 0
                                               ? `₹${allocationTotalCost.toFixed(2)}`
                                               : '₹0.00'}
                                         </span>
-                                      </span>
+                                      </div>
                                     );
                                   })}
                                   {transports && transports.length > 0 && transports.map((transport: any, transportIdx: number) => {
@@ -749,98 +770,79 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                     const pricePerUnit = transport.pricePerUnit || 0;
                                     const quantity = transport.quantity || 1;
                                     return (
-                                      <span key={`transport-${transportIdx}`} className="text-xs text-gray-500 block">
-                                        Transport: {vehicleTypeName} {quantity > 1 ? `(x${quantity})` : ''}
-                                        <span className="font-medium text-blue-600 ml-2">
+                                      <div key={`transport-${transportIdx}`} className="text-xs text-gray-600 mt-1 pl-2 border-l-2 border-green-100">
+                                        <span>Transport: {vehicleTypeName} {quantity > 1 ? `x ${quantity}` : ''}</span>
+                                        <span className="font-medium text-green-700 ml-2">
                                           {transportCost > 0 && pricePerUnit > 0 && quantity > 1
                                             ? `₹${pricePerUnit.toFixed(2)} x ${quantity} = ₹${transportCost.toFixed(2)}`
                                             : transportCost > 0
                                               ? `₹${transportCost.toFixed(2)}`
                                               : '₹0.00'}
                                         </span>
-                                      </span>
+                                      </div>
                                     );
                                   })}
                                 </div>
-                              ) : transportSummary ? (
+                              ) : transports && transports.length > 0 ? (
                                 <div>
-                                  {transports && transports.length > 0 && transports.map((transport: any, transportIdx: number) => {
+                                  {transports.map((transport: any, transportIdx: number) => {
                                     const vehicleTypeName = vehicleTypes.find(vt => vt.id === transport.vehicleTypeId)?.name || transport.vehicleType || "Unknown";
                                     const transportCost = transport.totalCost || 0;
                                     const pricePerUnit = transport.pricePerUnit || 0;
                                     const quantity = transport.quantity || 1;
                                     return (
-                                      <span key={`transport-only-${transportIdx}`} className="text-xs text-gray-500 block">
-                                        Transport: {vehicleTypeName} {quantity > 1 ? `(x${quantity})` : ''}
-                                        <span className="font-medium text-blue-600 ml-2">
+                                      <div key={`transport-only-${transportIdx}`} className="text-xs text-gray-600 pl-2 border-l-2 border-green-100">
+                                        <span>Transport: {vehicleTypeName} {quantity > 1 ? `x ${quantity}` : ''}</span>
+                                        <span className="font-medium text-green-700 ml-2">
                                           {transportCost > 0 && pricePerUnit > 0 && quantity > 1
                                             ? `₹${pricePerUnit.toFixed(2)} x ${quantity} = ₹${transportCost.toFixed(2)}`
                                             : transportCost > 0
                                               ? `₹${transportCost.toFixed(2)}`
                                               : '₹0.00'}
                                         </span>
-                                      </span>
+                                      </div>
                                     );
                                   })}
                                 </div>) : (
-                                'N/A'
+                                <span className="text-xs text-gray-400">No hotel/transport</span>
                               )}
                             </TableCell>
-                            <TableCell className="text-right">
-                              {accommodationCost ? accommodationCost.toFixed(2) : '-'}
+                            <TableCell className="text-right text-sm">
+                              {accommodationCost ? `₹${accommodationCost.toFixed(2)}` : '-'}
                             </TableCell>
-                            <TableCell className="text-right">
-                              {transportCost ? transportCost.toFixed(2) : '-'}
+                            <TableCell className="text-right text-sm">
+                              {transportCost ? `₹${transportCost.toFixed(2)}` : '-'}
                             </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {dayTotal.toFixed(2)}
+                            <TableCell className="text-right font-medium text-sm">
+                              {`₹${dayTotal.toFixed(2)}`}
                             </TableCell>
                           </TableRow>
                         );
                       });
                     })()}
                     <TableRow className="bg-blue-50">
-                      <TableCell colSpan={4} className="font-medium text-right">
-                        Base Accommodation Cost
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {(window as any).priceCalculationResult.breakdown.accommodation.toFixed(2)}
-                      </TableCell>
+                      <TableCell colSpan={4} className="font-medium text-right text-sm">Base Accommodation Cost</TableCell>
+                      <TableCell className="text-right font-bold text-sm">₹{priceCalculationResult.breakdown.accommodation.toFixed(2)}</TableCell>
                     </TableRow>
                     <TableRow className="bg-blue-50">
-                      <TableCell colSpan={4} className="font-medium text-right">
-                        Base Transport Cost
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {(window as any).priceCalculationResult.breakdown.transport.toFixed(2)}
+                      <TableCell colSpan={4} className="font-medium text-right text-sm">Base Transport Cost</TableCell>
+                      <TableCell className="text-right font-bold text-sm">₹{priceCalculationResult.breakdown.transport.toFixed(2)}</TableCell>
+                    </TableRow>
+                    <TableRow className="bg-blue-100">
+                      <TableCell colSpan={4} className="font-medium text-right text-sm">Total Base Cost</TableCell>
+                      <TableCell className="text-right font-bold text-sm">
+                        ₹{(priceCalculationResult.breakdown.accommodation + priceCalculationResult.breakdown.transport).toFixed(2)}
                       </TableCell>
                     </TableRow>
-                    <TableRow className="bg-blue-50">
-                      <TableCell colSpan={4} className="font-medium text-right">
-                        Total Base Cost
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {((window as any).priceCalculationResult.breakdown.accommodation +
-                          (window as any).priceCalculationResult.breakdown.transport).toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                    {(window as any).priceCalculationResult.appliedMarkup && (
+                    {priceCalculationResult.appliedMarkup && (
                       <TableRow className="bg-blue-100">
-                        <TableCell colSpan={4} className="font-medium text-right">
-                          Markup ({(window as any).priceCalculationResult.appliedMarkup.percentage}%)
-                        </TableCell>
-                        <TableCell className="text-right font-bold">
-                          {(window as any).priceCalculationResult.appliedMarkup.amount.toFixed(2)}
-                        </TableCell>
+                        <TableCell colSpan={4} className="font-medium text-right text-sm">Markup ({priceCalculationResult.appliedMarkup.percentage}%)</TableCell>
+                        <TableCell className="text-right font-bold text-sm">₹{priceCalculationResult.appliedMarkup.amount.toFixed(2)}</TableCell>
                       </TableRow>
                     )}
                     <TableRow className="bg-blue-200">
-                      <TableCell colSpan={4} className="font-medium text-right">
-                        Final Total Cost
-                      </TableCell>
-                      <TableCell className="text-right font-bold">
-                        {(window as any).priceCalculationResult.totalCost.toFixed(2)}
-                      </TableCell>
+                      <TableCell colSpan={4} className="font-medium text-right text-base">Final Total Cost</TableCell>
+                      <TableCell className="text-right font-bold text-base">₹{priceCalculationResult.totalCost.toFixed(2)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -851,7 +853,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
         {/* Use Tour Package Pricing Section */}
         {calculationMethod === 'autoTourPackage' && (
-          <div className="border border-green-100 bg-green-50 rounded-lg p-4 space-y-4">
+          <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-4">
             <h3 className="text-lg font-semibold text-green-800 mb-3">Use Tour Package Pricing</h3>
             <p className="text-sm text-green-700">
               Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
@@ -860,14 +862,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
             {/* Meal Plan Selection First */}
             <FormItem className="space-y-2">
-              <FormLabel>Meal Plan</FormLabel>
+              <FormLabel className="font-medium">Meal Plan <span className="text-red-500">*</span></FormLabel>
               <Select
                 disabled={loading}
                 onValueChange={setSelectedMealPlanId}
                 value={selectedMealPlanId || undefined}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Select Meal Plan" />
                   </SelectTrigger>
                 </FormControl>
@@ -879,23 +881,23 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              {!selectedMealPlanId && <p className="text-sm text-red-500 pt-1">Required</p>}
+              {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
             </FormItem>
 
             {/* Occupancy Selections */}
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-green-800">Occupancy Selections</h4>
-              
+              <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>
+
               {/* Show current selections */}
               {occupancySelections.length > 0 ? (
                 <div className="space-y-2">
                   {occupancySelections.map((selection, index) => {
                     const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
                     return (
-                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200">
+                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200 shadow-sm">
                         <div>
-                          <span className="font-medium">{occupancyType?.name}</span>
-                          <span className="text-sm text-gray-600 ml-2">
+                          <span className="font-medium text-sm">{occupancyType?.name}</span>
+                          <span className="text-xs text-gray-600 ml-2">
                             × {selection.count} = {selection.count * selection.paxPerUnit} PAX
                           </span>
                         </div>
@@ -904,32 +906,33 @@ const PricingTab: React.FC<PricingTabProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveOccupancySelection(index)}
-                          className="h-8 w-8 p-0"
+                          className="h-7 w-7 p-0"
+                          disabled={loading}
                         >
-                          <Trash className="h-4 w-4 text-red-500" />
+                          <Trash className="h-4 w-4 text-red-500 hover:text-red-700" />
                         </Button>
                       </div>
                     );
                   })}
-                  
-                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-                    <span className="font-semibold">Total: {calculateTotalPax()} PAX</span>
+
+                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-center">
+                    <span className="font-semibold text-sm">Total: {calculateTotalPax()} PAX</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-amber-600">No occupancy selections added yet</p>
+                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded">No occupancy selections added yet. Add at least one.</p>
               )}
-              
+
               {/* Add new occupancy selection */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border-t border-green-100 pt-4">
                 <div>
-                  <FormLabel className="text-xs">Occupancy Type</FormLabel>
+                  <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
                   <Select
                     disabled={loading}
                     onValueChange={setNewOccupancyTypeId}
                     value={newOccupancyTypeId || undefined}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white h-9">
                       <SelectValue placeholder="Select Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -940,14 +943,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>                <div>
-                  <FormLabel className="text-xs">Count</FormLabel>
-                  <div className="flex items-center gap-2">
-                    <Button 
+                </div>
+                <div>
+                  <FormLabel className="text-xs font-medium">Count</FormLabel>
+                  <div className="flex items-center gap-1">
+                    <Button
                       type="button"
                       size="icon"
                       variant="outline"
-                      className="rounded-full w-8 h-8 flex-shrink-0"
+                      className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
                       onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
                       disabled={loading || newOccupancyCount <= 1}
                     >
@@ -955,20 +959,20 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       <span className="text-lg font-bold">-</span>
                     </Button>
                     <Input
-                      type="number"           
+                      type="number"
                       value={newOccupancyCount}
                       onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
                       min="1"
                       pattern="[0-9]*"
                       inputMode="numeric"
                       disabled={loading}
-                      className="w-full text-center"
+                      className="w-full text-center h-9 bg-white"
                     />
-                    <Button 
+                    <Button
                       type="button"
                       size="icon"
                       variant="outline"
-                      className="rounded-full w-8 h-8 flex-shrink-0"
+                      className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
                       onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
                       disabled={loading}
                     >
@@ -982,7 +986,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   onClick={handleAddOccupancySelection}
                   variant="outline"
                   size="sm"
-                  className="bg-green-100 hover:bg-green-200 text-green-800"
+                  className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9"
                   disabled={loading || !newOccupancyTypeId}
                 >
                   <Plus className="mr-1 h-4 w-4" />
@@ -996,154 +1000,143 @@ const PricingTab: React.FC<PricingTabProps> = ({
               type="button"
               onClick={handleFetchTourPackagePricing}
               variant="outline"
-              className="bg-green-500 hover:bg-green-600 text-white mt-4"
+              className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
               disabled={loading || !form.getValues('tourPackageTemplate') || !selectedMealPlanId || occupancySelections.length === 0}
             >
               <Calculator className="mr-2 h-4 w-4" />
               Fetch & Apply Tour Package Price
             </Button>
-            {!form.getValues('tourPackageTemplate') && (
-              <p className="text-xs text-red-600 mt-2">Select a Tour Package Template in the &apos;Basic Info&apos; tab first.</p>
-            )}
           </div>
         )}
 
-        {/* Manual Pricing Section (Total Price and Dynamic Options) */}
-        {/* Always show Total Price, but maybe disable if not manual? */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FormField
-            control={control}
-            name="totalPrice"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Total Price</FormLabel>
-                <FormControl>
-                  <Input
-                    disabled={loading || calculationMethod !== 'manual'} // Disable if not manual
-                    placeholder="Total Price (auto-filled or manual)"
-                    {...field}
-                    value={field.value || ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
+        <FormField
+          control={control}
+          name="totalPrice"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-base font-semibold">Total Price</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  disabled={loading} // Only disable when loading
+                  placeholder="Total price for the package"
+                  className="text-lg font-bold"
+                  type="number" // Ensure type is number if appropriate
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        {/* Dynamic Pricing Options Table - Show for Manual or if autoTourPackage applied */}
-        {(calculationMethod === 'manual' || calculationMethod === 'autoTourPackage') && (
-          <div className="border rounded-lg p-4 overflow-x-auto">
-            <h3 className="text-lg font-semibold mb-4">Pricing Options / Breakdown</h3>
-            <FormField
-              control={control}
-              name="pricingSection"
-              render={() => (
-                <FormItem>
-                  <div className="grid grid-cols-3 gap-4 mb-2 px-1 min-w-[600px]">
-                    <div className="font-medium text-sm">Price Type</div>
-                    <div className="font-medium text-sm">Price</div>
-                    <div className="font-medium text-sm">Description (Optional)</div>
-                  </div>
-                  <div className="space-y-4">
-                    {pricingFields.map((field, index) => (
-                      <div key={field.id} className="grid grid-cols-3 gap-4 items-end relative pr-20 pt-2 border-t border-gray-100 first:border-t-0">
-                        <FormField
-                          control={control}
-                          name={`pricingSection.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. Adult, Child, Infant"
-                                  {...field}
-                                  disabled={loading || calculationMethod === 'autoTourPackage'} // Disable if using Tour Package Pricing
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={control}
-                          name={`pricingSection.${index}.price`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. 1000 (optional)"
-                                  {...field}
-                                  disabled={loading || calculationMethod === 'autoTourPackage'} // Disable if using Tour Package Pricing
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={control}
-                          name={`pricingSection.${index}.description`}
-                          render={({ field }) => (
-                            <FormItem className="relative">
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g. Age 3-12, with bed"
-                                  {...field}
-                                  disabled={loading || calculationMethod === 'autoTourPackage'} // Disable if using Tour Package Pricing
-                                />
-                              </FormControl>
-                              {/* Only show add/remove buttons in manual mode */}
-                              {calculationMethod === 'manual' && (
-                                <div className="absolute right-0 top-0 -mr-20 flex space-x-1">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleAddPricingItem(index)}
-                                    className="h-10 w-10"
-                                    title="Insert row after this"
-                                    disabled={loading}
-                                  >
-                                    <Plus className="h-4 w-4 text-blue-500" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleRemovePricingItem(index)}
-                                    className="h-10 w-10"
-                                    title="Remove this row"
-                                    disabled={loading}
-                                  >
-                                    <Trash className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </div>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    ))}
-                    {/* Only show Add button in manual mode */}
-                    {calculationMethod === 'manual' && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddPricingItem()}
-                        className="mt-2"
-                        disabled={loading}
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Pricing Option
-                      </Button>
+        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
+        <div className="space-y-4 border-t pt-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-base font-semibold">Pricing Breakdown</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading} // Only disable when loading
+              onClick={() => handleAddPricingItem()}
+              className="ml-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Item
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {pricingFields.map((item, index) => (
+              <div key={item.id} className="flex items-start gap-3 p-3 border rounded-md bg-slate-50/50">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-grow">
+                  {/* Item Name */}
+                  <FormField
+                    control={control}
+                    name={`pricingSection.${index}.name`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Item Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={loading} // Only disable when loading
+                            placeholder="e.g., Per Person Cost"
+                            className="bg-white"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </div>
-                  <FormMessage />
-                </FormItem>
+                  />
+                  {/* Price */}
+                  <FormField
+                    control={control}
+                    name={`pricingSection.${index}.price`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={loading} // Only disable when loading
+                            placeholder="e.g., 15000"
+                            type="number"
+                            className="bg-white"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Description */}
+                  <FormField
+                    control={control}
+                    name={`pricingSection.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={loading} // Only disable when loading
+                            placeholder="Brief description"
+                            className="bg-white"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* Remove Button */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={loading} // Only disable when loading
+                  onClick={() => handleRemovePricingItem(index)}
+                  className="mt-6 text-red-500 hover:text-red-700"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+             {/* Button to add first item if list is empty */}
+             {pricingFields.length === 0 && (
+                 <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 border-dashed border-primary text-primary hover:bg-primary/10"
+                  disabled={loading}
+                  onClick={() => handleAddPricingItem()} // Add first item
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Pricing Option
+                </Button>
               )}
-            />
           </div>
-        )}
-
+        </div>
       </CardContent>
     </Card>
   );

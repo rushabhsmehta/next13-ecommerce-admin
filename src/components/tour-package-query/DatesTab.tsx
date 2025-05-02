@@ -1,5 +1,7 @@
-// filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\DatesTab.tsx
+// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\DatesTab.tsx
 import { Control } from "react-hook-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -19,12 +21,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
+// Use a union type for the control prop and form type
 interface DatesTabProps {
-  control: Control<TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
-  form: any; // Use a more specific type if available
+  form: any; // Use a more specific type if available, consider a union type here too if form methods differ
 }
 
 const DatesTab: React.FC<DatesTabProps> = ({
@@ -59,7 +61,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                       disabled={loading}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(new Date(field.value), "PPP") // Ensure value is a Date object
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -70,7 +72,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value}
+                    selected={field.value ? new Date(field.value) : undefined} // Ensure value is a Date object
                     onSelect={(date) => date && field.onChange(date)}
                     initialFocus
                   />
@@ -99,7 +101,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                       disabled={loading}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(new Date(field.value), "PPP") // Ensure value is a Date object
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -110,7 +112,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value}
+                    selected={field.value ? new Date(field.value) : undefined} // Ensure value is a Date object
                     onSelect={(date) => date && field.onChange(date)}
                     initialFocus
                   />
@@ -120,7 +122,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
             control={control}
@@ -164,7 +166,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
         {/* Add a helpful message about date selection */}
         <div className="text-sm text-muted-foreground p-3 bg-slate-50 rounded-md border border-slate-100">
           <p>
-            <strong>Note:</strong> Setting accurate tour dates is important for availability checking and pricing calculations. 
+            <strong>Note:</strong> Setting accurate tour dates is important for availability checking and pricing calculations.
             The number of days/nights should match the number of itinerary days created.
           </p>
         </div>

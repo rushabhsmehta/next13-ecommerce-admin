@@ -150,6 +150,9 @@ const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryTemplate: z.string().optional(),
+  // Add fields to store the selected template ID and type
+  selectedTemplateId: z.string().optional(),
+  selectedTemplateType: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
@@ -402,6 +405,9 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const defaultValues = initialData
     ? {
       ...transformInitialData(initialData),
+      // Ensure new fields are included from initialData if they exist
+      selectedTemplateId: initialData.selectedTemplateId || '',
+      selectedTemplateType: initialData.selectedTemplateType || '',
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       importantNotes: parseJsonField(initialData.importantNotes),
@@ -522,6 +528,10 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field
       form.setValue('tourPackageTemplate', selectedTourPackageId);
+      // Set the selected template info
+      form.setValue('selectedTemplateId', selectedTourPackageId);
+      form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageQueryTemplate', ''); // Clear the other template field
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
       form.setValue('locationId', selectedTourPackage.locationId);
@@ -578,6 +588,9 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     if (selectedTourPackageQuery) {
       // Update the tourPackageQueryTemplate field
       form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
+      form.setValue('selectedTemplateId', selectedTourPackageQueryId);
+      form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplate', ''); // Clear the other template field
 
       // Copy values from the selected template
       form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
@@ -851,7 +864,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
               <CardHeader>
                 <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   Please fix the following errors:
                 </CardTitle>
@@ -994,7 +1007,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 /* Corrected SVG path */
                 <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 0 0 0 1.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               )}
               {action}

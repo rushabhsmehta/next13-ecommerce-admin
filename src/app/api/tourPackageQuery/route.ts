@@ -151,9 +151,6 @@ export async function POST(
             assignedToEmail,
             associatePartnerId,  // Add this line
             inquiryId,
-            // Add the new template fields
-            selectedTemplateId,
-            selectedTemplateType,
             isFeatured,
             isArchived } = body;
 

@@ -1,6 +1,9 @@
+// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\GuestsTab.tsx
 import { Control } from "react-hook-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { Users } from "lucide-react";
-import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
+
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -11,12 +14,13 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Use a union type for the control prop to accept both form value types
 interface GuestsProps {
-  control: Control<TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
 }
 
-const Guests: React.FC<GuestsProps> = ({
+const GuestsTab: React.FC<GuestsProps> = ({
   control,
   loading
 }) => {
@@ -61,7 +65,7 @@ const Guests: React.FC<GuestsProps> = ({
             <FormItem>
               <FormLabel>Number of Adults</FormLabel>
               <FormControl>
-                <Input disabled={loading} placeholder="Number of Adults" {...field} />
+                <Input type="number" disabled={loading} placeholder="Number of Adults" {...field} onChange={event => field.onChange(event.target.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -75,7 +79,7 @@ const Guests: React.FC<GuestsProps> = ({
             <FormItem>
               <FormLabel>Number of Children 5 to 12</FormLabel>
               <FormControl>
-                <Input disabled={loading} placeholder="Number of Children 5 to 12" {...field} />
+                <Input type="number" disabled={loading} placeholder="Number of Children 5 to 12" {...field} onChange={event => field.onChange(event.target.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,7 +93,7 @@ const Guests: React.FC<GuestsProps> = ({
             <FormItem>
               <FormLabel>Number of Children 0 to 5</FormLabel>
               <FormControl>
-                <Input disabled={loading} placeholder="Number of Children 0 to 5" {...field} />
+                <Input type="number" disabled={loading} placeholder="Number of Children 0 to 5" {...field} onChange={event => field.onChange(event.target.value)} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -100,4 +104,4 @@ const Guests: React.FC<GuestsProps> = ({
   );
 };
 
-export default Guests;
+export default GuestsTab;

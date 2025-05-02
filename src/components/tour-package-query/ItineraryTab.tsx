@@ -1,10 +1,12 @@
-// filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\ItineraryTab.tsx
+// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\ItineraryTab.tsx
 import { useState, useRef } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
-import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location } from "@prisma/client";
+import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
 
 // Import necessary UI components
 import {
@@ -36,11 +38,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import ImageUpload from "@/components/ui/image-upload";
-import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
-// Define the props interface
+// Define the props interface with a union type for control
 interface ItineraryTabProps {
-  control: Control<TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   hotels: (Hotel & {
     images: Images[];
@@ -54,7 +55,13 @@ interface ItineraryTabProps {
       activityImages: Images[];
     })[] | null;
   })[] | null;
-  form: any;
+  form: any; // Consider using a more specific type or a union type if form methods differ
+  // --- ADDED LOOKUP PROPS ---
+  roomTypes?: RoomType[];
+  occupancyTypes?: OccupancyType[];
+  mealPlans?: MealPlan[];
+  vehicleTypes?: VehicleType[];
+  // --- END ADDED LOOKUP PROPS ---
 }
 
 const ItineraryTab: React.FC<ItineraryTabProps> = ({
@@ -63,7 +70,13 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
-  form
+  form,
+  // --- DESTRUCTURE ADDED PROPS ---
+  roomTypes = [],
+  occupancyTypes = [],
+  mealPlans = [],
+  vehicleTypes = [],
+  // --- END DESTRUCTURE ---
 }) => {
   // Create a refs object to store multiple editor references instead of a single ref
   const editorsRef = useRef<{[key: string]: any}>({});
@@ -99,10 +112,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
         },
         body: JSON.stringify(masterItineraryData),
       });
-      
+
       // Parse the response
       const data = await response.json();
-      
+
       // Show success message
       alert('Saved to Master Itinerary successfully!');
       console.log('Saved to master itinerary:', data);
@@ -469,8 +482,8 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 </PopoverContent>
                               </Popover>
                               <FormMessage />
-                            </FormItem>                                      
-                            
+                            </FormItem>
+
                             {/* Display selected hotel images */}
                             {(() => {
                               const hotel = itinerary.hotelId ? hotels.find(h => h.id === itinerary.hotelId) : undefined;
@@ -481,7 +494,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                     <div className="grid grid-cols-3 gap-2">
                                       {hotel.images.map((image, imgIndex) => (
                                         <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
-                                          <img 
+                                          <img
                                             src={image.url}
                                             alt={`Hotel Image ${imgIndex + 1}`}
                                             className="object-cover w-full h-full"
@@ -494,19 +507,20 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                               }
                               return null;
                             })()}
-                          </div>                                    
-                          
+                          </div>
+
                           {/* Room Allocation Section */}
                           <div className="mt-4 border-t border-slate-100 pt-4">
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
                               <BedIcon className="h-4 w-4 text-primary" />
-                              Room Allocation
+                              Room Allocations
                             </h4>
                             <RoomAllocationComponent
-                              itinerary={itinerary}
-                              index={index}
-                              value={value}
-                              onChange={onChange}
+                              control={control}
+                              itineraryIndex={index}
+                              roomTypes={roomTypes} // Pass down
+                              occupancyTypes={occupancyTypes} // Pass down
+                              mealPlans={mealPlans} // Pass down
                               loading={loading}
                             />
                           </div>
@@ -518,10 +532,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                               Transport Details
                             </h4>
                             <TransportDetailsComponent
-                              itinerary={itinerary}
-                              index={index}
-                              value={value}
-                              onChange={onChange}
+                              control={control}
+                              itineraryIndex={index}
+                              vehicleTypes={vehicleTypes} // Pass down
                               loading={loading}
                             />
                           </div>
@@ -553,7 +566,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                               </div>
                               <div className="space-y-4">
                                 <FormItem>
-                                  <div className="space-y-4">                                              
+                                  <div className="space-y-4">
                                     <FormItem>
                                       <Select
                                         disabled={loading}

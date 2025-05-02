@@ -1,5 +1,7 @@
-// filepath: d:\next13-ecommerce-admin\src\app\(dashboard)\tourPackageQuery\[tourPackageQueryId]\components\LocationTab.tsx
+// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\LocationTab.tsx
 import { Control } from "react-hook-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { ChevronDown, MapPin, Check as CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Location } from "@prisma/client";
@@ -27,13 +29,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TourPackageQueryCreateCopyFormValues } from "./tourPackageQueryCreateCopy-form";
 
+// Use a union type for the control prop and form type
 interface LocationTabProps {
-  control: Control<TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   locations: Location[];
-  form: any; // Use a more specific type if available
+  form: any; // Use a more specific type if available, consider a union type here too if form methods differ
   updateLocationDefaults?: (field: string, checked: boolean) => void;
 }
 
@@ -43,12 +45,12 @@ const LocationTab: React.FC<LocationTabProps> = ({
   locations,
   form,
   updateLocationDefaults
-}) => {  
+}) => {
   // Function to handle location selection
   const handleLocationSelection = (locationId: string) => {
     form.setValue("locationId", locationId);
     // Update location-dependent fields if needed
-    
+
     // Define interfaces for itinerary and activity based on your project structure
     interface ItineraryItem {
       dayNumber?: number;
@@ -64,7 +66,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
       transportDetails?: any[];
       [key: string]: any; // Allow other properties
     }
-    
+
     interface ActivityItem {
       activityTitle?: string;
       activityDescription?: string;
@@ -72,35 +74,37 @@ const LocationTab: React.FC<LocationTabProps> = ({
       activityImages?: { url: string }[];
       [key: string]: any; // Allow other properties
     }
-    
+
     // Update locationId in all itineraries
     const currentItineraries = form.getValues('itineraries');
-    const updatedItineraries = currentItineraries.map((itinerary: ItineraryItem) => ({
-      ...itinerary,
-      locationId: locationId,
-      // Update activities locationId within itineraries
-      activities: itinerary.activities?.map((activity: ActivityItem) => ({
-        ...activity,
-        locationId: locationId
-      })) || []
-    }));
-    form.setValue('itineraries', updatedItineraries);
-    
+    if (Array.isArray(currentItineraries)) {
+        const updatedItineraries = currentItineraries.map((itinerary: ItineraryItem) => ({
+        ...itinerary,
+        locationId: locationId,
+        // Update activities locationId within itineraries
+        activities: itinerary.activities?.map((activity: ActivityItem) => ({
+            ...activity,
+            locationId: locationId
+        })) || []
+        }));
+        form.setValue('itineraries', updatedItineraries);
+    }
+
     // Apply location defaults if enabled via updateLocationDefaults prop
     // This syncs the behavior with the parent component's useLocationDefaults state
     if (updateLocationDefaults) {
       // The parent component should handle which fields to update based on the useLocationDefaults state
       const defaultFields = [
-        'inclusions', 
-        'exclusions', 
-        'importantNotes', 
-        'paymentPolicy', 
-        'usefulTip', 
-        'cancellationPolicy', 
-        'airlineCancellationPolicy', 
+        'inclusions',
+        'exclusions',
+        'importantNotes',
+        'paymentPolicy',
+        'usefulTip',
+        'cancellationPolicy',
+        'airlineCancellationPolicy',
         'termsconditions'
       ];
-      
+
       // For each field, let the parent component know we changed location
       // The parent will decide whether to apply defaults based on current settings
       defaultFields.forEach(field => {
@@ -214,7 +218,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={control}
             name="drop_location"

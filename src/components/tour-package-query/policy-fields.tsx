@@ -1,3 +1,4 @@
+// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\policy-fields.tsx
 import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UseFormReturn } from "react-hook-form";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";

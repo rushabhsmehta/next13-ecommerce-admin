@@ -226,7 +226,6 @@ export async function PATCH(
       pricingSection, // Add this line
       remarks,
       flightDetails,
-      //   hotelDetails,
       inclusions,
       exclusions,
       importantNotes,
@@ -239,12 +238,15 @@ export async function PATCH(
       // hotelId,
       images,
       itineraries,
-      isFeatured,
-      isArchived,
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-      associatePartnerId,
+      associatePartnerId, // Add this line
+      // Add the new template fields
+      selectedTemplateId,
+      selectedTemplateType,
+      isFeatured,
+      isArchived
     } = body;
 
     //   console.log(flightDetails);

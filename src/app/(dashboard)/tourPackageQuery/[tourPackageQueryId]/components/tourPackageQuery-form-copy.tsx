@@ -74,15 +74,16 @@ import JoditEditor from "jodit-react";
 import { Calendar } from "@/components/ui/calendar";
 import { ro } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
-import BasicInfo from "./BasicInfoTab";
-import DatesTab from "./DatesTab";
-import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues";
-import FlightsTab from "./FlightsTab";
-import Guests from "./GuestsTab";
-import ItineraryTab from "./ItineraryTab";
-import LocationTab from "./LocationTab";
-import PoliciesTab from "./PoliciesTab";
-import PricingTab from "./PricingTab";
+import BasicInfoTab from '@/components/tour-package-query/BasicInfoTab'; // Updated path
+import DatesTab from '@/components/tour-package-query/DatesTab'; // Updated path
+
+import FlightsTab from '@/components/tour-package-query/FlightsTab'; // Updated path
+import GuestsTab from '@/components/tour-package-query/GuestsTab'; // Updated path
+import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Updated path
+import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
+import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
+import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 
 // Define the pricing item schema
@@ -932,8 +933,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 <FileCheck className="h-4 w-4" />
                 Policies
               </TabsTrigger>
-            </TabsList>            <TabsContent value="basic" className="space-y-4 mt-4">
-              <BasicInfo
+            </TabsList>
+            <TabsContent value="basic" className="space-y-4 mt-4">
+              <BasicInfoTab // Updated component name
                 control={form.control}
                 loading={loading}
                 associatePartners={associatePartners}
@@ -949,7 +951,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </TabsContent>
             <TabsContent value="guests" className="space-y-4 mt-4">
-              <Guests
+              <GuestsTab // Updated component name
                 control={form.control}
                 loading={loading}
               />
@@ -1000,7 +1002,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 priceCalculationResult={priceCalculationResult}
                 setPriceCalculationResult={setPriceCalculationResult}
               />
-            </TabsContent>            <TabsContent value="policies" className="space-y-4 mt-4">
+            </TabsContent>
+            <TabsContent value="policies" className="space-y-4 mt-4">
               <PoliciesTab
                 control={form.control}
                 loading={loading}

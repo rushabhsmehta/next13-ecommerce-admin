@@ -151,6 +151,9 @@ const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryTemplate: z.string().optional(),
+  selectedTemplateId: z.string().optional(),
+  selectedTemplateType: z.string().optional(),
+
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
@@ -240,7 +243,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
-  associatePartners, 
+  associatePartners,
   tourPackages,
   tourPackageQueries,
 }) => {
@@ -403,6 +406,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const defaultValues = initialData
     ? {
       ...transformInitialData(initialData),
+      selectedTemplateId: initialData.selectedTemplateId || '',
+      selectedTemplateType: initialData.selectedTemplateType || '',
+
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       importantNotes: parseJsonField(initialData.importantNotes),
@@ -523,6 +529,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     if (selectedTourPackage) {
       // Add this line to update the tourPackageTemplate field
       form.setValue('tourPackageTemplate', selectedTourPackageId);
+      form.setValue('selectedTemplateId', selectedTourPackageId);
+      form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageQueryTemplate', ''); // Clear the other template field
+
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
       form.setValue('locationId', selectedTourPackage.locationId);
@@ -575,11 +585,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
     // Find the selected tour package query template
     const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
-    
+
     if (selectedTourPackageQuery) {
       // Update the tourPackageQueryTemplate field
       form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
-      
+      form.setValue('selectedTemplateId', selectedTourPackageQueryId);
+      form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplate', ''); // Clear the other template field
+
       // Copy values from the selected template
       form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
       form.setValue('locationId', selectedTourPackageQuery.locationId);
@@ -599,7 +612,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('termsconditions', parseJsonField(selectedTourPackageQuery.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
       form.setValue('images', selectedTourPackageQuery.images || []);
       form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection) || DEFAULT_PRICING_SECTION);
-      
+
       // Convert and set itineraries
       const transformedItineraries = selectedTourPackageQuery.itineraries?.map(itinerary => ({
         locationId: itinerary.locationId,
@@ -618,7 +631,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transportDetails: (itinerary as any).transportDetails || [],
       })) || [];
       form.setValue('itineraries', transformedItineraries);
-      
+
       // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
         date: flight.date || undefined,

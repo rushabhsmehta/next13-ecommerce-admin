@@ -131,6 +131,9 @@ const ASSOCIATE_NAV_ITEMS = [
   },
 ];
 
+
+import { useIsMobile } from "@/hooks/use-mobile";
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
@@ -139,6 +142,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
   const [navItems, setNavItems] = useState(NAV_ITEMS);
   const [associateName, setAssociateName] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   // Check if the domain is associate domain
   useEffect(() => {
@@ -189,105 +193,125 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const userInitials = user?.firstName?.charAt(0) || "U";
 
   return (
-    <Sidebar {...props}>
-      <SidebarHeader className="pb-0">
-        {/* More compact user info section without logo */}
-        <div className="px-3 py-2 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback>{userInitials}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex flex-col">
-                  <span className="font-medium text-xs">
-                    {isAssociateDomain && associateName ? associateName : userFullName}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {isAssociateDomain ? (
-                      <>
-                        Associate Portal<br />
-                        Aagam Holidays
-                      </>
-                    ) : 'Admin Dashboard'}
-                  </span>                  
+    <>
+      {/* Mobile sidebar trigger button */}
+      {isMobile && (
+        <div className="fixed top-2 left-2 z-50 md:hidden">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-10 w-10"
+            onClick={() => {
+              // Open the sidebar using the sidebar context
+              const evt = new CustomEvent("sidebar:open");
+              window.dispatchEvent(evt);
+            }}
+          >
+            <LayoutGrid className="h-6 w-6" />
+            <span className="sr-only">Open Sidebar</span>
+          </Button>
+        </div>
+      )}
+      <Sidebar {...props}>
+        <SidebarHeader className="pb-0">
+          {/* More compact user info section without logo */}
+          <div className="px-3 py-2 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user?.imageUrl} />
+                  <AvatarFallback>{userInitials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-xs">
+                      {isAssociateDomain && associateName ? associateName : userFullName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {isAssociateDomain ? (
+                        <>
+                          Associate Portal<br />
+                          Aagam Holidays
+                        </>
+                      ) : 'Admin Dashboard'}
+                    </span>                  
+                  </div>
                 </div>
               </div>
+              {/* Only show notification bell in admin domain, not in associate domain */}
+              {!isAssociateDomain && <NotificationBell />}
             </div>
-            {/* Only show notification bell in admin domain, not in associate domain */}
-            {!isAssociateDomain && <NotificationBell />}
           </div>
-        </div>
-      </SidebarHeader>
+        </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            {navItems.map((section) => (
-              <Collapsible
-                key={section.title}
-                asChild
-                defaultOpen={isSectionActive(section)}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton>
-                      <span className="font-semibold text-gray-700">
-                        {section.title}
-                      </span>
-                      <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarMenu>
+              {navItems.map((section) => (
+                <Collapsible
+                  key={section.title}
+                  asChild
+                  defaultOpen={isSectionActive(section)}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton>
+                        <span className="font-semibold text-gray-700">
+                          {section.title}
+                        </span>
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
 
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {section.items.map((item) => (
-                        <SidebarMenuSubItem key={item.title}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={
-                              pathname === item.url ||
-                              pathname.startsWith(item.url + "/")
-                            }
-                          >
-                            <Link href={item.url}>{item.title}</Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {section.items.map((item) => (
+                          <SidebarMenuSubItem key={item.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={
+                                pathname === item.url ||
+                                pathname.startsWith(item.url + "/")
+                              }
+                            >
+                              <Link href={item.url}>{item.title}</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
 
-      {/* Footer with combined theme toggle and sign out buttons */}
-      <SidebarFooter className="border-t p-4">
-        <div className="flex items-center justify-between">
-          <Button
-            onClick={handleSignOut}
-            variant="outline"
-            size="sm"
-            className="flex items-center"
-          >
-            <LogOutIcon className="h-4 w-4 mr-2" />
-            <span>Sign out</span>
-          </Button>
-          <ThemeToggle />
-        </div>
-        
-        {/* Copyright footer */}
-        <div className="mt-6 text-center">
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Aagam Holidays
-          </p>
-        </div>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+        {/* Footer with combined theme toggle and sign out buttons */}
+        <SidebarFooter className="border-t p-4">
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+              className="flex items-center"
+            >
+              <LogOutIcon className="h-4 w-4 mr-2" />
+              <span>Sign out</span>
+            </Button>
+            <ThemeToggle />
+          </div>
+          
+          {/* Copyright footer */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} Aagam Holidays
+            </p>
+          </div>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+    </>
   );
 }

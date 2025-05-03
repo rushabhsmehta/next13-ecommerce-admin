@@ -19,6 +19,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -197,7 +198,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {/* Mobile sidebar trigger button */}
       {isMobile && (
         <div className="fixed top-2 left-2 z-50 md:hidden">
-          <SidebarRail />
+          <SidebarTrigger />
         </div>
       )}
       <Sidebar {...props}>

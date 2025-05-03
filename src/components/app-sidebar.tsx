@@ -197,19 +197,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {/* Mobile sidebar trigger button */}
       {isMobile && (
         <div className="fixed top-2 left-2 z-50 md:hidden">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-10 w-10"
-            onClick={() => {
-              // Open the sidebar using the sidebar context
-              const evt = new CustomEvent("sidebar:open");
-              window.dispatchEvent(evt);
-            }}
-          >
-            <LayoutGrid className="h-6 w-6" />
-            <span className="sr-only">Open Sidebar</span>
-          </Button>
+          <SidebarRail />
         </div>
       )}
       <Sidebar {...props}>

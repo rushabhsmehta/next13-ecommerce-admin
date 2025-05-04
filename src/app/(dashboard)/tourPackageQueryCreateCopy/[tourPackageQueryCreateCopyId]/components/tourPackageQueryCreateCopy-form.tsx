@@ -526,7 +526,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {      // Add this line to update the tourPackageTemplate field
       form.setValue('tourPackageTemplate', selectedTourPackageId);
-      // Set the selected template info      form.setValue('selectedTemplateId', selectedTourPackageId);
+      // Set the selected template info 
+      form.setValue('selectedTemplateId', selectedTourPackageId);
       form.setValue('selectedTemplateType', 'TourPackage');
       form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${selectedTourPackageId.substring(0, 8)}`);
       form.setValue('tourPackageQueryTemplate', ''); // Clear the other template field

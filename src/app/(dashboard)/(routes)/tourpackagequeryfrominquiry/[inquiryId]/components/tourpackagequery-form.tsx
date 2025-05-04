@@ -142,6 +142,7 @@ const formSchema = z.object({
   // Add fields to store the selected template ID and type
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
+  tourPackageTemplateName: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
@@ -275,6 +276,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     // Add defaults for the new fields
     selectedTemplateId: '',
     selectedTemplateType: '',
+    tourPackageTemplateName: '',
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
     associatePartnerId: inquiry?.associatePartnerId || '',
     tourPackageQueryType: '',
@@ -407,11 +409,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
-      // Add this line to update the tourPackageTemplate field
+      // Add this line to update the tourPackageTemplate field 
       form.setValue('tourPackageTemplate', selectedTourPackageId);
-      // Set the selected template info
+      // Set the selected template info 
       form.setValue('selectedTemplateId', selectedTourPackageId);
       form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${selectedTourPackageId.substring(0, 8)}`); // Store the tour package name
       form.setValue('tourPackageQueryTemplate', ''); // Clear the query template field
       const customerName = form.getValues('customerName');
       const packageName = selectedTourPackage.tourPackageName || '';
@@ -789,8 +792,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use PricingTab from shared components */}
-            <TabsContent value="pricing" className="space-y-4 mt-4">
-              <PricingTab
+            <TabsContent value="pricing" className="space-y-4 mt-4">              <PricingTab
                 control={form.control}
                 loading={loading}
                 form={form}
@@ -801,7 +803,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}
+                setPriceCalculationResult={setPriceCalculationResult}                selectedTemplateId={form.watch('selectedTemplateId')}
+                selectedTemplateType={form.watch('selectedTemplateType')}
                 // --- END PASS LOOKUP DATA & STATE ---
               />
             </TabsContent>

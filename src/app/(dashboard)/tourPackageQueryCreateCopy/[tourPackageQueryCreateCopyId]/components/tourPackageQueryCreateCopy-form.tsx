@@ -149,10 +149,10 @@ const flightDetailsSchema = z.object({
 const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
-  tourPackageQueryTemplate: z.string().optional(),
-  // Add fields to store the selected template ID and type
+  tourPackageQueryTemplate: z.string().optional(),  // Add fields to store the selected template ID and type
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
+  tourPackageTemplateName: z.string().optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
@@ -404,10 +404,9 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
 
   const defaultValues = initialData
     ? {
-      ...transformInitialData(initialData),
-      // Ensure new fields are included from initialData if they exist
-      selectedTemplateId: initialData.selectedTemplateId || '',
+      ...transformInitialData(initialData),      // Ensure new fields are included from initialData if they exist      selectedTemplateId: initialData.selectedTemplateId || '',
       selectedTemplateType: initialData.selectedTemplateType || '',
+      tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       importantNotes: parseJsonField(initialData.importantNotes),
@@ -525,12 +524,11 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   }, [params.tourPackageQueryId, form, initialData, loading]);
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
-    if (selectedTourPackage) {
-      // Add this line to update the tourPackageTemplate field
+    if (selectedTourPackage) {      // Add this line to update the tourPackageTemplate field
       form.setValue('tourPackageTemplate', selectedTourPackageId);
-      // Set the selected template info
-      form.setValue('selectedTemplateId', selectedTourPackageId);
+      // Set the selected template info      form.setValue('selectedTemplateId', selectedTourPackageId);
       form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${selectedTourPackageId.substring(0, 8)}`);
       form.setValue('tourPackageQueryTemplate', ''); // Clear the other template field
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
@@ -975,8 +973,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 loading={loading}
                 form={form}
               />
-            </TabsContent>
-            <TabsContent value="pricing" className="space-y-4 mt-4">
+            </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
               <PricingTab
                 control={form.control}
                 loading={loading}
@@ -987,7 +984,8 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}
+                setPriceCalculationResult={setPriceCalculationResult}                selectedTemplateId={form.watch('selectedTemplateId')}
+                selectedTemplateType={form.watch('selectedTemplateType')}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

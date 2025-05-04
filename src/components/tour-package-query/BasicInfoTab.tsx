@@ -91,11 +91,12 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                         "w-full justify-between",
                         !field.value && "text-muted-foreground"
                       )}
-                      disabled={!form.getValues('locationId')}
-                    >
+                      disabled={!form.getValues('locationId')}                    >
                       {!form.getValues('locationId')
                         ? "Select a location first"
-                        : tourPackages?.find((tourPackage) => tourPackage.id === field.value)?.tourPackageName || "Select Tour Package Template"
+                        : field.value && tourPackages?.find(tp => tp.id === field.value)
+                          ? tourPackages.find(tp => tp.id === field.value)?.tourPackageName
+                          : "Select Tour Package Template"
                       }
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>

@@ -239,10 +239,10 @@ model TourPackageQuery {
   // Modified: Remove @unique constraint to allow multiple queries per inquiry
   inquiryId                 String?
   inquiry                   Inquiry?       @relation(fields: [inquiryId], references: [id])
-
   // Fields to store the selected template
   selectedTemplateId        String?         // ID of the selected TourPackage or TourPackageQuery template
   selectedTemplateType      String?         // Type of the selected template ("TourPackage" or "TourPackageQuery")
+  tourPackageTemplateName   String?         // Name of the selected tour package template
 
   associatePartnerId       String?
   associatePartner        AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)

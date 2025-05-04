@@ -1,7 +1,7 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PricingTab.tsx
-import { Control, useFieldArray } from "react-hook-form";
-import { Calculator, Plus, Trash, DollarSign } from "lucide-react"; // Added DollarSign
-import { useState } from "react";
+import { Control, useFieldArray, useWatch } from "react-hook-form";
+import { Calculator, Plus, Trash, DollarSign, Loader2 } from "lucide-react"; // Added icons
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
@@ -48,6 +48,8 @@ interface PricingTabProps {
   vehicleTypes: VehicleType[];
   priceCalculationResult: any;
   setPriceCalculationResult: (result: any) => void;
+  selectedTemplateId?: string; // New prop for the selected template ID
+  selectedTemplateType?: string; // New prop for the selected template type
 }
 
 // Define calculation methods
@@ -70,10 +72,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
   mealPlans,
   vehicleTypes,
   priceCalculationResult,
-  setPriceCalculationResult
+  setPriceCalculationResult,
+  selectedTemplateId,
+  selectedTemplateType
 }) => {
   // State for selected calculation method
-  const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>('manual');
+  const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(
+    selectedTemplateId && selectedTemplateType === 'TourPackage' ? 'autoTourPackage' : 'manual'
+  );
   // State for Tour Package Pricing selection criteria
   const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);
   // State for multiple occupancy selections with counts
@@ -81,6 +87,58 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // State for new occupancy being added
   const [newOccupancyTypeId, setNewOccupancyTypeId] = useState<string>("");
   const [newOccupancyCount, setNewOccupancyCount] = useState<number>(1);
+  // State for tour package details
+  const [tourPackageName, setTourPackageName] = useState<string>("");
+  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);
+
+  // Fetch tour package details when selectedTemplateId changes
+  useEffect(() => {
+    if (selectedTemplateId && selectedTemplateType === 'TourPackage') {
+      // Try to get from form first
+      const nameFromForm = form.getValues('tourPackageTemplateName');
+      if (nameFromForm) {
+        setTourPackageName(nameFromForm);
+        return;
+      }
+      
+      // If not available in form, fetch from API
+      const fetchTourPackage = async () => {
+        setIsFetchingPackage(true);
+        try {
+          const response = await axios.get(`/api/tourPackages/${selectedTemplateId}`);
+          if (response.data && (response.data.name || response.data.tourPackageName)) {
+            const name = response.data.name || response.data.tourPackageName;
+            setTourPackageName(name);
+            // Store in form for future use
+            form.setValue('tourPackageTemplateName', name);
+          } else {
+            setTourPackageName(`Package ${selectedTemplateId.substring(0, 8)}...`);
+            form.setValue('tourPackageTemplateName', `Package ${selectedTemplateId.substring(0, 8)}...`);
+          }
+        } catch (error) {
+          console.error("Error fetching tour package details:", error);
+          setTourPackageName(`Package ${selectedTemplateId.substring(0, 8)}...`);
+          form.setValue('tourPackageTemplateName', `Package ${selectedTemplateId.substring(0, 8)}...`);
+        } finally {
+          setIsFetchingPackage(false);
+        }
+      };
+      
+      fetchTourPackage();
+    } else {
+      setTourPackageName("");
+    }
+  }, [selectedTemplateId, selectedTemplateType, form]);
+  // Update our local state when the form value changes
+  useEffect(() => {
+    const subscription = form.watch((value: any, { name }: { name: string }) => {
+      if (name === 'tourPackageTemplateName' && value.tourPackageTemplateName) {
+        setTourPackageName(value.tourPackageTemplateName);
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Set up field array for pricing section
   const {
@@ -179,9 +237,16 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
   // Function to handle fetching and applying Tour Package Pricing
   const handleFetchTourPackagePricing = async () => {
-    const tourPackageTemplateId = form.getValues('tourPackageTemplate');
+    // First check if we have a selected template id from props
+    const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
     if (!tourPackageTemplateId) {
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
+      return;
+    }
+
+    // Check if the selectedTemplateType is 'TourPackage'
+    if (selectedTemplateType !== 'TourPackage') {
+      toast.error("Auto calculation of pricing is only available for Tour Package templates.");
       return;
     }
 
@@ -424,6 +489,42 @@ const PricingTab: React.FC<PricingTabProps> = ({
       toast.error("Failed to fetch or apply tour package pricing.");
     }
   };
+  // Function to fetch and set the tour package name based on ID
+  const fetchTourPackageName = async (packageId: string) => {
+    if (!packageId) {
+      setTourPackageName("");
+      return;
+    }
+
+    try {
+      const response = await axios.get(`/api/tourPackages/${packageId}`);
+      const tourPackage = response.data;
+      setTourPackageName(tourPackage.name || `Package ${packageId.substring(0, 8)}...`);
+    } catch (error) {
+      console.error("Error fetching tour package name:", error);
+      setTourPackageName(`Package ${packageId.substring(0, 8)}...`);
+    }
+  };
+
+  // Reset calculation method when selectedTemplateType changes
+  useEffect(() => {
+    if (selectedTemplateType !== 'TourPackage') {
+      setCalculationMethod('manual');
+    }
+  }, [selectedTemplateType]);
+
+  // Handle template type change - reset to manual calculation if not a Tour Package
+  useEffect(() => {
+    if (selectedTemplateType !== 'TourPackage' && calculationMethod === 'autoTourPackage') {
+      setCalculationMethod('manual');
+      toast.error("Auto calculation is only available for Tour Packages. Switched to manual pricing.");
+    }
+  }, [selectedTemplateType, calculationMethod]);
+
+  // Fetch tour package name when selectedTemplateId changes
+  useEffect(() => {
+    fetchTourPackageName(selectedTemplateId || "");
+  }, [selectedTemplateId]);
 
   return (
     <Card>
@@ -458,9 +559,23 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </FormItem>
               <FormItem className="flex items-center space-x-3 space-y-0">
                 <FormControl>
-                  <RadioGroupItem value="autoTourPackage" id="auto-tour-package" />
+                  <RadioGroupItem 
+                    value="autoTourPackage" 
+                    id="auto-tour-package"
+                    disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'} 
+                  />
                 </FormControl>
-                <FormLabel htmlFor="auto-tour-package" className="font-normal cursor-pointer">Use Tour Package Pricing</FormLabel>
+                <FormLabel 
+                  htmlFor="auto-tour-package" 
+                  className={`font-normal ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  Use Tour Package Pricing
+                  {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
+                    <span className="text-xs text-amber-500 block">
+                      {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
+                    </span>
+                  )}
+                </FormLabel>
               </FormItem>
             </RadioGroup>
           </FormControl>
@@ -855,157 +970,236 @@ const PricingTab: React.FC<PricingTabProps> = ({
         {calculationMethod === 'autoTourPackage' && (
           <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-4">
             <h3 className="text-lg font-semibold text-green-800 mb-3">Use Tour Package Pricing</h3>
-            <p className="text-sm text-green-700">
-              Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
-              This will overwrite the current Total Price and Pricing Options below.
-            </p>
-
-            {/* Meal Plan Selection First */}
-            <FormItem className="space-y-2">
-              <FormLabel className="font-medium">Meal Plan <span className="text-red-500">*</span></FormLabel>
-              <Select
-                disabled={loading}
-                onValueChange={setSelectedMealPlanId}
-                value={selectedMealPlanId || undefined}
-              >
-                <FormControl>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select Meal Plan" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {mealPlans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
-            </FormItem>
-
-            {/* Occupancy Selections */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>
-
-              {/* Show current selections */}
-              {occupancySelections.length > 0 ? (
-                <div className="space-y-2">
-                  {occupancySelections.map((selection, index) => {
-                    const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-                    return (
-                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200 shadow-sm">
-                        <div>
-                          <span className="font-medium text-sm">{occupancyType?.name}</span>
-                          <span className="text-xs text-gray-600 ml-2">
-                            × {selection.count} = {selection.count * selection.paxPerUnit} PAX
-                          </span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveOccupancySelection(index)}
-                          className="h-7 w-7 p-0"
-                          disabled={loading}
-                        >
-                          <Trash className="h-4 w-4 text-red-500 hover:text-red-700" />
-                        </Button>
+            
+            {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? (
+              <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-md p-3">
+                <p className="text-sm font-medium">
+                  {!selectedTemplateId ? (
+                    "Please select a Tour Package template first in the Basic Info tab."
+                  ) : (
+                    "Auto calculation of pricing is only available for Tour Package templates."
+                  )}
+                </p>
+              </div>
+            ) : (
+              <>                <div className="bg-white border border-green-200 rounded-md p-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-600">Selected Tour Package:</p>
+                    {isFetchingPackage ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full mr-2"></div>
+                        <p className="font-medium text-sm">Loading package details...</p>
                       </div>
-                    );
-                  })}
-
-                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-center">
-                    <span className="font-semibold text-sm">Total: {calculateTotalPax()} PAX</span>
-                  </div>
+                    ) : (
+                      <p className="font-medium">
+                        {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId.substring(0, 8)}...`}
+                      </p>
+                    )}
+                  </div>                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Navigate to the basicInfo tab
+                      try {
+                        // First try to find the tab container
+                        const tabsElement = document.querySelector('[role="tablist"]');
+                        if (tabsElement) {
+                          // Try various selectors for the basic info tab
+                          let basicInfoTab = tabsElement.querySelector('button[data-value="basic"], button[value="basic"], button[data-value="basicInfo"], button[value="basicInfo"]') as HTMLButtonElement;
+                          
+                          if (!basicInfoTab) {
+                            // Try finding by text content
+                            const allTabs = tabsElement.querySelectorAll('button');
+                            basicInfoTab = Array.from(allTabs).find(tab => 
+                              tab.textContent?.toLowerCase().includes('basic') || 
+                              tab.getAttribute('value')?.toLowerCase().includes('basic') ||
+                              tab.getAttribute('data-value')?.toLowerCase().includes('basic')
+                            ) as HTMLButtonElement;
+                          }
+                          
+                          if (basicInfoTab) {
+                            toast.success("Navigating to Basic Info tab");
+                            console.log("Clicking on tab:", basicInfoTab);
+                            basicInfoTab.click();
+                          } else {
+                            // Last resort - just try to click the first tab
+                            const firstTab = tabsElement.querySelector('button') as HTMLButtonElement;
+                            if (firstTab) {
+                              toast.success("Navigating to first tab");
+                              firstTab.click();
+                            } else {
+                              console.error("Could not find any tab");
+                              toast.error("Could not navigate to Basic Info tab. Please select it manually.");
+                            }
+                          }
+                        } else {
+                          toast.error("Tab navigation not found. Please select Basic Info tab manually.");
+                        }
+                      } catch (error) {
+                        console.error("Error navigating tabs:", error);
+                        toast.error("Navigation error. Please select Basic Info tab manually.");
+                      }
+                    }}
+                    className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300"
+                  >
+                    Change
+                  </Button>
                 </div>
-              ) : (
-                <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded">No occupancy selections added yet. Add at least one.</p>
-              )}
 
-              {/* Add new occupancy selection */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border-t border-green-100 pt-4">
-                <div>
-                  <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
+                <p className="text-sm text-green-700">
+                  Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
+                  This will overwrite the current Total Price and Pricing Options below.
+                </p>
+
+                {/* Meal Plan Selection First */}
+                <FormItem className="space-y-2">
+                  <FormLabel className="font-medium">Meal Plan <span className="text-red-500">*</span></FormLabel>
                   <Select
                     disabled={loading}
-                    onValueChange={setNewOccupancyTypeId}
-                    value={newOccupancyTypeId || undefined}
+                    onValueChange={setSelectedMealPlanId}
+                    value={selectedMealPlanId || undefined}
                   >
-                    <SelectTrigger className="bg-white h-9">
-                      <SelectValue placeholder="Select Type" />
-                    </SelectTrigger>
+                    <FormControl>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Select Meal Plan" />
+                      </SelectTrigger>
+                    </FormControl>
                     <SelectContent>
-                      {occupancyTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
+                      {mealPlans.map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <FormLabel className="text-xs font-medium">Count</FormLabel>
-                  <div className="flex items-center gap-1">
+                  {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
+                </FormItem>
+
+                {/* Occupancy Selections */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>
+
+                  {/* Show current selections */}
+                  {occupancySelections.length > 0 ? (
+                    <div className="space-y-2">
+                      {occupancySelections.map((selection, index) => {
+                        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+                        return (
+                          <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200 shadow-sm">
+                            <div>
+                              <span className="font-medium text-sm">{occupancyType?.name}</span>
+                              <span className="text-xs text-gray-600 ml-2">
+                                × {selection.count} = {selection.count * selection.paxPerUnit} PAX
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveOccupancySelection(index)}
+                              className="h-7 w-7 p-0"
+                              disabled={loading}
+                            >
+                              <Trash className="h-4 w-4 text-red-500 hover:text-red-700" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+
+                      <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-center">
+                        <span className="font-semibold text-sm">Total: {calculateTotalPax()} PAX</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded">No occupancy selections added yet. Add at least one.</p>
+                  )}
+
+                  {/* Add new occupancy selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border-t border-green-100 pt-4">
+                    <div>
+                      <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
+                      <Select
+                        disabled={loading}
+                        onValueChange={setNewOccupancyTypeId}
+                        value={newOccupancyTypeId || undefined}
+                      >
+                        <SelectTrigger className="bg-white h-9">
+                          <SelectValue placeholder="Select Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {occupancyTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <FormLabel className="text-xs font-medium">Count</FormLabel>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
+                          onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
+                          disabled={loading || newOccupancyCount <= 1}
+                        >
+                          <span className="sr-only">Decrease</span>
+                          <span className="text-lg font-bold">-</span>
+                        </Button>
+                        <Input
+                          type="number"
+                          value={newOccupancyCount}
+                          onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
+                          min="1"
+                          pattern="[0-9]*"
+                          inputMode="numeric"
+                          disabled={loading}
+                          className="w-full text-center h-9 bg-white"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
+                          onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
+                          disabled={loading}
+                        >
+                          <span className="sr-only">Increase</span>
+                          <span className="text-lg font-bold">+</span>
+                        </Button>
+                      </div>
+                    </div>
                     <Button
                       type="button"
-                      size="icon"
+                      onClick={handleAddOccupancySelection}
                       variant="outline"
-                      className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                      onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
-                      disabled={loading || newOccupancyCount <= 1}
+                      size="sm"
+                      className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9"
+                      disabled={loading || !newOccupancyTypeId}
                     >
-                      <span className="sr-only">Decrease</span>
-                      <span className="text-lg font-bold">-</span>
-                    </Button>
-                    <Input
-                      type="number"
-                      value={newOccupancyCount}
-                      onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                      min="1"
-                      pattern="[0-9]*"
-                      inputMode="numeric"
-                      disabled={loading}
-                      className="w-full text-center h-9 bg-white"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                      onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
-                      disabled={loading}
-                    >
-                      <span className="sr-only">Increase</span>
-                      <span className="text-lg font-bold">+</span>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add
                     </Button>
                   </div>
                 </div>
+
+                {/* Fetch Button */}
                 <Button
                   type="button"
-                  onClick={handleAddOccupancySelection}
+                  onClick={handleFetchTourPackagePricing}
                   variant="outline"
-                  size="sm"
-                  className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9"
-                  disabled={loading || !newOccupancyTypeId}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
+                  disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || occupancySelections.length === 0}
                 >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Add
+                  <Calculator className="mr-2 h-4 w-4" />
+                  Fetch & Apply Tour Package Price
                 </Button>
-              </div>
-            </div>
-
-            {/* Fetch Button */}
-            <Button
-              type="button"
-              onClick={handleFetchTourPackagePricing}
-              variant="outline"
-              className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
-              disabled={loading || !form.getValues('tourPackageTemplate') || !selectedMealPlanId || occupancySelections.length === 0}
-            >
-              <Calculator className="mr-2 h-4 w-4" />
-              Fetch & Apply Tour Package Price
-            </Button>
+              </>
+            )}
           </div>
         )}
 

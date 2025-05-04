@@ -147,12 +147,12 @@ const flightDetailsSchema = z.object({
   flightDuration: z.string().optional(),
 }); // Assuming an array of flight details
 
-const formSchema = z.object({
-  inquiryId: z.string().nullable().optional(),
+const formSchema = z.object({  inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryTemplate: z.string().optional(),
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
+  tourPackageTemplateName: z.string().optional(),
 
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
@@ -405,9 +405,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const defaultValues = initialData
     ? {
-      ...transformInitialData(initialData),
-      selectedTemplateId: initialData.selectedTemplateId || '',
+      ...transformInitialData(initialData),      selectedTemplateId: initialData.selectedTemplateId || '',
       selectedTemplateType: initialData.selectedTemplateType || '',
+      tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
 
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
@@ -527,10 +527,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     if (selectedTourPackage) {
-      // Add this line to update the tourPackageTemplate field
-      form.setValue('tourPackageTemplate', selectedTourPackageId);
-      form.setValue('selectedTemplateId', selectedTourPackageId);
+      // Add this line to update the tourPackageTemplate field 
+      form.setValue('tourPackageTemplate', selectedTourPackageId);      form.setValue('selectedTemplateId', selectedTourPackageId);
       form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${selectedTourPackageId.substring(0, 8)}`);
       form.setValue('tourPackageQueryTemplate', ''); // Clear the other template field
 
       // Rest of your existing setValue calls
@@ -1006,8 +1006,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={loading}
                 form={form}
               />
-            </TabsContent>
-            <TabsContent value="pricing" className="space-y-4 mt-4">
+            </TabsContent>            <TabsContent value="pricing" className="space-y-4 mt-4">
               <PricingTab
                 control={form.control}
                 loading={loading}
@@ -1018,7 +1017,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}
+                setPriceCalculationResult={setPriceCalculationResult}                selectedTemplateId={form.watch('selectedTemplateId')}
+                selectedTemplateType={form.watch('selectedTemplateType')}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

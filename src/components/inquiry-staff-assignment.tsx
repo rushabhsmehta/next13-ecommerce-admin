@@ -8,6 +8,7 @@ import { Check, ChevronsUpDown, Loader2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
 interface OperationalStaff {
   id: string;
@@ -38,23 +39,13 @@ export function InquiryStaffAssignment({
   const [staffLoading, setStaffLoading] = useState(false);
   const [isAssociatePartner, setIsAssociatePartner] = useState(false);
   
-  // Check if current user is an associate partner
+
+  // Check if current user is an associate partner using the shared hook
+  const { isAssociatePartner: isAssociate } = useAssociatePartner();
+  
   useEffect(() => {
-    const checkAssociatePartner = async () => {
-      try {
-        const response = await fetch('/api/associate-partners/me');
-        if (response.ok) {
-          // If we get a successful response, user is an associate partner
-          setIsAssociatePartner(true);
-        }
-      } catch (error) {
-        // If there's an error, assume user is not an associate partner
-        console.error('Error checking associate partner status:', error);
-      }
-    };
-    
-    checkAssociatePartner();
-  }, []);
+    setIsAssociatePartner(isAssociate);
+  }, [isAssociate]);
 
   // Don't render the component if user is an associate partner
   if (isAssociatePartner) {

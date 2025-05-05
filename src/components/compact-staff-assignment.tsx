@@ -7,6 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Check, ChevronsUpDown, Loader2, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
+import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
 interface OperationalStaff {
   id: string;
@@ -41,24 +42,12 @@ export function CompactStaffAssignment({
   const [staffList, setStaffList] = useState<OperationalStaff[]>([]);
   const [staffLoading, setStaffLoading] = useState(false);
   const [isAssociatePartner, setIsAssociatePartner] = useState(false);
+    // Use the shared hook to check if current user is an associate partner
+  const { isAssociatePartner: isAssociate } = useAssociatePartner();
   
-  // Check if current user is an associate partner
   useEffect(() => {
-    const checkAssociatePartner = async () => {
-      try {
-        const response = await fetch('/api/associate-partners/me');
-        if (response.ok) {
-          // If we get a successful response, user is an associate partner
-          setIsAssociatePartner(true);
-        }
-      } catch (error) {
-        // If there's an error, assume user is not an associate partner
-        console.error('Error checking associate partner status:', error);
-      }
-    };
-    
-    checkAssociatePartner();
-  }, []);
+    setIsAssociatePartner(isAssociate);
+  }, [isAssociate]);
 
   // Don't render the component if user is an associate partner
   if (isAssociatePartner) {

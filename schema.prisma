@@ -243,6 +243,8 @@ model TourPackageQuery {
   selectedTemplateId        String?         // ID of the selected TourPackage or TourPackageQuery template
   selectedTemplateType      String?         // Type of the selected template ("TourPackage" or "TourPackageQuery")
   tourPackageTemplateName   String?         // Name of the selected tour package template
+  selectedMealPlanId        String?         // ID of the selected meal plan for tour package pricing
+  occupancySelections       Json?           // JSON representation of occupancy selections with counts
 
   associatePartnerId       String?
   associatePartner        AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)

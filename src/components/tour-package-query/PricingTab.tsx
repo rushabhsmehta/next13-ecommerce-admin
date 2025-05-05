@@ -96,35 +96,44 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (selectedTemplateId && selectedTemplateType === 'TourPackage') {
       // Try to get from form first
       const nameFromForm = form.getValues('tourPackageTemplateName');
+      
+      // Also try to restore any saved meal plan and occupancy selections
+      const savedMealPlanId = form.getValues('selectedMealPlanId');
+      const savedOccupancySelections = form.getValues('occupancySelections');
+      
       if (nameFromForm) {
         setTourPackageName(nameFromForm);
-        return;
       }
       
-      // If not available in form, fetch from API
-      const fetchTourPackage = async () => {
-        setIsFetchingPackage(true);
-        try {
-          const response = await axios.get(`/api/tourPackages/${selectedTemplateId}`);
-          if (response.data && (response.data.name || response.data.tourPackageName)) {
-            const name = response.data.name || response.data.tourPackageName;
-            setTourPackageName(name);
-            // Store in form for future use
-            form.setValue('tourPackageTemplateName', name);
-          } else {
-            setTourPackageName(`Package ${selectedTemplateId.substring(0, 8)}...`);
-            form.setValue('tourPackageTemplateName', `Package ${selectedTemplateId.substring(0, 8)}...`);
-          }
-        } catch (error) {
-          console.error("Error fetching tour package details:", error);
-          setTourPackageName(`Package ${selectedTemplateId.substring(0, 8)}...`);
-          form.setValue('tourPackageTemplateName', `Package ${selectedTemplateId.substring(0, 8)}...`);
-        } finally {
-          setIsFetchingPackage(false);
-        }
-      };
+      if (savedMealPlanId) {
+        setSelectedMealPlanId(savedMealPlanId);
+      }
       
-      fetchTourPackage();
+      if (savedOccupancySelections && Array.isArray(savedOccupancySelections) && savedOccupancySelections.length > 0) {
+        setOccupancySelections(savedOccupancySelections);
+      }
+      
+      if (!nameFromForm) {
+        // Only fetch if we don't already have the name
+        setIsFetchingPackage(true);
+        // Fetch package details from the API
+        axios.get(`/api/tourPackages/${selectedTemplateId}`)
+          .then(response => {
+            const packageData = response.data;
+            if (packageData) {
+              setTourPackageName(packageData.name || packageData.tourPackageName || `Package ${selectedTemplateId.substring(0, 8)}`);
+              // Save the name in the form for future reference
+              form.setValue('tourPackageTemplateName', packageData.name || packageData.tourPackageName || `Package ${selectedTemplateId.substring(0, 8)}`);
+            }
+          })
+          .catch(error => {
+            console.error("Error fetching tour package details:", error);
+            toast.error("Could not fetch tour package details");
+          })
+          .finally(() => {
+            setIsFetchingPackage(false);
+          });
+      }
     } else {
       setTourPackageName("");
     }
@@ -525,6 +534,20 @@ const PricingTab: React.FC<PricingTabProps> = ({
   useEffect(() => {
     fetchTourPackageName(selectedTemplateId || "");
   }, [selectedTemplateId]);
+
+  // When meal plan changes, save it to the form
+  useEffect(() => {
+    if (selectedMealPlanId) {
+      form.setValue('selectedMealPlanId', selectedMealPlanId);
+    }
+  }, [selectedMealPlanId, form]);
+  
+  // When occupancy selections change, save them to the form
+  useEffect(() => {
+    if (occupancySelections.length > 0) {
+      form.setValue('occupancySelections', occupancySelections);
+    }
+  }, [occupancySelections, form]);
 
   return (
     <Card>
@@ -992,10 +1015,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       </div>
                     ) : (
                       <p className="font-medium">
-                        {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId.substring(0, 8)}...`}
+                        {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId}`}
                       </p>
                     )}
-                  </div>                  <Button
+                  </div>
+                  <Button
                     type="button"
                     variant="outline"
                     size="sm"
@@ -1331,6 +1355,50 @@ const PricingTab: React.FC<PricingTabProps> = ({
               )}
           </div>
         </div>
+
+        <div className="mt-4">
+                  {/* Display selected meal plan */}
+                  {selectedMealPlanId && (
+                    <div className="bg-white border border-green-200 rounded-md p-3 mb-2">
+                      <p className="text-sm text-gray-600">Selected Meal Plan:</p>
+                      <p className="font-medium">
+                        {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Display selected occupancy configurations */}
+                  {occupancySelections.length > 0 && (
+                    <div className="bg-white border border-green-200 rounded-md p-3">
+                      <p className="text-sm text-gray-600 mb-2">Selected Room Configurations:</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {occupancySelections.map((selection, index) => {
+                          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+                          return (
+                            <div key={index} className="flex items-center justify-between bg-green-50 p-2 rounded-md">
+                              <span className="font-medium">{occupancyType?.name || 'Unknown Room Type'}</span>
+                              <span className="text-sm">
+                                {selection.count} room(s), {selection.count * selection.paxPerUnit} guest(s)
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-red-500"
+                                onClick={() => handleRemoveOccupancySelection(index)}
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                        <p className="text-sm text-gray-600 mt-1">
+                          Total Guests: {calculateTotalPax()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
       </CardContent>
     </Card>
   );

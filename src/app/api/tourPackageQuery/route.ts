@@ -105,9 +105,7 @@ export async function POST(
     try {
         const { userId } = auth();
 
-        const body = await req.json();
-
-        const {
+        const body = await req.json();        const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -119,6 +117,9 @@ export async function POST(
             tour_highlights,
             selectedTemplateId,
             selectedTemplateType,
+            tourPackageTemplateName,
+            selectedMealPlanId,
+            occupancySelections,
             tourStartsFrom,
             tourEndsOn,
             transport,
@@ -200,10 +201,12 @@ export async function POST(
                 numDaysNight,
                 locationId,
                 period,
-                tour_highlights,
-                // Add the new template fields to the data object
+                tour_highlights,                // Add the new template fields to the data object
                 selectedTemplateId,
                 selectedTemplateType,
+                tourPackageTemplateName,
+                selectedMealPlanId,
+                occupancySelections: occupancySelections ? JSON.stringify(occupancySelections) : null,
                 tourStartsFrom,
                 tourEndsOn,
                 transport,

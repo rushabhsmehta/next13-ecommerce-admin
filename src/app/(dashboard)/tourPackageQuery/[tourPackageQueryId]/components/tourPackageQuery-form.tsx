@@ -427,8 +427,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
       termsconditions: parseJsonField(initialData.termsconditions),
       pricingSection: parsePricingSection(initialData.pricingSection),
-    }
-    : {
+    }    : {
       inquiryId: '',
       tourPackageTemplate: '',
       tourPackageQueryNumber: getCurrentDateTimeString(),
@@ -466,6 +465,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       isFeatured: false,
       isArchived: false,
       pricingSection: DEFAULT_PRICING_SECTION,
+      // Initialize the optional fields with empty values
+      selectedTemplateId: '',
+      selectedTemplateType: '',
+      tourPackageTemplateName: '',
+      selectedMealPlanId: '',
+      occupancySelections: [],
     };
 
   const form = useForm<TourPackageQueryFormValues>({

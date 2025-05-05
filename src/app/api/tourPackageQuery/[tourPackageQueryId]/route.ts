@@ -145,13 +145,13 @@ async function createItineraryAndActivities(itinerary: {
   if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
     await Promise.all(itinerary.roomAllocations.map((roomAllocation: any) => {
       console.log("Creating room allocation with data:", roomAllocation);
-      
+
       // Skip invalid room allocations
       if (!roomAllocation.roomTypeId || !roomAllocation.occupancyTypeId) {
         console.log("WARNING: Missing required IDs for room allocation, skipping");
         return Promise.resolve();
       }
-      
+
       return prismadb.roomAllocation.create({
         data: {
           itineraryId: createdItinerary.id,
@@ -167,13 +167,13 @@ async function createItineraryAndActivities(itinerary: {
   if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
     await Promise.all(itinerary.transportDetails.map((transport: any) => {
       console.log("Creating transport detail with data:", transport);
-      
+
       // Skip invalid transport details
       if (!transport.vehicleTypeId) {
         console.log("WARNING: Missing vehicleTypeId for transport detail, skipping");
         return Promise.resolve();
       }
-      
+
       return prismadb.transportDetail.create({
         data: {
           itineraryId: createdItinerary.id,
@@ -196,7 +196,7 @@ export async function PATCH(
   try {
     const { userId } = auth();
 
-    const body = await req.json();    const {
+    const body = await req.json(); const {
       inquiryId,
       tourPackageQueryNumber,
       tourPackageQueryName,
@@ -243,12 +243,9 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-      associatePartnerId, // Add this line      // Add the new template fields
+      associatePartnerId, 
       selectedTemplateId,
       selectedTemplateType,
-      tourPackageTemplateName,
-      selectedMealPlanId,
-      occupancySelections,
       isFeatured,
       isArchived
     } = body;
@@ -337,11 +334,18 @@ export async function PATCH(
       termsconditions: processedTermsConditions,
       disclaimer,
       isFeatured,
-      isArchived,
-      assignedTo,
+      isArchived, assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-      associatePartnerId,
+      associatePartnerId,      // Add template fields
+      selectedTemplateId,
+      selectedTemplateType,
+      tourPackageTemplateName,
+      selectedMealPlanId,
+      // Use the renamed variable for occupancy selections with proper Prisma JSON format
+      occupancySelections: occupancySelections ? 
+        { set: occupancySelections } : 
+        undefined,
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {

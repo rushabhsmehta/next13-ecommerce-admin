@@ -340,12 +340,9 @@ export async function PATCH(
       associatePartnerId,      // Add template fields
       selectedTemplateId,
       selectedTemplateType,
-      tourPackageTemplateName,
-      selectedMealPlanId,
-      // Use the renamed variable for occupancy selections with proper Prisma JSON format
-      occupancySelections: occupancySelections ? 
-        { set: occupancySelections } : 
-        undefined,
+      tourPackageTemplateName,      selectedMealPlanId,      // Store occupancy selections directly as JSON
+      // This approach works better with Prisma's JSON field handling
+      occupancySelections: occupancySelections || undefined,
       images: images && images.length > 0 ? {
         deleteMany: {},
         createMany: {

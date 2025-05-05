@@ -89,55 +89,81 @@ const PricingTab: React.FC<PricingTabProps> = ({
   const [newOccupancyCount, setNewOccupancyCount] = useState<number>(1);
   // State for tour package details
   const [tourPackageName, setTourPackageName] = useState<string>("");
-  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);
-
-  // Fetch tour package details when selectedTemplateId changes
+  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);  // Fetch tour package details when selectedTemplateId changes
   useEffect(() => {
     if (selectedTemplateId && selectedTemplateType === 'TourPackage') {
-      // Try to get from form first
+      // Try to get tour package name from form first
       const nameFromForm = form.getValues('tourPackageTemplateName');
-      
-      // Also try to restore any saved meal plan and occupancy selections
-      const savedMealPlanId = form.getValues('selectedMealPlanId');
-      const savedOccupancySelections = form.getValues('occupancySelections');
       
       if (nameFromForm) {
         setTourPackageName(nameFromForm);
+        return; // Don't fetch if we already have the name
       }
+            
+      // Otherwise, get the name from the API
+      setIsFetchingPackage(true);
       
-      if (savedMealPlanId) {
-        setSelectedMealPlanId(savedMealPlanId);
-      }
-      
-      if (savedOccupancySelections && Array.isArray(savedOccupancySelections) && savedOccupancySelections.length > 0) {
-        setOccupancySelections(savedOccupancySelections);
-      }
-      
-      if (!nameFromForm) {
-        // Only fetch if we don't already have the name
-        setIsFetchingPackage(true);
-        // Fetch package details from the API
-        axios.get(`/api/tourPackages/${selectedTemplateId}`)
-          .then(response => {
-            const packageData = response.data;
-            if (packageData) {
-              setTourPackageName(packageData.name || packageData.tourPackageName || `Package ${selectedTemplateId.substring(0, 8)}`);
-              // Save the name in the form for future reference
-              form.setValue('tourPackageTemplateName', packageData.name || packageData.tourPackageName || `Package ${selectedTemplateId.substring(0, 8)}`);
-            }
-          })
-          .catch(error => {
-            console.error("Error fetching tour package details:", error);
-            toast.error("Could not fetch tour package details");
-          })
-          .finally(() => {
-            setIsFetchingPackage(false);
-          });
-      }
+      axios.get(`/api/tourPackages/${selectedTemplateId}`)
+        .then(response => {
+          const packageData = response.data;
+          if (packageData) {
+            const packageName = packageData.name || packageData.tourPackageName || `Package ${selectedTemplateId.substring(0, 8)}...`;
+            setTourPackageName(packageName);
+            // Save to form for future use
+            form.setValue('tourPackageTemplateName', packageName);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching tour package details:", error);
+          setTourPackageName(`Package ${selectedTemplateId.substring(0, 8)}...`);
+        })
+        .finally(() => {
+          setIsFetchingPackage(false);
+        });
     } else {
       setTourPackageName("");
     }
   }, [selectedTemplateId, selectedTemplateType, form]);
+  
+  // Load and handle saved meal plan and occupancy selections
+  useEffect(() => {
+    // Try to restore any saved meal plan and occupancy selections
+    const savedMealPlanId = form.getValues('selectedMealPlanId');
+    const savedOccupancySelections = form.getValues('occupancySelections');
+    
+    if (savedMealPlanId && !selectedMealPlanId) {
+      console.log('Restoring saved meal plan ID:', savedMealPlanId);
+      setSelectedMealPlanId(savedMealPlanId);
+    }
+    
+    // Handle various formats that might be returned from the database for occupancySelections
+    if (savedOccupancySelections && (!occupancySelections || occupancySelections.length === 0)) {
+      console.log('Trying to restore occupancy selections from form:', savedOccupancySelections);
+      
+      try {
+        // Case 1: It's already an array
+        if (Array.isArray(savedOccupancySelections) && savedOccupancySelections.length > 0) {
+          setOccupancySelections(savedOccupancySelections);
+        } 
+        // Case 2: It's in the {set: [...]} format that Prisma might return
+        else if (typeof savedOccupancySelections === 'object' && savedOccupancySelections.set && 
+                Array.isArray(savedOccupancySelections.set) && savedOccupancySelections.set.length > 0) {
+          setOccupancySelections(savedOccupancySelections.set);
+        }
+        // Case 3: It might be a JSON string that needs parsing
+        else if (typeof savedOccupancySelections === 'string') {
+          const parsed = JSON.parse(savedOccupancySelections);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setOccupancySelections(parsed);
+          } else if (typeof parsed === 'object' && parsed.set && Array.isArray(parsed.set)) {
+            setOccupancySelections(parsed.set);
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing occupancy selections:", e);
+      }
+    }
+  }, [selectedTemplateId, selectedTemplateType, form, occupancySelections, selectedMealPlanId]);
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {
@@ -147,6 +173,53 @@ const PricingTab: React.FC<PricingTabProps> = ({
     });
     
     return () => subscription.unsubscribe();
+  }, [form]);
+
+  // Initialize data from form when component loads
+  useEffect(() => {
+    // Initialize from form data when component mounts
+    const initializeFromForm = () => {
+      // Get stored data from form
+      const storedMealPlanId = form.getValues('selectedMealPlanId');
+      const storedOccupancySelections = form.getValues('occupancySelections');
+      const storedTourPackageName = form.getValues('tourPackageTemplateName');
+      
+      // Set tour package name if available
+      if (storedTourPackageName) {
+        setTourPackageName(storedTourPackageName);
+      }
+      
+      // Set meal plan if available
+      if (storedMealPlanId) {
+        setSelectedMealPlanId(storedMealPlanId);
+      }
+      
+      // Handle different formats of occupancy selections
+      if (storedOccupancySelections) {
+        try {
+          if (Array.isArray(storedOccupancySelections) && storedOccupancySelections.length > 0) {
+            // Direct array format
+            setOccupancySelections(storedOccupancySelections);
+          } else if (typeof storedOccupancySelections === 'object' && storedOccupancySelections.set) {
+            // Prisma format with { set: [...] }
+            setOccupancySelections(storedOccupancySelections.set);
+          } else if (typeof storedOccupancySelections === 'string') {
+            // JSON string format
+            const parsed = JSON.parse(storedOccupancySelections);
+            if (Array.isArray(parsed)) {
+              setOccupancySelections(parsed);
+            } else if (parsed && parsed.set && Array.isArray(parsed.set)) {
+              setOccupancySelections(parsed.set);
+            }
+          }
+        } catch (err) {
+          console.error("Error parsing occupancy selections from form:", err);
+        }
+      }
+    };
+    
+    // Run initialization
+    initializeFromForm();
   }, [form]);
 
   // Set up field array for pricing section
@@ -223,22 +296,29 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Function to remove an occupancy selection
   const handleRemoveOccupancySelection = (index: number) => {
     setOccupancySelections(occupancySelections.filter((_, i) => i !== index));
-  };
-  // Function to calculate total PAX based on occupancy selections
+  };  // Function to calculate total PAX based on occupancy selections
   const calculateTotalPax = (): number => {
     return occupancySelections.reduce((total, selection) => {
-      return total + (selection.count * selection.paxPerUnit);
+      // Ensure we have valid numbers by providing fallbacks
+      const count = typeof selection.count === 'number' ? selection.count : 1;
+      const paxPerUnit = typeof selection.paxPerUnit === 'number' ? selection.paxPerUnit : 1;
+      
+      return total + (count * paxPerUnit);
     }, 0);
   };
-
   // Function to calculate PAX for pricing matches (only counting Double occupancy)
   const calculatePricingPax = (): number => {
     return occupancySelections.reduce((total, selection) => {
       // Find the occupancy type to check if it's Double
       const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+      
+      // Ensure we have valid numbers by providing fallbacks
+      const count = typeof selection.count === 'number' ? selection.count : 1;
+      const paxPerUnit = typeof selection.paxPerUnit === 'number' ? selection.paxPerUnit : 1;
+      
       // Only count Double occupancy for pricing match
       if (occupancyType && occupancyType.name?.toLowerCase().includes('double')) {
-        return total + (selection.count * selection.paxPerUnit);
+        return total + (count * paxPerUnit);
       }
       return total;
     }, 0);
@@ -541,13 +621,19 @@ const PricingTab: React.FC<PricingTabProps> = ({
       form.setValue('selectedMealPlanId', selectedMealPlanId);
     }
   }, [selectedMealPlanId, form]);
-  
-  // When occupancy selections change, save them to the form
+    // When occupancy selections change, save them to the form
   useEffect(() => {
-    if (occupancySelections.length > 0) {
-      form.setValue('occupancySelections', occupancySelections);
+    // Always save the occupancy selections to the form, even if empty
+    // This ensures the form state is always in sync with the component state
+    form.setValue('occupancySelections', occupancySelections);
+    
+    // Update total price display when occupancy selections change
+    if (calculationMethod === 'autoTourPackage' && selectedMealPlanId && occupancySelections.length > 0) {
+      // Recalculate total guest count in the UI
+      const totalPax = calculateTotalPax();
+      console.log(`Occupancy selections updated, total guests: ${totalPax}`);
     }
-  }, [occupancySelections, form]);
+  }, [occupancySelections, form, calculationMethod, selectedMealPlanId]);
 
   return (
     <Card>
@@ -1367,18 +1453,20 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     </div>
                   )}
 
-                  {/* Display selected occupancy configurations */}
-                  {occupancySelections.length > 0 && (
+                  {/* Display selected occupancy configurations */}                {occupancySelections.length > 0 && (
                     <div className="bg-white border border-green-200 rounded-md p-3">
                       <p className="text-sm text-gray-600 mb-2">Selected Room Configurations:</p>
                       <div className="grid grid-cols-1 gap-2">
                         {occupancySelections.map((selection, index) => {
                           const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+                          
                           return (
                             <div key={index} className="flex items-center justify-between bg-green-50 p-2 rounded-md">
-                              <span className="font-medium">{occupancyType?.name || 'Unknown Room Type'}</span>
+                              <span className="font-medium">
+                                {occupancyType?.name || `Room Type (ID: ${selection.occupancyTypeId?.substring(0, 8)}...)`}
+                              </span>
                               <span className="text-sm">
-                                {selection.count} room(s), {selection.count * selection.paxPerUnit} guest(s)
+                                {selection.count} room(s), {selection.count * (selection.paxPerUnit || 1)} guest(s)
                               </span>
                               <Button
                                 type="button"
@@ -1396,6 +1484,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
                           Total Guests: {calculateTotalPax()}
                         </p>
                       </div>
+                      {/* Debug info - Remove in production */}
+                      {process.env.NODE_ENV !== 'production' && (
+                        <details className="mt-3 text-xs text-gray-500 border-t pt-2">
+                          <summary className="cursor-pointer">Debug Info</summary>
+                          <pre className="mt-1 bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
+                            {JSON.stringify(occupancySelections, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                     </div>
                   )}
                 </div>

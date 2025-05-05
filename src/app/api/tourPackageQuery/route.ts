@@ -4,25 +4,25 @@ import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 
 
-async function createItineraryAndActivities(itinerary: { 
-    itineraryTitle: any; 
-    itineraryDescription: any; 
-    locationId: any; 
-    tourPackageId: any; 
-    dayNumber: any; 
-    days: any; 
-    hotelId: any; 
-    numberofRooms: any; 
-    roomCategory: any; 
-    mealsIncluded: any; 
-    itineraryImages: any[]; 
+async function createItineraryAndActivities(itinerary: {
+    itineraryTitle: any;
+    itineraryDescription: any;
+    locationId: any;
+    tourPackageId: any;
+    dayNumber: any;
+    days: any;
+    hotelId: any;
+    numberofRooms: any;
+    roomCategory: any;
+    mealsIncluded: any;
+    itineraryImages: any[];
     activities: any[];
     roomAllocations?: any[];
     transportDetails?: any[];
 }, tourPackageQueryId: any) {
     console.log("Received itinerary with roomAllocations:", itinerary.roomAllocations);
     console.log("Received itinerary with transportDetails:", itinerary.transportDetails);
-    
+
     // First, create the itinerary and get its id
     const createdItinerary = await prismadb.itinerary.create({
         data: {
@@ -64,7 +64,7 @@ async function createItineraryAndActivities(itinerary: {
             });
         }));
     }
-    
+
     // Create room allocations for this itinerary
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
         await Promise.all(itinerary.roomAllocations.map((roomAllocation: any) => {
@@ -82,7 +82,7 @@ async function createItineraryAndActivities(itinerary: {
             });
         }));
     }
-      // Create transport details for this itinerary
+    // Create transport details for this itinerary
     if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
         await Promise.all(itinerary.transportDetails.map((transport: any) => {
             return prismadb.transportDetail.create({
@@ -105,7 +105,8 @@ export async function POST(
     try {
         const { userId } = auth();
 
-        const body = await req.json();        const {
+        const body = await req.json();
+        const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -201,11 +202,14 @@ export async function POST(
                 numDaysNight,
                 locationId,
                 period,
-                tour_highlights,                // Add the new template fields to the data object                selectedTemplateId,
+                tour_highlights,
+                // Add the new template fields to the data object
+                selectedTemplateId,
                 selectedTemplateType,
                 tourPackageTemplateName,
                 selectedMealPlanId,
-                occupancySelections: occupancySelections ? occupancySelections : undefined,
+                // Store occupancy selections directly - don't transform it
+                occupancySelections: occupancySelections || undefined,
                 tourStartsFrom,
                 tourEndsOn,
                 transport,
@@ -298,7 +302,7 @@ export async function GET(
             include: {
                 associatePartner: true,  // Add this line
                 images: true,
-                location: true,                itineraries: {
+                location: true, itineraries: {
                     include: {
                         itineraryImages: true,
                         roomAllocations: true,

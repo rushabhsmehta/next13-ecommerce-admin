@@ -14,6 +14,7 @@ import { useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment";
+import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
@@ -52,30 +53,19 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
   // Get user display name
   const userFullName = user?.firstName ? `${user?.firstName} ${user?.lastName || ''}`.trim() : "User";
   const userInitials = user?.firstName?.charAt(0) || "U";
-
+  // Use the shared hook to check if current user is an associate partner
+  const { isAssociatePartner, associatePartner } = useAssociatePartner();
   // Check if the domain is associate domain
   useEffect(() => {
     const hostname = window.location.hostname;
     const isAssociate = hostname.includes('associate.aagamholidays.com');
     setIsAssociateDomain(isAssociate);
 
-    // Fetch associate information if in associate domain
-    if (isAssociate || isAssociateUser) {
-      fetch('/api/associate-partners/me')
-        .then(response => {
-          if (response.ok) return response.json();
-          return null;
-        })
-        .then(data => {
-          if (data && data.name) {
-            setAssociateName(data.name);
-          }
-        })
-        .catch(err => {
-          console.error("Error fetching associate details:", err);
-        });
+    // Use associate information from the shared hook
+    if ((isAssociate || isAssociateUser) && associatePartner?.name) {
+      setAssociateName(associatePartner.name);
     }
-  }, [isAssociateUser]);
+  }, [isAssociateUser, associatePartner]);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({

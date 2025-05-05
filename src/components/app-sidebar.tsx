@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
 // Sidebar Navigation Data with appropriate structure for Collapsible components
 const NAV_ITEMS = [
@@ -142,9 +143,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
   const [navItems, setNavItems] = useState(NAV_ITEMS);
-  const [associateName, setAssociateName] = useState<string | null>(null);
+  const { associatePartner } = useAssociatePartner();
   const isMobile = useIsMobile();
-
   // Check if the domain is associate domain
   useEffect(() => {
     const hostname = window.location.hostname;
@@ -154,21 +154,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     // Set nav items based on domain
     if (isAssociate) {
       setNavItems(ASSOCIATE_NAV_ITEMS);
-
-      // Fetch associate information
-      fetch('/api/associate-partners/me')
-        .then(response => {
-          if (response.ok) return response.json();
-          return null;
-        })
-        .then(data => {
-          if (data && data.name) {
-            setAssociateName(data.name);
-          }
-        })
-        .catch(err => {
-          console.error("Error fetching associate details:", err);
-        });
     } else {
       setNavItems(NAV_ITEMS);
     }
@@ -212,9 +197,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="flex flex-col">
-                    <span className="font-medium text-xs">
-                      {isAssociateDomain && associateName ? associateName : userFullName}
+                  <div className="flex flex-col">                    <span className="font-medium text-xs">
+                      {isAssociateDomain && associatePartner?.name ? associatePartner.name : userFullName}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {isAssociateDomain ? (

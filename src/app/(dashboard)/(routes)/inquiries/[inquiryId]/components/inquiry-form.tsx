@@ -10,6 +10,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
+import { useAssociatePartner } from "@/hooks/use-associate-partner";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -118,6 +119,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
 }) => {  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isAssociateDomain, setIsAssociateDomain] = useState(false);
+  // Get associate partner data at the component level
+  const { associatePartner } = useAssociatePartner();
     // States for managing room allocations and transport details
   const [showAddRoomAllocation, setShowAddRoomAllocation] = useState(false);
   const [editingRoomAllocationIndex, setEditingRoomAllocationIndex] = useState<number | null>(null);
@@ -279,33 +282,18 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     const updatedDetails = currentDetails.filter((_, i) => i !== index);
     form.setValue("transportDetails", updatedDetails);
   };
-
   useEffect(() => {
     if (!initialData) { // Only do this for new inquiries, not when editing
       const hostname = window.location.hostname;
-      const isAssociateHostname = hostname === 'associate.aagamholidays.com';
-
+      const isAssociateHostname = hostname === 'associate.aagamholidays.com';      
       setIsAssociateDomain(isAssociateHostname);
 
-      if (isAssociateHostname) {
-        // Get associate info from API
-        fetch('/api/associate-partners/me')
-          .then(res => {
-            if (res.ok) return res.json();
-            return null;
-          })
-          .then(associate => {
-            if (associate && associate.id) {
-              // Set the associate partner in the form
-              form.setValue('associatePartnerId', associate.id);
-            }
-          })
-          .catch(err => {
-            console.error('Error fetching associate information:', err);
-          });
+      if (isAssociateHostname && associatePartner?.id) {
+        // Set the associate partner in the form
+        form.setValue('associatePartnerId', associatePartner.id);
       }
     }
-  }, [form, initialData]);
+  }, [form, initialData, associatePartner]);
   const onSubmit = async (data: InquiryFormValues) => {
     try {
       setLoading(true);

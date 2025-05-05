@@ -138,11 +138,17 @@ const pricingItemSchema = z.object({
 const formSchema = z.object({
   inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
-  tourPackageQueryTemplate: z.string().optional(),
-  // Add fields to store the selected template ID and type
+  tourPackageQueryTemplate: z.string().optional(),  // Add fields to store the selected template ID and type
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
   tourPackageTemplateName: z.string().optional(),
+  // Add fields for pricing calculations
+  selectedMealPlanId: z.string().optional(),
+  occupancySelections: z.array(z.object({
+    occupancyTypeId: z.string(),
+    count: z.number(),
+    paxPerUnit: z.number()
+  })).optional(),
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
@@ -269,7 +275,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // --- END ADDED STATE ---
 
   const title = "Create Tour Package Query from Inquiry";
-  const description = "Convert this inquiry into a detailed tour package";
+  const description = "Convert this inquiry into a detailed tour package";  
   const defaultValues = {
     tourPackageTemplate: '',
     tourPackageQueryTemplate: '',
@@ -277,6 +283,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     selectedTemplateId: '',
     selectedTemplateType: '',
     tourPackageTemplateName: '',
+    // Add defaults for pricing calculation fields
+    selectedMealPlanId: '',
+    occupancySelections: [],
     tourPackageQueryNumber: `TPQ-${Date.now()}`,
     associatePartnerId: inquiry?.associatePartnerId || '',
     tourPackageQueryType: '',
@@ -290,6 +299,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     numAdults: inquiry?.numAdults?.toString() || '',
     numChild5to12: inquiry?.numChildren5to11?.toString() || '',
     numChild0to5: inquiry?.numChildrenBelow5?.toString() || '',
+    tourStartsFrom: inquiry?.journeyDate ? new Date(inquiry.journeyDate) : undefined,
+    tourEndsOn: undefined,  
     remarks: REMARKS_DEFAULT,
     tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
 

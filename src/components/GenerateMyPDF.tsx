@@ -43,7 +43,7 @@ const companyInfo: CompanyInfo = {
   AH: {
     logo: '/aagamholidays.png',
     name: 'Aagam Holidays',
-    address: '1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India',
+    address: 'B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India',
     phone: '+91-97244 44701',
     email: 'info@aagamholidays.com', // Add the missing fields
     website: 'https://aagamholidays.com',

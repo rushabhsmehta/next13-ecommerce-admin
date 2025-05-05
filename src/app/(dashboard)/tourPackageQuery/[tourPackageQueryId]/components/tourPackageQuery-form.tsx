@@ -153,6 +153,15 @@ const formSchema = z.object({  inquiryId: z.string().nullable().optional(),
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
   tourPackageTemplateName: z.string().optional(),
+  // Added fields for storing pricing configuration
+  selectedMealPlanId: z.string().optional(),
+  occupancySelections: z.array(
+    z.object({
+      occupancyTypeId: z.string(),
+      count: z.number(),
+      paxPerUnit: z.number()
+    })
+  ).optional(),
 
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),

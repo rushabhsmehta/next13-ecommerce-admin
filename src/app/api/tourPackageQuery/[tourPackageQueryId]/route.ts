@@ -196,9 +196,7 @@ export async function PATCH(
   try {
     const { userId } = auth();
 
-    const body = await req.json();
-
-    const {
+    const body = await req.json();    const {
       inquiryId,
       tourPackageQueryNumber,
       tourPackageQueryName,
@@ -219,6 +217,10 @@ export async function PATCH(
       numChild0to5,
       price,
       pricePerAdult,
+      // New fields
+      tourPackageTemplateName,
+      selectedMealPlanId,
+      occupancySelections,
       pricePerChildOrExtraBed,
       pricePerChild5to12YearsNoBed,
       pricePerChildwithSeatBelow5Years,
@@ -241,10 +243,12 @@ export async function PATCH(
       assignedTo,
       assignedToMobileNumber,
       assignedToEmail,
-      associatePartnerId, // Add this line
-      // Add the new template fields
+      associatePartnerId, // Add this line      // Add the new template fields
       selectedTemplateId,
       selectedTemplateType,
+      tourPackageTemplateName,
+      selectedMealPlanId,
+      occupancySelections,
       isFeatured,
       isArchived
     } = body;

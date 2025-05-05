@@ -124,8 +124,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       setTourPackageName("");
     }
   }, [selectedTemplateId, selectedTemplateType, form]);
-  
-  // Load and handle saved meal plan and occupancy selections
+    // Load and handle saved meal plan and occupancy selections
   useEffect(() => {
     // Try to restore any saved meal plan and occupancy selections
     const savedMealPlanId = form.getValues('selectedMealPlanId');
@@ -585,10 +584,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
       return;
     }
 
+    // First check if we already have the name from the form
+    const nameFromForm = form.getValues('tourPackageTemplateName');
+    if (nameFromForm) {
+      // If we already have a name in the form, use it
+      setTourPackageName(nameFromForm);
+      return;
+    }
+
     try {
       const response = await axios.get(`/api/tourPackages/${packageId}`);
       const tourPackage = response.data;
-      setTourPackageName(tourPackage.name || `Package ${packageId.substring(0, 8)}...`);
+      const packageName = tourPackage.name || `Package ${packageId.substring(0, 8)}...`;
+      setTourPackageName(packageName);
+      // Save to form for future use
+      form.setValue('tourPackageTemplateName', packageName);
     } catch (error) {
       console.error("Error fetching tour package name:", error);
       setTourPackageName(`Package ${packageId.substring(0, 8)}...`);

@@ -330,21 +330,19 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (!tourPackageTemplateId) {
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
-    }
-
-    // Check if the selectedTemplateType is 'TourPackage'
+    }    // Check if the selectedTemplateType is 'TourPackage'
     if (selectedTemplateType !== 'TourPackage') {
       toast.error("Auto calculation of pricing is only available for Tour Package templates.");
       return;
     }
 
-    // Check meal plan selection
+    // Both meal plan and occupancy selections are optional, but if we're calculating prices, we need them
     if (!selectedMealPlanId) {
       toast.error("Please select a Meal Plan for Tour Package Pricing.");
       return;
     }
 
-    // Check occupancy selections
+    // Check occupancy selections - still needed for calculations but not required for form submission
     if (occupancySelections.length === 0) {
       toast.error("Please add at least one occupancy selection.");
       return;
@@ -355,8 +353,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (!queryStartDate || !queryEndDate) {
       toast.error("Please select Tour Start and End Dates first.");
       return;
-    }
-      // Calculate pax from Double occupancy selections only for pricing match
+    }    // Calculate pax from Double occupancy selections only for pricing match
     const pricingQueryPax = calculatePricingPax();
     // Calculate total pax for validation and display
     const totalQueryPax = calculateTotalPax();
@@ -624,7 +621,6 @@ const PricingTab: React.FC<PricingTabProps> = ({
   useEffect(() => {
     fetchTourPackageName(selectedTemplateId || "");
   }, [selectedTemplateId]);
-
   // When meal plan changes, save it to the form
   useEffect(() => {
     if (selectedMealPlanId) {

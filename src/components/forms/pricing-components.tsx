@@ -2,7 +2,7 @@ import React from 'react';
 import { Control, useFieldArray, Controller } from 'react-hook-form'; // Import necessary hooks/components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Minus, Trash } from "lucide-react";  // added Minus icon
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RoomAllocation,
@@ -170,16 +170,31 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                 <FormItem>
                   <FormLabel className="text-xs">Quantity</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      disabled={loading}
-                      type="number"
-                      min={1}
-                      className="text-sm"
-                      // Ensure value is handled correctly (might need transformation if schema expects number)
-                      onChange={e => field.onChange(parseInt(e.target.value) || 1)}
-                      value={field.value || 1}
-                    />
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => field.onChange(Math.max((field.value as number || 1) - 1, 1))}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        {...field}
+                        disabled={loading}
+                        type="number"
+                        min={1}
+                        className="text-sm w-12 text-center"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => field.onChange((field.value as number || 1) + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

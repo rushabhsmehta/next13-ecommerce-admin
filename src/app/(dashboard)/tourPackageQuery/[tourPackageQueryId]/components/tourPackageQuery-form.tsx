@@ -147,7 +147,8 @@ const flightDetailsSchema = z.object({
   flightDuration: z.string().optional(),
 }); // Assuming an array of flight details
 
-const formSchema = z.object({  inquiryId: z.string().nullable().optional(),
+const formSchema = z.object({
+  inquiryId: z.string().nullable().optional(),
   tourPackageTemplate: z.string().optional(),
   tourPackageQueryTemplate: z.string().optional(),
   selectedTemplateId: z.string().optional(),
@@ -414,9 +415,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const defaultValues = initialData
     ? {
-      ...transformInitialData(initialData),      selectedTemplateId: initialData.selectedTemplateId || '',
+      ...transformInitialData(initialData),
+      selectedTemplateId: initialData.selectedTemplateId || '',
       selectedTemplateType: initialData.selectedTemplateType || '',
       tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
+      selectedMealPlanId: initialData.selectedMealPlanId || '',
+      occupancySelections: initialData.occupancySelections || [],
 
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
@@ -427,7 +431,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
       termsconditions: parseJsonField(initialData.termsconditions),
       pricingSection: parsePricingSection(initialData.pricingSection),
-    }    : {
+    } : {
       inquiryId: '',
       tourPackageTemplate: '',
       tourPackageQueryNumber: getCurrentDateTimeString(),
@@ -1032,7 +1036,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult}                selectedTemplateId={form.watch('selectedTemplateId')}
+                setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}
                 selectedTemplateType={form.watch('selectedTemplateType')}
               />
             </TabsContent>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import {
@@ -84,24 +84,27 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
     : "Add a new transport pricing";
   const action = initialData ? "Save changes" : "Create";
 
-  const defaultValues = initialData
-    ? {
-        ...initialData,
-        price: parseFloat(initialData.price),
-        startDate: new Date(initialData.startDate),
-        endDate: new Date(initialData.endDate),
-      }
-    : {
-        locationId: "",
-        vehicleType: "",
-        price: 0,
-        transportType: "PerDay" as const,
-        capacity: "",
-        description: "",
-        startDate: new Date(),
-        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-        isActive: true,
-      };
+  // Memoize defaultValues to avoid recreating object on every render
+  const defaultValues = useMemo(() => {
+    return initialData
+      ? {
+          ...initialData,
+          price: parseFloat(initialData.price),
+          startDate: new Date(initialData.startDate),
+          endDate: new Date(initialData.endDate),
+        }
+      : {
+          locationId: "",
+          vehicleType: "",
+          price: 0,
+          transportType: "PerDay" as const,
+          capacity: "",
+          description: "",
+          startDate: new Date(),
+          endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+          isActive: true,
+        };
+  }, [initialData]);
 
   const form = useForm<TransportPricingModalFormValues>({
     resolver: zodResolver(formSchema),

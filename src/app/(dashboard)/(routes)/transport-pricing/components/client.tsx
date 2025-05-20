@@ -52,33 +52,24 @@ export const TransportPricingClient: React.FC<TransportPricingClientProps> = ({
   const vehicleTypes = Array.from(new Set(data.map(item => item.vehicleType)))
     .sort((a, b) => a.localeCompare(b));
 
-  // Apply filters
-  const applyFilters = () => {
+  // Run filtering logic whenever any filter changes
+  useEffect(() => {
     let result = data;
-    
     if (locationFilter) {
       result = result.filter(item => item.location === locationFilter);
     }
-    
     if (transportTypeFilter) {
       result = result.filter(item => item.transportType === transportTypeFilter);
     }
-    
     if (vehicleTypeFilter) {
       result = result.filter(item => item.vehicleType === vehicleTypeFilter);
     }
-    
     if (activeFilter !== null) {
       const isActive = activeFilter === 'active';
       result = result.filter(item => item.isActive === isActive);
     }
-    
     setFilteredData(result);
-  };
-  // Run applyFilters whenever any filter changes
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters, locationFilter, transportTypeFilter, vehicleTypeFilter, activeFilter]);
+  }, [data, locationFilter, transportTypeFilter, vehicleTypeFilter, activeFilter]);
 
   // Reset filters
   const resetFilters = () => {

@@ -46,7 +46,6 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExpenseFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 const formSchema = z.object({
   expenseDate: z.date({
@@ -75,7 +74,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   expenseCategories,
   bankAccounts,
   cashAccounts,
-  onSuccess = () => {},
+  onSuccess = () => { },
   submitButtonText = "Create"
 }) => {
   const [loading, setLoading] = useState(false);
@@ -84,7 +83,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // Add this computed value
-  const filteredCategories = expenseCategories.filter(category => 
+  const filteredCategories = expenseCategories.filter(category =>
     category.name.toLowerCase().includes(categorySearch.toLowerCase())
   );
   let defaultValues: Partial<ExpenseFormValues> = {
@@ -126,13 +125,13 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   };
   const onSubmit = async (data: ExpenseFormValues) => {
     try {
-      console.log("Expense form submission initiated with data:", { 
-        ...data, 
-        initialDataProps: initialData ? Object.keys(initialData) : "No initialData" 
+      console.log("Expense form submission initiated with data:", {
+        ...data,
+        initialDataProps: initialData ? Object.keys(initialData) : "No initialData"
       });
       setLoading(true);
       setFormErrors([]);
-      
+
       // Validate required fields before API call
       if (!data.expenseCategoryId) {
         setFormErrors(["Expense category is required"]);
@@ -140,14 +139,14 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
         setLoading(false);
         return;
       }
-      
+
       if (!data.accountType || !data.accountId) {
         setFormErrors(["Account information is required"]);
         toast.error("Account information is required");
         setLoading(false);
         return;
       }
-      
+
       // Prepare the API data with correct account type field
       const apiData = {
         ...data,
@@ -156,9 +155,9 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
       } as Partial<typeof data & { bankAccountId: string | null; cashAccountId: string | null }>;
       delete apiData.accountId;
       delete apiData.accountType;
-      
+
       console.log("Submitting expense data:", apiData);
-      
+
       if (initialData && initialData.id) {
         const response = await axios.patch(`/api/expenses/${initialData.id}`, apiData);
         console.log("Update response:", response.data);
@@ -166,7 +165,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
         const response = await axios.post('/api/expenses', apiData);
         console.log("Create response:", response.data);
       }
-      
+
       toast.success(initialData && initialData.id ? "Expense updated." : "Expense created.");
       if (onSuccess) onSuccess();
     } catch (error: any) {
@@ -181,14 +180,14 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-    
+
     const errorMessages: string[] = [];
     Object.entries(errors).forEach(([key, value]: [string, any]) => {
       if (value?.message) {
         errorMessages.push(`${key}: ${value.message}`);
       }
     });
-    
+
     setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
@@ -196,7 +195,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <FormErrorSummary errors={formErrors} />
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
           {/* Header */}
@@ -235,7 +234,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                             : "Select expense category"}
                           <Check className="ml-auto h-4 w-4" />
                         </Button>
-                        
+
                         {categoryDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
                             <div className="p-2">
@@ -246,7 +245,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                                 onChange={(e) => setCategorySearch(e.target.value)}
                                 autoFocus
                               />
-                              
+
                               <div className="max-h-[200px] overflow-y-auto">
                                 {filteredCategories.length === 0 ? (
                                   <div className="text-center py-2 text-sm text-gray-500">
@@ -289,11 +288,32 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Expense Date</FormLabel>
-                      <FormDatePicker
-                        date={field.value}
-                        onSelect={(date) => date && field.onChange(date)}
-                        disabled={loading}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {field.value
+                              ? format(field.value, "dd/MM/yyyy")
+                              : "Select date"}
+                            <CalendarIcon className="ml-auto h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+
                       <FormMessage />
                     </FormItem>
                   )}
@@ -363,15 +383,15 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                         <SelectContent>
                           {form.watch("accountType") === "bank"
                             ? bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))
                             : cashAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))}
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -401,8 +421,8 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
             </CardContent>
           </Card>          {/* Submit Button */}
           <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 // If onSuccess is provided, use it as a cancel callback too
@@ -415,8 +435,8 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
             >
               Cancel
             </Button>
-            <Button 
-              disabled={loading} 
+            <Button
+              disabled={loading}
               type="submit"
               className="px-8 bg-primary hover:bg-primary/90"
             >

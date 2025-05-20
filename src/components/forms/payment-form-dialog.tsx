@@ -46,7 +46,6 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 const formSchema = z.object({
   paymentDate: z.date({
@@ -86,10 +85,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
 
   // Add this computed value
-  const filteredSuppliers = suppliers.filter(supplier => 
+  const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
   );
-  
+
   let defaultValues: Partial<PaymentFormValues> = {
     paymentDate: new Date(),
     amount: 0,
@@ -157,14 +156,14 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-    
+
     const errorMessages: string[] = [];
     Object.entries(errors).forEach(([key, value]: [string, any]) => {
       if (value?.message) {
         errorMessages.push(`${key}: ${value.message}`);
       }
     });
-    
+
     setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
@@ -172,7 +171,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <FormErrorSummary errors={formErrors} />
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
           {/* Header */}
@@ -211,7 +210,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                             : "Select supplier"}
                           <Check className="ml-auto h-4 w-4" />
                         </Button>
-                        
+
                         {supplierDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
                             <div className="p-2">
@@ -222,7 +221,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                                 onChange={(e) => setSupplierSearch(e.target.value)}
                                 autoFocus
                               />
-                              
+
                               <div className="max-h-[200px] overflow-y-auto">
                                 {filteredSuppliers.length === 0 ? (
                                   <div className="text-center py-2 text-sm text-gray-500">
@@ -265,11 +264,32 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Payment Date</FormLabel>
-                      <FormDatePicker
-                        date={field.value}
-                        onSelect={(date) => date && field.onChange(date)}
-                        disabled={loading}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {field.value
+                              ? format(field.value, "dd/MM/yyyy")
+                              : "Select date"}
+                            <CalendarIcon className="ml-auto h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+
                       <FormMessage />
                     </FormItem>
                   )}
@@ -407,15 +427,15 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               onClick={() => window.history.back()}
             >
               Cancel
             </Button>
-            <Button 
-              disabled={loading} 
+            <Button
+              disabled={loading}
               type="submit"
               className="px-8"
             >

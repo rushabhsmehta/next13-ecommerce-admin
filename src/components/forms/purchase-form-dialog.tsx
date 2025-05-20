@@ -23,7 +23,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { PurchaseFormProps } from "@/types";
 import { CommandEmpty, CommandGroup, CommandItem } from "../ui/command";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 const purchaseItemSchema = z.object({
   id: z.string().optional(),
@@ -80,28 +79,28 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
   const defaultItems = initialData?.items?.length > 0
     ? initialData.items
     : initialData?.id && initialData?.price > 0
-    // For existing purchases with no items, create a default item using the purchase details
-    ? [{
-      productName: initialData.description || initialData.tourPackageQuery?.tourPackageQueryName || "Purchase",
-      description: initialData.description || "",
-      quantity: 1,
-      unitOfMeasureId: "",
-      pricePerUnit: initialData.price,
-      taxSlabId: "",
-      taxAmount: initialData.gstAmount || 0,
-      totalAmount: initialData.price + (initialData.gstAmount || 0)
-    }]
-    // For new purchases, create an empty item
-    : [{
-      productName: initialData?.tourPackageQueryName || "",
-      description: "",
-      quantity: 1,
-      unitOfMeasureId: "",
-      pricePerUnit: 0,
-      taxSlabId: "",
-      taxAmount: 0,
-      totalAmount: 0
-    }];
+      // For existing purchases with no items, create a default item using the purchase details
+      ? [{
+        productName: initialData.description || initialData.tourPackageQuery?.tourPackageQueryName || "Purchase",
+        description: initialData.description || "",
+        quantity: 1,
+        unitOfMeasureId: "",
+        pricePerUnit: initialData.price,
+        taxSlabId: "",
+        taxAmount: initialData.gstAmount || 0,
+        totalAmount: initialData.price + (initialData.gstAmount || 0)
+      }]
+      // For new purchases, create an empty item
+      : [{
+        productName: initialData?.tourPackageQueryName || "",
+        description: "",
+        quantity: 1,
+        unitOfMeasureId: "",
+        pricePerUnit: 0,
+        taxSlabId: "",
+        taxAmount: 0,
+        totalAmount: 0
+      }];
 
   const defaultValues: FormValues = {
     supplierId: initialData?.supplierId || "",
@@ -262,7 +261,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
       recalculateTotals();
     }
   }, [fields.length]);
-  
+
   // Recalculate totals when the form initially loads with purchase data
   useEffect(() => {
     if (initialData?.id) {
@@ -489,11 +488,32 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Purchase Date</FormLabel>
-                        <FormDatePicker
-                          date={field.value}
-                          onSelect={(date) => date && field.onChange(date)}
-                          disabled={loading}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={loading}
+                            >
+                              {field.value
+                                ? format(field.value, "dd/MM/yyyy")
+                                : "Select date"}
+                              <CalendarIcon className="ml-auto h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => date && field.onChange(date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+
                         <FormMessage />
                       </FormItem>
                     )}

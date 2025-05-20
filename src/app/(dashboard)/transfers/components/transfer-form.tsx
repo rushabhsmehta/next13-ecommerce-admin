@@ -14,10 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 import { Heading } from "@/components/ui/heading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 
 const formSchema = z.object({
   transferDate: z.date({
@@ -124,7 +128,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
       setLoading(true);
       setFormErrors([]);
       setDebugInfo(null);
-      
+
       // Validate that source and destination are not the same
       if (data.fromAccountType === data.toAccountType && data.fromAccountId === data.toAccountId) {
         toast.error("Source and destination accounts cannot be the same");
@@ -132,7 +136,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         setLoading(false);
         return;
       }
-      
+
       // Create a new object with the required API structure BUT KEEP the account type fields
       // that the API route is expecting for validation
       const apiData = {
@@ -151,9 +155,9 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         toBankAccountId: data.toAccountType === 'bank' ? data.toAccountId : null,
         toCashAccountId: data.toAccountType === 'cash' ? data.toAccountId : null,
       };
-      
+
       console.log("Submitting transfer data:", apiData);
-      
+
       if (initialData) {
         // Update existing transfer
         const response = await axios.patch(`/api/transfers/${initialData.id}`, apiData);
@@ -163,20 +167,20 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
         const response = await axios.post('/api/transfers', apiData);
         console.log("Create response:", response.data);
       }
-      
+
       router.push('/transfers');
       router.refresh();
       toast.success(toastMessage);
     } catch (error: any) {
       console.error("Transfer form error:", error);
-      
+
       // Extract detailed error information
       const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
       toast.error(errorMessage);
-      
+
       // Add specific error to formErrors
       setFormErrors([errorMessage]);
-      
+
       // Set debug info for development purposes
       if (error.response?.data) {
         setDebugInfo(`API Error: ${JSON.stringify(error.response.data, null, 2)}`);
@@ -191,14 +195,14 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
   // Add error handling for form validation errors
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-    
+
     const errorMessages: string[] = [];
     Object.entries(errors).forEach(([key, value]: [string, any]) => {
       if (value?.message) {
         errorMessages.push(`${key}: ${value.message}`);
       }
     });
-    
+
     setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
@@ -207,7 +211,7 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
     <div className="space-y-4">
       {/* Add error summary at the top */}
       <FormErrorSummary errors={formErrors} />
-      
+
       {/* Add debug info panel (visible only when there's debug info) */}
       {debugInfo && (
         <div className="bg-gray-50 border border-gray-200 p-4 rounded-md text-sm">
@@ -230,11 +234,31 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Transfer Date</FormLabel>
-                      <FormDatePicker
-                        date={field.value}
-                        onSelect={(date) => date && field.onChange(date)}
-                        disabled={loading}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {field.value
+                              ? format(field.value, "dd/MM/yyyy")
+                              : "Select date"}
+                            <CalendarIcon className="ml-auto h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -306,15 +330,15 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
                         <SelectContent>
                           {form.watch("fromAccountType") === "bank"
                             ? bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))
                             : cashAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))}
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -374,15 +398,15 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
                         <SelectContent>
                           {form.watch("toAccountType") === "bank"
                             ? bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))
                             : cashAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))}
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -426,14 +450,14 @@ export const TransferForm: React.FC<TransferFormProps> = ({ initialData }) => {
           </Card>
 
           <div className="flex items-center justify-end gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => router.push('/transfers')}
               disabled={loading}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               type="submit"
               disabled={loading}
               className="px-8"

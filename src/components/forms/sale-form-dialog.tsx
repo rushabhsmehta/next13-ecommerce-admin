@@ -35,7 +35,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 // Define the item schema with consistent nullable patterns
 const saleItemSchema = z.object({
@@ -467,11 +466,31 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Sale Date</FormLabel>
-                        <FormDatePicker
-                          date={field.value}
-                          onSelect={(date) => date && field.onChange(date)}
-                          disabled={loading}
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={loading}
+                            >
+                              {field.value
+                                ? format(field.value, "dd/MM/yyyy")
+                                : "Select date"}
+                              <CalendarIcon className="ml-auto h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => date && field.onChange(date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}

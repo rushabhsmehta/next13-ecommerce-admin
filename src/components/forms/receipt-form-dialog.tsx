@@ -46,7 +46,6 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReceiptFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 const formSchema = z.object({
   receiptDate: z.date({
@@ -258,11 +257,32 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Receipt Date</FormLabel>
-                      <FormDatePicker
-                        date={field.value}
-                        onSelect={(date) => date && field.onChange(date)}
-                        disabled={loading}
-                      />
+                     <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {field.value
+                              ? format(field.value, "dd/MM/yyyy")
+                              : "Select date"}
+                            <CalendarIcon className="ml-auto h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+
                       <FormMessage />
                     </FormItem>
                   )}

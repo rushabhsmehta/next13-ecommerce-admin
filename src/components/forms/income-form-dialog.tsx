@@ -45,7 +45,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
-import { FormDatePicker } from "@/components/ui/form-date-picker";
 
 // Modify the interface directly in the component file
 interface IncomeFormProps {
@@ -108,7 +107,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
   const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // Add this computed value
-  const filteredCategories = incomeCategories.filter(category => 
+  const filteredCategories = incomeCategories.filter(category =>
     category.name.toLowerCase().includes(categorySearch.toLowerCase())
   );
 
@@ -148,7 +147,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
     try {
       setLoading(true);
       setFormErrors([]);
-      
+
       // Prepare the API data with correct account type field
       const apiData = {
         incomeDate: data.incomeDate,
@@ -159,7 +158,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
         bankAccountId: data.accountType === 'bank' ? data.accountId : null,
         cashAccountId: data.accountType === 'cash' ? data.accountId : null,
       };
-      
+
       if (initialData && initialData.id) {
         await axios.patch(`/api/incomes/${initialData.id}`, apiData);
         toast.success("Income updated.");
@@ -167,7 +166,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
         await axios.post('/api/incomes', apiData);
         toast.success("Income created.");
       }
-      
+
       if (onSuccess) {
         onSuccess();
       }
@@ -182,14 +181,14 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
 
   const onError = (errors: any) => {
     console.error("Form Validation Errors:", errors);
-    
+
     const errorMessages: string[] = [];
     Object.entries(errors).forEach(([key, value]: [string, any]) => {
       if (value?.message) {
         errorMessages.push(`${key}: ${value.message}`);
       }
     });
-    
+
     setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
@@ -197,7 +196,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <FormErrorSummary errors={formErrors} />
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
           {/* Header */}
@@ -236,7 +235,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
                             : "Select income category"}
                           <Check className="ml-auto h-4 w-4" />
                         </Button>
-                        
+
                         {categoryDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
                             <div className="p-2">
@@ -247,7 +246,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
                                 onChange={(e) => setCategorySearch(e.target.value)}
                                 autoFocus
                               />
-                              
+
                               <div className="max-h-[200px] overflow-y-auto">
                                 {filteredCategories.length === 0 ? (
                                   <div className="text-center py-2 text-sm text-gray-500">
@@ -290,11 +289,32 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel>Income Date</FormLabel>
-                      <FormDatePicker
-                        date={field.value}
-                        onSelect={(date) => date && field.onChange(date)}
-                        disabled={loading}
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={loading}
+                          >
+                            {field.value
+                              ? format(field.value, "dd/MM/yyyy")
+                              : "Select date"}
+                            <CalendarIcon className="ml-auto h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+
                       <FormMessage />
                     </FormItem>
                   )}
@@ -364,15 +384,15 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
                         <SelectContent>
                           {form.watch("accountType") === "bank"
                             ? bankAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))
                             : cashAccounts.map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.accountName}
-                                </SelectItem>
-                              ))}
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.accountName}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -404,15 +424,15 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               variant="outline"
               onClick={() => window.history.back()}
             >
               Cancel
             </Button>
-            <Button 
-              disabled={loading} 
+            <Button
+              disabled={loading}
               type="submit"
               className="px-8"
             >

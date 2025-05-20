@@ -620,7 +620,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Fetch tour package name when selectedTemplateId changes
   useEffect(() => {
     fetchTourPackageName(selectedTemplateId || "");
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, fetchTourPackageName]);
+
   // When meal plan changes, save it to the form
   useEffect(() => {
     if (selectedMealPlanId) {
@@ -639,7 +640,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       const totalPax = calculateTotalPax();
       console.log(`Occupancy selections updated, total guests: ${totalPax}`);
     }
-  }, [occupancySelections, form, calculationMethod, selectedMealPlanId]);
+  }, [occupancySelections, form, calculationMethod, selectedMealPlanId, calculateTotalPax]);
 
   return (
     <Card>

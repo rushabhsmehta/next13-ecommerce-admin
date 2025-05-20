@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPrice, formatSafeDate } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { PercentIcon, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
@@ -91,7 +91,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
                         </Button>
                       )}
                     </TableCell>
-                    <TableCell>{formatSafeDate(item.date, 'MMMM d, yyyy')}</TableCell>
+                    <TableCell>{item.date}</TableCell>
                     <TableCell>{item.customerName}</TableCell>
                     <TableCell>{item.packageName}</TableCell>
                     <TableCell>{item.description}</TableCell>

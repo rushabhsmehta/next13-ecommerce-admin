@@ -9,7 +9,7 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
-DATABASE_URL='mysql://root:ZfMmVrdBVFuYLFrKZpmAJTbWnjeaUaEb@monorail.proxy.rlwy.net:56747/railway'
+DATABASE_URL='mysql://root:LAKwEMRXpiwbrgaUKUucLngqHVKJQIyU@viaduct.proxy.rlwy.net:29008/railway'
 
 CLOUDINARY_URL=cloudinary://451936712691744:wW9rLFpyiytOq7upB_s6MMgyWgA@ds9giziht
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="ds9giziht"

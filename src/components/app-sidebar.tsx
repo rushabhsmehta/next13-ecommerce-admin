@@ -79,12 +79,15 @@ const NAV_ITEMS = [
       { title: "Vehicle Types", url: "/settings/vehicle-types" },
       { title: "Pricing Attributes", url: "/settings/pricing-attributes" },
     ],
-  },
-  {
+  },  {
     title: "Finance",
     items: [
       { title: "Incomes", url: "/incomes" },
       { title: "Expenses", url: "/expenses" },
+     //  { title: "Sales", url: "/sales" },
+      { title: "Sale Returns", url: "/sale-returns" },
+     // { title: "Purchases", url: "/purchases" },
+      { title: "Purchase Returns", url: "/purchase-returns" }, 
       { title: "Sales Ledger", url: "/sales/ledger" },
       { title: "Purchase Ledger", url: "/purchases/ledger" },
       { title: "Receipt Ledger", url: "/receipts/ledger" },

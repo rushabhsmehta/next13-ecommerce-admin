@@ -1,5 +1,5 @@
 import prismadb from "@/lib/prismadb";
-import { SaleDetail, ReceiptDetail, TourPackageQuery, SaleItem } from "@prisma/client"; // Add TourPackageQuery and SaleItem to imports
+import { SaleDetail, ReceiptDetail, TourPackageQuery, SaleItem, SaleReturn } from "@prisma/client"; // Add SaleReturn to imports
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { CustomerIndividualLedgerClient } from "./components/client";
@@ -31,6 +31,11 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
     include: {
       tourPackageQuery: true,
       items: true, // Include items for displaying in transaction history
+      saleReturns: {  // Include sale returns for this sale
+        include: {
+          items: true
+        }
+      }
     },
     orderBy: {
       saleDate: 'asc',
@@ -97,6 +102,44 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
       itemsSummary: itemsSummary
     };
   });
+
+  // Format sale returns as transactions
+  const formattedSaleReturns = sales.flatMap((sale) => {
+    if (!sale.saleReturns || sale.saleReturns.length === 0) return [];
+    
+    return sale.saleReturns.map((saleReturn) => {
+      const returnGstAmount = saleReturn.gstAmount || 0;
+      const totalReturnAmount = saleReturn.amount + returnGstAmount;
+      
+      // Format return items for display if they exist
+      let itemsSummary = "";
+      if (saleReturn.items && saleReturn.items.length > 0) {
+        itemsSummary = saleReturn.items.map(item => 
+          `${item.productName} (${item.quantity})`
+        ).join(", ");
+      }
+      
+      return {
+        id: saleReturn.id,
+        date: saleReturn.returnDate,
+        type: "Sale Return",
+        description: `Return ${saleReturn.reference || '#' + saleReturn.id.substring(0, 8)} for Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
+        debit: 0,
+        credit: totalReturnAmount, // Return reduces the customer balance
+        balance: 0, // Will be calculated later
+        status: saleReturn.status,
+        isInflow: true, // Returns decrease customer balance (like receipts)
+        amount: totalReturnAmount,
+        baseAmount: saleReturn.amount,
+        gstAmount: returnGstAmount,
+        reference: saleReturn.reference || '', 
+        packageId: sale.tourPackageQueryId,
+        packageName: sale.tourPackageQuery?.tourPackageQueryName || undefined,
+        itemsSummary: itemsSummary
+      };
+    });
+  });
+
   const formattedReceipts = receipts.map((receipt) => ({
     id: receipt.id,
     date: receipt.receiptDate,
@@ -114,7 +157,7 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
   }));
 
   // Combine transactions and sort by date
-  const allTransactions = [...formattedSales, ...formattedReceipts].sort((a, b) => 
+  const allTransactions = [...formattedSales, ...formattedSaleReturns, ...formattedReceipts].sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -122,7 +165,7 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
   let runningBalance = 0;
   const transactions = allTransactions.map(transaction => {
     if (transaction.isInflow) {
-      runningBalance -= transaction.amount; // Receipts decrease customer balance
+      runningBalance -= transaction.amount; // Receipts and returns decrease customer balance
     } else {
       runningBalance += transaction.amount; // Sales increase customer balance
     }
@@ -135,8 +178,9 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
 
   // Calculate totals (now including GST)
   const totalSales = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+  const totalSaleReturns = formattedSaleReturns.reduce((sum, saleReturn) => sum + saleReturn.amount, 0);
   const totalReceipts = formattedReceipts.reduce((sum, receipt) => sum + receipt.amount, 0);
-  const currentBalance = totalSales - totalReceipts;
+  const currentBalance = totalSales - totalSaleReturns - totalReceipts;
 
   return (
     <div className="flex-col">
@@ -151,6 +195,7 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
           customer={customer}
           transactions={transactions}
           totalSales={totalSales}
+          totalReturns={totalSaleReturns}
           totalReceipts={totalReceipts}
           currentBalance={currentBalance}
         />

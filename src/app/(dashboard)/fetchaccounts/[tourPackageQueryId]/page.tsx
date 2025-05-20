@@ -17,7 +17,6 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
   if (!userId) {
     redirect("/sign-in");
   } */
-
   // Fetch the tour package query with all related data
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
@@ -41,7 +40,12 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
               name: true
             }
           },
-          items: true // Include purchase items for the full data needed in edit forms
+          items: true, // Include purchase items for the full data needed in edit forms
+          purchaseReturns: {
+            include: {
+              items: true
+            }
+          }
         },
         orderBy: {
           purchaseDate: 'asc', // Show oldest first
@@ -61,9 +65,13 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
             select: {
               id: true,
               name: true
+            }          },
+          items: true, // Include sale items for the full data needed in edit forms
+          saleReturns: {
+            include: {
+              items: true
             }
-          },
-          items: true // Include sale items for the full data needed in edit forms
+          }
         },
         orderBy: {
           saleDate: 'asc', // Show oldest first

@@ -17,7 +17,7 @@ export interface VoucherLayoutProps {
   additionalNotes?: string;
   signatures?: { left: string; right: string };
   totalAmount?: number;
-  type: "sale" | "purchase" | "receipt" | "payment" | "income" | "expense"; // Add new types
+  type: "sale" | "purchase" | "receipt" | "payment" | "income" | "expense" | "sale-return" | "purchase-return"; // Add new types
   organization?: any; // Add organization prop
   children?: ReactNode;
 }

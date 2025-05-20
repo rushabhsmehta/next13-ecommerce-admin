@@ -101,10 +101,9 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10"></TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>Date</TableHead>              <TableHead>Type</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="text-right">Purchase</TableHead>
+              <TableHead className="text-right">Purchase/Return</TableHead>
               <TableHead className="text-right">Payment</TableHead>
               <TableHead className="text-right">Balance</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>

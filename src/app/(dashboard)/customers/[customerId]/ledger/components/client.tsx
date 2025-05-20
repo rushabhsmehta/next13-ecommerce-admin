@@ -48,6 +48,7 @@ interface CustomerIndividualLedgerClientProps {
   customer: Customer;
   transactions: CustomerTransaction[];
   totalSales: number;
+  totalReturns: number; // Add total returns
   totalReceipts: number;
   currentBalance: number;
 }
@@ -56,9 +57,10 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
   customer,
   transactions,
   totalSales,
+  totalReturns,
   totalReceipts,
   currentBalance
-}) => {
+})=> {
   const router = useRouter();
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -163,8 +165,8 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
       [""],
       customer.contact ? [`Contact: ${customer.contact}`] : [""],
       [`Generated on: ${new Date().toLocaleDateString()}`],
-      [""],
-      [`Total Sales: ${formatPrice(totalSales)}`],
+      [""],      [`Total Sales: ${formatPrice(totalSales)}`],
+      [`Total Returns: ${formatPrice(totalReturns)}`],
       [`Total Receipts: ${formatPrice(totalReceipts)}`],
       [`Current Balance: ${formatPrice(currentBalance)}`],
       [""],
@@ -228,14 +230,21 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="flex flex-col md:flex-row justify-between gap-4">        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatPrice(totalSales)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Returns</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-700">{formatPrice(totalReturns)}</div>
             </CardContent>
           </Card>
           <Card>

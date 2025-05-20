@@ -44,6 +44,13 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 
+// Helper to parse a date string (YYYY-MM-DD or ISO) into a local-only Date
+const parseLocalDate = (dateString: string) => {
+  const [datePart] = dateString.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  return new Date(year, month - 1, day);
+};
+
 // Form schema
 const formSchema = z.object({
     purchaseDetailId: z.string({
@@ -116,7 +123,7 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
         resolver: zodResolver(formSchema),
         defaultValues: initialData ? {
             purchaseDetailId: initialData.purchaseDetailId,
-            returnDate: initialData.returnDate ? new Date(initialData.returnDate) : new Date(),
+            returnDate: initialData.returnDate ? parseLocalDate(initialData.returnDate) : new Date(),
             returnReason: initialData.returnReason || "",
             amount: initialData.amount,
             gstAmount: initialData.gstAmount || 0,
@@ -315,18 +322,18 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
 
             // API data formatting
             const apiData = {
-                ...data,
-                returnDate: data.returnDate.toISOString(),
-                items: data.items?.map(item => ({
-                    ...item,
-                    description: item.description || null,
-                    unitOfMeasureId: item.unitOfMeasureId || null,
-                    taxSlabId: item.taxSlabId || null,
-                    quantity: parseFloat(String(item.quantity)),
-                    pricePerUnit: parseFloat(String(item.pricePerUnit)),
-                    taxAmount: item.taxAmount ? parseFloat(String(item.taxAmount)) : null,
-                    totalAmount: parseFloat(String(item.totalAmount))
-                }))
+             ...data,
+             returnDate: format(data.returnDate, 'yyyy-MM-dd'),
+              items: data.items?.map(item => ({
+                ...item,
+                description: item.description || null,
+                unitOfMeasureId: item.unitOfMeasureId || null,
+                taxSlabId: item.taxSlabId || null,
+                quantity: parseFloat(String(item.quantity)),
+                pricePerUnit: parseFloat(String(item.pricePerUnit)),
+                taxAmount: item.taxAmount ? parseFloat(String(item.taxAmount)) : null,
+                totalAmount: parseFloat(String(item.totalAmount))
+              }))
             };
 
             if (initialData) {

@@ -42,7 +42,14 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "../ui/separator";
+
+// Helper to parse a date string (YYYY-MM-DD or ISO) into a local-only Date (midnight local)
+const parseLocalDate = (dateString: string) => {
+  const [datePart] = dateString.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
 
 // Form schema
 const formSchema = z.object({
@@ -108,7 +115,7 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
       saleDetailId: initialData.saleDetailId,
-      returnDate: initialData.returnDate ? new Date(initialData.returnDate) : new Date(),
+      returnDate: initialData.returnDate ? parseLocalDate(initialData.returnDate) : new Date(),
       returnReason: initialData.returnReason || "",
       amount: initialData.amount,
       gstAmount: initialData.gstAmount || 0,
@@ -126,8 +133,8 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
         totalAmount: item.totalAmount,
       })) || []
     } : {
-      saleDetailId: selectedSaleId || "",
       returnDate: new Date(),
+      saleDetailId: selectedSaleId || "",
       returnReason: "",
       amount: 0,
       gstAmount: 0,
@@ -269,7 +276,8 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
       // API data formatting
       const apiData = {
         ...data,
-        returnDate: data.returnDate.toISOString(),
+        // send only date portion (YYYY-MM-DD) to treat as plain date
+        returnDate: format(data.returnDate, 'yyyy-MM-dd'),
         items: data.items?.map(item => ({
           ...item,
           description: item.description || null,

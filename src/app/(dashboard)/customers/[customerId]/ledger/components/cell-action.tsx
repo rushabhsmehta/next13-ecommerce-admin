@@ -42,6 +42,9 @@ export const CellAction: React.FC<CellActionProps> = ({
       } else if (data.type === "RECEIPT") {
         await axios.delete(`/api/receipts/${data.id}`);
         toast.success('Receipt deleted.');
+      } else if (data.type === "Sale Return") {
+        await axios.delete(`/api/sale-returns/${data.id}`);
+        toast.success('Sale return deleted.');
       }
       
       router.refresh();
@@ -59,6 +62,8 @@ export const CellAction: React.FC<CellActionProps> = ({
       router.push(`/sales/${data.id}`);
     } else if (data.type === "RECEIPT") {
       router.push(`/receipts/${data.id}`);
+    } else if (data.type === "Sale Return") {
+      router.push(`/sale-returns/${data.id}`);
     }
   };
 
@@ -68,6 +73,8 @@ export const CellAction: React.FC<CellActionProps> = ({
       router.push(`/sales/${data.id}/voucher`);
     } else if (data.type === "RECEIPT") {
       router.push(`/receipts/${data.id}/voucher`);
+    } else if (data.type === "Sale Return") {
+      router.push(`/sale-returns/${data.id}/voucher`);
     }
   };
 

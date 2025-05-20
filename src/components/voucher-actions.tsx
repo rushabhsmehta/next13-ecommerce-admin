@@ -9,7 +9,7 @@ import { toast } from "react-hot-toast";
 
 interface VoucherActionsProps {
   id: string;
-  type: "receipt" | "payment" | "sale" | "purchase" | "income" | "expense";
+  type: "receipt" | "payment" | "sale" | "purchase" | "income" | "expense" | "sale-return" | "purchase-return";
 }
 
 export const VoucherActions: React.FC<VoucherActionsProps> = ({ id, type }) => {

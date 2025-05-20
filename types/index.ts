@@ -1,4 +1,4 @@
-import { BankAccount, CashAccount, Customer, ExpenseCategory, ExpenseDetail, IncomeCategory, IncomeDetail, PaymentDetail, PurchaseDetail, PurchaseItem, ReceiptDetail, SaleDetail, SaleItem, Supplier, TaxSlab, UnitOfMeasure } from "@prisma/client";
+import { BankAccount, CashAccount, Customer, ExpenseCategory, ExpenseDetail, IncomeCategory, IncomeDetail, PaymentDetail, PurchaseDetail, PurchaseItem, PurchaseReturn, PurchaseReturnItem, ReceiptDetail, SaleDetail, SaleItem, SaleReturn, SaleReturnItem, Supplier, TaxSlab, UnitOfMeasure } from "@prisma/client";
 
 
 export interface SidebarItem {
@@ -102,6 +102,35 @@ export interface IncomeFormProps extends BaseFinancialFormProps {
   incomeCategories?: IncomeCategory[];
   bankAccounts?: BankAccount[];
   cashAccounts?: CashAccount[];
+}
+
+// Purchase return form props
+export interface PurchaseReturnFormProps extends BaseFinancialFormProps {
+  initialData?: PurchaseReturn & {
+    items?: PurchaseReturnItem[];
+    purchaseDetail?: PurchaseDetail & {
+      supplier?: Supplier;
+    };
+  };
+  taxSlabs?: TaxSlab[];
+  units?: UnitOfMeasure[];
+  suppliers?: Supplier[];
+}
+
+// Sale return form props
+export interface SaleReturnFormProps extends BaseFinancialFormProps {
+  initialData?: SaleReturn & {
+    items?: SaleReturnItem[];
+    saleDetail?: SaleDetail & {
+      customer?: Customer;
+    };
+  };
+  taxSlabs?: TaxSlab[];
+  units?: UnitOfMeasure[];
+  customers?: Customer[];
+  sales?: any[];
+  selectedSaleId?: string;
+  onClose?: () => void;
 }
 
 // Common wrapper props interface

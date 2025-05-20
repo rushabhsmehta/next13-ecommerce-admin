@@ -47,6 +47,7 @@ interface SupplierIndividualLedgerClientProps {
   supplier: Supplier;
   transactions: SupplierTransaction[];
   totalPurchases: number;
+  totalReturns: number; // Add total returns
   totalPayments: number;
   currentBalance: number;
 }
@@ -55,9 +56,10 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
   supplier,
   transactions,
   totalPurchases,
+  totalReturns,
   totalPayments,
   currentBalance
-}) => {
+})=> {
   const router = useRouter();
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -98,19 +100,18 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
       doc.text(`Contact: ${supplier.contact}`, 14, 30);
     }
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);
-    
-    // Add summary metrics with properly formatted amounts
+      // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
     doc.text(`Total Purchases: ₹ ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
-    doc.text(`Total Payments: ₹ ${formatPrice(totalPayments, { forPDF: true })}`, 14, 56);
-    doc.text(`Current Balance: ₹ ${formatPrice(currentBalance, { forPDF: true })}`, 14, 64);
-      // Add date filters if applied
+    doc.text(`Total Returns: ₹ ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
+    doc.text(`Total Payments: ₹ ${formatPrice(totalPayments, { forPDF: true })}`, 14, 64);
+    doc.text(`Current Balance: ₹ ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);      // Add date filters if applied
     if (dateFrom || dateTo) {
       let filterText = "Date Filter: ";
       if (dateFrom) filterText += `From ${formatSafeDate(dateFrom, 'MM/dd/yyyy')}`;
       if (dateFrom && dateTo) filterText += " ";
       if (dateTo) filterText += `To ${formatSafeDate(dateTo, 'MM/dd/yyyy')}`;
-      doc.text(filterText, 14, 72);
+      doc.text(filterText, 14, 80);
     }
     
     // Prepare transaction data for table with proper formatting
@@ -127,7 +128,7 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Purchase", "Payment", "Balance"]],
       body: tableData,
-      startY: dateFrom || dateTo ? 78 : 72,
+      startY: dateFrom || dateTo ? 86 : 80,
       styles: { fontSize: 10 }
     });
     
@@ -161,8 +162,8 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
       [""],
       supplier.contact ? [`Contact: ${supplier.contact}`] : [""],
       [`Generated on: ${new Date().toLocaleDateString()}`],
-      [""],
-      [`Total Purchases: ${formatPrice(totalPurchases)}`],
+      [""],      [`Total Purchases: ${formatPrice(totalPurchases)}`],
+      [`Total Returns: ${formatPrice(totalReturns)}`],
       [`Total Payments: ${formatPrice(totalPayments)}`],
       [`Current Balance: ${formatPrice(currentBalance)}`],
       [""],
@@ -226,14 +227,21 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="flex flex-col md:flex-row justify-between gap-4">        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatPrice(totalPurchases)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Returns</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cyan-700">{formatPrice(totalReturns)}</div>
             </CardContent>
           </Card>
           <Card>

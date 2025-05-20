@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  CheckCircleIcon, 
-  CreditCardIcon, 
-  IndianRupeeIcon, 
+import {
+  CheckCircleIcon,
+  CreditCardIcon,
+  IndianRupeeIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ReceiptIcon,
@@ -17,17 +17,23 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { cn } from "@/lib/utils";
 // Import all necessary components
 import SalesSection from './transactions/sales-section';
+import SaleReturnsSection from './transactions/sale-returns-section';
 import PurchasesSection from './transactions/purchases-section';
+import PurchaseReturnsSection from './transactions/purchase-returns-section';
 import PaymentsSection from './transactions/payments-section';
 import ReceiptsSection from './transactions/receipts-section';
 import ExpensesSection from './transactions/expenses-section';
 import IncomesSection from './transactions/incomes-section';
-import { BankAccount, CashAccount, Customer, ExpenseCategory, ExpenseDetail, IncomeCategory, IncomeDetail, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier, TaxSlab, TourPackageQuery, UnitOfMeasure } from '@prisma/client';
+import { BankAccount, CashAccount, Customer, ExpenseCategory, ExpenseDetail, IncomeCategory, IncomeDetail, PaymentDetail, PurchaseDetail, PurchaseReturn, ReceiptDetail, SaleDetail, SaleReturn, Supplier, TaxSlab, TourPackageQuery, UnitOfMeasure } from '@prisma/client';
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
-    saleDetails: SaleDetail[];
-    purchaseDetails: PurchaseDetail[];
+    saleDetails: (SaleDetail & {
+      saleReturns?: SaleReturn[];
+    })[];
+    purchaseDetails: (PurchaseDetail & {
+      purchaseReturns?: PurchaseReturn[];
+    })[];
     expenseDetails: ExpenseDetail[];
     incomeDetails: IncomeDetail[];
     receiptDetails: ReceiptDetail[];
@@ -67,37 +73,57 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       setIsRefreshing(false);
     }, 500);
   };
-
   // Calculate totals - handle possible undefined values more safely
-  const totalSales = initialData.saleDetails?.reduce((sum: number, sale: any) => 
+  const totalSales = initialData.saleDetails?.reduce((sum: number, sale: any) =>
     sum + (sale.salePrice || 0), 0) ?? 0;
-  
-  const totalPurchases = initialData.purchaseDetails?.reduce((sum: number, purchase: any) => 
+
+  const totalPurchases = initialData.purchaseDetails?.reduce((sum: number, purchase: any) =>
     sum + (purchase.price || 0), 0) ?? 0;
-  
-  const totalExpenses = initialData.expenseDetails?.reduce((sum: number, expense: any) => 
+
+  const totalExpenses = initialData.expenseDetails?.reduce((sum: number, expense: any) =>
     sum + (expense.amount || 0), 0) ?? 0;
-  
-  const totalIncomes = initialData.incomeDetails?.reduce((sum: number, income: any) => 
+
+  const totalIncomes = initialData.incomeDetails?.reduce((sum: number, income: any) =>
     sum + (income.amount || 0), 0) ?? 0;
 
+  // Calculate returns totals
+  const totalSaleReturns = initialData.saleDetails?.reduce((sum: number, sale: any) =>
+    sum + (sale.saleReturns?.reduce((returnSum: number, saleReturn: any) =>
+      returnSum + (saleReturn.amount || 0), 0) || 0), 0) ?? 0;
+
+  const totalPurchaseReturns = initialData.purchaseDetails?.reduce((sum: number, purchase: any) =>
+    sum + (purchase.purchaseReturns?.reduce((returnSum: number, purchaseReturn: any) =>
+      returnSum + (purchaseReturn.amount || 0), 0) || 0), 0) ?? 0;
+
   // Calculate GST totals
-  const totalSalesGST = initialData.saleDetails?.reduce((sum: number, sale: any) => 
+  const totalSalesGST = initialData.saleDetails?.reduce((sum: number, sale: any) =>
     sum + (sale.gstAmount || 0), 0) ?? 0;
-  const totalPurchasesGST = initialData.purchaseDetails?.reduce((sum: number, purchase: any) => 
+  const totalPurchasesGST = initialData.purchaseDetails?.reduce((sum: number, purchase: any) =>
     sum + (purchase.gstAmount || 0), 0) ?? 0;
-  
+  // Calculate GST for returns
+  const totalSaleReturnsGST = initialData.saleDetails?.reduce((sum: number, sale: any) =>
+    sum + (sale.saleReturns?.reduce((returnSum: number, saleReturn: any) =>
+      returnSum + (saleReturn.gstAmount || 0), 0) || 0), 0) ?? 0;
+
+  const totalPurchaseReturnsGST = initialData.purchaseDetails?.reduce((sum: number, purchase: any) =>
+    sum + (purchase.purchaseReturns?.reduce((returnSum: number, purchaseReturn: any) =>
+      returnSum + (purchaseReturn.gstAmount || 0), 0) || 0), 0) ?? 0;
+
   // Calculate tax-inclusive totals
   const totalSalesWithGST = totalSales + totalSalesGST;
   const totalPurchasesWithGST = totalPurchases + totalPurchasesGST;
 
-  // Update net profit calculation to use tax-inclusive figures
-  const netProfit = totalSalesWithGST + totalIncomes - (totalPurchasesWithGST + totalExpenses);
+  // Calculate sales and purchases with returns
+  const netSalesWithGST = totalSalesWithGST - totalSaleReturns; // Deduct sale returns from sales
+  const netPurchasesWithGST = totalPurchasesWithGST - totalPurchaseReturns; // Deduct purchase returns from purchases
+
+  // Update net profit calculation to use tax-inclusive figures and include returns
+  const netProfit = netSalesWithGST + totalIncomes - (netPurchasesWithGST + totalExpenses);
 
   // Calculate receipts and payments
   const totalReceipts = initialData.receiptDetails?.reduce((sum: number, receipt: any) => sum + receipt.amount, 0) ?? 0;
   const totalPayments = initialData.paymentDetails?.reduce((sum: number, payment: any) => sum + payment.amount, 0) ?? 0;
-  
+
   // Calculate payment and receipt status - now using tax-inclusive figures for accurate percentages
   const paymentStatus = totalPurchasesWithGST > 0 ? totalPayments / totalPurchasesWithGST : 0;
   const receiptStatus = totalSalesWithGST > 0 ? totalReceipts / totalSalesWithGST : 0;
@@ -117,10 +143,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </div>
         </CardHeader>
-      </Card>
-
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      </Card>      {/* Financial Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         {/* Sales Summary Card */}
         <Card className="shadow-md border-l-4 border-green-500">
           <CardContent className="p-4 flex flex-col items-center">
@@ -132,7 +156,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </Badge>
           </CardContent>
         </Card>
-        
+
+        {/* Sale Returns Summary Card */}
+        <Card className="shadow-md border-l-4 border-amber-500">
+          <CardContent className="p-4 flex flex-col items-center">
+            <p className="text-sm text-muted-foreground mb-1">Sale Returns</p>
+            <p className="text-2xl font-bold text-amber-600">₹{totalSaleReturns.toFixed(2)}</p>
+            <p className="text-xs text-gray-500">Incl. GST: ₹{totalSaleReturnsGST.toFixed(2)}</p>
+          </CardContent>
+        </Card>
+
         {/* Purchases Summary Card */}
         <Card className="shadow-md border-l-4 border-blue-500">
           <CardContent className="p-4 flex flex-col items-center">
@@ -144,7 +177,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </Badge>
           </CardContent>
         </Card>
-        
+
+        {/* Purchase Returns Summary Card */}
+        <Card className="shadow-md border-l-4 border-cyan-500">
+          <CardContent className="p-4 flex flex-col items-center">
+            <p className="text-sm text-muted-foreground mb-1">Purchase Returns</p>
+            <p className="text-2xl font-bold text-cyan-600">₹{totalPurchaseReturns.toFixed(2)}</p>
+            <p className="text-xs text-gray-500">Incl. GST: ₹{totalPurchaseReturnsGST.toFixed(2)}</p>
+          </CardContent>
+        </Card>
+
         {/* Expenses Summary Card */}
         <Card className="shadow-md border-l-4 border-red-500">
           <CardContent className="p-4 flex flex-col items-center">
@@ -156,7 +198,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </Badge>
           </CardContent>
         </Card>
-        
+
         {/* Profit Summary Card */}
         <Card className="shadow-md border-l-4 border-purple-500">
           <CardContent className="p-4 flex flex-col items-center">
@@ -172,8 +214,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         </Card>
       </div>
 
-      <Accordion type="single" collapsible className="w-full space-y-4">
-        {/* Sales Section */}
+      <Accordion type="single" collapsible className="w-full space-y-4">        {/* Sales Section */}
         <AccordionItem value="sales" className="border rounded-lg bg-white shadow-md">
           <AccordionTrigger className="px-6 hover:no-underline">
             <div className="flex justify-between w-full items-center">
@@ -185,8 +226,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <SalesSection 
-              salesData={initialData.saleDetails || []} 
+            <SalesSection
+              salesData={initialData.saleDetails || []}
+              units={units}
+              taxSlabs={taxSlabs}
+              customers={customers || []}
+              tourPackageId={initialData.id}
+              tourPackageName={initialData.tourPackageQueryName || ""}
+              onRefresh={refreshData}
+              isRefreshing={isRefreshing}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Sale Returns Section */}
+        <AccordionItem value="saleReturns" className="border rounded-lg bg-white shadow-md">
+          <AccordionTrigger className="px-6 hover:no-underline">
+            <div className="flex justify-between w-full items-center">
+              <div className="flex items-center">
+                <ArrowDownIcon className="h-5 w-5 mr-2 text-amber-600" />
+                <span className="font-semibold text-lg">Sale Returns</span>
+              </div>
+              <span className="text-amber-600 font-bold">₹{totalSaleReturns.toFixed(2)}</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pt-2 pb-4">
+            <SaleReturnsSection
+              saleReturnsData={initialData.saleDetails?.flatMap(sale => sale.saleReturns || []) || []}
+              sales={initialData.saleDetails || []}
               units={units}
               taxSlabs={taxSlabs}
               customers={customers || []}
@@ -210,8 +277,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <ReceiptsSection 
-              receiptsData={initialData.receiptDetails || []} 
+            <ReceiptsSection
+              receiptsData={initialData.receiptDetails || []}
               customers={customers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}
@@ -221,9 +288,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               isRefreshing={isRefreshing}
             />
           </AccordionContent>
-        </AccordionItem>
-
-        {/* Purchases Section */}
+        </AccordionItem>        {/* Purchases Section */}
         <AccordionItem value="purchases" className="border rounded-lg bg-white shadow-md">
           <AccordionTrigger className="px-6 hover:no-underline">
             <div className="flex justify-between w-full items-center">
@@ -235,8 +300,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <PurchasesSection 
-              purchasesData={initialData.purchaseDetails || []} 
+            <PurchasesSection
+              purchasesData={initialData.purchaseDetails || []}
               suppliers={suppliers}
               taxSlabs={taxSlabs}
               units={units}
@@ -244,6 +309,32 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               tourPackageName={initialData.tourPackageQueryName || ""}
               onRefresh={refreshData}
               isRefreshing={isRefreshing}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Purchase Returns Section */}
+        <AccordionItem value="purchaseReturns" className="border rounded-lg bg-white shadow-md">
+          <AccordionTrigger className="px-6 hover:no-underline">
+            <div className="flex justify-between w-full items-center">
+              <div className="flex items-center">
+                <ArrowUpIcon className="h-5 w-5 mr-2 text-cyan-600" />
+                <span className="font-semibold text-lg">Purchase Returns</span>
+              </div>
+              <span className="text-cyan-600 font-bold">₹{totalPurchaseReturns.toFixed(2)}</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pt-2 pb-4">
+            <PurchaseReturnsSection
+              purchaseReturnsData={initialData.purchaseDetails?.flatMap(purchase => purchase.purchaseReturns || []) || []}
+              suppliers={suppliers}
+              taxSlabs={taxSlabs}
+              units={units}
+              tourPackageId={initialData.id}
+              tourPackageName={initialData.tourPackageQueryName || ""}
+              onRefresh={refreshData}
+              isRefreshing={isRefreshing}
+              initialData={initialData}
             />
           </AccordionContent>
         </AccordionItem>
@@ -260,8 +351,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <PaymentsSection 
-              paymentsData={initialData.paymentDetails || []} 
+            <PaymentsSection
+              paymentsData={initialData.paymentDetails || []}
               suppliers={suppliers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}
@@ -285,7 +376,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <ExpensesSection 
+            <ExpensesSection
               expensesData={initialData.expenseDetails || []}
               expenseCategories={expenseCategories}
               bankAccounts={bankAccounts}
@@ -310,7 +401,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-6 pt-2 pb-4">
-            <IncomesSection 
+            <IncomesSection
               incomesData={initialData.incomeDetails || []}
               incomeCategories={incomeCategories}
               bankAccounts={bankAccounts}
@@ -343,21 +434,28 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Revenue</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Sales (incl. GST):</span>
-                        <span className="font-medium">₹{totalSalesWithGST.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Other Income:</span>
-                        <span className="font-medium">₹{totalIncomes.toFixed(2)}</span>
-                      </div>
-                      <div className="border-t pt-2 flex justify-between font-bold">
-                        <span>Total Revenue:</span>
-                        <span className="text-green-600">₹{(totalSalesWithGST + totalIncomes).toFixed(2)}</span>
-                      </div>
+                  <CardContent>                    <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Sales (incl. GST):</span>
+                      <span className="font-medium">₹{totalSalesWithGST.toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span>Less: Sale Returns:</span>
+                      <span className="font-medium text-amber-600">-₹{totalSaleReturns.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Net Sales:</span>
+                      <span className="font-medium">₹{netSalesWithGST.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Other Income:</span>
+                      <span className="font-medium">₹{totalIncomes.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-bold">
+                      <span>Total Revenue:</span>
+                      <span className="text-green-600">₹{(netSalesWithGST + totalIncomes).toFixed(2)}</span>
+                    </div>
+                  </div>
                   </CardContent>
                 </Card>
 
@@ -372,12 +470,20 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <span className="font-medium">₹{totalPurchasesWithGST.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span>Less: Purchase Returns:</span>
+                        <span className="font-medium text-cyan-600">-₹{totalPurchaseReturns.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Net Purchases:</span>
+                        <span className="font-medium">₹{netPurchasesWithGST.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span>Other Expenses:</span>
                         <span className="font-medium">₹{totalExpenses.toFixed(2)}</span>
                       </div>
                       <div className="border-t pt-2 flex justify-between font-bold">
                         <span>Total Expenses:</span>
-                        <span className="text-red-600">₹{(totalPurchasesWithGST + totalExpenses).toFixed(2)}</span>
+                        <span className="text-red-600">₹{(netPurchasesWithGST + totalExpenses).toFixed(2)}</span>
                       </div>
                     </div>
                   </CardContent>

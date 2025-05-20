@@ -47,7 +47,6 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
       setOpen(false);
     }
   };
-
   return (
     <>
       <AlertModal
@@ -80,6 +79,13 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           <DropdownMenuItem onClick={() => router.push(`/purchases/${data.id}/voucher`)}>
             <FileText className="mr-2 h-4 w-4" />
             View Voucher
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => router.push(`/purchase-returns/new?purchaseId=${data.id}`)}
+            disabled={!data.hasItems}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Create Return
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" />

@@ -4,7 +4,7 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { SupplierIndividualLedgerClient } from "./components/client";
 import { notFound } from "next/navigation";
-import { PurchaseDetail, PaymentDetail, PurchaseItem, TourPackageQuery } from "@prisma/client";
+import { PurchaseDetail, PaymentDetail, PurchaseItem, TourPackageQuery, PurchaseReturn, PurchaseReturnItem } from "@prisma/client";
 
 interface SupplierLedgerPageProps {
   params: {
@@ -31,6 +31,11 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     include: {
       tourPackageQuery: true,
       items: true, // Include purchase items
+      purchaseReturns: {  // Include purchase returns
+        include: {
+          items: true
+        }
+      }
     },
     orderBy: {
       purchaseDate: 'asc',
@@ -50,12 +55,15 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     orderBy: {
       paymentDate: 'asc',
     },
-  });    // Format transactions for display
+  });    
+  
+  // Format transactions for display
   const formattedPurchases = purchases.map((purchase) => {
     // Calculate total including GST for each purchase
     const gstAmount = purchase.gstAmount || 0;
     const totalAmount = purchase.price + gstAmount;
-      // Format items for display if they exist
+    
+    // Format items for display if they exist
     let formattedItems: Array<{
       productName: string;
       quantity: number;
@@ -82,24 +90,70 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
       date: purchase.purchaseDate,
       type: "Purchase",
       description: purchase.description || purchase.tourPackageQuery?.tourPackageQueryName || "Purchase",
+      debit: totalAmount,
+      credit: 0,
+      balance: 0, // Will be calculated later
+      status: purchase.status || "completed",
+      isInflow: true, // Purchases are inflows from supplier perspective (we owe them)
       amount: totalAmount, // Include GST in the amount
       baseAmount: purchase.price,
       gstAmount: gstAmount,
-      isInflow: true, // Purchases are inflows from supplier perspective (we owe them)
       reference: purchase.id,
-            packageId: purchase.tourPackageQueryId,
+      packageId: purchase.tourPackageQueryId,
       packageName: purchase.tourPackageQuery?.tourPackageQueryName || undefined, // Use undefined instead of null or "-"
       items: formattedItems,
       itemsSummary: itemsSummary
     };
   });
+  
+  // Format purchase returns as transactions
+  const formattedPurchaseReturns = purchases.flatMap((purchase) => {
+    if (!purchase.purchaseReturns || purchase.purchaseReturns.length === 0) return [];
+    
+    return purchase.purchaseReturns.map((purchaseReturn) => {
+      const returnGstAmount = purchaseReturn.gstAmount || 0;
+      const totalReturnAmount = purchaseReturn.amount + returnGstAmount;
+      
+      // Format return items for display if they exist
+      let itemsSummary = "";
+      if (purchaseReturn.items && purchaseReturn.items.length > 0) {
+        itemsSummary = purchaseReturn.items.map(item => 
+          `${item.productName} (${item.quantity})`
+        ).join(", ");
+      }
+      
+      return {
+        id: purchaseReturn.id,
+        date: purchaseReturn.returnDate,
+        type: "Purchase Return",
+        description: `Return ${purchaseReturn.reference || '#' + purchaseReturn.id.substring(0, 8)} for Purchase ${purchase.id.substring(0, 8)}`,
+        debit: 0,
+        credit: totalReturnAmount, // Return reduces the supplier balance
+        balance: 0, // Will be calculated later
+        status: purchaseReturn.status,
+        isInflow: false, // Returns decrease supplier balance (like payments)
+        amount: totalReturnAmount,
+        baseAmount: purchaseReturn.amount,
+        gstAmount: returnGstAmount,
+        reference: purchaseReturn.reference || '', 
+        packageId: purchase.tourPackageQueryId,
+        packageName: purchase.tourPackageQuery?.tourPackageQueryName || undefined,
+        itemsSummary: itemsSummary
+      };
+    });
+  });
+
   const formattedPayments = payments.map(payment => ({
     id: payment.id,
     date: payment.paymentDate,
     type: "Payment",
     description: payment.note || "Payment",
-    amount: payment.amount,
+    debit: 0,
+    credit: payment.amount,
+    balance: 0, // Will be calculated later
+    status: "completed",
     isInflow: false, // Payments are outflows from supplier perspective (we pay them)
+    amount: payment.amount,
     reference: payment.transactionId || payment.id,
     paymentMode: payment.method || (payment.bankAccount ? "Bank" : payment.cashAccount ? "Cash" : "Unknown"),
     accountName: payment.bankAccount?.accountName || payment.cashAccount?.accountName || undefined,
@@ -108,7 +162,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
   }));
 
   // Combine transactions and sort by date
-  const allTransactions = [...formattedPurchases, ...formattedPayments].sort((a, b) => 
+  const allTransactions = [...formattedPurchases, ...formattedPurchaseReturns, ...formattedPayments].sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -118,7 +172,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
     if (transaction.isInflow) {
       runningBalance += transaction.amount; // Purchases increase supplier balance
     } else {
-      runningBalance -= transaction.amount; // Payments decrease supplier balance
+      runningBalance -= transaction.amount; // Payments and returns decrease supplier balance
     }
     
     return {
@@ -129,8 +183,9 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
 
   // Calculate totals (now including GST)
   const totalPurchases = formattedPurchases.reduce((sum, purchase) => sum + purchase.amount, 0);
+  const totalPurchaseReturns = formattedPurchaseReturns.reduce((sum, purchaseReturn) => sum + purchaseReturn.amount, 0);
   const totalPayments = formattedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const currentBalance = totalPurchases - totalPayments;
+  const currentBalance = totalPurchases - totalPurchaseReturns - totalPayments;
 
   return (
     <div className="flex-col">
@@ -145,6 +200,7 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
           supplier={supplier}
           transactions={transactions}
           totalPurchases={totalPurchases}
+          totalReturns={totalPurchaseReturns}
           totalPayments={totalPayments}
           currentBalance={currentBalance}
         />

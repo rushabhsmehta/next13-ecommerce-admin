@@ -32,7 +32,7 @@ const ItinerariesMasterPage = async ({
     itineraryMasterTitle: stripHtmlTags(item.itineraryMasterTitle) || '',
     //  itineraryDescription : item.itineraryDescription,    
     locationLabel: item.location.label,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

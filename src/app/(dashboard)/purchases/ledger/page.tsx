@@ -44,7 +44,7 @@ const PurchasesPage = async () => {
       
       return {
         id: item.id,
-        date: format(item.purchaseDate, 'MMMM do, yyyy'),
+        date: format(item.purchaseDate, 'MMMM d, yyyy'),
         amount: item.price,
         description: item.description || "",
         packageName: item.tourPackageQuery?.tourPackageQueryName || "",

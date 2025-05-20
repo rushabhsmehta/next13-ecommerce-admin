@@ -17,7 +17,7 @@ const VehicleTypesPage = async () => {
     description: item.description || '',
     capacity: item.capacity,
     isActive: item.isActive,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

@@ -15,7 +15,7 @@ const PricingAttributesPage = async () => {
     sortOrder: item.sortOrder,
     isActive: item.isActive,
     isDefault: item.isDefault,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

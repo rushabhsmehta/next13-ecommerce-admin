@@ -45,7 +45,7 @@ const SuppliersPage = async () => {
       id: loc.location.id,
       label: loc.location.label
     })),
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

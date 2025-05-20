@@ -24,7 +24,7 @@ const HotelsPage = async ({
     id: item.id,
     name: item.name,
     locationLabel: item.location.label,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

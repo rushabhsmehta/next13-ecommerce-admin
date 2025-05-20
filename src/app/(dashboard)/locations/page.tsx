@@ -23,7 +23,7 @@ const LocationsPage = async ({
     id: item.id,
     label: item.label,
     slug : item.slug ?? '',
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

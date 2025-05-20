@@ -21,7 +21,7 @@ const ActivitiesMasterPage = async ({
     //assign item.activityTitle to activityTitle or null
     activityMasterTitle: item.activityMasterTitle ?? null,
     locationLabel: item.location.label,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

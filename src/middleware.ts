@@ -5,7 +5,6 @@ export default authMiddleware({
   publicRoutes: [
     "/api/:path*",
     "/tourPackageQueryDisplay/:path*",
-    "/generatePDFfromURL/:path*",
     "/tourPackageQueryPDFGenerator/:path*",
     "/sign-in",
     "/sign-up",

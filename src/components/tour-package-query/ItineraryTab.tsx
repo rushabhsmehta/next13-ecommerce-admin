@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
 import ImageUpload from "@/components/ui/image-upload";
+import Image from 'next/image';
 
 // Define the props interface with a union type for control
 interface ItineraryTabProps {
@@ -494,10 +495,11 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                     <div className="grid grid-cols-3 gap-2">
                                       {hotel.images.map((image, imgIndex) => (
                                         <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
-                                          <img
+                                          <Image
                                             src={image.url}
                                             alt={`Hotel Image ${imgIndex + 1}`}
-                                            className="object-cover w-full h-full"
+                                            fill
+                                            className="object-cover"
                                           />
                                         </div>
                                       ))}

@@ -2,7 +2,7 @@
 
 import { formatPrice } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { PercentIcon, ChevronDown, ChevronRight } from "lucide-react"; 
+import { PercentIcon, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import {
   Table,
@@ -41,20 +41,21 @@ interface SalesTableProps {
 export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  
+
   const totalAmount = data.reduce((sum, item) => sum + item.amount, 0);
   const totalGst = data.reduce((sum, item) => sum + (item.gstAmount || 0), 0);
-  
+
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({
       ...prev,
       [id]: !prev[id]
     }));
   };
-  
+
   return (
     <div className="rounded-md border">
-      <Table>        <TableHeader>
+      <Table>
+        <TableHeader>
           <TableRow>
             <TableHead className="w-10"></TableHead>
             <TableHead>Date</TableHead>
@@ -68,12 +69,14 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
-            <TableRow>              <TableCell colSpan={8} className="h-24 text-center">
+            <TableRow>
+              <TableCell colSpan={8} className="h-24 text-center">
                 No sales found
               </TableCell>
             </TableRow>
           ) : (
-            <>              {data.map((item) => (
+            <>
+              {data.map((item) => (
                 <>
                   <TableRow key={item.id}>
                     <TableCell>
@@ -117,7 +120,7 @@ export const SalesTable: React.FC<SalesTableProps> = ({ data }) => {
                       <CellAction data={item} />
                     </TableCell>
                   </TableRow>
-                  
+
                   {/* Expandable Row for Item Details */}
                   {expandedRows[item.id] && item.items && item.items.length > 0 && (
                     <TableRow className="bg-muted/50">

@@ -42,10 +42,9 @@ const SalesPage = async () => {
         totalAmount: itemDetail.totalAmount,
       }));
     }
-    
     return {
       id: item.id,
-      date: format(item.saleDate, 'MMMM do, yyyy'),
+      date: format(item.saleDate, 'MMMM d, yyyy'),
       amount: item.salePrice,
       customerName: item.customer?.name || "Guest Customer",
       customerContact: item.customer?.contact || "N/A",
@@ -64,8 +63,8 @@ const SalesPage = async () => {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <SaleLedgerClient 
-          sales={formattedSales} 
+        <SaleLedgerClient
+          sales={formattedSales}
           customers={customers}
           totalSales={totalSales}
           totalGst={totalGst}

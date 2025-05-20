@@ -15,7 +15,7 @@ export const SaleForm = ({ initialData, units, taxSlabs, customers }: SaleFormPr
   const router = useRouter();
   
   const onSuccess = () => {
-    router.push("/sales");
+    router.push("/sales/ledger");
     router.refresh();
   };
   

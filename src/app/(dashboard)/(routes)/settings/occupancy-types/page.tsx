@@ -17,7 +17,7 @@ const OccupancyTypesPage = async () => {
     description: item.description || '',
     maxPersons: item.maxPersons,
     isActive: item.isActive,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

@@ -45,7 +45,7 @@ const tourPackagePage = async ({
     price: item.price ?? '',
     location: item.location.label,
     //hotel: item.hotel.name,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

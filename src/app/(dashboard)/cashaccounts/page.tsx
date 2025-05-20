@@ -15,7 +15,7 @@ const CashAccountsPage = async () => {
     id: item.id,
     accountName: item.accountName,
     currentBalance: item.currentBalance,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

@@ -16,7 +16,7 @@ const BankAccountsPage = async () => {
     accountName: item.accountName,
     accountNumber: item.accountNumber,
     bankName: item.bankName,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

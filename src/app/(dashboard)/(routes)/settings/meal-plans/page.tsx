@@ -17,7 +17,7 @@ const MealPlansPage = async () => {
     code: item.code,
     description: item.description,
     isActive: item.isActive,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

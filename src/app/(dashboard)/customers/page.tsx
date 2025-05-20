@@ -21,7 +21,7 @@ export default async function CustomersPage() {
     contact: item.contact || "N/A",
     email: item.email || "N/A",
     associatePartner: item.associatePartner?.name || "None", // Access name through the relation
-    createdAt: format(item.createdAt, "MMMM do, yyyy"),
+    createdAt: format(item.createdAt, "MMMM d, yyyy"),
   }));
   
   return (

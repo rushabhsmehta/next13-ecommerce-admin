@@ -17,7 +17,7 @@ const AssociatePartnersPage = async () => {
     mobileNumber: item.mobileNumber,
     email: item.email || '',
     isActive: item.isActive,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

@@ -27,7 +27,7 @@ const ItinerariesPage = async ({
     itineraryTitle: item.itineraryTitle || '',
     //  itineraryDescription : item.itineraryDescription,    
     locationLabel: item.location.label,
-    createdAt: format(item.createdAt, 'MMMM do, yyyy'),
+    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 
   return (

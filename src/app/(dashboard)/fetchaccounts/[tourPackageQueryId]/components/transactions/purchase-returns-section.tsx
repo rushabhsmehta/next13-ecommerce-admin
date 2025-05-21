@@ -150,12 +150,11 @@ const PurchaseReturnsSection: React.FC<PurchaseReturnsSectionProps> = ({
           </CardContent>
         </Card>      ) : (
         <p className="text-gray-500 italic">No purchase returns records available</p>
-      )}      {/* Purchase Return Modal */}
-      <Dialog open={isReturnModalOpen} onOpenChange={(open) => {
+      )}      {/* Purchase Return Modal */}      <Dialog open={isReturnModalOpen} onOpenChange={(open) => {
         setIsReturnModalOpen(open);
         if (!open) setSelectedPurchaseId(null);
       }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Purchase Return</DialogTitle>
             <DialogDescription>

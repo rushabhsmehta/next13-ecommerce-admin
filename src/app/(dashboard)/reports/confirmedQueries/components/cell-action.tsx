@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Download, Edit, FileText, MoreHorizontal, Trash } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -62,6 +62,9 @@ export const CellAction: React.FC<CellActionProps> = ({
     router.push(`/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`);
   }
 
+  const handleOptionConfirmPDF = (selectedOption: string) => {
+    window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`, "_blank");
+  }
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {
 
@@ -111,11 +114,11 @@ export const CellAction: React.FC<CellActionProps> = ({
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onClick={() => router.push(`/fetchaccounts/${data.id}`)}>          
+            onClick={() => router.push(`/fetchaccounts/${data.id}`)}>
             <Edit className="mr-2 h-4 w-4" /> Accounts
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-{/* 
+          {/* 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Edit className="mr-2 h-4 w-4" />  Accounts
@@ -132,9 +135,39 @@ export const CellAction: React.FC<CellActionProps> = ({
             </DropdownMenuPortal>
           </DropdownMenuSub>
           <DropdownMenuSeparator /> */}
+
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <Edit className="mr-2 h-4 w-4" />  Generate PDF
+              <Download className="mr-2 h-4 w-4" /> Download PDF
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('MT')}>
+                  MT
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierA')}>
+                  Supplier - Title only
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDF('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
+
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FileText className="mr-2 h-4 w-4" /> Generate PDF
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-56">
@@ -150,15 +183,20 @@ export const CellAction: React.FC<CellActionProps> = ({
                 <DropdownMenuItem onSelect={() => handleOptionConfirm('MT')}>
                   MT
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierA')}>
+                  Supplier - Title only
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirm('SupplierB')}>
+                  Supplier - with Details
+                </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
           </DropdownMenuSub>
           <DropdownMenuSeparator />
 
-
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
-              <Edit className="mr-2 h-4 w-4" />  Generate Voucher
+              <FileText className="mr-2 h-4 w-4" /> Generate Voucher
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
               <DropdownMenuSubContent className="w-56">
@@ -173,9 +211,6 @@ export const CellAction: React.FC<CellActionProps> = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('MT')}>
                   MT
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleOptionConfirmVoucher('Supplier')}>
-                  Supplier
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>

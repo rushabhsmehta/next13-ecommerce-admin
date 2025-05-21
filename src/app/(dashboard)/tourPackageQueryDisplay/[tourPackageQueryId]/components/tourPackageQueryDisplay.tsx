@@ -616,15 +616,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
                                       <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
                                         Occupancy Type #{roomIndex + 1}
-                                      </span>
-                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                        {room.roomType.name || 'Standard'}
+                                      </span>                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                        {room.roomType?.name || 'Standard'}
                                       </span>
                                       <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-                                        {room.occupancyType.name || 'Double'}
+                                        {room.occupancyType?.name || 'Double'}
                                       </span>
                                       <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                                        {room.mealPlan.name || 'CP (Breakfast Only)'}
+                                        {room.mealPlan?.name || 'CP (Breakfast Only)'}
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
@@ -697,15 +696,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
                                       <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
                                         Occupancy Type #{roomIndex + 1}
-                                      </span>
-                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                        {room.roomType || 'Standard'}
+                                      </span>                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                        {typeof room.roomType === 'object' ? room.roomType?.name : room.roomType || 'Standard'}
                                       </span>
                                       <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-                                        {room.occupancyType || 'Double'}
+                                        {typeof room.occupancyType === 'object' ? room.occupancyType?.name : room.occupancyType || 'Double'}
                                       </span>
                                       <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                                        {room.mealPlan || 'CP (Breakfast Only)'}
+                                        {typeof room.mealPlan === 'object' ? room.mealPlan?.name : room.mealPlan || 'CP (Breakfast Only)'}
                                       </span>
                                     </div>
                                     <p className="text-sm text-gray-600">
@@ -753,12 +751,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                         <div className="space-y-3">
                           {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
                             <div key={transportIndex} className="bg-gray-50 rounded-lg p-3 border">
-                              <div className="flex flex-wrap items-center gap-2 mb-1">
-                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
                                   Transport #{transportIndex + 1}
                                 </span>
                                 <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                  {transport.vehicleType.name || 'Car'}
+                                  {transport.vehicleType?.name || 'Car'}
                                 </span>
                                 {/* <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                                   {transport.transportType || 'Per Day'}

@@ -127,11 +127,9 @@ const SaleReturnsSection: React.FC<SaleReturnsSectionProps> = ({
                 </Card>
             ) : (
                 <p className="text-gray-500 italic">No sale returns records available</p>
-            )}
-
-            {/* Sale Return Modal */}
+            )}            {/* Sale Return Modal */}
             <Dialog open={isReturnModalOpen} onOpenChange={(open) => { setIsReturnModalOpen(open); if (!open) setSelectedSaleId(null); }}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add Sale Return</DialogTitle>
                         <DialogDescription>Create a new sale return record.</DialogDescription>

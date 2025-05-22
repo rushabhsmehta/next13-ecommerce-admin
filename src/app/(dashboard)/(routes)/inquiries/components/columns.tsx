@@ -17,7 +17,7 @@ import axios from "axios"
 import { toast } from "react-hot-toast"
 import { TourPackageQuery } from "@prisma/client"
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment"
-
+import { format } from "date-fns"
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
   { value: "HOT_QUERY", label: "Hot Query" },
@@ -39,9 +39,9 @@ const StatusCell = ({ row }: { row: any }) => {
       // Update the local state immediately
       setCurrentStatus(newStatus);
       toast.success("Status updated");
-        // Update the original data in the row to ensure filtering works
+      // Update the original data in the row to ensure filtering works
       row.original.status = newStatus;
-      
+
       // Optional: refresh the page data to ensure other components are updated
       // This is more expensive but ensures full consistency
       setTimeout(() => {
@@ -55,7 +55,7 @@ const StatusCell = ({ row }: { row: any }) => {
   };
   // Helper function to get status styling
   const getStatusStyles = (status: string) => {
-    switch(status) {
+    switch (status) {
       case "CONFIRMED":
         return "bg-green-50 text-green-700 border border-green-200";
       case "CANCELLED":
@@ -65,13 +65,13 @@ const StatusCell = ({ row }: { row: any }) => {
       default:
         return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
-  };  return (
+  }; return (
     <div className="flex items-center">
       <Select
         value={currentStatus}
         onValueChange={onStatusChange}
         disabled={loading}
-      >        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-[130px] hover:bg-transparent focus:ring-0">          
+      >        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-[130px] hover:bg-transparent focus:ring-0">
           <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(currentStatus)} flex items-center w-full justify-center`}>
             <span>{statusOptions.find(s => s.value === currentStatus)?.label || "Unknown Status"}</span>
           </div>
@@ -83,9 +83,9 @@ const StatusCell = ({ row }: { row: any }) => {
               value={status.value}
               className={
                 status.value === "CONFIRMED" ? "text-green-600" :
-                status.value === "CANCELLED" ? "text-red-600" :
-                status.value === "HOT_QUERY" ? "text-orange-600" :
-                "text-yellow-600"
+                  status.value === "CANCELLED" ? "text-red-600" :
+                    status.value === "HOT_QUERY" ? "text-orange-600" :
+                      "text-yellow-600"
               }
             >
               {status.label}
@@ -130,8 +130,8 @@ const renderActionHistory = ({ row }: { row: any }) => {
   return (
     <div className="space-y-2 max-w-[160px]">
       {latestActions.map((action: any, index: number) => (
-        <div 
-          key={index} 
+        <div
+          key={index}
           className={`
             text-xs rounded-md p-1.5 border-l-2
             ${getActionTypeColor(action.type)}
@@ -206,21 +206,21 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   {
     accessorKey: "associatePartner",
     header: "Associate Partner",
-  },  {
+  }, {
     accessorKey: "status",
     header: ({ column }) => {
       const currentFilter = column.getFilterValue() as string;
-      
+
       // Get label for the current filter
       const getCurrentStatusLabel = () => {
         if (!currentFilter) return "All Status";
         const option = statusOptions.find(s => s.value === currentFilter);
         return option ? option.label : "Filter status";
       };
-      
+
       // Get styling for status badges
       const getStatusBadgeStyle = (status: string) => {
-        switch(status) {
+        switch (status) {
           case "CONFIRMED":
             return "bg-green-50 text-green-700 border border-green-200";
           case "CANCELLED":
@@ -256,9 +256,9 @@ export const columns: ColumnDef<InquiryColumn>[] = [
                 value={status.value}
                 className={
                   status.value === "CONFIRMED" ? "text-green-600" :
-                  status.value === "CANCELLED" ? "text-red-600" :
-                  status.value === "HOT_QUERY" ? "text-orange-600" :
-                  "text-yellow-600"
+                    status.value === "CANCELLED" ? "text-red-600" :
+                      status.value === "HOT_QUERY" ? "text-orange-600" :
+                        "text-yellow-600"
                 }
               >
                 {status.label}
@@ -271,10 +271,19 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     cell: ({ row }) => <StatusCell row={row} />,
     filterFn: (row, id, value) => value ? row.getValue(id) === value : true
   },
+
   {
     accessorKey: "journeyDate",
     header: "Journey Date",
-  },  {
+    cell: ({ row }) => {
+      const jd = row.original.journeyDate;
+      if (!jd) return "";               // no date
+      const d = new Date(`${jd}T00:00`);
+      if (isNaN(d.getTime())) return jd; // fallback on invalid
+      return format(d, "MMMM do, yyyy");
+    },
+  },
+  {
     accessorKey: "actionHistory",
     header: "Recent Actions",
     cell: renderActionHistory,
@@ -297,7 +306,7 @@ export const columns: ColumnDef<InquiryColumn>[] = [
         </ol>
       );
     }
-  },  {
+  }, {
     accessorKey: "assignedStaffName",
     header: "Assigned Staff",
     cell: ({ row }) => {

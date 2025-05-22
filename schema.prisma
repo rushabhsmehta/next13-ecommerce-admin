@@ -860,7 +860,7 @@ model Inquiry {
   numChildrenBelow5    Int       @default(0)
   remarks              String?   @db.Text
   status               String    @default("pending") // pending, contacted, converted, cancelled
-  journeyDate          DateTime?
+  journeyDate          DateTime? @db.Date
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -1292,7 +1292,7 @@ model Notification {
   read      Boolean  @default(false)
   data      Json? // Additional data related to the notification
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
   // If you want to add user-specific notifications in the future
   // userId    String?
@@ -1326,7 +1326,7 @@ model AiGeneratedImage {
   generatedImageUrl String   @db.Text // URL of the generated image - changed to Text type
   isApproved        Boolean  @default(false)
   createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  updatedAt         DateTime @default(now())
 
   // Optional fields for tracking social media posts
   xPostId         String?

@@ -9,8 +9,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
-    const { 
+    const body = await req.json();    const { 
       customerId,
       tourPackageQueryId,
       receiptDate,
@@ -18,7 +17,8 @@ export async function POST(req: Request) {
       reference,
       note,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Validate required fields
@@ -33,9 +33,7 @@ export async function POST(req: Request) {
     // Ensure either bank or cash account is selected
     if (!bankAccountId && !cashAccountId) {
       return new NextResponse("Either bank or cash account must be selected", { status: 400 });
-    }
-
-    // Create receipt detail
+    }    // Create receipt detail with images
     const receiptDetail = await prismadb.receiptDetail.create({
       data: {
         customerId: customerId || null,
@@ -46,8 +44,30 @@ export async function POST(req: Request) {
         note: note || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
+        // Create images if provided
+        ...(images && images.length > 0
+          ? {
+              images: {
+                create: images.map((url: string) => ({ url })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        images: true,
       }
     });
+      // Create images separately if provided
+    if (images && images.length > 0) {
+      for (const url of images) {
+        await prismadb.images.create({
+          data: {
+            url,
+            receiptDetailsId: receiptDetail.id
+          }
+        });
+      }
+    }
 
     // Update account balance
     if (bankAccountId) {
@@ -104,14 +124,13 @@ export async function GET(req: Request) {
     
     if (customerId) {
       query.customerId = customerId;
-    }
-
-    const receipts = await prismadb.receiptDetail.findMany({
+    }    const receipts = await prismadb.receiptDetail.findMany({
       where: query,
       include: {
         customer: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       },
       orderBy: {
         receiptDate: 'desc'

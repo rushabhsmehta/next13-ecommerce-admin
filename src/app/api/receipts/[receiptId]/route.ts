@@ -14,16 +14,15 @@ export async function GET(
 
     if (!params.receiptId) {
       return new NextResponse("Receipt ID is required", { status: 400 });
-    }
-
-    const receipt = await prismadb.receiptDetail.findUnique({
+    }    const receipt = await prismadb.receiptDetail.findUnique({
       where: {
         id: params.receiptId
       },
       include: {
         customer: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       }
     });
 
@@ -50,9 +49,7 @@ export async function PATCH(
 
     if (!params.receiptId) {
       return new NextResponse("Receipt ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const {
       customerId,
       tourPackageQueryId,
@@ -61,7 +58,8 @@ export async function PATCH(
       reference,
       note,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Get existing receipt to revert account balances
@@ -92,9 +90,7 @@ export async function PATCH(
           currentBalance: existingReceipt.cashAccount!.currentBalance - existingReceipt.amount
         }
       });
-    }
-
-    // Update receipt detail
+    }    // Update receipt detail
     const updatedReceipt = await prismadb.receiptDetail.update({
       where: {
         id: params.receiptId
@@ -107,6 +103,12 @@ export async function PATCH(
         note: note || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
+      },
+      include: {
+        customer: true,
+        bankAccount: true,
+        cashAccount: true,
+        images: true
       }
     });
 
@@ -136,6 +138,28 @@ export async function PATCH(
             currentBalance: cashAccount.currentBalance + parseFloat(amount.toString())
           }
         });
+      }
+    }
+
+    // Handle image updates if provided
+    if (images) {
+      // First, delete all existing images for this receipt
+      await prismadb.images.deleteMany({
+        where: {
+          receiptDetailsId: params.receiptId
+        }
+      });
+
+      // Then create new images if any
+      if (images.length > 0) {
+        for (const url of images) {
+          await prismadb.images.create({
+            data: {
+              url,
+              receiptDetailsId: params.receiptId
+            }
+          });
+        }
       }
     }
 

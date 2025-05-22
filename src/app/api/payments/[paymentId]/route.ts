@@ -14,16 +14,15 @@ export async function GET(
 
     if (!params.paymentId) {
       return new NextResponse("Payment ID is required", { status: 400 });
-    }
-
-    const payment = await prismadb.paymentDetail.findUnique({
+    }    const payment = await prismadb.paymentDetail.findUnique({
       where: {
         id: params.paymentId
       },
       include: {
         supplier: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       }
     });
 
@@ -50,9 +49,7 @@ export async function PATCH(
 
     if (!params.paymentId) {
       return new NextResponse("Payment ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       supplierId,
       tourPackageQueryId,
@@ -62,7 +59,8 @@ export async function PATCH(
       transactionId,
       note,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Get existing payment to revert account balances
@@ -85,14 +83,35 @@ export async function PATCH(
         data: { 
           currentBalance: existingPayment.bankAccount!.currentBalance + existingPayment.amount
         }
-      });
-    } else if (existingPayment.cashAccountId) {
+      });    } else if (existingPayment.cashAccountId) {
       await prismadb.cashAccount.update({
         where: { id: existingPayment.cashAccountId },
         data: { 
           currentBalance: existingPayment.cashAccount!.currentBalance + existingPayment.amount
         }
       });
+    }
+    
+    // Handle image updates if provided
+    if (images) {
+      // First, delete all existing images for this payment
+      await prismadb.images.deleteMany({
+        where: {
+          paymentDetailsId: params.paymentId
+        }
+      });
+
+      // Then create new images if any
+      if (images.length > 0) {
+        for (const url of images) {
+          await prismadb.images.create({
+            data: {
+              url,
+              paymentDetailsId: params.paymentId
+            }
+          });
+        }
+      }
     }
 
     // Update payment detail
@@ -109,6 +128,12 @@ export async function PATCH(
         note: note || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
+      },
+      include: {
+        supplier: true,
+        bankAccount: true,
+        cashAccount: true,
+        images: true
       }
     });
 

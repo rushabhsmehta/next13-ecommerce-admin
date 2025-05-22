@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import ImageUpload from "@/components/ui/image-upload";
 
 const formSchema = z.object({
   paymentDate: z.date({
@@ -67,6 +68,7 @@ const formSchema = z.object({
   accountType: z.string().min(1, {
     message: "Account type is required",
   }),
+  images: z.array(z.string()).default([]),
 });
 
 type PaymentFormValues = z.infer<typeof formSchema>;
@@ -99,6 +101,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
     tourPackageQueryId: initialData?.tourPackageQueryId || undefined,
     accountId: "",
     accountType: "",
+    images: [],
   };
 
   if (initialData && Object.keys(initialData).length > 1) {
@@ -112,6 +115,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       tourPackageQueryId: initialData.tourPackageQueryId || undefined,
       accountId: initialData.bankAccountId || initialData.cashAccountId || "",
       accountType: initialData.bankAccountId ? "bank" : "cash",
+      images: initialData.images?.map((image: any) => image.url) || [],
     };
   }
 
@@ -119,7 +123,6 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
-
   const onSubmit = async (data: PaymentFormValues) => {
     try {
       setLoading(true);
@@ -128,11 +131,13 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       // Prepare the API data with correct account type field
       const apiData: Partial<PaymentFormValues & {
         bankAccountId: string | null,
-        cashAccountId: string | null
+        cashAccountId: string | null,
+        images: string[]
       }> = {
         ...data,
         bankAccountId: data.accountType === 'bank' ? data.accountId : null,
         cashAccountId: data.accountType === 'cash' ? data.accountId : null,
+        images: data.images || []
       };
       delete apiData.accountId;
       delete apiData.accountType;
@@ -424,6 +429,30 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          <Separator className="my-4" />
+
+          {/* Payment Screenshots */}
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2">Payment Screenshots</h3>
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      disabled={loading}
+                      onChange={(url) => field.onChange([...field.value, url])}
+                      onRemove={(url) => field.onChange(field.value.filter((current) => current !== url))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 mt-8">

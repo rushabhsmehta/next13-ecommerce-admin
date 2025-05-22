@@ -9,8 +9,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const body = await req.json();
-    const { 
+    const body = await req.json();    const { 
       supplierId,
       tourPackageQueryId,
       paymentDate,
@@ -19,7 +18,8 @@ export async function POST(req: Request) {
       transactionId,
       note,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Validate required fields
@@ -34,9 +34,7 @@ export async function POST(req: Request) {
     // Ensure either bank or cash account is selected
     if (!bankAccountId && !cashAccountId) {
       return new NextResponse("Either bank or cash account must be selected", { status: 400 });
-    }
-
-    // Create payment detail
+    }    // Create payment detail
     const paymentDetail = await prismadb.paymentDetail.create({
       data: {
         supplierId: supplierId || null,
@@ -50,6 +48,18 @@ export async function POST(req: Request) {
         cashAccountId: cashAccountId || null,
       }
     });
+    
+    // Create images separately if provided
+    if (images && images.length > 0) {
+      for (const url of images) {
+        await prismadb.images.create({
+          data: {
+            url,
+            paymentDetailsId: paymentDetail.id
+          }
+        });
+      }
+    }
 
     // Update account balance
     if (bankAccountId) {
@@ -103,17 +113,17 @@ export async function GET(req: Request) {
     if (tourPackageQueryId) {
       query.tourPackageQueryId = tourPackageQueryId;
     }
-    
-    if (supplierId) {
+      if (supplierId) {
       query.supplierId = supplierId;
     }
-
+    
     const payments = await prismadb.paymentDetail.findMany({
       where: query,
       include: {
         supplier: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       },
       orderBy: {
         paymentDate: 'desc'

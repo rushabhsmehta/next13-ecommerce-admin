@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReceiptFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import ImageUpload from "@/components/ui/image-upload";
 
 const formSchema = z.object({
   receiptDate: z.date({
@@ -66,6 +67,7 @@ const formSchema = z.object({
   accountType: z.string().min(1, {
     message: "Account type is required",
   }),
+  images: z.array(z.string()).default([]),
 });
 
 type ReceiptFormValues = z.infer<typeof formSchema>;
@@ -86,9 +88,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   // Add this computed value
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(customerSearch.toLowerCase())
-  );
-
-  let defaultValues: Partial<ReceiptFormValues> = {
+  );  let defaultValues: Partial<ReceiptFormValues> = {
     receiptDate: new Date(),
     amount: 0,
     reference: "",
@@ -97,8 +97,8 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     tourPackageQueryId: initialData?.tourPackageQueryId || undefined,
     accountId: "",
     accountType: "",
+    images: [],
   };
-
   if (initialData && Object.keys(initialData).length > 1) {
     defaultValues = {
       receiptDate: initialData.receiptDate ? new Date(initialData.receiptDate) : new Date(),
@@ -109,6 +109,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       tourPackageQueryId: initialData.tourPackageQueryId || undefined,
       accountId: initialData.bankAccountId || initialData.cashAccountId || "",
       accountType: initialData.bankAccountId ? "bank" : "cash",
+      images: initialData.images?.map((image: any) => image.url) || [],
     };
   }
 
@@ -116,7 +117,6 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
-
   const onSubmit = async (data: ReceiptFormValues) => {
     try {
       setLoading(true);
@@ -128,6 +128,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
         ...restData,
         bankAccountId: accountType === 'bank' ? accountId : null,
         cashAccountId: accountType === 'cash' ? accountId : null,
+        images: data.images || [],
       };
 
       if (initialData && initialData.id) {
@@ -403,6 +404,27 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2">Receipt Screenshots</h3>
+            <FormField
+              control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      disabled={loading}
+                      onChange={(url) => field.onChange([...field.value, url])}
+                      onRemove={(url) => field.onChange(field.value.filter((current) => current !== url))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 mt-8">

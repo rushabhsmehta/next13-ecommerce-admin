@@ -320,6 +320,7 @@ model PaymentDetail {
   transactionId      String?
   note               String?  @db.Text
   supplierId         String? // Make supplierId optional
+  images            Images[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -401,6 +402,7 @@ model ReceiptDetail {
   reference          String?
   note               String?  @db.Text
   customerId         String? // Make customerId optional
+  images            Images[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -752,6 +754,12 @@ model Images {
   activitiesMasterId String?
   activitiesMaster   ActivityMaster? @relation(fields: [activitiesMasterId], references: [id], onDelete: Cascade)
 
+  paymentDetailsId String?
+  paymentDetails   PaymentDetail? @relation(fields: [paymentDetailsId], references: [id], onDelete: Cascade)
+
+  receiptDetailsId String?
+  receiptDetails   ReceiptDetail? @relation(fields: [receiptDetailsId], references: [id], onDelete: Cascade)
+
   @@index([hotelId])
   @@index([itinerariesId])
   @@index([itinerariesMasterId])
@@ -759,6 +767,8 @@ model Images {
   @@index([activitiesMasterId])
   @@index([tourPackageId])
   @@index([tourPackageQueryId])
+  @@index([paymentDetailsId])
+  @@index([receiptDetailsId])
 }
 
 model Customer {

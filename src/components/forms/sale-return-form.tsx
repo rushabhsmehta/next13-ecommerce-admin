@@ -45,10 +45,23 @@ import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 
 // Helper to parse a date string (YYYY-MM-DD or ISO) into a local-only Date (midnight local)
-const parseLocalDate = (dateString: string) => {
-  const [datePart] = dateString.split('T');
-  const [year, month, day] = datePart.split('-').map(Number);
-  return new Date(year, month - 1, day);
+const parseLocalDate = (dateString: string | Date | null | undefined) => {
+  // If it's already a Date object, return it
+  if (dateString instanceof Date) return dateString;
+  
+  // If it's null/undefined, return current date
+  if (!dateString) return new Date();
+  
+  try {
+    // If it's a string, parse it
+    const [datePart] = dateString.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  } catch (error) {
+    console.error("Error parsing date:", error);
+    // Return current date as fallback
+    return new Date();
+  }
 };
 
 // Form schema

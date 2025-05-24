@@ -117,14 +117,14 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
     const [loading, setLoading] = useState(false);
     const [selectedPurchaseItems, setSelectedPurchaseItems] = useState<any[]>([]);
     const [isCalculating, setIsCalculating] = useState(false);
-    const [noPurchasesAvailable, setNoPurchasesAvailable] = useState(purchases.length === 0);
+    const [noPurchasesAvailable, setNoPurchasesAvailable] = useState(purchases.length === 0 && !initialData);
 
     // Debug output for purchases
     useEffect(() => {
         console.log("Purchases passed to form:", purchases);
         console.log("Purchases length:", purchases?.length);
-        setNoPurchasesAvailable(purchases.length === 0);
-    }, [purchases]);
+        setNoPurchasesAvailable(purchases.length === 0 && !initialData);
+    }, [purchases, initialData]);
 
     const title = initialData ? "Edit Purchase Return" : "Create Purchase Return";
     const description = initialData ? "Edit purchase return details" : "Create a new purchase return";
@@ -418,7 +418,7 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
             </div>
             <Separator />
 
-            {noPurchasesAvailable && !initialData ? (
+            {noPurchasesAvailable ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-md p-6 my-4 text-center">
                     <h3 className="text-amber-700 text-lg font-medium mb-2">No Purchases Available</h3>
                     <p className="text-amber-600 mb-3">
@@ -474,8 +474,7 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
                                                 <p className="text-sm text-blue-600 mt-1 animate-pulse">
                                                     Loading items for selected purchase...
                                                 </p>
-                                            )}
-                                            {purchases && purchases.length === 0 && (
+                                            )}                                            {purchases && purchases.length === 0 && !initialData && (
                                                 <p className="text-sm text-amber-600 mt-1">
                                                     No purchases found. Please create a purchase first.
                                                 </p>

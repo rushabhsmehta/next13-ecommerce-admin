@@ -76,8 +76,7 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
         orderBy: {
           saleDate: 'asc', // Show oldest first
         },
-      },
-      paymentDetails: {
+      },      paymentDetails: {
         select: {
           id: true,
           paymentDate: true,
@@ -94,12 +93,16 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
               name: true
             }
           },
+          images: {
+            select: {
+              url: true
+            }
+          },
         },
         orderBy: {
           paymentDate: 'asc', // Show oldest first
         },
-      },
-      receiptDetails: {
+      },      receiptDetails: {
         select: {
           id: true,
           receiptDate: true,
@@ -114,7 +117,12 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
               id: true,
               name: true
             }
-          }
+          },
+          images: {
+            select: {
+              url: true
+            }
+          },
         },
         orderBy: {
           receiptDate: 'asc', // Show oldest first

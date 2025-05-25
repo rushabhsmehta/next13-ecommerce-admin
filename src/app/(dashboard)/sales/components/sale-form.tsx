@@ -18,10 +18,9 @@ export const SaleForm = ({ initialData, units, taxSlabs, customers }: SaleFormPr
     router.push("/sales/ledger");
     router.refresh();
   };
-  
-  return (
+    return (
     <SaleFormWrapper
-      initialData={initialData}
+      initialData={initialData || {}}
       units={units}
       taxSlabs={taxSlabs}
       customers={customers}

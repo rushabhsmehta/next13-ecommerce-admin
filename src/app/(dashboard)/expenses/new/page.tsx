@@ -23,10 +23,7 @@ export default async function NewExpensePage() {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <Heading
-          title="Create Expense"
-          description="Add a new expense record"
-        />
+   
         <Separator />
         <ExpenseForm 
           initialData={null} 

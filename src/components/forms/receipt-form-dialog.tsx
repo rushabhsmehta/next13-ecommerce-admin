@@ -34,14 +34,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReceiptFormProps } from "@/types";
@@ -84,32 +76,40 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [tourPackageQueryDropdownOpen, setTourPackageQueryDropdownOpen] = useState(false);
+  const [tourPackageQuerySearch, setTourPackageQuerySearch] = useState("");
 
-  // Add this computed value
+  // Add these computed values
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(customerSearch.toLowerCase())
-  );  let defaultValues: Partial<ReceiptFormValues> = {
+  );
+  
+  // Extract tour package queries from initialData
+  const { confirmedTourPackageQueries = [], ...receiptData } = initialData;
+
+  let defaultValues: Partial<ReceiptFormValues> = {
     receiptDate: new Date(),
     amount: 0,
     reference: "",
     note: "",
     customerId: "",
-    tourPackageQueryId: initialData?.tourPackageQueryId || undefined,
+    tourPackageQueryId: receiptData?.tourPackageQueryId || undefined,
     accountId: "",
     accountType: "",
     images: [],
   };
-  if (initialData && Object.keys(initialData).length > 1) {
+
+  if (receiptData && Object.keys(receiptData).length > 1) {
     defaultValues = {
-      receiptDate: initialData.receiptDate ? new Date(initialData.receiptDate) : new Date(),
-      amount: initialData.amount,
-      reference: initialData.reference || "",
-      note: initialData.note || "",
-      customerId: initialData.customerId || "",
-      tourPackageQueryId: initialData.tourPackageQueryId || undefined,
-      accountId: initialData.bankAccountId || initialData.cashAccountId || "",
-      accountType: initialData.bankAccountId ? "bank" : "cash",
-      images: initialData.images?.map((image: any) => image.url) || [],
+      receiptDate: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
+      amount: receiptData.amount,
+      reference: receiptData.reference || "",
+      note: receiptData.note || "",
+      customerId: receiptData.customerId || "",
+      tourPackageQueryId: receiptData.tourPackageQueryId || undefined,
+      accountId: receiptData.bankAccountId || receiptData.cashAccountId || "",
+      accountType: receiptData.bankAccountId ? "bank" : "cash",
+      images: receiptData.images?.map((image: any) => image.url) || [],
     };
   }
 
@@ -117,27 +117,33 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
   const onSubmit = async (data: ReceiptFormValues) => {
     try {
       setLoading(true);
       setFormErrors([]);
 
       // Prepare the API data with correct account type field
-      const { accountId, accountType, ...restData } = data;
-      const apiData = {
-        ...restData,
-        bankAccountId: accountType === 'bank' ? accountId : null,
-        cashAccountId: accountType === 'cash' ? accountId : null,
-        images: data.images || [],
+      const apiData: Partial<ReceiptFormValues & {
+        bankAccountId: string | null,
+        cashAccountId: string | null,
+        images: string[]
+      }> = {
+        ...data,
+        bankAccountId: data.accountType === 'bank' ? data.accountId : null,
+        cashAccountId: data.accountType === 'cash' ? data.accountId : null,
+        images: data.images || []
       };
+      delete apiData.accountId;
+      delete apiData.accountType;
 
-      if (initialData && initialData.id) {
-        await axios.patch(`/api/receipts/${initialData.id}`, apiData);
+      if (receiptData && receiptData.id) {
+        await axios.patch(`/api/receipts/${receiptData.id}`, apiData);
       } else {
         await axios.post('/api/receipts', apiData);
       }
 
-      toast.success(initialData.id ? "Receipt updated." : "Receipt created.");
+      toast.success(receiptData.id ? "Receipt updated." : "Receipt created.");
       onSuccess();
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || "Something went wrong";
@@ -163,38 +169,202 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   };
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto p-6">
       <FormErrorSummary errors={formErrors} />
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              {initialData?.id ? "Edit Receipt" : "Create New Receipt"}
-            </h2>
+        <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-6">
+          {/* Enhanced Header */}
+          <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-6 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {receiptData?.id ? "Edit Receipt" : "Create New Receipt"}
+                </h1>
+                <p className="text-green-100 mt-2">
+                  {receiptData?.id ? "Update receipt information" : "Add a new receipt record"}
+                </p>
+              </div>
+              <div className="bg-white/20 rounded-full p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="bg-slate-50 border-b px-6">
-              <CardTitle className="text-base font-medium">Receipt Details</CardTitle>
+          {/* Receipt Details Card */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200 px-8 py-6">
+              <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
+                <span className="bg-green-100 rounded-full p-2 mr-3">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </span>
+                Receipt Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Customer Select - Improved implementation */}
+            <CardContent className="px-8 py-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Tour Package Query Select */}
+                <div className="lg:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="tourPackageQueryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Tour Package Query</FormLabel>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={() => setTourPackageQueryDropdownOpen(!tourPackageQueryDropdownOpen)}
+                          >
+                            {field.value
+                              ? confirmedTourPackageQueries.find((query) => query.id === field.value)?.tourPackageQueryName || "Select tour package query"
+                              : "Select tour package query"}
+                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                          
+                          {tourPackageQueryDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
+                              <div className="p-3">
+                                <Input
+                                  placeholder="Search tour package queries..."
+                                  className="mb-3 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                                  value={tourPackageQuerySearch}
+                                  onChange={(e) => setTourPackageQuerySearch(e.target.value)}
+                                />
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  {confirmedTourPackageQueries.length === 0 ? (
+                                    <div className="p-3 text-center text-sm text-muted-foreground">
+                                      No confirmed tour package queries found
+                                    </div>
+                                  ) : (
+                                    confirmedTourPackageQueries
+                                      .filter(query => 
+                                        query.tourPackageQueryName.toLowerCase().includes(tourPackageQuerySearch.toLowerCase())
+                                      )
+                                      .map((query) => (
+                                        <div
+                                          key={query.id}
+                                          className={cn(
+                                            "flex items-center px-3 py-2 cursor-pointer rounded-md hover:bg-green-50 transition-colors",
+                                            query.id === field.value && "bg-green-50 text-green-700"
+                                          )}
+                                          onClick={() => {
+                                            field.onChange(query.id);
+                                            setTourPackageQueryDropdownOpen(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              query.id === field.value ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          <span className="text-sm">{query.tourPackageQueryName}</span>
+                                        </div>
+                                      ))
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Amount */}
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-gray-700">Receipt Amount</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            className="pl-8 h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Receipt Date */}
+                <FormField
+                  control={form.control}
+                  name="receiptDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-sm font-medium text-gray-700">Receipt Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => date && field.onChange(date)}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Customer Selection */}
                 <FormField
                   control={form.control}
                   name="customerId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer <span className="text-red-500">*</span></FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">Customer</FormLabel>
                       <div className="relative">
                         <Button
                           type="button"
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "w-full justify-between",
+                            "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
                             !field.value && "text-muted-foreground"
                           )}
                           onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
@@ -202,23 +372,23 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                           {field.value
                             ? customers.find((customer) => customer.id === field.value)?.name || "Select customer"
                             : "Select customer"}
-                          <Check className="ml-auto h-4 w-4" />
+                          <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
-                        
+
                         {customerDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
-                            <div className="p-2">
+                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
+                            <div className="p-3">
                               <Input
                                 placeholder="Search customers..."
-                                className="mb-2"
+                                className="mb-3 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                                 value={customerSearch}
                                 onChange={(e) => setCustomerSearch(e.target.value)}
                                 autoFocus
                               />
-                              
+
                               <div className="max-h-[200px] overflow-y-auto">
                                 {filteredCustomers.length === 0 ? (
-                                  <div className="text-center py-2 text-sm text-gray-500">
+                                  <div className="text-center py-3 text-sm text-gray-500">
                                     No customers found
                                   </div>
                                 ) : (
@@ -226,8 +396,8 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                                     <div
                                       key={customer.id}
                                       className={cn(
-                                        "flex items-center justify-between px-2 py-1.5 cursor-pointer rounded hover:bg-gray-100",
-                                        customer.id === field.value && "bg-gray-100"
+                                        "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-green-50 transition-colors",
+                                        customer.id === field.value && "bg-green-50 text-green-700"
                                       )}
                                       onClick={() => {
                                         field.onChange(customer.id);
@@ -235,9 +405,9 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                                         setCustomerDropdownOpen(false);
                                       }}
                                     >
-                                      <span>{customer.name}</span>
+                                      <span className="text-sm">{customer.name}</span>
                                       {customer.id === field.value && (
-                                        <Check className="h-4 w-4 text-primary" />
+                                        <Check className="h-4 w-4 text-green-600" />
                                       )}
                                     </div>
                                   ))
@@ -252,63 +422,13 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="receiptDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Receipt Date</FormLabel>
-                     <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            disabled={loading}
-                          >
-                            {field.value
-                              ? format(field.value, "dd/MM/yyyy")
-                              : "Select date"}
-                            <CalendarIcon className="ml-auto h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={(date) => date && field.onChange(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Amount</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+                {/* Account Type */}
                 <FormField
                   control={form.control}
                   name="accountType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Account Type</FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">Account Type</FormLabel>
                       <Select
                         disabled={loading}
                         onValueChange={(value) => {
@@ -319,7 +439,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">
                             <SelectValue placeholder="Select account type" />
                           </SelectTrigger>
                         </FormControl>
@@ -333,12 +453,13 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   )}
                 />
 
+                {/* Account Selection */}
                 <FormField
                   control={form.control}
                   name="accountId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Account</FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">Account</FormLabel>
                       <Select
                         disabled={loading || !form.watch("accountType")}
                         onValueChange={field.onChange}
@@ -346,7 +467,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">
                             <SelectValue placeholder="Select account" />
                           </SelectTrigger>
                         </FormControl>
@@ -369,76 +490,97 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   )}
                 />
 
+                {/* Reference */}
                 <FormField
                   control={form.control}
                   name="reference"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Reference (Optional)</FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">Reference <span className="text-gray-400">(Optional)</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="Receipt/Check number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="note"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Note (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          disabled={loading}
-                          placeholder="Enter additional notes"
-                          className="resize-none"
-                          {...field}
+                        <Input 
+                          placeholder="e.g. Transaction ID, Check number" 
+                          className="h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                          {...field} 
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Note */}
+                <div className="lg:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="note"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Note <span className="text-gray-400">(Optional)</span></FormLabel>
+                        <FormControl>
+                          <Textarea
+                            disabled={loading}
+                            placeholder="Enter additional notes about this receipt..."
+                            className="resize-none min-h-[100px] border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="mb-4">
-            <h3 className="text-sm font-medium mb-2">Receipt Screenshots</h3>
-            <FormField
-              control={form.control}
-              name="images"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <ImageUpload
-                      value={field.value}
-                      disabled={loading}
-                      onChange={(url) => field.onChange([...field.value, url])}
-                      onRemove={(url) => field.onChange(field.value.filter((current) => current !== url))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          {/* Receipt Screenshots Section */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200 px-8 py-6">
+              <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
+                <span className="bg-teal-100 rounded-full p-2 mr-3">
+                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </span>
+                Receipt Screenshots
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-8 py-8">
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        disabled={loading}
+                        onChange={(url) => field.onChange([...field.value, url])}
+                        onRemove={(url) => field.onChange(field.value.filter((current) => current !== url))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-4 mt-8">
-            <Button 
-              type="button" 
+          <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <Button
+              type="button"
               variant="outline"
               onClick={() => window.history.back()}
+              className="px-6 py-2 h-11 border-gray-300 hover:border-gray-400"
             >
               Cancel
             </Button>
-            <Button 
-              disabled={loading} 
+            <Button
+              disabled={loading}
               type="submit"
-              className="px-8"
+              className="px-8 py-2 h-11 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-medium"
             >
               {loading ? (
                 <>

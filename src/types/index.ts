@@ -2,7 +2,16 @@ import { BankAccount, CashAccount, Customer, ExpenseCategory, IncomeCategory, Su
 
 // Common interfaces for dialog components
 export interface TransactionFormProps {
-  initialData: any;
+  initialData: {
+    id?: string;
+    [key: string]: any;
+    confirmedTourPackageQueries?: Array<{
+      id: string;
+      tourPackageQueryName: string;
+      isFeatured: boolean;
+      [key: string]: any;
+    }>;
+  };
   onSuccess: () => void;
   submitButtonText?: string;
 }
@@ -23,12 +32,24 @@ export interface PaymentFormProps extends TransactionFormProps {
   suppliers: Supplier[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
+  confirmedTourPackageQueries?: Array<{
+    id: string;
+    tourPackageQueryName: string;
+    isFeatured: boolean;
+    [key: string]: any;
+  }>;
 }
 
 export interface ReceiptFormProps extends TransactionFormProps {
   customers: Customer[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
+  confirmedTourPackageQueries?: Array<{
+    id: string;
+    tourPackageQueryName: string;
+    isFeatured: boolean;
+    [key: string]: any;
+  }>;
 }
 
 export interface ExpenseFormProps extends TransactionFormProps {

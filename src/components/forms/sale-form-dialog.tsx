@@ -358,10 +358,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
   const handleRemoveItem = (index: number) => {
     remove(index);
     setTimeout(() => recalculateTotals(), 0);
-  };
-
-  return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+  };  return (
+    <div className="space-y-8 max-w-4xl mx-auto">
       <FormErrorSummary errors={formErrors} />
 
       {debugInfo && (
@@ -373,35 +371,44 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold tracking-tight">
+          {/* Modern Header with Gradient */}
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-blue-100 p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-full p-4 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {initialData?.id ? "Edit Sale" : "Create New Sale"}
             </h2>
+            <p className="text-gray-600">
+              {initialData?.id ? "Update the sale details below" : "Enter the details for the new sale"}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Basic Sale Information */}
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="bg-slate-50 border-b px-6">
-                <CardTitle className="text-base font-medium">Sale Information</CardTitle>
+            <Card className="shadow-md border-0 bg-white">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-4">
+                <CardTitle className="text-lg font-semibold">Sale Information</CardTitle>
               </CardHeader>
               <CardContent className="px-6 pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Customer Select */}
-
-                   <FormField
+                <div className="space-y-6">                  {/* Customer Select */}
+                <FormField
                   control={form.control}
                   name="customerId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer <span className="text-red-500">*</span></FormLabel>
+                      <FormLabel className="text-sm font-medium text-gray-700">Customer <span className="text-red-500">*</span></FormLabel>
                       <div className="relative">
                         <Button
                           type="button"
                           variant="outline"
                           role="combobox"
                           className={cn(
-                            "w-full justify-between",
+                            "w-full h-11 justify-between border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200",
                             !field.value && "text-muted-foreground"
                           )}
                           onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
@@ -414,10 +421,9 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                         
                         {customerDropdownOpen && (
                           <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md border shadow-md">
-                            <div className="p-2">
-                              <Input
+                            <div className="p-2">                              <Input
                                 placeholder="Search customers..."
-                                className="mb-2"
+                                className="mb-2 h-10 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                                 value={customerSearch}
                                 onChange={(e) => setCustomerSearch(e.target.value)}
                                 autoFocus
@@ -458,20 +464,19 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     </FormItem>
                   )} 
                 />
-                
                   {/* Sale Date */}
                   <FormField
                     control={form.control}
                     name="saleDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Sale Date</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Sale Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full justify-start text-left",
+                                "w-full h-11 justify-start text-left border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200",
                                 !field.value && "text-muted-foreground"
                               )}
                               disabled={loading}
@@ -501,13 +506,13 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Description</FormLabel>
+                      <FormItem className="col-span-2">
+                        <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
                         <FormControl>
                           <Textarea
                             disabled={loading}
                             placeholder="Sale details"
-                            className="resize-none"
+                            className="resize-none border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             {...field}
                             value={field.value || ''}
                           />
@@ -518,26 +523,25 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                   />
                 </div>
               </CardContent>
-            </Card>
-
-            {/* Invoice Details */}
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="bg-slate-50 border-b px-6">
-                <CardTitle className="text-base font-medium">Invoice Details</CardTitle>
+            </Card>            {/* Invoice Details */}
+            <Card className="shadow-md border-0 bg-white">
+              <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-4">
+                <CardTitle className="text-lg font-semibold">Invoice Details</CardTitle>
               </CardHeader>
               <CardContent className="px-6 pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-6">
                   {/* Invoice Number */}
                   <FormField
                     control={form.control}
                     name="invoiceNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Invoice Number</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Invoice Number</FormLabel>
                         <FormControl>
                           <Input
                             disabled={loading}
                             placeholder="Enter invoice number"
+                            className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             {...field}
                             value={field.value || ''}
                           />
@@ -552,11 +556,12 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     name="referenceNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reference Number</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Reference Number</FormLabel>
                         <FormControl>
                           <Input
                             disabled={loading}
                             placeholder="Reference number"
+                            className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                             {...field}
                             value={field.value || ''}
                           />
@@ -572,7 +577,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Status</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Status</FormLabel>
                         <Select
                           disabled={loading}
                           onValueChange={field.onChange}
@@ -580,7 +585,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                           defaultValue={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
                               <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                           </FormControl>
@@ -597,12 +602,10 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Sale Items */}
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="bg-slate-50 border-b px-6">
-              <CardTitle className="text-base font-medium">Sale Items</CardTitle>
+          </div>          {/* Sale Items */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-4">
+              <CardTitle className="text-lg font-semibold">Sale Items</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="rounded-md border border-slate-200 overflow-hidden">
@@ -627,11 +630,11 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             control={form.control}
                             name={`items.${index}.productName`}
                             render={({ field }) => (
-                              <FormItem className="mb-0">
-                                <FormControl>
+                              <FormItem className="mb-0">                                <FormControl>
                                   <Input
                                     disabled={loading}
                                     placeholder="Product name"
+                                    className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                     {...field}
                                   />
                                 </FormControl>
@@ -646,13 +649,13 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             control={form.control}
                             name={`items.${index}.quantity`}
                             render={({ field }) => (
-                              <FormItem className="mb-0">
-                                <FormControl>
+                              <FormItem className="mb-0">                                <FormControl>
                                   <Input
                                     type="number"
                                     step="0.01"
                                     disabled={loading}
                                     placeholder="0"
+                                    className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                   />
@@ -674,9 +677,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                                   onValueChange={field.onChange}
                                   value={field.value || ""}
                                   defaultValue={field.value || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
+                                >                                  <FormControl>
+                                    <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                       <SelectValue placeholder="Unit" />
                                     </SelectTrigger>
                                   </FormControl>
@@ -700,24 +702,27 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             control={form.control}
                             name={`items.${index}.pricePerUnit`}
                             render={({ field }) => (
-                              <FormItem className="mb-0">
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    disabled={loading}
-                                    placeholder="0.00"
-                                    {...field}
-                                    onChange={(e) => {
-                                      // Just update the value without recalculation
-                                      field.onChange(parseFloat(e.target.value) || 0)
-                                    }}
-                                    onBlur={(e) => {
-                                      // Recalculate when user has finished typing and moved away
-                                      field.onBlur();
-                                      recalculateTotals(`items.${index}.pricePerUnit`);
-                                    }}
-                                  />
+                              <FormItem className="mb-0">                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      disabled={loading}
+                                      placeholder="0.00"
+                                      className="h-10 pl-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                      {...field}
+                                      onChange={(e) => {
+                                        // Just update the value without recalculation
+                                        field.onChange(parseFloat(e.target.value) || 0)
+                                      }}
+                                      onBlur={(e) => {
+                                        // Recalculate when user has finished typing and moved away
+                                        field.onBlur();
+                                        recalculateTotals(`items.${index}.pricePerUnit`);
+                                      }}
+                                    />
+                                  </div>
                                 </FormControl>
                               </FormItem>
                             )}
@@ -736,9 +741,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                                   onValueChange={field.onChange}
                                   value={field.value || ""}
                                   defaultValue={field.value || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
+                                >                                  <FormControl>
+                                    <SelectTrigger className="h-10 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
                                       <SelectValue placeholder="Tax" />
                                     </SelectTrigger>
                                   </FormControl>
@@ -762,24 +766,27 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                             control={form.control}
                             name={`items.${index}.totalAmount`}
                             render={({ field }) => (
-                              <FormItem className="mb-0">
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    disabled={loading}
-                                    placeholder="0.00"
-                                    {...field}
-                                    onChange={(e) => {
-                                      // Just update the value without recalculation
-                                      field.onChange(parseFloat(e.target.value) || 0)
-                                    }}
-                                    onBlur={(e) => {
-                                      // Recalculate when user has finished typing and moved away
-                                      field.onBlur();
-                                      recalculateTotals(`items.${index}.totalAmount`);
-                                    }}
-                                  />
+                              <FormItem className="mb-0">                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      disabled={loading}
+                                      placeholder="0.00"
+                                      className="h-10 pl-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-200"
+                                      {...field}
+                                      onChange={(e) => {
+                                        // Just update the value without recalculation
+                                        field.onChange(parseFloat(e.target.value) || 0)
+                                      }}
+                                      onBlur={(e) => {
+                                        // Recalculate when user has finished typing and moved away
+                                        field.onBlur();
+                                        recalculateTotals(`items.${index}.totalAmount`);
+                                      }}
+                                    />
+                                  </div>
                                 </FormControl>
                               </FormItem>
                             )}
@@ -805,14 +812,12 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              <Button
+              </div>              <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleAddItem}
-                className="mt-4"
+                className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Item
@@ -837,12 +842,11 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
               </div>
 
             </CardContent>
-          </Card>
-
-          <div className="flex justify-end gap-4 mt-8">
+          </Card>          <div className="flex justify-end gap-4 mt-8">
             <Button 
               type="button" 
               variant="outline"
+              className="px-8 h-11 border-gray-300 hover:bg-gray-50"
               onClick={() => window.history.back()}
             >
               Cancel
@@ -850,7 +854,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
             <Button 
               type="submit" 
               disabled={loading}
-              className="px-8"
+              className="px-8 h-11 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-md"
             >
               {loading ? (
                 <>

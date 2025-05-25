@@ -392,38 +392,45 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
           <h3 className="font-medium mb-2">Debug Information:</h3>
           <pre className="whitespace-pre-wrap text-xs max-h-64 overflow-auto">{debugInfo}</pre>
         </div>
-      )}
-
-      <Form {...form}>
+      )}      <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-8">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold tracking-tight">
+          {/* Modern Header with Gradient */}
+          <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 rounded-xl border border-emerald-100 p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full p-4 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {initialData?.id ? "Edit Purchase" : "Create New Purchase"}
             </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <p className="text-gray-600">
+              {initialData?.id ? "Update the purchase details below" : "Enter the details for the new purchase"}
+            </p>
+          </div>          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Basic Purchase Information */}
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="bg-slate-50 border-b px-6">
-                <CardTitle className="text-base font-medium">Purchase Information</CardTitle>
+            <Card className="shadow-md border-0 bg-white">
+              <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4">
+                <CardTitle className="text-lg font-semibold">Purchase Information</CardTitle>
               </CardHeader>
               <CardContent className="px-6 pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
                   {/* Supplier Select - Improved implementation */}
                   <FormField
                     control={form.control}
                     name="supplierId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Supplier <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Supplier <span className="text-red-500">*</span></FormLabel>
                         <div className="relative">
                           <Button
                             type="button"
                             variant="outline"
                             role="combobox"
                             className={cn(
-                              "w-full justify-between",
+                              "w-full h-11 justify-between border-gray-300 hover:border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200",
                               !field.value && "text-muted-foreground"
                             )}
                             onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
@@ -439,7 +446,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                               <div className="p-2">
                                 <Input
                                   placeholder="Search suppliers..."
-                                  className="mb-2"
+                                  className="mb-2 h-10 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                   value={supplierSearch}
                                   onChange={(e) => setSupplierSearch(e.target.value)}
                                   autoFocus
@@ -487,13 +494,13 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     name="purchaseDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Purchase Date</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Purchase Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               className={cn(
-                                "w-full justify-start text-left",
+                                "w-full h-11 justify-start text-left border-gray-300 hover:border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200",
                                 !field.value && "text-muted-foreground"
                               )}
                               disabled={loading}
@@ -517,20 +524,18 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
-
-                  {/* Description */}
+                  />                  {/* Description */}
                   <FormField
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Description</FormLabel>
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
                         <FormControl>
                           <Textarea
                             disabled={loading}
                             placeholder="Purchase details"
-                            className="resize-none"
+                            className="resize-none border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                             {...field}
                             value={field.value || ""}
                           />
@@ -544,23 +549,24 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
             </Card>
 
             {/* Bill Details */}
-            <Card className="shadow-sm border-slate-200">
-              <CardHeader className="bg-slate-50 border-b px-6">
-                <CardTitle className="text-base font-medium">Bill Details</CardTitle>
+            <Card className="shadow-md border-0 bg-white">
+              <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4">
+                <CardTitle className="text-lg font-semibold">Bill Details</CardTitle>
               </CardHeader>
               <CardContent className="px-6 pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-6">
                   {/* Bill Number */}
                   <FormField
                     control={form.control}
                     name="billNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Bill Number</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Bill Number</FormLabel>
                         <FormControl>
                           <Input
                             disabled={loading}
                             placeholder="Enter bill number"
+                            className="h-11 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                             {...field}
                             value={field.value || ""}
                           />
@@ -576,11 +582,12 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     name="referenceNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reference Number</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700">Reference Number</FormLabel>
                         <FormControl>
                           <Input
                             disabled={loading}
                             placeholder="Reference number"
+                            className="h-11 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                             {...field}
                             value={field.value || ""}
                           />
@@ -589,15 +596,42 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                       </FormItem>
                     )}
                   />
+
+                  {/* Status Selection */}
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Status</FormLabel>
+                        <Select
+                          disabled={loading}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-11 border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Purchase Items */}
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="bg-slate-50 border-b px-6">
-              <CardTitle className="text-base font-medium">Purchase Items</CardTitle>
+          </div>          {/* Purchase Items */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4">
+              <CardTitle className="text-lg font-semibold">Purchase Items</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="rounded-md border border-slate-200 overflow-hidden">
@@ -626,6 +660,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                   <Input
                                     disabled={loading}
                                     placeholder="Product name"
+                                    className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
                                     {...field}
                                   />
                                 </FormControl>
@@ -645,6 +680,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                     step="0.01"
                                     disabled={loading}
                                     placeholder="0"
+                                    className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
                                     {...field}
                                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                   />
@@ -662,11 +698,10 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                 <Select
                                   disabled={loading}
                                   onValueChange={field.onChange}
-                                  value={field.value || ""}
-                                  defaultValue={field.value || ""}
+                                  value={field.value || ""}                                  defaultValue={field.value || ""}
                                 >
                                   <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200">
                                       <SelectValue placeholder="Unit" />
                                     </SelectTrigger>
                                   </FormControl>
@@ -690,22 +725,26 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                             render={({ field }) => (
                               <FormItem className="mb-0">
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    disabled={loading}
-                                    placeholder="0.00"
-                                    {...field}
-                                    onChange={(e) => {
-                                      // Just update the value without recalculation
-                                      field.onChange(parseFloat(e.target.value) || 0)
-                                    }}
-                                    onBlur={(e) => {
-                                      // Recalculate when user has finished typing and moved away
-                                      field.onBlur();
-                                      recalculateTotals(`items.${index}.pricePerUnit`);
-                                    }}
-                                  />
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      disabled={loading}
+                                      placeholder="0.00"
+                                      className="h-10 pl-8 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                                      {...field}
+                                      onChange={(e) => {
+                                        // Just update the value without recalculation
+                                        field.onChange(parseFloat(e.target.value) || 0)
+                                      }}
+                                      onBlur={(e) => {
+                                        // Recalculate when user has finished typing and moved away
+                                        field.onBlur();
+                                        recalculateTotals(`items.${index}.pricePerUnit`);
+                                      }}
+                                    />
+                                  </div>
                                 </FormControl>
                               </FormItem>
                             )}
@@ -724,7 +763,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                                   defaultValue={field.value || ""}
                                 >
                                   <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-10 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200">
                                       <SelectValue placeholder="Tax" />
                                     </SelectTrigger>
                                   </FormControl>
@@ -748,22 +787,25 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                             render={({ field }) => (
                               <FormItem className="mb-0">
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    disabled={loading}
-                                    placeholder="0.00"
-                                    {...field}
-                                    onChange={(e) => {
-                                      // Just update the value without recalculation
-                                      field.onChange(parseFloat(e.target.value) || 0)
-                                    }}
-                                    onBlur={(e) => {
-                                      // Recalculate when user has finished typing and moved away
-                                      field.onBlur();
-                                      recalculateTotals(`items.${index}.totalAmount`);
-                                    }}
-                                  />
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">₹</span>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      disabled={loading}
+                                      placeholder="0.00"
+                                      className="h-10 pl-8 border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200"
+                                      {...field}
+                                      onChange={(e) => {
+                                        // Just update the value without recalculation
+                                        field.onChange(parseFloat(e.target.value) || 0)
+                                      }}
+                                      onBlur={(e) => {
+                                        // Recalculate when user has finished typing and moved away
+                                        field.onBlur();
+                                        recalculateTotals(`items.${index}.totalAmount`);                                      }}
+                                    />
+                                  </div>
                                 </FormControl>
                               </FormItem>
                             )}
@@ -787,14 +829,12 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              <Button
+              </div>              <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={handleAddItem}
-                className="mt-4"
+                className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 hover:from-emerald-600 hover:to-teal-600"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add Item
@@ -818,20 +858,19 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                 </div>
               </div>
             </CardContent>
-          </Card>
-
-          <div className="flex justify-end gap-4 mt-8">
-            <Button
-              type="button"
+          </Card>          <div className="flex justify-end gap-4 mt-8">
+            <Button 
+              type="button" 
               variant="outline"
+              className="px-8 h-11 border-gray-300 hover:bg-gray-50"
               onClick={() => window.history.back()}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
+            <Button 
+              type="submit" 
               disabled={loading}
-              className="px-8"
+              className="px-8 h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white border-0 shadow-md"
             >
               {loading ? (
                 <>

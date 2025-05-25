@@ -24,12 +24,14 @@ export const PaymentFormWrapper = ({
   const [suppliers, setSuppliers] = useState(props.suppliers || []);
   const [bankAccounts, setBankAccounts] = useState(props.bankAccounts || []);
   const [cashAccounts, setCashAccounts] = useState(props.cashAccounts || []);
+  const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState([]);
   
   // Only fetch data if not provided as props
   useEffect(() => {
     const fetchData = async () => {
-      if (!props.suppliers || !props.bankAccounts || !props.cashAccounts) {
-        try {
+      try {
+        // Fetch core data if not provided in props
+        if (!props.suppliers || !props.bankAccounts || !props.cashAccounts) {
           const [suppliersResponse, bankAccountsResponse, cashAccountsResponse] = await Promise.all([
             axios.get('/api/suppliers'),
             axios.get('/api/bank-accounts'),
@@ -39,18 +41,22 @@ export const PaymentFormWrapper = ({
           setSuppliers(suppliersResponse.data || []);
           setBankAccounts(bankAccountsResponse.data || []);
           setCashAccounts(cashAccountsResponse.data || []);
-        } catch (error) {
-          toast.error("Failed to load data");
-          console.error(error);
         }
+        
+        // Always fetch confirmed tour package queries
+        const tourPackageQueriesResponse = await axios.get('/api/tourPackageQuery?isFeatured=true');
+        setConfirmedTourPackageQueries(tourPackageQueriesResponse.data || []);
+      } catch (error) {
+        toast.error("Failed to load data");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     
     fetchData();
   }, [props.suppliers, props.bankAccounts, props.cashAccounts]);
-  
-  if (isLoading) {
+    if (isLoading) {
     return (
       <div className="flex justify-center items-center h-24">
         <Loader className="w-6 h-6 animate-spin" />
@@ -60,7 +66,10 @@ export const PaymentFormWrapper = ({
   
   return (
     <PaymentFormDialog
-      initialData={initialData}
+      initialData={{
+        ...initialData,
+        confirmedTourPackageQueries: confirmedTourPackageQueries
+      }}
       suppliers={suppliers}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}

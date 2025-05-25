@@ -31,10 +31,7 @@ export default async function NewIncomePage() {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <Heading
-          title="Create Income"
-          description="Add a new income record"
-        />
+
         <Separator />
         <IncomeForm
           initialData={undefined}

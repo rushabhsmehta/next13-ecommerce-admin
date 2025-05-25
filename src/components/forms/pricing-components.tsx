@@ -1,8 +1,8 @@
 import React from 'react';
-import { Control, useFieldArray, Controller } from 'react-hook-form'; // Import necessary hooks/components
+import { Control, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, Trash } from "lucide-react";  // added Minus icon
+import { Plus, Minus, Trash, Home, Car } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   RoomAllocation,
@@ -12,382 +12,460 @@ import {
   MealPlan,
   VehicleType
 } from '@prisma/client';
-import { FormDescription, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form'; // Import Form components
+import { FormDescription, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 
 // ===== Room Allocation Component =====
 interface RoomAllocationComponentProps {
-  control: Control<any>; // Add control prop
-  itineraryIndex: number; // Keep index to build field names
-  roomTypes: RoomType[]; // Add lookup props
-  occupancyTypes: OccupancyType[]; // Add lookup props
-  mealPlans: MealPlan[]; // Add lookup props
+  control: Control<any>;
+  itineraryIndex: number;
+  roomTypes: RoomType[];
+  occupancyTypes: OccupancyType[];
+  mealPlans: MealPlan[];
   loading: boolean;
 }
 
 export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = ({
   control,
   itineraryIndex,
-  roomTypes, // Use passed props
-  occupancyTypes, // Use passed props
-  mealPlans, // Use passed props
+  roomTypes,
+  occupancyTypes,
+  mealPlans,
   loading
 }) => {
-  // Use useFieldArray for dynamic room allocations
   const { fields, append, remove } = useFieldArray({
     control,
-    name: `itineraries.${itineraryIndex}.roomAllocations` // Correct path based on form structure
+    name: `itineraries.${itineraryIndex}.roomAllocations`
   });
 
-  // Remove internal state and useEffect for fetching lookups
-
   const handleAddRoom = () => {
-    append({ // Append default values matching the schema
+    append({
       roomTypeId: roomTypes.length > 0 ? roomTypes[0].id : '',
       occupancyTypeId: occupancyTypes.length > 0 ? occupancyTypes[0].id : '',
       mealPlanId: mealPlans.length > 0 ? mealPlans[0].id : '',
-      quantity: 1, // Ensure quantity is number if schema expects number
+      quantity: 1,
       guestNames: ''
     });
   };
 
-  // handleUpdateRoom and handleRemoveRoom are now managed by useFieldArray and Controller/register
-
   return (
     <div className="space-y-4">
-      {/* Removed internal isLoading check */}
-      {fields.map((field, roomIndex) => (
-        <div key={field.id} className="border rounded-lg p-3 bg-white shadow-sm mb-3">
-          <div className="flex items-center justify-between mb-2 pb-2 border-b">
-            <h4 className="text-sm font-medium">Room Details #{roomIndex + 1}</h4>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={loading}
-              onClick={() => remove(roomIndex)} // Use remove from useFieldArray
-              className="h-8 px-2"
-            >
-              <Trash className="h-4 w-4 mr-1" /> Remove
-            </Button>
-          </div>
+      {/* Modern card header with icon and description */}
+      <div className="bg-gradient-to-r from-blue-100 to-indigo-100 border-b border-blue-200 p-4 rounded-t-lg">
+        <h3 className="text-base font-semibold text-blue-900 flex items-center gap-2">
+          <Home className="h-5 w-5" />
+          Room Allocations
+        </h3>
+        <p className="text-sm text-blue-700 mt-1">Configure room types, occupancy, and meal plans for this day</p>
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Room Type */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.roomTypeId`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Room Type</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Room Type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {roomTypes.map((roomType) => (
-                        <SelectItem key={roomType.id} value={roomType.id}>
-                          {roomType.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div className="p-4 space-y-4">
+        {fields.map((field, roomIndex) => (
+          <div key={field.id} className="border border-blue-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-blue-100">
+              <h4 className="text-sm font-medium text-blue-900 flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Room #{roomIndex + 1}
+              </h4>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={loading}
+                onClick={() => remove(roomIndex)}
+                className="h-8 px-3 hover:bg-red-600 focus:ring-2 focus:ring-red-200"
+              >
+                <Trash className="h-4 w-4 mr-1" /> Remove
+              </Button>
+            </div>
 
-            {/* Occupancy Type */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.occupancyTypeId`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Occupancy</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Occupancy" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {occupancyTypes.map((occupancyType) => (
-                        <SelectItem key={occupancyType.id} value={occupancyType.id}>
-                          {occupancyType.name} ({occupancyType.maxPersons} person{occupancyType.maxPersons > 1 ? 's' : ''})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Room Type */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.roomTypeId`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Room Type</FormLabel>
+                    <Select
+                      disabled={loading}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                          <SelectValue placeholder="Select room type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {roomTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Meal Plan */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.mealPlanId`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Meal Plan</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Meal Plan" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mealPlans.map((mealPlan) => (
-                        <SelectItem key={mealPlan.id} value={mealPlan.id}>
-                          {mealPlan.code} ({mealPlan.description})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* Occupancy Type */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.occupancyTypeId`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Occupancy</FormLabel>
+                    <Select
+                      disabled={loading}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                          <SelectValue placeholder="Select occupancy" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {occupancyTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Quantity */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.quantity`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Quantity</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center space-x-1">
+              {/* Meal Plan */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.mealPlanId`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Meal Plan</FormLabel>
+                    <Select
+                      disabled={loading}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                          <SelectValue placeholder="Select meal plan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {mealPlans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Quantity */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.quantity`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Quantity</FormLabel>
+                    <div className="flex items-center space-x-2">
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        disabled={loading}
-                        onClick={() => field.onChange(Math.max((field.value as number || 1) - 1, 1))}
+                        disabled={loading || (field.value as number) <= 1}
+                        onClick={() => field.onChange(Math.max(1, (field.value as number || 1) - 1))}
+                        className="h-11 w-11 p-0 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <Input
-                        {...field}
-                        disabled={loading}
-                        type="number"
-                        min={1}
-                        className="text-sm w-12 text-center"
-                      />
+                      <FormControl>
+                        <Input
+                          type="number"
+                          disabled={loading}
+                          placeholder="1"
+                          {...field}
+                          className="h-11 text-center border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          min="1"
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
                         disabled={loading}
                         onClick={() => field.onChange((field.value as number || 1) + 1)}
+                        className="h-11 w-11 p-0 border-blue-200 hover:border-blue-400 hover:bg-blue-50"
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-      ))}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="mt-2"
-        disabled={loading}
-        onClick={handleAddRoom}
-      >
-        <Plus className="mr-1 h-4 w-4" />
-        Add Room
-      </Button>
+            {/* Guest Names Field */}
+            <div className="mt-4">
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.guestNames`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Guest Names (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={loading}
+                        placeholder="Enter guest names (comma separated)"
+                        {...field}
+                        className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-gray-500">
+                      Optional: List guest names for this room allocation
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        ))}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 hover:from-blue-600 hover:to-indigo-600 focus:ring-2 focus:ring-blue-200"
+          disabled={loading}
+          onClick={handleAddRoom}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Room Allocation
+        </Button>
+      </div>
     </div>
   );
 };
 
 // ===== Transport Details Component =====
 interface TransportDetailsComponentProps {
-  control: Control<any>; // Add control prop
-  itineraryIndex: number; // Keep index
-  vehicleTypes: VehicleType[]; // Add lookup prop
+  control: Control<any>;
+  itineraryIndex: number;
+  vehicleTypes: VehicleType[];
   loading: boolean;
 }
 
 export const TransportDetailsComponent: React.FC<TransportDetailsComponentProps> = ({
   control,
   itineraryIndex,
-  vehicleTypes, // Use passed prop
+  vehicleTypes,
   loading
 }) => {
-  // Use useFieldArray for dynamic transport details
   const { fields, append, remove } = useFieldArray({
     control,
-    name: `itineraries.${itineraryIndex}.transportDetails` // Correct path
+    name: `itineraries.${itineraryIndex}.transportDetails`
   });
 
-  // Remove internal state and useEffect for fetching lookups
-
   const handleAddTransport = () => {
-    append({ // Append default values matching the schema
+    append({
       vehicleTypeId: vehicleTypes.length > 0 ? vehicleTypes[0].id : '',
       transportType: 'PerDay',
-      quantity: 1, // Ensure quantity is number if schema expects number
+      quantity: 1,
       description: ''
     });
   };
 
-  // handleUpdateTransport and handleRemoveTransport are now managed by useFieldArray and Controller/register
-
   return (
     <div className="space-y-4">
-      {/* Removed internal isLoading check */}
-      {fields.map((field, transportIndex) => (
-        <div key={field.id} className="border rounded-lg p-3 bg-white shadow-sm mb-3">
-          <div className="flex items-center justify-between mb-2 pb-2 border-b">
-            <h4 className="text-sm font-medium">Transport #{transportIndex + 1}</h4>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={loading}
-              onClick={() => remove(transportIndex)} // Use remove from useFieldArray
-              className="h-8 px-2"
-            >
-              <Trash className="h-4 w-4 mr-1" /> Remove
-            </Button>
-          </div>
+      {/* Modern card header with icon and description */}
+      <div className="bg-gradient-to-r from-green-100 to-teal-100 border-b border-green-200 p-4 rounded-t-lg">
+        <h3 className="text-base font-semibold text-green-900 flex items-center gap-2">
+          <Car className="h-5 w-5" />
+          Transport Details
+        </h3>
+        <p className="text-sm text-green-700 mt-1">Configure vehicle types and transport arrangements for this day</p>
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Vehicle Type */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.vehicleTypeId`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Vehicle Type</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Vehicle Type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {vehicleTypes.map((vehicleType) => (
-                        <SelectItem key={vehicleType.id} value={vehicleType.id}>
-                          {vehicleType.name} (Capacity: {vehicleType.capacity})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <div className="p-4 space-y-4">
+        {fields.map((field, transportIndex) => (
+          <div key={field.id} className="border border-green-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-green-100">
+              <h4 className="text-sm font-medium text-green-900 flex items-center gap-2">
+                <Car className="h-4 w-4" />
+                Transport #{transportIndex + 1}
+              </h4>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={loading}
+                onClick={() => remove(transportIndex)}
+                className="h-8 px-3 hover:bg-red-600 focus:ring-2 focus:ring-red-200"
+              >
+                <Trash className="h-4 w-4 mr-1" /> Remove
+              </Button>
+            </div>
 
-            {/* Transport Type */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.transportType`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Transport Type</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Transport Type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="PerDay">Per Day</SelectItem>
-                      <SelectItem value="PerTrip">Per Trip</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Quantity */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.quantity`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Quantity</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Vehicle Type */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.vehicleTypeId`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Vehicle Type</FormLabel>
+                    <Select
                       disabled={loading}
-                      type="number"
-                      min={1}
-                      className="text-sm"
-                      // Ensure value is handled correctly
-                      onChange={e => field.onChange(parseInt(e.target.value) || 1)}
-                      value={field.value || 1}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11 border-green-200 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                          <SelectValue placeholder="Select vehicle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicleTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name} {type.capacity && `(${type.capacity} seats)`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Description */}
-            <FormField
-              control={control}
-              name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.description`}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs">Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
+              {/* Transport Type */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.transportType`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Pricing Type</FormLabel>
+                    <Select
                       disabled={loading}
-                      placeholder="e.g. Airport to Hotel"
-                      className="text-sm"
-                      value={field.value || ''} // Handle potential null/undefined
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-      ))}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-11 border-green-200 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="PerDay">Per Day</SelectItem>
+                        <SelectItem value="PerTrip">Per Trip</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="mt-2"
-        disabled={loading}
-        onClick={handleAddTransport}
-      >
-        <Plus className="mr-1 h-4 w-4" />
-        Add Transport
-      </Button>
+              {/* Quantity */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.quantity`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Quantity</FormLabel>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={loading || (field.value as number) <= 1}
+                        onClick={() => field.onChange(Math.max(1, (field.value as number || 1) - 1))}
+                        className="h-11 w-11 p-0 border-green-200 hover:border-green-400 hover:bg-green-50"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          disabled={loading}
+                          placeholder="1"
+                          {...field}
+                          className="h-11 text-center border-green-200 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                          min="1"
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                      </FormControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={loading}
+                        onClick={() => field.onChange((field.value as number || 1) + 1)}
+                        className="h-11 w-11 p-0 border-green-200 hover:border-green-400 hover:bg-green-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Description Field */}
+            <div className="mt-4">
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.transportDetails.${transportIndex}.description`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={loading}
+                        placeholder="e.g. Airport to Hotel"
+                        className="h-11 border-green-200 hover:border-green-400 focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-gray-500">
+                      Optional: Add transport details or route information
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        ))}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-4 bg-gradient-to-r from-green-500 to-teal-500 text-white border-0 hover:from-green-600 hover:to-teal-600 focus:ring-2 focus:ring-green-200"
+          disabled={loading}
+          onClick={handleAddTransport}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Transport Detail
+        </Button>
+      </div>
     </div>
   );
 };

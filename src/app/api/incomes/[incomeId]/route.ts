@@ -14,16 +14,15 @@ export async function GET(
 
     if (!params.incomeId) {
       return new NextResponse("Income ID is required", { status: 400 });
-    }
-
-    const income = await prismadb.incomeDetail.findUnique({
+    }    const income = await prismadb.incomeDetail.findUnique({
       where: {
         id: params.incomeId
       },
       include: {
         incomeCategory: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       }
     });
 
@@ -50,9 +49,7 @@ export async function PATCH(
 
     if (!params.incomeId) {
       return new NextResponse("Income ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       incomeCategoryId,
       tourPackageQueryId,
@@ -60,10 +57,9 @@ export async function PATCH(
       amount,
       description,
       bankAccountId,
-      cashAccountId
-    } = body;
-
-    // Get existing income to revert account balances
+      cashAccountId,
+      images
+    } = body;    // Get existing income to revert account balances
     const existingIncome = await prismadb.incomeDetail.findUnique({
       where: { id: params.incomeId },
       include: {
@@ -91,6 +87,24 @@ export async function PATCH(
           currentBalance: existingIncome.cashAccount!.currentBalance - existingIncome.amount
         }
       });
+    }    // Handle image operations if images are provided
+    if (images !== undefined) {
+      // Delete existing images
+      await prismadb.images.deleteMany({
+        where: { incomeDetailsId: params.incomeId }
+      });
+
+      // Create new images
+      if (images && images.length > 0) {
+        for (const url of images) {
+          await prismadb.images.create({
+            data: {
+              url,
+              incomeDetailsId: params.incomeId
+            }
+          });
+        }
+      }
     }
 
     // Update income detail
@@ -105,6 +119,11 @@ export async function PATCH(
         description: description || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
+      },      include: {
+        incomeCategory: true,
+        bankAccount: true,
+        cashAccount: true,
+        images: true
       }
     });
 

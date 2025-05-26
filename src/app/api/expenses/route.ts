@@ -7,9 +7,7 @@ export async function POST(req: Request) {
     const { userId } = auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       expenseCategoryId,
       tourPackageQueryId,
@@ -17,7 +15,8 @@ export async function POST(req: Request) {
       amount,
       description,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Validate required fields
@@ -32,9 +31,7 @@ export async function POST(req: Request) {
     // Ensure either bank or cash account is selected
     if (!bankAccountId && !cashAccountId) {
       return new NextResponse("Either bank or cash account must be selected", { status: 400 });
-    }
-
-    // Create expense detail
+    }    // Create expense detail
     const expenseDetail = await prismadb.expenseDetail.create({
       data: {
         tourPackageQueryId: tourPackageQueryId || null,
@@ -45,7 +42,17 @@ export async function POST(req: Request) {
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
       }
-    });
+    });    // Create images separately if provided
+    if (images && images.length > 0) {
+      for (const url of images) {
+        await prismadb.images.create({
+          data: {
+            url,
+            expenseDetailsId: expenseDetail.id
+          }
+        });
+      }
+    }
 
     // Update account balance
     if (bankAccountId) {
@@ -102,14 +109,13 @@ export async function GET(req: Request) {
     
     if (categoryId) {
       query.expenseCategoryId = categoryId;
-    }
-
-    const expenses = await prismadb.expenseDetail.findMany({
+    }    const expenses = await prismadb.expenseDetail.findMany({
       where: query,
       include: {
         expenseCategory: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       },
       orderBy: {
         expenseDate: 'desc'

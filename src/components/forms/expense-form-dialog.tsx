@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExpenseFormProps } from "@/types";
 import { FormErrorSummary } from "@/components/ui/form-error-summary";
+import ImageUpload from "@/components/ui/image-upload";
 
 const formSchema = z.object({
   expenseDate: z.date({
@@ -65,6 +66,7 @@ const formSchema = z.object({
   accountType: z.string().min(1, {
     message: "Account type is required",
   }),
+  images: z.array(z.string()).default([]),
 });
 
 type ExpenseFormValues = z.infer<typeof formSchema>;
@@ -85,8 +87,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
   // Add this computed value
   const filteredCategories = expenseCategories.filter(category =>
     category.name.toLowerCase().includes(categorySearch.toLowerCase())
-  );
-  let defaultValues: Partial<ExpenseFormValues> = {
+  );  let defaultValues: Partial<ExpenseFormValues> = {
     expenseDate: new Date(),
     amount: 0,
     expenseCategoryId: "",
@@ -94,8 +95,8 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
     tourPackageQueryId: initialData && initialData.tourPackageQueryId ? initialData.tourPackageQueryId : undefined,
     accountId: "",
     accountType: "",
-  };
-  if (initialData && initialData.id) {
+    images: [],
+  };  if (initialData && initialData.id) {
     // Only set these values when we have an existing expense (has an id)
     defaultValues = {
       expenseDate: initialData.expenseDate ? new Date(initialData.expenseDate) : new Date(),
@@ -105,8 +106,9 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
       tourPackageQueryId: initialData.tourPackageQueryId || undefined,
       accountId: initialData.bankAccountId || initialData.cashAccountId || "",
       accountType: initialData.bankAccountId ? "bank" : "cash",
+      images: initialData.images?.map((image: any) => image.url) || [],
     };
-  } else if (initialData && initialData.tourPackageQueryId) {
+  }else if (initialData && initialData.tourPackageQueryId) {
     // If we're creating a new expense for a tour package, just pass the tour package ID
     defaultValues = {
       ...defaultValues,
@@ -145,14 +147,13 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
         toast.error("Account information is required");
         setLoading(false);
         return;
-      }
-
-      // Prepare the API data with correct account type field
+      }      // Prepare the API data with correct account type field
       const apiData = {
         ...data,
         bankAccountId: data.accountType === 'bank' ? data.accountId : null,
         cashAccountId: data.accountType === 'cash' ? data.accountId : null,
-      } as Partial<typeof data & { bankAccountId: string | null; cashAccountId: string | null }>;
+        images: data.images || [],
+      } as Partial<typeof data & { bankAccountId: string | null; cashAccountId: string | null; images: string[] }>;
       delete apiData.accountId;
       delete apiData.accountType;
 
@@ -456,7 +457,39 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                     )}
                   />
                 </div>
-              </div>
+              </div>          </CardContent>
+          </Card>
+
+          {/* Expense Screenshots Section */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200 px-8 py-6">
+              <CardTitle className="text-lg font-semibold text-gray-800 flex items-center">
+                <span className="bg-orange-100 rounded-full p-2 mr-3">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </span>
+                Expense Screenshots
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-8 py-8">
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <ImageUpload
+                        value={field.value}
+                        disabled={loading}
+                        onChange={(url) => field.onChange([...field.value, url])}
+                        onRemove={(url) => field.onChange(field.value.filter((current) => current !== url))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 

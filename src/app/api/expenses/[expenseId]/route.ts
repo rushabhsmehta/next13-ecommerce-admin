@@ -14,16 +14,15 @@ export async function GET(
 
     if (!params.expenseId) {
       return new NextResponse("Expense ID is required", { status: 400 });
-    }
-
-    const expense = await prismadb.expenseDetail.findUnique({
+    }    const expense = await prismadb.expenseDetail.findUnique({
       where: {
         id: params.expenseId
       },
       include: {
         expenseCategory: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       }
     });
 
@@ -50,9 +49,7 @@ export async function PATCH(
 
     if (!params.expenseId) {
       return new NextResponse("Expense ID is required", { status: 400 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       expenseCategoryId,
       tourPackageQueryId,
@@ -60,7 +57,8 @@ export async function PATCH(
       amount,
       description,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Get existing expense to revert account balances
@@ -90,7 +88,24 @@ export async function PATCH(
         data: { 
           currentBalance: existingExpense.cashAccount!.currentBalance + existingExpense.amount
         }
+      });    }    // Handle image operations if images are provided
+    if (images !== undefined) {
+      // Delete existing images
+      await prismadb.images.deleteMany({
+        where: { expenseDetailsId: params.expenseId }
       });
+
+      // Create new images
+      if (images && images.length > 0) {
+        for (const url of images) {
+          await prismadb.images.create({
+            data: {
+              url,
+              expenseDetailsId: params.expenseId
+            }
+          });
+        }
+      }
     }
 
     // Update expense detail
@@ -105,6 +120,11 @@ export async function PATCH(
         description: description || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
+      },      include: {
+        expenseCategory: true,
+        bankAccount: true,
+        cashAccount: true,
+        images: true
       }
     });
 

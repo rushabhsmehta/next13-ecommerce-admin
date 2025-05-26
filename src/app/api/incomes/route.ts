@@ -7,9 +7,7 @@ export async function POST(req: Request) {
     const { userId } = auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const body = await req.json();
+    }    const body = await req.json();
     const { 
       incomeCategoryId,
       tourPackageQueryId,
@@ -17,7 +15,8 @@ export async function POST(req: Request) {
       amount,
       description,
       bankAccountId,
-      cashAccountId
+      cashAccountId,
+      images
     } = body;
 
     // Validate required fields
@@ -32,9 +31,7 @@ export async function POST(req: Request) {
     // Ensure either bank or cash account is selected
     if (!bankAccountId && !cashAccountId) {
       return new NextResponse("Either bank or cash account must be selected", { status: 400 });
-    }
-
-    // Create income detail
+    }    // Create income detail
     const incomeDetail = await prismadb.incomeDetail.create({
       data: {
         tourPackageQueryId: tourPackageQueryId || null,
@@ -46,6 +43,18 @@ export async function POST(req: Request) {
         cashAccountId: cashAccountId || null,
       }
     });
+
+    // Create images separately if provided
+    if (images && images.length > 0) {
+      for (const url of images) {
+        await prismadb.images.create({
+          data: {
+            url,
+            incomeDetailsId: incomeDetail.id
+          }
+        });
+      }
+    }
 
     // Update account balance
     if (bankAccountId) {
@@ -102,14 +111,13 @@ export async function GET(req: Request) {
     
     if (categoryId) {
       query.incomeCategoryId = categoryId;
-    }
-
-    const incomes = await prismadb.incomeDetail.findMany({
+    }    const incomes = await prismadb.incomeDetail.findMany({
       where: query,
       include: {
         incomeCategory: true,
         bankAccount: true,
-        cashAccount: true
+        cashAccount: true,
+        images: true
       },
       orderBy: {
         incomeDate: 'desc'

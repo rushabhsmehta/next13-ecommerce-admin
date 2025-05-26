@@ -431,6 +431,9 @@ model ExpenseDetail {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
+  // Images relation
+  images Images[]
+
   tourPackageQuery TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade) // Made relation optional
   bankAccountId    String?
   bankAccount      BankAccount?      @relation(fields: [bankAccountId], references: [id])
@@ -760,6 +763,12 @@ model Images {
   receiptDetailsId String?
   receiptDetails   ReceiptDetail? @relation(fields: [receiptDetailsId], references: [id], onDelete: Cascade)
 
+  incomeDetailsId String?
+  incomeDetails   IncomeDetail? @relation(fields: [incomeDetailsId], references: [id], onDelete: Cascade)
+
+  expenseDetailsId String?
+  expenseDetails   ExpenseDetail? @relation(fields: [expenseDetailsId], references: [id], onDelete: Cascade)
+
   @@index([hotelId])
   @@index([itinerariesId])
   @@index([itinerariesMasterId])
@@ -769,6 +778,8 @@ model Images {
   @@index([tourPackageQueryId])
   @@index([paymentDetailsId])
   @@index([receiptDetailsId])
+  @@index([incomeDetailsId])
+  @@index([expenseDetailsId])
 }
 
 model Customer {
@@ -972,7 +983,13 @@ model IncomeDetail {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Images relation
+  images Images[]
+
   @@index([incomeCategoryId])
+  @@index([tourPackageQueryId])
+  @@index([bankAccountId])
+  @@index([cashAccountId])
 }
 
 model IncomeCategory {

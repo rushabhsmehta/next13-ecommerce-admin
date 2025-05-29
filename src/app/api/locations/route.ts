@@ -64,22 +64,7 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {    // Fetch all locations with all fields
-    const locations = await prismadb.location.findMany({
-      select: {
-        id: true,
-        label: true,
-        imageUrl: true,
-        tags: true,
-        slug: true,
-        inclusions: true,
-        exclusions: true,
-        importantNotes: true,
-        paymentPolicy: true,
-        usefulTip: true,        cancellationPolicy: true,
-        airlineCancellationPolicy: true,
-        termsconditions: true,
-      } as any,
-    });
+    const locations = await prismadb.location.findMany();
 
     return NextResponse.json(locations);
   } catch (error) {

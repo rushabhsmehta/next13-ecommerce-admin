@@ -9,25 +9,9 @@ export async function GET(
   try {
     if (!params.locationId) {
       return new NextResponse("Location ID is required", { status: 400 });
-    }
-
-    const location = await prismadb.location.findUnique({
+    }    const location = await prismadb.location.findUnique({
       where: {
         id: params.locationId,
-      },      select: {
-        id: true,
-        label: true,
-        imageUrl: true,
-        tags: true,
-        slug: true,
-        inclusions: true,
-        exclusions: true,
-        importantNotes: true,
-        paymentPolicy: true,
-        usefulTip: true,
-        cancellationPolicy: true,
-        airlineCancellationPolicy: true,
-        termsconditions: true,
       },
     });
 

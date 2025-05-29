@@ -20,9 +20,15 @@ interface PolicyListFieldProps {
 // Helper function to convert string array to PolicyItem array
 const stringArrayToPolicyItems = (items: string[]): PolicyItem[] => {
   return items.map(item => {
-    // Simple heuristic: if the item is long, treat as paragraph, otherwise bullet
+    // Determine if an item should be a bullet point based on length and content
+    // Short items or items without detailed sentences are likely bullet points
+    const isMultiSentence = item.includes('. ');
+    const isLongSentence = item.length > 80;
+    const containsColon = item.includes(':');
+    const isParagraph = isMultiSentence || isLongSentence || containsColon;
+    
     return {
-      type: item.length > 50 ? 'paragraph' : 'bullet',
+      type: isParagraph ? 'paragraph' : 'bullet',
       text: item
     };
   });

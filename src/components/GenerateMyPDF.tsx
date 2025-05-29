@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable jsx-a11y/alt-text */
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Link } from '@react-pdf/renderer';
 import htmlReactParser, { DOMNode, Element, Text as HtmlTextNode } from 'html-react-parser';
@@ -412,8 +413,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
             </View>
           )}
 
-          <View style={styles.imagesContainer}>
-            {data?.images.map((image, index) => (
+          <View style={styles.imagesContainer}>            {data?.images.map((image, index) => (
               <Image
                 key={index}
                 src={image.url}

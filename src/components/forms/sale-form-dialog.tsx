@@ -1,7 +1,7 @@
 "use client";
 
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
@@ -127,9 +127,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     control: form.control,
     name: "items"
   });
-
   // Enhanced recalculate totals function with bidirectional calculation
-  const recalculateTotals = (changedField?: string) => {
+  const recalculateTotals = useCallback((changedField?: string) => {
     if (isCalculating) return;
 
     setIsCalculating(true);
@@ -224,11 +223,10 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
           shouldDirty: true,
           shouldTouch: false
         });
-      });
-    } finally {
+      });    } finally {
       setIsCalculating(false);
     }
-  };
+  }, [isCalculating, form, taxSlabs]);
 
   // Delay calculation until field loses focus instead of on every keystroke
   useEffect(() => {
@@ -245,16 +243,14 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
         setTimeout(() => recalculateTotals(name), 10);
       }
     });
-    
-    return () => subscription.unsubscribe();
-  }, [form, isCalculating, fields.length]);
-
+      return () => subscription.unsubscribe();
+  }, [form, isCalculating, fields.length, recalculateTotals]);
   // For item length changes
   useEffect(() => {
     if (fields.length > 0) {
       recalculateTotals();
     }
-  }, [fields.length]);
+  }, [fields.length, recalculateTotals]);
 
   const onSubmit = async (data: FormValues) => {
     try {

@@ -1,7 +1,7 @@
 "use client";
 
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
@@ -135,9 +135,8 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     control: form.control,
     name: "items"
   });
-
   // Enhanced recalculate totals function
-  const recalculateTotals = (changedField?: string) => {
+  const recalculateTotals = useCallback((changedField?: string) => {
     if (isCalculating) return;
 
     setIsCalculating(true);
@@ -231,11 +230,10 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
           shouldDirty: true,
           shouldTouch: false
         });
-      });
-    } finally {
+      });    } finally {
       setIsCalculating(false);
     }
-  };
+  }, [isCalculating, form, taxSlabs]);
 
   // Delay calculation until field loses focus instead of on every keystroke
   useEffect(() => {
@@ -251,17 +249,13 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
       if (name.includes('taxSlabId') || name.includes('quantity')) {
         setTimeout(() => recalculateTotals(name), 10);
       }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [form, isCalculating, fields.length]);
-  // For item length changes
+    });    return () => subscription.unsubscribe();
+  }, [form, isCalculating, fields.length, recalculateTotals]);  // For item length changes
   useEffect(() => {
     if (fields.length > 0) {
       recalculateTotals();
     }
-  }, [fields.length]);
-
+  }, [fields.length, recalculateTotals]);
   // Recalculate totals when the form initially loads with purchase data
   useEffect(() => {
     if (initialData?.id) {
@@ -271,7 +265,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [initialData?.id]);
+  }, [initialData?.id, recalculateTotals]);
 
   const onSubmit = async (data: FormValues) => {
     try {

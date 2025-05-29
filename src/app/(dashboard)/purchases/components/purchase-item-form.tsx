@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -158,9 +158,8 @@ export const PurchaseItemsForm: React.FC<PurchaseItemsFormProps> = ({
     control: form.control,
     name: "items",
   });
-
   // Recalculate line item values when inputs change
-  const recalculateLineItem = (index: number) => {
+  const recalculateLineItem = useCallback((index: number) => {
     const items = form.getValues("items");
     const item = items[index];
     
@@ -195,11 +194,10 @@ export const PurchaseItemsForm: React.FC<PurchaseItemsFormProps> = ({
       taxAmount = calculateTaxAmount(priceAfterDiscount, selectedTaxSlab.percentage);
       form.setValue(`items.${index}.taxAmount`, taxAmount);
     }
-    
-    // Calculate final total amount
+      // Calculate final total amount
     const totalAmount = priceAfterDiscount + taxAmount;
     form.setValue(`items.${index}.totalAmount`, totalAmount);
-  };
+  }, [form, taxSlabs]);
 
   // Watch for changes to fields that require recalculation
   useEffect(() => {
@@ -212,9 +210,8 @@ export const PurchaseItemsForm: React.FC<PurchaseItemsFormProps> = ({
         }
       }
     });
-    
-    return () => subscription.unsubscribe();
-  }, [form.watch]);
+      return () => subscription.unsubscribe();
+  }, [form, recalculateLineItem]);
 
   // Calculate the form totals
   const calculateTotals = () => {

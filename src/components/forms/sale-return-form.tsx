@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -154,8 +154,7 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
       reference: "",
       status: "pending",
       items: []
-    }
-  });
+    }  });
 
   // Setup field array for items
   const { fields, append, remove } = useFieldArray({
@@ -163,15 +162,8 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
     name: "items"
   });
 
-  // Load sale details if selectedSaleId is set
-  useEffect(() => {
-    if (selectedSaleId && !initialData) {
-      handleSaleChange(selectedSaleId);
-    }
-  }, [selectedSaleId]);
-
   // Fetch sale items when sale is selected
-  const handleSaleChange = async (saleId: string) => {
+  const handleSaleChange = useCallback(async (saleId: string) => {
     try {
       const response = await axios.get(`/api/sales/${saleId}`);
       const saleData = response.data;
@@ -210,7 +202,14 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
       console.error("Error fetching sale items", error);
       toast.error("Failed to fetch sale details");
     }
-  };
+  }, [fields.length, remove, append, form, initialData]);
+
+  // Load sale details if selectedSaleId is set
+  useEffect(() => {
+    if (selectedSaleId && !initialData) {
+      handleSaleChange(selectedSaleId);
+    }
+  }, [selectedSaleId, handleSaleChange, initialData]);
   // Handle amount change
   const handleAmountChange = (newAmount: number) => {
     // Update the amount field
@@ -219,9 +218,8 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
     // Optionally trigger recalculation if needed
     setTimeout(() => recalculateTotals(), 10);
   };
-
   // Recalculate totals when items change
-  const recalculateTotals = (changedFieldName?: string) => {
+  const recalculateTotals = useCallback((changedFieldName?: string) => {
     if (isCalculating) return;
     setIsCalculating(true);
     
@@ -270,7 +268,7 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
     } finally {
       setIsCalculating(false);
     }
-  };
+  }, [isCalculating, form, taxSlabs]);
 
   // Watch for changes to fields that affect calculations
   useEffect(() => {
@@ -279,16 +277,14 @@ export const SaleReturnForm: React.FC<SaleReturnFormProps> = ({
         setTimeout(() => recalculateTotals(name), 10);
       }
     });
-    
-    return () => subscription.unsubscribe();
-  }, [form, isCalculating, fields.length]);
-
+      return () => subscription.unsubscribe();
+  }, [form, isCalculating, fields.length, recalculateTotals]);
   // For item length changes
   useEffect(() => {
     if (fields.length > 0) {
       recalculateTotals();
     }
-  }, [fields.length]);
+  }, [fields.length, recalculateTotals]);
   // Form submission handler
   const onSubmit = async (data: FormValues) => {
     try {

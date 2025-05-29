@@ -204,9 +204,8 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
               form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
               break;            case 'termsconditions':
               form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-              break;
-            case 'kitchenGroupPolicy':
-              form.setValue('kitchenGroupPolicy', parseJsonField(selectedLocation.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
+              break;            case 'kitchenGroupPolicy':
+              form.setValue('kitchenGroupPolicy', parseJsonField((selectedLocation as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
               break;
           }
         }
@@ -880,9 +879,8 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                           form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
                                         }                                        if (useLocationDefaults.termsconditions) {
                                           form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.kitchenGroupPolicy) {
-                                          form.setValue('kitchenGroupPolicy', parseJsonField(location.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
+                                        }                                        if (useLocationDefaults.kitchenGroupPolicy) {
+                                          form.setValue('kitchenGroupPolicy', parseJsonField((location as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
                                         }
                                         const currentItineraries = form.getValues('itineraries');
                                         const updatedItineraries = currentItineraries.map(itinerary => ({
@@ -1765,9 +1763,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                             onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
                             switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
                             placeholder="Add cancellation policy item..."
-                          />
-  
-                          <PolicyField
+                          />                          <PolicyField
                             control={form.control}
                             name="airlineCancellationPolicy"
                             label="Airline Cancellation Policy"
@@ -1776,6 +1772,17 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                             onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
                             switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
                             placeholder="Add airline cancellation policy item..."
+                          />
+
+                          <PolicyField
+                            control={form.control}
+                            name="kitchenGroupPolicy"
+                            label="Kitchen Group Policy"
+                            loading={loading}
+                            checked={useLocationDefaults.kitchenGroupPolicy}
+                            onCheckedChange={(checked) => handleUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
+                            switchDescription="Use Switch to Copy Kitchen Group Policy from the Selected Location"
+                            placeholder="Add kitchen group policy item..."
                           />
                         </div>
                       </TabsContent>

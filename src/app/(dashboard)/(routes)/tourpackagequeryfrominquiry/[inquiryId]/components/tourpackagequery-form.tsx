@@ -69,7 +69,7 @@ import PoliciesTab from '@/components/tour-package-query/PoliciesTab';
 import PricingTab from '@/components/tour-package-query/PricingTab';
 import { RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Ensure types are imported
 import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
-import { TOUR_HIGHLIGHTS_DEFAULT, INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues"
+import { TOUR_HIGHLIGHTS_DEFAULT, INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues"
 
 // Define the pricing item schema
 const activitySchema = z.object({
@@ -168,10 +168,10 @@ const formSchema = z.object({
 
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
-  locationId: z.string().min(1),
-  flightDetails: flightDetailsSchema.array(),
+  locationId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
+  kitchenGroupPolicy: z.array(z.string()),
   importantNotes: z.array(z.string()),
   paymentPolicy: z.array(z.string()),
   usefulTip: z.array(z.string()),
@@ -253,8 +253,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   const [openTemplate, setOpenTemplate] = useState(false);
   const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const editor = useRef(null);
-
-  // Keep state handlers but remove initialData related code
+  // Keep state handlers but remove initialData related code  
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -264,6 +263,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     cancellationPolicy: false,
     airlineCancellationPolicy: false,
     termsconditions: false,
+    kitchenGroupPolicy: false,
   });
   const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
   const [lookupLoading, setLookupLoading] = useState(true); // Initialize as true

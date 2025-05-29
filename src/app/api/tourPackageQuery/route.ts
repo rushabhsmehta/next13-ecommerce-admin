@@ -105,8 +105,7 @@ export async function POST(
     try {
         const { userId } = auth();
 
-        const body = await req.json();
-        const {
+        const body = await req.json();        const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -146,6 +145,7 @@ export async function POST(
             cancellationPolicy,
             airlineCancellationPolicy,
             termsconditions,
+            kitchenGroupPolicy,
             images,
             itineraries,
             assignedTo,
@@ -179,9 +179,7 @@ export async function POST(
         /*    if (!hotelId) {
                return new NextResponse("Hotel id is required", { status: 400 });
            }
-    */
-
-        // Process policy fields to ensure they're arrays, then convert to strings for Prisma
+    */        // Process policy fields to ensure they're arrays, then convert to strings for Prisma
         const processedInclusions = Array.isArray(inclusions) ? JSON.stringify(inclusions) : inclusions ? JSON.stringify([inclusions]) : '';
         const processedExclusions = Array.isArray(exclusions) ? JSON.stringify(exclusions) : exclusions ? JSON.stringify([exclusions]) : '';
         const processedImportantNotes = Array.isArray(importantNotes) ? JSON.stringify(importantNotes) : importantNotes ? JSON.stringify([importantNotes]) : '';
@@ -190,6 +188,7 @@ export async function POST(
         const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : cancellationPolicy ? JSON.stringify([cancellationPolicy]) : '';
         const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : airlineCancellationPolicy ? JSON.stringify([airlineCancellationPolicy]) : '';
         const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : '';
+        const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : kitchenGroupPolicy ? JSON.stringify([kitchenGroupPolicy]) : '';
 
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
@@ -226,8 +225,7 @@ export async function POST(
                 totalPrice,
                 pricingSection, // Add this line
                 remarks,
-                //  hotelDetails,
-                inclusions: processedInclusions,
+                //  hotelDetails,                inclusions: processedInclusions,
                 exclusions: processedExclusions,
                 importantNotes: processedImportantNotes,
                 paymentPolicy: processedPaymentPolicy,
@@ -235,6 +233,7 @@ export async function POST(
                 cancellationPolicy: processedCancellationPolicy,
                 airlineCancellationPolicy: processedAirlineCancellationPolicy,
                 termsconditions: processedTermsConditions,
+                kitchenGroupPolicy: processedKitchenGroupPolicy,
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
@@ -251,9 +250,8 @@ export async function POST(
                     createMany: {
                         data: [
                             ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
-                    }
-                },
-            },
+                    }                },
+            } as any,
         }
         )
 

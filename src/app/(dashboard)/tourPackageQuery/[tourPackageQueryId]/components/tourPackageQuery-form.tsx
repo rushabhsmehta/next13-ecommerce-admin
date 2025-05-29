@@ -83,7 +83,7 @@ import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Upda
 import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
 import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 
 // Define the pricing item schema
@@ -185,10 +185,10 @@ const formSchema = z.object({
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
-  locationId: z.string().min(1, "Location is required"),
-  flightDetails: flightDetailsSchema.array(),
+  locationId: z.string().min(1, "Location is required"),  flightDetails: flightDetailsSchema.array(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
+  kitchenGroupPolicy: z.array(z.string()),
   importantNotes: z.array(z.string()),
   paymentPolicy: z.array(z.string()),
   usefulTip: z.array(z.string()),
@@ -278,7 +278,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     (window as any).setPriceCalculationResult = setPriceCalculationResult;
     (window as any).priceCalculationResult = priceCalculationResult;
   }, [priceCalculationResult]);
-
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -288,6 +287,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     cancellationPolicy: false,
     airlineCancellationPolicy: false,
     termsconditions: false,
+    kitchenGroupPolicy: false,
   });
 
   const parsePricingSection = (data: any): Array<{ name: string, price: string, description?: string }> => {
@@ -418,12 +418,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       ...transformInitialData(initialData),
       selectedTemplateId: initialData.selectedTemplateId || '',
       selectedTemplateType: initialData.selectedTemplateType || '',
-      tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
-      selectedMealPlanId: initialData.selectedMealPlanId || '',
-      occupancySelections: initialData.occupancySelections || [],
-
-      inclusions: parseJsonField(initialData.inclusions),
+      tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',      selectedMealPlanId: initialData.selectedMealPlanId || '',
+      occupancySelections: initialData.occupancySelections || [],      inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
+      kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(initialData.importantNotes),
       paymentPolicy: parseJsonField(initialData.paymentPolicy),
       usefulTip: parseJsonField(initialData.usefulTip),
@@ -453,9 +451,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       numChild0to5: '',
       totalPrice: '',
       remarks: '',
-      flightDetails: [],
-      inclusions: INCLUSIONS_DEFAULT,
+      flightDetails: [],      inclusions: INCLUSIONS_DEFAULT,
       exclusions: EXCLUSIONS_DEFAULT,
+      kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: IMPORTANT_NOTES_DEFAULT,
       paymentPolicy: PAYMENT_TERMS_DEFAULT,
       usefulTip: USEFUL_TIPS_DEFAULT,

@@ -159,10 +159,10 @@ export async function PATCH(
       exclusions,
       importantNotes,
       paymentPolicy,
-      usefulTip,
-      cancellationPolicy,
+      usefulTip,      cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
+      kitchenGroupPolicy,
       //disclaimer,
       // hotelId,
       images,
@@ -210,22 +210,20 @@ export async function PATCH(
     const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
     const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
     const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy : paymentPolicy ? [paymentPolicy] : [];
-    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];
-    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
+    const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip : usefulTip ? [usefulTip] : [];    const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
+    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
     
     // Convert arrays to JSON strings for Prisma
     const inclusionsString = JSON.stringify(processedInclusions);
     const exclusionsString = JSON.stringify(processedExclusions);
     const importantNotesString = JSON.stringify(processedImportantNotes);
     const paymentPolicyString = JSON.stringify(processedPaymentPolicy);
-    const usefulTipString = JSON.stringify(processedUsefulTip);
-    const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
+    const usefulTipString = JSON.stringify(processedUsefulTip);    const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
     const airlineCancellationPolicyString = JSON.stringify(processedAirlineCancellationPolicy);
     const termsConditionsString = JSON.stringify(processedTermsConditions);
-
-    const tourPackageUpdateData = {
+    const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);    const tourPackageUpdateData = {
       //  await prismadb.tourPackage.update({
       //  where: {
       //    id: params.tourPackageId
@@ -249,6 +247,7 @@ export async function PATCH(
       cancellationPolicy: cancellationPolicyString,
       airlineCancellationPolicy: airlineCancellationPolicyString,
       termsconditions: termsConditionsString,
+      kitchenGroupPolicy: kitchenGroupPolicyString,
       pricePerChildwithSeatBelow5Years,
       totalPrice,
       pricingSection, // Add this line
@@ -270,20 +269,18 @@ export async function PATCH(
 
       itineraries: {
         deleteMany: {},
-      },
-
-      flightDetails : {
+      },      flightDetails : {
         deleteMany : {},
         createMany: {
           data: [
               ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
       }
       }
-    }
+    };
 
     await prismadb.tourPackage.update({
       where: { id: params.tourPackageId },
-      data: tourPackageUpdateData
+      data: tourPackageUpdateData as any
     });
 
 

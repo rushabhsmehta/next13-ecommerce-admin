@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import JoditEditor from "jodit-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -128,11 +128,11 @@ const formSchema = z.object({
   remarks: z.string().optional(),
   locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),
-  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
+  kitchenGroupPolicy: z.array(z.string()),
   importantNotes: z.array(z.string()),
   paymentPolicy: z.array(z.string()),
   usefulTip: z.array(z.string()),
@@ -189,7 +189,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   const editor = useRef(null)
-
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -199,6 +198,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     cancellationPolicy: false,
     airlineCancellationPolicy: false,
     termsconditions: false,
+    kitchenGroupPolicy: false,
   });
 
   
@@ -251,9 +251,11 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
             break;
           case 'airlineCancellationPolicy':
             form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-            break;
-          case 'termsconditions':
+            break;          case 'termsconditions':
             form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+            break;
+          case 'kitchenGroupPolicy':
+            form.setValue('kitchenGroupPolicy', parseJsonField(selectedLocation.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
             break;
         }
       }
@@ -317,9 +319,9 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
       pricePerChild5to12YearsNoBed: data.pricePerChild5to12YearsNoBed || '',
       pricePerChildwithSeatBelow5Years: data.pricePerChildwithSeatBelow5Years || '',
       totalPrice: data.totalPrice || '',
-      disclaimer: data.disclaimer || '',
-      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      disclaimer: data.disclaimer || '',      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
       exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
+      kitchenGroupPolicy: parseJsonField(data.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
       paymentPolicy: parseJsonField(data.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
       usefulTip: parseJsonField(data.usefulTip) || USEFUL_TIPS_DEFAULT,
@@ -367,15 +369,15 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
 
 
     flightDetails: [],
-    // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT,
+    // hotelDetails: '',    inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
     importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
-    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,  
+    termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
     pricingSection: DEFAULT_PRICING_SECTION,
     disclaimer: DISCLAIMER_DEFAULT,
 
@@ -1019,9 +1021,11 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                       }
                                       if (useLocationDefaults.airlineCancellationPolicy) {
                                         form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-                                      }
-                                      if (useLocationDefaults.termsconditions) {
+                                      }                                      if (useLocationDefaults.termsconditions) {
                                         form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+                                      }
+                                      if (useLocationDefaults.kitchenGroupPolicy) {
+                                        form.setValue('kitchenGroupPolicy', parseJsonField(location.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
                                       }
                                       const currentItineraries = form.getValues('itineraries');
                                       const updatedItineraries = currentItineraries.map(itinerary => ({

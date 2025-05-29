@@ -93,6 +93,19 @@ export const USEFUL_TIPS_DEFAULT = [
   "We reserve the right to issue a full refund in case we believe that we are unable to fulfil the services for any technical reasons."
 ];
 
+export const KITCHEN_GROUP_POLICY_DEFAULT = [
+  "Kitchen services are arranged only if at least 25 persons travel together.",
+  "Breakfast and Dinner are provided. Lunch and Hi-Tea are subject to feasibility.",
+  "Menu is flexible based on ingredient availability and sourcing.",
+  "Kitchen operates until 10:00 PM. Guests should adhere to meal timings.",
+  "Final menu decisions rest with the head cook/chef.",
+  "Maintain hygiene and discipline in dining/kitchen areas.",
+  "Cooking area is restricted to authorized staff only.",
+  "Inform dietary needs (e.g., Jain food, allergies) in advance. Fulfillment depends on feasibility.",
+  "Guests are requested to avoid food wastage.",
+  "In emergency/unforeseen cases, kitchen services may be paused or altered."
+];
+
 export const CANCELLATION_POLICY_DEFAULT = [
   "Air/Rail Fare: As Per Airlines/Rail Policy",
   "Land Package:",

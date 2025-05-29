@@ -1,4 +1,6 @@
+// Import the Prisma client
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const { exec } = require('child_process');
 const path = require('path');
 

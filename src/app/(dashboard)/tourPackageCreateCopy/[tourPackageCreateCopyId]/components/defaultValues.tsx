@@ -111,8 +111,20 @@ export const TERMS_AND_CONDITIONS_DEFAULT = [
   "∎ Check-in and check-out times at hotels would be as per hotel policies. Early check-in or late check-out is subject to availability and may be chargeable by the hotel.",
   "∎ The price does not include expenses of personal nature, such as laundry, telephone calls, room service, alcoholic beverages, mini bar charges, tips, portage, camera fees etc.",
   "∎ AAGAM HOLIDAYS reserves the right to modify the itinerary at any point, due to reasons including but not limited to: Force Majeure events, strikes, fairs, festivals, weather conditions, traffic problems, overbooking of hotels/flights, cancellation/re-routing of flights, closure of/entry restrictions at a place of visit, etc. While we will do our best to make suitable alternate arrangements, we would not be held liable for any refunds/compensation claims arising out of this.",
-  "∎ In case a flight gets cancelled, AAGAM HOLIDAYS will not be liable to provide any alternate flights within the same cost, any additional cost incurred for the same shall be borne by the traveler.",
-  "∎ In Case of any Health AAGAM HOLIDAYS will not be liable to provide any refunds and in case of Medical Emergencies all the medical expenses will be liable by the customer."
+  "∎ In case a flight gets cancelled, AAGAM HOLIDAYS will not be liable to provide any alternate flights within the same cost, any additional cost incurred for the same shall be borne by the traveler.",  "∎ In Case of any Health AAGAM HOLIDAYS will not be liable to provide any refunds and in case of Medical Emergencies all the medical expenses will be liable by the customer."
+];
+
+export const KITCHEN_GROUP_POLICY_DEFAULT = [
+  "Kitchen services are arranged only if at least 25 persons travel together.",
+  "Breakfast and Dinner are provided. Lunch and Hi-Tea are subject to feasibility.",
+  "Menu is flexible based on ingredient availability and sourcing.",
+  "Kitchen operates until 10:00 PM. Guests should adhere to meal timings.",
+  "Final menu decisions rest with the head cook/chef.",
+  "Maintain hygiene and discipline in dining/kitchen areas.",
+  "Cooking area is restricted to authorized staff only.",
+  "Inform dietary needs (e.g., Jain food, allergies) in advance. Fulfillment depends on feasibility.",
+  "Guests are requested to avoid food wastage.",
+  "In emergency/unforeseen cases, kitchen services may be paused or altered."
 ];
 
 export const TOUR_HIGHLIGHTS_DEFAULT = "";

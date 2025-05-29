@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -110,11 +110,11 @@ const formSchema = z.object({
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),
-  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
+  kitchenGroupPolicy: z.array(z.string()),
   importantNotes: z.array(z.string()).optional(),
   paymentPolicy: z.array(z.string()),
   usefulTip: z.array(z.string()),
@@ -175,6 +175,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     cancellationPolicy: false,
     airlineCancellationPolicy: false,
     termsconditions: false,
+    kitchenGroupPolicy: false,
   });
 
   const [useDefaultPricing, setUseDefaultPricing] = useState(false);
@@ -205,9 +206,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             break;
           case 'airlineCancellationPolicy':
             form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-            break;
-          case 'termsconditions':
+            break;          case 'termsconditions':
             form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+            break;          case 'kitchenGroupPolicy':
+            form.setValue('kitchenGroupPolicy', parseJsonField((selectedLocation as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
             break;
         }
       }
@@ -308,9 +310,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
         }))
-      })),
-      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      })),      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
       exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
+      kitchenGroupPolicy: parseJsonField(data.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
       paymentPolicy: parseJsonField(data.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
       usefulTip: parseJsonField(data.usefulTip) || USEFUL_TIPS_DEFAULT,
@@ -341,9 +343,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     assignedToEmail: '',
     slug: '',
     flightDetails: [],
-    // hotelDetails: '',
-    inclusions: INCLUSIONS_DEFAULT,
+    // hotelDetails: '',    inclusions: INCLUSIONS_DEFAULT,
     exclusions: EXCLUSIONS_DEFAULT,
+    kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
     importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
@@ -963,9 +965,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                       }
                                       if (useLocationDefaults.airlineCancellationPolicy) {
                                         form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-                                      }
-                                      if (useLocationDefaults.termsconditions) {
+                                      }                                      if (useLocationDefaults.termsconditions) {
                                         form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+                                      }                                      if (useLocationDefaults.kitchenGroupPolicy) {
+                                        form.setValue('kitchenGroupPolicy', parseJsonField((location as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
                                       }
                                       const currentItineraries = form.getValues('itineraries');
                                       const updatedItineraries = currentItineraries.map(itinerary => ({
@@ -1857,9 +1860,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('cancellationPolicy', checked)}
                           switchDescription="Use Switch to Copy Cancellation Policy from the Selected Location"
                           placeholder="Add cancellation policy item..."
-                        />
-
-                        <PolicyField
+                        />                        <PolicyField
                           control={form.control}
                           name="airlineCancellationPolicy"
                           label="Airline Cancellation Policy"
@@ -1868,6 +1869,17 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           onCheckedChange={(checked) => handleUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
                           switchDescription="Use Switch to Copy Airline Cancellation Policy from the Selected Location"
                           placeholder="Add airline cancellation policy item..."
+                        />
+
+                        <PolicyField
+                          control={form.control}
+                          name="kitchenGroupPolicy"
+                          label="Kitchen Group Policy"
+                          loading={loading}
+                          checked={useLocationDefaults.kitchenGroupPolicy}
+                          onCheckedChange={(checked) => handleUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
+                          switchDescription="Use Switch to Copy Kitchen Group Policy from the Selected Location"
+                          placeholder="Add kitchen group policy item..."
                         />
                       </div>
                     </TabsContent>

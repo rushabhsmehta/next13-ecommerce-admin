@@ -10,8 +10,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthenticated", { status: 403 });
     }
 
-    const body = await req.json();
-    const {
+    const body = await req.json();    const {
       label,
       imageUrl,
       tags,
@@ -24,13 +23,12 @@ export async function POST(req: Request) {
       cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
+      kitchenGroupPolicy,
     } = body;
 
     // Validation
     if (!label) return new NextResponse("Label is required", { status: 400 });
-    if (!imageUrl) return new NextResponse("Image URL is required", { status: 400 });
-
-    // Ensure list fields are valid arrays or convert strings to arrays
+    if (!imageUrl) return new NextResponse("Image URL is required", { status: 400 });    // Ensure list fields are valid arrays or convert strings to arrays
     const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
     const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
     const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
@@ -39,8 +37,7 @@ export async function POST(req: Request) {
     const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
-
-    // Create new location entry
+    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];    // Create new location entry
     const location = await prismadb.location.create({
       data: {
         label,
@@ -51,11 +48,11 @@ export async function POST(req: Request) {
         exclusions: processedExclusions,
         importantNotes: processedImportantNotes,
         paymentPolicy: processedPaymentPolicy,
-        usefulTip: processedUsefulTip,
-        cancellationPolicy: processedCancellationPolicy,
+        usefulTip: processedUsefulTip,        cancellationPolicy: processedCancellationPolicy,
         airlineCancellationPolicy: processedAirlineCancellationPolicy,
         termsconditions: processedTermsConditions,
-      },
+        kitchenGroupPolicy: processedKitchenGroupPolicy,
+      } as any,
     });
 
     return NextResponse.json(location);
@@ -66,8 +63,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  try {
-    // Fetch all locations with all fields
+  try {    // Fetch all locations with all fields
     const locations = await prismadb.location.findMany({
       select: {
         id: true,
@@ -79,11 +75,10 @@ export async function GET(req: Request) {
         exclusions: true,
         importantNotes: true,
         paymentPolicy: true,
-        usefulTip: true,
-        cancellationPolicy: true,
+        usefulTip: true,        cancellationPolicy: true,
         airlineCancellationPolicy: true,
         termsconditions: true,
-      },
+      } as any,
     });
 
     return NextResponse.json(locations);

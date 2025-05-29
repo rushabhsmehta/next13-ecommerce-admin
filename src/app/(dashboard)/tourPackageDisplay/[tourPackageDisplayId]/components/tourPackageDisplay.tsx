@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
+import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackage, Itinerary, FlightDetails, Activity } from "@prisma/client";
 import Link from 'next/link';
@@ -61,7 +61,6 @@ const parsePricingSection = (pricingData: any): Array<{ name: string, price?: st
 // Update the PolicySection component with larger font sizes
 const PolicySection = ({ title, items }: { title: string; items: string[] }) => {
   if (!items || items.length === 0) return null;
-
   // Determine the icon based on the title
   const getIcon = () => {
     switch (title) {
@@ -69,6 +68,7 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
       case "Exclusions": return <XCircleIcon className="h-7 w-7" />;
       case "Important Notes": return <InfoIcon className="h-7 w-7" />;
       case "Payment Policy": return <CreditCardIcon className="h-7 w-7" />;
+      case "Kitchen Group Policy": return <ChefHatIcon className="h-7 w-7" />;
       case "Useful Tips": return <InfoIcon className="h-7 w-7" />;
       case "Cancellation Policy": return <XCircleIcon className="h-7 w-7" />;
       case "Airline Cancellation Policy": return <PlaneIcon className="h-7 w-7" />;
@@ -563,11 +563,11 @@ export const TourPackageDisplay: React.FC<TourPackageDisplayProps> = ({
         <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 text-center">
           <CardTitle className="text-4xl font-bold">Policies & Terms</CardTitle>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
+        <CardContent className="p-6 space-y-6">          <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
           <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
           <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
           <PolicySection title="Payment Policy" items={parsePolicyField(initialData.paymentPolicy)} />
+          <PolicySection title="Kitchen Group Policy" items={parsePolicyField(initialData.kitchenGroupPolicy)} />
           <PolicySection title="Useful Tips" items={parsePolicyField(initialData.usefulTip)} />
           <PolicySection title="Cancellation Policy" items={parsePolicyField(initialData.cancellationPolicy)} />
           <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />

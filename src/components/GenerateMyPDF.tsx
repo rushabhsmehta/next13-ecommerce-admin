@@ -783,6 +783,14 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           </View>
         )}
 
+        {/* Kitchen Group Policy Section */}
+        {data.kitchenGroupPolicy && (
+          <View wrap={false} style={styles.card}>
+            <Text style={styles.title}>Kitchen Group Policy</Text>
+            <Text style={styles.text} > {parseHTMLContent(handlePolicyContent(data.kitchenGroupPolicy))} </Text>
+          </View>
+        )}
+
         {/* Useful Tips Section */}
         {data.usefulTip && (
           <View wrap={false} style={styles.card}>

@@ -1,7 +1,7 @@
 'use client'
 import Image from 'next/image';
 import Link from 'next/link';
-import { CheckCircleIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
+import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner, RoomAllocation, TransportDetail } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
@@ -109,11 +109,11 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
 
   // Determine the icon based on the title
   const getIcon = () => {
-    switch (title) {
-      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
+    switch (title) {      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
       case "Exclusions": return <XCircleIcon className="h-7 w-7" />;
       case "Important Notes": return <InfoIcon className="h-7 w-7" />;
       case "Payment Policy": return <CreditCardIcon className="h-7 w-7" />;
+      case "Kitchen Group Policy": return <ChefHatIcon className="h-7 w-7" />;
       case "Useful Tips": return <InfoIcon className="h-7 w-7" />;
       case "Cancellation Policy": return <XCircleIcon className="h-7 w-7" />;
       case "Airline Cancellation Policy": return <PlaneIcon className="h-7 w-7" />;
@@ -871,6 +871,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
           <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
           <PolicySection title="Payment Policy" items={parsePolicyField(initialData.paymentPolicy)} />
+          <PolicySection title="Kitchen Group Policy" items={parsePolicyField(initialData.kitchenGroupPolicy)} />
           <PolicySection title="Useful Tips" items={parsePolicyField(initialData.usefulTip)} />
           <PolicySection title="Cancellation Policy" items={parsePolicyField(initialData.cancellationPolicy)} />
           <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />

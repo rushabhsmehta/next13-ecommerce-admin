@@ -125,10 +125,10 @@ const formSchema = z.object({
   pricePerChildwithSeatBelow5Years: z.string().optional(),
   totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
-  remarks: z.string().optional(),
-  locationId: z.string().min(1),
+  remarks: z.string().optional(),  locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),
+  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),

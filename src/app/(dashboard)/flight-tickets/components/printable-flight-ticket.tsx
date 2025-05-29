@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ArrowLeft, Download, Printer, Plane, Users } from "lucide-react";
 import QRCode from "react-qr-code";
 import jsPDF from "jspdf";
@@ -36,10 +37,9 @@ export const PrintableFlightTicket: React.FC<PrintableFlightTicketProps> = ({
     if (qrCodeRef.current) {
       const qrCodeElement = qrCodeRef.current.querySelector('svg');
       if (qrCodeElement) {
-        const svgData = new XMLSerializer().serializeToString(qrCodeElement);
-        const canvas = document.createElement('canvas');
+        const svgData = new XMLSerializer().serializeToString(qrCodeElement);        const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const img = new Image();
+        const img = new window.Image();
         img.onload = () => {
           canvas.width = img.width;
           canvas.height = img.height;
@@ -289,11 +289,12 @@ export const PrintableFlightTicket: React.FC<PrintableFlightTicketProps> = ({
       <div className="bg-white rounded-md border shadow-sm p-8 max-w-4xl mx-auto" ref={printRef}>
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-          <div className="flex items-center mb-4 md:mb-0">
-            <img 
-              src={company.logo} 
-              alt={company.name} 
-              className="h-12 mr-3" 
+          <div className="flex items-center mb-4 md:mb-0">            <Image
+              src={company.logo}
+              alt={company.name}
+              width={48}
+              height={48}
+              className="h-12 mr-3"
             />
             <div>
               <h2 className="text-xl font-bold">{company.name}</h2>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -162,8 +162,7 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
             reference: "",
             status: "pending",
             items: []
-        }
-    });
+        }    });
 
     // Setup field array for items
     const { fields, append, remove } = useFieldArray({
@@ -171,13 +170,8 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
         name: "items"
     });
 
-    // Load purchase details if selectedPurchaseId is set
-    useEffect(() => {
-        if (selectedPurchaseId && !initialData) {
-            handlePurchaseChange(selectedPurchaseId);
-        }
-    }, [selectedPurchaseId]);  // Fetch purchase items when purchase is selected  // Helper to process purchase items and add them to the form
-    const processItems = (purchaseData: any) => {
+    // Helper to process purchase items and add them to the form
+    const processItems = useCallback((purchaseData: any) => {
         if (purchaseData.items && purchaseData.items.length > 0) {
             console.log("Processing purchase items:", purchaseData.items.length);
             setSelectedPurchaseItems(purchaseData.items);
@@ -209,12 +203,10 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
                 form.setValue("amount", 0);
                 form.setValue("gstAmount", 0);
             }
-            return true;
-        }
-        return false;
-    };
+            return true;        }        return false;
+    }, [fields.length, remove, append, form, initialData]);
 
-    const handlePurchaseChange = async (purchaseId: string) => {
+    const handlePurchaseChange = useCallback(async (purchaseId: string) => {
         try {
             if (!purchaseId) {
                 console.log("No purchase ID provided");
@@ -256,10 +248,15 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
         } finally {
             setLoading(false);
         }
-    };
+    }, [purchases, processItems]);
 
-    // Recalculate totals when items change
-    const recalculateTotals = (changedFieldName?: string) => {
+    // Load purchase details if selectedPurchaseId is set
+    useEffect(() => {
+        if (selectedPurchaseId && !initialData) {
+            handlePurchaseChange(selectedPurchaseId);
+        }
+    }, [selectedPurchaseId, handlePurchaseChange, initialData]);    // Recalculate totals when items change
+    const recalculateTotals = useCallback((changedFieldName?: string) => {
         if (isCalculating) return;
         setIsCalculating(true);
 
@@ -308,7 +305,7 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
         } finally {
             setIsCalculating(false);
         }
-    };
+    }, [isCalculating, form, taxSlabs]);
 
     // Watch for changes to fields that affect calculations
     useEffect(() => {
@@ -316,17 +313,13 @@ export const PurchaseReturnForm: React.FC<PurchaseReturnFormProps> = ({
             if (name && (name.includes('quantity') || name.includes('pricePerUnit') || name.includes('taxSlabId'))) {
                 setTimeout(() => recalculateTotals(name), 10);
             }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [form, isCalculating, fields.length]);
-
-    // For item length changes
+        });        return () => subscription.unsubscribe();
+    }, [form, isCalculating, fields.length, recalculateTotals]);    // For item length changes
     useEffect(() => {
         if (fields.length > 0) {
             recalculateTotals();
         }
-    }, [fields.length]);
+    }, [fields.length, recalculateTotals]);
 
     // Form submission handler
     const onSubmit = async (data: FormValues) => {

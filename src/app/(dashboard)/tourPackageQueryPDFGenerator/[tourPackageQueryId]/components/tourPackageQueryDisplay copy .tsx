@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -124,7 +124,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   };
 
   // --- Build HTML content ---
-  const buildHtmlContent = (): string => {
+  const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
 
     // 1. Header Section (Tour Name, Type and Images)
@@ -887,14 +887,11 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${termsConditionsSection}
         ${cancellationPolicySection}
         ${airlineCancellationSection}
-        ${companySection}
-      </div>
-    `;
-    return fullHtml;
-  };
-
+        ${companySection}    </div>
+    `;    return fullHtml;
+  }, [initialData, currentCompany, locations, hotels, selectedOption]);
   // --- Function to generate the PDF via the API ---
-  const generatePDF = async () => {
+  const generatePDF = useCallback(async () => {
     setLoading(true);
     const htmlContent = buildHtmlContent();
 
@@ -928,16 +925,15 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("An error occurred while generating the PDF.");
-    } finally {
-      setLoading(false);
+    } finally {      setLoading(false);
     }
-  };
+  }, [initialData, buildHtmlContent]);
 
-  useEffect(() => {
+    useEffect(() => {
     if (initialData) {
       generatePDF();
     }
-  }, [initialData]);
+  }, [initialData, generatePDF]);
 
   if (!initialData) return <div>No data available</div>;
   return <div>{loading ? <p>Generating PDF...</p> : <p>PDF Generated Successfully</p>}</div>;

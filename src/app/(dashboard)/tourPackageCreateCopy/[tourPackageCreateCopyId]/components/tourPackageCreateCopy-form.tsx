@@ -106,10 +106,10 @@ const formSchema = z.object({
  
   totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
-
   locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),
+  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -388,15 +388,21 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     return text
       .toLowerCase()
       .replace(/ /g, '-')
-      .replace(/[^\w-]+/g, '');
-  }
-
+      .replace(/[^\w-]+/g, '');  }
+  
   // Update slug when label changes
   useEffect(() => {
     const tourPackageName = form.getValues('tourPackageName');
     const slug = convertToSlug(tourPackageName || '');
     form.setValue('slug', slug);
-  }, [form.watch('tourPackageName')]);
+  }, [form]);
+
+  // Watch for tourPackageName changes
+  const tourPackageName = form.watch('tourPackageName');
+  useEffect(() => {
+    const slug = convertToSlug(tourPackageName || '');
+    form.setValue('slug', slug);
+  }, [form, tourPackageName]);
 
 
   const onSubmit = async (data: TourPackageCreateCopyFormValues) => {

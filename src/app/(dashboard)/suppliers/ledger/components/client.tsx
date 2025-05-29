@@ -118,9 +118,9 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
         return false;
       }
 
-      return true;
+          return true;
     });
-  }, [suppliers, filteredSupplier, searchQuery, dateFrom, dateTo, outstandingOnly, filteredPaymentMode, paymentStatus]);
+  }, [suppliers, filteredSupplier, searchQuery, dateFrom, dateTo, outstandingOnly, paymentStatus]);
 
   // Calculate filtered totals
   const filteredTotalPurchases = useMemo(() => 

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Activity,
@@ -114,7 +114,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
   };
 
   // --- Build HTML content ---
-  const buildHtmlContent = (): string => {
+  const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
 
     // 1. Header Section (Tour Name, Type and Images)
@@ -706,12 +706,10 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${termsConditionsSection}
         ${cancellationPolicySection}
         ${airlineCancellationSection}
-        ${companyInfoSection}
-      </div>
+        ${companyInfoSection}      </div>
     `;
-  };
-
-  const generatePDF = async () => {
+  }, [initialData, currentCompany, locations, hotels]);
+  const generatePDF = useCallback(async () => {
     setLoading(true);
 
     const htmlContent = buildHtmlContent();
@@ -749,15 +747,13 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
       }
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("An error occurred while generating the PDF.");
-    } finally {
+      alert("An error occurred while generating the PDF.");    } finally {
       setLoading(false);
     }
-  };
-
+  }, [initialData, buildHtmlContent]);
   useEffect(() => {
     generatePDF();
-  }, [initialData]); // Empty dependency array ensures this runs only once
+  }, [initialData, generatePDF]); // Added generatePDF to dependencies
 
   if (!initialData) {
     return <div>No data available</div>;

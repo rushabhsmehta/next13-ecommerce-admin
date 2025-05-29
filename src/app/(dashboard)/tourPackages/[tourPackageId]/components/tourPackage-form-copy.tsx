@@ -110,12 +110,12 @@ const formSchema = z.object({
   pricePerAdult: z.string().optional(),
   pricePerChildOrExtraBed: z.string().optional(),
   pricePerChild5to12YearsNoBed: z.string().optional(),
-  pricePerChildwithSeatBelow5Years: z.string().optional(),
-  totalPrice: z.string().optional(),
+  pricePerChildwithSeatBelow5Years: z.string().optional(),  totalPrice: z.string().optional(),
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),
+  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
@@ -383,11 +383,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   }
 
   // Update slug when label changes
+    // Update slug when label changes
+  const tourPackageName = form.watch('tourPackageName');
   useEffect(() => {
-    const tourPackageName = form.getValues('tourPackageName');
     const slug = convertToSlug(tourPackageName || '');
     form.setValue('slug', slug);
-  }, [form.watch('tourPackageName')]);
+  }, [form, tourPackageName]);
 
   const onSubmit = async (data: TourPackageFormValues) => {
 

@@ -627,6 +627,18 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
       </div>
       `
       : "";
+    const kitchenGroupPolicySection = initialData.kitchenGroupPolicy
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Kitchen Group Policy</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${renderPolicyContent(initialData.kitchenGroupPolicy)}
+        </div>
+      </div>
+      `
+      : "";
     const termsConditionsSection = initialData.termsconditions
       ? `
       <div style="${cardStyle}">
@@ -703,6 +715,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${exclusionsSection}
         ${importantNotesSection}
         ${paymentPolicySection}
+        ${kitchenGroupPolicySection}
         ${termsConditionsSection}
         ${cancellationPolicySection}
         ${airlineCancellationSection}

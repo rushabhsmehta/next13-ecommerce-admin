@@ -63,14 +63,27 @@ export const TERMS_AND_CONDITIONS_DEFAULT = [
 ];
 
 export const USEFUL_TIPS_DEFAULT = [
-  "∎ If your flights involve a combination of different airlines, you may have to collect your luggage on arrival at the connecting hub and register it again while checking in for the return journey to your origin.",
-  "∎ For queries regarding cancellations and refunds, please refer to our Cancellation Policy.",
-  "∎ Extra Charges for A/C if running in Hills.",
-  "∎ Hatchback will be Alto/ Similar as per availability.",
-  "∎ Sedan will be Dzire/ Similar as per availability.",
-  "∎ SUV will be Sumo/ Innova as per availability.",
-  "∎ Disputes, if any, shall be subject to the exclusive jurisdiction of the courts in Kullu/ Manali.",
-  "∎ We reserve the right to issue a full refund in case we believe that we are unable to fulfil the services for any technical reasons."
+  "If your flights involve a combination of different airlines, you may have to collect your luggage on arrival at the connecting hub and register it again while checking in for the return journey to your origin.",
+  "For queries regarding cancellations and refunds, please refer to our Cancellation Policy.",
+  "Extra Charges for A/C if running in Hills.",
+  "Hatchback will be Alto/ Similar as per availability.",
+  "Sedan will be Dzire/ Similar as per availability.",
+  "SUV will be Sumo/ Innova as per availability.",
+  "Disputes, if any, shall be subject to the exclusive jurisdiction of the courts in Kullu/ Manali.",
+  "We reserve the right to issue a full refund in case we believe that we are unable to fulfil the services for any technical reasons."
+];
+
+export const KITCHEN_GROUP_POLICY_DEFAULT = [
+  "Kitchen services are arranged only if at least 25 persons travel together.",
+  "Breakfast and Dinner are provided. Lunch and Hi-Tea are subject to feasibility.",
+  "Menu is flexible based on ingredient availability and sourcing.",
+  "Kitchen operates until 10:00 PM. Guests should adhere to meal timings.",
+  "Final menu decisions rest with the head cook/chef.",
+  "Maintain hygiene and discipline in dining/kitchen areas.",
+  "Cooking area is restricted to authorized staff only.",
+  "Inform dietary needs (e.g., Jain food, allergies) in advance. Fulfillment depends on feasibility.",
+  "Guests are requested to avoid food wastage.",
+  "In emergency/unforeseen cases, kitchen services may be paused or altered."
 ];
 
 

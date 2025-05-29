@@ -14,8 +14,7 @@ export async function GET(
     const location = await prismadb.location.findUnique({
       where: {
         id: params.locationId,
-      },
-      select: {
+      },      select: {
         id: true,
         label: true,
         imageUrl: true,
@@ -80,8 +79,7 @@ export async function PATCH(
       return new NextResponse("Location ID is required", { status: 400 });
     }
 
-    const body = await req.json();
-    const {
+    const body = await req.json();    const {
       label,
       imageUrl,
       tags,
@@ -94,6 +92,7 @@ export async function PATCH(
       cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
+      kitchenGroupPolicy,
     } = body;
 
     if (!label) {
@@ -102,9 +101,7 @@ export async function PATCH(
 
     if (!imageUrl) {
       return new NextResponse("Image URL is required", { status: 400 });
-    }
-
-    // Ensure list fields are valid arrays or convert strings to arrays
+    }    // Ensure list fields are valid arrays or convert strings to arrays
     const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
     const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
     const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
@@ -113,6 +110,7 @@ export async function PATCH(
     const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
+    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
 
     const location = await prismadb.location.update({
       where: {
@@ -122,8 +120,7 @@ export async function PATCH(
         label,
         imageUrl,
         tags,
-        slug,
-        inclusions: processedInclusions,
+        slug,        inclusions: processedInclusions,
         exclusions: processedExclusions,
         importantNotes: processedImportantNotes,
         paymentPolicy: processedPaymentPolicy,
@@ -131,7 +128,8 @@ export async function PATCH(
         cancellationPolicy: processedCancellationPolicy,
         airlineCancellationPolicy: processedAirlineCancellationPolicy,
         termsconditions: processedTermsConditions,
-      },
+        kitchenGroupPolicy: processedKitchenGroupPolicy,
+      } as any,
     });
 
     return NextResponse.json(location);

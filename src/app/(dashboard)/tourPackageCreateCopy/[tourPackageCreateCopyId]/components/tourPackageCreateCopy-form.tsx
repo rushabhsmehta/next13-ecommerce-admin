@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -109,11 +109,11 @@ const formSchema = z.object({
 
   locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),
-  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
+  kitchenGroupPolicy: z.array(z.string()),
   importantNotes: z.array(z.string()).optional(),
   paymentPolicy: z.array(z.string()),
   usefulTip: z.array(z.string()),
@@ -162,7 +162,6 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
 }) => {
   const params = useParams();
   const router = useRouter();
-
   const [useLocationDefaults, setUseLocationDefaults] = useState({
     inclusions: false,
     exclusions: false,
@@ -172,6 +171,7 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
     cancellationPolicy: false,
     airlineCancellationPolicy: false,
     termsconditions: false,
+    kitchenGroupPolicy: false,
   });
 
   const [useDefaultPricing, setUseDefaultPricing] = useState(false);
@@ -202,9 +202,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
               break;
             case 'airlineCancellationPolicy':
               form.setValue('airlineCancellationPolicy', parseJsonField(selectedLocation.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-              break;
-            case 'termsconditions':
+              break;            case 'termsconditions':
               form.setValue('termsconditions', parseJsonField(selectedLocation.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+              break;
+            case 'kitchenGroupPolicy':
+              form.setValue('kitchenGroupPolicy', parseJsonField(selectedLocation.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
               break;
           }
         }
@@ -870,9 +872,11 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
                                         }
                                         if (useLocationDefaults.airlineCancellationPolicy) {
                                           form.setValue('airlineCancellationPolicy', parseJsonField(location.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
-                                        }
-                                        if (useLocationDefaults.termsconditions) {
+                                        }                                        if (useLocationDefaults.termsconditions) {
                                           form.setValue('termsconditions', parseJsonField(location.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
+                                        }
+                                        if (useLocationDefaults.kitchenGroupPolicy) {
+                                          form.setValue('kitchenGroupPolicy', parseJsonField(location.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT);
                                         }
                                         const currentItineraries = form.getValues('itineraries');
                                         const updatedItineraries = currentItineraries.map(itinerary => ({

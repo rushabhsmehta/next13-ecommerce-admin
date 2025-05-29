@@ -88,9 +88,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
         })) || []
         }));
         form.setValue('itineraries', updatedItineraries);
-    }
-
-    // Apply location defaults if enabled via updateLocationDefaults prop
+    }    // Apply location defaults if enabled via updateLocationDefaults prop
     // This syncs the behavior with the parent component's useLocationDefaults state
     if (updateLocationDefaults) {
       // The parent component should handle which fields to update based on the useLocationDefaults state
@@ -102,7 +100,8 @@ const LocationTab: React.FC<LocationTabProps> = ({
         'usefulTip',
         'cancellationPolicy',
         'airlineCancellationPolicy',
-        'termsconditions'
+        'termsconditions',
+        'kitchenGroupPolicy'
       ];
 
       // For each field, let the parent component know we changed location

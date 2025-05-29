@@ -32,6 +32,7 @@ model Location {
 
   inclusions                Json?
   exclusions                Json?
+  kitchenGroupPolicy        Json?
   importantNotes            Json?
   paymentPolicy             Json?
   usefulTip                 Json?
@@ -206,6 +207,7 @@ model TourPackageQuery {
   remarks                          String?   @db.Text
   inclusions                       Json?
   exclusions                       Json?
+  kitchenGroupPolicy               Json?
   importantNotes                   Json?
   paymentPolicy                    Json?
   usefulTip                        Json?
@@ -495,6 +497,7 @@ model TourPackage {
   pricingSection                   Json? // Add this field
   inclusions                       Json?
   exclusions                       Json?
+  kitchenGroupPolicy               Json?
   importantNotes                   Json?
   paymentPolicy                    Json?
   usefulTip                        Json?

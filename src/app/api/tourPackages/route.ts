@@ -80,8 +80,7 @@ export async function POST(
             pricePerChildwithSeatBelow5Years,
             totalPrice,
             pricingSection, // Add this line
-            flightDetails,
-            inclusions,
+            flightDetails,            inclusions,
             exclusions,
             importantNotes,
             paymentPolicy,
@@ -89,6 +88,7 @@ export async function POST(
             cancellationPolicy,
             airlineCancellationPolicy,
             termsconditions,
+            kitchenGroupPolicy,
           //  disclaimer,
             images,
             itineraries,
@@ -123,8 +123,7 @@ export async function POST(
                return new NextResponse("Hotel id is required", { status: 400 });
            }
     */
-       
-        // Process policy fields to ensure they're arrays, then join to strings
+         // Process policy fields to ensure they're arrays, then join to strings
         const processedInclusions = Array.isArray(inclusions) ? inclusions.join(',') : inclusions || '';
         const processedExclusions = Array.isArray(exclusions) ? exclusions.join(',') : exclusions || '';
         const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes.join(',') : importantNotes || '';
@@ -133,6 +132,7 @@ export async function POST(
         const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy.join(',') : cancellationPolicy || '';
         const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy.join(',') : airlineCancellationPolicy || '';
         const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions.join(',') : termsconditions || '';
+        const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy.join(',') : kitchenGroupPolicy || '';
 
         const newTourPackage = await prismadb.tourPackage.create({
             data: {
@@ -162,10 +162,10 @@ export async function POST(
                 exclusions: processedExclusions,
                 importantNotes: processedImportantNotes,
                 paymentPolicy: processedPaymentPolicy,
-                usefulTip: processedUsefulTip,
-                cancellationPolicy: processedCancellationPolicy,
+                usefulTip: processedUsefulTip,                cancellationPolicy: processedCancellationPolicy,
                 airlineCancellationPolicy: processedAirlineCancellationPolicy,
                 termsconditions: processedTermsConditions,
+                kitchenGroupPolicy: processedKitchenGroupPolicy,
             //    disclaimer,
                 assignedTo,
                 assignedToMobileNumber,
@@ -184,9 +184,8 @@ export async function POST(
                         data: [
                             ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
                     }
-                },
-            },
-        }
+                },            },
+        } as any
         )
 
         if (itineraries && itineraries.length > 0) {

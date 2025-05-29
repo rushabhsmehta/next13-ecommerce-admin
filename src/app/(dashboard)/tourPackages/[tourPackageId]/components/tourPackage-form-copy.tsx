@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -115,11 +115,11 @@ const formSchema = z.object({
   pricingSection: z.array(pricingItemSchema).optional().default([]), // Add this line
   locationId: z.string().min(1),
   //location : z.string(),
-  // hotelId: z.string().min(1),
-  flightDetails: flightDetailsSchema.array(),
+  // hotelId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
   //  hotelDetails: z.string(),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
+  kitchenGroupPolicy: z.array(z.string()),
   importantNotes: z.array(z.string()).optional(),
   paymentPolicy: z.array(z.string()),
   usefulTip: z.array(z.string()),

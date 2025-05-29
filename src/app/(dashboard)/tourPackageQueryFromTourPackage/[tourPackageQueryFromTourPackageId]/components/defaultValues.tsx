@@ -115,6 +115,19 @@ export const TERMS_AND_CONDITIONS_DEFAULT = [
   "In Case of any Health AAGAM HOLIDAYS will not be liable to provide any refunds and in case of Medical Emergencies all the medical expenses will be liable by the customer."
 ];
 
+export const KITCHEN_GROUP_POLICY_DEFAULT = [
+  "Kitchen services are arranged only if at least 25 persons travel together.",
+  "Breakfast and Dinner are provided. Lunch and Hi-Tea are subject to feasibility.",
+  "Menu is flexible based on ingredient availability and sourcing.",
+  "Kitchen operates until 10:00 PM. Guests should adhere to meal timings.",
+  "Final menu decisions rest with the head cook/chef.",
+  "Maintain hygiene and discipline in dining/kitchen areas.",
+  "Cooking area is restricted to authorized staff only.",
+  "Inform dietary needs (e.g., Jain food, allergies) in advance. Fulfillment depends on feasibility.",
+  "Guests are requested to avoid food wastage.",
+  "In emergency/unforeseen cases, kitchen services may be paused or altered."
+];
+
 export const TOUR_HIGHLIGHTS_DEFAULT = "";
 export const TOTAL_PRICE_DEFAULT = "";
 export const TOUR_PACKAGE_TYPE_DEFAULT = ["Standard", "Deluxe", "Premium", "Luxury", "Super Luxury"];

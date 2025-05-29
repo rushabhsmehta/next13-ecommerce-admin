@@ -1,8 +1,7 @@
-// filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PoliciesTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
-import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
-import { FileCheck, ListChecks, FileText, AlertCircle, ScrollText, Ban } from "lucide-react"; // Added Ban icon
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form";
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form";
+import { FileCheck, ListChecks, FileText, AlertCircle, ScrollText, Ban } from "lucide-react";
 
 // Import necessary UI components
 import {
@@ -23,7 +22,7 @@ import { PolicyField } from "./policy-fields";
 interface PoliciesTabProps {
   control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
-  form: any; // Consider using a more specific type or a union type if form methods differ
+  form: any;
   useLocationDefaults: {
     inclusions: boolean;
     exclusions: boolean;
@@ -33,6 +32,7 @@ interface PoliciesTabProps {
     cancellationPolicy: boolean;
     airlineCancellationPolicy: boolean;
     termsconditions: boolean;
+    kitchenGroupPolicy: boolean;
   };
   onUseLocationDefaultsChange: (field: string, checked: boolean) => void;
 }
@@ -54,30 +54,25 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
       </CardHeader>
       <CardContent className="p-6">
         <Tabs defaultValue="inclusions" className="w-full">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full h-auto mb-6">
-            <TabsTrigger value="inclusions" className="flex items-center gap-1.5 py-2">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="inclusions" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
               Inclusions
             </TabsTrigger>
-            <TabsTrigger value="exclusions" className="flex items-center gap-1.5 py-2">
-              <Ban className="h-4 w-4" /> {/* Added Exclusions Icon */}
-              Exclusions
-            </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-1.5 py-2">
+            <TabsTrigger value="notes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Notes & Tips
             </TabsTrigger>
-            {/* <TabsTrigger value="cancellation" className="flex items-center gap-1.5 py-2">
+            <TabsTrigger value="cancellation" className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               Cancellation
-            </TabsTrigger> */}
-            <TabsTrigger value="terms" className="flex items-center gap-1.5 py-2">
+            </TabsTrigger>
+            <TabsTrigger value="terms" className="flex items-center gap-2">
               <ScrollText className="h-4 w-4" />
-              Policies & Terms
+              Terms
             </TabsTrigger>
           </TabsList>
 
-          {/* Inclusions Tab */}
           <TabsContent value="inclusions" className="space-y-6 mt-4">
             <PolicyField
               form={form}
@@ -86,12 +81,8 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
               loading={loading}
               useDefaultsChecked={useLocationDefaults.inclusions}
               onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('inclusions', checked)}
-              description="What is included in this tour package."
+              description="Items and services included in the package."
             />
-          </TabsContent>
-
-          {/* Exclusions Tab */}
-          <TabsContent value="exclusions" className="space-y-6 mt-4">
             <PolicyField
               form={form}
               name="exclusions"
@@ -99,11 +90,10 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
               loading={loading}
               useDefaultsChecked={useLocationDefaults.exclusions}
               onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('exclusions', checked)}
-              description="What is NOT included in this tour package."
+              description="Items and services not included in the package."
             />
           </TabsContent>
 
-          {/* Notes & Tips Tab */}
           <TabsContent value="notes" className="space-y-6 mt-4">
             <PolicyField
               form={form}
@@ -112,7 +102,7 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
               loading={loading}
               useDefaultsChecked={useLocationDefaults.importantNotes}
               onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('importantNotes', checked)}
-              description="Crucial information for the traveler."
+              description="Critical information for travelers."
             />
             <PolicyField
               form={form}
@@ -121,12 +111,11 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
               loading={loading}
               useDefaultsChecked={useLocationDefaults.usefulTip}
               onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('usefulTip', checked)}
-              description="Helpful suggestions for the trip."
+              description="Helpful suggestions and advice."
             />
           </TabsContent>
 
-          {/* Cancellation Tab - Combined into Terms */}
-          {/* <TabsContent value="cancellation" className="space-y-6 mt-4">
+          <TabsContent value="cancellation" className="space-y-6 mt-4">
             <PolicyField
               form={form}
               name="cancellationPolicy"
@@ -145,28 +134,18 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
               onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
               description="Specific policy for airline cancellations."
             />
-          </TabsContent> */}
+            <PolicyField
+              form={form}
+              name="kitchenGroupPolicy"
+              label="Kitchen Group Policy"
+              loading={loading}
+              useDefaultsChecked={useLocationDefaults.kitchenGroupPolicy}
+              onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
+              description="Policy regarding kitchen and dining group arrangements."
+            />
+          </TabsContent>
 
-          {/* Terms & Policies Tab */}
           <TabsContent value="terms" className="space-y-6 mt-4">
-             <PolicyField
-              form={form}
-              name="cancellationPolicy"
-              label="General Cancellation Policy"
-              loading={loading}
-              useDefaultsChecked={useLocationDefaults.cancellationPolicy}
-              onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('cancellationPolicy', checked)}
-              description="Policy regarding cancellations."
-            />
-            <PolicyField
-              form={form}
-              name="airlineCancellationPolicy"
-              label="Airline Cancellation Policy"
-              loading={loading}
-              useDefaultsChecked={useLocationDefaults.airlineCancellationPolicy}
-              onUseDefaultsChange={(checked: boolean) => onUseLocationDefaultsChange('airlineCancellationPolicy', checked)}
-              description="Specific policy for airline cancellations."
-            />
             <PolicyField
               form={form}
               name="paymentPolicy"

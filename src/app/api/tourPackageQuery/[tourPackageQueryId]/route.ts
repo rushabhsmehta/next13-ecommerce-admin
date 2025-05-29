@@ -227,8 +227,7 @@ export async function PATCH(
       totalPrice,
       pricingSection, // Add this line
       remarks,
-      flightDetails,
-      inclusions,
+      flightDetails,      inclusions,
       exclusions,
       importantNotes,
       paymentPolicy,
@@ -236,6 +235,7 @@ export async function PATCH(
       cancellationPolicy,
       airlineCancellationPolicy,
       termsconditions,
+      kitchenGroupPolicy,
       disclaimer,
       // hotelId,
       images,
@@ -278,9 +278,7 @@ export async function PATCH(
 
     /* if (!hotelId) {
       return new NextResponse("Hotel id is required", { status: 400 });
-    } */
-
-    // Process policy fields to ensure they're arrays and keep them as JavaScript objects for Prisma
+    } */    // Process policy fields to ensure they're arrays and keep them as JavaScript objects for Prisma
     const processedInclusions = Array.isArray(inclusions) ? inclusions : inclusions ? [inclusions] : [];
     const processedExclusions = Array.isArray(exclusions) ? exclusions : exclusions ? [exclusions] : [];
     const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes : importantNotes ? [importantNotes] : [];
@@ -289,6 +287,7 @@ export async function PATCH(
     const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
+    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
 
     const tourPackageUpdateData =
     {
@@ -328,10 +327,10 @@ export async function PATCH(
       exclusions: processedExclusions,
       importantNotes: processedImportantNotes,
       paymentPolicy: processedPaymentPolicy,
-      usefulTip: processedUsefulTip,
-      cancellationPolicy: processedCancellationPolicy,
+      usefulTip: processedUsefulTip,      cancellationPolicy: processedCancellationPolicy,
       airlineCancellationPolicy: processedAirlineCancellationPolicy,
       termsconditions: processedTermsConditions,
+      kitchenGroupPolicy: processedKitchenGroupPolicy,
       disclaimer,
       isFeatured,
       isArchived, assignedTo,
@@ -363,13 +362,11 @@ export async function PATCH(
             ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
         }
       }
-    }
-
-    //  console.log('tourPackageUpdateData:', tourPackageUpdateData);
+    }    //  console.log('tourPackageUpdateData:', tourPackageUpdateData);
 
     await prismadb.tourPackageQuery.update({
       where: { id: params.tourPackageQueryId },
-      data: tourPackageUpdateData
+      data: tourPackageUpdateData as any
     });
 
 

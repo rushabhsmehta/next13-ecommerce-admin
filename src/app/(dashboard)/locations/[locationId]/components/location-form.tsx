@@ -103,7 +103,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
   };
 
   const defaultValues = initialData
-    ? {
+    ?      {
         label: initialData.label,
         imageUrl: initialData.imageUrl,
         tags: initialData.tags ?? '',
@@ -115,6 +115,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
         usefulTip: parseJsonField(initialData.usefulTip) || USEFUL_TIPS_DEFAULT,
         cancellationPolicy: parseJsonField(initialData.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
         airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
+        kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
         termsconditions: parseJsonField(initialData.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
       }
     : {
@@ -129,6 +130,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
         usefulTip: USEFUL_TIPS_DEFAULT,
         cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
         airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
+        kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
         termsconditions: TERMS_AND_CONDITIONS_DEFAULT,
       };
 
@@ -281,9 +283,7 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                       />
                     )} />
                   </div>
-                </TabsContent>
-            
-                <TabsContent value="cancellation" className="space-y-4 mt-4">
+                </TabsContent>                <TabsContent value="cancellation" className="space-y-4 mt-4">
                   <div className="grid gap-4">
                     <FormField control={form.control} name="cancellationPolicy" render={({ field }) => (
                       <PolicyListField
@@ -302,6 +302,16 @@ export const LocationForm: React.FC<LocationFormProps> = ({ initialData }) => {
                         onChange={field.onChange}
                         loading={loading}
                         placeholder="Add airline cancellation policy item..."
+                      />
+                    )} />
+
+                    <FormField control={form.control} name="kitchenGroupPolicy" render={({ field }) => (
+                      <PolicyListField
+                        label="Kitchen Group Policy"
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        loading={loading}
+                        placeholder="Add kitchen group policy item..."
                       />
                     )} />
                   </div>

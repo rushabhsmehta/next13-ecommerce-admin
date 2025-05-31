@@ -310,6 +310,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
+    kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
     termsconditions: TERMS_AND_CONDITIONS_DEFAULT,

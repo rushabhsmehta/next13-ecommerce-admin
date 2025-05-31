@@ -5,13 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { CustomerLedgerClient } from "./components/client";
 import { Customer, SaleDetail, ReceiptDetail } from "@prisma/client";
 
-const CustomerLedgerPage = async () => {
-  // Get all customers with necessary relations
+const CustomerLedgerPage = async () => {  // Get all customers with necessary relations
   const customers = await prismadb.customer.findMany({
     include: {
       saleDetails: {
         include: {
-          tourPackageQuery: true
+          tourPackageQuery: true,
+          saleReturns: true // Include sale returns for accurate balance calculation
         }
       },
       receiptDetails: {
@@ -27,12 +27,23 @@ const CustomerLedgerPage = async () => {
       name: 'asc'
     }
   });
-
   // Format customers data
   const formattedCustomers = customers.map((customer) => {
     // Calculate total sales including GST
     const totalSales = customer.saleDetails.reduce(
       (sum, sale) => sum + sale.salePrice + (sale.gstAmount || 0), 
+      0
+    );
+    
+    // Calculate total sale returns including GST
+    const totalSaleReturns = customer.saleDetails.reduce(
+      (sum, sale) => {
+        const saleReturns = sale.saleReturns || [];
+        return sum + saleReturns.reduce(
+          (returnSum, saleReturn) => returnSum + saleReturn.amount + (saleReturn.gstAmount || 0),
+          0
+        );
+      },
       0
     );
     
@@ -42,8 +53,8 @@ const CustomerLedgerPage = async () => {
       0
     );
     
-    // Calculate outstanding amount (now includes GST)
-    const outstanding = totalSales - totalReceipts;
+    // Calculate outstanding amount (now includes GST and sale returns)
+    const outstanding = totalSales - totalSaleReturns - totalReceipts;
     
     return {
       id: customer.id,
@@ -53,6 +64,7 @@ const CustomerLedgerPage = async () => {
       associatePartner: customer.associatePartner?.name || "-",
       createdAt: format(customer.createdAt, 'MMMM d, yyyy'),
       totalSales: totalSales,
+      totalSaleReturns: totalSaleReturns,
       totalReceipts: totalReceipts,
       outstanding: outstanding
     };
@@ -62,9 +74,9 @@ const CustomerLedgerPage = async () => {
   const uniquePartners = Array.from(
     new Set(formattedCustomers.map(customer => customer.associatePartner).filter(name => name !== "-"))
   );
-
   // Calculate total metrics
   const totalSales = formattedCustomers.reduce((sum, customer) => sum + customer.totalSales, 0);
+  const totalSaleReturns = formattedCustomers.reduce((sum, customer) => sum + customer.totalSaleReturns, 0);
   const totalReceipts = formattedCustomers.reduce((sum, customer) => sum + customer.totalReceipts, 0);
   const totalOutstanding = formattedCustomers.reduce((sum, customer) => sum + customer.outstanding, 0);
 
@@ -76,11 +88,11 @@ const CustomerLedgerPage = async () => {
           description="View all customer accounts and transactions"
         />
         <Separator />
-        
-        <CustomerLedgerClient 
+          <CustomerLedgerClient 
           customers={formattedCustomers}
           associatePartners={uniquePartners}
           totalSales={totalSales}
+          totalSaleReturns={totalSaleReturns}
           totalReceipts={totalReceipts}
           totalOutstanding={totalOutstanding}
         />

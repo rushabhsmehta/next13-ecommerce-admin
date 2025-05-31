@@ -20,6 +20,7 @@ type Supplier = {
   email: string;
   createdAt: string;
   totalPurchases: number;
+  totalPurchaseReturns: number;
   totalPayments: number;
   outstanding: number;
 };
@@ -33,23 +34,22 @@ export const SuppliersTable: React.FC<SuppliersTableProps> = ({ data }) => {
   
   return (
     <div className="rounded-md border">
-      <Table>
-        <TableHeader>
+      <Table>        <TableHeader>
           <TableRow>
             <TableHead className="w-[200px]">Supplier Name</TableHead>
             <TableHead>Contact</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="text-right">Purchases</TableHead>
+            <TableHead className="text-right">Returns</TableHead>
             <TableHead className="text-right">Payments</TableHead>
             <TableHead className="text-right">Outstanding</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
-        </TableHeader>
-        <TableBody>
+        </TableHeader>        <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={9} className="h-24 text-center">
                 No suppliers found
               </TableCell>
             </TableRow>
@@ -62,6 +62,7 @@ export const SuppliersTable: React.FC<SuppliersTableProps> = ({ data }) => {
                   <TableCell>{item.email}</TableCell>
                   <TableCell>{item.createdAt}</TableCell>
                   <TableCell className="text-right">{formatPrice(item.totalPurchases)}</TableCell>
+                  <TableCell className="text-right">{formatPrice(item.totalPurchaseReturns)}</TableCell>
                   <TableCell className="text-right">{formatPrice(item.totalPayments)}</TableCell>
                   <TableCell 
                     className={`text-right font-bold ${item.outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}

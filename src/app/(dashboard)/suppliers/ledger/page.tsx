@@ -4,13 +4,13 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { SupplierLedgerClient } from "./components/client";
 
-const SupplierLedgerPage = async () => {
-  // Get all suppliers with necessary relations
+const SupplierLedgerPage = async () => {  // Get all suppliers with necessary relations
   const suppliers = await prismadb.supplier.findMany({
     include: {
       purchaseDetails: {
         include: {
-          tourPackageQuery: true
+          tourPackageQuery: true,
+          purchaseReturns: true // Include purchase returns
         }
       },
       paymentDetails: {
@@ -26,12 +26,23 @@ const SupplierLedgerPage = async () => {
     }
   });
 
-  
-  // Format suppliers data
+    // Format suppliers data
   const formattedSuppliers = suppliers.map(supplier => {
     // Calculate total purchases including GST
     const totalPurchases = supplier.purchaseDetails.reduce(
       (sum, purchase) => sum + purchase.price + (purchase.gstAmount || 0), 
+      0
+    );
+    
+    // Calculate total purchase returns including GST
+    const totalPurchaseReturns = supplier.purchaseDetails.reduce(
+      (sum, purchase) => {
+        const purchaseReturns = purchase.purchaseReturns || [];
+        return sum + purchaseReturns.reduce(
+          (returnSum, purchaseReturn) => returnSum + purchaseReturn.amount + (purchaseReturn.gstAmount || 0),
+          0
+        );
+      },
       0
     );
     
@@ -41,24 +52,24 @@ const SupplierLedgerPage = async () => {
       0
     );
     
-    // Calculate outstanding amount (now includes GST)
-    const outstanding = totalPurchases - totalPayments;
-    
-    return {
+    // Calculate outstanding amount (now includes GST and purchase returns)
+    const outstanding = totalPurchases - totalPurchaseReturns - totalPayments;
+      return {
       id: supplier.id,
       name: supplier.name,
       contact: supplier.contact || "-",
       email: supplier.email || "-",
       createdAt: format(supplier.createdAt, 'MMMM d, yyyy'),
       totalPurchases: totalPurchases,
+      totalPurchaseReturns: totalPurchaseReturns,
       totalPayments: totalPayments,
       outstanding: outstanding,
       balance: outstanding
     };
   });
-
   // Calculate total metrics
   const totalPurchases = formattedSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchases, 0);
+  const totalPurchaseReturns = formattedSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchaseReturns, 0);
   const totalPayments = formattedSuppliers.reduce((sum, supplier) => sum + supplier.totalPayments, 0);
   const totalOutstanding = formattedSuppliers.reduce((sum, supplier) => sum + supplier.outstanding, 0);
 
@@ -69,11 +80,10 @@ const SupplierLedgerPage = async () => {
           title="Statement of Suppliers Account" 
           description="View all supplier accounts and transactions"
         />
-        <Separator />
-        
-        <SupplierLedgerClient 
+        <Separator />        <SupplierLedgerClient 
           suppliers={formattedSuppliers}
           totalPurchases={totalPurchases}
+          totalPurchaseReturns={totalPurchaseReturns}
           totalPayments={totalPayments}
           totalOutstanding={totalOutstanding}
         />

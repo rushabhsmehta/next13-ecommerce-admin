@@ -21,6 +21,7 @@ type Customer = {
   associatePartner: string;
   createdAt: string;
   totalSales: number;
+  totalSaleReturns: number;
   totalReceipts: number;
   outstanding: number;
 };
@@ -34,8 +35,7 @@ export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
   
   return (
     <div className="rounded-md border">
-      <Table>
-        <TableHeader>
+      <Table>        <TableHeader>
           <TableRow>
             <TableHead className="w-[200px]">Customer Name</TableHead>
             <TableHead>Contact</TableHead>
@@ -43,21 +43,20 @@ export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
             <TableHead>Associate</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="text-right">Sales</TableHead>
+            <TableHead className="text-right">Sale Returns</TableHead>
             <TableHead className="text-right">Receipts</TableHead>
             <TableHead className="text-right">Outstanding</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
+        <TableBody>          {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
+              <TableCell colSpan={10} className="h-24 text-center">
                 No customers found
               </TableCell>
             </TableRow>
           ) : (
-            <>
-              {data.map((item) => (
+            <>              {data.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell>{item.contact}</TableCell>
@@ -65,6 +64,7 @@ export const CustomersTable: React.FC<CustomersTableProps> = ({ data }) => {
                   <TableCell>{item.associatePartner}</TableCell>
                   <TableCell>{item.createdAt}</TableCell>
                   <TableCell className="text-right">{formatPrice(item.totalSales)}</TableCell>
+                  <TableCell className="text-right">{formatPrice(item.totalSaleReturns)}</TableCell>
                   <TableCell className="text-right">{formatPrice(item.totalReceipts)}</TableCell>
                   <TableCell 
                     className={`text-right font-bold ${item.outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}

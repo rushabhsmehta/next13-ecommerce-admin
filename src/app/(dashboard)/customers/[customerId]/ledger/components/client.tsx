@@ -100,39 +100,54 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
     if (customer.contact) {
       doc.text(`Contact: ${customer.contact}`, 14, 30);
     }
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);
-    
-    // Add summary metrics with properly formatted amounts
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);      // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Sales: ₹ ${formatPrice(totalSales, { forPDF: true })}`, 14, 48);
-    doc.text(`Total Receipts: ₹ ${formatPrice(totalReceipts, { forPDF: true })}`, 14, 56);
-    doc.text(`Current Balance: ₹ ${formatPrice(currentBalance, { forPDF: true })}`, 14, 64);
-    
-    // Add date filters if applied
+    doc.text(`Total Sales: Rs. ${formatPrice(totalSales, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Returns: Rs. ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
+    doc.text(`Total Receipts: Rs. ${formatPrice(totalReceipts, { forPDF: true })}`, 14, 64);
+    doc.text(`Current Balance: Rs. ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);
+      // Add date filters if applied
     if (dateFrom || dateTo) {
       let filterText = "Date Filter: ";
       if (dateFrom) filterText += `From ${format(dateFrom, 'MM/dd/yyyy')}`;
       if (dateFrom && dateTo) filterText += " ";
       if (dateTo) filterText += `To ${format(dateTo, 'MM/dd/yyyy')}`;
-      doc.text(filterText, 14, 72);
-    }
-    
-    // Prepare transaction data for table with proper formatting
+      doc.text(filterText, 14, 80);
+    }    // Prepare transaction data for table with proper formatting
     const tableData = filteredTransactions.map(transaction => [
       format(new Date(transaction.date), 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
-      transaction.isInflow ? `₹ ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      !transaction.isInflow ? `₹ ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      `₹ ${formatPrice(transaction.balance, { forPDF: true })}` // Fix balance formatting
-    ]);
-    
-    // Add the transactions table
+      transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
+      !transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
+      `Rs. ${formatPrice(transaction.balance, { forPDF: true })}`
+    ]);      // Add the transactions table
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Receipt", "Sale", "Balance"]],
       body: tableData,
-      startY: dateFrom || dateTo ? 78 : 72,
-      styles: { fontSize: 10 }
+      startY: dateFrom || dateTo ? 86 : 80,
+      styles: { 
+        fontSize: 9,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        cellWidth: 'wrap',
+        halign: 'left'
+      },
+      columnStyles: {
+        0: { cellWidth: 22, halign: 'left' }, // Date
+        1: { cellWidth: 18, halign: 'left' }, // Type  
+        2: { cellWidth: 45, halign: 'left' }, // Description - increased for better readability
+        3: { cellWidth: 35, halign: 'right' }, // Receipt - increased to fit "Rs. 1,60,000.00"
+        4: { cellWidth: 35, halign: 'right' }, // Sale - increased to fit "Rs. 1,60,000.00"
+        5: { cellWidth: 35, halign: 'right' }  // Balance - increased to fit "Rs. 1,60,000.00"
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontSize: 9,
+        fontStyle: 'bold',
+        halign: 'center'
+      }
     });
     
     // Add footer with page numbers
@@ -158,14 +173,14 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
   const generateExcel = () => {
     // Create empty worksheet
     const worksheet = XLSX.utils.aoa_to_sheet([]);
-    
-    // Add title and summary information
+      // Add title and summary information
     const summaryRows = [
       [`Customer Ledger - ${customer.name}`],
       [""],
       customer.contact ? [`Contact: ${customer.contact}`] : [""],
       [`Generated on: ${new Date().toLocaleDateString()}`],
-      [""],      [`Total Sales: ${formatPrice(totalSales)}`],
+      [""],
+      [`Total Sales: ${formatPrice(totalSales)}`],
       [`Total Returns: ${formatPrice(totalReturns)}`],
       [`Total Receipts: ${formatPrice(totalReceipts)}`],
       [`Current Balance: ${formatPrice(currentBalance)}`],

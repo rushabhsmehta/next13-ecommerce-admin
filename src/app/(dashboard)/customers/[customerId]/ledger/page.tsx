@@ -81,12 +81,13 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
         `${item.productName} (${item.quantity})`
       ).join(", ");
     }
-    
-    return {
+      return {
       id: sale.id,
       date: sale.saleDate,
       type: "Sale",
-      description: `Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
+      description: sale.tourPackageQuery?.tourPackageQueryName 
+        ? `Sale for ${sale.tourPackageQuery.tourPackageQueryName}` 
+        : `Sale Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
       debit: totalAmount,
       credit: 0,
       balance: 0, // Will be calculated later
@@ -118,12 +119,13 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
           `${item.productName} (${item.quantity})`
         ).join(", ");
       }
-      
-      return {
+        return {
         id: saleReturn.id,
         date: saleReturn.returnDate,
         type: "Sale Return",
-        description: `Return ${saleReturn.reference || '#' + saleReturn.id.substring(0, 8)} for Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
+        description: sale.tourPackageQuery?.tourPackageQueryName 
+          ? `Return for ${sale.tourPackageQuery.tourPackageQueryName}` 
+          : `Return ${saleReturn.reference || '#' + saleReturn.id.substring(0, 8)} for Invoice ${sale.invoiceNumber || '#' + sale.id.substring(0, 8)}`,
         debit: 0,
         credit: totalReturnAmount, // Return reduces the customer balance
         balance: 0, // Will be calculated later
@@ -139,12 +141,13 @@ const CustomerLedgerPage = async ({ params }: CustomerLedgerPageProps) => {
       };
     });
   });
-
   const formattedReceipts = receipts.map((receipt) => ({
     id: receipt.id,
     date: receipt.receiptDate,
     type: "Receipt",
-    description: `Receipt ${receipt.reference || '#' + receipt.id.substring(0, 8)}`,
+    description: receipt.tourPackageQuery?.tourPackageQueryName 
+      ? `Payment for ${receipt.tourPackageQuery.tourPackageQueryName}` 
+      : `Receipt ${receipt.reference || '#' + receipt.id.substring(0, 8)}`,
     debit: 0,
     credit: receipt.amount,
     balance: 0, // Will be calculated later

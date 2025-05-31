@@ -142,12 +142,11 @@ const SupplierLedgerPage = async ({ params }: SupplierLedgerPageProps) => {
       };
     });
   });
-
   const formattedPayments = payments.map(payment => ({
     id: payment.id,
     date: payment.paymentDate,
     type: "Payment",
-    description: payment.note || "Payment",
+    description: payment.note || (payment.tourPackageQuery?.tourPackageQueryName ? `Payment for ${payment.tourPackageQuery.tourPackageQueryName}` : "Payment"),
     debit: 0,
     credit: payment.amount,
     balance: 0, // Will be calculated later

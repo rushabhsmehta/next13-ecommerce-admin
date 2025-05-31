@@ -99,37 +99,52 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
     if (supplier.contact) {
       doc.text(`Contact: ${supplier.contact}`, 14, 30);
     }
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);
-      // Add summary metrics with properly formatted amounts
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: ₹ ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
-    doc.text(`Total Returns: ₹ ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
-    doc.text(`Total Payments: ₹ ${formatPrice(totalPayments, { forPDF: true })}`, 14, 64);
-    doc.text(`Current Balance: ₹ ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);      // Add date filters if applied
+    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Returns: Rs. ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
+    doc.text(`Total Payments: Rs. ${formatPrice(totalPayments, { forPDF: true })}`, 14, 64);
+    doc.text(`Current Balance: Rs. ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);// Add date filters if applied
     if (dateFrom || dateTo) {
       let filterText = "Date Filter: ";
       if (dateFrom) filterText += `From ${formatSafeDate(dateFrom, 'MM/dd/yyyy')}`;
       if (dateFrom && dateTo) filterText += " ";
       if (dateTo) filterText += `To ${formatSafeDate(dateTo, 'MM/dd/yyyy')}`;
       doc.text(filterText, 14, 80);
-    }
-    
-    // Prepare transaction data for table with proper formatting
+    }    // Prepare transaction data for table with proper formatting
     const tableData = filteredTransactions.map(transaction => [
       formatSafeDate(transaction.date, 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
-      transaction.isInflow ? `₹ ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      !transaction.isInflow ? `₹ ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      `₹ ${formatPrice(transaction.balance, { forPDF: true })}` // Fix balance formatting
-    ]);
-    
-    // Add the transactions table
+      transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
+      !transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
+      `Rs. ${formatPrice(transaction.balance, { forPDF: true })}`
+    ]);// Add the transactions table
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Purchase", "Payment", "Balance"]],
       body: tableData,
       startY: dateFrom || dateTo ? 86 : 80,
-      styles: { fontSize: 10 }
+      styles: { 
+        fontSize: 9,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        cellWidth: 'wrap',
+        halign: 'left'
+      },      columnStyles: {
+        0: { cellWidth: 22, halign: 'left' }, // Date
+        1: { cellWidth: 18, halign: 'left' }, // Type  
+        2: { cellWidth: 45, halign: 'left' }, // Description - increased for better readability
+        3: { cellWidth: 35, halign: 'right' }, // Purchase - increased to fit "Rs. 1,60,000.00"
+        4: { cellWidth: 35, halign: 'right' }, // Payment - increased to fit "Rs. 1,60,000.00"
+        5: { cellWidth: 35, halign: 'right' }  // Balance - increased to fit "Rs. 1,60,000.00"
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontSize: 9,
+        fontStyle: 'bold',
+        halign: 'center'
+      }
     });
     
     // Add footer with page numbers

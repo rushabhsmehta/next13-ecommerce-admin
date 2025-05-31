@@ -25,13 +25,12 @@ const PaymentLedgerPage = async () => {
     }
   });
 
-  
-  // Format payments data
+    // Format payments data
   const formattedPayments = payments.map(payment => ({
     id: payment.id,
     date: format(payment.paymentDate, 'MMMM d, yyyy'),
     amount: payment.amount,
-    description: payment.note || "Payment",
+    description: payment.note || (payment.tourPackageQuery?.tourPackageQueryName ? `Payment for ${payment.tourPackageQuery.tourPackageQueryName}` : "Payment"),
     packageName: payment.tourPackageQuery?.tourPackageQueryName || "-",
     supplierName: payment.supplier?.name || "Unknown Supplier",
     supplierContact: payment.supplier?.contact || "-",

@@ -49,16 +49,15 @@ export function formatPrice(
   const { currency = "INR", notation = "standard", forPDF = false } = options;
   
   const numericPrice = typeof price === "string" ? parseFloat(price) : price;
-  
-  // For PDF export, return Indian number format with rupee notation
+  // For PDF export, return clean number format without currency symbols
   if (forPDF) {
-    // Format with Indian number system (lakh, crore)
+    // Format with Indian number system (lakh, crore) but without currency prefix
     const formatter = new Intl.NumberFormat("en-IN", {
       style: "decimal",
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
     });
-    return `₹ ${formatter.format(numericPrice)}/-`;
+    return formatter.format(numericPrice);
   }
 
   // For UI display, use currency symbol with proper Indian number formatting

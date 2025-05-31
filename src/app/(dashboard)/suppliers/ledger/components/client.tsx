@@ -164,41 +164,54 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);    // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Total Purchases: ${formatPrice(totalPurchases)}`, 14, 40);
-    doc.text(`Total Purchase Returns: ${formatPrice(totalPurchaseReturns)}`, 14, 48);
-    doc.text(`Total Payments: ${formatPrice(totalPayments)}`, 14, 56);
-    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 64);
+    doc.text(`Total Purchases: ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 40);
+    doc.text(`Total Purchase Returns: ${formatPrice(totalPurchaseReturns, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Payments: ${formatPrice(totalPayments, { forPDF: true })}`, 14, 56);
+    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding, { forPDF: true })}`, 14, 64);
 
     if (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) {
-      doc.text(`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`, 14, 72);
-      doc.text(`Filtered Purchase Returns: ${formatPrice(filteredTotalPurchaseReturns)}`, 14, 80);
-      doc.text(`Filtered Payments: ${formatPrice(filteredTotalPayments)}`, 14, 88);
-      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 96);
+      doc.text(`Filtered Purchases: ${formatPrice(filteredTotalPurchases, { forPDF: true })}`, 14, 72);
+      doc.text(`Filtered Purchase Returns: ${formatPrice(filteredTotalPurchaseReturns, { forPDF: true })}`, 14, 80);
+      doc.text(`Filtered Payments: ${formatPrice(filteredTotalPayments, { forPDF: true })}`, 14, 88);
+      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding, { forPDF: true })}`, 14, 96);
     }    // Add table data
     const tableData = filteredSuppliers.map(supplier => [
       supplier.name,
       supplier.contact,
       supplier.email,
       supplier.createdAt,
-      formatPrice(supplier.totalPurchases),
-      formatPrice(supplier.totalPurchaseReturns),
-      formatPrice(supplier.totalPayments),
-      formatPrice(supplier.outstanding)
+      formatPrice(supplier.totalPurchases, { forPDF: true }),
+      formatPrice(supplier.totalPurchaseReturns, { forPDF: true }),
+      formatPrice(supplier.totalPayments, { forPDF: true }),
+      formatPrice(supplier.outstanding, { forPDF: true })
     ]);    // Add the table
     autoTable(doc, {
       head: [["Name", "Contact", "Email", "Created", "Purchases", "Purchase Returns", "Payments", "Outstanding"]],
       body: tableData,
       startY: (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) ? 106 : 72,
-      styles: { fontSize: 8 },
+      styles: { 
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        cellWidth: 'wrap',
+        halign: 'left'
+      },
       columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 22 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 20 },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 20 },
-        7: { cellWidth: 20 }
+        0: { cellWidth: 22, halign: 'left' }, // Name
+        1: { cellWidth: 18, halign: 'left' }, // Contact
+        2: { cellWidth: 25, halign: 'left' }, // Email
+        3: { cellWidth: 18, halign: 'center' }, // Created - center aligned
+        4: { cellWidth: 32, halign: 'right' }, // Purchases - increased and right-aligned
+        5: { cellWidth: 32, halign: 'right' }, // Purchase Returns - increased and right-aligned
+        6: { cellWidth: 32, halign: 'right' }, // Payments - increased and right-aligned
+        7: { cellWidth: 32, halign: 'right' }  // Outstanding - increased and right-aligned
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontSize: 8,
+        fontStyle: 'bold',
+        halign: 'center'
       }
     });
 

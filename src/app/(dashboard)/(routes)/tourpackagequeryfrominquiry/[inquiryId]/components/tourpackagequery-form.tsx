@@ -636,9 +636,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       setLoading(true);
       console.log("Submitting data:", formattedData); // Log data before sending
       const response = await axios.post(`/api/tourPackageQuery`, formattedData);
-      console.log("API Response:", response.data); // Log API response
-      router.refresh();
-      router.push(`/tourPackageQuery`); // Redirect after successful creation
+      console.log("API Response:", response.data); // Log API response      router.refresh();
+      router.push(`/inquiries`); // Redirect back to inquiries after successful creation
       toast.success("Tour Package Query created successfully!");
     } catch (error: any) {
       console.error("Submission error:", error.response?.data || error.message);

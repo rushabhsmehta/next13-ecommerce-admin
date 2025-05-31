@@ -3,6 +3,8 @@ import { jwtVerify } from "jose";
 import prismadb from "@/lib/prismadb";
 import { cookies } from "next/headers";
 
+export const dynamic = 'force-dynamic';
+
 // Middleware to verify the staff's authentication token
 async function verifyStaffToken() {
   const token = cookies().get('ops_token')?.value;

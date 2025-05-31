@@ -307,8 +307,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
         }))
-      })),
-      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      })),      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
       exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
       importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
       paymentPolicy: parseJsonField(data.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
@@ -316,6 +315,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
       cancellationPolicy: parseJsonField(data.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
       airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
       termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
+      kitchenGroupPolicy: parseJsonField(data.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       pricingSection: parsePricingSection(data.pricingSection) || DEFAULT_PRICING_SECTION,
     };
   };
@@ -346,6 +346,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
     exclusions: EXCLUSIONS_DEFAULT,
     importantNotes: IMPORTANT_NOTES_DEFAULT,
     paymentPolicy: PAYMENT_TERMS_DEFAULT,
+    kitchenGroupPolicy: KITCHEN_GROUP_POLICY_DEFAULT,
     usefulTip: USEFUL_TIPS_DEFAULT,
     cancellationPolicy: CANCELLATION_POLICY_DEFAULT,
     airlineCancellationPolicy: AIRLINE_CANCELLATION_POLICY_DEFAULT,
@@ -1772,9 +1773,7 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                               placeholder="Add airline cancellation policy item..."
                             />
                           </div>
-                        </TabsContent>
-    
-                        <TabsContent value="terms" className="space-y-4 mt-4">
+                        </TabsContent>                        <TabsContent value="terms" className="space-y-4 mt-4">
                           <div className="grid gap-4">
                             <PolicyField
                               control={form.control}
@@ -1796,6 +1795,17 @@ export const TourPackageFromTourPackageQueryForm: React.FC<TourPackageFromTourPa
                               onCheckedChange={(checked) => handleUseLocationDefaultsChange('termsconditions', checked)}
                               switchDescription="Use Switch to Copy Terms and Conditions from the Selected Location"
                               placeholder="Add terms and conditions item..."
+                            />
+                            
+                            <PolicyField
+                              control={form.control}
+                              name="kitchenGroupPolicy"
+                              label="Kitchen Group Policy"
+                              loading={loading}
+                              checked={useLocationDefaults.kitchenGroupPolicy}
+                              onCheckedChange={(checked) => handleUseLocationDefaultsChange('kitchenGroupPolicy', checked)}
+                              switchDescription="Use Switch to Copy Kitchen Group Policy from the Selected Location"
+                              placeholder="Add kitchen group policy item..."
                             />
                           </div>
                         </TabsContent>

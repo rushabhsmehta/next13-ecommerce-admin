@@ -122,17 +122,16 @@ export async function POST(
         /*    if (!hotelId) {
                return new NextResponse("Hotel id is required", { status: 400 });
            }
-    */
-         // Process policy fields to ensure they're arrays, then join to strings
-        const processedInclusions = Array.isArray(inclusions) ? inclusions.join(',') : inclusions || '';
-        const processedExclusions = Array.isArray(exclusions) ? exclusions.join(',') : exclusions || '';
-        const processedImportantNotes = Array.isArray(importantNotes) ? importantNotes.join(',') : importantNotes || '';
-        const processedPaymentPolicy = Array.isArray(paymentPolicy) ? paymentPolicy.join(',') : paymentPolicy || '';
-        const processedUsefulTip = Array.isArray(usefulTip) ? usefulTip.join(',') : usefulTip || '';
-        const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy.join(',') : cancellationPolicy || '';
-        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy.join(',') : airlineCancellationPolicy || '';
-        const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions.join(',') : termsconditions || '';
-        const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy.join(',') : kitchenGroupPolicy || '';
+    */        // Process policy fields to ensure they're arrays, then convert to JSON strings for consistent storage
+        const processedInclusions = Array.isArray(inclusions) ? JSON.stringify(inclusions) : inclusions ? JSON.stringify([inclusions]) : JSON.stringify([]);
+        const processedExclusions = Array.isArray(exclusions) ? JSON.stringify(exclusions) : exclusions ? JSON.stringify([exclusions]) : JSON.stringify([]);
+        const processedImportantNotes = Array.isArray(importantNotes) ? JSON.stringify(importantNotes) : importantNotes ? JSON.stringify([importantNotes]) : JSON.stringify([]);
+        const processedPaymentPolicy = Array.isArray(paymentPolicy) ? JSON.stringify(paymentPolicy) : paymentPolicy ? JSON.stringify([paymentPolicy]) : JSON.stringify([]);
+        const processedUsefulTip = Array.isArray(usefulTip) ? JSON.stringify(usefulTip) : usefulTip ? JSON.stringify([usefulTip]) : JSON.stringify([]);
+        const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : cancellationPolicy ? JSON.stringify([cancellationPolicy]) : JSON.stringify([]);
+        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : airlineCancellationPolicy ? JSON.stringify([airlineCancellationPolicy]) : JSON.stringify([]);
+        const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : JSON.stringify([]);
+        const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : kitchenGroupPolicy ? JSON.stringify([kitchenGroupPolicy]) : JSON.stringify([]);
 
         const newTourPackage = await prismadb.tourPackage.create({
             data: {
@@ -142,7 +141,7 @@ export async function POST(
                 customerNumber,
                 numDaysNight,
                 locationId,
-                period,
+                period, 
                 tour_highlights,
                 transport,
                 pickup_location,

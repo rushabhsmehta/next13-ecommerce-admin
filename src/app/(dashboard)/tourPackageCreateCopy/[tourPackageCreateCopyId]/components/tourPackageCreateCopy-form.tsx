@@ -284,14 +284,14 @@ export const TourPackageCreateCopyForm: React.FC<TourPackageCreateCopyFormProps>
           activityTitle: activity.activityTitle ?? '',
           activityDescription: activity.activityDescription ?? '',
         }))
-      })),
-      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
+      })),      inclusions: parseJsonField(data.inclusions) || INCLUSIONS_DEFAULT,
       exclusions: parseJsonField(data.exclusions) || EXCLUSIONS_DEFAULT,
       importantNotes: parseJsonField(data.importantNotes) || IMPORTANT_NOTES_DEFAULT,
       paymentPolicy: parseJsonField(data.paymentPolicy) || PAYMENT_TERMS_DEFAULT,
       usefulTip: parseJsonField(data.usefulTip) || USEFUL_TIPS_DEFAULT,
       cancellationPolicy: parseJsonField(data.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT,
       airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
+      kitchenGroupPolicy: parseJsonField(data.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
       pricingSection: data.pricingSection || DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
 

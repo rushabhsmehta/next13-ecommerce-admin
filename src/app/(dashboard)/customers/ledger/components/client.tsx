@@ -43,6 +43,7 @@ type Customer = {
   associatePartner: string;
   createdAt: string;
   totalSales: number;
+  totalSaleReturns: number;
   totalReceipts: number;
   outstanding: number;
 };
@@ -51,6 +52,7 @@ interface CustomerLedgerClientProps {
   customers: Customer[];
   associatePartners: string[];
   totalSales: number;
+  totalSaleReturns: number;
   totalReceipts: number;
   totalOutstanding: number;
 }
@@ -59,6 +61,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
   customers,
   associatePartners,
   totalSales,
+  totalSaleReturns,
   totalReceipts,
   totalOutstanding,
 }) => {
@@ -138,10 +141,13 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
       return true;
     });
   }, [customers, filteredCustomerId, filteredPartner, searchQuery, dateFrom, dateTo, outstandingOnly, paymentStatus]);
-
   // Calculate filtered totals
   const filteredTotalSales = useMemo(() =>
     filteredCustomers.reduce((sum, customer) => sum + customer.totalSales, 0),
+    [filteredCustomers]);
+
+  const filteredTotalSaleReturns = useMemo(() =>
+    filteredCustomers.reduce((sum, customer) => sum + customer.totalSaleReturns, 0),
     [filteredCustomers]);
 
   const filteredTotalReceipts = useMemo(() =>
@@ -178,21 +184,19 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
 
     // Add date
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-
-    // Add summary metrics
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);    // Add summary metrics
     doc.setFontSize(12);
     doc.text(`Total Sales: ${formatPrice(totalSales)}`, 14, 40);
-    doc.text(`Total Receipts: ${formatPrice(totalReceipts)}`, 14, 48);
-    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 56);
+    doc.text(`Total Sale Returns: ${formatPrice(totalSaleReturns)}`, 14, 48);
+    doc.text(`Total Receipts: ${formatPrice(totalReceipts)}`, 14, 56);
+    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 64);
 
     if (filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) {
-      doc.text(`Filtered Sales: ${formatPrice(filteredTotalSales)}`, 14, 64);
-      doc.text(`Filtered Receipts: ${formatPrice(filteredTotalReceipts)}`, 14, 72);
-      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 80);
-    }
-
-    // Add table data
+      doc.text(`Filtered Sales: ${formatPrice(filteredTotalSales)}`, 14, 72);
+      doc.text(`Filtered Sale Returns: ${formatPrice(filteredTotalSaleReturns)}`, 14, 80);
+      doc.text(`Filtered Receipts: ${formatPrice(filteredTotalReceipts)}`, 14, 88);
+      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 96);
+    }    // Add table data
     const tableData = filteredCustomers.map(customer => [
       customer.name,
       customer.contact,
@@ -200,25 +204,27 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
       customer.associatePartner,
       customer.createdAt,
       formatPrice(customer.totalSales),
+      formatPrice(customer.totalSaleReturns),
       formatPrice(customer.totalReceipts),
       formatPrice(customer.outstanding)
     ]);
 
     // Add the table
     autoTable(doc, {
-      head: [["Name", "Contact", "Email", "Associate", "Created", "Sales", "Receipts", "Outstanding"]],
+      head: [["Name", "Contact", "Email", "Associate", "Created", "Sales", "Sale Returns", "Receipts", "Outstanding"]],
       body: tableData,
-      startY: filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly ? 90 : 64,
+      startY: filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly ? 106 : 72,
       styles: { fontSize: 8 },
       columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 25 },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 25 },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 20 },
-        7: { cellWidth: 20 }
+        0: { cellWidth: 25 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 18 },
+        6: { cellWidth: 18 },
+        7: { cellWidth: 18 },
+        8: { cellWidth: 18 }
       }
     });
 
@@ -234,8 +240,8 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
       ["Customer Ledger Report"],
       [],
       [`Generated on: ${new Date().toLocaleDateString()}`],
-      [],
-      [`Total Sales: ${formatPrice(totalSales)}`],
+      [],      [`Total Sales: ${formatPrice(totalSales)}`],
+      [`Total Sale Returns: ${formatPrice(totalSaleReturns)}`],
       [`Total Receipts: ${formatPrice(totalReceipts)}`],
       [`Total Outstanding: ${formatPrice(totalOutstanding)}`],
       []
@@ -244,6 +250,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
     if (filteredPartner || dateFrom || dateTo || searchQuery || outstandingOnly) {
       workSheetData.push(
         [`Filtered Sales: ${formatPrice(filteredTotalSales)}`],
+        [`Filtered Sale Returns: ${formatPrice(filteredTotalSaleReturns)}`],
         [`Filtered Receipts: ${formatPrice(filteredTotalReceipts)}`],
         [`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`],
         []
@@ -251,9 +258,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
     }
 
     // Add headers
-    workSheetData.push(["Name", "Contact", "Email", "Associate", "Created", "Sales", "Receipts", "Outstanding"]);
-
-    // Add data rows
+    workSheetData.push(["Name", "Contact", "Email", "Associate", "Created", "Sales", "Sale Returns", "Receipts", "Outstanding"]);    // Add data rows
     filteredCustomers.forEach(customer => {
       workSheetData.push([
         customer.name,
@@ -262,6 +267,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
         customer.associatePartner,
         customer.createdAt,
         formatPrice(customer.totalSales),
+        formatPrice(customer.totalSaleReturns),
         formatPrice(customer.totalReceipts),
         formatPrice(customer.outstanding)
       ]);
@@ -278,6 +284,7 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
       { wch: 20 }, // Associate
       { wch: 20 }, // Created
       { wch: 15 }, // Sales
+      { wch: 15 }, // Sale Returns
       { wch: 15 }, // Receipts
       { wch: 15 }, // Outstanding
     ];
@@ -294,15 +301,22 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-6">      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatPrice(totalSales)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Sale Returns</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(totalSaleReturns)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -340,16 +354,22 @@ export const CustomerLedgerClient: React.FC<CustomerLedgerClientProps> = ({
             PDF
           </Button>
         </div>
-      </div>
-
-      {(filteredPartner || filteredCustomerId || dateFrom || dateTo || searchQuery || outstandingOnly || paymentStatus) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      </div>      {(filteredPartner || filteredCustomerId || dateFrom || dateTo || searchQuery || outstandingOnly || paymentStatus) && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Filtered Sales</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatPrice(filteredTotalSales)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Filtered Sale Returns</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(filteredTotalSaleReturns)}</div>
             </CardContent>
           </Card>
           <Card>

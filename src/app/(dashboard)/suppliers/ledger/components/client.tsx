@@ -36,6 +36,7 @@ type Supplier = {
   email: string;
   createdAt: string;
   totalPurchases: number;
+  totalPurchaseReturns: number;
   totalPayments: number;
   outstanding: number;
 };
@@ -43,6 +44,7 @@ type Supplier = {
 interface SupplierLedgerClientProps {
   suppliers: Supplier[];
   totalPurchases: number;
+  totalPurchaseReturns: number;
   totalPayments: number;
   totalOutstanding: number;
 }
@@ -50,6 +52,7 @@ interface SupplierLedgerClientProps {
 export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   suppliers,
   totalPurchases,
+  totalPurchaseReturns,
   totalPayments,
   totalOutstanding,
 }) => {
@@ -121,10 +124,13 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
           return true;
     });
   }, [suppliers, filteredSupplier, searchQuery, dateFrom, dateTo, outstandingOnly, paymentStatus]);
-
   // Calculate filtered totals
   const filteredTotalPurchases = useMemo(() => 
     filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchases, 0),
+  [filteredSuppliers]);
+  
+  const filteredTotalPurchaseReturns = useMemo(() => 
+    filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalPurchaseReturns, 0),
   [filteredSuppliers]);
   
   const filteredTotalPayments = useMemo(() => 
@@ -156,45 +162,43 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
 
     // Add date
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
-
-    // Add summary metrics
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);    // Add summary metrics
     doc.setFontSize(12);
     doc.text(`Total Purchases: ${formatPrice(totalPurchases)}`, 14, 40);
-    doc.text(`Total Payments: ${formatPrice(totalPayments)}`, 14, 48);
-    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 56);
+    doc.text(`Total Purchase Returns: ${formatPrice(totalPurchaseReturns)}`, 14, 48);
+    doc.text(`Total Payments: ${formatPrice(totalPayments)}`, 14, 56);
+    doc.text(`Total Outstanding: ${formatPrice(totalOutstanding)}`, 14, 64);
 
     if (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) {
-      doc.text(`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`, 14, 64);
-      doc.text(`Filtered Payments: ${formatPrice(filteredTotalPayments)}`, 14, 72);
-      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 80);
-    }
-
-    // Add table data
+      doc.text(`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`, 14, 72);
+      doc.text(`Filtered Purchase Returns: ${formatPrice(filteredTotalPurchaseReturns)}`, 14, 80);
+      doc.text(`Filtered Payments: ${formatPrice(filteredTotalPayments)}`, 14, 88);
+      doc.text(`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`, 14, 96);
+    }    // Add table data
     const tableData = filteredSuppliers.map(supplier => [
       supplier.name,
       supplier.contact,
       supplier.email,
       supplier.createdAt,
       formatPrice(supplier.totalPurchases),
+      formatPrice(supplier.totalPurchaseReturns),
       formatPrice(supplier.totalPayments),
       formatPrice(supplier.outstanding)
-    ]);
-
-    // Add the table
+    ]);    // Add the table
     autoTable(doc, {
-      head: [["Name", "Contact", "Email", "Created", "Purchases", "Payments", "Outstanding"]],
+      head: [["Name", "Contact", "Email", "Created", "Purchases", "Purchase Returns", "Payments", "Outstanding"]],
       body: tableData,
-      startY: (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) ? 88 : 64,
+      startY: (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) ? 106 : 72,
       styles: { fontSize: 8 },
       columnStyles: {
-        0: { cellWidth: 30 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 40 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 22 },
-        5: { cellWidth: 22 },
-        6: { cellWidth: 22 }
+        0: { cellWidth: 25 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 20 },
+        7: { cellWidth: 20 }
       }
     });
 
@@ -208,10 +212,10 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     // Create worksheet data
     const workSheetData = [
       ["Supplier Ledger Report"],
-      [],
-      [`Generated on: ${new Date().toLocaleDateString()}`],
+      [],      [`Generated on: ${new Date().toLocaleDateString()}`],
       [],
       [`Total Purchases: ${formatPrice(totalPurchases)}`],
+      [`Total Purchase Returns: ${formatPrice(totalPurchaseReturns)}`],
       [`Total Payments: ${formatPrice(totalPayments)}`],
       [`Total Outstanding: ${formatPrice(totalOutstanding)}`],
       []
@@ -220,6 +224,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     if (dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) {
       workSheetData.push(
         [`Filtered Purchases: ${formatPrice(filteredTotalPurchases)}`],
+        [`Filtered Purchase Returns: ${formatPrice(filteredTotalPurchaseReturns)}`],
         [`Filtered Payments: ${formatPrice(filteredTotalPayments)}`],
         [`Filtered Outstanding: ${formatPrice(filteredTotalOutstanding)}`],
         []
@@ -227,9 +232,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
     }
 
     // Add headers
-    workSheetData.push(["Name", "Contact", "Email", "Created", "Purchases", "Payments", "Outstanding"]);
-
-    // Add data rows
+    workSheetData.push(["Name", "Contact", "Email", "Created", "Purchases", "Purchase Returns", "Payments", "Outstanding"]);    // Add data rows
     filteredSuppliers.forEach(supplier => {
       workSheetData.push([
         supplier.name,
@@ -237,6 +240,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
         supplier.email,
         supplier.createdAt,
         supplier.totalPurchases.toString(),
+        supplier.totalPurchaseReturns.toString(),
         supplier.totalPayments.toString(),
         supplier.outstanding.toString()
       ]);
@@ -252,6 +256,7 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
       { wch: 25 }, // Email
       { wch: 20 }, // Created
       { wch: 15 }, // Purchases
+      { wch: 18 }, // Purchase Returns
       { wch: 15 }, // Payments
       { wch: 15 }, // Outstanding
     ];
@@ -268,15 +273,22 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="space-y-6">      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatPrice(totalPurchases)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Purchase Returns</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(totalPurchaseReturns)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -314,16 +326,22 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
             PDF
           </Button>
         </div>
-      </div>
-
-      {(dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      </div>      {(dateFrom || dateTo || searchQuery || outstandingOnly || filteredSupplier) && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Filtered Purchases</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatPrice(filteredTotalPurchases)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Filtered Returns</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(filteredTotalPurchaseReturns)}</div>
             </CardContent>
           </Card>
           <Card>

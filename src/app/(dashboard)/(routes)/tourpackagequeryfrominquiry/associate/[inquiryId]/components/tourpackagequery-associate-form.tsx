@@ -754,11 +754,9 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
 
             const perCoupleComponent = selectedPricing.pricingComponents.find((comp: any) =>
                 comp.pricingAttribute?.name?.toLowerCase().includes('per couple')
-            );
-
-            // Calculate total price based on occupancy selections
+            );            // Calculate total price based on occupancy selections
             let totalPrice = 0;
-            const finalPricingComponents = [];
+            const pricingBreakdown = [];
 
             // Apply Double occupancy pricing
             const doubleOccupancySelections = occupancySelections.filter(selection => {
@@ -772,24 +770,28 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                     const doubleCoupleCount = doubleOccupancySelections.reduce((total, selection) => {
                         return total + selection.count;
                     }, 0);
-                    totalPrice += perCouplePrice * doubleCoupleCount;
+                    const coupleAmount = perCouplePrice * doubleCoupleCount;
+                    totalPrice += coupleAmount;
 
-                    finalPricingComponents.push({
-                        name: perCoupleComponent.pricingAttribute?.name || 'Per Couple Cost',
-                        price: perCoupleComponent.price || '0',
-                        description: 'Cost per couple'
+                    pricingBreakdown.push({
+                        category: perCoupleComponent.pricingAttribute?.name || 'Per Couple Cost',
+                        count: doubleCoupleCount,
+                        rate: perCouplePrice,
+                        amount: coupleAmount
                     });
                 } else if (perPersonComponent) {
                     const perPersonPrice = parseFloat(perPersonComponent.price || '0');
                     const doublePersonCount = doubleOccupancySelections.reduce((total, selection) => {
                         return total + (selection.count * 2);
                     }, 0);
-                    totalPrice += perPersonPrice * doublePersonCount;
+                    const personAmount = perPersonPrice * doublePersonCount;
+                    totalPrice += personAmount;
 
-                    finalPricingComponents.push({
-                        name: perPersonComponent.pricingAttribute?.name || 'Per Person Cost',
-                        price: perPersonComponent.price || '0',
-                        description: 'Cost per person'
+                    pricingBreakdown.push({
+                        category: `${perPersonComponent.pricingAttribute?.name || 'Per Person Cost'} (Double Rooms)`,
+                        count: doublePersonCount,
+                        rate: perPersonPrice,
+                        amount: personAmount
                     });
                 }
             }
@@ -834,12 +836,14 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 // Apply the price if a matching component is found
                 if (matchedComp) {
                     const unitPrice = parseFloat(matchedComp.price || '0');
-                    totalPrice += unitPrice * selection.count;
+                    const componentAmount = unitPrice * selection.count;
+                    totalPrice += componentAmount;
 
-                    finalPricingComponents.push({
-                        name: matchedComp.pricingAttribute?.name || 'Other Cost',
-                        price: matchedComp.price || '0',
-                        description: ''
+                    pricingBreakdown.push({
+                        category: matchedComp.pricingAttribute?.name || occupancyType.name || 'Other Cost',
+                        count: selection.count,
+                        rate: unitPrice,
+                        amount: componentAmount
                     });
                 }
             });
@@ -853,7 +857,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             }));
 
             // Store pricing breakdown for display
-            form.setValue("pricingBreakdown", JSON.stringify(finalPricingComponents));
+            form.setValue("pricingBreakdown", JSON.stringify(pricingBreakdown));
             form.setValue("pricingMethod", "advanced");
 
             toast.success("Tour package pricing applied successfully!");        } catch (error: any) {

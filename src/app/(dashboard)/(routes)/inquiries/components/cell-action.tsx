@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { AlertModal } from "@/components/modals/alert-modal"
+import { useAssociatePartner } from "@/hooks/use-associate-partner"
 
 import { InquiryColumn } from "./columns"
 
@@ -28,6 +29,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const params = useParams();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { isAssociatePartner } = useAssociatePartner();
 
   const onConfirm = async () => {
     try {
@@ -79,9 +81,13 @@ export const CellAction: React.FC<CellActionProps> = ({
             onClick={() => setOpen(true)}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/tourpackagequeryfrominquiry/${data.id}`)}
+          </DropdownMenuItem>          <DropdownMenuItem
+            onClick={() => {
+              const queryRoute = isAssociatePartner 
+                ? `/tourpackagequeryfrominquiry/associate/${data.id}`
+                : `/tourpackagequeryfrominquiry/${data.id}`;
+              router.push(queryRoute);
+            }}
           >
             <PackagePlus className="mr-2 h-4 w-4" /> Create Query
           </DropdownMenuItem>

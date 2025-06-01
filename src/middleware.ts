@@ -31,11 +31,14 @@ export default authMiddleware({
     const path = req.nextUrl.pathname;
     
     // Only apply restrictions for associate domains
-    if (isAssociateDomain) {
-      // Associates are only allowed to access the inquiries page, sign-in, sign-up and API routes
+    if (isAssociateDomain) {      // Associates are only allowed to access the inquiries page, tour package query from inquiry (associate), sign-in, sign-up and API routes
       const isAllowedPath = 
         path.startsWith('/inquiries') || 
         path.startsWith('/api/inquiries') || 
+        path.startsWith('/tourpackagequeryfrominquiry/associate') ||
+        path.startsWith('/api/tourpackages') ||
+        path.startsWith('/api/locations') ||
+        path.startsWith('/api/tourPackageQuery') ||
         path === '/' || 
         path.startsWith('/sign-in') || 
         path.startsWith('/sign-up') || 

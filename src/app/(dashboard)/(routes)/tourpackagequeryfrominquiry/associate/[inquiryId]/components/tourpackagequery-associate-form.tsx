@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Trash, CalendarIcon, CheckIcon, Calculator, Plus } from "lucide-react";
+import { Trash, CalendarIcon, CheckIcon, Calculator, Plus, Loader2 } from "lucide-react";
 import { Inquiry, Location, TourPackage, Images, FlightDetails, Itinerary, Activity } from "@prisma/client";
 import { useParams, useRouter } from "next/navigation";
 
@@ -50,14 +50,25 @@ import {
 } from "@/components/ui/select";
 
 const formSchema = z.object({
-    tourPackageId: z.string().min(1, "Tour Package selection is required"),
-    customerName: z.string().min(1, "Customer name is required"),
-    customerNumber: z.string().min(1, "Customer number is required"),
-    numAdults: z.string().min(1, "Number of adults is required"),
-    numChild5to12: z.string().optional(),
-    numChild0to5: z.string().optional(),
+    tourPackageId: z.string().min(1, "Please select a tour package from the dropdown"),
+    customerName: z.string().min(2, "Customer name must be at least 2 characters").max(100, "Customer name cannot exceed 100 characters"),
+    customerNumber: z.string().min(10, "Customer number must be at least 10 digits").max(15, "Customer number cannot exceed 15 digits").regex(/^[0-9+\-\s()]+$/, "Customer number must contain only numbers, spaces, +, -, and parentheses"),
+    numAdults: z.string().min(1, "Number of adults is required").refine((val) => {
+        const num = parseInt(val);
+        return !isNaN(num) && num > 0 && num <= 50;
+    }, "Number of adults must be between 1 and 50"),
+    numChild5to12: z.string().optional().refine((val) => {
+        if (!val || val === "") return true;
+        const num = parseInt(val);
+        return !isNaN(num) && num >= 0 && num <= 20;
+    }, "Number of children (5-12) must be between 0 and 20"),
+    numChild0to5: z.string().optional().refine((val) => {
+        if (!val || val === "") return true;
+        const num = parseInt(val);
+        return !isNaN(num) && num >= 0 && num <= 10;
+    }, "Number of children (0-5) must be between 0 and 10"),
     totalPrice: z.string().optional(),
-    remarks: z.string().optional(),
+    remarks: z.string().max(1000, "Remarks cannot exceed 1000 characters").optional(),
     pricingMethod: z.string().optional(),
     pricingBreakdown: z.string().optional(),
 });
@@ -94,10 +105,10 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     tourPackages
 }) => {
     const params = useParams();
-    const router = useRouter();
-
-    const [open, setOpen] = useState(false);
+    const router = useRouter();    const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [selectedTourPackage, setSelectedTourPackage] = useState<any>(null);
 
     // State for auto-pricing functionality
@@ -126,9 +137,44 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             pricingMethod: "",
             pricingBreakdown: "",
         }
-    });
-    // Watch for tour package selection changes
+    });    // Watch for tour package selection changes
     const watchTourPackageId = form.watch("tourPackageId");
+    
+    // Watch all form values to detect changes
+    const watchedValues = form.watch();
+      // Track form changes
+    useEffect(() => {
+        const hasChanges = 
+            watchedValues.customerName !== (inquiry?.customerName || "") ||
+            watchedValues.customerNumber !== (inquiry?.customerMobileNumber || "") ||
+            watchedValues.numAdults !== (inquiry?.numAdults?.toString() || "") ||
+            watchedValues.numChild5to12 !== (inquiry?.numChildren5to11?.toString() || "") ||
+            watchedValues.numChild0to5 !== (inquiry?.numChildrenBelow5?.toString() || "") ||
+            watchedValues.tourPackageId !== "" ||
+            watchedValues.totalPrice !== "" ||
+            watchedValues.remarks !== "";
+            
+        setHasUnsavedChanges(hasChanges);
+        
+        // Clear form error when user starts making changes
+        if (hasChanges && formError) {
+            setFormError(null);
+        }
+    }, [watchedValues, inquiry, formError]);
+    
+    // Navigation confirmation handler
+    const handleBackNavigation = () => {
+        if (hasUnsavedChanges && !loading) {
+            const confirmLeave = window.confirm(
+                "You have unsaved changes. Are you sure you want to leave? Your progress will be lost."
+            );
+            if (confirmLeave) {
+                router.push('/inquiries');
+            }
+        } else {
+            router.push('/inquiries');
+        }
+    };
     // Enhanced pricing calculation function with Tour Package API integration
     const calculateAdvancedPricing = useCallback(async (packageId: string) => {
         if (!packageId) return;
@@ -307,16 +353,61 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
         if (selectedTourPackage?.id) {
             calculateAdvancedPricing(selectedTourPackage.id);
         }
-    }, [numAdults, numChild5to12, numChild0to5, selectedTourPackage, calculateAdvancedPricing]);
-
-    const onSubmit = async (data: TourPackageQueryFormValues) => {
+    }, [numAdults, numChild5to12, numChild0to5, selectedTourPackage, calculateAdvancedPricing]);    const onSubmit = async (data: TourPackageQueryFormValues) => {
         try {
             setLoading(true);
-
+            setFormError(null); // Clear any previous errors
+            
+            // Client-side validation with user-friendly messages
             if (!selectedTourPackage) {
-                toast.error("Please select a tour package");
+                const errorMsg = "Please select a tour package from the dropdown first";
+                setFormError(errorMsg);
+                toast.error(errorMsg);
                 return;
             }
+
+            if (!data.customerName.trim()) {
+                const errorMsg = "Customer name is required and cannot be empty";
+                setFormError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            if (!data.customerNumber.trim()) {
+                const errorMsg = "Customer mobile number is required";
+                setFormError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            const numAdults = parseInt(data.numAdults);
+            if (isNaN(numAdults) || numAdults <= 0) {
+                const errorMsg = "Please enter a valid number of adults (minimum 1)";
+                setFormError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            const numChild5to12 = data.numChild5to12 ? parseInt(data.numChild5to12) : 0;
+            const numChild0to5 = data.numChild0to5 ? parseInt(data.numChild0to5) : 0;
+
+            if (numChild5to12 < 0 || numChild0to5 < 0) {
+                const errorMsg = "Number of children cannot be negative";
+                setFormError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            const totalTravelers = numAdults + numChild5to12 + numChild0to5;
+            if (totalTravelers > 100) {
+                const errorMsg = "Total number of travelers cannot exceed 100";
+                setFormError(errorMsg);
+                toast.error(errorMsg);
+                return;
+            }
+
+            // Show loading message
+            toast.loading("Creating tour package query...");
 
             // Prepare data based on selected tour package
             const formattedData = {
@@ -360,21 +451,97 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
 
                 isArchived: false,
                 isFeatured: false,
-            };
-
-            await axios.post(`/api/tourPackageQuery`, formattedData);
+            };            await axios.post(`/api/tourPackageQuery`, formattedData);
+            
+            // Clear loading toast and show success
+            toast.dismiss();
+            toast.success(`Tour Package Query created successfully for ${data.customerName}!`);
+            
+            // Navigate back to inquiries
             router.refresh();
             router.push(`/inquiries`);
-            toast.success(toastMessage);
+            
         } catch (error: any) {
-            console.error('Error:', error.response ? error.response.data : error.message);
-            toast.error('Something went wrong.');
+            // Dismiss loading toast
+            toast.dismiss();
+            console.error('Form submission error:', error);
+            
+            // Provide specific error messages based on error type and status
+            if (axios.isAxiosError(error)) {
+                const status = error.response?.status;
+                const errorData = error.response?.data;
+                  switch (status) {
+                    case 400:
+                        if (typeof errorData === 'string') {
+                            setFormError(`Validation Error: ${errorData}`);
+                            toast.error(`Validation Error: ${errorData}`);
+                        } else if (errorData?.message) {
+                            setFormError(`Validation Error: ${errorData.message}`);
+                            toast.error(`Validation Error: ${errorData.message}`);
+                        } else {
+                            setFormError('Invalid form data. Please check all required fields.');
+                            toast.error('Invalid form data. Please check all required fields.');
+                        }
+                        break;
+                    case 401:
+                        setFormError('Authentication failed. Please sign in again.');
+                        toast.error('Authentication failed. Please sign in again.');
+                        break;
+                    case 403:
+                        setFormError('You do not have permission to perform this action.');
+                        toast.error('You do not have permission to perform this action.');
+                        break;
+                    case 404:
+                        setFormError('Tour package or inquiry not found. Please refresh the page.');
+                        toast.error('Tour package or inquiry not found. Please refresh the page.');
+                        break;
+                    case 409:
+                        setFormError('A tour package query already exists for this inquiry.');
+                        toast.error('A tour package query already exists for this inquiry.');
+                        break;
+                    case 422:
+                        if (errorData?.errors) {
+                            // Handle validation errors from the server
+                            const errorMessages = Object.entries(errorData.errors)
+                                .map(([field, messages]: [string, any]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+                                .join('\n');
+                            setFormError(`Validation Errors:\n${errorMessages}`);
+                            toast.error(`Validation Errors:\n${errorMessages}`);
+                        } else {
+                            setFormError('Invalid data provided. Please check your inputs.');
+                            toast.error('Invalid data provided. Please check your inputs.');
+                        }
+                        break;
+                    case 500:
+                        setFormError('Server error occurred. Please try again later or contact support.');
+                        toast.error('Server error occurred. Please try again later or contact support.');
+                        break;
+                    case 503:
+                        setFormError('Service temporarily unavailable. Please try again later.');
+                        toast.error('Service temporarily unavailable. Please try again later.');
+                        break;
+                    default:
+                        if (typeof errorData === 'string') {
+                            setFormError(`Error: ${errorData}`);
+                            toast.error(`Error: ${errorData}`);
+                        } else if (errorData?.message) {
+                            setFormError(`Error: ${errorData.message}`);
+                            toast.error(`Error: ${errorData.message}`);                        } else {
+                            setFormError(`Request failed with status ${status}. Please try again.`);
+                            toast.error(`Request failed with status ${status}. Please try again.`);
+                        }
+                }
+            } else if (error.message) {
+                setFormError(`Network Error: ${error.message}`);
+                toast.error(`Network Error: ${error.message}`);
+            } else {
+                setFormError('An unexpected error occurred. Please check your connection and try again.');
+                toast.error('An unexpected error occurred. Please check your connection and try again.');
+            }
         } finally {
             setLoading(false);
         }
-    };
-
-    // Load meal plans and occupancy types on component mount
+    };    // Load meal plans and occupancy types on component mount
     useEffect(() => {
         const fetchLookupData = async () => {
             try {
@@ -382,11 +549,51 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                     axios.get('/api/meal-plans'),
                     axios.get('/api/occupancy-types')
                 ]);
+                
+                // Validate the response data
+                if (!Array.isArray(mealPlansRes.data)) {
+                    console.error('Invalid meal plans response:', mealPlansRes.data);
+                    toast.error('Invalid meal plans data received from server.');
+                    return;
+                }
+                
+                if (!Array.isArray(occupancyTypesRes.data)) {
+                    console.error('Invalid occupancy types response:', occupancyTypesRes.data);
+                    toast.error('Invalid occupancy types data received from server.');
+                    return;
+                }
+                
                 setMealPlans(mealPlansRes.data);
                 setOccupancyTypes(occupancyTypesRes.data);
+                
             } catch (error) {
                 console.error('Error fetching lookup data:', error);
-                toast.error('Failed to load meal plans and occupancy types');
+                
+                // Provide specific error messages
+                if (axios.isAxiosError(error)) {
+                    const status = error.response?.status;
+                    const errorData = error.response?.data;
+                    
+                    switch (status) {
+                        case 403:
+                            toast.error('Authentication failed. Please sign in again to load meal plans and occupancy types.');
+                            break;
+                        case 500:
+                            toast.error('Server error loading meal plans and occupancy types. Please refresh the page.');
+                            break;
+                        case 503:
+                            toast.error('Service temporarily unavailable. Please try again later.');
+                            break;
+                        default:
+                            if (typeof errorData === 'string') {
+                                toast.error(`Failed to load meal plans and occupancy types: ${errorData}`);
+                            } else {
+                                toast.error(`Failed to load meal plans and occupancy types. Status: ${status}`);
+                            }
+                    }
+                } else {
+                    toast.error('Network error loading meal plans and occupancy types. Please check your connection.');
+                }
             }
         };
 
@@ -641,23 +848,47 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             form.setValue("pricingBreakdown", JSON.stringify(finalPricingComponents));
             form.setValue("pricingMethod", "advanced");
 
-            toast.success("Tour package pricing applied successfully!");        } catch (error) {
+            toast.success("Tour package pricing applied successfully!");        } catch (error: any) {
             toast.dismiss();
             console.error("Error fetching/applying tour package pricing:", error);
             
             // Provide more specific error messages based on error type
             if (axios.isAxiosError(error)) {
-                if (error.response?.status === 403) {
-                    toast.error("Authentication failed. Please sign in again.");
-                } else if (error.response?.status === 500) {
-                    toast.error("Server error. Please try again later.");
-                } else if (error.response?.data) {
-                    toast.error(`Error: ${error.response.data}`);
-                } else {
-                    toast.error("Failed to fetch tour package pricing.");
+                const status = error.response?.status;
+                const errorData = error.response?.data;
+                
+                switch (status) {
+                    case 400:
+                        toast.error("Invalid pricing request. Please check your tour package selection and try again.");
+                        break;
+                    case 401:
+                    case 403:
+                        toast.error("Authentication failed. Please sign in again to access pricing information.");
+                        break;
+                    case 404:
+                        toast.error("Pricing information not found for this tour package. Please contact support.");
+                        break;
+                    case 500:
+                        toast.error("Server error loading pricing. Please try again later or contact support.");
+                        break;
+                    case 503:
+                        toast.error("Pricing service temporarily unavailable. Please try again later.");
+                        break;
+                    default:
+                        if (typeof errorData === 'string') {
+                            toast.error(`Pricing Error: ${errorData}`);
+                        } else if (errorData?.message) {
+                            toast.error(`Pricing Error: ${errorData.message}`);
+                        } else {
+                            toast.error(`Failed to fetch tour package pricing (Status: ${status}). Please try again.`);
+                        }
                 }
+            } else if (error?.message?.includes('Network Error')) {
+                toast.error("Network error loading pricing. Please check your internet connection and try again.");
+            } else if (error?.message) {
+                toast.error(`Pricing Error: ${error.message}`);
             } else {
-                toast.error("Failed to fetch or apply tour package pricing.");
+                toast.error("Failed to fetch or apply tour package pricing. Please try again or contact support.");
             }
         }
     }; return (
@@ -712,6 +943,49 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                 <p className="text-sm text-muted-foreground mt-1">{inquiry.remarks}</p>
                             </div>
                         )}
+                    </CardContent>
+                </Card>            )}
+
+            {/* Form Error Display */}
+            {formError && (
+                <Card className="mb-6 border-destructive bg-destructive/10">
+                    <CardContent className="pt-6">
+                        <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                                <svg
+                                    className="h-5 w-5 text-destructive"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-sm font-medium text-destructive">
+                                    Form Submission Error
+                                </h3>
+                                <div className="mt-2 text-sm text-destructive/80 whitespace-pre-line">
+                                    {formError}
+                                </div>
+                                <div className="mt-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setFormError(null)}
+                                        className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                    >
+                                        Dismiss
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -1155,24 +1429,28 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                 </div>
                             )}
                         </CardContent>
-                    </Card>
-
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
+                    </Card>                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
                         <Button
                             disabled={loading}
                             className="flex-1 sm:flex-none sm:ml-auto h-12 text-base font-medium px-8"
                             type="submit"
                         >
-                            {action}
-                        </Button>
-                        <Button
+                            {loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Creating Query...
+                                </>
+                            ) : (
+                                action
+                            )}
+                        </Button>                        <Button
                             type="button"
                             variant="outline"
-                            onClick={() => router.push('/inquiries')}
+                            onClick={handleBackNavigation}
                             disabled={loading}
                             className="flex-1 sm:flex-none h-12 text-base font-medium px-8"
                         >
-                            Cancel
+                            {hasUnsavedChanges ? "Cancel (Unsaved Changes)" : "Cancel"}
                         </Button>
                     </div>
                 </form>

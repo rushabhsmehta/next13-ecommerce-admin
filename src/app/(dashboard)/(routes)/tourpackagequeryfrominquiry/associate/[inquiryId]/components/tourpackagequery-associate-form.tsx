@@ -488,15 +488,20 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
         if (pricingQueryPax <= 0) {
             toast.error("You need at least one Double occupancy selection for tour package pricing.");
             return;
-        }
-
-        toast.loading("Fetching and matching tour package pricing...");
+        }        toast.loading("Fetching and matching tour package pricing...");
         try {
             const response = await axios.get(`/api/tourPackages/${selectedTourPackage.id}/pricing`);
             const tourPackagePricings = response.data;
             toast.dismiss();
 
-            if (!tourPackagePricings || tourPackagePricings.length === 0) {
+            // Check if the response is valid and is an array
+            if (!Array.isArray(tourPackagePricings)) {
+                console.error("Invalid response format:", tourPackagePricings);
+                toast.error("Invalid response format from pricing API.");
+                return;
+            }
+
+            if (tourPackagePricings.length === 0) {
                 toast.error("No pricing periods found for the selected tour package.");
                 return;
             }
@@ -636,12 +641,24 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             form.setValue("pricingBreakdown", JSON.stringify(finalPricingComponents));
             form.setValue("pricingMethod", "advanced");
 
-            toast.success("Tour package pricing applied successfully!");
-
-        } catch (error) {
+            toast.success("Tour package pricing applied successfully!");        } catch (error) {
             toast.dismiss();
             console.error("Error fetching/applying tour package pricing:", error);
-            toast.error("Failed to fetch or apply tour package pricing.");
+            
+            // Provide more specific error messages based on error type
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 403) {
+                    toast.error("Authentication failed. Please sign in again.");
+                } else if (error.response?.status === 500) {
+                    toast.error("Server error. Please try again later.");
+                } else if (error.response?.data) {
+                    toast.error(`Error: ${error.response.data}`);
+                } else {
+                    toast.error("Failed to fetch tour package pricing.");
+                }
+            } else {
+                toast.error("Failed to fetch or apply tour package pricing.");
+            }
         }
     }; return (
         <>

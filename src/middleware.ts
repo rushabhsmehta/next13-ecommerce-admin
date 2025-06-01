@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 export default authMiddleware({
   publicRoutes: [
-    "/api/:path*",
     "/tourPackageQueryDisplay/:path*",
     "/tourPackageQueryPDFGenerator/:path*",
     "/sign-in",
@@ -11,6 +10,8 @@ export default authMiddleware({
     // Add ops routes as public to avoid Clerk authentication for them
     "/ops/:path*",
     "/login",
+    // Only make specific API routes public that don't need authentication
+    "/api/auth/:path*",
   ],
   
   async beforeAuth(req) {

@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 
 export async function GET() {
   try {
+    const { userId } = auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
     const occupancyTypes = await prismadb.occupancyType.findMany({
       where: {
         isActive: true
@@ -21,9 +28,14 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const { userId } = auth();
     const body = await req.json();
     const { name, description, maxPersons } = body;
     
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
     if (!name || maxPersons === undefined) {
       return new NextResponse("Name and maxPersons are required", { status: 400 });
     }

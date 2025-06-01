@@ -643,11 +643,9 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             console.error("Error fetching/applying tour package pricing:", error);
             toast.error("Failed to fetch or apply tour package pricing.");
         }
-    };
-
-    return (
+    };    return (
         <>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <Heading title={title} description={description} />
             </div>
             <Separator />
@@ -660,34 +658,35 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                         <CardDescription>
                             Creating tour package query for inquiry from {inquiry.customerName}
                         </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                                <span className="font-medium">Customer:</span>
-                                <p>{inquiry.customerName}</p>
+                    </CardHeader>                    <CardContent>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 text-sm">
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Customer:</span>
+                                <p className="mt-1 break-words">{inquiry.customerName}</p>
                             </div>
-                            <div>
-                                <span className="font-medium">Mobile:</span>
-                                <p>{inquiry.customerMobileNumber}</p>
-                            </div>              <div>
-                                <span className="font-medium">Destination:</span>
-                                <p>{locations.find(loc => loc.id === inquiry.locationId)?.label || 'Unknown'}</p>
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Mobile:</span>
+                                <p className="mt-1 break-all">{inquiry.customerMobileNumber}</p>
                             </div>
-                            <div>
-                                <span className="font-medium">Travel Date:</span>
-                                <p>{inquiry.journeyDate ? new Date(inquiry.journeyDate).toLocaleDateString() : 'Not specified'}</p>
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Destination:</span>
+                                <p className="mt-1 break-words">{locations.find(loc => loc.id === inquiry.locationId)?.label || 'Unknown'}</p>
                             </div>
-                            <div>
-                                <span className="font-medium">Adults:</span>
-                                <p>{inquiry.numAdults}</p>
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Travel Date:</span>
+                                <p className="mt-1">{inquiry.journeyDate ? new Date(inquiry.journeyDate).toLocaleDateString() : 'Not specified'}</p>
                             </div>
-                            <div>
-                                <span className="font-medium">Children (5-11):</span>
-                                <p>{inquiry.numChildren5to11 || '0'}</p>
-                            </div>              <div>
-                                <span className="font-medium">Children (0-5):</span>
-                                <p>{inquiry.numChildrenBelow5 || '0'}</p>
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Adults:</span>
+                                <p className="mt-1 text-lg font-semibold">{inquiry.numAdults}</p>
+                            </div>
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Children (5-11):</span>
+                                <p className="mt-1 text-lg font-semibold">{inquiry.numChildren5to11 || '0'}</p>
+                            </div>
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                                <span className="font-medium text-primary">Children (0-5):</span>
+                                <p className="mt-1 text-lg font-semibold">{inquiry.numChildrenBelow5 || '0'}</p>
                             </div>
                         </div>
                         {inquiry.remarks && (
@@ -734,31 +733,35 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
                                                 </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-full p-0">
+                                            </PopoverTrigger>                                            <PopoverContent className="w-[90vw] max-w-lg p-0">
                                                 <Command>
-                                                    <CommandInput placeholder="Search tour package..." />
+                                                    <CommandInput placeholder="Search tour package..." className="h-9" />
                                                     <CommandEmpty>No tour package found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {tourPackages?.map((pkg) => (<CommandItem
-                                                            value={pkg.tourPackageName || ""}
-                                                            key={pkg.id}
-                                                            onSelect={() => {
-                                                                form.setValue("tourPackageId", pkg.id);
-                                                            }}
-                                                        >
-                                                            <CheckIcon
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    pkg.id === field.value ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />                                <div className="flex flex-col">
-                                                                <span className="font-medium">{pkg.tourPackageName || ""}</span>
-                                                                <span className="text-sm text-muted-foreground">
-                                                                    {pkg.numDaysNight} | {pkg.price}
-                                                                </span>
-                                                            </div>
-                                                        </CommandItem>
+                                                    <CommandGroup className="max-h-60 overflow-auto">
+                                                        {tourPackages?.map((pkg) => (
+                                                            <CommandItem
+                                                                value={pkg.tourPackageName || ""}
+                                                                key={pkg.id}
+                                                                onSelect={() => {
+                                                                    form.setValue("tourPackageId", pkg.id);
+                                                                }}
+                                                                className="flex items-start space-x-2 p-3"
+                                                            >
+                                                                <CheckIcon
+                                                                    className={cn(
+                                                                        "mt-1 h-4 w-4 flex-shrink-0",
+                                                                        pkg.id === field.value ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                <div className="flex flex-col min-w-0 flex-1">
+                                                                    <span className="font-medium text-sm leading-tight">
+                                                                        {pkg.tourPackageName || ""}
+                                                                    </span>
+                                                                    <span className="text-xs text-muted-foreground mt-1">
+                                                                        {pkg.numDaysNight} | {pkg.price}
+                                                                    </span>
+                                                                </div>
+                                                            </CommandItem>
                                                         ))}
                                                     </CommandGroup>
                                                 </Command>
@@ -770,27 +773,26 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                         <FormMessage />
                                     </FormItem>
                                 )}
-                            />
-
-                            {/* Show selected tour package preview */}
+                            />                            {/* Show selected tour package preview */}
                             {selectedTourPackage && (
                                 <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                                    <h4 className="font-medium mb-2">Selected Tour Package Preview</h4>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span className="font-medium">Package:</span>
-                                            <p>{selectedTourPackage.tourPackageName}</p>
+                                    <h4 className="font-medium mb-3">Selected Tour Package Preview</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                        <div className="flex flex-col space-y-1">
+                                            <span className="font-medium text-primary">Package:</span>
+                                            <p className="break-words">{selectedTourPackage.tourPackageName}</p>
                                         </div>
-                                        <div>
-                                            <span className="font-medium">Duration:</span>
+                                        <div className="flex flex-col space-y-1">
+                                            <span className="font-medium text-primary">Duration:</span>
                                             <p>{selectedTourPackage.numDaysNight}</p>
                                         </div>
-                                        <div>
-                                            <span className="font-medium">Base Price:</span>
-                                            <p>{selectedTourPackage.price}</p>
-                                        </div>                    <div>
-                                            <span className="font-medium">Location:</span>
-                                            <p>{locations.find(loc => loc.id === selectedTourPackage.locationId)?.label || 'Unknown'}</p>
+                                        <div className="flex flex-col space-y-1">
+                                            <span className="font-medium text-primary">Base Price:</span>
+                                            <p className="text-lg font-semibold text-green-600">{selectedTourPackage.price}</p>
+                                        </div>
+                                        <div className="flex flex-col space-y-1">
+                                            <span className="font-medium text-primary">Location:</span>
+                                            <p className="break-words">{locations.find(loc => loc.id === selectedTourPackage.locationId)?.label || 'Unknown'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -805,9 +807,8 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             <CardDescription>
                                 Verify and update customer details for the tour package query
                             </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </CardHeader>                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <FormField
                                     control={form.control}
                                     name="customerName"
@@ -815,7 +816,12 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                         <FormItem>
                                             <FormLabel>Customer Name</FormLabel>
                                             <FormControl>
-                                                <Input disabled={loading} placeholder="Customer name" {...field} />
+                                                <Input 
+                                                    disabled={loading} 
+                                                    placeholder="Customer name" 
+                                                    {...field} 
+                                                    className="h-11"
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -828,7 +834,12 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                         <FormItem>
                                             <FormLabel>Customer Mobile Number</FormLabel>
                                             <FormControl>
-                                                <Input disabled={loading} placeholder="Customer mobile number" {...field} />
+                                                <Input 
+                                                    disabled={loading} 
+                                                    placeholder="Customer mobile number" 
+                                                    {...field} 
+                                                    className="h-11"
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -845,20 +856,21 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             <CardDescription>
                                 Update passenger count and view automatic pricing calculation
                             </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        </CardHeader>                        <CardContent>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                                 <FormField
                                     control={form.control}
                                     name="numAdults"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Number of Adults</FormLabel>
+                                            <FormLabel className="text-base font-medium">Number of Adults</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     disabled={loading}
                                                     placeholder="Number of adults"
                                                     type="number"
+                                                    min="0"
+                                                    className="h-12 text-lg text-center"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -871,12 +883,14 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                     name="numChild5to12"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Children (5-12 years)</FormLabel>
+                                            <FormLabel className="text-base font-medium">Children (5-12 years)</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     disabled={loading}
                                                     placeholder="Number of children"
                                                     type="number"
+                                                    min="0"
+                                                    className="h-12 text-lg text-center"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -889,25 +903,28 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                     name="numChild0to5"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Children (0-5 years)</FormLabel>
+                                            <FormLabel className="text-base font-medium">Children (0-5 years)</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     disabled={loading}
                                                     placeholder="Number of infants"
                                                     type="number"
-                                                    {...field}
-                                                />
+                                                    min="0"
+                                                    className="h-12 text-lg text-center"
+                                                    {...field}                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                            </div>              {/* Pricing Display */}
-                            <div className="mt-4 p-4 border rounded-lg bg-primary/5">
-                                <div className="flex justify-between items-center mb-2">
-                                    <FormLabel>Calculated Total Price</FormLabel>
+                            </div>
+
+                            {/* Pricing Display */}
+                            <div className="mt-6 p-4 border-2 rounded-lg bg-primary/5">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                                    <FormLabel className="text-lg font-semibold">Calculated Total Price</FormLabel>
                                     {form.watch("pricingMethod") && (
-                                        <span className={`text-xs px-2 py-1 rounded-full ${form.watch("pricingMethod") === "advanced"
+                                        <span className={`text-xs px-3 py-1 rounded-full w-fit ${form.watch("pricingMethod") === "advanced"
                                                 ? "bg-green-100 text-green-700"
                                                 : "bg-blue-100 text-blue-700"
                                             }`}>
@@ -925,32 +942,33 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                     disabled={true}
                                                     placeholder="Price will be calculated automatically"
                                                     {...field}
-                                                    className="font-medium text-lg"
+                                                    className="font-bold text-xl h-12 text-center bg-white"
                                                 />
                                             </FormControl>
-                                            <FormDescription>
+                                            <FormDescription className="text-center mt-2">
                                                 Price is automatically calculated based on selected tour package and passenger count
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                            </div>
-
-                            {/* Pricing Breakdown Display */}
+                            </div>                            {/* Pricing Breakdown Display */}
                             {form.watch("pricingBreakdown") && (
-                                <div className="mt-4 p-4 border rounded-lg bg-green-50">
-                                    <h4 className="font-medium text-sm mb-3 text-green-800">Pricing Breakdown</h4>
-                                    <div className="space-y-2">
+                                <div className="mt-6 p-4 border rounded-lg bg-green-50">
+                                    <h4 className="font-medium text-base mb-4 text-green-800">Pricing Breakdown</h4>
+                                    <div className="space-y-3">
                                         {(() => {
                                             try {
                                                 const breakdown = JSON.parse(form.watch("pricingBreakdown") || "[]");
                                                 return breakdown.map((item: any, index: number) => (
-                                                    <div key={index} className="flex justify-between items-center text-sm">
-                                                        <span className="text-gray-700">
-                                                            {item.category} ({item.count} × ₹{item.rate.toLocaleString()})
-                                                        </span>
-                                                        <span className="font-medium text-green-700">
+                                                    <div key={index} className="flex flex-col sm:flex-row sm:justify-between gap-2 p-3 bg-white rounded-lg border border-green-200">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium text-gray-800">{item.category}</span>
+                                                            <span className="text-sm text-gray-600">
+                                                                {item.count} × ₹{item.rate.toLocaleString()}
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-bold text-green-700 text-lg self-end sm:self-center">
                                                             ₹{item.amount.toLocaleString()}
                                                         </span>
                                                     </div>
@@ -959,41 +977,42 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                 return null;
                                             }
                                         })()}
-                                    </div>                  <div className="mt-2 pt-2 border-t border-green-200">
-                                        <div className="flex justify-between items-center font-medium text-green-800">
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t-2 border-green-300">
+                                        <div className="flex justify-between items-center font-bold text-green-800 text-lg">
                                             <span>Total Amount</span>
-                                            <span>{form.watch("totalPrice")}</span>
+                                            <span className="text-xl">{form.watch("totalPrice")}</span>
                                         </div>
                                     </div>
                                 </div>
                             )}                            {/* Auto-Pricing Section */}
                             {selectedTourPackage && (
                                 <div className="mt-6 p-4 border-2 border-dashed border-purple-200 rounded-lg bg-purple-50">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h4 className="font-medium text-purple-800">Advanced Auto-Pricing</h4>
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                                        <h4 className="font-bold text-purple-800 text-lg">Advanced Auto-Pricing</h4>
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setShowAutoPricing(!showAutoPricing)}
-                                            className="text-purple-600 hover:text-purple-800"
+                                            className="text-purple-600 hover:text-purple-800 w-fit"
                                         >
                                             {showAutoPricing ? "Hide" : "Show"} Auto-Pricing
                                         </Button>
                                     </div>
                                     
                                     {showAutoPricing && (
-                                        <div className="space-y-4">
+                                        <div className="space-y-6">
                                             {/* Meal Plan Selection */}
                                             <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <label className="text-sm font-medium text-gray-700 mb-3 block">
                                                     Select Meal Plan *
                                                 </label>
                                                 <Select
                                                     value={selectedMealPlanId || ""}
                                                     onValueChange={setSelectedMealPlanId}
                                                 >
-                                                    <SelectTrigger className="w-full">
+                                                    <SelectTrigger className="w-full h-12">
                                                         <SelectValue placeholder="Choose a meal plan..." />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -1008,17 +1027,17 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
 
                                             {/* Occupancy Selection */}
                                             <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                                <label className="text-sm font-medium text-gray-700 mb-3 block">
                                                     Occupancy Types *
                                                 </label>
                                                 
                                                 {/* Add Occupancy Selection */}
-                                                <div className="flex gap-2 mb-3">
+                                                <div className="flex flex-col sm:flex-row gap-3 mb-4">
                                                     <Select
                                                         value={newOccupancyTypeId}
                                                         onValueChange={setNewOccupancyTypeId}
                                                     >
-                                                        <SelectTrigger className="flex-1">
+                                                        <SelectTrigger className="flex-1 h-12">
                                                             <SelectValue placeholder="Select occupancy type..." />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -1029,43 +1048,45 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
-                                                    <Input
-                                                        type="number"
-                                                        value={newOccupancyCount}
-                                                        onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                                                        min="1"
-                                                        className="w-20"
-                                                        placeholder="Count"
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        onClick={handleAddOccupancySelection}
-                                                        size="sm"
-                                                        className="px-3"
-                                                    >
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            value={newOccupancyCount}
+                                                            onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
+                                                            min="1"
+                                                            className="w-24 h-12 text-center"
+                                                            placeholder="Count"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            onClick={handleAddOccupancySelection}
+                                                            size="sm"
+                                                            className="h-12 px-4"
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
 
                                                 {/* Display Selected Occupancies */}
                                                 {occupancySelections.length > 0 && (
-                                                    <div className="space-y-2">
+                                                    <div className="space-y-3">
                                                         {occupancySelections.map((selection, index) => {
                                                             const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
                                                             return (
-                                                                <div key={index} className="flex justify-between items-center p-2 bg-white rounded border">
+                                                                <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
                                                                     <div className="flex-1">
-                                                                        <span className="font-medium">{occupancyType?.name}</span>
-                                                                        <span className="text-sm text-gray-500 ml-2">
+                                                                        <span className="font-medium text-base">{occupancyType?.name}</span>
+                                                                        <div className="text-sm text-gray-500 mt-1">
                                                                             {selection.count} × {selection.paxPerUnit} pax = {selection.count * selection.paxPerUnit} total
-                                                                        </span>
+                                                                        </div>
                                                                     </div>
                                                                     <Button
                                                                         type="button"
                                                                         variant="outline"
                                                                         size="sm"
                                                                         onClick={() => handleRemoveOccupancySelection(index)}
-                                                                        className="text-red-600 hover:text-red-800"
+                                                                        className="text-red-600 hover:text-red-800 w-fit"
                                                                     >
                                                                         <Trash className="h-4 w-4" />
                                                                     </Button>
@@ -1074,10 +1095,10 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                         })}
                                                         
                                                         {/* Display PAX Summary */}
-                                                        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                                                            <div className="text-sm">
+                                                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-sm">
                                                                 <span className="font-medium text-blue-800">Total PAX: {calculateTotalPax()}</span>
-                                                                <span className="ml-4 text-blue-600">
+                                                                <span className="text-blue-600">
                                                                     Pricing PAX (Double): {calculatePricingPax()}
                                                                 </span>
                                                             </div>
@@ -1092,27 +1113,25 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                     type="button"
                                                     onClick={handleFetchTourPackagePricing}
                                                     disabled={loading || !selectedMealPlanId || occupancySelections.length === 0}
-                                                    className="bg-purple-600 hover:bg-purple-700"
+                                                    className="bg-purple-600 hover:bg-purple-700 h-12 px-6 text-base font-medium"
                                                 >
-                                                    <Calculator className="h-4 w-4 mr-2" />
+                                                    <Calculator className="h-5 w-5 mr-2" />
                                                     Calculate Auto-Pricing
                                                 </Button>
                                             </div>
                                         </div>
                                     )}
                                 </div>
-                            )}
-
-                            {/* Manual Recalculate Button */}
+                            )}                            {/* Manual Recalculate Button */}
                             {selectedTourPackage && (
-                                <div className="mt-4 flex justify-center">
+                                <div className="mt-6 flex justify-center">
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        size="sm"
+                                        size="default"
                                         onClick={() => calculateAdvancedPricing(selectedTourPackage.id)}
                                         disabled={loading}
-                                        className="text-xs"
+                                        className="h-11 px-6 text-sm font-medium"
                                     >
                                         🔄 Recalculate Pricing
                                     </Button>
@@ -1128,20 +1147,20 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             <CardDescription>
                                 Add any special remarks or requests for this tour package query
                             </CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                        </CardHeader>                        <CardContent>
                             <FormField
                                 control={form.control}
                                 name="remarks"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Remarks</FormLabel>
+                                        <FormLabel className="text-base font-medium">Remarks</FormLabel>
                                         <FormControl>
                                             <Textarea
                                                 disabled={loading}
                                                 placeholder="Any special remarks or requests..."
                                                 {...field}
                                                 rows={4}
+                                                className="resize-none text-base leading-relaxed"
                                             />
                                         </FormControl>
                                         <FormDescription>
@@ -1152,10 +1171,12 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                 )}
                             />
                         </CardContent>
-                    </Card>
-
-                    <div className="flex items-center gap-4">
-                        <Button disabled={loading} className="ml-auto" type="submit">
+                    </Card>                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
+                        <Button 
+                            disabled={loading} 
+                            className="flex-1 sm:flex-none sm:ml-auto h-12 text-base font-medium px-8" 
+                            type="submit"
+                        >
                             {action}
                         </Button>
                         <Button
@@ -1163,6 +1184,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             variant="outline"
                             onClick={() => router.push('/inquiries')}
                             disabled={loading}
+                            className="flex-1 sm:flex-none h-12 text-base font-medium px-8"
                         >
                             Cancel
                         </Button>

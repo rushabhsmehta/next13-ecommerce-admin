@@ -39,6 +39,8 @@ export default authMiddleware({
         path.startsWith('/api/tourpackages') ||
         path.startsWith('/api/locations') ||
         path.startsWith('/api/tourPackageQuery') ||
+        path.startsWith('/api/meal-plans') ||
+        path.startsWith('/api/occupancy-types') ||
         path === '/' || 
         path.startsWith('/sign-in') || 
         path.startsWith('/sign-up') || 

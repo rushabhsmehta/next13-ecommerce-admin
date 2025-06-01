@@ -8,6 +8,12 @@ export async function GET(
   { params }: { params: { tourPackageId: string } }
 ) {
   try {
+    const { userId } = auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
     if (!params.tourPackageId) {
       return new NextResponse("Tour Package ID is required", { status: 400 });
     }

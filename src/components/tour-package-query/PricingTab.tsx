@@ -1,7 +1,7 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PricingTab.tsx
 import { Control, useFieldArray, useWatch } from "react-hook-form";
 import { Calculator, Plus, Trash, DollarSign, Loader2 } from "lucide-react"; // Added icons
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
@@ -296,7 +296,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
   const handleRemoveOccupancySelection = (index: number) => {
     setOccupancySelections(occupancySelections.filter((_, i) => i !== index));
   };  // Function to calculate total PAX based on occupancy selections
-  const calculateTotalPax = (): number => {
+  const calculateTotalPax = useCallback((): number => {
     return occupancySelections.reduce((total, selection) => {
       // Ensure we have valid numbers by providing fallbacks
       const count = typeof selection.count === 'number' ? selection.count : 1;
@@ -304,7 +304,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       
       return total + (count * paxPerUnit);
     }, 0);
-  };
+  }, [occupancySelections]);
   // Function to calculate PAX for pricing matches (only counting Double occupancy)
   const calculatePricingPax = (): number => {
     return occupancySelections.reduce((total, selection) => {
@@ -573,9 +573,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
       console.error("Error fetching/applying tour package pricing:", error);
       toast.error("Failed to fetch or apply tour package pricing.");
     }
-  };
-  // Function to fetch and set the tour package name based on ID
-  const fetchTourPackageName = async (packageId: string) => {
+  };  // Function to fetch and set the tour package name based on ID
+  const fetchTourPackageName = useCallback(async (packageId: string) => {
     if (!packageId) {
       setTourPackageName("");
       return;
@@ -587,9 +586,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       // If we already have a name in the form, use it
       setTourPackageName(nameFromForm);
       return;
-    }
-
-    try {
+    }    try {
       const response = await axios.get(`/api/tourPackages/${packageId}`);
       const tourPackage = response.data;
       const packageName = tourPackage.name || `Package ${packageId.substring(0, 8)}...`;
@@ -600,7 +597,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       console.error("Error fetching tour package name:", error);
       setTourPackageName(`Package ${packageId.substring(0, 8)}...`);
     }
-  };
+  }, [form]);
 
   // Reset calculation method when selectedTemplateType changes
   useEffect(() => {

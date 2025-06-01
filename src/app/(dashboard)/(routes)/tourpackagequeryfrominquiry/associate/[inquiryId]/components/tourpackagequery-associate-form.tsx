@@ -2,7 +2,7 @@
 
 import * as z from "zod";
 import axios from "axios";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
@@ -51,6 +51,8 @@ const formSchema = z.object({
   numChild0to5: z.string().optional(),
   totalPrice: z.string().optional(),
   remarks: z.string().optional(),
+  pricingMethod: z.string().optional(),
+  pricingBreakdown: z.string().optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>;
@@ -89,8 +91,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
   const toastMessage = "Tour Package Query created successfully.";
   const action = "Create Query";
   const form = useForm<TourPackageQueryFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+    resolver: zodResolver(formSchema),    defaultValues: {
       tourPackageId: "",
       customerName: inquiry?.customerName || "",
       customerNumber: inquiry?.customerMobileNumber || "",
@@ -99,61 +100,190 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
       numChild0to5: inquiry?.numChildrenBelow5?.toString() || "",
       totalPrice: "",
       remarks: "",
+      pricingMethod: "",
+      pricingBreakdown: "",
     }
   });
-
   // Watch for tour package selection changes
   const watchTourPackageId = form.watch("tourPackageId");
+  // Enhanced pricing calculation function with Tour Package API integration
+  const calculateAdvancedPricing = useCallback(async (packageId: string) => {
+    if (!packageId) return;
 
-  useEffect(() => {
-    if (watchTourPackageId && tourPackages) {
-      const selectedPackage = tourPackages.find(pkg => pkg.id === watchTourPackageId);
-      setSelectedTourPackage(selectedPackage);
-        // Auto-calculate pricing based on selected tour package
-      if (selectedPackage) {
-        const numAdults = parseInt(form.getValues("numAdults") || "0") || 0;
-        const numChild5to12 = parseInt(form.getValues("numChild5to12") || "0") || 0;
-        const numChild0to5 = parseInt(form.getValues("numChild0to5") || "0") || 0;
+    try {
+      const numAdults = parseInt(form.getValues("numAdults") || "0") || 0;
+      const numChild5to12 = parseInt(form.getValues("numChild5to12") || "0") || 0;
+      const numChild0to5 = parseInt(form.getValues("numChild0to5") || "0") || 0;
+      
+      if (numAdults === 0 && numChild5to12 === 0 && numChild0to5 === 0) {
+        form.setValue("totalPrice", "₹0");
+        return;
+      }
+
+      // Try to fetch tour package pricing from the pricing API
+      const response = await axios.get(`/api/tourPackages/${packageId}/pricing`);
+      const pricingPeriods = response.data;
+      
+      if (pricingPeriods && pricingPeriods.length > 0) {
+        // Use advanced pricing if available
+        const currentDate = new Date();
         
-        // Calculate basic pricing (this can be enhanced with more complex logic)
+        // Find matching pricing period for current date
+        const matchingPricing = pricingPeriods.find((pricing: any) => {
+          const startDate = new Date(pricing.startDate);
+          const endDate = new Date(pricing.endDate);
+          return currentDate >= startDate && currentDate <= endDate;
+        });
+
+        if (matchingPricing && matchingPricing.pricingComponents) {
+          let totalPrice = 0;
+          const pricingBreakdown = [];
+
+          // Find pricing components
+          const perPersonComp = matchingPricing.pricingComponents.find((comp: any) =>
+            comp.pricingAttribute?.name?.toLowerCase().includes('per person')
+          );
+          const childComp = matchingPricing.pricingComponents.find((comp: any) =>
+            comp.pricingAttribute?.name?.toLowerCase().includes('child')
+          );
+          const infantComp = matchingPricing.pricingComponents.find((comp: any) =>
+            comp.pricingAttribute?.name?.toLowerCase().includes('infant')
+          );
+
+          // Calculate adult pricing
+          if (perPersonComp && numAdults > 0) {
+            const adultPrice = parseFloat(perPersonComp.price || '0') * numAdults;
+            totalPrice += adultPrice;
+            pricingBreakdown.push({
+              category: 'Adults',
+              count: numAdults,
+              rate: parseFloat(perPersonComp.price || '0'),
+              amount: adultPrice
+            });
+          }
+
+          // Calculate child pricing (5-12 years)
+          if (childComp && numChild5to12 > 0) {
+            const childPrice = parseFloat(childComp.price || '0') * numChild5to12;
+            totalPrice += childPrice;
+            pricingBreakdown.push({
+              category: 'Children (5-12 yrs)',
+              count: numChild5to12,
+              rate: parseFloat(childComp.price || '0'),
+              amount: childPrice
+            });
+          } else if (perPersonComp && numChild5to12 > 0) {
+            // Fallback: 70% of adult price for children
+            const childRate = parseFloat(perPersonComp.price || '0') * 0.7;
+            const childPrice = childRate * numChild5to12;
+            totalPrice += childPrice;
+            pricingBreakdown.push({
+              category: 'Children (5-12 yrs)',
+              count: numChild5to12,
+              rate: childRate,
+              amount: childPrice
+            });
+          }
+
+          // Calculate infant pricing (0-5 years)
+          if (infantComp && numChild0to5 > 0) {
+            const infantPrice = parseFloat(infantComp.price || '0') * numChild0to5;
+            totalPrice += infantPrice;
+            pricingBreakdown.push({
+              category: 'Infants (0-5 yrs)',
+              count: numChild0to5,
+              rate: parseFloat(infantComp.price || '0'),
+              amount: infantPrice
+            });
+          } else if (perPersonComp && numChild0to5 > 0) {
+            // Fallback: 30% of adult price for infants
+            const infantRate = parseFloat(perPersonComp.price || '0') * 0.3;
+            const infantPrice = infantRate * numChild0to5;
+            totalPrice += infantPrice;
+            pricingBreakdown.push({
+              category: 'Infants (0-5 yrs)',
+              count: numChild0to5,
+              rate: infantRate,
+              amount: infantPrice
+            });
+          }
+
+          // Set the calculated price
+          form.setValue("totalPrice", totalPrice.toLocaleString('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }));          // Store pricing breakdown for display (optional)
+          form.setValue("pricingBreakdown", JSON.stringify(pricingBreakdown));
+          form.setValue("pricingMethod", "advanced");
+
+          return;
+        }
+      }
+
+      // Fallback to basic pricing if advanced pricing is not available
+      const selectedPackage = tourPackages?.find(pkg => pkg.id === packageId);
+      if (selectedPackage) {
         const basePrice = parseFloat(selectedPackage.price?.replace(/[^\d.-]/g, '') || "0") || 0;
         const adultPrice = basePrice * numAdults;
         const childPrice = basePrice * 0.7 * numChild5to12; // 70% for children 5-12
         const infantPrice = basePrice * 0.3 * numChild0to5; // 30% for children 0-5
         
         const totalCalculatedPrice = adultPrice + childPrice + infantPrice;
-        
-        form.setValue("totalPrice", totalCalculatedPrice.toLocaleString('en-IN', {
+          form.setValue("totalPrice", totalCalculatedPrice.toLocaleString('en-IN', {
           style: 'currency',
           currency: 'INR',
           minimumFractionDigits: 0,
           maximumFractionDigits: 0,
         }));
+        form.setValue("pricingMethod", "basic");
       }
+
+    } catch (error) {
+      console.log("Advanced pricing not available, using basic calculation");
+      
+      // Fallback to basic pricing
+      const selectedPackage = tourPackages?.find(pkg => pkg.id === packageId);
+      if (selectedPackage) {
+        const numAdults = parseInt(form.getValues("numAdults") || "0") || 0;
+        const numChild5to12 = parseInt(form.getValues("numChild5to12") || "0") || 0;
+        const numChild0to5 = parseInt(form.getValues("numChild0to5") || "0") || 0;
+        
+        const basePrice = parseFloat(selectedPackage.price?.replace(/[^\d.-]/g, '') || "0") || 0;
+        const adultPrice = basePrice * numAdults;
+        const childPrice = basePrice * 0.7 * numChild5to12;
+        const infantPrice = basePrice * 0.3 * numChild0to5;
+        
+        const totalCalculatedPrice = adultPrice + childPrice + infantPrice;
+          form.setValue("totalPrice", totalCalculatedPrice.toLocaleString('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }));
+        form.setValue("pricingMethod", "basic");      }
     }
-  }, [watchTourPackageId, form, tourPackages]);
-  // Recalculate pricing when passenger numbers change
+  }, [form, tourPackages]); // Add dependencies to useCallback
   useEffect(() => {
-    if (selectedTourPackage) {
-      const numAdults = parseInt(form.getValues("numAdults") || "0") || 0;
-      const numChild5to12 = parseInt(form.getValues("numChild5to12") || "0") || 0;
-      const numChild0to5 = parseInt(form.getValues("numChild0to5") || "0") || 0;
+    if (watchTourPackageId && tourPackages) {
+      const selectedPackage = tourPackages.find(pkg => pkg.id === watchTourPackageId);
+      setSelectedTourPackage(selectedPackage);
       
-      const basePrice = parseFloat(selectedTourPackage.price?.replace(/[^\d.-]/g, '') || "0") || 0;
-      const adultPrice = basePrice * numAdults;
-      const childPrice = basePrice * 0.7 * numChild5to12;
-      const infantPrice = basePrice * 0.3 * numChild0to5;
-      
-      const totalCalculatedPrice = adultPrice + childPrice + infantPrice;
-      
-      form.setValue("totalPrice", totalCalculatedPrice.toLocaleString('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }));
+      // Use enhanced pricing calculation
+      calculateAdvancedPricing(watchTourPackageId);
     }
-  }, [form.watch("numAdults"), form.watch("numChild5to12"), form.watch("numChild0to5"), selectedTourPackage, form]);
+  }, [watchTourPackageId, tourPackages, calculateAdvancedPricing]);
+  // Recalculate pricing when passenger numbers change
+  const numAdults = form.watch("numAdults");
+  const numChild5to12 = form.watch("numChild5to12");
+  const numChild0to5 = form.watch("numChild0to5");
+  
+  useEffect(() => {
+    if (selectedTourPackage?.id) {
+      calculateAdvancedPricing(selectedTourPackage.id);
+    }
+  }, [numAdults, numChild5to12, numChild0to5, selectedTourPackage, calculateAdvancedPricing]);
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     try {
@@ -483,16 +613,25 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                     </FormItem>
                   )}
                 />
-              </div>
-
-              {/* Pricing Display */}
+              </div>              {/* Pricing Display */}
               <div className="mt-4 p-4 border rounded-lg bg-primary/5">
+                <div className="flex justify-between items-center mb-2">
+                  <FormLabel>Calculated Total Price</FormLabel>
+                  {form.watch("pricingMethod") && (
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      form.watch("pricingMethod") === "advanced" 
+                        ? "bg-green-100 text-green-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {form.watch("pricingMethod") === "advanced" ? "Advanced Pricing" : "Basic Pricing"}
+                    </span>
+                  )}
+                </div>
                 <FormField
                   control={form.control}
                   name="totalPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Calculated Total Price</FormLabel>
                       <FormControl>
                         <Input 
                           disabled={true} 
@@ -509,6 +648,53 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                   )}
                 />
               </div>
+
+              {/* Pricing Breakdown Display */}
+              {form.watch("pricingBreakdown") && (
+                <div className="mt-4 p-4 border rounded-lg bg-green-50">
+                  <h4 className="font-medium text-sm mb-3 text-green-800">Pricing Breakdown</h4>
+                  <div className="space-y-2">
+                    {(() => {
+                      try {
+                        const breakdown = JSON.parse(form.watch("pricingBreakdown") || "[]");
+                        return breakdown.map((item: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-700">
+                              {item.category} ({item.count} × ₹{item.rate.toLocaleString()})
+                            </span>
+                            <span className="font-medium text-green-700">
+                              ₹{item.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        ));
+                      } catch (e) {
+                        return null;
+                      }
+                    })()}
+                  </div>                  <div className="mt-2 pt-2 border-t border-green-200">
+                    <div className="flex justify-between items-center font-medium text-green-800">
+                      <span>Total Amount</span>
+                      <span>{form.watch("totalPrice")}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Manual Recalculate Button */}
+              {selectedTourPackage && (
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => calculateAdvancedPricing(selectedTourPackage.id)}
+                    disabled={loading}
+                    className="text-xs"
+                  >
+                    🔄 Recalculate Pricing
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

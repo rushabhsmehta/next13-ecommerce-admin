@@ -16,10 +16,10 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
   });
 
   const locations = await prismadb.location.findMany();
-  
-  const tourPackages = await prismadb.tourPackage.findMany({
+    const tourPackages = await prismadb.tourPackage.findMany({
     where: {
       isArchived: false,
+      locationId: inquiry?.locationId
     },
     include: {
       images: true,

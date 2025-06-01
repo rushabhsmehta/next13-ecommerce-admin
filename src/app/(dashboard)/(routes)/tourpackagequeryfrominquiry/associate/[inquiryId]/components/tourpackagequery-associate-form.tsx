@@ -697,13 +697,21 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             return;
         }        toast.loading("Fetching and matching tour package pricing...");
         try {
+            console.log("Making API request to:", `/api/tourPackages/${selectedTourPackage.id}/pricing`);
             const response = await axios.get(`/api/tourPackages/${selectedTourPackage.id}/pricing`);
+            console.log("Raw response:", response);
+            console.log("Response data:", response.data);
+            console.log("Response status:", response.status);
+            console.log("Response headers:", response.headers);
+            
             const tourPackagePricings = response.data;
             toast.dismiss();
 
             // Check if the response is valid and is an array
             if (!Array.isArray(tourPackagePricings)) {
-                console.error("Invalid response format:", tourPackagePricings);
+                console.error("Invalid response format - not an array:", tourPackagePricings);
+                console.error("Type of response:", typeof tourPackagePricings);
+                console.error("Response string preview:", String(tourPackagePricings).substring(0, 500));
                 toast.error("Invalid response format from pricing API.");
                 return;
             }

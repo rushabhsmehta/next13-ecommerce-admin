@@ -21,9 +21,7 @@ export async function GET(
     // Get query parameters for date filtering
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
-    const endDate = url.searchParams.get("endDate");
-
-    // Build the filter based on available parameters
+    const endDate = url.searchParams.get("endDate");    // Build the filter based on available parameters
     let dateFilter = {};
     if (startDate && endDate) {
       dateFilter = {
@@ -32,12 +30,15 @@ export async function GET(
           { endDate: { gte: new Date(startDate) } }
         ]
       };
-    }    const tourPackagePricing = await prismadb.tourPackagePricing.findMany({
+    }
+
+    const tourPackagePricing = await prismadb.tourPackagePricing.findMany({
       where: {
         tourPackageId: params.tourPackageId,
         isActive: true,
         ...dateFilter
-      },      include: {
+      },
+      include: {
         occupancyType: true,
         mealPlan: true,
         pricingComponents: {

@@ -1274,74 +1274,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                             <FormMessage />
                                         </FormItem>
                                     )}
-                                />
-                            </div>                            {/* Pricing Breakdown Display */}
-                            {form.watch("pricingBreakdown") && (
-                                <div className="mt-6 p-4 border rounded-lg bg-green-50">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h4 className="font-semibold text-lg text-green-800">Applied Pricing Calculation</h4>
-                                        <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
-                                            Final Breakdown
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-3">
-                                        {(() => {
-                                            try {
-                                                const breakdown = JSON.parse(form.watch("pricingBreakdown") || "[]");
-                                                return breakdown.map((item: any, index: number) => (
-                                                    <div key={index} className="flex flex-col sm:flex-row sm:justify-between gap-2 p-4 bg-white rounded-lg border border-green-200 shadow-sm">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold text-gray-800 text-base">{item.category}</span>
-                                                            <div className="text-sm text-gray-600 mt-1 space-y-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="bg-gray-100 px-2 py-1 rounded text-xs">
-                                                                        Quantity: {item.count}
-                                                                    </span>
-                                                                    <span className="bg-gray-100 px-2 py-1 rounded text-xs">
-                                                                        Rate: {new Intl.NumberFormat('en-IN', { 
-                                                                            style: 'currency', 
-                                                                            currency: 'INR',
-                                                                            minimumFractionDigits: 0
-                                                                        }).format(item.rate)}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="text-xs text-gray-500">
-                                                                    {item.count} × {new Intl.NumberFormat('en-IN', { 
-                                                                        style: 'currency', 
-                                                                        currency: 'INR',
-                                                                        minimumFractionDigits: 0
-                                                                    }).format(item.rate)} = {new Intl.NumberFormat('en-IN', { 
-                                                                        style: 'currency', 
-                                                                        currency: 'INR',
-                                                                        minimumFractionDigits: 0
-                                                                    }).format(item.amount)}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <span className="font-bold text-green-700 text-xl">
-                                                                {new Intl.NumberFormat('en-IN', { 
-                                                                    style: 'currency', 
-                                                                    currency: 'INR',
-                                                                    minimumFractionDigits: 0
-                                                                }).format(item.amount)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ));
-                                            } catch (e) {
-                                                return <div className="text-red-500 text-sm text-center py-4">Error displaying pricing breakdown</div>;
-                                            }
-                                        })()}
-                                    </div>                                    <div className="mt-4 pt-4 border-t-2 border-green-300">
-                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-green-100 p-4 rounded-lg">
-                                            <span className="font-bold text-green-800 text-lg">Total Package Price</span>
-                                            <span className="font-bold text-green-800 text-2xl">{form.watch("totalPrice")}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}{/* Enhanced Pricing Components Display - Mobile Friendly */}
+                                />                            </div>{/* Enhanced Pricing Components Display - Mobile Friendly */}
                             {form.watch("allPricingComponents") && (
                                 <div className="mt-6 space-y-4">
                                     {/* Pricing Breakdown Section */}

@@ -450,7 +450,24 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
 
                 isArchived: false,
                 isFeatured: false,
-            };            await axios.post(`/api/tourPackageQuery`, formattedData);
+            };
+
+            // Add comprehensive logging before API call
+            console.log('[FORM_SUBMIT] About to submit data:', {
+                keys: Object.keys(formattedData),
+                requiredFields: {
+                    tourPackageQueryName: formattedData.tourPackageQueryName,
+                    locationId: formattedData.locationId,
+                    associatePartnerId: formattedData.associatePartnerId,
+                    customerName: formattedData.customerName,
+                    customerNumber: formattedData.customerNumber,
+                },
+                imagesCount: formattedData.images?.length || 0,
+                flightDetailsCount: formattedData.flightDetails?.length || 0,
+                itinerariesCount: formattedData.itineraries?.length || 0,
+            });
+
+            await axios.post(`/api/tourPackageQuery`, formattedData);
             
             // Clear loading toast and show success
             toast.dismiss();

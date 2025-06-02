@@ -1278,81 +1278,203 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             </div>                            {/* Pricing Breakdown Display */}
                             {form.watch("pricingBreakdown") && (
                                 <div className="mt-6 p-4 border rounded-lg bg-green-50">
-                                    <h4 className="font-medium text-base mb-4 text-green-800">Pricing Breakdown</h4>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="font-semibold text-lg text-green-800">Applied Pricing Calculation</h4>
+                                        <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                                            Final Breakdown
+                                        </div>
+                                    </div>
+                                    
                                     <div className="space-y-3">
                                         {(() => {
                                             try {
                                                 const breakdown = JSON.parse(form.watch("pricingBreakdown") || "[]");
                                                 return breakdown.map((item: any, index: number) => (
-                                                    <div key={index} className="flex flex-col sm:flex-row sm:justify-between gap-2 p-3 bg-white rounded-lg border border-green-200">
+                                                    <div key={index} className="flex flex-col sm:flex-row sm:justify-between gap-2 p-4 bg-white rounded-lg border border-green-200 shadow-sm">
                                                         <div className="flex flex-col">
-                                                            <span className="font-medium text-gray-800">{item.category}</span>
-                                                            <span className="text-sm text-gray-600">
-                                                                {item.count} × ₹{item.rate.toLocaleString()}
+                                                            <span className="font-semibold text-gray-800 text-base">{item.category}</span>
+                                                            <div className="text-sm text-gray-600 mt-1 space-y-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                                                        Quantity: {item.count}
+                                                                    </span>
+                                                                    <span className="bg-gray-100 px-2 py-1 rounded text-xs">
+                                                                        Rate: {new Intl.NumberFormat('en-IN', { 
+                                                                            style: 'currency', 
+                                                                            currency: 'INR',
+                                                                            minimumFractionDigits: 0
+                                                                        }).format(item.rate)}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {item.count} × {new Intl.NumberFormat('en-IN', { 
+                                                                        style: 'currency', 
+                                                                        currency: 'INR',
+                                                                        minimumFractionDigits: 0
+                                                                    }).format(item.rate)} = {new Intl.NumberFormat('en-IN', { 
+                                                                        style: 'currency', 
+                                                                        currency: 'INR',
+                                                                        minimumFractionDigits: 0
+                                                                    }).format(item.amount)}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="font-bold text-green-700 text-xl">
+                                                                {new Intl.NumberFormat('en-IN', { 
+                                                                    style: 'currency', 
+                                                                    currency: 'INR',
+                                                                    minimumFractionDigits: 0
+                                                                }).format(item.amount)}
                                                             </span>
                                                         </div>
-                                                        <span className="font-bold text-green-700 text-lg self-end sm:self-center">
-                                                            ₹{item.amount.toLocaleString()}
-                                                        </span>
                                                     </div>
                                                 ));
                                             } catch (e) {
-                                                return null;
+                                                return <div className="text-red-500 text-sm text-center py-4">Error displaying pricing breakdown</div>;
                                             }
                                         })()}
                                     </div>                                    <div className="mt-4 pt-4 border-t-2 border-green-300">
-                                        <div className="flex justify-between items-center font-bold text-green-800 text-lg">
-                                            <span>Total Amount</span>
-                                            <span className="text-xl">{form.watch("totalPrice")}</span>
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-green-100 p-4 rounded-lg">
+                                            <span className="font-bold text-green-800 text-lg">Total Package Price</span>
+                                            <span className="font-bold text-green-800 text-2xl">{form.watch("totalPrice")}</span>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-
-                            {/* All Available Pricing Components Display */}
+                            )}{/* Enhanced Pricing Components Display - Mobile Friendly */}
                             {form.watch("allPricingComponents") && (
-                                <div className="mt-6 p-4 border rounded-lg bg-blue-50">
-                                    <h4 className="font-medium text-base mb-4 text-blue-800">All Available Pricing Components</h4>
-                                    <div className="space-y-3">
-                                        {(() => {
-                                            try {
-                                                const allComponents = JSON.parse(form.watch("allPricingComponents") || "[]");
-                                                return allComponents.map((component: any, index: number) => (
-                                                    <div key={index} className={`flex flex-col sm:flex-row sm:justify-between gap-2 p-3 rounded-lg border ${
-                                                        component.isUsed 
-                                                            ? 'bg-green-100 border-green-300' 
-                                                            : 'bg-gray-100 border-gray-300'
-                                                    }`}>
-                                                        <div className="flex flex-col">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-medium text-gray-800">{component.name}</span>
-                                                                {component.isUsed ? (
+                                <div className="mt-6 space-y-4">
+                                    {/* Pricing Breakdown Section */}
+                                    <div className="p-4 border rounded-lg bg-white shadow-sm">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="font-semibold text-lg text-gray-800">Pricing Breakdown</h4>
+                                            <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                Applied Components
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="space-y-3">
+                                            {(() => {
+                                                try {
+                                                    const allComponents = JSON.parse(form.watch("allPricingComponents") || "[]");
+                                                    const usedComponents = allComponents.filter((comp: any) => comp.isUsed);
+                                                    
+                                                    if (usedComponents.length === 0) {
+                                                        return (
+                                                            <div className="text-center text-gray-500 py-4">
+                                                                No pricing components were applied
+                                                            </div>
+                                                        );
+                                                    }
+                                                    
+                                                    return usedComponents.map((component: any, index: number) => (
+                                                        <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <span className="font-medium text-gray-800">{component.name}</span>
                                                                     <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
-                                                                        Used in calculation
+                                                                        ✓ Used
                                                                     </span>
-                                                                ) : (
-                                                                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-                                                                        Available but not used
-                                                                    </span>
-                                                                )}
+                                                                </div>
+                                                                <span className="text-sm text-gray-600 mt-1">
+                                                                    Component Price
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="font-bold text-lg text-green-700">
+                                                                    {new Intl.NumberFormat('en-IN', { 
+                                                                        style: 'currency', 
+                                                                        currency: 'INR',
+                                                                        minimumFractionDigits: 0,
+                                                                        maximumFractionDigits: 0
+                                                                    }).format(component.price)}
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <span className={`font-bold text-lg self-end sm:self-center ${
-                                                            component.isUsed ? 'text-green-700' : 'text-gray-600'
-                                                        }`}>
-                                                            ₹{component.price.toLocaleString()}
-                                                        </span>
-                                                    </div>
-                                                ));
-                                            } catch (e) {
-                                                return <div className="text-red-500 text-sm">Error displaying pricing components</div>;
-                                            }
-                                        })()}
+                                                    ));
+                                                } catch (e) {
+                                                    return <div className="text-red-500 text-sm text-center py-4">Error displaying pricing components</div>;
+                                                }
+                                            })()}
+                                        </div>
                                     </div>
-                                    <div className="mt-4 pt-4 border-t-2 border-blue-300">
-                                        <div className="text-sm text-blue-700">
-                                            <span className="font-medium">Note:</span> Green components were used in the final price calculation. 
-                                            Gray components are available in this pricing period but weren't applicable for your selected configuration.
+
+                                    {/* All Available Components Section */}
+                                    <div className="p-4 border rounded-lg bg-blue-50">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="font-semibold text-lg text-blue-800">All Available Components</h4>
+                                            <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                                From Pricing Period
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid gap-3">
+                                            {(() => {
+                                                try {
+                                                    const allComponents = JSON.parse(form.watch("allPricingComponents") || "[]");
+                                                    
+                                                    return allComponents.map((component: any, index: number) => (
+                                                        <div key={index} className={`p-3 rounded-lg border transition-all duration-200 ${
+                                                            component.isUsed 
+                                                                ? 'bg-white border-green-300 shadow-sm' 
+                                                                : 'bg-gray-50 border-gray-300'
+                                                        }`}>
+                                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                        <span className="font-medium text-gray-800">{component.name}</span>
+                                                                        {component.isUsed ? (
+                                                                            <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                                                                Applied to Price
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                                <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                                                                Not Used
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-sm text-gray-600 mt-1">
+                                                                        {component.isUsed ? "Included in calculation" : "Available in this pricing period"}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <span className={`font-bold text-lg ${
+                                                                        component.isUsed ? 'text-green-700' : 'text-gray-600'
+                                                                    }`}>
+                                                                        {new Intl.NumberFormat('en-IN', { 
+                                                                            style: 'currency', 
+                                                                            currency: 'INR',
+                                                                            minimumFractionDigits: 0,
+                                                                            maximumFractionDigits: 0
+                                                                        }).format(component.price)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ));
+                                                } catch (e) {
+                                                    return <div className="text-red-500 text-sm text-center py-4">Error displaying pricing components</div>;
+                                                }
+                                            })()}
+                                        </div>
+
+                                        {/* Summary Information */}
+                                        <div className="mt-4 pt-4 border-t-2 border-blue-300">
+                                            <div className="bg-blue-100 p-3 rounded-lg">
+                                                <div className="text-sm text-blue-800">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                                        <span className="font-medium">Pricing Information</span>
+                                                    </div>
+                                                    <div className="text-blue-700 space-y-1">
+                                                        <p>• <span className="font-medium">Green components:</span> Used in your final price calculation</p>
+                                                        <p>• <span className="font-medium">Gray components:</span> Available but not applicable to your booking configuration</p>
+                                                        <p>• Components are matched based on your selected meal plan and occupancy types</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

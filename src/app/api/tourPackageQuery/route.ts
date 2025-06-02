@@ -20,13 +20,11 @@ async function createItineraryAndActivities(itinerary: {
     roomAllocations?: any[];
     transportDetails?: any[];
 }, tourPackageQueryId: any) {
-    console.log("[CREATE_ITINERARY] Starting itinerary creation:", itinerary.itineraryTitle);
-    console.log("[CREATE_ITINERARY] Room allocations count:", itinerary.roomAllocations?.length || 0);
-    console.log("[CREATE_ITINERARY] Transport details count:", itinerary.transportDetails?.length || 0);
+    console.log("Received itinerary with roomAllocations:", itinerary.roomAllocations);
+    console.log("Received itinerary with transportDetails:", itinerary.transportDetails);
 
-    try {
-        // First, create the itinerary and get its id
-        const createdItinerary = await prismadb.itinerary.create({
+    // First, create the itinerary and get its id
+    const createdItinerary = await prismadb.itinerary.create({
         data: {
             itineraryTitle: itinerary.itineraryTitle,
             itineraryDescription: itinerary.itineraryDescription,
@@ -38,9 +36,10 @@ async function createItineraryAndActivities(itinerary: {
             hotelId: itinerary.hotelId,
             numberofRooms: itinerary.numberofRooms,
             roomCategory: itinerary.roomCategory,
-            mealsIncluded: itinerary.mealsIncluded,            itineraryImages: {
+            mealsIncluded: itinerary.mealsIncluded,
+            itineraryImages: {
                 createMany: {
-                    data: (itinerary.itineraryImages || []).map((image: { url: any; }) => ({ url: image.url })),
+                    data: itinerary.itineraryImages.map((image: { url: any; }) => ({ url: image.url })),
                 },
             },
         },
@@ -55,9 +54,10 @@ async function createItineraryAndActivities(itinerary: {
                     itineraryId: createdItinerary.id, // Link to the created itinerary
                     activityTitle: activity.activityTitle,
                     activityDescription: activity.activityDescription,
-                    locationId: activity.locationId,                    activityImages: {
+                    locationId: activity.locationId,
+                    activityImages: {
                         createMany: {
-                            data: (activity.activityImages || []).map((img: { url: any; }) => ({ url: img.url })),
+                            data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
                         },
                     },
                 },
@@ -81,7 +81,8 @@ async function createItineraryAndActivities(itinerary: {
                 }
             });
         }));
-    }    // Create transport details for this itinerary
+    }
+    // Create transport details for this itinerary
     if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
         await Promise.all(itinerary.transportDetails.map((transport: any) => {
             return prismadb.transportDetail.create({
@@ -95,12 +96,7 @@ async function createItineraryAndActivities(itinerary: {
         }));
     }
 
-    console.log("[CREATE_ITINERARY] Itinerary created successfully:", createdItinerary.id);
     return createdItinerary;
-    } catch (error: any) {
-        console.error("[CREATE_ITINERARY] Error creating itinerary:", error);
-        throw error;
-    }
 }
 
 export async function POST(
@@ -109,17 +105,7 @@ export async function POST(
     try {
         const { userId } = auth();
 
-        const body = await req.json();
-        
-        // Add debugging logs for incoming data
-        console.log('[TOURPACKAGE_QUERY_POST] User ID:', userId);
-        console.log('[TOURPACKAGE_QUERY_POST] Request body keys:', Object.keys(body));
-        console.log('[TOURPACKAGE_QUERY_POST] LocationId:', body.locationId);
-        console.log('[TOURPACKAGE_QUERY_POST] AssociatePartnerId:', body.associatePartnerId);
-        console.log('[TOURPACKAGE_QUERY_POST] InquiryId:', body.inquiryId);
-        console.log('[TOURPACKAGE_QUERY_POST] Images count:', body.images?.length || 0);
-        console.log('[TOURPACKAGE_QUERY_POST] Itineraries count:', body.itineraries?.length || 0);
-        console.log('[TOURPACKAGE_QUERY_POST] Flight details count:', body.flightDetails?.length || 0);const {
+        const body = await req.json();        const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -184,12 +170,10 @@ export async function POST(
   
           if (!price) {
               return new NextResponse("Price is required", { status: 400 });
-          } */        if (!locationId) {
-            return new NextResponse("Location id is required", { status: 400 });
-        }
+          } */
 
-        if (!associatePartnerId) {
-            return new NextResponse("Associate Partner id is required", { status: 400 });
+        if (!locationId) {
+            return new NextResponse("Location id is required", { status: 400 });
         }
 
         /*    if (!hotelId) {
@@ -202,15 +186,10 @@ export async function POST(
         const processedPaymentPolicy = Array.isArray(paymentPolicy) ? JSON.stringify(paymentPolicy) : paymentPolicy ? JSON.stringify([paymentPolicy]) : '';
         const processedUsefulTip = Array.isArray(usefulTip) ? JSON.stringify(usefulTip) : usefulTip ? JSON.stringify([usefulTip]) : '';
         const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : cancellationPolicy ? JSON.stringify([cancellationPolicy]) : '';
-        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : airlineCancellationPolicy ? JSON.stringify([airlineCancellationPolicy]) : '';        const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : '';
+        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : airlineCancellationPolicy ? JSON.stringify([airlineCancellationPolicy]) : '';
+        const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : '';
         const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : kitchenGroupPolicy ? JSON.stringify([kitchenGroupPolicy]) : '';
 
-        console.log('[TOURPACKAGE_QUERY_POST] About to create tour package query with data validation:');
-        console.log('[TOURPACKAGE_QUERY_POST] Required fields check:');
-        console.log('- userId:', !!userId);
-        console.log('- locationId:', !!locationId, locationId);
-        console.log('- associatePartnerId:', !!associatePartnerId, associatePartnerId);
-        
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
                 inquiryId,
@@ -254,40 +233,33 @@ export async function POST(
                 cancellationPolicy: processedCancellationPolicy,
                 airlineCancellationPolicy: processedAirlineCancellationPolicy,
                 termsconditions: processedTermsConditions,
-                kitchenGroupPolicy: processedKitchenGroupPolicy,                assignedTo,
+                kitchenGroupPolicy: processedKitchenGroupPolicy,
+                assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
                 associatePartnerId,  // Add this line
                 //   hotelId,
-                ...(images && images.length > 0 && {
-                    images: {
-                        createMany: {
-                            data: images.map((image: { url: string }) => image),
-                        },
-                    }
-                }),
-                ...(flightDetails && flightDetails.length > 0 && {
-                    flightDetails: {
-                        createMany: {
-                            data: flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),
-                        }
-                    }
-                }),
+                images: {
+                    createMany: {
+                        data: [
+                            ...images.map((image: { url: string }) => image),
+                        ],
+                    },
+                },
+                flightDetails: {
+                    createMany: {
+                        data: [
+                            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
+                    }                },
             } as any,
-        });
-
-        console.log('[TOURPACKAGE_QUERY_POST] Main record created successfully, ID:', newTourPackageQuery.id);
+        }
+        )
 
         if (itineraries && itineraries.length > 0) {
-            console.log('[TOURPACKAGE_QUERY_POST] Creating', itineraries.length, 'itineraries...');
             for (const itinerary of itineraries) {
-                console.log('[TOURPACKAGE_QUERY_POST] Creating itinerary:', itinerary.itineraryTitle);
                 await createItineraryAndActivities(itinerary, newTourPackageQuery.id);
             }
-            console.log('[TOURPACKAGE_QUERY_POST] All itineraries created successfully');
         }
-
-        console.log('[TOURPACKAGE_QUERY_POST] Fetching final record...');
 
         const createdTourPackageQuery = await prismadb.tourPackageQuery.findUnique({
             where: { id: newTourPackageQuery.id },
@@ -296,31 +268,13 @@ export async function POST(
                 inquiry: true,
                 // Include relevant relations
             },
-        });        return NextResponse.json(createdTourPackageQuery);
-    } catch (error: any) {
-        console.error('[TOURPACKAGE_QUERY_POST] Detailed Error:', {
-            message: error?.message,
-            stack: error?.stack,
-            name: error?.name,
-            code: error?.code,
-            meta: error?.meta,
-            fullError: error
         });
-        
-        // Return more specific error messages based on error type
-        if (error?.code === 'P2002') {
-            return new NextResponse(`Unique constraint violation: ${error.meta?.target || 'unknown field'}`, { status: 400 });
-        }
-        
-        if (error?.code === 'P2003') {
-            return new NextResponse(`Foreign key constraint violation: ${error.meta?.field_name || 'unknown field'}`, { status: 400 });
-        }
-        
-        if (error?.code === 'P2025') {
-            return new NextResponse(`Record not found: ${error.meta?.cause || 'unknown cause'}`, { status: 404 });
-        }
-        
-        return new NextResponse(`Internal error: ${error?.message || 'Unknown error'}`, { status: 500 });
+
+
+        return NextResponse.json(createdTourPackageQuery);
+    } catch (error) {
+        console.log('[TOURPACKAGE_QUERY_POST]', error);
+        return new NextResponse("Internal error", { status: 500 });
     }
 };
 

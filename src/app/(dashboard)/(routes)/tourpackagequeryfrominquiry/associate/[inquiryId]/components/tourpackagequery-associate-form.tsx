@@ -427,10 +427,9 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 drop_location: selectedTourPackage.drop_location || "",
                 numAdults: data.numAdults,
                 numChild5to12: data.numChild5to12 || "",
-                numChild0to5: data.numChild0to5 || "",
-                totalPrice: data.totalPrice,
+                numChild0to5: data.numChild0to5 || "",                totalPrice: data.totalPrice,
                 remarks: data.remarks,
-                associatePartnerId: inquiry?.associatePartnerId,
+                associatePartnerId: inquiry?.associatePartnerId || null,
 
                 // Copy tour package content
                 inclusions: selectedTourPackage.inclusions || "",
@@ -441,12 +440,28 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 cancellationPolicy: selectedTourPackage.cancellationPolicy || "",
                 airlineCancellationPolicy: selectedTourPackage.airlineCancellationPolicy || "",
                 termsconditions: selectedTourPackage.termsconditions || "",
-                kitchenGroupPolicy: selectedTourPackage.kitchenGroupPolicy || "",
-
-                // Copy images and flight details
+                kitchenGroupPolicy: selectedTourPackage.kitchenGroupPolicy || "",                // Copy images and flight details
                 images: selectedTourPackage.images || [],
                 flightDetails: selectedTourPackage.flightDetails || [],
                 itineraries: selectedTourPackage.itineraries || [],
+
+                // Add missing fields that might be required
+                price: selectedTourPackage.price || "",
+                pricePerAdult: selectedTourPackage.pricePerAdult || "",
+                pricePerChildOrExtraBed: selectedTourPackage.pricePerChildOrExtraBed || "",
+                pricePerChild5to12YearsNoBed: selectedTourPackage.pricePerChild5to12YearsNoBed || "",
+                pricePerChildwithSeatBelow5Years: selectedTourPackage.pricePerChildwithSeatBelow5Years || "",
+                pricingSection: selectedTourPackage.pricingSection || [],
+                
+                // Add default values for potentially missing fields
+                selectedTemplateId: selectedTourPackage.selectedTemplateId || "",
+                selectedTemplateType: selectedTourPackage.selectedTemplateType || "",
+                tourPackageTemplateName: selectedTourPackage.tourPackageTemplateName || "",
+                selectedMealPlanId: selectedTourPackage.selectedMealPlanId || "",
+                occupancySelections: selectedTourPackage.occupancySelections || [],
+                assignedTo: selectedTourPackage.assignedTo || "",
+                assignedToMobileNumber: selectedTourPackage.assignedToMobileNumber || "",
+                assignedToEmail: selectedTourPackage.assignedToEmail || "",
 
                 isArchived: false,
                 isFeatured: false,

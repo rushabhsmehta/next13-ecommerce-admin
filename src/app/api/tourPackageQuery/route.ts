@@ -254,25 +254,25 @@ export async function POST(
                 cancellationPolicy: processedCancellationPolicy,
                 airlineCancellationPolicy: processedAirlineCancellationPolicy,
                 termsconditions: processedTermsConditions,
-                kitchenGroupPolicy: processedKitchenGroupPolicy,
-                assignedTo,
-                assignedToMobileNumber,                assignedToEmail,
+                kitchenGroupPolicy: processedKitchenGroupPolicy,                assignedTo,
+                assignedToMobileNumber,
+                assignedToEmail,
                 associatePartnerId,  // Add this line
                 //   hotelId,
-                images: {
-                    createMany: {
-                        data: [
-                            ...(images || []).map((image: { url: string }) => image),
-                        ],
-                    },
-                },
-                flightDetails: {
-                    createMany: {
-                        data: [
-                            ...(flightDetails || []).map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),
-                        ]
+                ...(images && images.length > 0 && {
+                    images: {
+                        createMany: {
+                            data: images.map((image: { url: string }) => image),
+                        },
                     }
-                },
+                }),
+                ...(flightDetails && flightDetails.length > 0 && {
+                    flightDetails: {
+                        createMany: {
+                            data: flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),
+                        }
+                    }
+                }),
             } as any,
         });
 

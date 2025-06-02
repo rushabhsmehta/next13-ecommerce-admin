@@ -66,11 +66,11 @@ const formSchema = z.object({
         if (!val || val === "") return true;
         const num = parseInt(val);
         return !isNaN(num) && num >= 0 && num <= 10;
-    }, "Number of children (0-5) must be between 0 and 10"),
-    totalPrice: z.string().optional(),
+    }, "Number of children (0-5) must be between 0 and 10"),    totalPrice: z.string().optional(),
     remarks: z.string().max(1000, "Remarks cannot exceed 1000 characters").optional(),
     pricingMethod: z.string().optional(),
     pricingBreakdown: z.string().optional(),
+    allPricingComponents: z.string().optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>;
@@ -123,8 +123,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     const title = "Create Tour Package Query";
     const description = "Create a tour package query from inquiry (Associate Partner)";
     const toastMessage = "Tour Package Query created successfully.";
-    const action = "Create Query";
-    const form = useForm<TourPackageQueryFormValues>({
+    const action = "Create Query";    const form = useForm<TourPackageQueryFormValues>({
         resolver: zodResolver(formSchema), defaultValues: {
             tourPackageId: "",
             customerName: inquiry?.customerName || "",
@@ -136,8 +135,9 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             remarks: "",
             pricingMethod: "",
             pricingBreakdown: "",
+            allPricingComponents: "",
         }
-    });    // Watch for tour package selection changes
+    });// Watch for tour package selection changes
     const watchTourPackageId = form.watch("tourPackageId");
     
     // Watch all form values to detect changes
@@ -236,8 +236,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                         const childPrice = parseFloat(childComp.price || '0') * numChild5to12;
                         totalPrice += childPrice;
                         pricingBreakdown.push({
-                            category: 'Children (5-12 yrs)',
-                            count: numChild5to12,
+                           count: numChild5to12,
                             rate: parseFloat(childComp.price || '0'),
                             amount: childPrice
                         });
@@ -756,7 +755,12 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 comp.pricingAttribute?.name?.toLowerCase().includes('per couple')
             );            // Calculate total price based on occupancy selections
             let totalPrice = 0;
-            const pricingBreakdown = [];
+            const pricingBreakdown: Array<{
+                category: string;
+                count: number;
+                rate: number;
+                amount: number;
+            }> = [];
 
             // Apply Double occupancy pricing
             const doubleOccupancySelections = occupancySelections.filter(selection => {
@@ -854,13 +858,29 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 currency: 'INR',
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
-            }));
-
-            // Store pricing breakdown for display
+            }));            // Store pricing breakdown for display
             form.setValue("pricingBreakdown", JSON.stringify(pricingBreakdown));
             form.setValue("pricingMethod", "advanced");
 
-            toast.success("Tour package pricing applied successfully!");        } catch (error: any) {
+            // Store all available pricing components with usage status
+            const allPricingComponents = selectedPricing.pricingComponents.map((comp: any) => {
+                // Check if this component was used in the pricing breakdown
+                const wasUsed = pricingBreakdown.some((breakdownItem: any) => 
+                    breakdownItem.category === (comp.pricingAttribute?.name || 'Unknown')
+                );
+                
+                return {
+                    id: comp.id,
+                    name: comp.pricingAttribute?.name || 'Unknown Component',
+                    price: parseFloat(comp.price || '0'),
+                    isUsed: wasUsed,
+                    pricingAttributeId: comp.pricingAttributeId
+                };
+            });
+            
+            form.setValue("allPricingComponents", JSON.stringify(allPricingComponents));
+
+            toast.success("Tour package pricing applied successfully!");} catch (error: any) {
             toast.dismiss();
             console.error("Error fetching/applying tour package pricing:", error);
             
@@ -1280,15 +1300,63 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                                                 return null;
                                             }
                                         })()}
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t-2 border-green-300">
+                                    </div>                                    <div className="mt-4 pt-4 border-t-2 border-green-300">
                                         <div className="flex justify-between items-center font-bold text-green-800 text-lg">
                                             <span>Total Amount</span>
                                             <span className="text-xl">{form.watch("totalPrice")}</span>
                                         </div>
                                     </div>
                                 </div>
-                            )}                            {/* Auto-Pricing Section */}
+                            )}
+
+                            {/* All Available Pricing Components Display */}
+                            {form.watch("allPricingComponents") && (
+                                <div className="mt-6 p-4 border rounded-lg bg-blue-50">
+                                    <h4 className="font-medium text-base mb-4 text-blue-800">All Available Pricing Components</h4>
+                                    <div className="space-y-3">
+                                        {(() => {
+                                            try {
+                                                const allComponents = JSON.parse(form.watch("allPricingComponents") || "[]");
+                                                return allComponents.map((component: any, index: number) => (
+                                                    <div key={index} className={`flex flex-col sm:flex-row sm:justify-between gap-2 p-3 rounded-lg border ${
+                                                        component.isUsed 
+                                                            ? 'bg-green-100 border-green-300' 
+                                                            : 'bg-gray-100 border-gray-300'
+                                                    }`}>
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium text-gray-800">{component.name}</span>
+                                                                {component.isUsed ? (
+                                                                    <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                                                                        Used in calculation
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+                                                                        Available but not used
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <span className={`font-bold text-lg self-end sm:self-center ${
+                                                            component.isUsed ? 'text-green-700' : 'text-gray-600'
+                                                        }`}>
+                                                            ₹{component.price.toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                ));
+                                            } catch (e) {
+                                                return <div className="text-red-500 text-sm">Error displaying pricing components</div>;
+                                            }
+                                        })()}
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t-2 border-blue-300">
+                                        <div className="text-sm text-blue-700">
+                                            <span className="font-medium">Note:</span> Green components were used in the final price calculation. 
+                                            Gray components are available in this pricing period but weren't applicable for your selected configuration.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}{/* Auto-Pricing Section */}
                             {selectedTourPackage && (
                                 <div className="mt-6 p-4 border-2 border-dashed border-purple-200 rounded-lg bg-purple-50">
                                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">

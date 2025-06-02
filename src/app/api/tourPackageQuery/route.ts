@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth, currentUser } from '@clerk/nextjs';
 
 import prismadb from '@/lib/prismadb';
 
@@ -223,10 +223,42 @@ export async function POST(
         if (!locationId) {
             console.log('[TOURPACKAGE_QUERY_POST] ERROR: Location id is missing');
             return new NextResponse("Location id is required", { status: 400 });
+        }        // For associate domain requests, get the associate partner ID from the authenticated user
+        let finalAssociatePartnerId = associatePartnerId;
+        
+        if (!finalAssociatePartnerId) {
+            console.log('[TOURPACKAGE_QUERY_POST] Associate partner id not provided, attempting to get from authenticated user...');
+            
+            // Get current user from Clerk
+            const user = await currentUser();
+            if (user) {
+                const userEmail = user.emailAddresses[0]?.emailAddress;
+                console.log('[TOURPACKAGE_QUERY_POST] User email:', userEmail);
+                
+                if (userEmail) {
+                    // Try to find the associate partner by gmail (primary) or email (fallback)
+                    const associatePartner = await prismadb.associatePartner.findFirst({
+                        where: {
+                            OR: [
+                                { gmail: userEmail },
+                                { email: userEmail }
+                            ],
+                            isActive: true
+                        }
+                    });
+                    
+                    if (associatePartner) {
+                        finalAssociatePartnerId = associatePartner.id;
+                        console.log('[TOURPACKAGE_QUERY_POST] Found associate partner from user email:', finalAssociatePartnerId);
+                    } else {
+                        console.log('[TOURPACKAGE_QUERY_POST] No associate partner found for user email:', userEmail);
+                    }
+                }
+            }
         }
-
-        if (!associatePartnerId) {
-            console.log('[TOURPACKAGE_QUERY_POST] ERROR: Associate partner id is missing');
+        
+        if (!finalAssociatePartnerId) {
+            console.log('[TOURPACKAGE_QUERY_POST] ERROR: Associate partner id could not be determined');
             return new NextResponse("Associate partner id is required", { status: 400 });
         }
 
@@ -293,12 +325,11 @@ export async function POST(
                 usefulTip: processedUsefulTip,
                 cancellationPolicy: processedCancellationPolicy,
                 airlineCancellationPolicy: processedAirlineCancellationPolicy,
-                termsconditions: processedTermsConditions,
-                kitchenGroupPolicy: processedKitchenGroupPolicy,
+                termsconditions: processedTermsConditions,                kitchenGroupPolicy: processedKitchenGroupPolicy,
                 assignedTo,
                 assignedToMobileNumber,
                 assignedToEmail,
-                associatePartnerId,  // Add this line
+                associatePartnerId: finalAssociatePartnerId,
                 //   hotelId,
                 images: {
                     createMany: {

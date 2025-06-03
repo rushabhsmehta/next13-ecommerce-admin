@@ -16,7 +16,7 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
   });
 
   const locations = await prismadb.location.findMany();
-    const tourPackages = await prismadb.tourPackage.findMany({
+  const tourPackages = await prismadb.tourPackage.findMany({
     where: {
       isArchived: false,
       locationId: inquiry?.locationId
@@ -36,6 +36,34 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
       }
     }
   });
+  
+  // Fetch associate partners for dropdown
+  const associatePartners = await prismadb.associatePartner.findMany();
+  
+  // Fetch tour package queries for dropdown
+  const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
+    include: {
+      images: true,
+      flightDetails: true,
+      itineraries: {
+        include: {
+          itineraryImages: true,
+          activities: {
+            include: {
+              activityImages: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Fetch hotels for dropdown
+  const hotels = await prismadb.hotel.findMany({
+    include: {
+      images: true
+    }
+  });
 
   return (
     <div className="flex-col">
@@ -44,6 +72,9 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
           inquiry={inquiry}
           locations={locations}
           tourPackages={tourPackages}
+          associatePartners={associatePartners}
+          tourPackageQueries={tourPackageQueries}
+          hotels={hotels}
         />
       </div>
     </div>

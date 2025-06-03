@@ -246,6 +246,11 @@ interface TourPackageQueryFromInquiryAssociateFormProps {
             })[] | null;
         })[] | null;
     })[] | null;
+    // Lookup data for itinerary, room allocations, and transport
+    roomTypes?: RoomType[];
+    occupancyTypes?: OccupancyType[];
+    mealPlans?: MealPlan[];
+    vehicleTypes?: VehicleType[];
 };
 
 export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQueryFromInquiryAssociateFormProps> = ({
@@ -258,6 +263,10 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     associatePartners = [],
     tourPackages,
     tourPackageQueries = null,
+    roomTypes = [],
+    occupancyTypes = [],
+    mealPlans = [],
+    vehicleTypes = [],
 }) => {
     const params = useParams();
     const router = useRouter();
@@ -268,13 +277,11 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
     const [loading, setLoading] = useState(false);
     const [priceCalculationResult, setPriceCalculationResult] = useState<any>(null);
-    const editor = useRef(null)
-
-    // Add state for lookup data
-    const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-    const [occupancyTypes, setOccupancyTypes] = useState<OccupancyType[]>([]);
-    const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
-    const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+    const editor = useRef(null)    // Local state for lookup data (renamed to avoid conflict with props)
+    const [localRoomTypes, setLocalRoomTypes] = useState<RoomType[]>([]);
+    const [localOccupancyTypes, setLocalOccupancyTypes] = useState<OccupancyType[]>([]);
+    const [localMealPlans, setLocalMealPlans] = useState<MealPlan[]>([]);
+    const [localVehicleTypes, setLocalVehicleTypes] = useState<VehicleType[]>([]);
     const [lookupLoading, setLookupLoading] = useState(true);  // Store price calculation result in window for access in nested functions
     useEffect(() => {
         (window as any).setPriceCalculationResult = setPriceCalculationResult;
@@ -574,24 +581,41 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             form.setValue('cancellationPolicy', parseJsonField(selectedTourPackage.cancellationPolicy) || CANCELLATION_POLICY_DEFAULT);
             form.setValue('airlineCancellationPolicy', parseJsonField(selectedTourPackage.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT);
             form.setValue('termsconditions', parseJsonField(selectedTourPackage.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT);
-            form.setValue('images', selectedTourPackage.images || []);
-            const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => ({
-                locationId: itinerary.locationId,
-                itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
-                itineraryTitle: itinerary.itineraryTitle || '',
-                itineraryDescription: itinerary.itineraryDescription || '',
-                dayNumber: itinerary.dayNumber || 0,
-                days: itinerary.days || '',
-                activities: itinerary.activities?.map(activity => ({
-                    activityImages: activity.activityImages?.map(img => ({ url: img.url })) || [],
-                    activityTitle: activity.activityTitle || '',
-                    activityDescription: activity.activityDescription || ''
-                })) || [],
-                hotelId: itinerary.hotelId || '',
-                roomAllocations: (itinerary as any).roomAllocations || [],
-                transportDetails: (itinerary as any).transportDetails || [],
-
-            })) || [];
+            form.setValue('images', selectedTourPackage.images || []);            // Log the itineraries from the selected template to debug
+            console.log('Selected template itineraries:', selectedTourPackage.itineraries);
+            
+            const transformedItineraries = selectedTourPackage.itineraries?.map(itinerary => {
+                // Debug logging for each itinerary's hotelId
+                console.log(`Template itinerary ${itinerary.dayNumber} hotelId:`, itinerary.hotelId);
+                
+                return {
+                    locationId: itinerary.locationId,
+                    itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
+                    itineraryTitle: itinerary.itineraryTitle || '',
+                    itineraryDescription: itinerary.itineraryDescription || '',
+                    dayNumber: itinerary.dayNumber || 0,
+                    days: itinerary.days || '',
+                    activities: itinerary.activities?.map(activity => ({
+                        activityImages: activity.activityImages?.map(img => ({ url: img.url })) || [],
+                        activityTitle: activity.activityTitle || '',
+                        activityDescription: activity.activityDescription || ''
+                    })) || [],
+                    hotelId: itinerary.hotelId || '',  // Ensure hotelId is transferred
+                    roomAllocations: (itinerary as any).roomAllocations || [],
+                    transportDetails: (itinerary as any).transportDetails || [],
+                };
+            }) || [];            // Verify if hotel IDs from template exist in the current hotels array
+            const allHotelIds = hotels.map(h => h.id);
+            const hotelIdsInTemplate = transformedItineraries
+              .filter(it => it.hotelId)
+              .map(it => it.hotelId);
+              
+            console.log('Hotel ID verification:', {
+              hotelsInCurrentSystem: allHotelIds,
+              hotelsInTemplate: hotelIdsInTemplate,
+              missingHotels: hotelIdsInTemplate.filter(id => !allHotelIds.includes(id as string))
+            });
+            
             form.setValue('itineraries', transformedItineraries);
             form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
                 date: flight.date || undefined,
@@ -852,32 +876,40 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     }
 
     // These functions are now handled in the ItineraryTab component
-    // Removing unused functions
-
-    // Fetch lookup data
+    // Removing unused functions    // Fetch lookup data - only if props are empty
     useEffect(() => {
-        const fetchLookupData = async () => {
-            setLookupLoading(true);
-            try {
-                const [roomTypesRes, occupancyTypesRes, mealPlansRes, vehicleTypesRes] = await Promise.all([
-                    axios.get('/api/room-types'),      // Adjust API path if needed
-                    axios.get('/api/occupancy-types'), // Adjust API path if needed
-                    axios.get('/api/meal-plans'),       // Adjust API path if needed
-                    axios.get('/api/vehicle-types')    // Adjust API path if needed
-                ]);
-                setRoomTypes(roomTypesRes.data);
-                setOccupancyTypes(occupancyTypesRes.data);
-                setMealPlans(mealPlansRes.data);
-                setVehicleTypes(vehicleTypesRes.data);
-            } catch (error) {
-                console.error("Error fetching lookup data:", error);
-                toast.error("Failed to load necessary configuration data.");
-            } finally {
-                setLookupLoading(false);
-            }
-        };
-        fetchLookupData();
-    }, []);
+        // Only fetch lookup data if the props are empty
+        if (roomTypes.length === 0 || occupancyTypes.length === 0 || mealPlans.length === 0 || vehicleTypes.length === 0) {
+            const fetchLookupData = async () => {
+                setLookupLoading(true);
+                try {
+                    const [roomTypesRes, occupancyTypesRes, mealPlansRes, vehicleTypesRes] = await Promise.all([
+                        axios.get('/api/room-types'),      // Adjust API path if needed
+                        axios.get('/api/occupancy-types'), // Adjust API path if needed
+                        axios.get('/api/meal-plans'),       // Adjust API path if needed
+                        axios.get('/api/vehicle-types')    // Adjust API path if needed
+                    ]);
+                    setLocalRoomTypes(roomTypesRes.data);
+                    setLocalOccupancyTypes(occupancyTypesRes.data);
+                    setLocalMealPlans(mealPlansRes.data);
+                    setLocalVehicleTypes(vehicleTypesRes.data);
+                } catch (error) {
+                    console.error("Error fetching lookup data:", error);
+                    toast.error("Failed to load necessary configuration data.");
+                } finally {
+                    setLookupLoading(false);
+                }
+            };
+            fetchLookupData();
+        } else {
+            // If props are provided, use them instead
+            setLocalRoomTypes(roomTypes);
+            setLocalOccupancyTypes(occupancyTypes);
+            setLocalMealPlans(mealPlans);
+            setLocalVehicleTypes(vehicleTypes);
+            setLookupLoading(false);
+        }
+    }, [roomTypes, occupancyTypes, mealPlans, vehicleTypes]);
 
 
     return (
@@ -1039,11 +1071,10 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             <PricingTab
                                 control={form.control}
                                 loading={loading}
-                                form={form}
-                                hotels={hotels}
-                                roomTypes={roomTypes}
-                                occupancyTypes={occupancyTypes}
-                                mealPlans={mealPlans}
+                                form={form}                                hotels={hotels}
+                                roomTypes={localRoomTypes.length > 0 ? localRoomTypes : roomTypes}
+                                occupancyTypes={localOccupancyTypes.length > 0 ? localOccupancyTypes : occupancyTypes}
+                                mealPlans={localMealPlans.length > 0 ? localMealPlans : mealPlans}
                                 vehicleTypes={vehicleTypes}
                                 priceCalculationResult={priceCalculationResult}
                                 setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}

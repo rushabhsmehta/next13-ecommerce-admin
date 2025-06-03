@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Trash, CalendarIcon, CheckIcon, Calculator, Plus, Loader2 } from "lucide-react";
+import { Trash, CalendarIcon, CheckIcon, Calculator, Plus, Loader2, FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck } from "lucide-react";
 import { Inquiry, Location, TourPackage, Images, FlightDetails, Itinerary, Activity } from "@prisma/client";
 import { useParams, useRouter } from "next/navigation";
 
@@ -41,6 +41,7 @@ import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -48,9 +49,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Import tab components
+
 
 const formSchema = z.object({
     tourPackageId: z.string().min(1, "Please select a tour package from the dropdown"),
+    // Basic Info fields
+    associatePartnerId: z.string().optional(),
+    tourPackageQueryNumber: z.string().optional(),
+    tourPackageQueryName: z.string().optional(),
+    confirmed: z.boolean().optional(),
+
+    // Customer/Guest Info fields
     customerName: z.string().min(2, "Customer name must be at least 2 characters").max(100, "Customer name cannot exceed 100 characters"),
     customerNumber: z.string().min(10, "Customer number must be at least 10 digits").max(15, "Customer number cannot exceed 15 digits").regex(/^[0-9+\-\s()]+$/, "Customer number must contain only numbers, spaces, +, -, and parentheses"),
     numAdults: z.string().min(1, "Number of adults is required").refine((val) => {
@@ -66,11 +78,39 @@ const formSchema = z.object({
         if (!val || val === "") return true;
         const num = parseInt(val);
         return !isNaN(num) && num >= 0 && num <= 10;
-    }, "Number of children (0-5) must be between 0 and 10"),    totalPrice: z.string().optional(),
+    }, "Number of children (0-5) must be between 0 and 10"),
+
+    // Location fields
+    locationId: z.string().optional(),
+
+    // Date fields
+    tourStartsFrom: z.string().optional(),
+    tourEndsOn: z.string().optional(),
+    numDaysNight: z.string().optional(),
+    period: z.string().optional(),
+
+    // Transport fields
+    transport: z.string().optional(),
+    pickup_location: z.string().optional(),
+    drop_location: z.string().optional(),
+
+    // Pricing fields
+    totalPrice: z.string().optional(),
+    pricePerAdult: z.string().optional(),
+    price: z.string().optional(),
     remarks: z.string().max(1000, "Remarks cannot exceed 1000 characters").optional(),
     pricingMethod: z.string().optional(),
     pricingBreakdown: z.string().optional(),
     allPricingComponents: z.string().optional(),
+
+    // Additional fields that may be needed
+    disclaimer: z.string().optional(),
+    selectedTemplateId: z.string().optional(),
+    selectedTemplateType: z.string().optional(),
+    tourPackageTemplate: z.string().optional(),
+    tourPackageQueryTemplate: z.string().optional(),
+    itineraries: z.array(z.any()).optional(),
+    flightDetails: z.array(z.any()).optional(),
 });
 
 type TourPackageQueryFormValues = z.infer<typeof formSchema>;
@@ -105,7 +145,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     tourPackages
 }) => {
     const params = useParams();
-    const router = useRouter();    const [open, setOpen] = useState(false);
+    const router = useRouter(); const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -123,7 +163,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
     const title = "Create Tour Package Query";
     const description = "Create a tour package query from inquiry (Associate Partner)";
     const toastMessage = "Tour Package Query created successfully.";
-    const action = "Create Query";    const form = useForm<TourPackageQueryFormValues>({
+    const action = "Create Query"; const form = useForm<TourPackageQueryFormValues>({
         resolver: zodResolver(formSchema), defaultValues: {
             tourPackageId: "",
             customerName: inquiry?.customerName || "",
@@ -139,12 +179,12 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
         }
     });// Watch for tour package selection changes
     const watchTourPackageId = form.watch("tourPackageId");
-    
+
     // Watch all form values to detect changes
     const watchedValues = form.watch();
-      // Track form changes
+    // Track form changes
     useEffect(() => {
-        const hasChanges = 
+        const hasChanges =
             watchedValues.customerName !== (inquiry?.customerName || "") ||
             watchedValues.customerNumber !== (inquiry?.customerMobileNumber || "") ||
             watchedValues.numAdults !== (inquiry?.numAdults?.toString() || "") ||
@@ -153,15 +193,15 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             watchedValues.tourPackageId !== "" ||
             watchedValues.totalPrice !== "" ||
             watchedValues.remarks !== "";
-            
+
         setHasUnsavedChanges(hasChanges);
-        
+
         // Clear form error when user starts making changes
         if (hasChanges && formError) {
             setFormError(null);
         }
     }, [watchedValues, inquiry, formError]);
-    
+
     // Navigation confirmation handler
     const handleBackNavigation = () => {
         if (hasUnsavedChanges && !loading) {
@@ -236,7 +276,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                         const childPrice = parseFloat(childComp.price || '0') * numChild5to12;
                         totalPrice += childPrice;
                         pricingBreakdown.push({
-                           count: numChild5to12,
+                            count: numChild5to12,
                             rate: parseFloat(childComp.price || '0'),
                             amount: childPrice
                         });
@@ -352,11 +392,11 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
         if (selectedTourPackage?.id) {
             calculateAdvancedPricing(selectedTourPackage.id);
         }
-    }, [numAdults, numChild5to12, numChild0to5, selectedTourPackage, calculateAdvancedPricing]);    const onSubmit = async (data: TourPackageQueryFormValues) => {
+    }, [numAdults, numChild5to12, numChild0to5, selectedTourPackage, calculateAdvancedPricing]); const onSubmit = async (data: TourPackageQueryFormValues) => {
         try {
             setLoading(true);
             setFormError(null); // Clear any previous errors
-            
+
             // Client-side validation with user-friendly messages
             if (!selectedTourPackage) {
                 const errorMsg = "Please select a tour package from the dropdown first";
@@ -427,7 +467,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 drop_location: selectedTourPackage.drop_location || "",
                 numAdults: data.numAdults,
                 numChild5to12: data.numChild5to12 || "",
-                numChild0to5: data.numChild0to5 || "",                totalPrice: data.totalPrice,
+                numChild0to5: data.numChild0to5 || "", totalPrice: data.totalPrice,
                 remarks: data.remarks,
                 associatePartnerId: inquiry?.associatePartnerId || null,
 
@@ -452,7 +492,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                 pricePerChild5to12YearsNoBed: selectedTourPackage.pricePerChild5to12YearsNoBed || "",
                 pricePerChildwithSeatBelow5Years: selectedTourPackage.pricePerChildwithSeatBelow5Years || "",
                 pricingSection: selectedTourPackage.pricingSection || [],
-                
+
                 // Add default values for potentially missing fields
                 selectedTemplateId: selectedTourPackage.selectedTemplateId || "",
                 selectedTemplateType: selectedTourPackage.selectedTemplateType || "",
@@ -483,25 +523,25 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             });
 
             await axios.post(`/api/tourPackageQuery`, formattedData);
-            
+
             // Clear loading toast and show success
             toast.dismiss();
             toast.success(`Tour Package Query created successfully for ${data.customerName}!`);
-            
+
             // Navigate back to inquiries
             router.refresh();
             router.push(`/inquiries`);
-            
+
         } catch (error: any) {
             // Dismiss loading toast
             toast.dismiss();
             console.error('Form submission error:', error);
-            
+
             // Provide specific error messages based on error type and status
             if (axios.isAxiosError(error)) {
                 const status = error.response?.status;
                 const errorData = error.response?.data;
-                  switch (status) {
+                switch (status) {
                     case 400:
                         if (typeof errorData === 'string') {
                             setFormError(`Validation Error: ${errorData}`);
@@ -557,7 +597,8 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             toast.error(`Error: ${errorData}`);
                         } else if (errorData?.message) {
                             setFormError(`Error: ${errorData.message}`);
-                            toast.error(`Error: ${errorData.message}`);                        } else {
+                            toast.error(`Error: ${errorData.message}`);
+                        } else {
                             setFormError(`Request failed with status ${status}. Please try again.`);
                             toast.error(`Request failed with status ${status}. Please try again.`);
                         }
@@ -580,31 +621,31 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                     axios.get('/api/meal-plans'),
                     axios.get('/api/occupancy-types')
                 ]);
-                
+
                 // Validate the response data
                 if (!Array.isArray(mealPlansRes.data)) {
                     console.error('Invalid meal plans response:', mealPlansRes.data);
                     toast.error('Invalid meal plans data received from server.');
                     return;
                 }
-                
+
                 if (!Array.isArray(occupancyTypesRes.data)) {
                     console.error('Invalid occupancy types response:', occupancyTypesRes.data);
                     toast.error('Invalid occupancy types data received from server.');
                     return;
                 }
-                
+
                 setMealPlans(mealPlansRes.data);
                 setOccupancyTypes(occupancyTypesRes.data);
-                
+
             } catch (error) {
                 console.error('Error fetching lookup data:', error);
-                
+
                 // Provide specific error messages
                 if (axios.isAxiosError(error)) {
                     const status = error.response?.status;
                     const errorData = error.response?.data;
-                    
+
                     switch (status) {
                         case 403:
                             toast.error('Authentication failed. Please sign in again to load meal plans and occupancy types.');
@@ -726,7 +767,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
         if (pricingQueryPax <= 0) {
             toast.error("You need at least one Double occupancy selection for tour package pricing.");
             return;
-        }        toast.loading("Fetching and matching tour package pricing...");
+        } toast.loading("Fetching and matching tour package pricing...");
         try {
             console.log("Making API request to:", `/api/tourPackages/${selectedTourPackage.id}/pricing`);
             const response = await axios.get(`/api/tourPackages/${selectedTourPackage.id}/pricing`);
@@ -734,7 +775,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             console.log("Response data:", response.data);
             console.log("Response status:", response.status);
             console.log("Response headers:", response.headers);
-            
+
             const tourPackagePricings = response.data;
             toast.dismiss();
 
@@ -897,10 +938,10 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             // Store all available pricing components with usage status
             const allPricingComponents = selectedPricing.pricingComponents.map((comp: any) => {
                 // Check if this component was used in the pricing breakdown
-                const wasUsed = pricingBreakdown.some((breakdownItem: any) => 
+                const wasUsed = pricingBreakdown.some((breakdownItem: any) =>
                     breakdownItem.category === (comp.pricingAttribute?.name || 'Unknown')
                 );
-                
+
                 return {
                     id: comp.id,
                     name: comp.pricingAttribute?.name || 'Unknown Component',
@@ -909,18 +950,19 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                     pricingAttributeId: comp.pricingAttributeId
                 };
             });
-            
+
             form.setValue("allPricingComponents", JSON.stringify(allPricingComponents));
 
-            toast.success("Tour package pricing applied successfully!");} catch (error: any) {
+            toast.success("Tour package pricing applied successfully!");
+        } catch (error: any) {
             toast.dismiss();
             console.error("Error fetching/applying tour package pricing:", error);
-            
+
             // Provide more specific error messages based on error type
             if (axios.isAxiosError(error)) {
                 const status = error.response?.status;
                 const errorData = error.response?.data;
-                
+
                 switch (status) {
                     case 400:
                         toast.error("Invalid pricing request. Please check your tour package selection and try again.");
@@ -1008,7 +1050,7 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                             </div>
                         )}
                     </CardContent>
-                </Card>            )}
+                </Card>)}
 
             {/* Form Error Display */}
             {formError && (
@@ -1155,448 +1197,659 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
                         </CardContent>
                     </Card>
 
-                    {/* Customer Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Customer Information</CardTitle>
-                            <CardDescription>
-                                Verify and update customer details for the tour package query
-                            </CardDescription>
-                        </CardHeader>                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="customerName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Customer Name</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={loading}
-                                                    placeholder="Customer name"
-                                                    {...field}
-                                                    className="h-11"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="customerNumber"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Customer Mobile Number</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={loading}
-                                                    placeholder="Customer mobile number"
-                                                    {...field}
-                                                    className="h-11"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Passenger Details and Pricing */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Passenger Details & Pricing</CardTitle>
-                            <CardDescription>
-                                Update passenger count and view automatic pricing calculation
-                            </CardDescription>
-                        </CardHeader>                        <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                                <FormField
-                                    control={form.control}
-                                    name="numAdults"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-base font-medium">Number of Adults</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={loading}
-                                                    placeholder="Number of adults"
-                                                    type="number"
-                                                    min="0"
-                                                    className="h-12 text-lg text-center"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="numChild5to12"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-base font-medium">Children (5-12 years)</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={loading}
-                                                    placeholder="Number of children"
-                                                    type="number"
-                                                    min="0"
-                                                    className="h-12 text-lg text-center"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="numChild0to5"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-base font-medium">Children (0-5 years)</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={loading}
-                                                    placeholder="Number of infants"
-                                                    type="number"
-                                                    min="0"
-                                                    className="h-12 text-lg text-center"
-                                                    {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            {/* Pricing Display */}
-                            <div className="mt-6 p-4 border-2 rounded-lg bg-primary/5">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-                                    <FormLabel className="text-lg font-semibold">Calculated Total Price</FormLabel>
-                                    {form.watch("pricingMethod") && (
-                                        <span className={`text-xs px-3 py-1 rounded-full w-fit ${form.watch("pricingMethod") === "advanced"
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-blue-100 text-blue-700"
-                                            }`}>
-                                            {form.watch("pricingMethod") === "advanced" ? "Advanced Pricing" : "Basic Pricing"}
-                                        </span>
-                                    )}
-                                </div>
-                                <FormField
-                                    control={form.control}
-                                    name="totalPrice"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={true}
-                                                    placeholder="Price will be calculated automatically"
-                                                    {...field}
-                                                    className="font-bold text-xl h-12 text-center bg-white"
-                                                />
-                                            </FormControl>
-                                            <FormDescription className="text-center mt-2">
-                                                Price is automatically calculated based on selected tour package and passenger count
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />                            </div>{/* Enhanced Pricing Components Display - Mobile Friendly */}
-                            {form.watch("allPricingComponents") && (
-                                <div className="mt-6 space-y-4">
-                                    {/* Pricing Breakdown Section */}
-                                    <div className="p-4 border rounded-lg bg-white shadow-sm">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="font-semibold text-lg text-gray-800">Pricing Breakdown</h4>
-                                            <div className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                                Applied Components
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="space-y-3">
-                                            {(() => {
-                                                try {
-                                                    const allComponents = JSON.parse(form.watch("allPricingComponents") || "[]");
-                                                    const usedComponents = allComponents.filter((comp: any) => comp.isUsed);
-                                                    
-                                                    if (usedComponents.length === 0) {
-                                                        return (
-                                                            <div className="text-center text-gray-500 py-4">
-                                                                No pricing components were applied
-                                                            </div>
-                                                        );
-                                                    }
-                                                    
-                                                    return usedComponents.map((component: any, index: number) => (
-                                                        <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                                            <div className="flex flex-col">
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    <span className="font-medium text-gray-800">{component.name}</span>
-                                                                    <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
-                                                                        ✓ Used
-                                                                    </span>
-                                                                </div>
-                                                                <span className="text-sm text-gray-600 mt-1">
-                                                                    Component Price
-                                                                </span>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <span className="font-bold text-lg text-green-700">
-                                                                    {new Intl.NumberFormat('en-IN', { 
-                                                                        style: 'currency', 
-                                                                        currency: 'INR',
-                                                                        minimumFractionDigits: 0,
-                                                                        maximumFractionDigits: 0
-                                                                    }).format(component.price)}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ));
-                                                } catch (e) {
-                                                    return <div className="text-red-500 text-sm text-center py-4">Error displaying pricing components</div>;
-                                                }
-                                            })()}
-                                        </div>
-                                    </div>
-
-                                    {/* All Available Components Section */}
-                                    <div className="p-4 border rounded-lg bg-blue-50">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h4 className="font-semibold text-lg text-blue-800">All Available Components</h4>
-                                            <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                                From Pricing Period
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="grid gap-3">
-                                            {(() => {
-                                                try {
-                                                    const allComponents = JSON.parse(form.watch("allPricingComponents") || "[]");
-                                                    
-                                                    return allComponents.map((component: any, index: number) => (
-                                                        <div key={index} className={`p-3 rounded-lg border transition-all duration-200 ${
-                                                            component.isUsed 
-                                                                ? 'bg-white border-green-300 shadow-sm' 
-                                                                : 'bg-gray-50 border-gray-300'
-                                                        }`}>
-                                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                                                <div className="flex flex-col">
-                                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                                        <span className="font-medium text-gray-800">{component.name}</span>
-                                                                        {component.isUsed ? (
-                                                                            <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
-                                                                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                                                                Applied to Price
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full flex items-center gap-1">
-                                                                                <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                                                                                Not Used
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                    <span className="text-sm text-gray-600 mt-1">
-                                                                        {component.isUsed ? "Included in calculation" : "Available in this pricing period"}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <span className={`font-bold text-lg ${
-                                                                        component.isUsed ? 'text-green-700' : 'text-gray-600'
-                                                                    }`}>
-                                                                        {new Intl.NumberFormat('en-IN', { 
-                                                                            style: 'currency', 
-                                                                            currency: 'INR',
-                                                                            minimumFractionDigits: 0,
-                                                                            maximumFractionDigits: 0
-                                                                        }).format(component.price)}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ));
-                                                } catch (e) {
-                                                    return <div className="text-red-500 text-sm text-center py-4">Error displaying pricing components</div>;
-                                                }
-                                            })()}
-                                        </div>
-
-                                        {/* Summary Information */}
-                                        <div className="mt-4 pt-4 border-t-2 border-blue-300">
-                                            <div className="bg-blue-100 p-3 rounded-lg">
-                                                <div className="text-sm text-blue-800">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                                                        <span className="font-medium">Pricing Information</span>
-                                                    </div>
-                                                    <div className="text-blue-700 space-y-1">
-                                                        <p>• <span className="font-medium">Green components:</span> Used in your final price calculation</p>
-                                                        <p>• <span className="font-medium">Gray components:</span> Available but not applicable to your booking configuration</p>
-                                                        <p>• Components are matched based on your selected meal plan and occupancy types</p>
-                                                    </div>
+                    {/* Tabbed Structure */}
+                    <Tabs defaultValue="basic-info" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+                            <TabsTrigger value="basic-info" className="flex items-center gap-1 px-2">
+                                <FileText className="h-4 w-4" />
+                                <span className="hidden sm:inline">Basic Info</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="guests" className="flex items-center gap-1 px-2">
+                                <Users className="h-4 w-4" />
+                                <span className="hidden sm:inline">Guests</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="location" className="flex items-center gap-1 px-2">
+                                <MapPin className="h-4 w-4" />
+                                <span className="hidden sm:inline">Location</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="dates" className="flex items-center gap-1 px-2">
+                                <CalendarIcon className="h-4 w-4" />
+                                <span className="hidden sm:inline">Dates</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="itinerary" className="flex items-center gap-1 px-2">
+                                <ListPlus className="h-4 w-4" />
+                                <span className="hidden sm:inline">Itinerary</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="flights" className="flex items-center gap-1 px-2">
+                                <Plane className="h-4 w-4" />
+                                <span className="hidden sm:inline">Flights</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="pricing" className="flex items-center gap-1 px-2">
+                                <Calculator className="h-4 w-4" />
+                                <span className="hidden sm:inline">Pricing</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="policies" className="flex items-center gap-1 px-2">
+                                <FileCheck className="h-4 w-4" />
+                                <span className="hidden sm:inline">Policies</span>
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="basic-info">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Basic Information</CardTitle>
+                                    <CardDescription>
+                                        Basic details about the tour package query
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="tourPackageQueryName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Query Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Tour package query name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="tourPackageQueryNumber"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Query Number</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Auto-generated" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>                                    <FormField
+                                        control={form.control}
+                                        name="confirmed"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value}
+                                                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                                                        disabled={loading}
+                                                    />
+                                                </FormControl>
+                                                <div className="space-y-1 leading-none">
+                                                    <FormLabel>
+                                                        Confirmed Query
+                                                    </FormLabel>
+                                                    <FormDescription>
+                                                        Mark this query as confirmed by the customer
+                                                    </FormDescription>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="guests">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Guest Information</CardTitle>
+                                    <CardDescription>
+                                        Number of guests and their details
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="customerName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Customer Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Customer name" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="customerNumber"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Customer Mobile Number</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Customer mobile number" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
-                                </div>
-                            )}{/* Auto-Pricing Section */}
-                            {selectedTourPackage && (
-                                <div className="mt-6 p-4 border-2 border-dashed border-purple-200 rounded-lg bg-purple-50">
-                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-                                        <h4 className="font-bold text-purple-800 text-lg">Advanced Auto-Pricing</h4>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setShowAutoPricing(!showAutoPricing)}
-                                            className="text-purple-600 hover:text-purple-800 w-fit"
-                                        >
-                                            {showAutoPricing ? "Hide" : "Show"} Auto-Pricing
-                                        </Button>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="numAdults"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Number of Adults</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="0" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="numChild5to12"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Children (5-12 years)</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="0" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="numChild0to5"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Children (0-5 years)</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="0" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
-
-                                    {showAutoPricing && (
-                                        <div className="space-y-6">
-                                            {/* Meal Plan Selection */}
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-3 block">
-                                                    Select Meal Plan *
-                                                </label>
-                                                <Select
-                                                    value={selectedMealPlanId || ""}
-                                                    onValueChange={setSelectedMealPlanId}
-                                                >
-                                                    <SelectTrigger className="w-full h-12">
-                                                        <SelectValue placeholder="Choose a meal plan..." />
-                                                    </SelectTrigger>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="location">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Location & Transport</CardTitle>
+                                    <CardDescription>
+                                        Destination and transportation details
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="locationId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Location</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loading}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select location" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
                                                     <SelectContent>
-                                                        {mealPlans.map((mealPlan) => (
-                                                            <SelectItem key={mealPlan.id} value={mealPlan.id}>
-                                                                {mealPlan.name}
+                                                        {locations.map((location) => (
+                                                            <SelectItem key={location.id} value={location.id}>
+                                                                {location.label}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
-                                            </div>
-
-                                            {/* Occupancy Selection */}
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-3 block">
-                                                    Occupancy Types *
-                                                </label>
-
-                                                {/* Add Occupancy Selection */}
-                                                <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                                                    <Select
-                                                        value={newOccupancyTypeId}
-                                                        onValueChange={setNewOccupancyTypeId}
-                                                    >
-                                                        <SelectTrigger className="flex-1 h-12">
-                                                            <SelectValue placeholder="Select occupancy type..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {occupancyTypes.map((occupancyType) => (
-                                                                <SelectItem key={occupancyType.id} value={occupancyType.id}>
-                                                                    {occupancyType.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <div className="flex gap-2">
-                                                        <Input
-                                                            type="number"
-                                                            value={newOccupancyCount}
-                                                            onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                                                            min="1"
-                                                            className="w-24 h-12 text-center"
-                                                            placeholder="Count"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            onClick={handleAddOccupancySelection}
-                                                            size="sm"
-                                                            className="h-12 px-4"
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="transport"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Transport Mode</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Transport mode" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="pickup_location"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Pickup Location</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Pickup location" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="drop_location"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Drop Location</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Drop location" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="dates">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Travel Dates</CardTitle>
+                                    <CardDescription>
+                                        Travel dates and duration information
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="tourStartsFrom"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Tour Starts From</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} type="date" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="tourEndsOn"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Tour Ends On</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} type="date" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="numDaysNight"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Duration (Days/Nights)</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="e.g., 7 Days 6 Nights" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="period"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Travel Period</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Season/Period" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>                        <TabsContent value="itinerary">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Itinerary Details</CardTitle>
+                                    <CardDescription>
+                                        Tour itinerary will be populated from the selected tour package
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {selectedTourPackage && selectedTourPackage.itineraries ? (
+                                        <div className="space-y-4">
+                                            {selectedTourPackage.itineraries.map((itinerary: any, index: number) => (
+                                                <div key={index} className="border rounded-lg p-4">
+                                                    <h4 className="font-medium">Day {itinerary.dayNumber || index + 1}</h4>
+                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                        {itinerary.title || 'No title'}
+                                                    </p>
+                                                    {itinerary.description && (
+                                                        <p className="text-sm mt-2">{itinerary.description}</p>
+                                                    )}
                                                 </div>
-
-                                                {/* Display Selected Occupancies */}
-                                                {occupancySelections.length > 0 && (
-                                                    <div className="space-y-3">
-                                                        {occupancySelections.map((selection, index) => {
-                                                            const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-                                                            return (
-                                                                <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
-                                                                    <div className="flex-1">
-                                                                        <span className="font-medium text-base">{occupancyType?.name}</span>
-                                                                        <div className="text-sm text-gray-500 mt-1">
-                                                                            {selection.count} × {selection.paxPerUnit} pax = {selection.count * selection.paxPerUnit} total
-                                                                        </div>
-                                                                    </div>
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => handleRemoveOccupancySelection(index)}
-                                                                        className="text-red-600 hover:text-red-800 w-fit"
-                                                                    >
-                                                                        <Trash className="h-4 w-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            );
-                                                        })}
-
-                                                        {/* Display PAX Summary */}
-                                                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                                            <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-sm">
-                                                                <span className="font-medium text-blue-800">Total PAX: {calculateTotalPax()}</span>
-                                                                <span className="text-blue-600">
-                                                                    Pricing PAX (Double): {calculatePricingPax()}
-                                                                </span>
-                                                            </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground">Select a tour package to view itinerary details</p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </TabsContent>                        <TabsContent value="flights">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Flight Details</CardTitle>
+                                    <CardDescription>
+                                        Flight information will be populated from the selected tour package
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {selectedTourPackage && selectedTourPackage.flightDetails ? (
+                                        <div className="space-y-4">
+                                            {selectedTourPackage.flightDetails.map((flight: any, index: number) => (
+                                                <div key={index} className="border rounded-lg p-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <span className="font-medium">Flight:</span>
+                                                            <p className="text-sm">{flight.flightName || 'N/A'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-medium">Route:</span>
+                                                            <p className="text-sm">{flight.fromLocation || 'N/A'} → {flight.toLocation || 'N/A'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-medium">Departure:</span>
+                                                            <p className="text-sm">{flight.departureTime || 'N/A'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-medium">Arrival:</span>
+                                                            <p className="text-sm">{flight.arrivalTime || 'N/A'}</p>
                                                         </div>
                                                     </div>
-                                                )}
-                                            </div>
-
-                                            {/* Auto-Pricing Button */}
-                                            <div className="flex justify-center pt-2">
-                                                <Button
-                                                    type="button"
-                                                    onClick={handleFetchTourPackagePricing}
-                                                    disabled={loading || !selectedMealPlanId || occupancySelections.length === 0}
-                                                    className="bg-purple-600 hover:bg-purple-700 h-12 px-6 text-base font-medium"
-                                                >
-                                                    <Calculator className="h-5 w-5 mr-2" />
-                                                    Calculate Auto-Pricing
-                                                </Button>
-                                            </div>
+                                                </div>
+                                            ))}
                                         </div>
+                                    ) : (
+                                        <p className="text-muted-foreground">Select a tour package to view flight details</p>
                                     )}
-                                </div>
-                            )}                            {/* Manual Recalculate Button */}
-                            {selectedTourPackage && (
-                                <div className="mt-6 flex justify-center">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="default"
-                                        onClick={() => calculateAdvancedPricing(selectedTourPackage.id)}
-                                        disabled={loading}
-                                        className="h-11 px-6 text-sm font-medium"
-                                    >
-                                        🔄 Recalculate Pricing
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
+                                </CardContent>
+                            </Card>
+                        </TabsContent>                        <TabsContent value="pricing">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Pricing Information</CardTitle>
+                                    <CardDescription>
+                                        Pricing details and calculation
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="totalPrice"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Total Price</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Total price" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="pricePerAdult"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Price Per Adult</FormLabel>
+                                                    <FormControl>
+                                                        <Input disabled={loading} placeholder="Price per adult" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <FormField
+                                        control={form.control}
+                                        name="remarks"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Pricing Remarks</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        disabled={loading}
+                                                        placeholder="Additional pricing remarks or notes"
+                                                        className="min-h-[100px]"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    {/* Auto-pricing section */}
+                                    <div className="border rounded-lg p-4 bg-muted/50">
+                                        <h4 className="font-medium mb-3">Auto-Pricing Options</h4>
+                                        <div className="space-y-4">                                            <div className="flex items-center space-x-3">
+                                            <Checkbox
+                                                checked={showAutoPricing}
+                                                onCheckedChange={(checked) => setShowAutoPricing(checked === true)}
+                                                disabled={loading}
+                                            />
+                                            <label className="text-sm font-medium">
+                                                Enable Advanced Auto-Pricing
+                                            </label>
+                                        </div>
+
+                                            {showAutoPricing && (
+                                                <div className="space-y-4 mt-4">
+                                                    {/* Meal Plan Selection */}
+                                                    <div>
+                                                        <label className="text-sm font-medium">Meal Plan</label>
+                                                        <Select
+                                                            value={selectedMealPlanId || ""}
+                                                            onValueChange={setSelectedMealPlanId}
+                                                            disabled={loading}
+                                                        >
+                                                            <SelectTrigger className="mt-1">
+                                                                <SelectValue placeholder="Select meal plan" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {mealPlans.map((plan) => (
+                                                                    <SelectItem key={plan.id} value={plan.id}>
+                                                                        {plan.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    {/* Occupancy Selection */}
+                                                    <div>
+                                                        <label className="text-sm font-medium">Occupancy Types</label>
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                                                            <Select value={newOccupancyTypeId} onValueChange={setNewOccupancyTypeId}>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select occupancy" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {occupancyTypes.map((type) => (
+                                                                        <SelectItem key={type.id} value={type.id}>
+                                                                            {type.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <Input
+                                                                type="number"
+                                                                value={newOccupancyCount}
+                                                                onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
+                                                                placeholder="Count"
+                                                                min="1"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                onClick={handleAddOccupancySelection}
+                                                                disabled={loading || !newOccupancyTypeId}
+                                                                size="sm"
+                                                            >
+                                                                Add
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Selected Occupancies */}
+                                                    {occupancySelections.length > 0 && (
+                                                        <div>
+                                                            <label className="text-sm font-medium">Selected Occupancies</label>
+                                                            <div className="space-y-2 mt-2">
+                                                                {occupancySelections.map((selection, index) => {
+                                                                    const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
+                                                                    return (
+                                                                        <div key={index} className="flex items-center justify-between p-2 border rounded">
+                                                                            <span className="text-sm">
+                                                                                {occupancyType?.name} × {selection.count} ({selection.paxPerUnit * selection.count} pax)
+                                                                            </span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => handleRemoveOccupancySelection(index)}
+                                                                            >
+                                                                                Remove
+                                                                            </Button>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Fetch Pricing Button */}
+                                                    <Button
+                                                        type="button"
+                                                        onClick={handleFetchTourPackagePricing}
+                                                        disabled={loading || !selectedTourPackage || !selectedMealPlanId || occupancySelections.length === 0}
+                                                        className="w-full"
+                                                    >
+                                                        <Calculator className="h-4 w-4 mr-2" />
+                                                        Calculate Advanced Pricing
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>                        <TabsContent value="policies">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Terms & Policies</CardTitle>
+                                    <CardDescription>
+                                        Terms and conditions, policies, and disclaimers
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {selectedTourPackage ? (
+                                        <div className="space-y-6">
+                                            {selectedTourPackage.inclusions && (
+                                                <div>
+                                                    <h4 className="font-medium text-green-600">Inclusions</h4>
+                                                    <div className="text-sm mt-2 p-3 bg-green-50 rounded border">
+                                                        <div dangerouslySetInnerHTML={{ __html: selectedTourPackage.inclusions }} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedTourPackage.exclusions && (
+                                                <div>
+                                                    <h4 className="font-medium text-red-600">Exclusions</h4>
+                                                    <div className="text-sm mt-2 p-3 bg-red-50 rounded border">
+                                                        <div dangerouslySetInnerHTML={{ __html: selectedTourPackage.exclusions }} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedTourPackage.importantNotes && (
+                                                <div>
+                                                    <h4 className="font-medium text-amber-600">Important Notes</h4>
+                                                    <div className="text-sm mt-2 p-3 bg-amber-50 rounded border">
+                                                        <div dangerouslySetInnerHTML={{ __html: selectedTourPackage.importantNotes }} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedTourPackage.paymentPolicy && (
+                                                <div>
+                                                    <h4 className="font-medium text-blue-600">Payment Policy</h4>
+                                                    <div className="text-sm mt-2 p-3 bg-blue-50 rounded border">
+                                                        <div dangerouslySetInnerHTML={{ __html: selectedTourPackage.paymentPolicy }} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedTourPackage.cancellationPolicy && (
+                                                <div>
+                                                    <h4 className="font-medium text-orange-600">Cancellation Policy</h4>
+                                                    <div className="text-sm mt-2 p-3 bg-orange-50 rounded border">
+                                                        <div dangerouslySetInnerHTML={{ __html: selectedTourPackage.cancellationPolicy }} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedTourPackage.termsconditions && (
+                                                <div>
+                                                    <h4 className="font-medium text-gray-600">Terms & Conditions</h4>
+                                                    <div className="text-sm mt-2 p-3 bg-gray-50 rounded border">
+                                                        <div dangerouslySetInnerHTML={{ __html: selectedTourPackage.termsconditions }} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-muted-foreground">Select a tour package to view policies and terms</p>
+                                    )}
+
+                                    <FormField
+                                        control={form.control}
+                                        name="disclaimer"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Additional Disclaimer</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        disabled={loading}
+                                                        placeholder="Any additional disclaimers or notes"
+                                                        className="min-h-[100px]"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </TabsContent></Tabs>
+
+                    {/* Form Actions */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
                         <Button
                             disabled={loading}
                             className="flex-1 sm:flex-none sm:ml-auto h-12 text-base font-medium px-8"

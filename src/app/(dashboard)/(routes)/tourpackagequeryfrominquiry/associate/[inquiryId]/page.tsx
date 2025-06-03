@@ -57,13 +57,37 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
       }
     }
   });
-
   // Fetch hotels for dropdown
   const hotels = await prismadb.hotel.findMany({
     include: {
       images: true
     }
   });
+
+  // Fetch activity masters for activity selection
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    include: {
+      activityMasterImages: true
+    }
+  });
+
+  // Fetch itinerary masters for itinerary templates
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true
+        }
+      }
+    }
+  });
+
+  // Fetch lookup data for room allocations and transport details
+  const roomTypes = await prismadb.roomType.findMany();
+  const occupancyTypes = await prismadb.occupancyType.findMany();
+  const mealPlans = await prismadb.mealPlan.findMany();
+  const vehicleTypes = await prismadb.vehicleType.findMany();
 
   return (
     <div className="flex-col">
@@ -75,6 +99,12 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
           associatePartners={associatePartners}
           tourPackageQueries={tourPackageQueries}
           hotels={hotels}
+          activitiesMaster={activitiesMaster}
+          itinerariesMaster={itinerariesMaster}
+          roomTypes={roomTypes}
+          occupancyTypes={occupancyTypes}
+          mealPlans={mealPlans}
+          vehicleTypes={vehicleTypes}
         />
       </div>
     </div>

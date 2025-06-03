@@ -22,13 +22,14 @@ import {
     Activity, 
     AssociatePartner, 
     Images, 
+    Inquiry,
     ItineraryMaster, 
     Location, 
     Hotel, 
     TourPackage, 
     TourPackageQuery, 
     Itinerary, 
-    FlightDetails, 
+    FlightDetails,
     ActivityMaster, 
     RoomType, 
     OccupancyType, 
@@ -203,25 +204,28 @@ const formSchema = z.object({
 export type TourPackageQueryFromInquiryAssociateFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFromInquiryAssociateFormProps {
-    initialData: TourPackageQuery & {
+    initialData?: TourPackageQuery & {
         images: Images[];
         itineraries: Itinerary[];
         flightDetails: FlightDetails[];
     } | null;
+    inquiry?: Inquiry & {
+        associatePartner: AssociatePartner | null;
+    } | null;
     locations: Location[];
-    hotels: (Hotel & {
+    hotels?: (Hotel & {
         images: Images[];
-    })[];
-    activitiesMaster: (ActivityMaster & {
+    })[] | undefined;
+    activitiesMaster?: (ActivityMaster & {
         activityMasterImages: Images[];
-    })[] | null;
-    itinerariesMaster: (ItineraryMaster & {
+    })[] | null | undefined;
+    itinerariesMaster?: (ItineraryMaster & {
         itineraryMasterImages: Images[];
         activities: (Activity & {
             activityImages: Images[];
         })[] | null;
-    })[] | null;
-    associatePartners: AssociatePartner[]; // Add this line
+    })[] | null | undefined;
+    associatePartners?: AssociatePartner[]; 
     tourPackages: (TourPackage & {
         images: Images[];
         flightDetails: FlightDetails[];
@@ -232,7 +236,7 @@ interface TourPackageQueryFromInquiryAssociateFormProps {
             })[] | null;
         })[] | null;
     })[] | null;
-    tourPackageQueries: (TourPackageQuery & {
+    tourPackageQueries?: (TourPackageQuery & {
         images: Images[];
         flightDetails: FlightDetails[];
         itineraries: (Itinerary & {
@@ -247,12 +251,12 @@ interface TourPackageQueryFromInquiryAssociateFormProps {
 export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQueryFromInquiryAssociateFormProps> = ({
     initialData,
     locations,
-    hotels,
+    hotels = [],
     activitiesMaster,
     itinerariesMaster,
-    associatePartners,
+    associatePartners = [],
     tourPackages,
-    tourPackageQueries,
+    tourPackageQueries = null,
 }) => {
     const params = useParams();
     const router = useRouter();
@@ -595,10 +599,14 @@ export const TourPackageQueryFromInquiryAssociateForm: React.FC<TourPackageQuery
             })));
             form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
         }
-    };
-    const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
+    };    const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
         // Find the selected tour package query template
-        const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
+        if (!tourPackageQueries) {
+            toast.error('No tour package queries available');
+            return;
+        }
+        
+        const selectedTourPackageQuery = tourPackageQueries.find(tpq => tpq.id === selectedTourPackageQueryId);
 
         if (selectedTourPackageQuery) {
             // Update the tourPackageQueryTemplate field

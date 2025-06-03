@@ -218,9 +218,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                           "w-full justify-between",
                           !field.value && "text-muted-foreground"
                         )}
-                      >
-                        {field.value
-                          ? associatePartners.find((partner) => partner.id === field.value)?.name
+                      >                        {field.value
+                          ? associatePartners?.find((partner) => partner.id === field.value)?.name
                           : "Select Associate Partner..."}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -231,7 +230,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       <CommandInput placeholder="Search associate partner..." />
                       <CommandEmpty>No associate partner found.</CommandEmpty>
                       <CommandGroup>
-                        {associatePartners.map((partner) => (
+                        {associatePartners?.map((partner) => (
                           <CommandItem
                             value={partner.name}
                             key={partner.id}
@@ -266,7 +265,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <>
                   <div className="flex flex-col space-y-1">
                     <p className="text-muted-foreground">
-                      Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
+                      Mobile: {associatePartners?.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
                     </p>
                   </div>
                 </>
@@ -283,7 +282,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <>
                   <div className="flex flex-col space-y-1">
                     <p className="text-muted-foreground">
-                      Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                      Email: {associatePartners?.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
                     </p>
                   </div>
                 </>

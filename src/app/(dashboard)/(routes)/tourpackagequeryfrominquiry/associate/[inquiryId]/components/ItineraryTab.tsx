@@ -146,8 +146,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
+    <Card>      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle className="flex items-center gap-2 text-slate-800">
             <ListPlus className="h-5 w-5 text-primary" />
@@ -163,7 +162,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="shadow-sm border-primary hover:bg-primary/10 transition-all flex items-center gap-2"
+                    className="shadow-sm border-primary hover:bg-primary/10 transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto justify-center"
                     onClick={() => {
                       const itineraries = [...value];
                       if (itineraries.length <= 1) return;
@@ -190,7 +189,8 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    Apply First Day Room Allocations & Transport
+                    <span className="hidden sm:inline">Apply First Day Room Allocations & Transport</span>
+                    <span className="inline sm:hidden">Copy First Day Setup</span>
                   </Button>
                 ) : null}
               </>
@@ -307,23 +307,33 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                               <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">
                                 <Type className="h-4 w-4" />
                                 <span>Title</span>
-                              </FormLabel>
-                              <FormControl>
-                                <JoditEditor
-                                  ref={(node) => editorsRef.current[`title-${index}`] = node}
-                                  value={itinerary.itineraryTitle || ''}
-                                  config={{
-                                    readonly: loading,
-                                    toolbar: true,
-                                    theme: 'default',
-                                  }}
-                                  onBlur={(newContent) => {
-                                    const newItineraries = [...value]
-                                    newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
-                                    onChange(newItineraries)
-                                  }}
-                                  onChange={() => {}} // Empty onChange to prevent focus loss
-                                />
+                              </FormLabel>                              <FormControl>
+                                <div className="jodit-container">
+                                  <JoditEditor
+                                    ref={(node) => editorsRef.current[`title-${index}`] = node}
+                                    value={itinerary.itineraryTitle || ''}
+                                    config={{
+                                      readonly: loading,
+                                      toolbar: true,
+                                      theme: 'default',
+                                      // Mobile-friendly editor config
+                                      height: 120,
+                                      buttons: [
+                                        'bold', 'italic', 'underline', '|',
+                                        'font', 'fontsize', '|',
+                                        'undo', 'redo'
+                                      ],
+                               
+                                     
+                                    }}
+                                    onBlur={(newContent) => {
+                                      const newItineraries = [...value]
+                                      newItineraries[index] = { ...itinerary, itineraryTitle: newContent }
+                                      onChange(newItineraries)
+                                    }}
+                                    onChange={() => {}} // Empty onChange to prevent focus loss
+                                  />
+                                </div>
                               </FormControl>
                             </FormItem>                            <FormItem className="bg-white rounded-lg p-4 shadow-sm border">
                               <FormLabel className="text-base font-medium flex items-center gap-2 mb-2">

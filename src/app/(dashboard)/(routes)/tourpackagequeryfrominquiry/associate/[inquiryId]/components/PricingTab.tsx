@@ -638,57 +638,61 @@ const PricingTab: React.FC<PricingTabProps> = ({
       console.log(`Occupancy selections updated, total guests: ${totalPax}`);
     }
   }, [occupancySelections, form, calculationMethod, selectedMealPlanId, calculateTotalPax]);
-
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" /> {/* Added icon */}
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b py-4 sm:py-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
           Pricing
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-
-        {/* Pricing Calculation Method Selection */}
-        <FormItem className="space-y-3">
-          <FormLabel className="text-base font-semibold">Pricing Calculation Method</FormLabel>
+      <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6">{/* Pricing Calculation Method Selection - Enhanced for mobile */}        
+        <FormItem className="space-y-2 sm:space-y-3">
+          <FormLabel className="text-sm sm:text-base font-semibold">Pricing Calculation Method</FormLabel>
           <FormControl>
             <RadioGroup
               onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
               defaultValue={calculationMethod}
-              className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 pt-2"
+              className="flex flex-col space-y-1.5 sm:space-y-2 pt-1 sm:pt-2"
             >
-              <FormItem className="flex items-center space-x-3 space-y-0">
+              <FormItem className="flex items-center space-x-2 sm:space-x-3 space-y-0 bg-white p-1.5 sm:p-2 rounded-md border border-transparent hover:border-gray-200">
                 <FormControl>
-                  <RadioGroupItem value="manual" id="manual-pricing" />
+                  <RadioGroupItem value="manual" id="manual-pricing" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </FormControl>
-                <FormLabel htmlFor="manual-pricing" className="font-normal cursor-pointer">Manual Pricing</FormLabel>
+                <FormLabel htmlFor="manual-pricing" className="text-xs sm:text-sm font-normal cursor-pointer m-0">Manual Pricing</FormLabel>
               </FormItem>
-              <FormItem className="flex items-center space-x-3 space-y-0">
+              <FormItem className="flex items-center space-x-2 sm:space-x-3 space-y-0 bg-white p-1.5 sm:p-2 rounded-md border border-transparent hover:border-gray-200">
                 <FormControl>
-                  <RadioGroupItem value="autoHotelTransport" id="auto-hotel-transport" />
+                  <RadioGroupItem value="autoHotelTransport" id="auto-hotel-transport" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </FormControl>
-                <FormLabel htmlFor="auto-hotel-transport" className="font-normal cursor-pointer">Auto Calculate (Hotel & Transport)</FormLabel>
+                <FormLabel htmlFor="auto-hotel-transport" className="text-xs sm:text-sm font-normal cursor-pointer m-0">
+                  <span className="hidden sm:inline">Auto Calculate (Hotel & Transport)</span>
+                  <span className="inline sm:hidden">Auto (Hotel/Transport)</span>
+                </FormLabel>
               </FormItem>
-              <FormItem className="flex items-center space-x-3 space-y-0">
+              <FormItem className="flex items-center space-x-2 sm:space-x-3 space-y-0 bg-white p-1.5 sm:p-2 rounded-md border border-transparent hover:border-gray-200">
                 <FormControl>
                   <RadioGroupItem 
                     value="autoTourPackage" 
                     id="auto-tour-package"
-                    disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'} 
+                    disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'}
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                   />
                 </FormControl>
-                <FormLabel 
-                  htmlFor="auto-tour-package" 
-                  className={`font-normal ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  Use Tour Package Pricing
+                <div className="flex flex-col">
+                  <FormLabel 
+                    htmlFor="auto-tour-package" 
+                    className={`text-xs sm:text-sm font-normal m-0 ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <span className="hidden sm:inline">Use Tour Package Pricing</span>
+                    <span className="inline sm:hidden">Package Pricing</span>
+                  </FormLabel>
                   {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
-                    <span className="text-xs text-amber-500 block">
+                    <span className="text-2xs text-amber-500 block mt-0.5">
                       {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
                     </span>
                   )}
-                </FormLabel>
+                </div>
               </FormItem>
             </RadioGroup>
           </FormControl>
@@ -1164,46 +1168,42 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 <p className="text-sm text-green-700">
                   Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
                   This will overwrite the current Total Price and Pricing Options below.
-                </p>
-
-                {/* Meal Plan Selection First */}
-                <FormItem className="space-y-2">
-                  <FormLabel className="font-medium">Meal Plan <span className="text-red-500">*</span></FormLabel>
+                </p>                {/* Meal Plan Selection First - Enhanced for mobile */}
+                <FormItem className="space-y-1 sm:space-y-2">
+                  <FormLabel className="font-medium text-sm sm:text-base">Meal Plan <span className="text-red-500">*</span></FormLabel>
                   <Select
                     disabled={loading}
                     onValueChange={setSelectedMealPlanId}
                     value={selectedMealPlanId || undefined}
                   >
                     <FormControl>
-                      <SelectTrigger className="bg-white">
+                      <SelectTrigger className="bg-white text-xs sm:text-sm h-9 sm:h-10">
                         <SelectValue placeholder="Select Meal Plan" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="max-h-[200px]">
                       {mealPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id}>
+                        <SelectItem key={plan.id} value={plan.id} className="text-xs sm:text-sm">
                           {plan.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
+                  {!selectedMealPlanId && <p className="text-2xs sm:text-xs text-red-500 pt-0.5 sm:pt-1">Required</p>}
                 </FormItem>
 
                 {/* Occupancy Selections */}
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>
-
-                  {/* Show current selections */}
+                  <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>                  {/* Show current selections - Enhanced for mobile */}
                   {occupancySelections.length > 0 ? (
                     <div className="space-y-2">
                       {occupancySelections.map((selection, index) => {
                         const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
                         return (
-                          <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200 shadow-sm">
-                            <div>
-                              <span className="font-medium text-sm">{occupancyType?.name}</span>
-                              <span className="text-xs text-gray-600 ml-2">
+                          <div key={index} className="flex flex-wrap sm:flex-nowrap items-center justify-between p-2 sm:p-3 bg-white rounded border border-green-200 shadow-sm">
+                            <div className="flex flex-col sm:flex-row sm:items-center w-full sm:w-auto">
+                              <span className="font-medium text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none">{occupancyType?.name}</span>
+                              <span className="text-xs text-gray-600 sm:ml-2 mt-0.5 sm:mt-0">
                                 × {selection.count} = {selection.count * selection.paxPerUnit} PAX
                               </span>
                             </div>
@@ -1212,167 +1212,166 @@ const PricingTab: React.FC<PricingTabProps> = ({
                               variant="ghost"
                               size="sm"
                               onClick={() => handleRemoveOccupancySelection(index)}
-                              className="h-7 w-7 p-0"
+                              className="h-7 w-7 p-0 ml-auto"
                               disabled={loading}
                             >
-                              <Trash className="h-4 w-4 text-red-500 hover:text-red-700" />
+                              <Trash className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 hover:text-red-700" />
                             </Button>
                           </div>
                         );
                       })}
 
                       <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-center">
-                        <span className="font-semibold text-sm">Total: {calculateTotalPax()} PAX</span>
+                        <span className="font-semibold text-xs sm:text-sm">Total: {calculateTotalPax()} PAX</span>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded">No occupancy selections added yet. Add at least one.</p>
-                  )}
-
-                  {/* Add new occupancy selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border-t border-green-100 pt-4">
-                    <div>
-                      <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
-                      <Select
-                        disabled={loading}
-                        onValueChange={setNewOccupancyTypeId}
-                        value={newOccupancyTypeId || undefined}
-                      >
-                        <SelectTrigger className="bg-white h-9">
-                          <SelectValue placeholder="Select Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {occupancyTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <FormLabel className="text-xs font-medium">Count</FormLabel>
-                      <div className="flex items-center gap-1">
+                    <p className="text-xs sm:text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 sm:p-3 rounded text-center">No occupancy selections added yet. Add at least one.</p>
+                  )}{/* Add new occupancy selection - Enhanced for mobile */}
+                  <div className="border-t border-green-100 pt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-2">
+                      <div className="space-y-1">
+                        <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
+                        <Select
+                          disabled={loading}
+                          onValueChange={setNewOccupancyTypeId}
+                          value={newOccupancyTypeId || undefined}
+                        >
+                          <SelectTrigger className="bg-white h-9 text-sm">
+                            <SelectValue placeholder="Select Type" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[200px]">
+                            {occupancyTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.id} className="text-sm">
+                                {type.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <FormLabel className="text-xs font-medium">Count</FormLabel>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
+                            onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
+                            disabled={loading || newOccupancyCount <= 1}
+                          >
+                            <span className="sr-only">Decrease</span>
+                            <span className="text-lg font-bold">-</span>
+                          </Button>
+                          <Input
+                            type="number"
+                            value={newOccupancyCount}
+                            onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
+                            min="1"
+                            pattern="[0-9]*"
+                            inputMode="numeric"
+                            disabled={loading}
+                            className="w-full text-center h-9 bg-white text-sm"
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
+                            onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
+                            disabled={loading}
+                          >
+                            <span className="sr-only">Increase</span>
+                            <span className="text-lg font-bold">+</span>
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-1 sm:mt-0 flex items-end">
                         <Button
                           type="button"
-                          size="icon"
+                          onClick={handleAddOccupancySelection}
                           variant="outline"
-                          className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                          onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
-                          disabled={loading || newOccupancyCount <= 1}
+                          size="sm"
+                          className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9 w-full sm:w-auto"
+                          disabled={loading || !newOccupancyTypeId}
                         >
-                          <span className="sr-only">Decrease</span>
-                          <span className="text-lg font-bold">-</span>
-                        </Button>
-                        <Input
-                          type="number"
-                          value={newOccupancyCount}
-                          onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                          min="1"
-                          pattern="[0-9]*"
-                          inputMode="numeric"
-                          disabled={loading}
-                          className="w-full text-center h-9 bg-white"
-                        />
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                          onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
-                          disabled={loading}
-                        >
-                          <span className="sr-only">Increase</span>
-                          <span className="text-lg font-bold">+</span>
+                          <Plus className="mr-1 h-4 w-4" />
+                          <span className="text-xs sm:text-sm">Add Room</span>
                         </Button>
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={handleAddOccupancySelection}
-                      variant="outline"
-                      size="sm"
-                      className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9"
-                      disabled={loading || !newOccupancyTypeId}
-                    >
-                      <Plus className="mr-1 h-4 w-4" />
-                      Add
-                    </Button>
                   </div>
-                </div>
-
-                {/* Fetch Button */}
+                </div>                {/* Fetch Button - Enhanced for mobile */}
                 <Button
                   type="button"
                   onClick={handleFetchTourPackagePricing}
                   variant="outline"
-                  className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4 py-2 sm:py-3"
                   disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || occupancySelections.length === 0}
                 >
                   <Calculator className="mr-2 h-4 w-4" />
-                  Fetch & Apply Tour Package Price
+                  <span className="text-xs sm:text-sm md:text-base">
+                    <span className="hidden sm:inline">Fetch & Apply Tour Package Price</span>
+                    <span className="inline sm:hidden">Apply Package Price</span>
+                  </span>
                 </Button>
               </>
             )}
           </div>
-        )}
-
-        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
+        )}        {/* Total Price Field - Enhanced for mobile */}
         <FormField
           control={control}
           name="totalPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-base font-semibold">Total Price</FormLabel>
+              <FormLabel className="text-sm sm:text-base font-semibold">Total Price</FormLabel>
               <FormControl>
                 <Input
                   {...field}
-                  disabled={loading} // Only disable when loading
+                  disabled={loading}
                   placeholder="Total price for the package"
-                  className="text-lg font-bold"
-                  type="number" // Ensure type is number if appropriate
+                  className="text-base sm:text-lg font-bold h-10 sm:h-12"
+                  type="number"
                 />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-xs sm:text-sm" />
             </FormItem>
           )}
-        />
-
-        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
+        />{/* Pricing Section Details - Enhanced for mobile */}
         <div className="space-y-4 border-t pt-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-base font-semibold">Pricing Breakdown</h3>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+            <h3 className="text-sm sm:text-base font-semibold">Pricing Breakdown</h3>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={loading} // Only disable when loading
+              disabled={loading}
               onClick={() => handleAddPricingItem()}
-              className="ml-auto"
+              className="w-full sm:w-auto sm:ml-auto text-xs sm:text-sm"
             >
-              <Plus className="mr-2 h-4 w-4" /> Add Item
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Item
             </Button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4 sm:space-y-3">
             {pricingFields.map((item, index) => (
-              <div key={item.id} className="flex items-start gap-3 p-3 border rounded-md bg-slate-50/50">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-grow">
+              <div key={item.id} className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 p-2 sm:p-3 border rounded-md bg-slate-50/50">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                   {/* Item Name */}
                   <FormField
                     control={control}
                     name={`pricingSection.${index}.name`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Item Name</FormLabel>
+                        <FormLabel className="text-2xs sm:text-xs">Item Name</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading} // Only disable when loading
+                            disabled={loading}
                             placeholder="e.g., Per Person Cost"
-                            className="bg-white"
+                            className="bg-white text-xs sm:text-sm h-8 sm:h-9"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-2xs sm:text-xs" />
                       </FormItem>
                     )}
                   />
@@ -1382,17 +1381,17 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     name={`pricingSection.${index}.price`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Price</FormLabel>
+                        <FormLabel className="text-2xs sm:text-xs">Price</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading} // Only disable when loading
+                            disabled={loading}
                             placeholder="e.g., 15000"
                             type="number"
-                            className="bg-white"
+                            className="bg-white text-xs sm:text-sm h-8 sm:h-9"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-2xs sm:text-xs" />
                       </FormItem>
                     )}
                   />
@@ -1402,16 +1401,16 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     name={`pricingSection.${index}.description`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Description (Optional)</FormLabel>
+                        <FormLabel className="text-2xs sm:text-xs">Description (Optional)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading} // Only disable when loading
+                            disabled={loading}
                             placeholder="Brief description"
-                            className="bg-white"
+                            className="bg-white text-xs sm:text-sm h-8 sm:h-9"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-2xs sm:text-xs" />
                       </FormItem>
                     )}
                   />
@@ -1421,11 +1420,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  disabled={loading} // Only disable when loading
+                  disabled={loading}
                   onClick={() => handleRemovePricingItem(index)}
-                  className="mt-6 text-red-500 hover:text-red-700"
+                  className="ml-auto sm:ml-0 sm:mt-6 h-7 w-7 p-0 text-red-500 hover:text-red-700"
                 >
-                  <Trash className="h-4 w-4" />
+                  <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             ))}
@@ -1435,11 +1434,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="mt-4 border-dashed border-primary text-primary hover:bg-primary/10"
+                  className="w-full sm:w-auto mt-2 sm:mt-4 border-dashed border-primary text-primary hover:bg-primary/10 text-xs sm:text-sm"
                   disabled={loading}
-                  onClick={() => handleAddPricingItem()} // Add first item
+                  onClick={() => handleAddPricingItem()}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Add Pricing Option
                 </Button>
               )}
@@ -1455,44 +1454,45 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
                       </p>
                     </div>
-                  )}
-
-                  {/* Display selected occupancy configurations */}                {occupancySelections.length > 0 && (
-                    <div className="bg-white border border-green-200 rounded-md p-3">
-                      <p className="text-sm text-gray-600 mb-2">Selected Room Configurations:</p>
-                      <div className="grid grid-cols-1 gap-2">
+                  )}                  {/* Display selected occupancy configurations - Enhanced for mobile */}                
+                  {occupancySelections.length > 0 && (
+                    <div className="bg-white border border-green-200 rounded-md p-2 sm:p-3">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Selected Room Configurations:</p>
+                      <div className="grid grid-cols-1 gap-1.5 sm:gap-2">
                         {occupancySelections.map((selection, index) => {
                           const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
                           
                           return (
-                            <div key={index} className="flex items-center justify-between bg-green-50 p-2 rounded-md">
-                              <span className="font-medium">
-                                {occupancyType?.name || `Room Type (ID: ${selection.occupancyTypeId?.substring(0, 8)}...)`}
-                              </span>
-                              <span className="text-sm">
-                                {selection.count} room(s), {selection.count * (selection.paxPerUnit || 1)} guest(s)
-                              </span>
+                            <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-green-50 p-1.5 sm:p-2 rounded-md">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 mb-1 sm:mb-0">
+                                <span className="font-medium text-xs sm:text-sm truncate max-w-[200px]">
+                                  {occupancyType?.name || `Room Type (ID: ${selection.occupancyTypeId?.substring(0, 8)}...)`}
+                                </span>
+                                <span className="text-2xs sm:text-xs text-gray-600">
+                                  {selection.count} room(s), {selection.count * (selection.paxPerUnit || 1)} guest(s)
+                                </span>
+                              </div>
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 w-7 p-0 text-red-500"
+                                className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-red-500 ml-auto sm:ml-0"
                                 onClick={() => handleRemoveOccupancySelection(index)}
                               >
-                                <Trash className="h-4 w-4" />
+                                <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
                             </div>
                           );
                         })}
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium text-center sm:text-left">
                           Total Guests: {calculateTotalPax()}
                         </p>
                       </div>
                       {/* Debug info - Remove in production */}
                       {process.env.NODE_ENV !== 'production' && (
-                        <details className="mt-3 text-xs text-gray-500 border-t pt-2">
+                        <details className="mt-2 sm:mt-3 text-2xs sm:text-xs text-gray-500 border-t pt-1 sm:pt-2">
                           <summary className="cursor-pointer">Debug Info</summary>
-                          <pre className="mt-1 bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
+                          <pre className="mt-1 bg-gray-100 p-1 sm:p-2 rounded text-2xs sm:text-xs overflow-auto max-h-24 sm:max-h-32">
                             {JSON.stringify(occupancySelections, null, 2)}
                           </pre>
                         </details>

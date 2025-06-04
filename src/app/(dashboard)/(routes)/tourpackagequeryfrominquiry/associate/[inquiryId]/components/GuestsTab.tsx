@@ -23,13 +23,15 @@ interface GuestsProps {
 const GuestsTab: React.FC<GuestsProps> = ({
   control,
   loading
-}) => {
-  return (
+}) => {  return (
     <Card>
-      <CardHeader>
-        <CardTitle>Guests</CardTitle>
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          Guests
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 p-6">
         <FormField
           control={control}
           name="customerName"

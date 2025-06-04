@@ -27,15 +27,14 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
   loading,
   form
 }) => {
-  return (
-    <Card>
-      <CardHeader>
+  return (    <Card>
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
         <CardTitle className="flex items-center gap-2">
-          <PlaneTakeoff className="h-5 w-5" /> {/* Added icon */}
+          <PlaneTakeoff className="h-5 w-5 text-primary" />
           Flights
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6"> {/* Increased spacing */}
+      <CardContent className="space-y-6 p-6"> {/* Increased spacing and padding */}
         <FormField
           control={control}
           name="flightDetails"
@@ -43,7 +42,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
             <FormItem>
               <FormLabel className="text-lg font-semibold mb-4 block">Flight Plan</FormLabel> {/* Styled label */}
               {value.map((flight, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6 border rounded-lg p-4 shadow-sm bg-white"> {/* Improved layout and styling */}
+                <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6 border rounded-lg p-3 md:p-4 shadow-sm bg-white hover:shadow-md transition-all"> {/* Mobile-responsive layout */}
                   {/* Date Input */}
                   <FormItem>
                     <FormLabel className="text-sm font-medium">Date</FormLabel>
@@ -189,10 +188,8 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                          className="bg-slate-50"
                       />
                     </FormControl>
-                  </FormItem>
-
-                  {/* Remove Button */}
-                  <div className="flex items-end"> {/* Align button to bottom */}
+                  </FormItem>                  {/* Remove Button */}
+                  <div className="flex items-end justify-center sm:justify-start col-span-1 sm:col-auto"> {/* Better alignment */}
                     <Button
                       type="button"
                       variant="destructive"
@@ -202,21 +199,19 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                         const newFlightDetails = value.filter((_, i: number) => i !== index);
                         onChange(newFlightDetails);
                       }}
-                      className="w-full md:w-auto" // Adjust width for responsiveness
+                      className="w-full sm:w-auto text-xs md:text-sm" // Responsive text size
                     >
-                      <Trash className="h-4 w-4 mr-1" /> {/* Reduced margin */}
-                      Remove
+                      <Trash className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Remove</span>
                     </Button>
                   </div>
                 </div>
-              ))}
-
-              {/* Add Flight Button */}
-              <div className="mt-4">
+              ))}              {/* Add Flight Button */}
+              <div className="mt-6 flex justify-center sm:justify-start">
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline" // Changed variant for distinction
+                  variant="outline"
                   disabled={loading}
                   onClick={() => onChange([...value, {
                     date: '',
@@ -228,9 +223,10 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                     arrivalTime: '',
                     flightDuration: ''
                   }])}
-                  className="border-dashed border-primary text-primary hover:bg-primary/10" // Added styling
+                  className="border-dashed border-primary text-primary hover:bg-primary/10 flex items-center gap-2 text-sm"
                 >
-                  Add Flight
+                  <PlaneTakeoff className="h-4 w-4" />
+                  Add Flight Details
                 </Button>
               </div>
             </FormItem>

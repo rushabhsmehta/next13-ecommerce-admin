@@ -34,15 +34,14 @@ const DatesTab: React.FC<DatesTabProps> = ({
   loading,
   form
 }) => {
-  return (
-    <Card>
-      <CardHeader>
+  return (    <Card>
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
         <CardTitle className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
+          <CalendarIcon className="h-5 w-5 text-primary" />
           Tour Dates
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 p-6">
         <FormField
           control={control}
           name="tourStartsFrom"
@@ -81,9 +80,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
               <FormMessage />
             </FormItem>
           )}
-        />
-
-        <FormField
+        />        <FormField
           control={control}
           name="tourEndsOn"
           render={({ field }) => (
@@ -95,7 +92,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full pl-3 text-left font-normal",
+                        "w-full pl-3 text-left font-normal text-sm md:text-base",
                         !field.value && "text-muted-foreground"
                       )}
                       disabled={loading}

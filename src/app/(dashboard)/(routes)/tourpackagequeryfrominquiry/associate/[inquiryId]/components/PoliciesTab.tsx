@@ -52,26 +52,28 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
           Policies & Terms
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <Tabs defaultValue="inclusions" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="inclusions" className="flex items-center gap-2">
-              <ListChecks className="h-4 w-4" />
-              Inclusions
-            </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Notes & Tips
-            </TabsTrigger>
-            <TabsTrigger value="cancellation" className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Cancellation
-            </TabsTrigger>
-            <TabsTrigger value="terms" className="flex items-center gap-2">
-              <ScrollText className="h-4 w-4" />
-              Terms
-            </TabsTrigger>
-          </TabsList>
+      <CardContent className="p-6">        <Tabs defaultValue="inclusions" className="w-full">
+          {/* Mobile friendly policies tabs with responsive grid and scrolling */}
+          <div className="overflow-x-auto pb-2 mb-2">
+            <TabsList className="min-w-max md:min-w-0 grid w-full grid-cols-2 md:grid-cols-4">
+              <TabsTrigger value="inclusions" className="flex items-center gap-1 md:gap-2">
+                <ListChecks className="h-4 w-4" />
+                <span className="truncate">Inclusions</span>
+              </TabsTrigger>
+              <TabsTrigger value="notes" className="flex items-center gap-1 md:gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="truncate">Notes</span>
+              </TabsTrigger>
+              <TabsTrigger value="cancellation" className="flex items-center gap-1 md:gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="truncate">Cancellation</span>
+              </TabsTrigger>
+              <TabsTrigger value="terms" className="flex items-center gap-1 md:gap-2">
+                <ScrollText className="h-4 w-4" />
+                <span className="truncate">Terms</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="inclusions" className="space-y-6 mt-4">
             <PolicyField

@@ -59,17 +59,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DevTool } from "@hookform/devtools"
 import { Textarea } from "@/components/ui/textarea";
 // Update imports for shared tab components
-import BasicInfoTab from '@/components/tour-package-query/BasicInfoTab';
-import DatesTab from '@/components/tour-package-query/DatesTab';
-import FlightsTab from '@/components/tour-package-query/FlightsTab';
-import GuestsTab from '@/components/tour-package-query/GuestsTab';
-import ItineraryTab from '@/components/tour-package-query/ItineraryTab';
-import LocationTab from '@/components/tour-package-query/LocationTab';
-import PoliciesTab from '@/components/tour-package-query/PoliciesTab';
-import PricingTab from '@/components/tour-package-query/PricingTab';
+
 import { RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Ensure types are imported
 import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
-import { TOUR_HIGHLIGHTS_DEFAULT, INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues"
+import BasicInfoTab from "./BasicInfoTab"
+import DatesTab from "./DatesTab"
+import { TOUR_HIGHLIGHTS_DEFAULT, INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import FlightsTab from "./FlightsTab"
+import GuestsTab from "./GuestsTab"
+import ItineraryTab from "./ItineraryTab"
+import LocationTab from "./LocationTab"
+import PoliciesTab from "./PoliciesTab"
+import PricingTab from "./PricingTab"
+
 
 // Define the pricing item schema
 const activitySchema = z.object({
@@ -670,64 +672,66 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       <Separator className="mb-8" />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {Object.keys(form.formState.errors).length > 0 && (
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="text-red-800 text-sm font-medium flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">          {Object.keys(form.formState.errors).length > 0 && (
+            <Card className="border-red-200 bg-red-50 mx-1 sm:mx-0">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-red-800 text-xs sm:text-sm font-medium flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 sm:h-5 w-4 sm:w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 001.414-1.414L11.414 10l1.293-1.293a1 1 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  Please fix the following errors:
+                  <span className="text-sm sm:text-base">Please fix the following errors:</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1">
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+                <ul className="list-disc pl-4 sm:pl-5 space-y-1 max-h-[150px] sm:max-h-none overflow-y-auto">
                   {Object.entries(form.formState.errors).map(([field, error]) => (
-                    <li key={field} className="text-sm text-red-700">
-                      {field}: {error?.message as string}
+                    <li key={field} className="text-xs sm:text-sm text-red-700 break-words">
+                      <span className="font-medium">{field}:</span> {error?.message as string}
                     </li>
                   ))}
                 </ul>
               </CardContent>
             </Card>
-          )}
-
-          <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-8 w-full"> {/* Changed from grid-cols-7 to grid-cols-8 */}
-              <TabsTrigger value="basic" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Basic Info
-              </TabsTrigger>
-              <TabsTrigger value="guests" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Guests
-              </TabsTrigger>
-              <TabsTrigger value="location" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
-              </TabsTrigger>
-              <TabsTrigger value="dates" className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                Dates
-              </TabsTrigger>
-              <TabsTrigger value="itinerary" className="flex items-center gap-2">
-                <ListPlus className="h-4 w-4" />
-                Itinerary
-              </TabsTrigger>
-              <TabsTrigger value="flights" className="flex items-center gap-2">
-                <Plane className="h-4 w-4" />
-                Flights
-              </TabsTrigger>
-              <TabsTrigger value="pricing" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Pricing
-              </TabsTrigger>
-              <TabsTrigger value="policies" className="flex items-center gap-2">
-                <FileCheck className="h-4 w-4" />
-                Policies
-              </TabsTrigger>
-            </TabsList>
+          )}<Tabs defaultValue="basic" className="w-full">
+            {/* Mobile-friendly tab list with responsive grid and scroll */}
+            <div className="overflow-x-auto pb-2 mb-2 -mx-4 sm:mx-0">
+              <div className="min-w-full px-4 sm:px-0">
+                <TabsList className="grid min-w-max md:min-w-0 grid-cols-4 md:grid-cols-8 w-full bg-muted/60">
+                  <TabsTrigger value="basic" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate">Basic</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="guests" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Users className="h-4 w-4" />
+                    <span className="truncate">Guests</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="location" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <MapPin className="h-4 w-4" />
+                    <span className="truncate">Location</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="truncate">Dates</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="itinerary" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <ListPlus className="h-4 w-4" />
+                    <span className="truncate">Itinerary</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="flights" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Plane className="h-4 w-4" />
+                    <span className="truncate">Flights</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pricing" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Tag className="h-4 w-4" />
+                    <span className="truncate">Pricing</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="policies" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <FileCheck className="h-4 w-4" />
+                    <span className="truncate">Policies</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
               {/* Use BasicInfoTab from shared components */}
@@ -831,13 +835,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </TabsContent>
 
-          </Tabs>
-
-          <div className="flex justify-end mt-8">
+          </Tabs>          <div className="flex justify-center sm:justify-end mt-8">
             <Button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-full sm:w-auto bg-primary hover:bg-primary/90"
+              size="lg"
             >
               {loading && (
                 <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
@@ -845,7 +848,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               )}
-              Create Tour Package Query
+              <span className="text-sm sm:text-base">Create Tour Package Query</span>
             </Button>
           </div>
         </form>

@@ -4,7 +4,10 @@ import { Calculator, Plus, Trash, DollarSign, Loader2 } from "lucide-react"; // 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { TourPackageQueryFromInquiryAssociateFormValues } from "./tourpackagequery-associate-form";
+
+// Import form value types
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 
 // Import necessary UI components
 import { Input } from "@/components/ui/input";
@@ -33,7 +36,7 @@ import { format } from "date-fns";
 
 // Define the props interface with a union type for control
 interface PricingTabProps {
-  control: Control<TourPackageQueryFromInquiryAssociateFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any; // Consider using a more specific type or a union type if form methods differ
   hotels: (Hotel & {

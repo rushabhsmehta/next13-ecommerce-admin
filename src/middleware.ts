@@ -35,6 +35,8 @@ export default authMiddleware({
     if (isAssociateDomain) {      // Associates are only allowed to access the inquiries page, tour package query from inquiry (associate), sign-in, sign-up and API routes
       const isAllowedPath = 
         path.startsWith('/inquiries') || 
+        path.startsWith('/tourpackagequery') || 
+        path.startsWith('/tourpackagequeryfrominquiry') ||
         path.startsWith('/api/inquiries') || 
         path.startsWith('/tourpackagequeryfrominquiry/associate') ||
         path.startsWith('/api/tourPackages') ||

@@ -1,5 +1,6 @@
 import { Control } from "react-hook-form";
-import { TourPackageQueryFromInquiryAssociateFormValues } from "./tourpackagequery-associate-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form";
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form";
 import { FileCheck, ListChecks, FileText, AlertCircle, ScrollText, Ban } from "lucide-react";
 
 // Import necessary UI components
@@ -19,7 +20,7 @@ import { PolicyField } from "./policy-fields";
 
 // Define the props interface with a union type for control
 interface PoliciesTabProps {
-  control: Control<TourPackageQueryFromInquiryAssociateFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any;
   useLocationDefaults: {

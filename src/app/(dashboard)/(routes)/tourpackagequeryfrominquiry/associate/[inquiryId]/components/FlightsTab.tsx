@@ -1,6 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\FlightsTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFromInquiryAssociateFormValues } from "./tourpackagequery-associate-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { Trash, PlaneTakeoff } from "lucide-react"; // Added PlaneTakeoff icon
 
@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Define the props interface with a union type for control
 interface FlightsTabProps {
-  control: Control<TourPackageQueryFromInquiryAssociateFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any; // Consider using a more specific type or a union type if form methods differ
 }

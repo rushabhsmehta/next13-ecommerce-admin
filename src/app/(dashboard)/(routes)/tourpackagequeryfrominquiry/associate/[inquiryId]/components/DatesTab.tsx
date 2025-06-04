@@ -1,6 +1,7 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\DatesTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFromInquiryAssociateFormValues } from "./tourpackagequery-associate-form";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -23,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 
 // Use a union type for the control prop and form type
 interface DatesTabProps {
-  control: Control<TourPackageQueryFromInquiryAssociateFormValues>;
+  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
   form: any; // Use a more specific type if available, consider a union type here too if form methods differ
 }

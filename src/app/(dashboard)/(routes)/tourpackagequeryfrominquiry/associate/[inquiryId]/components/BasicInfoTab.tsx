@@ -35,11 +35,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues";
-import { TourPackageQueryFromInquiryAssociateFormValues } from "./tourpackagequery-associate-form";
 
 interface BasicInfoProps {
-  control: Control<TourPackageQueryFromInquiryAssociateFormValues>;
+  control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   associatePartners: AssociatePartner[];
   tourPackages: TourPackage[] | null;
@@ -130,8 +130,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     </CommandGroup>
                   </Command>
                 </PopoverContent>
-              </Popover>
-              <FormDescription>
+              </Popover>              <FormDescription>
                 {!form.getValues('locationId')
                   ? "Please select a location first to view available tour packages"
                   : "Select an existing tour package to use as a template"}
@@ -200,7 +199,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
-
+        
         <div className="grid grid-cols-3 gap-8">
           <FormField
             control={control}
@@ -218,8 +217,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                           "w-full justify-between",
                           !field.value && "text-muted-foreground"
                         )}
-                      >                        {field.value
-                          ? associatePartners?.find((partner) => partner.id === field.value)?.name
+                      >
+                        {field.value
+                          ? associatePartners.find((partner) => partner.id === field.value)?.name
                           : "Select Associate Partner..."}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -230,7 +230,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       <CommandInput placeholder="Search associate partner..." />
                       <CommandEmpty>No associate partner found.</CommandEmpty>
                       <CommandGroup>
-                        {associatePartners?.map((partner) => (
+                        {associatePartners.map((partner) => (
                           <CommandItem
                             value={partner.name}
                             key={partner.id}
@@ -265,7 +265,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <>
                   <div className="flex flex-col space-y-1">
                     <p className="text-muted-foreground">
-                      Mobile: {associatePartners?.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
+                      Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
                     </p>
                   </div>
                 </>
@@ -282,7 +282,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <>
                   <div className="flex flex-col space-y-1">
                     <p className="text-muted-foreground">
-                      Email: {associatePartners?.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                      Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
                     </p>
                   </div>
                 </>
@@ -422,7 +422,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             )}
           />
         </div>
-
+        
         <div className="grid grid-cols-3 gap-8">
           <FormField
             control={control}

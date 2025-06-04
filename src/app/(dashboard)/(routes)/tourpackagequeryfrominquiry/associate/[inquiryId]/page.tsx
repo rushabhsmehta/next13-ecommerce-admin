@@ -1,7 +1,7 @@
 import prismadb from "@/lib/prismadb";
-import { TourPackageQueryFromInquiryAssociateForm } from "./components/tourpackagequery-associate-form";
+import { TourPackageQueryForm } from "./components/tourPackageQuery-form";
 
-const TourPackageQueryFromInquiryAssociatePage = async ({
+const TourPackageQueryPage = async ({
   params
 }: {
   params: { inquiryId: string }
@@ -16,10 +16,31 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
   });
 
   const locations = await prismadb.location.findMany();
+  const hotels = await prismadb.hotel.findMany({
+    include: {
+      images: true // Include the images relation
+    }
+  });
+  const activitiesMaster = await prismadb.activityMaster.findMany({
+    include: {
+      activityMasterImages: true
+    }
+  });
+  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
+    include: {
+      itineraryMasterImages: true,
+      activities: {
+        include: {
+          activityImages: true
+        }
+      }
+    }
+  });
+  const associatePartners = await prismadb.associatePartner.findMany();
+
   const tourPackages = await prismadb.tourPackage.findMany({
     where: {
       isArchived: false,
-      locationId: inquiry?.locationId
     },
     include: {
       images: true,
@@ -36,12 +57,15 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
       }
     }
   });
-  
-  // Fetch associate partners for dropdown
-  const associatePartners = await prismadb.associatePartner.findMany();
-  
-  // Fetch tour package queries for dropdown
+
+  // Fetch tour package queries
   const tourPackageQueries = await prismadb.tourPackageQuery.findMany({
+    where: {
+      isArchived: false,
+      createdAt: {
+        gt: new Date('2024-12-31')
+      }
+    },
     include: {
       images: true,
       flightDetails: true,
@@ -57,58 +81,23 @@ const TourPackageQueryFromInquiryAssociatePage = async ({
       }
     }
   });
-  // Fetch hotels for dropdown
-  const hotels = await prismadb.hotel.findMany({
-    include: {
-      images: true
-    }
-  });
-
-  // Fetch activity masters for activity selection
-  const activitiesMaster = await prismadb.activityMaster.findMany({
-    include: {
-      activityMasterImages: true
-    }
-  });
-
-  // Fetch itinerary masters for itinerary templates
-  const itinerariesMaster = await prismadb.itineraryMaster.findMany({
-    include: {
-      itineraryMasterImages: true,
-      activities: {
-        include: {
-          activityImages: true
-        }
-      }
-    }
-  });
-
-  // Fetch lookup data for room allocations and transport details
-  const roomTypes = await prismadb.roomType.findMany();
-  const occupancyTypes = await prismadb.occupancyType.findMany();
-  const mealPlans = await prismadb.mealPlan.findMany();
-  const vehicleTypes = await prismadb.vehicleType.findMany();
 
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <TourPackageQueryFromInquiryAssociateForm
+        <TourPackageQueryForm
           inquiry={inquiry}
           locations={locations}
-          tourPackages={tourPackages}
-          associatePartners={associatePartners}
-          tourPackageQueries={tourPackageQueries}
           hotels={hotels}
           activitiesMaster={activitiesMaster}
           itinerariesMaster={itinerariesMaster}
-          roomTypes={roomTypes}
-          occupancyTypes={occupancyTypes}
-          mealPlans={mealPlans}
-          vehicleTypes={vehicleTypes}
+          associatePartners={associatePartners}
+          tourPackages={tourPackages}
+          tourPackageQueries={tourPackageQueries}
         />
       </div>
     </div>
   );
 }
 
-export default TourPackageQueryFromInquiryAssociatePage;
+export default TourPackageQueryPage;

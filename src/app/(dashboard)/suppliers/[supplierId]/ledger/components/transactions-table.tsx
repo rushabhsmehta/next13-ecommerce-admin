@@ -64,6 +64,11 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
     }));
   };
 
+  // Calculate totals
+  const totalPurchasesReturns = data.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+  const totalPayments = data.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+  const finalBalance = data.length > 0 ? data[data.length - 1].balance : 0;
+
   const onDelete = async () => {
     if (!itemToDelete) return;
     
@@ -214,6 +219,24 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                 </>
                 ))}
               </>
+            )}
+            
+            {/* Totals Row */}
+            {data.length > 0 && (
+              <TableRow className="bg-slate-100 dark:bg-slate-800">
+                <TableCell></TableCell>
+                <TableCell colSpan={3} className="font-medium">Totals</TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatPrice(totalPurchasesReturns)}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatPrice(totalPayments)}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatPrice(finalBalance)}
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>

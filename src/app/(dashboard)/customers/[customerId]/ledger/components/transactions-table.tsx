@@ -58,6 +58,11 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
     }));
   };
 
+  // Calculate totals
+  const totalReceipts = data.filter(t => t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+  const totalSales = data.filter(t => !t.isInflow).reduce((sum, t) => sum + t.amount, 0);
+  const finalBalance = data.length > 0 ? data[data.length - 1].balance : 0;
+
   const navigateToTransaction = (transaction: CustomerTransaction) => {
     // Navigate to the appropriate transaction page based on the type
     if (transaction.type === "Sale") {
@@ -180,9 +185,26 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                       </TableCell>
                     </TableRow>
                   )}
-                </>
-              ))}
+                </>              ))}
             </>
+          )}
+          
+          {/* Totals Row */}
+          {data.length > 0 && (
+            <TableRow className="bg-slate-100 dark:bg-slate-800">
+              <TableCell></TableCell>
+              <TableCell colSpan={3} className="font-medium">Totals</TableCell>
+              <TableCell className="text-right font-medium">
+                {formatPrice(totalReceipts)}
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {formatPrice(totalSales)}
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {formatPrice(finalBalance)}
+              </TableCell>
+              <TableCell></TableCell>
+            </TableRow>
           )}
         </TableBody>
       </Table>

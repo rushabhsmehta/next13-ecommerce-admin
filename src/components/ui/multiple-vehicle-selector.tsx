@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 export type TransportDetailItem = {
   vehicleType: string;
   quantity: number;
-  capacity?: number;
   description?: string;
 };
 

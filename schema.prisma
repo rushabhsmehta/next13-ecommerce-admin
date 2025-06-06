@@ -9,36 +9,32 @@ datasource db {
 }
 
 model Location {
-  id                String             @id @default(uuid())
-  label             String
-  imageUrl          String
-  tags              String?            @db.Text
-  slug              String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  hotels            Hotel[]
-  activities        Activity[]
-  activitiesMaster  ActivityMaster[]
-  itineraries       Itinerary[]
-  itinerariesMaster ItineraryMaster[]
-  transportPricings TransportPricing[] // Added relation to TransportPricing
-
-  tourPackages     TourPackage[]      @relation("LocationTotourPackage")
-  tourPackageQuery TourPackageQuery[] @relation("LocationTotourPackageQuery")
-  inquiries        Inquiry[]          @relation("LocationToInquiry")
-
-  // Add the many-to-many relationship with Supplier
-  suppliers SupplierLocation[]
-
-  inclusions                Json?
-  exclusions                Json?
-  kitchenGroupPolicy        Json?
-  importantNotes            Json?
-  paymentPolicy             Json?
-  usefulTip                 Json?
-  cancellationPolicy        Json?
+  id                        String             @id @default(uuid())
+  label                     String
+  imageUrl                  String
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  slug                      String?
+  tags                      String?            @db.Text
   airlineCancellationPolicy Json?
+  cancellationPolicy        Json?
+  exclusions                Json?
+  importantNotes            Json?
+  inclusions                Json?
+  kitchenGroupPolicy        Json?
+  paymentPolicy             Json?
   termsconditions           Json?
+  usefulTip                 Json?
+  hotels                    Hotel[]
+  activities                Activity[]
+  activitiesMaster          ActivityMaster[]
+  itineraries               Itinerary[]
+  itinerariesMaster         ItineraryMaster[]
+  transportPricings         TransportPricing[]
+  tourPackages              TourPackage[]      @relation("LocationTotourPackage")
+  tourPackageQuery          TourPackageQuery[] @relation("LocationTotourPackageQuery")
+  inquiries                 Inquiry[]          @relation("LocationToInquiry")
+  suppliers                 SupplierLocation[]
 
   @@index([id])
 }
@@ -47,265 +43,231 @@ model Hotel {
   id                String            @id @default(uuid())
   locationId        String
   name              String
-  link              String?           @db.Text // Added link field
-  images            Images[]
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+  link              String?           @db.Text
+  images            Images[]
   location          Location          @relation(fields: [locationId], references: [id])
   itineraries       Itinerary[]       @relation("ItineraryToHotel")
   itinerariesMaster ItineraryMaster[] @relation("ItineraryMasterToHotel")
-  seasonalPricing   HotelPricing[] // Add relation to seasonal pricing
+  seasonalPricing   HotelPricing[]
 
   @@index([locationId])
 }
 
-// Model for configurable meal plans
 model MealPlan {
-  id          String   @id @default(uuid())
-  name        String // e.g., "Continental Plan"
-  code        String   @unique // e.g., "CP"
-  description String // e.g., "Breakfast Only"
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations to other models that use meal plans
-  hotelPricings       HotelPricing[]
-  roomAllocations     RoomAllocation[]
-  itineraries         Itinerary[] // Added relation to Itinerary
-  itinerariesMaster   ItineraryMaster[] // Added relation to ItineraryMaster
-  tourPackagePricings TourPackagePricing[] // Added relation to TourPackagePricing
-}
-
-// Model for configurable room types
-model RoomType {
-  id          String   @id @default(uuid())
-  name        String   @unique // e.g., "Standard Room"
-  description String? // Optional description
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations to other models that use room types
-  hotelPricings     HotelPricing[]
-  roomAllocations   RoomAllocation[]
-  itineraries       Itinerary[] // Relation to Itinerary
-  itinerariesMaster ItineraryMaster[] // Added missing relation to ItineraryMaster
-}
-
-// Model for configurable occupancy types
-model OccupancyType {
   id                  String               @id @default(uuid())
-  name                String               @unique // e.g., "Single"
-  description         String? // Optional description
-  maxPersons          Int // e.g., 1 for Single, 2 for Double, etc.
+  name                String
+  code                String               @unique
+  description         String
   isActive            Boolean              @default(true)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
-  // Relations to other models that use occupancy types
   hotelPricings       HotelPricing[]
   roomAllocations     RoomAllocation[]
-  itineraries         Itinerary[] // Added relation to Itinerary
-  itinerariesMaster   ItineraryMaster[] // Added relation to ItineraryMaster
-  tourPackagePricings TourPackagePricing[] // Added relation to TourPackagePricing
+  itineraries         Itinerary[]
+  itinerariesMaster   ItineraryMaster[]
+  tourPackagePricings TourPackagePricing[]
 }
 
-// Model for configurable vehicle types
-model VehicleType {
-  id          String   @id @default(uuid())
-  name        String   @unique // e.g., "Sedan"
-  description String? // Optional description
-  capacity    Int // e.g., 4 for Sedan, 7 for SUV, etc.
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model RoomType {
+  id                String            @id @default(uuid())
+  name              String            @unique
+  description       String?
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  hotelPricings     HotelPricing[]
+  roomAllocations   RoomAllocation[]
+  itineraries       Itinerary[]
+  itinerariesMaster ItineraryMaster[]
+}
 
-  // Relations to other models that use vehicle types
+model OccupancyType {
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  description         String?
+  maxPersons          Int
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  hotelPricings       HotelPricing[]
+  roomAllocations     RoomAllocation[]
+  itineraries         Itinerary[]
+  itinerariesMaster   ItineraryMaster[]
+  tourPackagePricings TourPackagePricing[]
+}
+
+model VehicleType {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  description       String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   transportPricings TransportPricing[]
   transportDetails  TransportDetail[]
 }
 
-// New model for hotel pricing during specific periods
 model HotelPricing {
-  id         String    @id @default(uuid())
-  hotelId    String
-  hotel      Hotel     @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-  startDate  DateTime
-  endDate    DateTime
-  // Change from string to relations - made nullable for migration
-  roomTypeId String?
-  roomType   RoomType? @relation(fields: [roomTypeId], references: [id])
-
+  id              String         @id @default(uuid())
+  hotelId         String
+  startDate       DateTime
+  endDate         DateTime
+  price           Float
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  mealPlanId      String?
   occupancyTypeId String?
+  roomTypeId      String?
+  hotel           Hotel          @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  roomType        RoomType?      @relation(fields: [roomTypeId], references: [id])
   occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id])
-
-  mealPlanId String?
-  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id])
-
-  price     Float
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  mealPlan        MealPlan?      @relation(fields: [mealPlanId], references: [id])
 
   @@index([hotelId])
   @@index([roomTypeId])
   @@index([occupancyTypeId])
   @@index([mealPlanId])
-  @@index([startDate, endDate]) // For efficient date range queries
+  @@index([startDate, endDate])
 }
 
-// New model for transport pricing based on vehicle type and location
 model TransportPricing {
-  id         String   @id @default(uuid())
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-
-  // Change from string to relation - made nullable for migration
-  vehicleTypeId String?
-  vehicleType   VehicleType? @relation(fields: [vehicleTypeId], references: [id])
-
+  id            String       @id @default(uuid())
+  locationId    String
   startDate     DateTime
   endDate       DateTime
-  price         Float // Per day or per trip based on transportType
-  transportType String // "PerDay" or "PerTrip"
+  price         Float
+  transportType String
   description   String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  vehicleTypeId String?
+  location      Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  vehicleType   VehicleType? @relation(fields: [vehicleTypeId], references: [id])
 
   @@index([locationId])
   @@index([vehicleTypeId])
-  @@index([startDate, endDate]) // For efficient date range queries
+  @@index([startDate, endDate])
 }
 
 model TourPackageQuery {
-  id                               String    @id @default(uuid())
-  tourPackageQueryNumber           String?
+  id                               String            @id @default(uuid())
   tourPackageQueryName             String?
-  tourPackageQueryType             String?
   customerName                     String?
-  customerNumber                   String?
   numDaysNight                     String?
   locationId                       String
   period                           String?
-  tour_highlights                  String?   @db.Text
-  tourStartsFrom                   DateTime?
-  tourEndsOn                       DateTime?
-  transport                        String?
-  pickup_location                  String?
-  drop_location                    String?
   numAdults                        String?
   numChild5to12                    String?
   numChild0to5                     String?
-  price                            String?   @db.Text
+  price                            String?           @db.Text
+  isFeatured                       Boolean           @default(false)
+  isArchived                       Boolean           @default(false)
+  createdAt                        DateTime          @default(now())
+  updatedAt                        DateTime          @updatedAt
+  assignedTo                       String?
+  assignedToMobileNumber           String?
+  assignedToEmail                  String?
   pricePerAdult                    String?
-  pricePerChildOrExtraBed          String?
   pricePerChild5to12YearsNoBed     String?
+  pricePerChildOrExtraBed          String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                       String?   @db.Text
-  pricingSection                   Json? // Add this field
-  remarks                          String?   @db.Text
-  inclusions                       Json?
-  exclusions                       Json?
-  kitchenGroupPolicy               Json?
-  importantNotes                   Json?
-  paymentPolicy                    Json?
-  usefulTip                        Json?
-  cancellationPolicy               Json?
+  totalPrice                       String?           @db.Text
+  transport                        String?
+  tourPackageQueryNumber           String?
+  customerNumber                   String?
+  drop_location                    String?
+  pickup_location                  String?
+  tourEndsOn                       DateTime?
+  tourStartsFrom                   DateTime?
+  remarks                          String?           @db.Text
+  tour_highlights                  String?           @db.Text
+  tourPackageQueryType             String?
+  disclaimer                       String?           @db.Text
+  inquiryId                        String?
+  associatePartnerId               String?
+  pricingSection                   Json?
+  selectedTemplateId               String?
+  selectedTemplateType             String?
+  tourPackageTemplateName          String?
+  occupancySelections              Json?
+  selectedMealPlanId               String?
   airlineCancellationPolicy        Json?
+  cancellationPolicy               Json?
+  exclusions                       Json?
+  importantNotes                   Json?
+  inclusions                       Json?
+  kitchenGroupPolicy               Json?
+  paymentPolicy                    Json?
   termsconditions                  Json?
-  disclaimer                       String?   @db.Text
-
-  isFeatured Boolean  @default(false)
-  isArchived Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  location               Location          @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
-  flightDetails          FlightDetails[]
-  itineraries            Itinerary[]
-  itinerariesMaster      ItineraryMaster[]
-  images                 Images[]
-  assignedTo             String?
-  assignedToMobileNumber String?
-  assignedToEmail        String?
-
-  purchaseDetails PurchaseDetail[]
-  saleDetails     SaleDetail[]
-  paymentDetails  PaymentDetail[]
-  receiptDetails  ReceiptDetail[]
-  expenseDetails  ExpenseDetail[]
-  incomeDetails   IncomeDetail[]
-  flightTickets   FlightTicket[]
-
-  // Modified: Remove @unique constraint to allow multiple queries per inquiry
-  inquiryId               String?
-  inquiry                 Inquiry? @relation(fields: [inquiryId], references: [id])
-  // Fields to store the selected template
-  selectedTemplateId      String? // ID of the selected TourPackage or TourPackageQuery template
-  selectedTemplateType    String? // Type of the selected template ("TourPackage" or "TourPackageQuery")
-  tourPackageTemplateName String? // Name of the selected tour package template
-  selectedMealPlanId      String? // ID of the selected meal plan for tour package pricing
-  occupancySelections     Json? // JSON representation of occupancy selections with counts
-
-  associatePartnerId String?
-  associatePartner   AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  usefulTip                        Json?
+  location                         Location          @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
+  flightDetails                    FlightDetails[]
+  itineraries                      Itinerary[]
+  itinerariesMaster                ItineraryMaster[]
+  images                           Images[]
+  purchaseDetails                  PurchaseDetail[]
+  saleDetails                      SaleDetail[]
+  paymentDetails                   PaymentDetail[]
+  receiptDetails                   ReceiptDetail[]
+  expenseDetails                   ExpenseDetail[]
+  incomeDetails                    IncomeDetail[]
+  flightTickets                    FlightTicket[]
+  inquiry                          Inquiry?          @relation(fields: [inquiryId], references: [id])
+  associatePartner                 AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
 
   @@index([locationId])
-  @@index([inquiryId]) // Add index for the new foreign key
-  @@index([associatePartnerId]) // Add this index
+  @@index([inquiryId])
+  @@index([associatePartnerId])
 }
 
 model PurchaseDetail {
-  id                 String    @id @default(uuid())
+  id                 String           @id @default(uuid())
   tourPackageQueryId String
   supplierId         String?
   purchaseDate       DateTime
-  billNumber         String?
-  billDate           DateTime?
-  dueDate            DateTime?
-  stateOfSupply      String?
-  referenceNumber    String?
   price              Float
-  gstAmount          Float? // Add this field for GST amount
-  gstPercentage      Float? // Add this field for GST percentage
-  description        String?   @db.Text
-  status             String?   @default("pending") // pending, complete, cancelled
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  tourPackageQuery TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  supplier         Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-
-  // New relation to purchase items
-  items           PurchaseItem[]
-  // Relation to purchase returns
-  purchaseReturns PurchaseReturn[]
+  description        String?          @db.Text
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  billDate           DateTime?
+  billNumber         String?
+  dueDate            DateTime?
+  gstAmount          Float?
+  gstPercentage      Float?
+  referenceNumber    String?
+  stateOfSupply      String?
+  status             String?          @default("pending")
+  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  items              PurchaseItem[]
+  purchaseReturns    PurchaseReturn[]
 
   @@index([supplierId])
   @@index([tourPackageQueryId])
 }
 
 model PurchaseItem {
-  id               String         @id @default(uuid())
-  purchaseDetailId String
-  purchaseDetail   PurchaseDetail @relation(fields: [purchaseDetailId], references: [id], onDelete: Cascade)
-  productName      String
-  description      String?        @db.Text
-  quantity         Float
-  unitOfMeasureId  String?
-  unitOfMeasure    UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id], onDelete: SetNull)
-  pricePerUnit     Float
-  discountPercent  Float?
-  discountAmount   Float?
-  taxSlabId        String?
-  taxSlab          TaxSlab?       @relation(fields: [taxSlabId], references: [id], onDelete: SetNull)
-  taxAmount        Float?
-  totalAmount      Float
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  // Relation to purchase return items
+  id                  String               @id @default(uuid())
+  purchaseDetailId    String
+  productName         String
+  description         String?              @db.Text
+  quantity            Float
+  unitOfMeasureId     String?
+  pricePerUnit        Float
+  discountPercent     Float?
+  discountAmount      Float?
+  taxSlabId           String?
+  taxAmount           Float?
+  totalAmount         Float
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  purchaseDetail      PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id], onDelete: Cascade)
+  unitOfMeasure       UnitOfMeasure?       @relation(fields: [unitOfMeasureId], references: [id], onDelete: SetNull)
+  taxSlab             TaxSlab?             @relation(fields: [taxSlabId], references: [id], onDelete: SetNull)
   purchaseReturnItems PurchaseReturnItem[]
 
   @@index([purchaseDetailId])
@@ -314,25 +276,23 @@ model PurchaseItem {
 }
 
 model PaymentDetail {
-  id                 String   @id @default(uuid())
+  id                 String           @id @default(uuid())
   tourPackageQueryId String
   paymentDate        DateTime
   amount             Float
   method             String?
   transactionId      String?
-  note               String?  @db.Text
-  supplierId         String? // Make supplierId optional
-  images            Images[]
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  tourPackageQuery TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  supplier         Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Make relation optional
-
-  bankAccountId String?
-  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
-  cashAccountId String?
-  cashAccount   CashAccount? @relation(fields: [cashAccountId], references: [id])
+  note               String?          @db.Text
+  supplierId         String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  bankAccountId      String?
+  cashAccountId      String?
+  images             Images[]
+  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
+  cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
 
   @@index([bankAccountId])
   @@index([cashAccountId])
@@ -341,54 +301,48 @@ model PaymentDetail {
 }
 
 model SaleDetail {
-  id                 String    @id @default(uuid())
+  id                 String           @id @default(uuid())
   tourPackageQueryId String
   customerId         String?
   saleDate           DateTime
-  invoiceNumber      String?
-  invoiceDate        DateTime?
-  dueDate            DateTime?
-  stateOfSupply      String?
   salePrice          Float
-  gstAmount          Float? // Add this field for GST amount
-  gstPercentage      Float? // Add this field for GST percentage
-  description        String?   @db.Text
-  status             String?   @default("pending") // pending, complete, cancelled
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  tourPackageQuery TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer         Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  // New relation to sale items
-  items       SaleItem[]
-  // Relation to sale returns
-  saleReturns SaleReturn[]
+  description        String?          @db.Text
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  dueDate            DateTime?
+  gstAmount          Float?
+  gstPercentage      Float?
+  invoiceDate        DateTime?
+  invoiceNumber      String?
+  stateOfSupply      String?
+  status             String?          @default("pending")
+  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items              SaleItem[]
+  saleReturns        SaleReturn[]
 
   @@index([customerId])
   @@index([tourPackageQueryId])
 }
 
 model SaleItem {
-  id              String         @id @default(uuid())
+  id              String           @id @default(uuid())
   saleDetailId    String
-  saleDetail      SaleDetail     @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
   productName     String
-  description     String?        @db.Text
+  description     String?          @db.Text
   quantity        Float
   unitOfMeasureId String?
-  unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id], onDelete: SetNull)
   pricePerUnit    Float
   discountPercent Float?
   discountAmount  Float?
   taxSlabId       String?
-  taxSlab         TaxSlab?       @relation(fields: [taxSlabId], references: [id], onDelete: SetNull)
   taxAmount       Float?
   totalAmount     Float
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @default(now())
-
-  // Relation to sale return items
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now())
+  saleDetail      SaleDetail       @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
+  unitOfMeasure   UnitOfMeasure?   @relation(fields: [unitOfMeasureId], references: [id], onDelete: SetNull)
+  taxSlab         TaxSlab?         @relation(fields: [taxSlabId], references: [id], onDelete: SetNull)
   saleReturnItems SaleReturnItem[]
 
   @@index([saleDetailId])
@@ -397,24 +351,22 @@ model SaleItem {
 }
 
 model ReceiptDetail {
-  id                 String   @id @default(uuid())
+  id                 String           @id @default(uuid())
   tourPackageQueryId String
   receiptDate        DateTime
   amount             Float
   reference          String?
-  note               String?  @db.Text
-  customerId         String? // Make customerId optional
-  images            Images[]
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  tourPackageQuery TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  customer         Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Make relation optional
-
-  bankAccountId String?
-  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
-  cashAccountId String?
-  cashAccount   CashAccount? @relation(fields: [cashAccountId], references: [id])
+  note               String?          @db.Text
+  customerId         String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  bankAccountId      String?
+  cashAccountId      String?
+  images             Images[]
+  tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
+  cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
 
   @@index([bankAccountId])
   @@index([cashAccountId])
@@ -423,49 +375,43 @@ model ReceiptDetail {
 }
 
 model ExpenseDetail {
-  id                 String           @id @default(uuid())
-  tourPackageQueryId String? // Added ? to make it optional
+  id                 String            @id @default(uuid())
+  tourPackageQueryId String?
   expenseDate        DateTime
   amount             Float
+  description        String?           @db.Text
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  bankAccountId      String?
+  cashAccountId      String?
   expenseCategoryId  String?
-  expenseCategory    ExpenseCategory? @relation(fields: [expenseCategoryId], references: [id])
-  description        String?          @db.Text
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-
-  // Images relation
-  images Images[]
-
-  tourPackageQuery TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade) // Made relation optional
-  bankAccountId    String?
-  bankAccount      BankAccount?      @relation(fields: [bankAccountId], references: [id])
-  cashAccountId    String?
-  cashAccount      CashAccount?      @relation(fields: [cashAccountId], references: [id])
+  expenseCategory    ExpenseCategory?  @relation(fields: [expenseCategoryId], references: [id])
+  images             Images[]
+  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  bankAccount        BankAccount?      @relation(fields: [bankAccountId], references: [id])
+  cashAccount        CashAccount?      @relation(fields: [cashAccountId], references: [id])
 
   @@index([bankAccountId])
   @@index([cashAccountId])
   @@index([expenseCategoryId])
-  @@index([tourPackageQueryId]) // Add index for better performance
+  @@index([tourPackageQueryId])
 }
 
 model FlightDetails {
-  id             String  @id @default(uuid())
-  date           String?
-  flightName     String?
-  flightNumber   String?
-  from           String?
-  to             String?
-  departureTime  String?
-  arrivalTime    String?
-  flightDuration String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tourPackageId String?
-  tourPackage   TourPackage? @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-
+  id                 String            @id @default(uuid())
+  date               String?
+  flightName         String?
+  flightNumber       String?
+  from               String?
+  to                 String?
+  departureTime      String?
+  arrivalTime        String?
+  flightDuration     String?
   tourPackageQueryId String?
+  tourPackageId      String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
 
   @@index([tourPackageQueryId])
@@ -473,149 +419,122 @@ model FlightDetails {
 }
 
 model TourPackage {
-  id                               String  @id @default(uuid())
-  tourPackageName                  String?
-  tourPackageType                  String?
-  customerName                     String?
-  customerNumber                   String?
-  numDaysNight                     String?
+  id                               String               @id @default(uuid())
   locationId                       String
-  period                           String?
-  tour_highlights                  String? @db.Text
-  transport                        String?
-  pickup_location                  String?
-  drop_location                    String?
-  numAdults                        String?
-  numChild5to12                    String?
-  numChild0to5                     String?
   price                            String?
+  isFeatured                       Boolean              @default(false)
+  isArchived                       Boolean              @default(false)
+  createdAt                        DateTime             @default(now())
+  updatedAt                        DateTime             @updatedAt
+  assignedTo                       String?
+  assignedToEmail                  String?
+  assignedToMobileNumber           String?
+  customerName                     String?
+  numAdults                        String?
+  numChild0to5                     String?
+  numChild5to12                    String?
+  numDaysNight                     String?
+  period                           String?
+  tourPackageName                  String?
   pricePerAdult                    String?
-  pricePerChildOrExtraBed          String?
   pricePerChild5to12YearsNoBed     String?
+  pricePerChildOrExtraBed          String?
   pricePerChildwithSeatBelow5Years String?
-  totalPrice                       String? @db.Text
-  pricingSection                   Json? // Add this field
-  inclusions                       Json?
-  exclusions                       Json?
-  kitchenGroupPolicy               Json?
-  importantNotes                   Json?
-  paymentPolicy                    Json?
-  usefulTip                        Json?
-  cancellationPolicy               Json?
+  totalPrice                       String?              @db.Text
+  transport                        String?
+  customerNumber                   String?
+  drop_location                    String?
+  pickup_location                  String?
+  tour_highlights                  String?              @db.Text
+  slug                             String?
+  tourPackageType                  String?
+  pricingSection                   Json?
   airlineCancellationPolicy        Json?
+  cancellationPolicy               Json?
+  exclusions                       Json?
+  importantNotes                   Json?
+  inclusions                       Json?
+  kitchenGroupPolicy               Json?
+  paymentPolicy                    Json?
   termsconditions                  Json?
-
-  isFeatured        Boolean           @default(false)
-  isArchived        Boolean           @default(false)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  location          Location          @relation("LocationTotourPackage", fields: [locationId], references: [id])
-  flightDetails     FlightDetails[]
-  itineraries       Itinerary[]
-  itinerariesMaster ItineraryMaster[]
-
-  images                 Images[]
-  assignedTo             String?
-  assignedToMobileNumber String?
-  assignedToEmail        String?
-  slug                   String?
-
-  // New relation to tour package pricing
-  tourPackagePricings TourPackagePricing[]
+  usefulTip                        Json?
+  location                         Location             @relation("LocationTotourPackage", fields: [locationId], references: [id])
+  flightDetails                    FlightDetails[]
+  itineraries                      Itinerary[]
+  itinerariesMaster                ItineraryMaster[]
+  images                           Images[]
+  tourPackagePricings              TourPackagePricing[]
 
   @@index([locationId])
 }
 
-// Model for standardized pricing attributes that can be used across the system
 model PricingAttribute {
-  id        String   @id @default(uuid())
-  name      String   @unique // E.g., "Per Person Cost", "Per Couple Cost", "Child with No Bed", etc.
-  sortOrder Int      @default(0) // For controlling display order
-  isActive  Boolean  @default(true)
-  isDefault Boolean  @default(false) // Whether this is a default option
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relation to pricing components
+  id                String             @id @default(uuid())
+  name              String             @unique
+  sortOrder         Int                @default(0)
+  isActive          Boolean            @default(true)
+  isDefault         Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   pricingComponents PricingComponent[]
 
   @@index([name])
   @@index([isDefault])
 }
 
-// Model for pricing components that can be associated with tour packages
 model PricingComponent {
-  id                 String           @id @default(uuid())
-  pricingAttributeId String
-  pricingAttribute   PricingAttribute @relation(fields: [pricingAttributeId], references: [id])
-  price              Decimal          @db.Decimal(10, 2) // Using Decimal for accurate pricing
-
-  // Relation to pricing attribute
-
-  // Relation to tour package pricing
+  id                   String              @id @default(uuid())
+  price                Decimal             @db.Decimal(10, 2)
   tourPackagePricingId String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  pricingAttributeId   String
+  pricingAttribute     PricingAttribute    @relation(fields: [pricingAttributeId], references: [id])
   tourPackagePricing   TourPackagePricing? @relation(fields: [tourPackagePricingId], references: [id], onDelete: Cascade)
-
-  // Track creation and updates
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([pricingAttributeId])
   @@index([tourPackagePricingId])
 }
 
-// New model for tour package pricing with occupancy types and PAX counts
 model TourPackagePricing {
-  id            String      @id @default(uuid())
-  tourPackageId String
-  tourPackage   TourPackage @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  startDate     DateTime
-  endDate       DateTime
-
-  // Relation to occupancy type
-  occupancyTypeId String
-  occupancyType   OccupancyType @relation(fields: [occupancyTypeId], references: [id])
-
-  // Relation to meal plan
-  mealPlanId String?
-  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id])
-
-  // Relation to pricing components
+  id                String             @id @default(uuid())
+  tourPackageId     String
+  startDate         DateTime
+  endDate           DateTime
+  occupancyTypeId   String
+  numPax            Int                @default(1)
+  tourPackagePrice  Int
+  isPromotional     Boolean            @default(false)
+  promotionName     String?
+  isActive          Boolean            @default(true)
+  description       String?            @db.Text
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  mealPlanId        String?
+  tourPackage       TourPackage        @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  occupancyType     OccupancyType      @relation(fields: [occupancyTypeId], references: [id])
+  mealPlan          MealPlan?          @relation(fields: [mealPlanId], references: [id])
   pricingComponents PricingComponent[]
-
-  // PAX (passenger) specific fields
-  numPax           Int      @default(1) // number of passengers
-  tourPackagePrice Int // Price for Tour Package
-  // Additional fields
-  isPromotional    Boolean  @default(false) // Whether this is a promotional rate
-  promotionName    String? // Name of promotion if applicable
-  isActive         Boolean  @default(true)
-  description      String?  @db.Text // Description or notes about this pricing
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
 
   @@index([tourPackageId])
   @@index([occupancyTypeId])
   @@index([mealPlanId])
-  @@index([startDate, endDate]) // For efficient date range queries
+  @@index([startDate, endDate])
 }
 
 model Activity {
-  id         String @id @default(uuid())
-  locationId String
-
-  location Location @relation(fields: [locationId], references: [id])
-
-  activityImages      Images[]
-  activityTitle       String?    @db.Text
-  activityDescription String?    @db.Text
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  id                  String           @id @default(uuid())
+  locationId          String
+  activityTitle       String?          @db.Text
+  activityDescription String?          @db.Text
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
   itineraryId         String?
-  itinerary           Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  itineraryMasterId String?
-  itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
+  itineraryMasterId   String?
+  location            Location         @relation(fields: [locationId], references: [id])
+  activityImages      Images[]
+  itinerary           Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  itineraryMaster     ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
 
   @@index([locationId])
   @@index([itineraryId])
@@ -623,17 +542,15 @@ model Activity {
 }
 
 model ActivityMaster {
-  id         String @id @default(uuid())
-  locationId String
-
-  location Location @relation(fields: [locationId], references: [id])
-
-  activityMasterImages      Images[]
+  id                        String     @id @default(uuid())
+  locationId                String
   activityMasterTitle       String?    @db.Text
   activityMasterDescription String?    @db.Text
   createdAt                 DateTime   @default(now())
   updatedAt                 DateTime   @updatedAt
   itineraryId               String?
+  location                  Location   @relation(fields: [locationId], references: [id])
+  activityMasterImages      Images[]
   itinerary                 Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
 
   @@index([locationId])
@@ -641,44 +558,35 @@ model ActivityMaster {
 }
 
 model Itinerary {
-  id String @id @default(uuid())
-
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id])
-
+  id                   String            @id @default(uuid())
+  locationId           String
   tourPackageId        String?
   tourPackageQueryId   String?
-  itineraryTitle       String?  @db.Text
-  itineraryDescription String?  @db.Text
-  itineraryImages      Images[]
-  dayNumber            Int?
+  itineraryTitle       String?           @db.Text
+  itineraryDescription String?           @db.Text
   days                 String?
   hotelId              String?
-  hotel                Hotel?   @relation("ItineraryToHotel", fields: [hotelId], references: [id])
-  numberofRooms        String?
+  mealsIncluded        String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  dayNumber            Int?
   roomCategory         String?
-
-  // Replace string fields with relation fields
-  roomTypeId String?
-  roomType   RoomType? @relation(fields: [roomTypeId], references: [id])
-
-  mealPlanId String?
-  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id])
-
-  occupancyTypeId String?
-  occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id])
-
-  // Remove vehicleType field as it's handled by TransportDetail
-
-  transportDetails TransportDetail[] // New relation to multiple vehicles
-  roomAllocations  RoomAllocation[] // New relation to mixed room occupancy
-  mealsIncluded    String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  tourPackage      TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  tourPackageQuery TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  activities       Activity[]
-  activitiesMaster ActivityMaster[]
+  numberofRooms        String?
+  mealPlanId           String?
+  occupancyTypeId      String?
+  roomTypeId           String?
+  location             Location          @relation(fields: [locationId], references: [id])
+  itineraryImages      Images[]
+  hotel                Hotel?            @relation("ItineraryToHotel", fields: [hotelId], references: [id])
+  roomType             RoomType?         @relation(fields: [roomTypeId], references: [id])
+  mealPlan             MealPlan?         @relation(fields: [mealPlanId], references: [id])
+  occupancyType        OccupancyType?    @relation(fields: [occupancyTypeId], references: [id])
+  transportDetails     TransportDetail[]
+  roomAllocations      RoomAllocation[]
+  tourPackage          TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery     TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  activities           Activity[]
+  activitiesMaster     ActivityMaster[]
 
   @@index([locationId])
   @@index([tourPackageId])
@@ -689,44 +597,34 @@ model Itinerary {
 }
 
 model ItineraryMaster {
-  id String @id @default(uuid())
-
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id])
-
+  id                         String            @id @default(uuid())
+  locationId                 String
   tourPackageId              String?
   tourPackageQueryId         String?
-  itineraryMasterTitle       String?  @db.Text
-  itineraryMasterDescription String?  @db.Text
-  itineraryMasterImages      Images[]
-  dayNumber                  Int?
+  itineraryMasterTitle       String?           @db.Text
+  itineraryMasterDescription String?           @db.Text
   days                       String?
   hotelId                    String?
-  hotel                      Hotel?   @relation("ItineraryMasterToHotel", fields: [hotelId], references: [id])
-  numberofRooms              String?
+  mealsIncluded              String?
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+  dayNumber                  Int?
   roomCategory               String?
-
-  // Add relation fields for room details
-
-  roomTypeId String?
-  roomType   RoomType? @relation(fields: [roomTypeId], references: [id])
-
-  mealPlanId String?
-  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id])
-
-  occupancyTypeId String?
-  occupancyType   OccupancyType? @relation(fields: [occupancyTypeId], references: [id])
-
-  // New relations for vehicle and room management
-  transportDetails TransportDetail[] // Relation to vehicle details
-  roomAllocations  RoomAllocation[] // Relation to room allocations
-
-  mealsIncluded    String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  tourPackage      TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  tourPackageQuery TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  activities       Activity[]
+  numberofRooms              String?
+  mealPlanId                 String?
+  occupancyTypeId            String?
+  roomTypeId                 String?
+  location                   Location          @relation(fields: [locationId], references: [id])
+  itineraryMasterImages      Images[]
+  hotel                      Hotel?            @relation("ItineraryMasterToHotel", fields: [hotelId], references: [id])
+  roomType                   RoomType?         @relation(fields: [roomTypeId], references: [id])
+  mealPlan                   MealPlan?         @relation(fields: [mealPlanId], references: [id])
+  occupancyType              OccupancyType?    @relation(fields: [occupancyTypeId], references: [id])
+  transportDetails           TransportDetail[]
+  roomAllocations            RoomAllocation[]
+  tourPackage                TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery           TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  activities                 Activity[]
 
   @@index([locationId])
   @@index([tourPackageId])
@@ -737,40 +635,32 @@ model ItineraryMaster {
 }
 
 model Images {
-  id                 String            @id @default(uuid())
-  tourPackageId      String?
-  tourPackageQueryId String?
-  url                String
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-  hotelId            String?
-  hotel              Hotel?            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
-
-  itinerariesId String?
-  itineraries   Itinerary? @relation(fields: [itinerariesId], references: [id], onDelete: Cascade)
-
+  id                  String            @id @default(uuid())
+  tourPackageId       String?
+  tourPackageQueryId  String?
+  url                 String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  hotelId             String?
+  itinerariesId       String?
+  activitiesId        String?
+  activitiesMasterId  String?
   itinerariesMasterId String?
-  itinerariesMaster   ItineraryMaster? @relation(fields: [itinerariesMasterId], references: [id], onDelete: Cascade)
-
-  activitiesId String?
-  activities   Activity? @relation(fields: [activitiesId], references: [id], onDelete: Cascade)
-
-  activitiesMasterId String?
-  activitiesMaster   ActivityMaster? @relation(fields: [activitiesMasterId], references: [id], onDelete: Cascade)
-
-  paymentDetailsId String?
-  paymentDetails   PaymentDetail? @relation(fields: [paymentDetailsId], references: [id], onDelete: Cascade)
-
-  receiptDetailsId String?
-  receiptDetails   ReceiptDetail? @relation(fields: [receiptDetailsId], references: [id], onDelete: Cascade)
-
-  incomeDetailsId String?
-  incomeDetails   IncomeDetail? @relation(fields: [incomeDetailsId], references: [id], onDelete: Cascade)
-
-  expenseDetailsId String?
-  expenseDetails   ExpenseDetail? @relation(fields: [expenseDetailsId], references: [id], onDelete: Cascade)
+  paymentDetailsId    String?
+  receiptDetailsId    String?
+  expenseDetailsId    String?
+  incomeDetailsId     String?
+  tourPackage         TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  tourPackageQuery    TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
+  hotel               Hotel?            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  itineraries         Itinerary?        @relation(fields: [itinerariesId], references: [id], onDelete: Cascade)
+  itinerariesMaster   ItineraryMaster?  @relation(fields: [itinerariesMasterId], references: [id], onDelete: Cascade)
+  activities          Activity?         @relation(fields: [activitiesId], references: [id], onDelete: Cascade)
+  activitiesMaster    ActivityMaster?   @relation(fields: [activitiesMasterId], references: [id], onDelete: Cascade)
+  paymentDetails      PaymentDetail?    @relation(fields: [paymentDetailsId], references: [id], onDelete: Cascade)
+  receiptDetails      ReceiptDetail?    @relation(fields: [receiptDetailsId], references: [id], onDelete: Cascade)
+  incomeDetails       IncomeDetail?     @relation(fields: [incomeDetailsId], references: [id], onDelete: Cascade)
+  expenseDetails      ExpenseDetail?    @relation(fields: [expenseDetailsId], references: [id], onDelete: Cascade)
 
   @@index([hotelId])
   @@index([itinerariesId])
@@ -786,157 +676,129 @@ model Images {
 }
 
 model Customer {
-  id                 String   @id @default(uuid())
+  id                 String            @id @default(uuid())
   name               String
   contact            String?
   email              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   associatePartnerId String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  saleDetails      SaleDetail[]
-  receiptDetails   ReceiptDetail[]
-  associatePartner AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  saleDetails        SaleDetail[]
+  receiptDetails     ReceiptDetail[]
+  associatePartner   AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
 
   @@index([associatePartnerId])
 }
 
 model Supplier {
-  id        String   @id @default(uuid())
-  name      String
-  contact   String?
-  email     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Add the many-to-many relationship with Location
-  locations SupplierLocation[]
-
+  id              String             @id @default(uuid())
+  name            String
+  contact         String?
+  email           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  locations       SupplierLocation[]
   purchaseDetails PurchaseDetail[]
-  paymentDetails  PaymentDetail[] // Add this line
+  paymentDetails  PaymentDetail[]
 }
 
-// Create a join model for the many-to-many relationship between Supplier and Location
 model SupplierLocation {
-  id String @id @default(uuid())
-
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
   supplierId String
-
-  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
   locationId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Create a unique constraint to prevent duplicate associations
   @@unique([supplierId, locationId])
   @@index([supplierId])
   @@index([locationId])
 }
 
 model AssociatePartner {
-  id           String   @id @default(uuid())
-  name         String
-  mobileNumber String
-  email        String?
-  gmail        String? // Added gmail field
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
+  id                 String             @id @default(uuid())
+  name               String
+  mobileNumber       String
+  email              String?
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  gmail              String?
   inquiries          Inquiry[]
   customers          Customer[]
   tourPackageQueries TourPackageQuery[]
 }
 
-// New enum for Operational Staff Roles
-enum OperationalStaffRole {
-  OPERATIONS
-  ADMIN
-}
-
-// New model for Operational Staff
 model OperationalStaff {
-  id        String               @id @default(uuid())
-  name      String
-  email     String               @unique
-  password  String // Store hashed password
-  role      OperationalStaffRole @default(OPERATIONS) // Role for permissions
-  isActive  Boolean              @default(true) // To enable/disable accounts
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-
-  assignedInquiries Inquiry[] @relation("AssignedOperationalStaffToInquiry") // Relation to assigned inquiries
+  id                String               @id @default(uuid())
+  name              String
+  email             String               @unique
+  password          String
+  role              OperationalStaffRole @default(OPERATIONS)
+  isActive          Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  assignedInquiries Inquiry[]            @relation("AssignedOperationalStaffToInquiry")
 
   @@index([email])
 }
 
 model Inquiry {
-  id                   String    @id @default(uuid())
+  id                   String             @id @default(uuid())
   customerName         String
   customerMobileNumber String
   associatePartnerId   String?
   locationId           String
-  numAdults            Int       @default(0)
-  numChildrenAbove11   Int       @default(0)
-  numChildren5to11     Int       @default(0)
-  numChildrenBelow5    Int       @default(0)
-  remarks              String?   @db.Text
-  status               String    @default("pending") // pending, contacted, converted, cancelled
-  journeyDate          DateTime? @db.Date
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-
-  // Existing relations
-  location         Location          @relation("LocationToInquiry", fields: [locationId], references: [id])
-  associatePartner AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
-  actions          InquiryAction[]
-
-  // Modified: Change to one-to-many relationship
-  tourPackageQueries TourPackageQuery[]
-
-  // New Operational Assignment Fields
-  assignedToStaffId String? // Foreign key to OperationalStaff model
-  assignedStaff     OperationalStaff? @relation("AssignedOperationalStaffToInquiry", fields: [assignedToStaffId], references: [id])
-  assignedStaffAt   DateTime? // Optional: Timestamp when assignment happened
-
-  // New fields for room and transport details at inquiry stage
-  roomAllocations  RoomAllocation[] // Relation to room allocation details
-  transportDetails TransportDetail[] // Relation to transport details
+  numAdults            Int                @default(0)
+  numChildrenAbove11   Int                @default(0)
+  numChildren5to11     Int                @default(0)
+  numChildrenBelow5    Int                @default(0)
+  remarks              String?            @db.Text
+  status               String             @default("pending")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  journeyDate          DateTime?          @db.Date
+  assignedStaffAt      DateTime?
+  assignedToStaffId    String?
+  location             Location           @relation("LocationToInquiry", fields: [locationId], references: [id])
+  associatePartner     AssociatePartner?  @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  actions              InquiryAction[]
+  tourPackageQueries   TourPackageQuery[]
+  assignedStaff        OperationalStaff?  @relation("AssignedOperationalStaffToInquiry", fields: [assignedToStaffId], references: [id])
+  roomAllocations      RoomAllocation[]
+  transportDetails     TransportDetail[]
 
   @@index([locationId])
   @@index([associatePartnerId])
-  @@index([assignedToStaffId]) // Index for faster lookup of assigned inquiries
+  @@index([assignedToStaffId])
 }
 
 model InquiryAction {
   id         String   @id @default(uuid())
   inquiryId  String
-  inquiry    Inquiry  @relation(fields: [inquiryId], references: [id])
-  actionType String // CALL, MESSAGE, EMAIL, etc.
+  actionType String
   remarks    String
   actionDate DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  inquiry    Inquiry  @relation(fields: [inquiryId], references: [id])
 
   @@index([inquiryId])
 }
 
 model BankAccount {
-  id             String   @id @default(uuid())
-  accountName    String
-  bankName       String
-  accountNumber  String   @unique
-  ifscCode       String
-  branch         String
-  openingBalance Float    @default(0)
-  currentBalance Float    @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations with transactions
+  id                String          @id @default(uuid())
+  accountName       String
+  bankName          String
+  accountNumber     String          @unique
+  ifscCode          String
+  branch            String
+  openingBalance    Float           @default(0)
+  currentBalance    Float           @default(0)
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   paymentDetails    PaymentDetail[]
   receiptDetails    ReceiptDetail[]
   expenseDetails    ExpenseDetail[]
@@ -948,15 +810,13 @@ model BankAccount {
 }
 
 model CashAccount {
-  id             String   @id @default(uuid())
-  accountName    String   @unique // e.g. "Main Cash", "Petty Cash"
-  openingBalance Float    @default(0)
-  currentBalance Float    @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations with transactions
+  id                String          @id @default(uuid())
+  accountName       String          @unique
+  openingBalance    Float           @default(0)
+  currentBalance    Float           @default(0)
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   paymentDetails    PaymentDetail[]
   receiptDetails    ReceiptDetail[]
   expenseDetails    ExpenseDetail[]
@@ -966,28 +826,21 @@ model CashAccount {
 }
 
 model IncomeDetail {
-  id               String          @id @default(uuid())
-  incomeDate       DateTime
-  amount           Float
-  incomeCategoryId String?
-  incomeCategory   IncomeCategory? @relation(fields: [incomeCategoryId], references: [id])
-  description      String?
-
-  // Relations
+  id                 String            @id @default(uuid())
+  incomeDate         DateTime
+  amount             Float
+  description        String?
   tourPackageQueryId String?
+  bankAccountId      String?
+  cashAccountId      String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  incomeCategoryId   String?
+  incomeCategory     IncomeCategory?   @relation(fields: [incomeCategoryId], references: [id])
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
-
-  // Bank or Cash relation (one of them must be filled)
-  bankAccountId String?
-  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
-  cashAccountId String?
-  cashAccount   CashAccount? @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Images relation
-  images Images[]
+  bankAccount        BankAccount?      @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  cashAccount        CashAccount?      @relation(fields: [cashAccountId], references: [id], onDelete: Cascade)
+  images             Images[]
 
   @@index([incomeCategoryId])
   @@index([tourPackageQueryId])
@@ -1016,26 +869,21 @@ model ExpenseCategory {
 }
 
 model Transfer {
-  id           String   @id @default(uuid())
-  amount       Float
-  transferDate DateTime
-  reference    String?
-  description  String?
-
+  id                String       @id @default(uuid())
+  amount            Float
+  transferDate      DateTime
+  reference         String?
+  description       String?
   fromBankAccountId String?
-  fromBankAccount   BankAccount? @relation("FromBankAccount", fields: [fromBankAccountId], references: [id])
-
   fromCashAccountId String?
+  toBankAccountId   String?
+  toCashAccountId   String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  fromBankAccount   BankAccount? @relation("FromBankAccount", fields: [fromBankAccountId], references: [id])
   fromCashAccount   CashAccount? @relation("FromCashAccount", fields: [fromCashAccountId], references: [id])
-
-  toBankAccountId String?
-  toBankAccount   BankAccount? @relation("ToBankAccount", fields: [toBankAccountId], references: [id])
-
-  toCashAccountId String?
-  toCashAccount   CashAccount? @relation("ToCashAccount", fields: [toCashAccountId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  toBankAccount     BankAccount? @relation("ToBankAccount", fields: [toBankAccountId], references: [id])
+  toCashAccount     CashAccount? @relation("ToCashAccount", fields: [toCashAccountId], references: [id])
 
   @@index([fromBankAccountId])
   @@index([fromCashAccountId])
@@ -1068,15 +916,13 @@ model Organization {
 }
 
 model UnitOfMeasure {
-  id           String   @id @default(uuid())
-  name         String   @unique
-  abbreviation String
-  description  String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  abbreviation        String
+  description         String?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
   purchaseItems       PurchaseItem[]
   saleItems           SaleItem[]
   purchaseReturnItems PurchaseReturnItem[]
@@ -1084,57 +930,54 @@ model UnitOfMeasure {
 }
 
 model TaxSlab {
-  id          String   @id @default(uuid())
-  name        String   @unique // e.g. "GST 5%", "GST 18%"
-  percentage  Float
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-
-  // Relations
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  percentage          Float
+  description         String?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now())
   purchaseItems       PurchaseItem[]
   saleItems           SaleItem[]
   purchaseReturnItems PurchaseReturnItem[]
   saleReturnItems     SaleReturnItem[]
 }
 
-// Models for Purchase Return
 model PurchaseReturn {
   id               String               @id @default(uuid())
-  purchaseDetail   PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
   purchaseDetailId String
   returnDate       DateTime
   returnReason     String?              @db.Text
   amount           Float
   gstAmount        Float?
-  items            PurchaseReturnItem[]
   reference        String?
-  status           String               @default("pending") // pending, completed, cancelled
+  status           String               @default("pending")
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
+  purchaseDetail   PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
+  items            PurchaseReturnItem[]
 
   @@index([purchaseDetailId])
 }
 
 model PurchaseReturnItem {
   id               String         @id @default(uuid())
-  purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
   purchaseReturnId String
-  purchaseItem     PurchaseItem?  @relation(fields: [purchaseItemId], references: [id])
   purchaseItemId   String?
   productName      String
   description      String?        @db.Text
   quantity         Float
-  unitOfMeasure    UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
   unitOfMeasureId  String?
   pricePerUnit     Float
   taxAmount        Float?
-  taxSlab          TaxSlab?       @relation(fields: [taxSlabId], references: [id])
   taxSlabId        String?
   totalAmount      Float
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+  purchaseItem     PurchaseItem?  @relation(fields: [purchaseItemId], references: [id])
+  unitOfMeasure    UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
+  taxSlab          TaxSlab?       @relation(fields: [taxSlabId], references: [id])
 
   @@index([purchaseReturnId])
   @@index([purchaseItemId])
@@ -1142,42 +985,41 @@ model PurchaseReturnItem {
   @@index([taxSlabId])
 }
 
-// Models for Sale Return
 model SaleReturn {
   id           String           @id @default(uuid())
-  saleDetail   SaleDetail       @relation(fields: [saleDetailId], references: [id])
   saleDetailId String
   returnDate   DateTime
   returnReason String?          @db.Text
   amount       Float
   gstAmount    Float?
-  items        SaleReturnItem[]
   reference    String?
-  status       String           @default("pending") // pending, completed, cancelled
+  status       String           @default("pending")
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  saleDetail   SaleDetail       @relation(fields: [saleDetailId], references: [id])
+  items        SaleReturnItem[]
 
   @@index([saleDetailId])
 }
 
 model SaleReturnItem {
   id              String         @id @default(uuid())
-  saleReturn      SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
   saleReturnId    String
-  saleItem        SaleItem?      @relation(fields: [saleItemId], references: [id])
   saleItemId      String?
   productName     String
   description     String?        @db.Text
   quantity        Float
-  unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
   unitOfMeasureId String?
   pricePerUnit    Float
   taxAmount       Float?
-  taxSlab         TaxSlab?       @relation(fields: [taxSlabId], references: [id])
   taxSlabId       String?
   totalAmount     Float
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  saleReturn      SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
+  saleItem        SaleItem?      @relation(fields: [saleItemId], references: [id])
+  unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
+  taxSlab         TaxSlab?       @relation(fields: [taxSlabId], references: [id])
 
   @@index([saleReturnId])
   @@index([saleItemId])
@@ -1186,88 +1028,67 @@ model SaleReturnItem {
 }
 
 model FlightTicket {
-  id               String   @id @default(uuid())
-  pnr              String   @unique
-  airline          String
-  flightNumber     String
-  departureAirport String
-  arrivalAirport   String
-  departureTime    DateTime
-  arrivalTime      DateTime
-  ticketClass      String // Economy, Business, First
-  issueDate        DateTime @default(now())
-  status           String   @default("confirmed") // confirmed, cancelled, rescheduled
-  baggageAllowance String?
-  bookingReference String?
-  fareAmount       Float?
-  taxAmount        Float?
-  totalAmount      Float?
-
-  // Relations
+  id                 String            @id @default(uuid())
+  pnr                String            @unique
+  airline            String
+  flightNumber       String
+  departureAirport   String
+  arrivalAirport     String
+  departureTime      DateTime
+  arrivalTime        DateTime
+  ticketClass        String
+  issueDate          DateTime          @default(now())
+  status             String            @default("confirmed")
+  baggageAllowance   String?
+  bookingReference   String?
+  fareAmount         Float?
+  taxAmount          Float?
+  totalAmount        Float?
   tourPackageQueryId String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: SetNull)
-
-  // Add the relation to Passenger model
-  passengers Passenger[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  passengers         Passenger[]
 
   @@index([tourPackageQueryId])
 }
 
 model Passenger {
-  id         String  @id @default(uuid())
-  name       String
-  type       String  @default("Adult") // Adult, Child, Infant
-  seatNumber String?
-  age        Int?
-  gender     String? // Male, Female, Other
-
-  // Relations
+  id             String       @id @default(uuid())
+  name           String
+  type           String       @default("Adult")
+  seatNumber     String?
+  age            Int?
+  gender         String?
   flightTicketId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   flightTicket   FlightTicket @relation(fields: [flightTicketId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([flightTicketId])
 }
 
-// Model for vehicles in both itineraries and inquiries
 model TransportDetail {
-  id String @id @default(uuid())
-
-  // Optional relation to Itinerary - one of these two must exist
-  itineraryId String?
-  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  // Optional relation to Inquiry
-  inquiryId String?
-  inquiry   Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  // Optional relation to ItineraryMaster
-  itineraryMasterId String?
-  itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
-
-  // Change from string to relation
-  vehicleTypeId String
-  vehicleType   VehicleType @relation(fields: [vehicleTypeId], references: [id])
-
-  quantity Int  @default(1) // Number of vehicles of this type
-  capacity Int? // Override the default capacity if needed
-
-  // Fields specific to inquiry transport
-  isAirportPickupRequired Boolean?  @default(false)
-  isAirportDropRequired   Boolean?  @default(false)
-  pickupLocation          String? // Pickup location details
-  dropLocation            String? // Drop location details
-  requirementDate         DateTime? // When the vehicle is needed
-
-  description String? // Any additional details about the vehicle
-  notes       String?  @db.Text // Additional requirements or notes
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                      String           @id @default(uuid())
+  itineraryId             String?
+  quantity                Int              @default(1)
+  capacity                Int?
+  description             String?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  dropLocation            String?
+  inquiryId               String?
+  isAirportDropRequired   Boolean?         @default(false)
+  isAirportPickupRequired Boolean?         @default(false)
+  itineraryMasterId       String?
+  notes                   String?          @db.Text
+  pickupLocation          String?
+  requirementDate         DateTime?
+  vehicleTypeId           String
+  itinerary               Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  inquiry                 Inquiry?         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  itineraryMaster         ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
+  vehicleType             VehicleType      @relation(fields: [vehicleTypeId], references: [id])
 
   @@index([itineraryId])
   @@index([inquiryId])
@@ -1275,37 +1096,25 @@ model TransportDetail {
   @@index([vehicleTypeId])
 }
 
-// Model for handling room allocation in both itineraries and inquiries
 model RoomAllocation {
-  id String @id @default(uuid())
-
-  // Optional relation to Itinerary - one of these two must exist
-  itineraryId String?
-  itinerary   Itinerary? @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-
-  // Optional relation to Inquiry
-  inquiryId String?
-  inquiry   Inquiry? @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
-
-  // Optional relation to ItineraryMaster
+  id                String           @id @default(uuid())
+  itineraryId       String?
+  quantity          Int              @default(1)
+  guestNames        String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  inquiryId         String?
   itineraryMasterId String?
+  mealPlanId        String?
+  notes             String?          @db.Text
+  occupancyTypeId   String
+  roomTypeId        String
+  itinerary         Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  inquiry           Inquiry?         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
   itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
-
-  // Change from strings to relations
-  roomTypeId String
-  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
-
-  occupancyTypeId String
-  occupancyType   OccupancyType @relation(fields: [occupancyTypeId], references: [id])
-
-  mealPlanId String?
-  mealPlan   MealPlan? @relation(fields: [mealPlanId], references: [id])
-
-  quantity   Int      @default(1) // Number of rooms of this type/occupancy
-  guestNames String? // Optional names of guests in these rooms
-  notes      String?  @db.Text // Additional notes specific to this allocation
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  roomType          RoomType         @relation(fields: [roomTypeId], references: [id])
+  occupancyType     OccupancyType    @relation(fields: [occupancyTypeId], references: [id])
+  mealPlan          MealPlan?        @relation(fields: [mealPlanId], references: [id])
 
   @@index([itineraryId])
   @@index([inquiryId])
@@ -1316,30 +1125,27 @@ model RoomAllocation {
 
 model Notification {
   id        String   @id @default(uuid())
-  type      String // e.g., "NEW_INQUIRY", "INQUIRY_STATUS_CHANGE", etc.
+  type      String
   title     String
   message   String   @db.Text
   read      Boolean  @default(false)
-  data      Json? // Additional data related to the notification
+  data      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
-
-  // If you want to add user-specific notifications in the future
-  // userId    String?
 }
 
 model AuditLog {
   id         String   @id @default(uuid())
-  entityId   String // ID of the entity that was modified (e.g., inquiryId)
-  entityType String // Type of entity (e.g., "Inquiry")
-  action     String // e.g., "CREATE", "UPDATE", "DELETE"
-  userId     String // The Clerk user ID that made the change
-  userEmail  String // The email of the user who made the change
-  userName   String // The name of the user who made the change
-  userRole   String // "ADMIN" or "ASSOCIATE"
-  before     Json? // The data before the change (for "UPDATE" and "DELETE")
-  after      Json? // The data after the change (for "CREATE" and "UPDATE")
-  metadata   Json? // Additional metadata about the change
+  entityId   String
+  entityType String
+  action     String
+  userId     String
+  userEmail  String
+  userName   String
+  userRole   String
+  before     Json?
+  after      Json?
+  metadata   Json?
   createdAt  DateTime @default(now())
 
   @@index([entityId])
@@ -1351,19 +1157,21 @@ model AuditLog {
 
 model AiGeneratedImage {
   id                String   @id @default(cuid())
-  prompt            String   @db.Text // Use Text for potentially long prompts
-  referenceImageUrl String?  @db.Text // Optional reference image URL
-  generatedImageUrl String   @db.Text // URL of the generated image - changed to Text type
+  prompt            String   @db.Text
+  referenceImageUrl String?  @db.Text
+  generatedImageUrl String   @db.Text
   isApproved        Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now())
-
-  // Optional fields for tracking social media posts
-  xPostId         String?
-  instagramPostId String?
-  linkedInPostId  String?
-  pinterestPinId  String?
-  // WhatsApp sharing might not have a persistent ID in the same way
+  xPostId           String?
+  instagramPostId   String?
+  linkedInPostId    String?
+  pinterestPinId    String?
 
   @@index([createdAt])
+}
+
+enum OperationalStaffRole {
+  OPERATIONS
+  ADMIN
 }

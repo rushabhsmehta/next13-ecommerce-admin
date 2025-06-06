@@ -199,15 +199,14 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                                         </FormControl>                                        <SelectContent>
                                             {vehicleTypes.map((vehicleType) => (
                                                 <SelectItem key={vehicleType.id} value={vehicleType.id}>
-                                                    {vehicleType.name} ({vehicleType.capacity} Seater)
+                                                    {vehicleType.name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
                                 </FormItem>
-                            )}
-                        />                        {/* Capacity is now part of the vehicle type model, so we removed the separate field */}
+                            )}                        />
 
                         <FormField
                             control={form.control}

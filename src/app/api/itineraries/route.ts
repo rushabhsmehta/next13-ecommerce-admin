@@ -117,12 +117,10 @@ export async function POST(
     // Create transport details if provided
     if (transportDetails && transportDetails.length > 0) {
       await Promise.all(transportDetails.map(async (transport: any) => {
-        await prismadb.transportDetail.create({
-          data: {
+        await prismadb.transportDetail.create({          data: {
             itineraryId: itinerary.id,
             vehicleTypeId: transport.vehicleTypeId,
             quantity: transport.quantity || 1,
-            capacity: transport.capacity,
             isAirportPickupRequired: transport.isAirportPickupRequired,
             isAirportDropRequired: transport.isAirportDropRequired,
             pickupLocation: transport.pickupLocation,

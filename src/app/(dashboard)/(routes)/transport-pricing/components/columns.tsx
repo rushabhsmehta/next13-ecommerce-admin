@@ -10,7 +10,6 @@ export type TransportPricingColumn = {
   id: string;
   location: string;
   vehicleType: string;
-  capacity: string;
   transportType: string;
   price: string;
   startDate: string;
@@ -45,12 +44,7 @@ export const columns: ColumnDef<TransportPricingColumn>[] = [
           Vehicle Type
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
-      )
-    },
-  },
-  {
-    accessorKey: "capacity",
-    header: "Capacity",
+      )    },
   },
   {
     accessorKey: "transportType",

@@ -22,17 +22,16 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, description, capacity } = body;
+    const { name, description } = body;
     
-    if (!name || capacity === undefined) {
-      return new NextResponse("Name and capacity are required", { status: 400 });
+    if (!name) {
+      return new NextResponse("Name is required", { status: 400 });
     }
     
     const vehicleType = await prismadb.vehicleType.create({
       data: {
         name,
-        description,
-        capacity: parseInt(capacity) || 0
+        description
       }
     });
     

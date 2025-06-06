@@ -49,7 +49,6 @@ const formSchema = z.object({
   transportType: z.enum(["PerDay", "PerTrip"], {
     required_error: "Transport type is required",
   }),
-  capacity: z.string().optional(),
   description: z.string().optional(),
   startDate: z.date({
     required_error: "Start date is required",
@@ -93,12 +92,10 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
           startDate: new Date(initialData.startDate),
           endDate: new Date(initialData.endDate),
         }
-      : {
-          locationId: "",
+      : {          locationId: "",
           vehicleType: "",
           price: 0,
           transportType: "PerDay" as const,
-          capacity: "",
           description: "",
           startDate: new Date(),
           endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
@@ -110,14 +107,12 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
-  useEffect(() => {
-    if (initialData) {
+  useEffect(() => {    if (initialData) {
       form.reset({
         locationId: initialData.locationId,
         vehicleType: initialData.vehicleType,
         price: parseFloat(initialData.price),
         transportType: initialData.transportType,
-        capacity: initialData.capacity || "",
         description: initialData.description || "",
         startDate: new Date(initialData.startDate),
         endDate: new Date(initialData.endDate),
@@ -251,47 +246,7 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
                       </Select>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="capacity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Capacity</FormLabel>
-                      <Select
-                        disabled={loading}
-                        onValueChange={(value: string) => field.onChange(value)}
-                        value={field.value || ""}
-                        defaultValue={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              defaultValue={field.value}
-                              placeholder="Select capacity"
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="4 Seater">4 Seater</SelectItem>
-                          <SelectItem value="5 Seater">5 Seater</SelectItem>
-                          <SelectItem value="7 Seater">7 Seater</SelectItem>
-                          <SelectItem value="9 Seater">9 Seater</SelectItem>
-                          <SelectItem value="12 Seater">12 Seater</SelectItem>
-                          <SelectItem value="15 Seater">15 Seater</SelectItem>
-                          <SelectItem value="20 Seater">20 Seater</SelectItem>
-                          <SelectItem value="25 Seater">25 Seater</SelectItem>
-                          <SelectItem value="35 Seater">35 Seater</SelectItem>
-                          <SelectItem value="40 Seater">40 Seater</SelectItem>
-                          <SelectItem value="49 Seater">49 Seater</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  )}                />
 
                 <FormField
                   control={form.control}

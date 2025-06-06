@@ -10,12 +10,10 @@ const VehicleTypesPage = async () => {
       createdAt: 'desc',
     },
   });
-
   const formattedVehicleTypes = vehicleTypes.map((item) => ({
     id: item.id,
     name: item.name,
     description: item.description || '',
-    capacity: item.capacity,
     isActive: item.isActive,
     createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));

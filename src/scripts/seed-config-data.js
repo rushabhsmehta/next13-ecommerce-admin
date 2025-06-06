@@ -51,14 +51,12 @@ async function seedConfigData() {
         update: {},
         create: occupancyType,
       });
-    }
-
-    // Seed Vehicle Types
+    }    // Seed Vehicle Types
     const vehicleTypes = [
-      { name: 'Sedan', description: 'Comfortable car for up to 4 passengers', capacity: 4 },
-      { name: 'SUV', description: 'Spacious vehicle for up to 7 passengers', capacity: 7 },
-      { name: 'Tempo Traveller', description: 'Mini-bus for up to 12 passengers', capacity: 12 },
-      { name: 'Bus', description: 'Large bus for group travel', capacity: 40 },
+      { name: 'Sedan', description: 'Comfortable car for up to 4 passengers' },
+      { name: 'SUV', description: 'Spacious vehicle for up to 7 passengers' },
+      { name: 'Tempo Traveller', description: 'Mini-bus for up to 12 passengers' },
+      { name: 'Bus', description: 'Large bus for group travel' },
     ];
 
     for (const vehicleType of vehicleTypes) {

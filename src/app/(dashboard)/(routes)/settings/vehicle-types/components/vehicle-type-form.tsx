@@ -28,7 +28,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  capacity: z.coerce.number().int().min(1, 'Capacity must be at least 1').default(4),
   isActive: z.boolean().default(true),
 });
 
@@ -49,11 +48,9 @@ export const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({ initialData })
   const action = initialData ? 'Save changes' : 'Create';
 
   const form = useForm<VehicleTypeFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
+    resolver: zodResolver(formSchema),    defaultValues: initialData || {
       name: '',
       description: '',
-      capacity: 4,
       isActive: true,
     },
   });
@@ -133,30 +130,7 @@ export const VehicleTypeForm: React.FC<VehicleTypeFormProps> = ({ initialData })
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacity</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      disabled={loading}
-                      placeholder="4"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Number of passengers this vehicle can accommodate
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              )}            />
             <FormField
               control={form.control}
               name="description"

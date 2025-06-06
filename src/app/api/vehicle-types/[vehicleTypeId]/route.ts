@@ -25,16 +25,15 @@ export async function PATCH(
 ) {
   try {
     const body = await req.json();
-    const { name, description, capacity, isActive } = body;
+    const { name, description, isActive } = body;
     
-    if (!name && description === undefined && capacity === undefined && isActive === undefined) {
+    if (!name && description === undefined && isActive === undefined) {
       return new NextResponse("At least one field must be provided for update", { status: 400 });
     }
     
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (capacity !== undefined) updateData.capacity = parseInt(capacity);
     if (isActive !== undefined) updateData.isActive = isActive;
     
     const vehicleType = await prismadb.vehicleType.update({

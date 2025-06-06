@@ -56,15 +56,14 @@ async function seedConfigOptions() {
         create: type
       });
     }
-    
-    // Seed Vehicle Types
+      // Seed Vehicle Types
     const vehicleTypes = [
-      { name: 'Sedan', description: 'Small family car', capacity: 4 },
-      { name: 'SUV', description: 'Sport utility vehicle', capacity: 7 },
-      { name: 'Tempo Traveller', description: 'Mini bus for groups', capacity: 12 },
-      { name: 'Bus', description: 'Large passenger vehicle', capacity: 40 },
-      { name: 'Hatchback', description: 'Compact car', capacity: 4 },
-      { name: 'Innova', description: 'Popular midsize MPV', capacity: 7 }
+      { name: 'Sedan', description: 'Small family car' },
+      { name: 'SUV', description: 'Sport utility vehicle' },
+      { name: 'Tempo Traveller', description: 'Mini bus for groups' },
+      { name: 'Bus', description: 'Large passenger vehicle' },
+      { name: 'Hatchback', description: 'Compact car' },
+      { name: 'Innova', description: 'Popular midsize MPV' }
     ];
     
     console.log('Seeding vehicle types...');

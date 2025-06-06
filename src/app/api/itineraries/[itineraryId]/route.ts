@@ -225,13 +225,12 @@ export async function PATCH(
     
     // Create new transport details if provided
     if (transportDetails && transportDetails.length > 0) {
-      await Promise.all(transportDetails.map(async (transport: any) => {
-        await prismadb.transportDetail.create({
+      await Promise.all(transportDetails.map(async (transport: any) => {        await prismadb.transportDetail.create({
           data: {
             itineraryId: params.itineraryId,
             vehicleTypeId: transport.vehicleTypeId,
             quantity: transport.quantity || 1,
-            capacity: transport.capacity,
+            capacity: transport.capacity || null,
             isAirportPickupRequired: transport.isAirportPickupRequired,
             isAirportDropRequired: transport.isAirportDropRequired,
             pickupLocation: transport.pickupLocation,

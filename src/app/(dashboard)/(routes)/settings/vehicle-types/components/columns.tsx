@@ -18,7 +18,6 @@ export type VehicleTypeColumn = {
   id: string;
   name: string;
   description: string;
-  capacity: number;
   isActive: boolean;
   createdAt: string;
 };
@@ -37,14 +36,9 @@ export const columns: ColumnDef<VehicleTypeColumn>[] = [
         </Button>
       );
     },
-  },
-  {
+  },  {
     accessorKey: "description",
     header: "Description",
-  },
-  {
-    accessorKey: "capacity",
-    header: "Capacity",
   },
   {
     accessorKey: "isActive",

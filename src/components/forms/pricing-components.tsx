@@ -339,10 +339,9 @@ export const TransportDetailsComponent: React.FC<TransportDetailsComponentProps>
                           <SelectValue placeholder="Select vehicle" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {vehicleTypes.map((type) => (
+                      <SelectContent>                        {vehicleTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
-                            {type.name} {type.capacity && `(${type.capacity} seats)`}
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

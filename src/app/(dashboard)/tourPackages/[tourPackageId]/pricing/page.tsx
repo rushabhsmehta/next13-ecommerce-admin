@@ -90,25 +90,16 @@ const pricingFormSchema = z.object({
   endDate: z.date({
     required_error: "End date is required",
   }),
-  occupancyTypeId: z.string({
-    required_error: "Occupancy type is required",
+  mealPlanId: z.string({
+    required_error: "Meal plan is required",
   }),
-  mealPlanId: z.string().optional(),
-  numPax: z.coerce.number({
-    required_error: "Number of PAX is required",
-    invalid_type_error: "Number of PAX must be a number",
+  numberOfRooms: z.coerce.number({
+    required_error: "Number of rooms is required",
+    invalid_type_error: "Number of rooms must be a number",
   }).min(1, {
-    message: "Number of PAX must be at least 1",
+    message: "Number of rooms must be at least 1",
   }),
   pricingComponents: z.array(pricingComponentSchema),
-  tourPackagePrice: z.coerce.number({
-    required_error: "Price is required",
-    invalid_type_error: "Price must be a number",
-  }).min(0, {
-    message: "Price must be at least 0",
-  }),
-  isPromotional: z.boolean().default(false),
-  promotionName: z.string().optional(),
   description: z.string().optional(),
 }).refine(
   (values) => {
@@ -134,23 +125,16 @@ export default function TourPackagePricingPage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  
-  // Configuration items
-  const [occupancyTypes, setOccupancyTypes] = useState<any[]>([])
+    // Configuration items
   const [mealPlans, setMealPlans] = useState<any[]>([])
   const [pricingAttributes, setPricingAttributes] = useState<any[]>([])
-  
-  const form = useForm<PricingFormValues>({
+    const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
       startDate: new Date(),
       endDate: new Date(),
-      occupancyTypeId: "",
       mealPlanId: "",
-      numPax: 1,
-      tourPackagePrice: 0,
-      isPromotional: false,
-      promotionName: "",
+      numberOfRooms: 1,
       description: "",
       pricingComponents: [],
     }
@@ -179,18 +163,7 @@ export default function TourPackagePricingPage() {
         setPricingPeriods(response.data)
       } catch (error) {
         toast.error("Failed to fetch pricing periods")
-        console.error(error)
-      }
-    }
-
-    const fetchOccupancyTypes = async () => {
-      try {
-        const response = await axios.get('/api/occupancy-types')
-        setOccupancyTypes(response.data)
-      } catch (error) {
-        toast.error("Failed to fetch occupancy types")
-        console.error(error)
-      }
+        console.error(error)      }
     }
     
     const fetchMealPlans = async () => {
@@ -202,8 +175,7 @@ export default function TourPackagePricingPage() {
         console.error(error)
       }
     }
-    
-    const fetchPricingAttributes = async () => {
+      const fetchPricingAttributes = async () => {
       try {
         // Only fetch active pricing attributes
         const response = await axios.get('/api/pricing-attributes?isActive=true')
@@ -215,10 +187,9 @@ export default function TourPackagePricingPage() {
         setLoading(false)
       }
     }
-
+    
     fetchTourPackage()
     fetchPricingPeriods()
-    fetchOccupancyTypes()
     fetchMealPlans()
     fetchPricingAttributes()
   }, [tourPackageId])
@@ -256,8 +227,7 @@ export default function TourPackagePricingPage() {
     setIsEditMode(true)
     setEditId(pricingPeriod.id)
     setShowForm(true)
-    
-    // Map pricing components to the form schema structure
+      // Map pricing components to the form schema structure
     const formattedPricingComponents = pricingPeriod.pricingComponents.map((comp: any) => ({
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
@@ -266,12 +236,8 @@ export default function TourPackagePricingPage() {
     form.reset({
       startDate: new Date(pricingPeriod.startDate),
       endDate: new Date(pricingPeriod.endDate),
-      occupancyTypeId: pricingPeriod.occupancyTypeId,
       mealPlanId: pricingPeriod.mealPlanId || "",
-      numPax: pricingPeriod.numPax,
-      tourPackagePrice: pricingPeriod.tourPackagePrice,
-      isPromotional: pricingPeriod.isPromotional,
-      promotionName: pricingPeriod.promotionName || "",
+      numberOfRooms: pricingPeriod.numberOfRooms || 1,
       description: pricingPeriod.description || "",
       pricingComponents: formattedPricingComponents,
     })
@@ -323,19 +289,14 @@ export default function TourPackagePricingPage() {
           description={`Manage pricing for ${tourPackage?.tourPackageName || 'this tour package'}`}
         />
         
-        {!showForm && (
-          <Button onClick={() => {
+        {!showForm && (          <Button onClick={() => {
             setIsEditMode(false)
             setEditId(null)
             form.reset({
               startDate: new Date(),
               endDate: new Date(),
-              occupancyTypeId: "",
               mealPlanId: "",
-              numPax: 1,
-              tourPackagePrice: 0,
-              isPromotional: false,
-              promotionName: "",
+              numberOfRooms: 1,
               description: "",
               pricingComponents: [],
             })
@@ -353,9 +314,8 @@ export default function TourPackagePricingPage() {
       {showForm && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>{isEditMode ? "Edit Pricing Period" : "Add New Pricing Period"}</CardTitle>
-            <CardDescription>
-              Define pricing for a specific date range, occupancy type, and number of people
+            <CardTitle>{isEditMode ? "Edit Pricing Period" : "Add New Pricing Period"}</CardTitle>            <CardDescription>
+              Define pricing for a specific date range based on number of rooms and meal plan
             </CardDescription>
           </CardHeader>
           
@@ -443,57 +403,25 @@ export default function TourPackagePricingPage() {
                       </FormItem>
                     )}
                   />
-                  
-                  {/* Number of PAX */}
+                    {/* Number of Rooms */}
                   <FormField
                     control={form.control}
-                    name="numPax"
+                    name="numberOfRooms"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Number of PAX</FormLabel>
+                        <FormLabel>Number of Rooms</FormLabel>
                         <FormControl>
                           <Input type="number" min="1" {...field} />
                         </FormControl>
                         <FormDescription>
-                          Total number of passengers
+                          Total number of rooms required
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* Occupancy Type */}
-                  <FormField
-                    control={form.control}
-                    name="occupancyTypeId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Occupancy Type</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select occupancy type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {occupancyTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
+                  <div className="grid grid-cols-1 gap-4">
                   {/* Meal Plan */}
                   <FormField
                     control={form.control}
@@ -512,7 +440,6 @@ export default function TourPackagePricingPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
                             {mealPlans.map((plan) => (
                               <SelectItem key={plan.id} value={plan.id}>
                                 {plan.name}
@@ -525,69 +452,7 @@ export default function TourPackagePricingPage() {
                     )}
                   />
                 </div>
-                
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* Tour Package Price */}
-                  <FormField
-                    control={form.control}
-                    name="tourPackagePrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tour Package Price</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" step="0.01" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Total package price
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Is Promotional */}
-                  <FormField
-                    control={form.control}
-                    name="isPromotional"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => field.onChange(checked === true)}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Promotional Rate
-                          </FormLabel>
-                          <FormDescription>
-                            Mark this as a special promotional rate
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                {/* Promotion Name - only shown if isPromotional is true */}
-                {form.watch("isPromotional") && (
-                  <FormField
-                    control={form.control}
-                    name="promotionName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Promotion Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                {/* Description */}
+                  {/* Description */}
                 <FormField
                   control={form.control}
                   name="description"
@@ -738,19 +603,12 @@ export default function TourPackagePricingPage() {
               <Card key={period.id}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">
+                    <div>                      <CardTitle className="text-lg">
                         {format(new Date(period.startDate), 'MMM dd, yyyy')} to {format(new Date(period.endDate), 'MMM dd, yyyy')}
-                        {period.isPromotional && (
-                          <Badge variant="secondary" className="ml-2">
-                            {period.promotionName || 'Promotional'}
-                          </Badge>
-                        )}
                       </CardTitle>
                       <CardDescription>
-                        <span className="font-medium">Occupancy:</span> {period.occupancyType?.name} | 
-                        <span className="font-medium"> PAX:</span> {period.numPax} | 
-                        <span className="font-medium"> Meal Plan:</span> {period.mealPlan?.name || 'None'}
+                        <span className="font-medium">Number of Rooms:</span> {period.numberOfRooms || 1} | 
+                        <span className="font-medium"> Meal Plan:</span> {period.mealPlan?.name || 'Not specified'}
                       </CardDescription>
                     </div>
                     <div className="flex space-x-2">
@@ -770,17 +628,8 @@ export default function TourPackagePricingPage() {
                       </Button>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                </CardHeader>                <CardContent>
                   <div className="space-y-2">
-                    <div>
-                      <span className="font-semibold text-base">Total Price:</span>{" "}
-                      {new Intl.NumberFormat('en-IN', { 
-                        style: 'currency',
-                        currency: 'INR' 
-                      }).format(period.tourPackagePrice)}
-                    </div>
-                    
                     <div>
                       <h4 className="font-medium mb-1">Pricing Components:</h4>
                       <Table>

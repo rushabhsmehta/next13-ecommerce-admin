@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format } from "date-fns";
@@ -55,11 +56,9 @@ interface PricingTabProps {
 // Define calculation methods
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'autoTourPackage';
 
-// Define interface for occupancy selection with occurrences
-interface OccupancySelection {
-  occupancyTypeId: string;
-  count: number;
-  paxPerUnit: number;
+// Define interface for number of rooms selection
+interface RoomConfiguration {
+  numberOfRooms: number;
 }
 
 const PricingTab: React.FC<PricingTabProps> = ({
@@ -79,17 +78,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // State for selected calculation method
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(
     selectedTemplateId && selectedTemplateType === 'TourPackage' ? 'autoTourPackage' : 'manual'
-  );
-  // State for Tour Package Pricing selection criteria
-  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);
-  // State for multiple occupancy selections with counts
-  const [occupancySelections, setOccupancySelections] = useState<OccupancySelection[]>([]);
-  // State for new occupancy being added
-  const [newOccupancyTypeId, setNewOccupancyTypeId] = useState<string>("");
-  const [newOccupancyCount, setNewOccupancyCount] = useState<number>(1);
+  );  // State for Tour Package Pricing selection criteria
+  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);  // State for number of rooms
+  const [numberOfRooms, setNumberOfRooms] = useState<number>(1);
   // State for tour package details
   const [tourPackageName, setTourPackageName] = useState<string>("");
-  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);  // Fetch tour package details when selectedTemplateId changes
+  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);
+  // State for available pricing components from matched tour package pricing
+  const [availablePricingComponents, setAvailablePricingComponents] = useState<any[]>([]);  // State for selected pricing components
+  const [selectedPricingComponentIds, setSelectedPricingComponentIds] = useState<string[]>([]);
+  // State for room quantities per component (componentId -> quantity)
+  const [componentRoomQuantities, setComponentRoomQuantities] = useState<Record<string, number>>({});
+  // State to track if pricing components have been fetched
+  const [pricingComponentsFetched, setPricingComponentsFetched] = useState<boolean>(false);
+  // State to track initial load to prevent loops
+  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);// Fetch tour package details when selectedTemplateId changes
   useEffect(() => {
     if (selectedTemplateId && selectedTemplateType === 'TourPackage') {
       // Try to get tour package name from form first
@@ -123,46 +126,23 @@ const PricingTab: React.FC<PricingTabProps> = ({
     } else {
       setTourPackageName("");
     }
-  }, [selectedTemplateId, selectedTemplateType, form]);
-    // Load and handle saved meal plan and occupancy selections
+  }, [selectedTemplateId, selectedTemplateType, form]);  // Load and handle saved meal plan and room configuration
   useEffect(() => {
-    // Try to restore any saved meal plan and occupancy selections
+    // Try to restore any saved meal plan and room configuration
     const savedMealPlanId = form.getValues('selectedMealPlanId');
-    const savedOccupancySelections = form.getValues('occupancySelections');
+    const savedNumberOfRooms = form.getValues('numberOfRooms');
     
     if (savedMealPlanId && !selectedMealPlanId) {
       console.log('Restoring saved meal plan ID:', savedMealPlanId);
       setSelectedMealPlanId(savedMealPlanId);
     }
     
-    // Handle various formats that might be returned from the database for occupancySelections
-    if (savedOccupancySelections && (!occupancySelections || occupancySelections.length === 0)) {
-      console.log('Trying to restore occupancy selections from form:', savedOccupancySelections);
-      
-      try {
-        // Case 1: It's already an array
-        if (Array.isArray(savedOccupancySelections) && savedOccupancySelections.length > 0) {
-          setOccupancySelections(savedOccupancySelections);
-        } 
-        // Case 2: It's in the {set: [...]} format that Prisma might return
-        else if (typeof savedOccupancySelections === 'object' && savedOccupancySelections.set && 
-                Array.isArray(savedOccupancySelections.set) && savedOccupancySelections.set.length > 0) {
-          setOccupancySelections(savedOccupancySelections.set);
-        }
-        // Case 3: It might be a JSON string that needs parsing
-        else if (typeof savedOccupancySelections === 'string') {
-          const parsed = JSON.parse(savedOccupancySelections);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setOccupancySelections(parsed);
-          } else if (typeof parsed === 'object' && parsed.set && Array.isArray(parsed.set)) {
-            setOccupancySelections(parsed.set);
-          }
-        }
-      } catch (e) {
-        console.error("Error parsing occupancy selections:", e);
-      }
+    // Only restore numberOfRooms if it's different AND we haven't manually changed it
+    if (savedNumberOfRooms && savedNumberOfRooms > 0 && savedNumberOfRooms !== numberOfRooms) {
+      console.log('Restoring saved number of rooms:', savedNumberOfRooms);
+      setNumberOfRooms(savedNumberOfRooms);
     }
-  }, [selectedTemplateId, selectedTemplateType, form, occupancySelections, selectedMealPlanId]);
+  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId]); // Removed numberOfRooms from dependency
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {
@@ -172,15 +152,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
-
-  // Initialize data from form when component loads
+  }, [form]);  // Initialize data from form when component loads
   useEffect(() => {
+    if (!isInitialLoad) return; // Only run on initial load
+    
     // Initialize from form data when component mounts
     const initializeFromForm = () => {
       // Get stored data from form
       const storedMealPlanId = form.getValues('selectedMealPlanId');
-      const storedOccupancySelections = form.getValues('occupancySelections');
+      const storedNumberOfRooms = form.getValues('numberOfRooms');
       const storedTourPackageName = form.getValues('tourPackageTemplateName');
       
       // Set tour package name if available
@@ -193,33 +173,18 @@ const PricingTab: React.FC<PricingTabProps> = ({
         setSelectedMealPlanId(storedMealPlanId);
       }
       
-      // Handle different formats of occupancy selections
-      if (storedOccupancySelections) {
-        try {
-          if (Array.isArray(storedOccupancySelections) && storedOccupancySelections.length > 0) {
-            // Direct array format
-            setOccupancySelections(storedOccupancySelections);
-          } else if (typeof storedOccupancySelections === 'object' && storedOccupancySelections.set) {
-            // Prisma format with { set: [...] }
-            setOccupancySelections(storedOccupancySelections.set);
-          } else if (typeof storedOccupancySelections === 'string') {
-            // JSON string format
-            const parsed = JSON.parse(storedOccupancySelections);
-            if (Array.isArray(parsed)) {
-              setOccupancySelections(parsed);
-            } else if (parsed && parsed.set && Array.isArray(parsed.set)) {
-              setOccupancySelections(parsed.set);
-            }
-          }
-        } catch (err) {
-          console.error("Error parsing occupancy selections from form:", err);
-        }
+      // Set number of rooms if available
+      if (storedNumberOfRooms && storedNumberOfRooms > 0) {
+        setNumberOfRooms(storedNumberOfRooms);
       }
+      
+      // Mark initial load as complete
+      setIsInitialLoad(false);
     };
     
     // Run initialization
     initializeFromForm();
-  }, [form]);
+  }, [form, isInitialLoad]);
 
   // Set up field array for pricing section
   const {
@@ -251,100 +216,38 @@ const PricingTab: React.FC<PricingTabProps> = ({
   const handleRemovePricingItem = (indexToRemove: number) => {
     removePricing(indexToRemove);
     console.log("Removed pricing item at index", indexToRemove);
+  };  // Function to handle updating number of rooms
+  const handleRoomCountChange = (newCount: number) => {
+    if (newCount >= 1) {
+      setNumberOfRooms(newCount);
+      // Reset pricing components when room count changes
+      setAvailablePricingComponents([]);
+      setSelectedPricingComponentIds([]);
+      setComponentRoomQuantities({});
+      setPricingComponentsFetched(false);
+    }
   };
 
-  // Function to add a new occupancy selection
-  const handleAddOccupancySelection = () => {
-    if (!newOccupancyTypeId) {
-      toast.error("Please select an occupancy type");
-      return;
-    }
-
-    // Find the occupancy type to get paxPerUnit
-    const occupancyType = occupancyTypes.find(ot => ot.id === newOccupancyTypeId);
-    if (!occupancyType) {
-      toast.error("Invalid occupancy type selected");
-      return;
-    }
-
-    // Determine pax per unit based on occupancy type name
-    let paxPerUnit = 1; // Default
-    if (occupancyType.name?.toLowerCase().includes('double')) {
-      paxPerUnit = 2;
-    } else if (occupancyType.name?.toLowerCase().includes('triple')) {
-      paxPerUnit = 3;
-    } else if (occupancyType.name?.toLowerCase().includes('quad')) {
-      paxPerUnit = 4;
-    }
-
-    // Add to selections
-    setOccupancySelections([
-      ...occupancySelections,
-      {
-        occupancyTypeId: newOccupancyTypeId,
-        count: newOccupancyCount,
-        paxPerUnit
-      }
-    ]);
-
-    // Reset form fields
-    setNewOccupancyTypeId("");
-    setNewOccupancyCount(1);
-  };
-
-  // Function to remove an occupancy selection
-  const handleRemoveOccupancySelection = (index: number) => {
-    setOccupancySelections(occupancySelections.filter((_, i) => i !== index));
-  };  // Function to calculate total PAX based on occupancy selections
-  const calculateTotalPax = useCallback((): number => {
-    return occupancySelections.reduce((total, selection) => {
-      // Ensure we have valid numbers by providing fallbacks
-      const count = typeof selection.count === 'number' ? selection.count : 1;
-      const paxPerUnit = typeof selection.paxPerUnit === 'number' ? selection.paxPerUnit : 1;
-      
-      return total + (count * paxPerUnit);
-    }, 0);
-  }, [occupancySelections]);
-  // Function to calculate PAX for pricing matches (only counting Double occupancy)
-  const calculatePricingPax = (): number => {
-    return occupancySelections.reduce((total, selection) => {
-      // Find the occupancy type to check if it's Double
-      const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-      
-      // Ensure we have valid numbers by providing fallbacks
-      const count = typeof selection.count === 'number' ? selection.count : 1;
-      const paxPerUnit = typeof selection.paxPerUnit === 'number' ? selection.paxPerUnit : 1;
-      
-      // Only count Double occupancy for pricing match
-      if (occupancyType && occupancyType.name?.toLowerCase().includes('double')) {
-        return total + (count * paxPerUnit);
-      }
-      return total;
-    }, 0);
-  };
-
-  // Function to handle fetching and applying Tour Package Pricing
-  const handleFetchTourPackagePricing = async () => {
-    // First check if we have a selected template id from props
+  // Function to handle fetching available pricing components without applying them
+  const handleFetchAvailablePricingComponents = async () => {
     const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
     if (!tourPackageTemplateId) {
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
-    }    // Check if the selectedTemplateType is 'TourPackage'
+    }
+
     if (selectedTemplateType !== 'TourPackage') {
       toast.error("Auto calculation of pricing is only available for Tour Package templates.");
       return;
     }
 
-    // Both meal plan and occupancy selections are optional, but if we're calculating prices, we need them
     if (!selectedMealPlanId) {
       toast.error("Please select a Meal Plan for Tour Package Pricing.");
       return;
     }
 
-    // Check occupancy selections - still needed for calculations but not required for form submission
-    if (occupancySelections.length === 0) {
-      toast.error("Please add at least one occupancy selection.");
+    if (numberOfRooms <= 0) {
+      toast.error("Number of rooms must be greater than 0.");
       return;
     }
 
@@ -353,18 +256,184 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (!queryStartDate || !queryEndDate) {
       toast.error("Please select Tour Start and End Dates first.");
       return;
-    }    // Calculate pax from Double occupancy selections only for pricing match
-    const pricingQueryPax = calculatePricingPax();
-    // Calculate total pax for validation and display
-    const totalQueryPax = calculateTotalPax();
+    }
 
-    if (totalQueryPax <= 0) {
-      toast.error("Total number of guests must be greater than 0.");
+    toast.loading("Fetching available pricing components...");
+    try {
+      const response = await axios.get(`/api/tourPackages/${tourPackageTemplateId}/pricing`);
+      const tourPackagePricings = response.data;
+      toast.dismiss();
+
+      if (!tourPackagePricings || tourPackagePricings.length === 0) {
+        toast.error("No pricing periods found for the selected tour package.");
+        return;
+      }
+
+      // Filter matching pricing periods
+      const matchedPricings = tourPackagePricings.filter((p: any) => {
+        const periodStart = new Date(p.startDate);
+        const periodEnd = new Date(p.endDate);
+        const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
+        const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
+        const isRoomMatch = p.numberOfRooms === numberOfRooms;
+
+        return isDateMatch && isMealPlanMatch && isRoomMatch;
+      });
+
+      if (matchedPricings.length === 0) {
+        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${numberOfRooms} Room${numberOfRooms > 1 ? 's' : ''}).`);
+        setAvailablePricingComponents([]);
+        setPricingComponentsFetched(false);
+        return;
+      }
+
+      if (matchedPricings.length > 1) {
+        console.warn("Multiple matching pricing periods found:", matchedPricings);
+        toast.error("Multiple pricing periods match the criteria. Cannot automatically fetch components. Please refine Tour Package pricing definitions.");        setAvailablePricingComponents([]);
+        setPricingComponentsFetched(false);
+        return;
+      }
+
+      // Get components from the matched pricing
+      const selectedPricing = matchedPricings[0];
+      const components = selectedPricing.pricingComponents || [];
+      
+      setAvailablePricingComponents(components);
+      setPricingComponentsFetched(true);
+      
+      // Initially select all components and set default room quantities
+      const allComponentIds = components.map((comp: any) => comp.id);
+      setSelectedPricingComponentIds(allComponentIds);
+      
+      // Initialize room quantities for all components (default to 1)
+      const initialQuantities: Record<string, number> = {};
+      components.forEach((comp: any) => {
+        initialQuantities[comp.id] = 1;
+      });
+      setComponentRoomQuantities(initialQuantities);
+
+      toast.success(`Found ${components.length} pricing component${components.length !== 1 ? 's' : ''} available for selection.`);
+
+    } catch (error) {
+      toast.dismiss();
+      console.error("Error fetching pricing components:", error);
+      toast.error("Failed to fetch pricing components.");
+      setAvailablePricingComponents([]);
+      setPricingComponentsFetched(false);
+    }
+  };
+  // Function to handle toggling pricing component selection
+  const handleTogglePricingComponent = (componentId: string) => {
+    setSelectedPricingComponentIds(prev => {
+      if (prev.includes(componentId)) {
+        return prev.filter(id => id !== componentId);
+      } else {
+        return [...prev, componentId];
+      }
+    });
+  };
+  // Function to handle changing room quantity for a specific component
+  const handleComponentRoomQuantityChange = (componentId: string, newQuantity: number) => {
+    if (newQuantity >= 1) {
+      setComponentRoomQuantities(prev => ({
+        ...prev,
+        [componentId]: newQuantity
+      }));
+    }
+  };
+
+  // Function to get occupancy multiplier from component name
+  const getOccupancyMultiplier = (componentName: string): number => {
+    const name = componentName.toLowerCase();
+    
+    if (name.includes('single')) {
+      return 1;
+    } else if (name.includes('double')) {
+      return 2;
+    } else if (name.includes('triple')) {
+      return 3;
+    } else if (name.includes('quad')) {
+      return 4;
+    }
+    
+    // Default to 1 if no occupancy type is detected (for components like "per person", etc.)
+    return 1;
+  };
+
+  // Function to calculate total price for a component including occupancy and room quantity
+  const calculateComponentTotalPrice = (component: any, roomQuantity: number = 1): number => {
+    const basePrice = parseFloat(component.price || '0');
+    const componentName = component.pricingAttribute?.name || '';
+    const occupancyMultiplier = getOccupancyMultiplier(componentName);
+    
+    return basePrice * occupancyMultiplier * roomQuantity;
+  };
+  // Function to apply selected pricing components
+  const handleApplySelectedPricingComponents = () => {
+    if (selectedPricingComponentIds.length === 0) {
+      toast.error("Please select at least one pricing component to apply.");
       return;
     }
 
-    if (pricingQueryPax <= 0) {
-      toast.error("You need at least one Double occupancy selection for tour package pricing.");
+    // Filter available components by selected IDs
+    const componentsToApply = availablePricingComponents.filter((comp: any) => 
+      selectedPricingComponentIds.includes(comp.id)
+    );    // Create pricing components for the form
+    const finalPricingComponents: { name: string; price: string; description: string }[] = [];
+    let totalPrice = 0;    componentsToApply.forEach((comp: any) => {
+      const componentName = comp.pricingAttribute?.name || 'Pricing Component';
+      const basePrice = parseFloat(comp.price || '0');
+      const roomQuantity = componentRoomQuantities[comp.id] || 1;
+      const occupancyMultiplier = getOccupancyMultiplier(componentName);
+      const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
+      
+      finalPricingComponents.push({
+        name: componentName,
+        price: totalComponentPrice.toString(),
+        description: roomQuantity === 1 
+          ? `Component for ${roomQuantity} room (${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy)` 
+          : `Component for ${roomQuantity} rooms (${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${roomQuantity} rooms)`
+      });
+      
+      totalPrice += totalComponentPrice;
+    });
+
+    // Set the calculated values to the form
+    form.setValue('totalPrice', totalPrice.toString());
+    form.setValue('pricingSection', finalPricingComponents);
+
+    toast.success(`Applied ${componentsToApply.length} selected pricing component${componentsToApply.length !== 1 ? 's' : ''} successfully!`);
+  };  // Note: Old occupancy-based calculation functions removed - now using room + meal plan model
+  // Function to handle fetching and applying Tour Package Pricing (Legacy - kept for backward compatibility)
+  const handleFetchTourPackagePricing = async () => {
+    // First check if we have a selected template id from props
+    const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
+    if (!tourPackageTemplateId) {
+      toast.error("Please select a Tour Package Template first in the Basic Info tab.");
+      return;
+    }
+
+    // Check if the selectedTemplateType is 'TourPackage'
+    if (selectedTemplateType !== 'TourPackage') {
+      toast.error("Auto calculation of pricing is only available for Tour Package templates.");
+      return;
+    }
+
+    // Check required fields for new model
+    if (!selectedMealPlanId) {
+      toast.error("Please select a Meal Plan for Tour Package Pricing.");
+      return;
+    }
+
+    if (numberOfRooms <= 0) {
+      toast.error("Number of rooms must be greater than 0.");
+      return;
+    }
+
+    const queryStartDate = form.getValues('tourStartsFrom');
+    const queryEndDate = form.getValues('tourEndsOn');
+    if (!queryStartDate || !queryEndDate) {
+      toast.error("Please select Tour Start and End Dates first.");
       return;
     }
 
@@ -377,21 +446,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
         toast.error("No pricing periods found for the selected tour package.");
         return;
-      }      // --- Enhanced Filtering Logic --- 
-      // First, find all possible matches for date range, meal plan and pax count
+      }
+
+      // Enhanced Filtering Logic for new schema (Number of Rooms + Meal Plan)
       const matchedPricings = tourPackagePricings.filter((p: any) => {
         const periodStart = new Date(p.startDate);
         const periodEnd = new Date(p.endDate);
         const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
         const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
-        // Use ONLY Double occupancy for PAX matching
-        const isPaxMatch = p.numPax === pricingQueryPax;
+        const isRoomMatch = p.numberOfRooms === numberOfRooms;
 
-        return isDateMatch && isMealPlanMatch && isPaxMatch;
+        return isDateMatch && isMealPlanMatch && isRoomMatch;
       });
 
       if (matchedPricings.length === 0) {
-        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${pricingQueryPax} Double PAX).`);
+        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${numberOfRooms} Room${numberOfRooms > 1 ? 's' : ''}).`);
         return;
       }
 
@@ -399,170 +468,39 @@ const PricingTab: React.FC<PricingTabProps> = ({
         console.warn("Multiple matching pricing periods found:", matchedPricings);
         toast.error("Multiple pricing periods match the criteria. Cannot automatically apply price. Please refine Tour Package pricing definitions.");
         return;
-      }      // --- Apply the uniquely matched pricing --- 
-      const selectedPricing = matchedPricings[0];      // First, extract Per Person and Per Couple costs (required for Double occupancy)
-      const perPersonComponent = selectedPricing.pricingComponents.find((comp: any) =>
-        comp.pricingAttribute?.name?.toLowerCase().includes('per person')
-      );
-
-      const perCoupleComponent = selectedPricing.pricingComponents.find((comp: any) =>
-        comp.pricingAttribute?.name?.toLowerCase().includes('per couple')
-      );
-        // Extract costs ONLY for the specific selected occupancy types
-      const otherOccupancyComponents = occupancySelections
-        .filter(selection => {
-          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-          return occupancyType && !occupancyType.name?.toLowerCase().includes('double');
-        })
-        .map(selection => {
-          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-          const occupancyName = occupancyType?.name?.toLowerCase() || '';
-
-          // Find components that specifically match this occupancy type based on well-defined mappings
-          return selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-
-            // Double occupancy uses Per Person Cost or Per Couple Cost
-            if (occupancyName.includes('double')) {
-              return compName.includes('per person') || compName.includes('per couple');
-            }
-            // CNB (Child with No Bed) uses Child With No Bed pricing
-            if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
-              return compName.includes('cnb') || (compName.includes('child') && compName.includes('no bed'));
-            }
-            // Extra Bed uses Extra Bed/Mattress pricing
-            if (occupancyName.includes('extra bed') || occupancyName.includes('extra mattress')) {
-              return compName.includes('extra bed') || compName.includes('extrabed') || compName.includes('mattress');
-            }
-            // Child With Bed uses Child With Bed pricing
-            if (occupancyName.includes('child') && occupancyName.includes('with bed')) {
-              return compName.includes('child') && compName.includes('with bed');
-            }
-            // Infant pricing
-            if (occupancyName.includes('infant')) {
-              return compName.includes('infant');
-            }
-
-            // More specific matching as fallback
-            const occupancyWords = occupancyName.split(/\s+/);
-            for (const word of occupancyWords) {
-              if (word.length > 2 && compName.includes(word)) return true;
-            }
-
-            return false;
-          });
-        })
-        .filter(Boolean); // Remove any undefined components
-
-      // Create the final pricing components array
-      const finalPricingComponents = [];
-        // Always add Per Person and Per Couple if available (for Double occupancy)
-      if (perPersonComponent) {
-        finalPricingComponents.push({
-          name: perPersonComponent.pricingAttribute?.name || 'Per Person Cost',
-          price: perPersonComponent.price || '0',
-          description: 'Cost per person'
-        });
       }
 
-      if (perCoupleComponent) {
-        finalPricingComponents.push({
-          name: perCoupleComponent.pricingAttribute?.name || 'Per Couple Cost',
-          price: perCoupleComponent.price || '0',
-          description: 'Cost per couple'
-        });
-      }
-        // Add other occupancy type specific components
-      otherOccupancyComponents.forEach((comp: any) => {
-        if (comp) {
-          finalPricingComponents.push({
-            name: comp.pricingAttribute?.name || 'Other Cost',
-            price: comp.price || '0',
-            description: ''
-          });
-        }
-      });
-        // Calculate the total price based on all applied components
-      const doubleOccupancySelections = occupancySelections.filter(selection => {
-        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-        return occupancyType && occupancyType.name?.toLowerCase().includes('double');
-      });
-
+      // Apply the uniquely matched pricing
+      const selectedPricing = matchedPricings[0];      // Create pricing components from the matched pricing
+      const finalPricingComponents: { name: string; price: string; description: string }[] = [];
       let totalPrice = 0;
 
-      // Apply Double occupancy pricing with correct multiplication
-      if (doubleOccupancySelections.length > 0) {
-        // Prefer Per Couple price if available, otherwise use Per Person price
-        if (perCoupleComponent) {
-          const perCouplePrice = parseFloat(perCoupleComponent.price || '0');
-          // Each double room counts as 1 couple
-          const doubleCoupleCount = doubleOccupancySelections.reduce((total, selection) => {
-            return total + selection.count;
-          }, 0);
-          totalPrice += perCouplePrice * doubleCoupleCount;
-        } else if (perPersonComponent) {
-          const perPersonPrice = parseFloat(perPersonComponent.price || '0');
-          // Each double room counts as 2 persons
-          const doublePersonCount = doubleOccupancySelections.reduce((total, selection) => {
-            // Multiply by 2 since each Double occupancy has 2 people
-            return total + (selection.count * 2);
-          }, 0);
-          totalPrice += perPersonPrice * doublePersonCount;
-        }
+      // Process all pricing components from the matched tour package pricing
+      if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
+        selectedPricing.pricingComponents.forEach((comp: any) => {
+          const componentName = comp.pricingAttribute?.name || 'Pricing Component';
+          const componentPrice = parseFloat(comp.price || '0');
+          
+          finalPricingComponents.push({
+            name: componentName,
+            price: comp.price || '0',
+            description: `Component for ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''}`
+          });
+          
+          totalPrice += componentPrice;
+        });
       }
 
-      // Apply other occupancy pricing with correct multiplication for each type
-      occupancySelections.forEach(selection => {
-        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-        if (!occupancyType) return;
+      // If no pricing components found, create a basic one
+      if (finalPricingComponents.length === 0) {
+        finalPricingComponents.push({
+          name: 'Tour Package Price',
+          price: '0',
+          description: `Package price for ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''}`
+        });
+      }
 
-        // Skip double occupancy as it's already handled above
-        if (occupancyType.name?.toLowerCase().includes('double')) return;
-
-        const occupancyName = occupancyType.name?.toLowerCase() || '';
-        let matchedComp;
-
-        // Find the matching price component based on occupancy type
-        if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
-          // Find Child With No Bed pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('cnb') || (compName.includes('child') && compName.includes('no bed'));
-          });
-        } else if (occupancyName.includes('extra bed') || occupancyName.includes('extra mattress')) {
-          // Find Extra Bed pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('extra bed') || compName.includes('extrabed') || compName.includes('mattress');
-          });
-        } else if (occupancyName.includes('child') && occupancyName.includes('with bed')) {
-          // Find Child With Bed pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('child') && compName.includes('with bed');
-          });
-        } else if (occupancyName.includes('infant')) {
-          // Find Infant pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('infant');
-          });
-        } else {
-          // Fallback for any other occupancy types
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes(occupancyName);
-          });
-        }
-
-        // Apply the price if a matching component is found
-        if (matchedComp) {
-          const unitPrice = parseFloat(matchedComp.price || '0');
-          totalPrice += unitPrice * selection.count; // Multiply by the number of this occupancy type
-        }
-      });
-
-      // Always attempt to set the price and components
+      // Set the calculated values to the form
       form.setValue('totalPrice', totalPrice.toString());
       form.setValue('pricingSection', finalPricingComponents);
 
@@ -573,7 +511,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       console.error("Error fetching/applying tour package pricing:", error);
       toast.error("Failed to fetch or apply tour package pricing.");
     }
-  };  // Function to fetch and set the tour package name based on ID
+  };// Function to fetch and set the tour package name based on ID
   const fetchTourPackageName = useCallback(async (packageId: string) => {
     if (!packageId) {
       setTourPackageName("");
@@ -617,27 +555,34 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Fetch tour package name when selectedTemplateId changes
   useEffect(() => {
     fetchTourPackageName(selectedTemplateId || "");
-  }, [selectedTemplateId, fetchTourPackageName]);
-
-  // When meal plan changes, save it to the form
+  }, [selectedTemplateId, fetchTourPackageName]);  // When meal plan and room configuration change, save them to the form
   useEffect(() => {
     if (selectedMealPlanId) {
-      form.setValue('selectedMealPlanId', selectedMealPlanId);
+      const currentFormValue = form.getValues('selectedMealPlanId');
+      // Only update form if the value is actually different
+      if (currentFormValue !== selectedMealPlanId) {
+        form.setValue('selectedMealPlanId', selectedMealPlanId);
+      }      // Reset pricing components when meal plan changes
+      setAvailablePricingComponents([]);
+      setSelectedPricingComponentIds([]);
+      setComponentRoomQuantities({});
+      setPricingComponentsFetched(false);
     }
   }, [selectedMealPlanId, form]);
-    // When occupancy selections change, save them to the form
+  // When number of rooms changes, save it to the form (but avoid circular updates)
   useEffect(() => {
-    // Always save the occupancy selections to the form, even if empty
-    // This ensures the form state is always in sync with the component state
-    form.setValue('occupancySelections', occupancySelections);
-    
-    // Update total price display when occupancy selections change
-    if (calculationMethod === 'autoTourPackage' && selectedMealPlanId && occupancySelections.length > 0) {
-      // Recalculate total guest count in the UI
-      const totalPax = calculateTotalPax();
-      console.log(`Occupancy selections updated, total guests: ${totalPax}`);
+    if (numberOfRooms > 0) {
+      const currentFormValue = form.getValues('numberOfRooms');
+      // Only update form if the value is actually different
+      if (currentFormValue !== numberOfRooms) {
+        form.setValue('numberOfRooms', numberOfRooms);
+      }      // Reset pricing components when room count changes
+      setAvailablePricingComponents([]);
+      setSelectedPricingComponentIds([]);
+      setComponentRoomQuantities({});
+      setPricingComponentsFetched(false);
     }
-  }, [occupancySelections, form, calculationMethod, selectedMealPlanId, calculateTotalPax]);
+  }, [numberOfRooms, form]);
 
   return (
     <Card>
@@ -1159,14 +1104,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   >
                     Change
                   </Button>
-                </div>
-
-                <p className="text-sm text-green-700">
-                  Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
+                </div>                <p className="text-sm text-green-700">
+                  Fetch pre-defined pricing based on the selected Tour Package Template, Number of Rooms, and Meal Plan.
                   This will overwrite the current Total Price and Pricing Options below.
                 </p>
 
-                {/* Meal Plan Selection First */}
+                {/* Meal Plan Selection */}
                 <FormItem className="space-y-2">
                   <FormLabel className="font-medium">Meal Plan <span className="text-red-500">*</span></FormLabel>
                   <Select
@@ -1190,128 +1133,270 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
                 </FormItem>
 
-                {/* Occupancy Selections */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>
-
-                  {/* Show current selections */}
-                  {occupancySelections.length > 0 ? (
-                    <div className="space-y-2">
-                      {occupancySelections.map((selection, index) => {
-                        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-                        return (
-                          <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-green-200 shadow-sm">
-                            <div>
-                              <span className="font-medium text-sm">{occupancyType?.name}</span>
-                              <span className="text-xs text-gray-600 ml-2">
-                                × {selection.count} = {selection.count * selection.paxPerUnit} PAX
-                              </span>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveOccupancySelection(index)}
-                              className="h-7 w-7 p-0"
-                              disabled={loading}
-                            >
-                              <Trash className="h-4 w-4 text-red-500 hover:text-red-700" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-
-                      <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-center">
-                        <span className="font-semibold text-sm">Total: {calculateTotalPax()} PAX</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 rounded">No occupancy selections added yet. Add at least one.</p>
-                  )}
-
-                  {/* Add new occupancy selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end border-t border-green-100 pt-4">
-                    <div>
-                      <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
-                      <Select
-                        disabled={loading}
-                        onValueChange={setNewOccupancyTypeId}
-                        value={newOccupancyTypeId || undefined}
-                      >
-                        <SelectTrigger className="bg-white h-9">
-                          <SelectValue placeholder="Select Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {occupancyTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <FormLabel className="text-xs font-medium">Count</FormLabel>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                          onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
-                          disabled={loading || newOccupancyCount <= 1}
-                        >
-                          <span className="sr-only">Decrease</span>
-                          <span className="text-lg font-bold">-</span>
-                        </Button>
-                        <Input
-                          type="number"
-                          value={newOccupancyCount}
-                          onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                          min="1"
-                          pattern="[0-9]*"
-                          inputMode="numeric"
-                          disabled={loading}
-                          className="w-full text-center h-9 bg-white"
-                        />
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                          onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
-                          disabled={loading}
-                        >
-                          <span className="sr-only">Increase</span>
-                          <span className="text-lg font-bold">+</span>
-                        </Button>
-                      </div>
-                    </div>
+                {/* Number of Rooms Selection */}
+                <FormItem className="space-y-2">
+                  <FormLabel className="font-medium">Number of Rooms <span className="text-red-500">*</span></FormLabel>
+                  <div className="flex items-center gap-3">
                     <Button
                       type="button"
-                      onClick={handleAddOccupancySelection}
+                      size="icon"
                       variant="outline"
-                      size="sm"
-                      className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9"
-                      disabled={loading || !newOccupancyTypeId}
+                      className="rounded-full w-8 h-8 flex-shrink-0 bg-white"
+                      onClick={() => handleRoomCountChange(numberOfRooms - 1)}
+                      disabled={loading || numberOfRooms <= 1}
                     >
-                      <Plus className="mr-1 h-4 w-4" />
-                      Add
+                      <span className="sr-only">Decrease</span>
+                      <span className="text-lg font-bold">-</span>
                     </Button>
-                  </div>
-                </div>
+                    <Input
+                      type="number"
+                      value={numberOfRooms}
+                      onChange={(e) => handleRoomCountChange(parseInt(e.target.value) || 1)}
+                      min="1"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                      disabled={loading}
+                      className="w-24 text-center bg-white"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="rounded-full w-8 h-8 flex-shrink-0 bg-white"
+                      onClick={() => handleRoomCountChange(numberOfRooms + 1)}
+                      disabled={loading}
+                    >
+                      <span className="sr-only">Increase</span>
+                      <span className="text-lg font-bold">+</span>
+                    </Button>
+                    <span className="text-sm text-gray-600 ml-2">
+                      {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
+                    </span>
+                  </div>                  {numberOfRooms <= 0 && <p className="text-xs text-red-500 pt-1">Must be at least 1 room</p>}
+                </FormItem>
 
-                {/* Fetch Button */}
+                {/* Fetch Pricing Components Button */}
                 <Button
                   type="button"
-                  onClick={handleFetchTourPackagePricing}
+                  onClick={handleFetchAvailablePricingComponents}
                   variant="outline"
-                  className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
-                  disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || occupancySelections.length === 0}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white border-blue-600 mt-4"
+                  disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
                 >
                   <Calculator className="mr-2 h-4 w-4" />
-                  Fetch & Apply Tour Package Price
-                </Button>
+                  Fetch Available Pricing Components
+                </Button>                {/* Pricing Components Selection */}
+                {pricingComponentsFetched && availablePricingComponents.length > 0 && (
+                  <div className="mt-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-semibold text-blue-800">Select Pricing Components</h4>                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setAvailablePricingComponents([]);
+                          setSelectedPricingComponentIds([]);
+                          setComponentRoomQuantities({});
+                          setPricingComponentsFetched(false);
+                          toast.success("Pricing components selection cleared.");
+                        }}
+                        className="text-blue-600 hover:text-blue-800 border-blue-300"
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Choose which pricing components to include in your tour package pricing breakdown:
+                    </p>
+                    
+                    {/* Select All / Deselect All */}
+                    <div className="flex gap-2 mb-3">                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
+                          setSelectedPricingComponentIds(allComponentIds);
+                          
+                          // Initialize room quantities for all components if not already set
+                          const newQuantities = { ...componentRoomQuantities };
+                          availablePricingComponents.forEach((comp: any) => {
+                            if (!newQuantities[comp.id]) {
+                              newQuantities[comp.id] = 1;
+                            }
+                          });
+                          setComponentRoomQuantities(newQuantities);
+                        }}
+                        className="text-xs"
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedPricingComponentIds([])}
+                        className="text-xs"
+                      >
+                        Deselect All
+                      </Button>
+                    </div>                    <div className="space-y-3">
+                      {availablePricingComponents.map((component: any) => (
+                        <div key={component.id} className="flex items-center space-x-3 p-3 bg-white rounded-md border">
+                          <Checkbox
+                            id={`component-${component.id}`}
+                            checked={selectedPricingComponentIds.includes(component.id)}
+                            onCheckedChange={() => handleTogglePricingComponent(component.id)}
+                          />
+                          <label 
+                            htmlFor={`component-${component.id}`}
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">
+                                  {component.pricingAttribute?.name || 'Pricing Component'}
+                                </p>
+                                {component.description && (
+                                  <p className="text-sm text-gray-600">{component.description}</p>
+                                )}                                <p className="text-xs text-gray-500 mt-1">
+                                  Base Price: ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                  {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
+                                    <span className="text-blue-600 ml-1">
+                                      (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {/* Room Quantity Selector */}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-600 whitespace-nowrap">Rooms:</span>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    className="rounded-full w-6 h-6 flex-shrink-0"
+                                    onClick={() => handleComponentRoomQuantityChange(
+                                      component.id, 
+                                      (componentRoomQuantities[component.id] || 1) - 1
+                                    )}
+                                    disabled={loading || (componentRoomQuantities[component.id] || 1) <= 1}
+                                  >
+                                    <span className="sr-only">Decrease</span>
+                                    <span className="text-sm font-bold">-</span>
+                                  </Button>
+                                  <Input
+                                    type="number"
+                                    value={componentRoomQuantities[component.id] || 1}
+                                    onChange={(e) => handleComponentRoomQuantityChange(
+                                      component.id, 
+                                      parseInt(e.target.value) || 1
+                                    )}
+                                    min="1"
+                                    className="w-16 text-center text-sm h-6"
+                                    disabled={loading}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    className="rounded-full w-6 h-6 flex-shrink-0"
+                                    onClick={() => handleComponentRoomQuantityChange(
+                                      component.id, 
+                                      (componentRoomQuantities[component.id] || 1) + 1
+                                    )}
+                                    disabled={loading}
+                                  >
+                                    <span className="sr-only">Increase</span>
+                                    <span className="text-sm font-bold">+</span>
+                                  </Button>
+                                </div>                                {/* Total Price for this component */}
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900">
+                                    ₹{calculateComponentTotalPrice(component, componentRoomQuantities[component.id] || 1).toFixed(2)}
+                                  </p>
+                                  {(componentRoomQuantities[component.id] || 1) > 1 || getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 ? (
+                                    <p className="text-xs text-gray-500">
+                                      {componentRoomQuantities[component.id] || 1} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {getOccupancyMultiplier(component.pricingAttribute?.name || '')} occupancy
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                      {/* Summary of selected components */}
+                    {selectedPricingComponentIds.length > 0 && (
+                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-sm font-medium text-green-800">
+                          Selected: {selectedPricingComponentIds.length} component{selectedPricingComponentIds.length !== 1 ? 's' : ''}
+                        </p>                        <div className="text-sm text-green-700 mt-1 space-y-1">
+                          {availablePricingComponents
+                            .filter(comp => selectedPricingComponentIds.includes(comp.id))
+                            .map(comp => {
+                              const quantity = componentRoomQuantities[comp.id] || 1;
+                              const basePrice = parseFloat(comp.price || '0');
+                              const componentName = comp.pricingAttribute?.name || 'Component';
+                              const occupancyMultiplier = getOccupancyMultiplier(componentName);
+                              const totalPrice = calculateComponentTotalPrice(comp, quantity);
+                              return (
+                                <div key={comp.id} className="flex justify-between text-xs">
+                                  <span>{componentName} {quantity > 1 ? `(${quantity} rooms)` : ''} 
+                                    {occupancyMultiplier > 1 ? ` × ${occupancyMultiplier}` : ''}
+                                  </span>
+                                  <span>₹{totalPrice.toFixed(2)}</span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                        <div className="border-t border-green-300 mt-2 pt-2">
+                          <p className="text-sm font-semibold text-green-800 flex justify-between">
+                            <span>Total:</span>
+                            <span>₹{availablePricingComponents
+                              .filter(comp => selectedPricingComponentIds.includes(comp.id))
+                              .reduce((sum, comp) => {
+                                const quantity = componentRoomQuantities[comp.id] || 1;
+                                return sum + calculateComponentTotalPrice(comp, quantity);
+                              }, 0)
+                              .toFixed(2)}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Apply Selected Components Button */}
+                    <Button
+                      type="button"
+                      onClick={handleApplySelectedPricingComponents}
+                      variant="outline"
+                      className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
+                      disabled={loading || selectedPricingComponentIds.length === 0}
+                    >
+                      <Calculator className="mr-2 h-4 w-4" />
+                      Apply Selected Components ({selectedPricingComponentIds.length})
+                    </Button>
+                  </div>
+                )}
+
+                {/* Legacy Direct Apply Button (for backward compatibility) */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Or apply all pricing components directly:
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleFetchTourPackagePricing}
+                    variant="outline"
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white border-gray-600"
+                    disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Fetch & Apply All Components (Legacy)
+                  </Button>
+                </div>
               </>
             )}
           </div>
@@ -1444,62 +1529,32 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 </Button>
               )}
           </div>
+        </div>        <div className="mt-4">
+          {/* Display selected meal plan */}
+          {selectedMealPlanId && (
+            <div className="bg-white border border-green-200 rounded-md p-3 mb-2">
+              <p className="text-sm text-gray-600">Selected Meal Plan:</p>
+              <p className="font-medium">
+                {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
+              </p>
+            </div>
+          )}
+
+          {/* Display selected room configuration */}
+          {numberOfRooms > 0 && (
+            <div className="bg-white border border-green-200 rounded-md p-3">
+              <p className="text-sm text-gray-600 mb-2">Room Configuration:</p>
+              <div className="flex items-center justify-between bg-green-50 p-2 rounded-md">
+                <span className="font-medium">
+                  Number of Rooms
+                </span>
+                <span className="text-sm">
+                  {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-
-        <div className="mt-4">
-                  {/* Display selected meal plan */}
-                  {selectedMealPlanId && (
-                    <div className="bg-white border border-green-200 rounded-md p-3 mb-2">
-                      <p className="text-sm text-gray-600">Selected Meal Plan:</p>
-                      <p className="font-medium">
-                        {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Display selected occupancy configurations */}                {occupancySelections.length > 0 && (
-                    <div className="bg-white border border-green-200 rounded-md p-3">
-                      <p className="text-sm text-gray-600 mb-2">Selected Room Configurations:</p>
-                      <div className="grid grid-cols-1 gap-2">
-                        {occupancySelections.map((selection, index) => {
-                          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-                          
-                          return (
-                            <div key={index} className="flex items-center justify-between bg-green-50 p-2 rounded-md">
-                              <span className="font-medium">
-                                {occupancyType?.name || `Room Type (ID: ${selection.occupancyTypeId?.substring(0, 8)}...)`}
-                              </span>
-                              <span className="text-sm">
-                                {selection.count} room(s), {selection.count * (selection.paxPerUnit || 1)} guest(s)
-                              </span>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0 text-red-500"
-                                onClick={() => handleRemoveOccupancySelection(index)}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                        <p className="text-sm text-gray-600 mt-1">
-                          Total Guests: {calculateTotalPax()}
-                        </p>
-                      </div>
-                      {/* Debug info - Remove in production */}
-                      {process.env.NODE_ENV !== 'production' && (
-                        <details className="mt-3 text-xs text-gray-500 border-t pt-2">
-                          <summary className="cursor-pointer">Debug Info</summary>
-                          <pre className="mt-1 bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
-                            {JSON.stringify(occupancySelections, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  )}
-                </div>
       </CardContent>
     </Card>
   );

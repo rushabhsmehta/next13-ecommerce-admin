@@ -84,18 +84,17 @@ model RoomType {
 }
 
 model OccupancyType {
-  id                  String               @id @default(uuid())
-  name                String               @unique
-  description         String?
-  maxPersons          Int
-  isActive            Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  hotelPricings       HotelPricing[]
-  roomAllocations     RoomAllocation[]
-  itineraries         Itinerary[]
-  itinerariesMaster   ItineraryMaster[]
-  tourPackagePricings TourPackagePricing[]
+  id                String            @id @default(uuid())
+  name              String            @unique
+  description       String?
+  maxPersons        Int
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  hotelPricings     HotelPricing[]
+  roomAllocations   RoomAllocation[]
+  itineraries       Itinerary[]
+  itinerariesMaster ItineraryMaster[]
 }
 
 model VehicleType {
@@ -501,25 +500,20 @@ model TourPackagePricing {
   tourPackageId     String
   startDate         DateTime
   endDate           DateTime
-  occupancyTypeId   String
-  numPax            Int                @default(1)
-  tourPackagePrice  Int
-  isPromotional     Boolean            @default(false)
-  promotionName     String?
+  numberOfRooms     Int                @default(1)
   isActive          Boolean            @default(true)
   description       String?            @db.Text
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  mealPlanId        String?
+  mealPlanId        String
   tourPackage       TourPackage        @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  occupancyType     OccupancyType      @relation(fields: [occupancyTypeId], references: [id])
-  mealPlan          MealPlan?          @relation(fields: [mealPlanId], references: [id])
+  mealPlan          MealPlan           @relation(fields: [mealPlanId], references: [id])
   pricingComponents PricingComponent[]
 
   @@index([tourPackageId])
-  @@index([occupancyTypeId])
   @@index([mealPlanId])
   @@index([startDate, endDate])
+  @@index([numberOfRooms])
 }
 
 model Activity {

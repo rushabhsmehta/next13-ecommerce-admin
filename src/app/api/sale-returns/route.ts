@@ -28,13 +28,11 @@ export async function POST(req: Request) {
 
     if (!returnDate) {
       return new NextResponse("Return date is required", { status: 400 });
-    }
-
-    // Create sale return record
+    }    // Create sale return record
     const saleReturn = await prismadb.saleReturn.create({
       data: {
         saleDetailId,
-        returnDate: new Date(returnDate),
+        returnDate: new Date(new Date(returnDate).toISOString()),
         returnReason: returnReason || null,
         amount: parseFloat(amount.toString()),
         gstAmount: gstAmount ? parseFloat(gstAmount.toString()) : null,

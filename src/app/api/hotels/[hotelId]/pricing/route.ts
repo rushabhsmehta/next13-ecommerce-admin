@@ -16,18 +16,16 @@ export async function GET(
     // Get query parameters for date filtering
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
-    const endDate = url.searchParams.get("endDate");
-
-    // Build the filter based on available parameters
+    const endDate = url.searchParams.get("endDate");    // Build the filter based on available parameters
     let dateFilter = {};
     if (startDate && endDate) {
       dateFilter = {
         AND: [
-          { startDate: { lte: new Date(endDate) } },
-          { endDate: { gte: new Date(startDate) } }
+          { startDate: { lte: new Date(new Date(endDate).toISOString()) } },
+          { endDate: { gte: new Date(new Date(startDate).toISOString()) } }
         ]
       };
-    }    const hotelPricing = await prismadb.hotelPricing.findMany({
+    }const hotelPricing = await prismadb.hotelPricing.findMany({
       where: {
         hotelId: params.hotelId,
         isActive: true,
@@ -98,8 +96,8 @@ export async function POST(
     const hotelPricing = await prismadb.hotelPricing.create({
       data: {
         hotelId: params.hotelId,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(new Date(startDate).toISOString()),
+        endDate: new Date(new Date(endDate).toISOString()),
         roomTypeId,
         occupancyTypeId,
         price,

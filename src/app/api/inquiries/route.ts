@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         numChildren5to11,
         numChildrenBelow5,
         status,
-        journeyDate: new Date(journeyDate),
+        journeyDate: new Date(new Date(journeyDate).toISOString()),
         remarks: remarks || null,
         roomAllocations: roomAllocations ? {
           create: roomAllocations.map((allocation: any) => ({
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
             isAirportDropRequired: detail.isAirportDropRequired || false,
             pickupLocation: detail.pickupLocation || null,
             dropLocation: detail.dropLocation || null,
-            requirementDate: detail.requirementDate ? new Date(detail.requirementDate) : null,
+            requirementDate: detail.requirementDate ? new Date(new Date(detail.requirementDate).toISOString()) : null,
             notes: detail.notes || null
           }))
         } : undefined

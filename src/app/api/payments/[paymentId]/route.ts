@@ -112,16 +112,14 @@ export async function PATCH(
           });
         }
       }
-    }
-
-    // Update payment detail
+    }    // Update payment detail
     const updatedPayment = await prismadb.paymentDetail.update({
       where: {
         id: params.paymentId
       },
       data: {
         supplierId,
-        paymentDate: new Date(paymentDate),
+        paymentDate: new Date(new Date(paymentDate).toISOString()),
         amount: parseFloat(amount.toString()),
         method: method || null,
         transactionId: transactionId || null,

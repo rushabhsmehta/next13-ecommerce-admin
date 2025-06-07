@@ -47,8 +47,8 @@ export async function POST(
         price,
         transportType,
         description,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(new Date(startDate).toISOString()),
+        endDate: new Date(new Date(endDate).toISOString()),
         isActive: isActive ?? true
       }
     });
@@ -67,11 +67,9 @@ export async function GET(
     const locationId = searchParams.get("locationId");
     const vehicleTypeId = searchParams.get("vehicleTypeId");
     const transportType = searchParams.get("transportType");
-    const isActive = searchParams.get("isActive");
-    
-    // Parse date parameters if provided
+    const isActive = searchParams.get("isActive");      // Parse date parameters if provided
     const dateString = searchParams.get("date");
-    let date = dateString ? new Date(dateString) : null;
+    let date = dateString ? new Date(new Date(dateString).toISOString()) : null;
       // Build the query filter
     let whereClause: any = {};
 

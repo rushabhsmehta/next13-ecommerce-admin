@@ -77,9 +77,8 @@ export async function PATCH(
     const updatedPurchaseReturn = await prismadb.purchaseReturn.update({
       where: {
         id: params.purchaseReturnId
-      },
-      data: {
-        returnDate: returnDate ? new Date(returnDate) : undefined,
+      },      data: {
+        returnDate: returnDate ? new Date(new Date(returnDate).toISOString()) : undefined,
         returnReason: returnReason || undefined,
         amount: amount !== undefined ? parseFloat(amount.toString()) : undefined,
         gstAmount: gstAmount !== undefined ? parseFloat(gstAmount.toString()) : undefined,

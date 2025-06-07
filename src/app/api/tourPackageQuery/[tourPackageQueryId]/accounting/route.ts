@@ -55,15 +55,14 @@ export async function PATCH(
       });
 
       // Create new purchase details
-      for (const purchaseDetail of purchaseDetails) {
-        const createdPurchaseDetail = await prismadb.purchaseDetail.create({
+      for (const purchaseDetail of purchaseDetails) {        const createdPurchaseDetail = await prismadb.purchaseDetail.create({
           data: {
             tourPackageQueryId: params.tourPackageQueryId,
             supplierId: purchaseDetail.supplierId || null,
-            purchaseDate: new Date(purchaseDetail.purchaseDate),
+            purchaseDate: new Date(new Date(purchaseDetail.purchaseDate).toISOString()),
             billNumber: purchaseDetail.billNumber || null,
-            billDate: purchaseDetail.billDate ? new Date(purchaseDetail.billDate) : null,
-            dueDate: purchaseDetail.dueDate ? new Date(purchaseDetail.dueDate) : null,
+            billDate: purchaseDetail.billDate ? new Date(new Date(purchaseDetail.billDate).toISOString()) : null,
+            dueDate: purchaseDetail.dueDate ? new Date(new Date(purchaseDetail.dueDate).toISOString()) : null,
             stateOfSupply: purchaseDetail.stateOfSupply || null,
             referenceNumber: purchaseDetail.referenceNumber || null,
             price: parseFloat(purchaseDetail.price.toString()),
@@ -114,15 +113,14 @@ export async function PATCH(
       });
 
       // Create new sale details
-      for (const saleDetail of saleDetails) {
-        const createdSaleDetail = await prismadb.saleDetail.create({
+      for (const saleDetail of saleDetails) {        const createdSaleDetail = await prismadb.saleDetail.create({
           data: {
             tourPackageQueryId: params.tourPackageQueryId,
             customerId: saleDetail.customerId || null,
-            saleDate: new Date(saleDetail.saleDate),
+            saleDate: new Date(new Date(saleDetail.saleDate).toISOString()),
             invoiceNumber: saleDetail.invoiceNumber || null,
-            invoiceDate: saleDetail.invoiceDate ? new Date(saleDetail.invoiceDate) : null,
-            dueDate: saleDetail.dueDate ? new Date(saleDetail.dueDate) : null,
+            invoiceDate: saleDetail.invoiceDate ? new Date(new Date(saleDetail.invoiceDate).toISOString()) : null,
+            dueDate: saleDetail.dueDate ? new Date(new Date(saleDetail.dueDate).toISOString()) : null,
             stateOfSupply: saleDetail.stateOfSupply || null,
             salePrice: parseFloat(saleDetail.salePrice.toString()),
             gstAmount: saleDetail.gstAmount ? parseFloat(saleDetail.gstAmount.toString()) : null,
@@ -163,12 +161,11 @@ export async function PATCH(
       });
 
       // Create new payment details
-      for (const paymentDetail of paymentDetails) {
-        await prismadb.paymentDetail.create({
+      for (const paymentDetail of paymentDetails) {        await prismadb.paymentDetail.create({
           data: {
             tourPackageQueryId: params.tourPackageQueryId,
             supplierId: paymentDetail.supplierId || null,
-            paymentDate: new Date(paymentDetail.paymentDate),
+            paymentDate: new Date(new Date(paymentDetail.paymentDate).toISOString()),
             amount: parseFloat(paymentDetail.amount.toString()),
             method: paymentDetail.method || null,
             transactionId: paymentDetail.transactionId || null,
@@ -190,12 +187,11 @@ export async function PATCH(
       });
 
       // Create new receipt details
-      for (const receiptDetail of receiptDetails) {
-        await prismadb.receiptDetail.create({
+      for (const receiptDetail of receiptDetails) {        await prismadb.receiptDetail.create({
           data: {
             tourPackageQueryId: params.tourPackageQueryId,
             customerId: receiptDetail.customerId || null,
-            receiptDate: new Date(receiptDetail.receiptDate),
+            receiptDate: new Date(new Date(receiptDetail.receiptDate).toISOString()),
             amount: parseFloat(receiptDetail.amount.toString()),
             reference: receiptDetail.reference || null,
             note: receiptDetail.note || null,
@@ -216,11 +212,10 @@ export async function PATCH(
       });
 
       // Create new expense details
-      for (const expenseDetail of expenseDetails) {
-        await prismadb.expenseDetail.create({
+      for (const expenseDetail of expenseDetails) {        await prismadb.expenseDetail.create({
           data: {
             tourPackageQueryId: params.tourPackageQueryId,
-            expenseDate: new Date(expenseDetail.expenseDate),
+            expenseDate: new Date(new Date(expenseDetail.expenseDate).toISOString()),
             amount: parseFloat(expenseDetail.amount.toString()),
             expenseCategoryId: expenseDetail.expenseCategoryId || null,
             description: expenseDetail.description || null,
@@ -241,11 +236,10 @@ export async function PATCH(
       });
 
       // Create new income details
-      for (const incomeDetail of incomeDetails) {
-        await prismadb.incomeDetail.create({
+      for (const incomeDetail of incomeDetails) {        await prismadb.incomeDetail.create({
           data: {
             tourPackageQueryId: params.tourPackageQueryId,
-            incomeDate: new Date(incomeDetail.incomeDate),
+            incomeDate: new Date(new Date(incomeDetail.incomeDate).toISOString()),
             amount: parseFloat(incomeDetail.amount.toString()),
             incomeCategoryId: incomeDetail.incomeCategoryId || null,
             description: incomeDetail.description || null,

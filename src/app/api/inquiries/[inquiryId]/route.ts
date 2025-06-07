@@ -131,7 +131,7 @@ export async function PATCH(
       numChildren5to11,
       numChildrenBelow5,
       status,
-      journeyDate: new Date(journeyDate),
+      journeyDate: new Date(new Date(journeyDate).toISOString()),
       remarks: remarks || null
     };    // First, check if roomAllocations and transportDetails are actually present in the request
     console.log('[INQUIRY_PATCH] Room allocations present:', roomAllocations ? `Yes, count: ${roomAllocations.length}` : 'No');
@@ -190,7 +190,7 @@ export async function PATCH(
               isAirportDropRequired: detail.isAirportDropRequired || false,
               pickupLocation: detail.pickupLocation || null,
               dropLocation: detail.dropLocation || null,
-              requirementDate: detail.requirementDate ? new Date(detail.requirementDate) : null,
+              requirementDate: detail.requirementDate ? new Date(new Date(detail.requirementDate).toISOString()) : null,
               notes: detail.notes || null
             };
           })

@@ -75,14 +75,12 @@ export async function PATCH(
     // Cannot transfer to the same account
     if (fromAccountType === toAccountType && fromAccountId === toAccountId) {
       return new NextResponse("Cannot transfer to the same account", { status: 400 });
-    }
-
-    const transferDetail = await prismadb.transfer.update({
+    }    const transferDetail = await prismadb.transfer.update({
       where: {
         id: params.transferId
       },
       data: {
-        transferDate: new Date(transferDate),
+        transferDate: new Date(new Date(transferDate).toISOString()),
         amount: parseFloat(amount.toString()),
         reference,
         description,

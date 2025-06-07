@@ -38,17 +38,15 @@ export async function POST(req: Request) {
 
     if (price === undefined || price === null) {
       return new NextResponse("Price is required", { status: 400 });
-    }
-
-    // Create purchase detail - REMOVED connect syntax
+    }    // Create purchase detail - REMOVED connect syntax
     const purchaseDetail = await prismadb.purchaseDetail.create({
       data: {
         supplierId,
         tourPackageQueryId: tourPackageQueryId || null,
-        purchaseDate: new Date(purchaseDate),
+        purchaseDate: new Date(new Date(purchaseDate).toISOString()),
         billNumber: billNumber || null,
-        billDate: billDate ? new Date(billDate) : null,
-        dueDate: dueDate ? new Date(dueDate) : null,
+        billDate: billDate ? new Date(new Date(billDate).toISOString()) : null,
+        dueDate: dueDate ? new Date(new Date(dueDate).toISOString()) : null,
         stateOfSupply: stateOfSupply || null,
         referenceNumber: referenceNumber || null,
         price: parseFloat(price.toString()),
@@ -57,7 +55,7 @@ export async function POST(req: Request) {
         description: description || null,
         status: status || "pending",
       }
-    });    // Create purchase items
+    });// Create purchase items
     if (items && Array.isArray(items) && items.length > 0) {
       for (const item of items) {
         await prismadb.purchaseItem.create({

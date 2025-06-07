@@ -109,16 +109,14 @@ export async function PATCH(
                 where: {
                     saleDetailId: params.saleId
                 }
-            });
-
-            // Update sale detail - REMOVED connect syntax
+            });            // Update sale detail - REMOVED connect syntax
             const updatedSale = await prismadb.saleDetail.update({
                 where: {
                     id: params.saleId
                 },
                 data: {
                     customerId,
-                    saleDate: new Date(saleDate),
+                    saleDate: new Date(new Date(saleDate).toISOString()),
                     invoiceNumber: invoiceNumber || null,
                     salePrice: parseFloat(salePrice.toString()),
                     gstAmount: gstAmount !== undefined ? parseFloat(gstAmount.toString()) : null,

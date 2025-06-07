@@ -94,8 +94,8 @@ export async function PATCH(
         hotelId: params.hotelId
       },
       data: {
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(new Date(startDate).toISOString()),
+        endDate: new Date(new Date(endDate).toISOString()),
         roomTypeId,
         occupancyTypeId,
         price,

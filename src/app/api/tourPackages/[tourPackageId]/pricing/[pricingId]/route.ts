@@ -95,9 +95,8 @@ export async function PATCH(
       where: {
         id: params.pricingId
       },
-      data: {
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+      data: {        startDate: new Date(new Date(startDate).toISOString()),
+        endDate: new Date(new Date(endDate).toISOString()),
         mealPlanId,
         numberOfRooms,
         isActive: isActive !== undefined ? isActive : true,

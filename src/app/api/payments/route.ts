@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       data: {
         supplierId: supplierId || null,
         tourPackageQueryId: tourPackageQueryId || null,
-        paymentDate: new Date(paymentDate),
+        paymentDate: new Date(new Date(paymentDate).toISOString()),
         amount: parseFloat(amount.toString()),
         method: method || null,
         transactionId: transactionId || null,

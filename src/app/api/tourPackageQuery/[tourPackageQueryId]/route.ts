@@ -287,9 +287,7 @@ export async function PATCH(
     const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? cancellationPolicy : cancellationPolicy ? [cancellationPolicy] : [];
     const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? airlineCancellationPolicy : airlineCancellationPolicy ? [airlineCancellationPolicy] : [];
     const processedTermsConditions = Array.isArray(termsconditions) ? termsconditions : termsconditions ? [termsconditions] : [];
-    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];
-
-    const tourPackageUpdateData =
+    const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? kitchenGroupPolicy : kitchenGroupPolicy ? [kitchenGroupPolicy] : [];    const tourPackageUpdateData =
     {
 
       //  await prismadb.tourPackageQuery.update({
@@ -307,8 +305,8 @@ export async function PATCH(
       locationId,
       period,
       tour_highlights,
-      tourStartsFrom,
-      tourEndsOn,
+      tourStartsFrom: tourStartsFrom ? new Date(new Date(tourStartsFrom).toISOString()) : undefined,
+      tourEndsOn: tourEndsOn ? new Date(new Date(tourEndsOn).toISOString()) : undefined,
       transport,
       pickup_location,
       drop_location,

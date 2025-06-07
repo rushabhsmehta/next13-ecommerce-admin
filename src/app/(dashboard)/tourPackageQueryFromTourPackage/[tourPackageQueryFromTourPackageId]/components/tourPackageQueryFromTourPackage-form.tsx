@@ -270,7 +270,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
   const toastMessage = 'Tour Package Query created.';
   const action = 'Create';
   // console.log("Initial Data : ", initialData?.itineraries)
-
   const transformInitialData = (data: any) => {
     return {
       ...data,
@@ -278,6 +277,9 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
+      // Restore dropdown field values based on saved template data
+      tourPackageTemplate: data.selectedTemplateType === 'TourPackage' ? (data.selectedTemplateId || '') : '',
+      tourPackageQueryTemplate: data.selectedTemplateType === 'TourPackageQuery' ? (data.selectedTemplateId || '') : '',
 
 
       flightDetails: data.flightDetails.map((flightDetail: any) => ({

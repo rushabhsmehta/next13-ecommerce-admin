@@ -401,12 +401,14 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
     const now = new Date();
     return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
-
   const defaultValues = initialData
     ? {
       ...transformInitialData(initialData),      // Ensure new fields are included from initialData if they exist      selectedTemplateId: initialData.selectedTemplateId || '',
       selectedTemplateType: initialData.selectedTemplateType || '',
       tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
+      // Restore dropdown field values based on saved template data
+      tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
+      tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       importantNotes: parseJsonField(initialData.importantNotes),

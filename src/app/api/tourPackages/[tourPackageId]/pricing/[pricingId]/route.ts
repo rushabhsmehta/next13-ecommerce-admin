@@ -20,7 +20,6 @@ export async function GET(
         tourPackageId: params.tourPackageId
       },
       include: {
-        occupancyType: true,
         mealPlan: true,
         pricingComponents: true,
       }
@@ -58,31 +57,21 @@ export async function PATCH(
     const { 
       startDate, 
       endDate, 
-      occupancyTypeId, 
       mealPlanId,
-      numPax,
-      tourPackagePrice,
-      isPromotional,
-      promotionName,
+      numberOfRooms,
       isActive,
       description,
       pricingComponents
-    } = body;
-
-    if (!startDate || !endDate) {
+    } = body;    if (!startDate || !endDate) {
       return new NextResponse("Start date and end date are required", { status: 400 });
     }
 
-    if (!occupancyTypeId) {
-      return new NextResponse("Occupancy type is required", { status: 400 });
+    if (!mealPlanId) {
+      return new NextResponse("Meal plan is required", { status: 400 });
     }
 
-    if (typeof tourPackagePrice !== "number" || tourPackagePrice < 0) {
-      return new NextResponse("Valid price is required", { status: 400 });
-    }
-
-    if (typeof numPax !== "number" || numPax < 1) {
-      return new NextResponse("Valid number of PAX is required", { status: 400 });
+    if (typeof numberOfRooms !== "number" || numberOfRooms < 1) {
+      return new NextResponse("Valid number of rooms is required", { status: 400 });
     }
 
     // Check if the tour package exists
@@ -101,9 +90,7 @@ export async function PATCH(
           tourPackagePricingId: params.pricingId
         }
       });
-    }
-    
-    // Update the pricing record
+    }      // Update the pricing record
     const updatedPricing = await prismadb.tourPackagePricing.update({
       where: {
         id: params.pricingId
@@ -111,14 +98,11 @@ export async function PATCH(
       data: {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        occupancyTypeId,
-        mealPlanId: mealPlanId || null,
-        numPax,
-        tourPackagePrice,
-        isPromotional: isPromotional || false,
-        promotionName: promotionName || null,
+        mealPlanId,
+        numberOfRooms,
         isActive: isActive !== undefined ? isActive : true,
-        description: description || null,        // Create new pricing components if provided
+        description: description || null,
+        // Create new pricing components if provided
         pricingComponents: pricingComponents?.length > 0 ? {
           create: pricingComponents.map((component: any) => ({
             pricingAttributeId: component.pricingAttributeId,

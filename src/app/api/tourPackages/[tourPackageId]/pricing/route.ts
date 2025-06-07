@@ -26,8 +26,8 @@ export async function GET(
     if (startDate && endDate) {
       dateFilter = {
         AND: [
-          { startDate: { lte: new Date(endDate) } },
-          { endDate: { gte: new Date(startDate) } }
+          { startDate: { lte: new Date(new Date(endDate).toISOString()) } },
+          { endDate: { gte: new Date(new Date(startDate).toISOString()) } }
         ]
       };
     }
@@ -103,8 +103,8 @@ export async function POST(
     const tourPackagePricing = await prismadb.tourPackagePricing.create({
       data: {
         tourPackageId: params.tourPackageId,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(new Date(startDate).toISOString()),
+        endDate: new Date(new Date(endDate).toISOString()),
         mealPlanId,
         numberOfRooms,
         description: description || null,

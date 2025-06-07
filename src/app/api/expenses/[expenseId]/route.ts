@@ -112,15 +112,14 @@ export async function PATCH(
     const updatedExpense = await prismadb.expenseDetail.update({
       where: {
         id: params.expenseId
-      },
-      data: {  
-        expenseDate: new Date(expenseDate),
+      },      data: {        
+        expenseDate: new Date(new Date(expenseDate).toISOString()),
         amount: parseFloat(amount.toString()),
         expenseCategoryId: expenseCategoryId || null,
         description: description || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
-      },      include: {
+      },include: {
         expenseCategory: true,
         bankAccount: true,
         cashAccount: true,

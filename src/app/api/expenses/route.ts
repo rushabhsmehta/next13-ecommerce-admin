@@ -33,9 +33,8 @@ export async function POST(req: Request) {
       return new NextResponse("Either bank or cash account must be selected", { status: 400 });
     }    // Create expense detail
     const expenseDetail = await prismadb.expenseDetail.create({
-      data: {
-        tourPackageQueryId: tourPackageQueryId || null,
-        expenseDate: new Date(expenseDate),
+      data: {        tourPackageQueryId: tourPackageQueryId || null,
+        expenseDate: new Date(new Date(expenseDate).toISOString()),
         amount: parseFloat(amount.toString()),
         expenseCategoryId: expenseCategoryId || null,
         description: description || null,

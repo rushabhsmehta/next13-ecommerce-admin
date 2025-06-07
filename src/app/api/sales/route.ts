@@ -36,14 +36,12 @@ export async function POST(req: Request) {
 
     if (salePrice === undefined || salePrice === null) {
       return new NextResponse("Sale price is required", { status: 400 });
-    }
-
-    // Create sale detail
+    }    // Create sale detail
     const saleDetail = await prismadb.saleDetail.create({
       data: {
         customerId,
         tourPackageQueryId: tourPackageQueryId || null,
-        saleDate: new Date(saleDate),
+        saleDate: new Date(new Date(saleDate).toISOString()),
         invoiceNumber: invoiceNumber || null,
         salePrice: parseFloat(salePrice.toString()),
         gstAmount: gstAmount ? parseFloat(gstAmount.toString()) : null,

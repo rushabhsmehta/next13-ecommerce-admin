@@ -206,11 +206,10 @@ export async function POST(
                 selectedTemplateId,
                 selectedTemplateType,
                 tourPackageTemplateName,
-                selectedMealPlanId,
-                // Store occupancy selections directly - don't transform it
+                selectedMealPlanId,                // Store occupancy selections directly - don't transform it
                 occupancySelections: occupancySelections || undefined,
-                tourStartsFrom,
-                tourEndsOn,
+                tourStartsFrom: tourStartsFrom ? new Date(new Date(tourStartsFrom).toISOString()) : undefined,
+                tourEndsOn: tourEndsOn ? new Date(new Date(tourEndsOn).toISOString()) : undefined,
                 transport,
                 pickup_location,
                 drop_location,

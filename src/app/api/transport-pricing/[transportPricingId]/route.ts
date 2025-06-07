@@ -54,14 +54,13 @@ export async function PATCH(
       return new NextResponse("Transport pricing ID is required", { status: 400 });
     }    // Create the update data object with all fields that might be updated
     const updateData: any = {};
-    
-    if (locationId !== undefined) updateData.locationId = locationId;
+      if (locationId !== undefined) updateData.locationId = locationId;
     if (vehicleTypeId !== undefined) updateData.vehicleTypeId = vehicleTypeId;
     if (price !== undefined) updateData.price = price;
     if (transportType !== undefined) updateData.transportType = transportType;
     if (description !== undefined) updateData.description = description;
-    if (startDate !== undefined) updateData.startDate = new Date(startDate);
-    if (endDate !== undefined) updateData.endDate = new Date(endDate);
+    if (startDate !== undefined) updateData.startDate = new Date(new Date(startDate).toISOString());
+    if (endDate !== undefined) updateData.endDate = new Date(new Date(endDate).toISOString());
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const transportPricing = await prismadb.transportPricing.update({

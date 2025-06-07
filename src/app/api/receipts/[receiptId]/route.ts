@@ -97,7 +97,7 @@ export async function PATCH(
       },
       data: {
         customerId,
-        receiptDate: new Date(receiptDate),
+        receiptDate: new Date(new Date(receiptDate).toISOString()),
         amount: parseFloat(amount.toString()),
         reference: reference || null,
         note: note || null,

@@ -77,9 +77,7 @@ export async function PATCH(
       if (totalGstAmount > 0) {
         const totalBeforeTax = totalAmount - totalGstAmount;
         avgGstPercentage = (totalGstAmount / totalBeforeTax) * 100;
-      }
-
-      // Update the main sale record with totals and any other updates
+      }      // Update the main sale record with totals and any other updates
       await tx.saleDetail.update({
         where: {
           id: params.saleId
@@ -89,8 +87,8 @@ export async function PATCH(
           gstAmount: totalGstAmount > 0 ? totalGstAmount : undefined,
           gstPercentage: avgGstPercentage > 0 ? parseFloat(avgGstPercentage.toFixed(2)) : undefined,
           invoiceNumber,
-          invoiceDate: invoiceDate ? new Date(invoiceDate) : undefined,
-          dueDate: dueDate ? new Date(dueDate) : undefined,
+          invoiceDate: invoiceDate ? new Date(new Date(invoiceDate).toISOString()) : undefined,
+          dueDate: dueDate ? new Date(new Date(dueDate).toISOString()) : undefined,
           stateOfSupply,
           description
         }

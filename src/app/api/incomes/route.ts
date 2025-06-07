@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     const incomeDetail = await prismadb.incomeDetail.create({
       data: {
         tourPackageQueryId: tourPackageQueryId || null,
-        incomeDate: new Date(incomeDate),
+        incomeDate: new Date(new Date(incomeDate).toISOString()),
         amount: parseFloat(amount.toString()),
         incomeCategoryId: incomeCategoryId || null,
         description: description || null,

@@ -51,14 +51,13 @@ export async function POST(req: Request) {
       tourEndsOn, 
       itineraries,
       markup = 0,
-    } = body;
-
-    if (!tourStartsFrom || !tourEndsOn || !itineraries || !itineraries.length) {
+    } = body;    if (!tourStartsFrom || !tourEndsOn || !itineraries || !itineraries.length) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    const startDate = new Date(tourStartsFrom);
-    const endDate = new Date(tourEndsOn);
+    // Ensure dates are handled consistently by converting to UTC
+    const startDate = new Date(new Date(tourStartsFrom).toISOString());
+    const endDate = new Date(new Date(tourEndsOn).toISOString());
     const durationMs = endDate.getTime() - startDate.getTime();
     const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
 

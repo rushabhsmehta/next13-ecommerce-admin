@@ -91,18 +91,17 @@ export async function PATCH(
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
-    }    try {
-      // Update purchase detail - REMOVED connect syntax
+    }    try {      // Update purchase detail - REMOVED connect syntax
       const updatedPurchase = await prismadb.purchaseDetail.update({
         where: {
           id: params.purchaseId
         },
         data: {
           supplierId,
-          purchaseDate: new Date(purchaseDate),
+          purchaseDate: new Date(new Date(purchaseDate).toISOString()),
           billNumber: billNumber || null,
-          billDate: billDate ? new Date(billDate) : null,
-          dueDate: dueDate ? new Date(dueDate) : null,
+          billDate: billDate ? new Date(new Date(billDate).toISOString()) : null,
+          dueDate: dueDate ? new Date(new Date(dueDate).toISOString()) : null,
           stateOfSupply: stateOfSupply || null,
           referenceNumber: referenceNumber || null,
           price: parseFloat(price.toString()),

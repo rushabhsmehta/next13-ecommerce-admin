@@ -111,15 +111,14 @@ export async function PATCH(
     const updatedIncome = await prismadb.incomeDetail.update({
       where: {
         id: params.incomeId
-      },
-      data: {        
-        incomeDate: new Date(incomeDate),
+      },      data: {        
+        incomeDate: new Date(new Date(incomeDate).toISOString()),
         amount: parseFloat(amount.toString()),
         incomeCategoryId: incomeCategoryId || null,
         description: description || null,
         bankAccountId: bankAccountId || null,
         cashAccountId: cashAccountId || null,
-      },      include: {
+      },include: {
         incomeCategory: true,
         bankAccount: true,
         cashAccount: true,

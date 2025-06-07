@@ -7,9 +7,9 @@ export default authMiddleware({
     "/tourPackageQueryPDFGenerator/:path*",
     "/sign-in",
     "/sign-up",
-    // Add ops routes as public to avoid Clerk authentication for them
-    "/ops/:path*",
-    "/login",
+    // Remove ops routes from public routes to enforce Clerk authentication
+    // "/ops/:path*",
+    // "/login",
     // Only make specific API routes public that don't need authentication
     "/api/auth/:path*",
   ],
@@ -22,14 +22,30 @@ export default authMiddleware({
       return NextResponse.next();
     }
   },
-
   async afterAuth(auth, req) {
     // Check if the request is from an associate domain
     const hostname = req.headers.get('host') || '';
     const isAssociateDomain = hostname.includes('associate.aagamholidays.com');
+    const isOpsDomain = hostname.includes('ops.aagamholidays.com');
     
     // Get current path
     const path = req.nextUrl.pathname;
+    
+    // Handle ops domain restrictions
+    if (isOpsDomain) {
+      // If user is not authenticated and not on sign-in page, redirect to sign-in
+      if (!auth.userId && !path.startsWith('/sign-in')) {
+        const url = new URL('/sign-in', req.url);
+        return NextResponse.redirect(url);
+      }
+      
+      // Check if user is operational staff (you might want to add a custom metadata check here)
+      if (auth.userId && !path.startsWith('/sign-in')) {
+        // For now, allow access to all ops routes for authenticated users
+        // You can add additional role-based checks here later
+        return NextResponse.next();
+      }
+    }
     
     // Only apply restrictions for associate domains
     if (isAssociateDomain) {      // Associates are only allowed to access the inquiries page, tour package query from inquiry (associate), sign-in, sign-up and API routes

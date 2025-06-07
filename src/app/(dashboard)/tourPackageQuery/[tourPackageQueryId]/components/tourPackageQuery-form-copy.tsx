@@ -399,10 +399,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     const now = new Date();
     return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
-
   const defaultValues = initialData
     ? {
-      ...transformInitialData(initialData),      inclusions: parseJsonField(initialData.inclusions),
+      ...transformInitialData(initialData),      
+      // Restore dropdown field values based on saved template data
+      tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
+      tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
+      inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       kitchenGroupPolicy: parseJsonField(initialData.kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(initialData.importantNotes),

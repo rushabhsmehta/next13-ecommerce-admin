@@ -412,13 +412,16 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     const now = new Date();
     return now.toISOString().replace(/[-:T.]/g, '').slice(0, 14); // Format: YYYYMMDDHHMMSS
   };
-
   const defaultValues = initialData
     ? {
       ...transformInitialData(initialData),
       selectedTemplateId: initialData.selectedTemplateId || '',
       selectedTemplateType: initialData.selectedTemplateType || '',
-      tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',      selectedMealPlanId: initialData.selectedMealPlanId || '',
+      tourPackageTemplateName: (initialData as any).tourPackageTemplateName || '',
+      // Restore dropdown field values based on saved template data
+      tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
+      tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
+      selectedMealPlanId: initialData.selectedMealPlanId || '',
       occupancySelections: initialData.occupancySelections || [],      inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,

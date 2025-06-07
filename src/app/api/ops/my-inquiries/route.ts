@@ -1,46 +1,44 @@
 import { NextResponse } from "next/server";
-import { jwtVerify } from "jose";
+import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import { cookies } from "next/headers";
 
 export const dynamic = 'force-dynamic';
 
-// Middleware to verify the staff's authentication token
-async function verifyStaffToken() {
-  const token = cookies().get('ops_token')?.value;
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const secret = new TextEncoder().encode(
-      process.env.JWT_SECRET || 'default-secret-key-change-in-production'
-    );
-
-    const { payload } = await jwtVerify(token, secret);
-    return payload;
-  } catch (error) {
-    console.error("Token verification failed:", error);
-    return null;
-  }
-}
-
 export async function GET(req: Request) {
   try {
-    // Verify the staff's authentication token
-    const payload = await verifyStaffToken();
+    // Get the authenticated user from Clerk
+    const { userId } = auth();
 
-    if (!payload || !payload.id) {
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
+    }    // Get the user's email from Clerk
+    const { clerkClient } = await import('@clerk/nextjs/server');
+    const user = await clerkClient.users.getUser(userId);
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+
+    if (!userEmail) {
+      return new NextResponse("User email not found", { status: 400 });
     }
 
-    const staffId = payload.id as string;
+    // Find the operational staff record by email
+    const staff = await prismadb.operationalStaff.findUnique({
+      where: {
+        email: userEmail,
+      },
+    });
+
+    if (!staff) {
+      return new NextResponse("Staff record not found", { status: 404 });
+    }
+
+    if (!staff.isActive) {
+      return new NextResponse("Staff account is inactive", { status: 403 });
+    }
 
     // Get all inquiries assigned to this staff member
     const inquiries = await prismadb.inquiry.findMany({
       where: {
-        assignedToStaffId: staffId
+        assignedToStaffId: staff.id
       },
       include: {
         location: true,

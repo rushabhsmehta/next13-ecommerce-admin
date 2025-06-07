@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useUser, SignOutButton } from "@clerk/nextjs";
 
 interface InquiryAction {
   id: string;
@@ -33,17 +34,26 @@ export default function OperationalStaffDashboard() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const { user, isLoaded } = useUser();
   const router = useRouter();
   
   useEffect(() => {
+    // Wait for Clerk to load and check if user is authenticated
+    if (!isLoaded) return;
+    
+    if (!user) {
+      router.push("/sign-in");
+      return;
+    }
+    
     async function fetchInquiries() {
       try {
         const res = await fetch("/api/ops/my-inquiries");
         
         if (!res.ok) {
           if (res.status === 401) {
-            // Redirect to login if unauthorized
-            router.push("/login");
+            // Redirect to sign-in if unauthorized
+            router.push("/sign-in");
             return;
           }
           throw new Error("Failed to fetch inquiries");
@@ -57,22 +67,23 @@ export default function OperationalStaffDashboard() {
       } finally {
         setLoading(false);
       }
-    }
-    
+    }    
     fetchInquiries();
-  }, [router]);
+  }, [user, isLoaded, router]);
   
-  const handleSignOut = async () => {
-    try {
-      await fetch("/api/auth/ops/signout", {
-        method: "POST",
-      });
-      toast.success("Signed out successfully");
-      router.push("/login");
-    } catch (error) {
-      toast.error("Failed to sign out");
-    }
-  };
+  // Show loading state while Clerk is loading
+  if (!isLoaded || loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // If no user is loaded, don't render anything (redirect will happen in useEffect)
+  if (!user) {
+    return null;
+  }
   
   const filteredInquiries = inquiries.filter((inquiry) => {
     const searchLower = searchTerm.toLowerCase();
@@ -102,10 +113,15 @@ export default function OperationalStaffDashboard() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Assigned Inquiries</h1>
-        <Button variant="outline" onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" /> Sign Out
-        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">My Assigned Inquiries</h1>
+          <p className="text-gray-600">Welcome, {user?.firstName || user?.emailAddresses[0]?.emailAddress}</p>
+        </div>
+        <SignOutButton>
+          <Button variant="outline">
+            <LogOut className="mr-2 h-4 w-4" /> Sign Out
+          </Button>
+        </SignOutButton>
       </div>
       
       <div className="mb-4">
@@ -120,11 +136,7 @@ export default function OperationalStaffDashboard() {
         </div>
       </div>
       
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : inquiries.length === 0 ? (
+      {inquiries.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-medium">No inquiries assigned to you</h3>
           <p className="text-gray-500 mt-2">

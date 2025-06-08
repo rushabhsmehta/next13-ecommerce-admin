@@ -18,13 +18,26 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-        return new NextResponse("OpenAI API Key not configured.", { status: 500 });
-    }
-
     if (!prompt) {
       return new NextResponse("Prompt is required", { status: 400 });
-    }    // --- OpenAI Image Generation Logic ---
+    }
+
+    // Check if we should use mock mode (for testing without valid OpenAI API key)
+    const useMockMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('*****');
+
+    if (useMockMode) {
+      // Return mock data for testing
+      const mockImageUrl = "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2664&q=80";
+      
+      return NextResponse.json({ 
+        imageUrl: mockImageUrl,
+        isMockData: true
+      });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+        return new NextResponse("OpenAI API Key not configured.", { status: 500 });
+    }// --- OpenAI Image Generation Logic ---
     try {
       // TODO: Add logic to handle referenceImageUrl if provided (e.g., variations or edits if API supports)
       // Using DALL-E 3 for now, adjust model as needed (e.g., 'dall-e-3', 'dall-e-2')

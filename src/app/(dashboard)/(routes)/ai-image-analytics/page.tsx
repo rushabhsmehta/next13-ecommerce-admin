@@ -97,38 +97,100 @@ const AIImageAnalyticsPage = () => {
   useEffect(() => {
     fetchAnalytics();
   }, [timeRange, selectedPlatform]);
-
   const fetchAnalytics = async () => {
     setIsLoading(true);
     try {
       const response = await axios.get('/api/ai-image/analytics', {
         params: { timeRange, platform: selectedPlatform !== 'all' ? selectedPlatform : undefined }
       });
-      setAnalyticsData(response.data);
+      
+      // Ensure all numeric values are properly initialized
+      const data = response.data;
+      if (data && data.overview) {
+        const sanitizedData = {
+          ...data,
+          overview: {
+            totalImages: data.overview.totalImages || 0,
+            approvedImages: data.overview.approvedImages || 0,
+            approvalRate: data.overview.approvalRate || 0,
+            totalViews: data.overview.totalViews || 0,
+            totalLikes: data.overview.totalLikes || 0,
+            totalShares: data.overview.totalShares || 0,
+            totalComments: data.overview.totalComments || 0,
+            totalImpressions: data.overview.totalImpressions || 0,
+            avgEngagementRate: data.overview.avgEngagementRate || 0,
+            recentActivity: data.overview.recentActivity || 0,
+          },
+          trends: {
+            viewsGrowth: data.trends?.viewsGrowth || 0,
+            likesGrowth: data.trends?.likesGrowth || 0,
+            sharesGrowth: data.trends?.sharesGrowth || 0,
+            engagementGrowth: data.trends?.engagementGrowth || 0,
+          },
+          ...data
+        };
+        setAnalyticsData(sanitizedData);
+      } else {
+        console.error('Invalid analytics data structure:', data);
+      }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      console.error('Error fetching analytics:', error);      // Set default empty data on error
+      setAnalyticsData({
+        overview: {
+          totalImages: 0,
+          approvedImages: 0,
+          approvalRate: 0,
+          totalViews: 0,
+          totalLikes: 0,
+          totalShares: 0,
+          totalComments: 0,
+          totalImpressions: 0,
+          avgEngagementRate: 0,
+          recentActivity: 0,
+        },
+        platformStats: {},
+        topPerforming: [],
+        dailyStats: [],
+        styleStats: {},
+        purposeStats: {},
+        abTestStats: {
+          totalTests: 0,
+          avgEngagementRate: 0,
+        },
+        trends: {
+          viewsGrowth: 0,
+          likesGrowth: 0,
+          sharesGrowth: 0,
+          engagementGrowth: 0,
+        },
+      });
     } finally {
       setIsLoading(false);
     }
   };
-
   const StatCard = ({ title, value, icon: Icon, trend, description, isPercentage = false }: {
     title: string;
-    value: number | string;
+    value: number | string | undefined;
     icon: any;
     trend?: number;
     description?: string;
     isPercentage?: boolean;
-  }) => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
-          {typeof value === 'number' ? (isPercentage ? `${value.toFixed(1)}%` : value.toLocaleString()) : value}
-        </div>
+  }) => {
+    const safeValue = value ?? 0;
+    const formattedValue = typeof safeValue === 'number' 
+      ? (isPercentage ? `${safeValue.toFixed(1)}%` : safeValue.toLocaleString()) 
+      : safeValue.toString();
+
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {formattedValue}
+          </div>
         {trend !== undefined && (
           <p className="text-xs text-muted-foreground flex items-center mt-1">
             {trend > 0 ? (
@@ -141,15 +203,18 @@ const AIImageAnalyticsPage = () => {
             </span>
             {" from last period"}
           </p>
-        )}
-        {description && (
+        )}        {description && (
           <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | undefined) => {
+    if (!num || typeof num !== 'number') {
+      return '0';
+    }
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     } else if (num >= 1000) {

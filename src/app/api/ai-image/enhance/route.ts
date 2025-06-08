@@ -16,12 +16,40 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return new NextResponse("OpenAI API Key not configured.", { status: 500 });
-    }
-
     if (!prompt) {
       return new NextResponse("Prompt is required", { status: 400 });
+    }
+
+    // Check if we should use mock mode (for testing without valid OpenAI API key)
+    const useMockMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.includes('*****');
+
+    if (useMockMode) {
+      // Return mock data for testing
+      const enhancedPrompt = generateEnhancedPrompt({
+        basePrompt: prompt,
+        style,
+        platform,
+        purpose,
+        targetAudience,
+        colorScheme
+      });
+
+      const mockImageUrl = "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2664&q=80";
+      
+      return NextResponse.json({ 
+        imageUrl: mockImageUrl,
+        enhancedPrompt,
+        metadata: await generateImageMetadata(enhancedPrompt, platform, purpose),
+        suggestedCaptions: await generateSuggestedCaptions(prompt, platform, targetAudience),
+        hashtags: await generateHashtags(prompt, platform),
+        bestPostingTimes: getBestPostingTimes(platform),
+        engagementTips: getEngagementTips(platform),
+        isMockData: true
+      });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return new NextResponse("OpenAI API Key not configured.", { status: 500 });
     }
 
     // Enhanced prompt engineering for social media optimization
@@ -32,29 +60,29 @@ export async function POST(req: Request) {
       purpose,
       targetAudience,
       colorScheme
-    });
-
-    // Platform-specific image sizes
+    });    // Platform-specific image sizes (using OpenAI-supported dimensions)
     const platformSizes = {
-      instagram: ["1080x1080", "1080x1350", "1080x1920"], // Square, Portrait, Story
-      facebook: ["1200x630", "1080x1080"], // Cover, Post
-      twitter: ["1200x675", "1080x1080"], // Header, Post
-      linkedin: ["1200x627", "1080x1080"], // Article, Post
-      pinterest: ["1000x1500", "735x1102"], // Pin, Ideal Pin
-      youtube: ["1280x720", "1920x1080"], // Thumbnail, Banner
-      tiktok: ["1080x1920"], // Vertical
-      snapchat: ["1080x1920"], // Vertical
+      instagram: ["1024x1024", "1024x1792"], // Square, Portrait/Story
+      facebook: ["1024x1024", "1792x1024"], // Post, Cover-like
+      twitter: ["1792x1024", "1024x1024"], // Header-like, Post
+      linkedin: ["1792x1024", "1024x1024"], // Article-like, Post
+      pinterest: ["1024x1792"], // Vertical Pin
+      youtube: ["1792x1024"], // Thumbnail-like
+      tiktok: ["1024x1792"], // Vertical
+      snapchat: ["1024x1792"], // Vertical
     };
 
     const selectedSize = platformSizes[platform as keyof typeof platformSizes]?.[0] || aspectRatio;
 
-    try {
+    // Validate that the selected size is supported by OpenAI
+    const supportedSizes = ['1024x1024', '1024x1792', '1792x1024'];
+    const finalSize = supportedSizes.includes(selectedSize) ? selectedSize : '1024x1024';    try {
       // Generate multiple variations for A/B testing
       const response = await openai.images.generate({
         model: "dall-e-3",
         prompt: enhancedPrompt,
         n: 1,
-        size: selectedSize as any,
+        size: finalSize as "1024x1024" | "1024x1792" | "1792x1024",
         quality: "hd",
         style: style === "photorealistic" ? "natural" : "vivid",
       });

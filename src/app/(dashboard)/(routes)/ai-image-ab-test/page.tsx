@@ -472,13 +472,12 @@ const ABTestPage = () => {
                       <TabsContent value="results" className="space-y-4">
                         <div className="grid gap-4 md:grid-cols-3">
                           <div className="space-y-2">
-                            <Label className="text-sm font-medium">Progress</Label>
-                            <Progress 
-                              value={(test.currentSampleSize / test.targetSampleSize) * 100} 
+                            <Label className="text-sm font-medium">Progress</Label>                            <Progress 
+                              value={((test.currentSampleSize || 0) / (test.targetSampleSize || 1)) * 100} 
                               className="h-2" 
                             />
                             <p className="text-xs text-muted-foreground">
-                              {test.currentSampleSize.toLocaleString()} of {test.targetSampleSize.toLocaleString()} samples
+                              {(test.currentSampleSize || 0).toLocaleString()} of {(test.targetSampleSize || 0).toLocaleString()} samples
                             </p>
                           </div>
                           <div className="space-y-2">
@@ -522,10 +521,9 @@ const ABTestPage = () => {
                                       Winner
                                     </Badge>
                                   )}
-                                </div>
-                                <div className="text-right">
+                                </div>                                <div className="text-right">
                                   <div className="text-lg font-semibold">
-                                    {(variant.engagementRate * 100).toFixed(2)}%
+                                    {((variant.engagementRate || 0) * 100).toFixed(2)}%
                                   </div>
                                   <p className="text-xs text-muted-foreground">Engagement Rate</p>
                                 </div>
@@ -544,23 +542,21 @@ const ABTestPage = () => {
                                     style={{ objectFit: 'cover' }}
                                   />
                                 </div>
-                              )}
-
-                              <div className="grid grid-cols-4 gap-4 text-center">
+                              )}                              <div className="grid grid-cols-4 gap-4 text-center">
                                 <div>
-                                  <div className="font-medium">{formatNumber(variant.views)}</div>
+                                  <div className="font-medium">{formatNumber(variant.views || 0)}</div>
                                   <p className="text-xs text-muted-foreground">Views</p>
                                 </div>
                                 <div>
-                                  <div className="font-medium">{formatNumber(variant.likes)}</div>
+                                  <div className="font-medium">{formatNumber(variant.likes || 0)}</div>
                                   <p className="text-xs text-muted-foreground">Likes</p>
                                 </div>
                                 <div>
-                                  <div className="font-medium">{formatNumber(variant.shares)}</div>
+                                  <div className="font-medium">{formatNumber(variant.shares || 0)}</div>
                                   <p className="text-xs text-muted-foreground">Shares</p>
                                 </div>
                                 <div>
-                                  <div className="font-medium">{(variant.conversionRate * 100).toFixed(1)}%</div>
+                                  <div className="font-medium">{((variant.conversionRate || 0) * 100).toFixed(1)}%</div>
                                   <p className="text-xs text-muted-foreground">Conversion</p>
                                 </div>
                               </div>

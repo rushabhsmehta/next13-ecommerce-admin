@@ -129,7 +129,6 @@ const AIImagePerformancePage = () => {
   useEffect(() => {
     fetchPerformanceData();
   }, [timeRange, platform]);
-
   const fetchPerformanceData = async () => {
     setIsLoading(true);
     try {
@@ -139,9 +138,72 @@ const AIImagePerformancePage = () => {
           platform: platform !== 'all' ? platform : undefined 
         }
       });
-      setPerformanceData(response.data);
+      
+      // Ensure the data structure is correct and provide fallbacks
+      const data = response.data;
+      if (data && typeof data === 'object') {
+        const sanitizedData = {          overview: {
+            totalImages: data.overview?.totalImages || 0,
+            totalViews: data.overview?.totalViews || 0,
+            totalLikes: data.overview?.totalLikes || 0,
+            totalShares: data.overview?.totalShares || 0,
+            totalComments: data.overview?.totalComments || 0,
+            totalImpressions: data.overview?.totalImpressions || 0,
+            avgEngagementRate: data.overview?.avgEngagementRate || 0,
+            avgViewsPerImage: data.overview?.avgViewsPerImage || 0,
+            avgLikesPerImage: data.overview?.avgLikesPerImage || 0,
+            avgSharesPerImage: data.overview?.avgSharesPerImage || 0,
+          },
+          bestPerforming: Array.isArray(data.bestPerforming) ? data.bestPerforming : [],
+          worstPerforming: Array.isArray(data.worstPerforming) ? data.worstPerforming : [],
+          platformBreakdown: Array.isArray(data.platformBreakdown) ? data.platformBreakdown : [],
+          styleBreakdown: Array.isArray(data.styleBreakdown) ? data.styleBreakdown : [],
+          dailyTrends: Array.isArray(data.dailyTrends) ? data.dailyTrends : [],
+          weeklyTrends: Array.isArray(data.weeklyTrends) ? data.weeklyTrends : [],
+          monthlyTrends: Array.isArray(data.monthlyTrends) ? data.monthlyTrends : [],          growthMetrics: {
+            viewsGrowth: data.growthMetrics?.viewsGrowth || 0,
+            likesGrowth: data.growthMetrics?.likesGrowth || 0,
+            sharesGrowth: data.growthMetrics?.sharesGrowth || 0,
+            engagementGrowth: data.growthMetrics?.engagementGrowth || 0,
+            imagesGrowth: data.growthMetrics?.imageCountGrowth || 0,
+          },
+          benchmarks: Array.isArray(data.benchmarks) ? data.benchmarks : [],
+        };
+        setPerformanceData(sanitizedData);
+      } else {
+        console.error('Invalid performance data structure:', data);
+        setPerformanceData(null);
+      }
     } catch (error) {
       console.error('Error fetching performance data:', error);
+      // Set default empty data on error
+      setPerformanceData({        overview: {
+          totalImages: 0,
+          totalViews: 0,
+          totalLikes: 0,
+          totalShares: 0,
+          totalComments: 0,
+          totalImpressions: 0,
+          avgEngagementRate: 0,
+          avgViewsPerImage: 0,
+          avgLikesPerImage: 0,
+          avgSharesPerImage: 0,
+        },
+        bestPerforming: [],
+        worstPerforming: [],
+        platformBreakdown: [],
+        styleBreakdown: [],
+        dailyTrends: [],
+        weeklyTrends: [],
+        monthlyTrends: [],        growthMetrics: {
+          viewsGrowth: 0,
+          likesGrowth: 0,
+          sharesGrowth: 0,
+          engagementGrowth: 0,
+          imagesGrowth: 0,
+        },
+        benchmarks: [],
+      });
     } finally {
       setIsLoading(false);
     }
@@ -183,8 +245,8 @@ const AIImagePerformancePage = () => {
       </CardContent>
     </Card>
   );
-
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | undefined | null) => {
+    if (!num || typeof num !== 'number' || isNaN(num)) return '0';
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
@@ -270,61 +332,58 @@ const AIImagePerformancePage = () => {
 
           <TabsContent value="overview" className="space-y-4">
             {/* Key Performance Metrics */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatCard
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">              <StatCard
                 title="Total Images"
-                value={performanceData?.overview.totalImages || 0}
+                value={performanceData?.overview?.totalImages || 0}
                 icon={BarChart3}
-                trend={performanceData?.growthMetrics.imagesGrowth}
+                trend={performanceData?.growthMetrics?.imagesGrowth}
                 description="Generated images"
               />
               <StatCard
                 title="Total Views"
-                value={performanceData?.overview.totalViews || 0}
+                value={performanceData?.overview?.totalViews || 0}
                 icon={Eye}
-                trend={performanceData?.growthMetrics.viewsGrowth}
+                trend={performanceData?.growthMetrics?.viewsGrowth}
                 description="Cross-platform views"
-              />
-              <StatCard
+              />              <StatCard
                 title="Total Engagements"
-                value={(performanceData?.overview.totalLikes || 0) + (performanceData?.overview.totalShares || 0) + (performanceData?.overview.totalComments || 0)}
+                value={(performanceData?.overview?.totalLikes || 0) + (performanceData?.overview?.totalShares || 0) + (performanceData?.overview?.totalComments || 0)}
                 icon={Heart}
-                trend={performanceData?.growthMetrics.engagementGrowth}
+                trend={performanceData?.growthMetrics?.engagementGrowth}
                 description="Likes, shares, comments"
               />
               <StatCard
                 title="Avg Engagement Rate"
-                value={performanceData?.overview.avgEngagementRate || 0}
+                value={performanceData?.overview?.avgEngagementRate || 0}
                 icon={TrendingUp}
-                trend={performanceData?.growthMetrics.engagementGrowth}
+                trend={performanceData?.growthMetrics?.engagementGrowth}
                 description="Per impression"
                 isPercentage={true}
               />
             </div>
 
             {/* Secondary Metrics */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatCard
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">              <StatCard
                 title="Avg Views per Image"
-                value={performanceData?.overview.avgViewsPerImage || 0}
+                value={performanceData?.overview?.avgViewsPerImage || 0}
                 icon={Activity}
                 description="Individual performance"
               />
               <StatCard
                 title="Avg Likes per Image"
-                value={performanceData?.overview.avgLikesPerImage || 0}
+                value={performanceData?.overview?.avgLikesPerImage || 0}
                 icon={Heart}
                 description="Appreciation rate"
               />
               <StatCard
                 title="Avg Shares per Image"
-                value={performanceData?.overview.avgSharesPerImage || 0}
+                value={performanceData?.overview?.avgSharesPerImage || 0}
                 icon={Share2}
                 description="Viral potential"
               />
               <StatCard
                 title="Total Impressions"
-                value={performanceData?.overview.totalImpressions || 0}
+                value={performanceData?.overview?.totalImpressions || 0}
                 icon={Target}
                 description="Reach achieved"
               />
@@ -342,9 +401,8 @@ const AIImagePerformancePage = () => {
                     <div className="flex items-center justify-center space-x-1 mb-2">
                       <BarChart3 className="w-4 h-4" />
                       <span className="text-sm font-medium">Images</span>
-                    </div>
-                    <div className={`text-lg font-semibold ${performanceData?.growthMetrics.imagesGrowth && performanceData.growthMetrics.imagesGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {performanceData?.growthMetrics.imagesGrowth ? (performanceData.growthMetrics.imagesGrowth > 0 ? '+' : '') + performanceData.growthMetrics.imagesGrowth.toFixed(1) + '%' : '0%'}
+                    </div>                    <div className={`text-lg font-semibold ${(performanceData?.growthMetrics?.imagesGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {performanceData?.growthMetrics?.imagesGrowth ? (performanceData.growthMetrics.imagesGrowth > 0 ? '+' : '') + performanceData.growthMetrics.imagesGrowth.toFixed(1) + '%' : '0%'}
                     </div>
                   </div>
                   <div className="text-center">
@@ -352,8 +410,8 @@ const AIImagePerformancePage = () => {
                       <Eye className="w-4 h-4" />
                       <span className="text-sm font-medium">Views</span>
                     </div>
-                    <div className={`text-lg font-semibold ${performanceData?.growthMetrics.viewsGrowth && performanceData.growthMetrics.viewsGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {performanceData?.growthMetrics.viewsGrowth ? (performanceData.growthMetrics.viewsGrowth > 0 ? '+' : '') + performanceData.growthMetrics.viewsGrowth.toFixed(1) + '%' : '0%'}
+                    <div className={`text-lg font-semibold ${(performanceData?.growthMetrics?.viewsGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {performanceData?.growthMetrics?.viewsGrowth ? (performanceData.growthMetrics.viewsGrowth > 0 ? '+' : '') + performanceData.growthMetrics.viewsGrowth.toFixed(1) + '%' : '0%'}
                     </div>
                   </div>
                   <div className="text-center">
@@ -361,17 +419,16 @@ const AIImagePerformancePage = () => {
                       <Heart className="w-4 h-4" />
                       <span className="text-sm font-medium">Likes</span>
                     </div>
-                    <div className={`text-lg font-semibold ${performanceData?.growthMetrics.likesGrowth && performanceData.growthMetrics.likesGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {performanceData?.growthMetrics.likesGrowth ? (performanceData.growthMetrics.likesGrowth > 0 ? '+' : '') + performanceData.growthMetrics.likesGrowth.toFixed(1) + '%' : '0%'}
+                    <div className={`text-lg font-semibold ${(performanceData?.growthMetrics?.likesGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {performanceData?.growthMetrics?.likesGrowth ? (performanceData.growthMetrics.likesGrowth > 0 ? '+' : '') + performanceData.growthMetrics.likesGrowth.toFixed(1) + '%' : '0%'}
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center space-x-1 mb-2">
                       <Share2 className="w-4 h-4" />
                       <span className="text-sm font-medium">Shares</span>
-                    </div>
-                    <div className={`text-lg font-semibold ${performanceData?.growthMetrics.sharesGrowth && performanceData.growthMetrics.sharesGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {performanceData?.growthMetrics.sharesGrowth ? (performanceData.growthMetrics.sharesGrowth > 0 ? '+' : '') + performanceData.growthMetrics.sharesGrowth.toFixed(1) + '%' : '0%'}
+                    </div>                    <div className={`text-lg font-semibold ${(performanceData?.growthMetrics?.sharesGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {performanceData?.growthMetrics?.sharesGrowth ? (performanceData.growthMetrics.sharesGrowth > 0 ? '+' : '') + performanceData.growthMetrics.sharesGrowth.toFixed(1) + '%' : '0%'}
                     </div>
                   </div>
                   <div className="text-center">
@@ -379,8 +436,8 @@ const AIImagePerformancePage = () => {
                       <TrendingUp className="w-4 h-4" />
                       <span className="text-sm font-medium">Engagement</span>
                     </div>
-                    <div className={`text-lg font-semibold ${performanceData?.growthMetrics.engagementGrowth && performanceData.growthMetrics.engagementGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {performanceData?.growthMetrics.engagementGrowth ? (performanceData.growthMetrics.engagementGrowth > 0 ? '+' : '') + performanceData.growthMetrics.engagementGrowth.toFixed(1) + '%' : '0%'}
+                    <div className={`text-lg font-semibold ${(performanceData?.growthMetrics?.engagementGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {performanceData?.growthMetrics?.engagementGrowth ? (performanceData.growthMetrics.engagementGrowth > 0 ? '+' : '') + performanceData.growthMetrics.engagementGrowth.toFixed(1) + '%' : '0%'}
                     </div>
                   </div>
                 </div>
@@ -428,10 +485,9 @@ const AIImagePerformancePage = () => {
                               {image.platform}
                             </Badge>
                           </div>
-                        </div>
-                        <div className="text-right">
+                        </div>                        <div className="text-right">
                           <div className="text-sm font-medium text-green-600">
-                            {(image.engagementRate * 100).toFixed(1)}%
+                            {((image.engagementRate || 0) * 100).toFixed(1)}%
                           </div>
                           <Badge variant="default">
                             #{index + 1}
@@ -481,10 +537,9 @@ const AIImagePerformancePage = () => {
                               {image.platform}
                             </Badge>
                           </div>
-                        </div>
-                        <div className="text-right">
+                        </div>                        <div className="text-right">
                           <div className="text-sm font-medium text-yellow-600">
-                            {(image.engagementRate * 100).toFixed(1)}%
+                            {((image.engagementRate || 0) * 100).toFixed(1)}%
                           </div>
                           <Badge variant="secondary">
                             Optimize
@@ -530,9 +585,8 @@ const AIImagePerformancePage = () => {
                           <div>
                             <div className="font-medium">{formatNumber(platform.avgShares)}</div>
                             <p className="text-muted-foreground">Avg Shares</p>
-                          </div>
-                          <div>
-                            <div className="font-medium">{(platform.avgEngagementRate * 100).toFixed(1)}%</div>
+                          </div>                          <div>
+                            <div className="font-medium">{((platform.avgEngagementRate || 0) / 100).toFixed(1)}%</div>
                             <p className="text-muted-foreground">Engagement Rate</p>
                           </div>
                         </div>
@@ -580,12 +634,11 @@ const AIImagePerformancePage = () => {
                         <div className="flex items-center space-x-2">
                           <Palette className="w-4 h-4" />
                           <span className="text-sm font-medium capitalize">{style.style}</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {style.totalImages} images • {(style.avgEngagementRate * 100).toFixed(1)}% avg engagement
+                        </div>                        <div className="text-sm text-muted-foreground">
+                          {style.totalImages} images • {((style.avgEngagementRate || 0) * 100).toFixed(1)}% avg engagement
                         </div>
                       </div>
-                      <Progress value={Math.min(style.avgEngagementRate * 100, 100)} className="h-2" />
+                      <Progress value={Math.min((style.avgEngagementRate || 0) * 100, 100)} className="h-2" />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>{formatNumber(style.avgViews)} avg views</span>
                         <span>{formatNumber(style.totalEngagements)} total engagements</span>
@@ -706,33 +759,29 @@ const AIImagePerformancePage = () => {
                         <div className="space-y-3">
                           <div>
                             <div className="flex justify-between text-sm mb-1">
-                              <span>Engagement Rate</span>
-                              <span className={statusInfo.color}>
-                                Your: {benchmark.yourPerformance.engagementRate.toFixed(1)}%
+                              <span>Engagement Rate</span>                              <span className={statusInfo.color}>
+                                Your: {((benchmark.yourPerformance?.engagementRate || 0)).toFixed(1)}%
                               </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Progress value={benchmark.yourPerformance.engagementRate} className="h-2 flex-1" />
+                            </div>                            <div className="flex items-center space-x-2">
+                              <Progress value={benchmark.yourPerformance?.engagementRate || 0} className="h-2 flex-1" />
                               <span className="text-xs text-muted-foreground">
-                                Avg: {benchmark.avgEngagementRate.toFixed(1)}%
+                                Avg: {(benchmark.avgEngagementRate || 0).toFixed(1)}%
                               </span>
                             </div>
                           </div>
                           
                           <div>
                             <div className="flex justify-between text-sm mb-1">
-                              <span>Views per Post</span>
-                              <span className={statusInfo.color}>
-                                Your: {formatNumber(benchmark.yourPerformance.viewsPerPost)}
+                              <span>Views per Post</span>                              <span className={statusInfo.color}>
+                                Your: {formatNumber(benchmark.yourPerformance?.viewsPerPost || 0)}
                               </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
+                            </div>                            <div className="flex items-center space-x-2">
                               <Progress 
-                                value={Math.min((benchmark.yourPerformance.viewsPerPost / benchmark.avgViewsPerPost) * 100, 100)} 
+                                value={Math.min(((benchmark.yourPerformance?.viewsPerPost || 0) / (benchmark.avgViewsPerPost || 1)) * 100, 100)} 
                                 className="h-2 flex-1" 
                               />
                               <span className="text-xs text-muted-foreground">
-                                Avg: {formatNumber(benchmark.avgViewsPerPost)}
+                                Avg: {formatNumber(benchmark.avgViewsPerPost || 0)}
                               </span>
                             </div>
                           </div>
@@ -772,10 +821,9 @@ const AIImagePerformancePage = () => {
                       <div className="flex items-start space-x-3">
                         <Zap className="w-5 h-5 text-blue-600 mt-0.5" />
                         <div>
-                          <h4 className="font-medium text-blue-800 mb-1">Top Performing Style</h4>
-                          <p className="text-sm text-blue-700">
-                            {performanceData.styleBreakdown[0]?.style} style images perform best with{' '}
-                            {(performanceData.styleBreakdown[0]?.avgEngagementRate * 100).toFixed(1)}% engagement rate.
+                          <h4 className="font-medium text-blue-800 mb-1">Top Performing Style</h4>                          <p className="text-sm text-blue-700">
+                            {performanceData?.styleBreakdown?.[0]?.style} style images perform best with{' '}
+                            {(performanceData?.styleBreakdown?.[0]?.avgEngagementRate * 100).toFixed(1)}% engagement rate.
                             Consider using this style more frequently.
                           </p>
                         </div>
@@ -783,14 +831,14 @@ const AIImagePerformancePage = () => {
                     </div>
                   )}
                   
-                  {performanceData?.growthMetrics.engagementGrowth && performanceData.growthMetrics.engagementGrowth > 0 && (
+                  {(performanceData?.growthMetrics?.engagementGrowth || 0) > 0 && (
                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-start space-x-3">
                         <TrendingUp className="w-5 h-5 text-green-600 mt-0.5" />
                         <div>
                           <h4 className="font-medium text-green-800 mb-1">Great Progress!</h4>
                           <p className="text-sm text-green-700">
-                            Your engagement rate has grown by {performanceData.growthMetrics.engagementGrowth.toFixed(1)}% 
+                            Your engagement rate has grown by {(performanceData?.growthMetrics?.engagementGrowth || 0).toFixed(1)}% 
                             in the selected period. Keep up the excellent work!
                           </p>
                         </div>

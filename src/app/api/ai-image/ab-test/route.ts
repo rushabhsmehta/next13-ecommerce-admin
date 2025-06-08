@@ -85,21 +85,14 @@ export async function GET(req: NextRequest) {
       if (!test) {
         return new NextResponse("Test not found", { status: 404 });
       }
-      return NextResponse.json(test);
+      return NextResponse.json(transformTestForFrontend(test));
     }
 
     // Get all A/B tests with filters
     const tests = await getABTests({ status, platform });
+    const transformedTests = tests.map(transformTestForFrontend);
     
-    return NextResponse.json({
-      tests,
-      summary: {
-        total: tests.length,
-        running: tests.filter(t => t.status === 'running').length,
-        completed: tests.filter(t => t.status === 'completed').length,
-        draft: tests.filter(t => t.status === 'draft').length,
-      }
-    });
+    return NextResponse.json(transformedTests);
   } catch (error) {
     console.error("[AB_TEST_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
@@ -294,7 +287,46 @@ async function getABTests(filters: { status?: string; platform?: string }): Prom
       platform: 'instagram',
       createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      variations: [],
+      variations: [
+        {
+          id: 'var_1',
+          name: 'Variant A',
+          imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+          prompt: 'Product launch with vibrant colors and dynamic composition',
+          trafficAllocation: 50,
+          metrics: {
+            impressions: 8420,
+            views: 6250,
+            likes: 284,
+            shares: 42,
+            comments: 18,
+            clicks: 156,
+            conversions: 23,
+            engagementRate: 4.2,
+            clickThroughRate: 2.5,
+            conversionRate: 0.37,
+          },
+        },
+        {
+          id: 'var_2',
+          name: 'Variant B',
+          imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+          prompt: 'Product launch with minimalist design and clean composition',
+          trafficAllocation: 50,
+          metrics: {
+            impressions: 8380,
+            views: 6100,
+            likes: 242,
+            shares: 35,
+            comments: 12,
+            clicks: 122,
+            conversions: 18,
+            engagementRate: 3.6,
+            clickThroughRate: 2.0,
+            conversionRate: 0.29,
+          },
+        },
+      ],
       config: {
         name: 'Product Launch Campaign',
         platform: 'instagram',
@@ -313,7 +345,65 @@ async function getABTests(filters: { status?: string; platform?: string }): Prom
       createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
       startDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
       endDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
-      variations: [],
+      variations: [
+        {
+          id: 'var_3',
+          name: 'Variant A',
+          imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400',
+          prompt: 'Brand awareness with professional composition',
+          trafficAllocation: 33,
+          metrics: {
+            impressions: 12500,
+            views: 9200,
+            likes: 520,
+            shares: 89,
+            comments: 34,
+            clicks: 285,
+            conversions: 47,
+            engagementRate: 5.8,
+            clickThroughRate: 3.1,
+            conversionRate: 0.51,
+          },
+        },
+        {
+          id: 'var_4',
+          name: 'Variant B',
+          imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400',
+          prompt: 'Brand awareness with emotional appeal',
+          trafficAllocation: 33,
+          metrics: {
+            impressions: 12400,
+            views: 9100,
+            likes: 485,
+            shares: 76,
+            comments: 28,
+            clicks: 245,
+            conversions: 38,
+            engagementRate: 5.2,
+            clickThroughRate: 2.7,
+            conversionRate: 0.42,
+          },
+        },
+        {
+          id: 'var_5',
+          name: 'Variant C',
+          imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400',
+          prompt: 'Brand awareness with action-oriented design',
+          trafficAllocation: 34,
+          metrics: {
+            impressions: 12600,
+            views: 9350,
+            likes: 445,
+            shares: 65,
+            comments: 22,
+            clicks: 210,
+            conversions: 32,
+            engagementRate: 4.8,
+            clickThroughRate: 2.2,
+            conversionRate: 0.34,
+          },
+        },
+      ],
       config: {
         name: 'Brand Awareness Test',
         platform: 'facebook',
@@ -336,6 +426,39 @@ async function getABTests(filters: { status?: string; platform?: string }): Prom
 async function getABTestById(testId: string): Promise<ABTestResult | null> {
   const tests = await getABTests({});
   return tests.find(test => test.id === testId) || null;
+}
+
+// Transform API data structure to match frontend expectations
+function transformTestForFrontend(test: ABTestResult) {
+  const totalViews = test.variations.reduce((sum, variant) => sum + variant.metrics.views, 0);
+  const targetSampleSize = Math.max(1000, Math.ceil(totalViews * 1.5)); // Target should be higher than current
+  
+  return {
+    id: test.id,
+    name: test.name,
+    description: test.config.name,
+    status: test.status,
+    createdAt: test.createdAt.toISOString().split('T')[0],
+    startedAt: test.startDate?.toISOString().split('T')[0],
+    completedAt: test.endDate?.toISOString().split('T')[0],
+    variants: test.variations.map(variant => ({
+      id: variant.id,
+      name: variant.name,
+      prompt: variant.prompt,
+      imageUrl: variant.imageUrl,
+      views: variant.metrics.views,
+      likes: variant.metrics.likes,
+      shares: variant.metrics.shares,
+      comments: variant.metrics.comments,
+      engagementRate: variant.metrics.engagementRate,
+      conversionRate: variant.metrics.conversionRate,
+    })),
+    targetSampleSize,
+    currentSampleSize: totalViews,
+    confidenceLevel: test.config.confidenceLevel,
+    winner: test.results?.winner,
+    recommendations: test.results?.recommendations || [],
+  };
 }
 
 async function analyzeABTestResults(testId: string): Promise<ABTestAnalysis> {

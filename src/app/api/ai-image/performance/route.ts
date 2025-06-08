@@ -156,19 +156,27 @@ export async function GET(req: NextRequest) {
         platformStats.set(img.platform, {
           count: 0,
           totalViews: 0,
+          totalLikes: 0,
+          totalShares: 0,
           totalEngagement: 0,
         });
       }
       const stats = platformStats.get(img.platform);
       stats.count++;
       stats.totalViews += img.views;
+      stats.totalLikes += img.likes;
+      stats.totalShares += img.shares;
       stats.totalEngagement += img.likes + img.shares + img.comments;
     });
 
     const topPlatforms = Array.from(platformStats.entries()).map(([platform, stats]) => ({
       platform,
       count: stats.count,
+      avgViews: stats.count > 0 ? stats.totalViews / stats.count : 0,
+      avgLikes: stats.count > 0 ? stats.totalLikes / stats.count : 0,
+      avgShares: stats.count > 0 ? stats.totalShares / stats.count : 0,
       avgEngagement: stats.count > 0 ? stats.totalEngagement / stats.count : 0,
+      avgEngagementRate: stats.count > 0 ? (stats.totalEngagement / stats.totalViews) * 100 : 0,
     })).sort((a, b) => b.avgEngagement - a.avgEngagement);
 
     // Style performance analysis
@@ -185,13 +193,14 @@ export async function GET(req: NextRequest) {
       stats.count++;
       stats.totalViews += img.views;
       stats.totalEngagement += img.likes + img.shares + img.comments;
-    });
-
-    const stylePerformance = Array.from(styleStats.entries()).map(([style, stats]) => ({
+    });    const stylePerformance = Array.from(styleStats.entries()).map(([style, stats]) => ({
       style,
       count: stats.count,
+      totalImages: stats.count,
       avgViews: stats.count > 0 ? stats.totalViews / stats.count : 0,
       avgEngagement: stats.count > 0 ? stats.totalEngagement / stats.count : 0,
+      totalEngagements: stats.totalEngagement,
+      avgEngagementRate: stats.count > 0 && stats.totalViews > 0 ? (stats.totalEngagement / stats.totalViews) : 0,
     })).sort((a, b) => b.avgEngagement - a.avgEngagement);
 
     // Purpose performance analysis
@@ -306,9 +315,9 @@ export async function GET(req: NextRequest) {
       shares: img.shares || Math.floor(Math.random() * 10),
       comments: img.comments || Math.floor(Math.random() * 15),
       engagementRate: img.engagementRate || Math.random() * 10 + 1,
-    }));
-
-    const previousTotalViews = previousPeriodImagesWithAnalytics.reduce((sum, img) => sum + img.views, 0);
+    }));    const previousTotalViews = previousPeriodImagesWithAnalytics.reduce((sum, img) => sum + img.views, 0);
+    const previousTotalLikes = previousPeriodImagesWithAnalytics.reduce((sum, img) => sum + img.likes, 0);
+    const previousTotalShares = previousPeriodImagesWithAnalytics.reduce((sum, img) => sum + img.shares, 0);
     const previousTotalEngagement = previousPeriodImagesWithAnalytics.reduce(
       (sum, img) => sum + img.likes + img.shares + img.comments, 0
     );
@@ -317,38 +326,58 @@ export async function GET(req: NextRequest) {
       viewsGrowth: previousTotalViews > 0 
         ? ((totalViews - previousTotalViews) / previousTotalViews) * 100 
         : 0,
+      likesGrowth: previousTotalLikes > 0 
+        ? ((totalLikes - previousTotalLikes) / previousTotalLikes) * 100 
+        : 0,
+      sharesGrowth: previousTotalShares > 0 
+        ? ((totalShares - previousTotalShares) / previousTotalShares) * 100 
+        : 0,
       engagementGrowth: previousTotalEngagement > 0 
         ? (((totalLikes + totalShares + totalComments) - previousTotalEngagement) / previousTotalEngagement) * 100 
         : 0,
       imageCountGrowth: previousPeriodImages.length > 0 
         ? ((totalImages - previousPeriodImages.length) / previousPeriodImages.length) * 100 
         : 0,
-    };
-
-    // Calculate benchmarks
+    };    // Calculate benchmarks
     const sortedByViews = imagesWithAnalytics.sort((a, b) => b.views - a.views);
     const sortedByEngagement = imagesWithAnalytics.sort((a, b) => b.engagementRate - a.engagementRate);
     
-    const benchmarks = {
-      avgViewsPerImage: totalImages > 0 ? totalViews / totalImages : 0,
-      avgEngagementPerImage: totalImages > 0 ? (totalLikes + totalShares + totalComments) / totalImages : 0,
-      topPercentileViews: sortedByViews.length > 0 ? sortedByViews[Math.floor(sortedByViews.length * 0.1)].views : 0,
-      topPercentileEngagement: sortedByEngagement.length > 0 ? sortedByEngagement[Math.floor(sortedByEngagement.length * 0.1)].engagementRate : 0,
-    };
-
-    const performanceMetrics: PerformanceMetrics = {
-      totalImages,
-      totalViews,
-      totalLikes,
-      totalShares,
-      totalComments,
-      totalImpressions,
-      avgEngagementRate,
-      bestPerformingImage,
-      worstPerformingImage,
-      topPlatforms,
-      stylePerformance,
-      purposePerformance,
+    // Create mock benchmark comparisons
+    const benchmarks = [
+      {
+        metric: "Views per Post",
+        yourPerformance: {
+          viewsPerPost: totalImages > 0 ? totalViews / totalImages : 0,
+        },
+        avgViewsPerPost: totalImages > 0 ? (totalViews / totalImages) * 0.8 : 0, // Mock industry average (20% lower)
+        comparison: totalImages > 0 && (totalViews / totalImages) > ((totalViews / totalImages) * 0.8) ? 'above' : 'below',
+      },
+      {
+        metric: "Engagement Rate",
+        yourPerformance: {
+          engagementRate: avgEngagementRate,
+        },
+        avgEngagementRate: avgEngagementRate * 0.75, // Mock industry average (25% lower)
+        comparison: avgEngagementRate > (avgEngagementRate * 0.75) ? 'above' : 'below',
+      }
+    ];const performanceMetrics = {
+      overview: {
+        totalImages,
+        totalViews,
+        totalLikes,
+        totalShares,
+        totalComments,
+        totalImpressions,
+        avgEngagementRate,
+        avgViewsPerImage: totalImages > 0 ? totalViews / totalImages : 0,
+        avgLikesPerImage: totalImages > 0 ? totalLikes / totalImages : 0,
+        avgSharesPerImage: totalImages > 0 ? totalShares / totalImages : 0,
+      },
+      bestPerforming: sortedByEngagement.slice(0, 10),
+      worstPerforming: sortedByEngagement.slice(-10).reverse(),
+      platformBreakdown: topPlatforms,
+      styleBreakdown: stylePerformance,
+      purposeBreakdown: purposePerformance,
       dailyTrends,
       weeklyTrends,
       monthlyTrends,

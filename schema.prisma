@@ -1152,17 +1152,58 @@ model AuditLog {
 model AiGeneratedImage {
   id                String   @id @default(cuid())
   prompt            String   @db.Text
+  enhancedPrompt    String?  @db.Text
   referenceImageUrl String?  @db.Text
   generatedImageUrl String   @db.Text
   isApproved        Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now())
+  
+  // Enhanced metadata fields
+  platform          String?
+  purpose           String?
+  targetAudience    String?
+  style             String?
+  colorScheme       String?
+  
+  // User and campaign tracking
+  userId            String?
+  campaignId        String?
+  
+  // Rich metadata as JSON
+  metadata          Json?
+  suggestedCaptions Json?
+  hashtags          Json?
+  bestPostingTimes  Json?
+  engagementTips    Json?
+  brandGuidelines   Json?
+  
+  // Performance tracking
+  views             Int      @default(0)
+  likes             Int      @default(0)
+  shares            Int      @default(0)
+  comments          Int      @default(0)
+  impressions       Int      @default(0)
+  clickThroughRate  Float    @default(0)
+  engagementRate    Float    @default(0)
+  
+  // A/B testing support
+  version           String   @default("A")
+  isTestVariant     Boolean  @default(false)
+  
+  // Social media post IDs
   xPostId           String?
   instagramPostId   String?
   linkedInPostId    String?
   pinterestPinId    String?
+  facebookPostId    String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([createdAt])
+  @@index([userId])
+  @@index([campaignId])
+  @@index([platform])
+  @@index([isApproved])
 }
 
 enum OperationalStaffRole {

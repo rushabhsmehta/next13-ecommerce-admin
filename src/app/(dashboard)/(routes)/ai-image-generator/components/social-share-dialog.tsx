@@ -11,6 +11,7 @@ import axios from 'axios';
 interface SocialShareDialogProps {
   aiGeneratedImageId: string;
   defaultText: string;
+  enhancedData?: any;
   onSuccess: () => void;
   onCancel: () => void;
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface SocialShareDialogProps {
 const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
   aiGeneratedImageId,
   defaultText,
+  enhancedData,
   onSuccess,
   onCancel,
   isOpen
@@ -26,6 +28,9 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [shareText, setShareText] = useState(defaultText);
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [showABTest, setShowABTest] = useState(false);
+  const [abTestData, setAbTestData] = useState<any>(null);
+  const [selectedCaption, setSelectedCaption] = useState(0);
   const [platforms, setPlatforms] = useState({
     twitter: true,
     facebook: false,
@@ -36,6 +41,26 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
   });
   
   if (!isOpen) return null;
+  const generateABTest = async () => {
+    setIsLoading(true);
+    try {
+      const selectedPlatform = Object.entries(platforms).find(([_, selected]) => selected)?.[0];
+      const response = await axios.post('/api/ai-image/ab-test', {
+        originalPrompt: defaultText,
+        platform: selectedPlatform,
+        variations: 3
+      });
+      
+      setAbTestData(response.data);
+      setShowABTest(true);
+      toast.success('A/B test variations generated!');
+    } catch (error) {
+      console.error('Error generating A/B test:', error);
+      toast.error('Failed to generate A/B test');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePlatformChange = (platform: keyof typeof platforms) => {
     setPlatforms(prev => ({
@@ -98,11 +123,36 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
       setIsLoading(false);
     }
   };
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-md w-full">
-        <h3 className="text-lg font-semibold mb-4">Share to Social Media</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-semibold mb-6">Share to Social Media</h3>
+        
+        {/* Enhanced Caption Selection */}
+        {enhancedData?.suggestedCaptions && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Choose Caption</label>
+            <div className="space-y-2">
+              {enhancedData.suggestedCaptions.map((caption: string, index: number) => (
+                <label key={index} className="flex items-start space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="caption"
+                    checked={selectedCaption === index}
+                    onChange={() => {
+                      setSelectedCaption(index);
+                      setShareText(caption);
+                    }}
+                    className="mt-1"
+                  />
+                  <span className="text-sm flex-1 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    {caption}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">Share Text</label>
@@ -114,11 +164,39 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
             className="w-full"
           />
         </div>
+
+        {/* Hashtags */}
+        {enhancedData?.hashtags && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Recommended Hashtags</label>
+            <div className="flex flex-wrap gap-1 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+              {enhancedData.hashtags.map((tag: string, index: number) => (
+                <span 
+                  key={index} 
+                  className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded cursor-pointer"
+                  onClick={() => setShareText(prev => prev + ' ' + tag)}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Select Platforms</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium">Select Platforms</label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateABTest}
+              disabled={isLoading || Object.values(platforms).every(v => !v)}
+            >
+              Generate A/B Test
+            </Button>
+          </div>
           
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="twitter" 
@@ -187,8 +265,46 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
             <p className="text-xs text-muted-foreground mt-1">Include country code (e.g., +1 for US)</p>
           </div>
         )}
+
+        {/* A/B Test Results */}
+        {showABTest && abTestData && (
+          <div className="mb-6 p-4 border rounded-lg">
+            <h4 className="font-medium mb-3">A/B Test Variations</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {abTestData.variations.map((variation: any, index: number) => (
+                <div key={index} className="border rounded p-2">
+                  <h5 className="text-sm font-medium mb-2">{variation.variation}</h5>
+                  <img src={variation.imageUrl} alt={`Variation ${variation.variation}`} className="w-full h-32 object-cover rounded mb-2" />
+                  <p className="text-xs text-gray-600">{variation.optimizedFor}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 text-xs text-gray-600">
+              <p><strong>Testing Recommendations:</strong></p>
+              <ul className="list-disc list-inside">
+                {abTestData.testingRecommendations.map((rec: string, index: number) => (
+                  <li key={index}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Best Posting Times */}
+        {enhancedData?.bestPostingTimes && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
+            <h5 className="text-sm font-medium mb-2">💡 Best Posting Times</h5>
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              {Object.entries(enhancedData.bestPostingTimes).slice(0, 4).map(([day, times]: [string, any]) => (
+                <div key={day}>
+                  <strong>{day}:</strong> {Array.isArray(times) ? times.slice(0, 2).join(', ') : times}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
-        <div className="flex justify-end space-x-2 mt-4">
+        <div className="flex justify-end space-x-2 mt-6">
           <Button 
             variant="outline" 
             onClick={onCancel}

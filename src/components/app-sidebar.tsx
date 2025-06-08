@@ -110,9 +110,14 @@ const NAV_ITEMS = [
       { title: "Associate Performance", url: "/reports/associatePerformance" },
     ],
   },  {
-    title: "Tools",
+    title: "AI Image Management",
     items: [
       { title: "AI Image Generator", url: "/ai-image-generator" },
+      { title: "Analytics Dashboard", url: "/ai-image-analytics" },
+      { title: "Campaign Management", url: "/ai-image-campaigns" },
+      { title: "A/B Testing", url: "/ai-image-ab-test" },
+      { title: "Performance Tracking", url: "/ai-image-performance" },
+      { title: "Social Media Integration", url: "/ai-image-social-media" },
     ],
   },
   {

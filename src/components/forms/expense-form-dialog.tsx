@@ -10,6 +10,7 @@ import { format } from "date-fns";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -60,13 +61,19 @@ const formSchema = z.object({
   }),
   description: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
-  accountId: z.string().min(1, {
-    message: "Account is required",
-  }),
-  accountType: z.string().min(1, {
-    message: "Account type is required",
-  }),
+  accountId: z.string().optional(),
+  accountType: z.string().optional(),
   images: z.array(z.string()).default([]),
+  isAccrued: z.boolean().default(false),
+}).refine((data) => {
+  // If not accrued, account information is required
+  if (!data.isAccrued) {
+    return data.accountType && data.accountId;
+  }
+  return true;
+}, {
+  message: "Account information is required for paid expenses",
+  path: ["accountType"],
 });
 
 type ExpenseFormValues = z.infer<typeof formSchema>;
@@ -96,8 +103,8 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
     accountId: "",
     accountType: "",
     images: [],
-  };  if (initialData && initialData.id) {
-    // Only set these values when we have an existing expense (has an id)
+    isAccrued: false,
+  };if (initialData && initialData.id) {    // Only set these values when we have an existing expense (has an id)
     defaultValues = {
       expenseDate: initialData.expenseDate ? new Date(initialData.expenseDate) : new Date(),
       amount: initialData.amount,
@@ -107,6 +114,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
       accountId: initialData.bankAccountId || initialData.cashAccountId || "",
       accountType: initialData.bankAccountId ? "bank" : "cash",
       images: initialData.images?.map((image: any) => image.url) || [],
+      isAccrued: initialData.isAccrued || false,
     };
   }else if (initialData && initialData.tourPackageQueryId) {
     // If we're creating a new expense for a tour package, just pass the tour package ID
@@ -132,9 +140,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
         initialDataProps: initialData ? Object.keys(initialData) : "No initialData"
       });
       setLoading(true);
-      setFormErrors([]);
-
-      // Validate required fields before API call
+      setFormErrors([]);      // Validate required fields before API call
       if (!data.expenseCategoryId) {
         setFormErrors(["Expense category is required"]);
         toast.error("Expense category is required");
@@ -142,16 +148,16 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
         return;
       }
 
-      if (!data.accountType || !data.accountId) {
-        setFormErrors(["Account information is required"]);
-        toast.error("Account information is required");
+      if (!data.isAccrued && (!data.accountType || !data.accountId)) {
+        setFormErrors(["Account information is required for paid expenses"]);
+        toast.error("Account information is required for paid expenses");
         setLoading(false);
         return;
       }      // Prepare the API data with correct account type field
       const apiData = {
         ...data,
-        bankAccountId: data.accountType === 'bank' ? data.accountId : null,
-        cashAccountId: data.accountType === 'cash' ? data.accountId : null,
+        bankAccountId: (!data.isAccrued && data.accountType === 'bank') ? data.accountId : null,
+        cashAccountId: (!data.isAccrued && data.accountType === 'cash') ? data.accountId : null,
         images: data.images || [],
       } as Partial<typeof data & { bankAccountId: string | null; cashAccountId: string | null; images: string[] }>;
       delete apiData.accountId;
@@ -332,9 +338,7 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                       <FormMessage />
                     </FormItem>
                   )}
-                />
-
-                {/* Amount */}
+                />                {/* Amount */}
                 <FormField
                   control={form.control}
                   name="amount"
@@ -359,6 +363,30 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                   )}
                 />
 
+                {/* Accrual Status */}
+                <FormField
+                  control={form.control}
+                  name="isAccrued"
+                  render={({ field }) => (                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-gray-200 p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => field.onChange(checked === true)}
+                          className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-sm font-medium text-gray-700">
+                          Accrued Expense
+                        </FormLabel>
+                        <p className="text-xs text-gray-500">
+                          Check this if the expense is incurred but not yet paid
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
                 {/* Tour Package Query Select */}
                 {initialData && initialData.tourPackageQueryId && (
                   <FormField
@@ -378,63 +406,65 @@ export const ExpenseFormDialog: React.FC<ExpenseFormProps> = ({
                       </FormItem>
                     )}
                   />
+                )}                {/* Account Type - Only show if not accrued */}
+                {!form.watch("isAccrued") && (
+                  <FormField
+                    control={form.control}
+                    name="accountType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Account Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20">
+                              <SelectValue placeholder="Select account type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="bank">Bank Account</SelectItem>
+                            <SelectItem value="cash">Cash Account</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
 
-                {/* Account Type */}
-                <FormField
-                  control={form.control}
-                  name="accountType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Account Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20">
-                            <SelectValue placeholder="Select account type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="bank">Bank Account</SelectItem>
-                          <SelectItem value="cash">Cash Account</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Account Select */}
-                <FormField
-                  control={form.control}
-                  name="accountId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Account</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20">
-                            <SelectValue placeholder="Select account" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {form.watch("accountType") === "bank" &&
-                            bankAccounts.map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.accountName}
-                              </SelectItem>
-                            ))}
-                          {form.watch("accountType") === "cash" &&
-                            cashAccounts.map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.accountName}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Account Select - Only show if not accrued */}
+                {!form.watch("isAccrued") && (
+                  <FormField
+                    control={form.control}
+                    name="accountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Account</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20">
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {form.watch("accountType") === "bank" &&
+                              bankAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.accountName}
+                                </SelectItem>
+                              ))}
+                            {form.watch("accountType") === "cash" &&
+                              cashAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.accountName}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Description */}
                 <div className="lg:col-span-2">

@@ -8,9 +8,7 @@ export default async function ExpensesPage() {
 
   if (!userId) {
     redirect("/sign-in");
-  } */
-
-  const expenses = await prismadb.expenseDetail.findMany({
+  } */  const expenses = await prismadb.expenseDetail.findMany({
     orderBy: { expenseDate: "desc" },
     include: {
       expenseCategory: {

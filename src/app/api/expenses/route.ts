@@ -16,7 +16,8 @@ export async function POST(req: Request) {
       description,
       bankAccountId,
       cashAccountId,
-      images
+      images,
+      isAccrued = false
     } = body;
 
     // Validate required fields
@@ -28,20 +29,24 @@ export async function POST(req: Request) {
       return new NextResponse("Valid amount is required", { status: 400 });
     }
 
-    // Ensure either bank or cash account is selected
-    if (!bankAccountId && !cashAccountId) {
-      return new NextResponse("Either bank or cash account must be selected", { status: 400 });
+    // For paid (non-accrued) expenses, ensure either bank or cash account is selected
+    if (!isAccrued && !bankAccountId && !cashAccountId) {
+      return new NextResponse("Either bank or cash account must be selected for paid expenses", { status: 400 });
     }    // Create expense detail
     const expenseDetail = await prismadb.expenseDetail.create({
-      data: {        tourPackageQueryId: tourPackageQueryId || null,
+      data: {        
+        tourPackageQueryId: tourPackageQueryId || null,
         expenseDate: new Date(new Date(expenseDate).toISOString()),
         amount: parseFloat(amount.toString()),
         expenseCategoryId: expenseCategoryId || null,
         description: description || null,
-        bankAccountId: bankAccountId || null,
-        cashAccountId: cashAccountId || null,
+        bankAccountId: isAccrued ? null : (bankAccountId || null),
+        cashAccountId: isAccrued ? null : (cashAccountId || null),
+        isAccrued: isAccrued,
+        accruedDate: isAccrued ? new Date() : null,
+        paidDate: isAccrued ? null : new Date(),
       }
-    });    // Create images separately if provided
+    });// Create images separately if provided
     if (images && images.length > 0) {
       for (const url of images) {
         await prismadb.images.create({
@@ -51,34 +56,34 @@ export async function POST(req: Request) {
           }
         });
       }
-    }
-
-    // Update account balance
-    if (bankAccountId) {
-      const bankAccount = await prismadb.bankAccount.findUnique({
-        where: { id: bankAccountId }
-      });
-      
-      if (bankAccount) {
-        await prismadb.bankAccount.update({
-          where: { id: bankAccountId },
-          data: { 
-            currentBalance: bankAccount.currentBalance - parseFloat(amount.toString())
-          }
+    }    // Update account balance only for paid expenses (not accrued)
+    if (!isAccrued) {
+      if (bankAccountId) {
+        const bankAccount = await prismadb.bankAccount.findUnique({
+          where: { id: bankAccountId }
         });
-      }
-    } else if (cashAccountId) {
-      const cashAccount = await prismadb.cashAccount.findUnique({
-        where: { id: cashAccountId }
-      });
-      
-      if (cashAccount) {
-        await prismadb.cashAccount.update({
-          where: { id: cashAccountId },
-          data: { 
-            currentBalance: cashAccount.currentBalance - parseFloat(amount.toString())
-          }
+        
+        if (bankAccount) {
+          await prismadb.bankAccount.update({
+            where: { id: bankAccountId },
+            data: { 
+              currentBalance: bankAccount.currentBalance - parseFloat(amount.toString())
+            }
+          });
+        }
+      } else if (cashAccountId) {
+        const cashAccount = await prismadb.cashAccount.findUnique({
+          where: { id: cashAccountId }
         });
+        
+        if (cashAccount) {
+          await prismadb.cashAccount.update({
+            where: { id: cashAccountId },
+            data: { 
+              currentBalance: cashAccount.currentBalance - parseFloat(amount.toString())
+            }
+          });
+        }
       }
     }
 
@@ -94,11 +99,10 @@ export async function GET(req: Request) {
     const { userId } = auth();
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
+    }    const { searchParams } = new URL(req.url);
     const tourPackageQueryId = searchParams.get('tourPackageQueryId');
     const categoryId = searchParams.get('expenseCategoryId');
+    const isAccrued = searchParams.get('isAccrued');
     
     let query: any = {};
     
@@ -108,7 +112,11 @@ export async function GET(req: Request) {
     
     if (categoryId) {
       query.expenseCategoryId = categoryId;
-    }    const expenses = await prismadb.expenseDetail.findMany({
+    }
+
+    if (isAccrued !== null) {
+      query.isAccrued = isAccrued === 'true';
+    }const expenses = await prismadb.expenseDetail.findMany({
       where: query,
       include: {
         expenseCategory: true,

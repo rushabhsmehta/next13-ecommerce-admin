@@ -384,6 +384,9 @@ model ExpenseDetail {
   bankAccountId      String?
   cashAccountId      String?
   expenseCategoryId  String?
+  isAccrued          Boolean           @default(false)
+  accruedDate        DateTime?
+  paidDate           DateTime?
   expenseCategory    ExpenseCategory?  @relation(fields: [expenseCategoryId], references: [id])
   images             Images[]
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
@@ -394,6 +397,7 @@ model ExpenseDetail {
   @@index([cashAccountId])
   @@index([expenseCategoryId])
   @@index([tourPackageQueryId])
+  @@index([isAccrued])
 }
 
 model FlightDetails {

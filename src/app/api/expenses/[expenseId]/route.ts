@@ -58,7 +58,8 @@ export async function PATCH(
       description,
       bankAccountId,
       cashAccountId,
-      images
+      images,
+      isAccrued
     } = body;
 
     // Get existing expense to revert account balances
@@ -72,23 +73,24 @@ export async function PATCH(
 
     if (!existingExpense) {
       return new NextResponse("Expense not found", { status: 404 });
-    }
-
-    // Revert previous account balance
-    if (existingExpense.bankAccountId) {
-      await prismadb.bankAccount.update({
-        where: { id: existingExpense.bankAccountId },
-        data: { 
-          currentBalance: existingExpense.bankAccount!.currentBalance + existingExpense.amount
-        }
-      });
-    } else if (existingExpense.cashAccountId) {
-      await prismadb.cashAccount.update({
-        where: { id: existingExpense.cashAccountId },
-        data: { 
-          currentBalance: existingExpense.cashAccount!.currentBalance + existingExpense.amount
-        }
-      });    }    // Handle image operations if images are provided
+    }    // Revert previous account balance only if expense was paid (not accrued)
+    if (!existingExpense.isAccrued) {
+      if (existingExpense.bankAccountId) {
+        await prismadb.bankAccount.update({
+          where: { id: existingExpense.bankAccountId },
+          data: { 
+            currentBalance: existingExpense.bankAccount!.currentBalance + existingExpense.amount
+          }
+        });
+      } else if (existingExpense.cashAccountId) {
+        await prismadb.cashAccount.update({
+          where: { id: existingExpense.cashAccountId },
+          data: { 
+            currentBalance: existingExpense.cashAccount!.currentBalance + existingExpense.amount
+          }
+        });
+      }
+    }// Handle image operations if images are provided
     if (images !== undefined) {
       // Delete existing images
       await prismadb.images.deleteMany({
@@ -106,53 +108,56 @@ export async function PATCH(
           });
         }
       }
-    }
-
-    // Update expense detail
+    }    // Update expense detail
     const updatedExpense = await prismadb.expenseDetail.update({
       where: {
         id: params.expenseId
-      },      data: {        
+      },      
+      data: {        
         expenseDate: new Date(new Date(expenseDate).toISOString()),
         amount: parseFloat(amount.toString()),
         expenseCategoryId: expenseCategoryId || null,
         description: description || null,
-        bankAccountId: bankAccountId || null,
-        cashAccountId: cashAccountId || null,
-      },include: {
+        bankAccountId: isAccrued ? null : (bankAccountId || null),
+        cashAccountId: isAccrued ? null : (cashAccountId || null),
+        isAccrued: isAccrued !== undefined ? isAccrued : existingExpense.isAccrued,
+        accruedDate: isAccrued && !existingExpense.isAccrued ? new Date() : existingExpense.accruedDate,
+        paidDate: !isAccrued && existingExpense.isAccrued ? new Date() : (!isAccrued ? new Date() : null),
+      },
+      include: {
         expenseCategory: true,
         bankAccount: true,
         cashAccount: true,
         images: true
       }
-    });
-
-    // Update new account balance
-    if (bankAccountId) {
-      const bankAccount = await prismadb.bankAccount.findUnique({
-        where: { id: bankAccountId }
-      });
-      
-      if (bankAccount) {
-        await prismadb.bankAccount.update({
-          where: { id: bankAccountId },
-          data: { 
-            currentBalance: bankAccount.currentBalance - parseFloat(amount.toString())
-          }
+    });    // Update new account balance only for paid expenses (not accrued)
+    if (!updatedExpense.isAccrued) {
+      if (bankAccountId) {
+        const bankAccount = await prismadb.bankAccount.findUnique({
+          where: { id: bankAccountId }
         });
-      }
-    } else if (cashAccountId) {
-      const cashAccount = await prismadb.cashAccount.findUnique({
-        where: { id: cashAccountId }
-      });
-      
-      if (cashAccount) {
-        await prismadb.cashAccount.update({
-          where: { id: cashAccountId },
-          data: { 
-            currentBalance: cashAccount.currentBalance - parseFloat(amount.toString())
-          }
+        
+        if (bankAccount) {
+          await prismadb.bankAccount.update({
+            where: { id: bankAccountId },
+            data: { 
+              currentBalance: bankAccount.currentBalance - parseFloat(amount.toString())
+            }
+          });
+        }
+      } else if (cashAccountId) {
+        const cashAccount = await prismadb.cashAccount.findUnique({
+          where: { id: cashAccountId }
         });
+        
+        if (cashAccount) {
+          await prismadb.cashAccount.update({
+            where: { id: cashAccountId },
+            data: { 
+              currentBalance: cashAccount.currentBalance - parseFloat(amount.toString())
+            }
+          });
+        }
       }
     }
 
@@ -188,23 +193,23 @@ export async function DELETE(
 
     if (!expense) {
       return new NextResponse("Expense not found", { status: 404 });
-    }
-
-    // Revert account balance
-    if (expense.bankAccountId) {
-      await prismadb.bankAccount.update({
-        where: { id: expense.bankAccountId },
-        data: { 
-          currentBalance: expense.bankAccount!.currentBalance + expense.amount
-        }
-      });
-    } else if (expense.cashAccountId) {
-      await prismadb.cashAccount.update({
-        where: { id: expense.cashAccountId },
-        data: { 
-          currentBalance: expense.cashAccount!.currentBalance + expense.amount
-        }
-      });
+    }    // Revert account balance only if expense was paid (not accrued)
+    if (!expense.isAccrued) {
+      if (expense.bankAccountId) {
+        await prismadb.bankAccount.update({
+          where: { id: expense.bankAccountId },
+          data: { 
+            currentBalance: expense.bankAccount!.currentBalance + expense.amount
+          }
+        });
+      } else if (expense.cashAccountId) {
+        await prismadb.cashAccount.update({
+          where: { id: expense.cashAccountId },
+          data: { 
+            currentBalance: expense.cashAccount!.currentBalance + expense.amount
+          }
+        });
+      }
     }
 
     // Delete the expense

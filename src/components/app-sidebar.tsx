@@ -84,6 +84,7 @@ const NAV_ITEMS = [
     items: [
       { title: "Incomes", url: "/incomes" },
       { title: "Expenses", url: "/expenses" },
+      { title: "Accrued Expenses", url: "/expenses/accrued" },
      //  { title: "Sales", url: "/sales" },
       { title: "Sale Returns", url: "/sale-returns" },
      // { title: "Purchases", url: "/purchases" },

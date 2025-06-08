@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -70,25 +71,23 @@ export const ExpensesListTable: React.FC<ExpensesListTableProps> = ({ data }) =>
         loading={loading}
       />
       <div className="rounded-md border">
-        <Table>
-          <TableHeader>
+        <Table>          <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {data.length === 0 && (
+          <TableBody>            {data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No expenses found
                 </TableCell>
               </TableRow>
-            )}
-            {data.map((expense) => (
+            )}            {data.map((expense) => (
               <TableRow key={expense.id} className="hover:bg-muted/30">
                 <TableCell>{format(new Date(expense.expenseDate), "MMM d, yyyy")}</TableCell>
                 <TableCell>{expense.expenseCategory?.name || "N/A"}</TableCell>
@@ -96,6 +95,17 @@ export const ExpensesListTable: React.FC<ExpensesListTableProps> = ({ data }) =>
                   {expense.description || "No description"}
                 </TableCell>
                 <TableCell className="text-right font-medium text-red-600">{formatPrice(expense.amount)}</TableCell>
+                <TableCell>
+                  {expense.isAccrued ? (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      Accrued
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      Paid
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

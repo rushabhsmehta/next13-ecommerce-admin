@@ -37,19 +37,33 @@ interface ExpensesClientProps {
 export const ExpensesClient: React.FC<ExpensesClientProps> = ({
   expenses,
   categories,
-}) => {  const router = useRouter();
+}) => {
+  const router = useRouter();
   const [filteredCategory, setFilteredCategory] = useState<string>("");
+  const [filteredStatus, setFilteredStatus] = useState<string>("");
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Calculate total amount
   const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
   const filteredExpenses = expenses.filter((expense) => {
     // Filter by category
     if (filteredCategory && expense.expenseCategory?.name !== filteredCategory) {
       return false;
+    }
+
+    // Filter by status
+    if (filteredStatus) {
+      if (filteredStatus === "accrued" && !expense.isAccrued) {
+        return false;
+      }
+      if (filteredStatus === "paid" && expense.isAccrued) {
+        return false;
+      }
     }
 
     // Filter by start date
@@ -83,8 +97,10 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
   });
 
   const filteredTotal = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
   const resetFilters = () => {
     setFilteredCategory("");
+    setFilteredStatus("");
     setDateFrom(undefined);
     setDateTo(undefined);
     setSearchQuery("");
@@ -105,7 +121,7 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
     // Add summary metrics
     doc.setFontSize(12);
     doc.text(`Total Expenses: ${formatPrice(totalAmount)}`, 14, 40);
-    if (filteredCategory || dateFrom || dateTo) {
+    if (filteredCategory || filteredStatus || dateFrom || dateTo) {
       doc.text(`Filtered Total: ${formatPrice(filteredTotal)}`, 14, 48);
     }
 
@@ -114,14 +130,15 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
       format(new Date(expense.expenseDate), "MMM d, yyyy"),
       expense.expenseCategory?.name || "N/A",
       expense.description || "No description",
+      expense.isAccrued ? "Accrued" : "Paid",
       `${formatPrice(expense.amount)}`
     ]);
 
     // Add the table
     autoTable(doc, {
-      head: [["Date", "Category", "Description", "Amount"]],
+      head: [["Date", "Category", "Description", "Status", "Amount"]],
       body: tableData,
-      startY: filteredCategory || dateFrom || dateTo ? 55 : 48,
+      startY: filteredCategory || filteredStatus || dateFrom || dateTo ? 55 : 48,
     });
 
     // Download the PDF
@@ -141,7 +158,7 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
       [`Generated on: ${new Date().toLocaleDateString()}`],
       [""],
       [`Total Expenses: ${formatPrice(totalAmount)}`],
-      filteredCategory || dateFrom || dateTo ? [`Filtered Total: ${formatPrice(filteredTotal)}`] : [],
+      ...(filteredCategory || filteredStatus || dateFrom || dateTo ? [[`Filtered Total: ${formatPrice(filteredTotal)}`]] : []),
       [""],
       [""] // Empty row before the table
     ];
@@ -150,13 +167,14 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
 
     // Add data table headers
     const headers = [
-      ["Date", "Category", "Description", "Amount"]
+      ["Date", "Category", "Description", "Status", "Amount"]
     ];
 
     const dataRows = filteredExpenses.map(expense => [
       format(new Date(expense.expenseDate), "MMM d, yyyy"),
       expense.expenseCategory?.name || "N/A",
       expense.description || "No description",
+      expense.isAccrued ? "Accrued" : "Paid",
       formatPrice(expense.amount)
     ]);
 
@@ -169,6 +187,7 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
       { wch: 12 }, // Date
       { wch: 20 }, // Category
       { wch: 40 }, // Description
+      { wch: 12 }, // Status
       { wch: 15 }, // Amount
     ];
 
@@ -202,9 +221,8 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatPrice(totalAmount)}</div>
-            {filteredCategory || dateFrom || dateTo ? (
+          <CardContent>            <div className="text-2xl font-bold text-red-600">{formatPrice(totalAmount)}</div>
+            {filteredCategory || filteredStatus || dateFrom || dateTo ? (
               <div className="text-sm text-gray-500">Filtered: {formatPrice(filteredTotal)}</div>
             ) : null}
           </CardContent>
@@ -264,9 +282,8 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
             )}
           </div>
         </div>
-        
-        <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-          <div className="w-full md:w-1/3">
+          <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+          <div className="w-full md:w-1/4">
             <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -355,7 +372,120 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
             </Popover>
           </div>
 
-          <div className="w-full md:w-1/3 flex flex-col md:flex-row gap-2">
+          <div className="w-full md:w-1/4">
+            <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={statusOpen}
+                  className="w-full justify-between"
+                >
+                  {filteredStatus === "accrued" ? "Accrued" : 
+                   filteredStatus === "paid" ? "Paid" : 
+                   "Filter by status"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandList>
+                    <CommandGroup>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredStatus("");
+                          setStatusOpen(false);
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            filteredStatus === "" ? "bg-primary text-primary-foreground" : "opacity-50"
+                          )}
+                        >
+                          {filteredStatus === "" ? (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3 w-3"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          ) : null}
+                        </div>
+                        All Status
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredStatus("accrued");
+                          setStatusOpen(false);
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            filteredStatus === "accrued" ? "bg-primary text-primary-foreground" : "opacity-50"
+                          )}
+                        >
+                          {filteredStatus === "accrued" ? (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3 w-3"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          ) : null}
+                        </div>
+                        Accrued
+                      </CommandItem>
+                      <CommandItem
+                        onSelect={() => {
+                          setFilteredStatus("paid");
+                          setStatusOpen(false);
+                        }}
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            filteredStatus === "paid" ? "bg-primary text-primary-foreground" : "opacity-50"
+                          )}
+                        >
+                          {filteredStatus === "paid" ? (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3 w-3"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          ) : null}
+                        </div>
+                        Paid
+                      </CommandItem>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="w-full md:w-2/4 flex flex-col md:flex-row gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button

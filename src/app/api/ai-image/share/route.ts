@@ -10,6 +10,8 @@ import {
   shareToWhatsAppBusiness
 } from "@/lib/social-media";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const { userId } = auth();

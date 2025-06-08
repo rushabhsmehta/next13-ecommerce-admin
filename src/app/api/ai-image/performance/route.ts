@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
+export const dynamic = 'force-dynamic';
+
 
 interface PerformanceMetrics {
   totalImages: number;

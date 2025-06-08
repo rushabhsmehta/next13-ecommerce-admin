@@ -134,15 +134,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
     
     if (savedMealPlanId && !selectedMealPlanId) {
       console.log('Restoring saved meal plan ID:', savedMealPlanId);
-      setSelectedMealPlanId(savedMealPlanId);
-    }
+      setSelectedMealPlanId(savedMealPlanId);    }
     
     // Only restore numberOfRooms if it's different AND we haven't manually changed it
     if (savedNumberOfRooms && savedNumberOfRooms > 0 && savedNumberOfRooms !== numberOfRooms) {
       console.log('Restoring saved number of rooms:', savedNumberOfRooms);
       setNumberOfRooms(savedNumberOfRooms);
     }
-  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId]); // Removed numberOfRooms from dependency
+  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId, numberOfRooms]);
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {

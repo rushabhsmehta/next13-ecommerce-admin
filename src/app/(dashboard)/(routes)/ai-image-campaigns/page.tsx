@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,18 +47,13 @@ interface CampaignsResponse {
   completed: number;
 }
 
-export default function CampaignManagementPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+export default function CampaignManagementPage() {  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ total: 0, active: 0, completed: 0 });
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const router = useRouter();
-
-  useEffect(() => {
-    fetchCampaigns();
-  }, [selectedStatus]);
-
-  const fetchCampaigns = async () => {
+  
+  const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -74,13 +69,15 @@ export default function CampaignManagementPage() {
         total: data.total,
         active: data.active,
         completed: data.completed,
-      });
-    } catch (error) {
+      });    } catch (error) {
       console.error("Error fetching campaigns:", error);
-    } finally {
-      setLoading(false);
+    } finally {      setLoading(false);
     }
-  };
+  }, [selectedStatus]);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

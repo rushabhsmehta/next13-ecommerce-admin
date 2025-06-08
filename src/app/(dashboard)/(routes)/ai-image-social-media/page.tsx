@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -496,12 +497,13 @@ export default function SocialMediaIntegrationPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm">{post.content}</p>
-                    
-                    {post.imageUrl && (
+                      {post.imageUrl && (
                       <div className="w-full max-w-md">
-                        <img 
+                        <Image 
                           src={post.imageUrl} 
                           alt="Post image" 
+                          width={400}
+                          height={192}
                           className="rounded-lg object-cover w-full h-48"
                         />
                       </div>

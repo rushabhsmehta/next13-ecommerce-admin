@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -271,10 +272,9 @@ const SocialShareDialog: React.FC<SocialShareDialogProps> = ({
           <div className="mb-6 p-4 border rounded-lg">
             <h4 className="font-medium mb-3">A/B Test Variations</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {abTestData.variations.map((variation: any, index: number) => (
-                <div key={index} className="border rounded p-2">
+              {abTestData.variations.map((variation: any, index: number) => (                <div key={index} className="border rounded p-2">
                   <h5 className="text-sm font-medium mb-2">{variation.variation}</h5>
-                  <img src={variation.imageUrl} alt={`Variation ${variation.variation}`} className="w-full h-32 object-cover rounded mb-2" />
+                  <Image src={variation.imageUrl} alt={`Variation ${variation.variation}`} width={300} height={128} className="w-full h-32 object-cover rounded mb-2" />
                   <p className="text-xs text-gray-600">{variation.optimizedFor}</p>
                 </div>
               ))}

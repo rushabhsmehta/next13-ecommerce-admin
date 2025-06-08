@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -80,14 +80,9 @@ const ABTestPage = () => {
     variants: [
       { name: 'Variant A', prompt: '' },
       { name: 'Variant B', prompt: '' }
-    ]
-  });
-
-  useEffect(() => {
-    fetchTests();
-  }, [selectedTest, statusFilter]);
-
-  const fetchTests = async () => {
+    ]  });
+  
+  const fetchTests = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await axios.get('/api/ai-image/ab-test', {
@@ -100,10 +95,13 @@ const ABTestPage = () => {
     } catch (error) {
       console.error('Error fetching A/B tests:', error);
       setTests([]);
-    } finally {
-      setIsLoading(false);
+    } finally {      setIsLoading(false);
     }
-  };
+  }, [selectedTest, statusFilter]);
+
+  useEffect(() => {
+    fetchTests();
+  }, [fetchTests]);
 
   const createTest = async () => {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -125,11 +125,8 @@ const AIImagePerformancePage = () => {
   const [timeRange, setTimeRange] = useState('30');
   const [platform, setPlatform] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchPerformanceData();
-  }, [timeRange, platform]);
-  const fetchPerformanceData = async () => {
+  
+  const fetchPerformanceData = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await axios.get('/api/ai-image/performance', {
@@ -203,11 +200,13 @@ const AIImagePerformancePage = () => {
           imagesGrowth: 0,
         },
         benchmarks: [],
-      });
-    } finally {
-      setIsLoading(false);
+      });    } finally {      setIsLoading(false);
     }
-  };
+  }, [timeRange, platform]);
+
+  useEffect(() => {
+    fetchPerformanceData();
+  }, [fetchPerformanceData]);
 
   const StatCard = ({ title, value, icon: Icon, trend, description, isPercentage = false }: {
     title: string;

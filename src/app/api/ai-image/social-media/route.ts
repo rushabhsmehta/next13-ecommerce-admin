@@ -246,13 +246,17 @@ export async function POST(req: NextRequest) {
             message: `Post scheduled for ${new Date(scheduleTime).toLocaleString()}`,
           });
           continue;
-        }
-
-        // Post immediately
+        }        // Post immediately
         const result = await mockSocialMediaAPI[platform as keyof typeof mockSocialMediaAPI].post(
           image.generatedImageUrl, 
           caption || image.prompt
-        );
+        );        // Create social media post record
+        const socialMediaPost = await prismadb.socialMediaPost.create({
+          data: {
+            aiGeneratedImageId: image.id,
+            socialMediaConnectionId: connection.id,
+            platform: platform as SocialMediaPlatform,
+            platformPostId: result.postId,
             caption: caption || image.prompt,
             postUrl: result.url,
             status: SocialMediaPostStatus.PUBLISHED,
@@ -452,19 +456,36 @@ export async function GET(req: NextRequest) {
             postId: post.platformPostId,
             postUrl: post.postUrl,
             publishedAt: post.publishedAt,
+          };          // Update the database with fresh metrics
+          const updateData: any = {
+            views: platformAnalytics?.views || post.views,
+            comments: platformAnalytics?.comments || post.comments,
+            impressions: platformAnalytics?.impressions || post.impressions,
+            lastSyncAt: new Date(),
           };
 
-          // Update the database with fresh metrics
+          // Handle platform-specific analytics fields
+          if ('likes' in platformAnalytics) {
+            updateData.likes = platformAnalytics.likes;
+          } else if ('saves' in platformAnalytics) {
+            updateData.likes = platformAnalytics.saves; // Pinterest uses saves instead of likes
+          } else {
+            updateData.likes = post.likes;
+          }
+
+          if ('shares' in platformAnalytics) {
+            updateData.shares = platformAnalytics.shares;
+          } else if ('retweets' in platformAnalytics) {
+            updateData.shares = platformAnalytics.retweets; // Twitter uses retweets
+          } else if ('saves' in platformAnalytics) {
+            updateData.shares = platformAnalytics.saves; // Pinterest uses saves
+          } else {
+            updateData.shares = post.shares;
+          }
+
           await prismadb.socialMediaPost.update({
             where: { id: post.id },
-            data: {
-              views: platformAnalytics?.views || post.views,
-              likes: platformAnalytics?.likes || post.likes,
-              shares: platformAnalytics?.shares || platformAnalytics?.retweets || platformAnalytics?.saves || post.shares,
-              comments: platformAnalytics?.comments || post.comments,
-              impressions: platformAnalytics?.impressions || post.impressions,
-              lastSyncAt: new Date(),
-            },
+            data: updateData,
           });
         } catch (error) {
           analyticsData[platformName] = { 

@@ -25,7 +25,8 @@ import {
   Facebook,
   Plus,
   Send,
-  BarChart3
+  BarChart3,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -71,6 +72,7 @@ export default function SocialMediaIntegrationPage() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [connections, setConnections] = useState<PlatformConnection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
   const [newPost, setNewPost] = useState({
@@ -83,19 +85,21 @@ export default function SocialMediaIntegrationPage() {
   useEffect(() => {
     fetchSocialMediaData();
   }, []);
-
   const fetchSocialMediaData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching social media data...');
       
       // Fetch posts
       const postsResponse = await fetch('/api/ai-image/social-media?action=get_posts');
       const postsData = await postsResponse.json();
+      console.log('Posts data:', postsData);
       setPosts(postsData.posts || []);
 
       // Fetch connections
       const connectionsResponse = await fetch('/api/ai-image/social-media?action=get_connections');
       const connectionsData = await connectionsResponse.json();
+      console.log('Connections data:', connectionsData);
       setConnections(connectionsData.connections || []);
     } catch (error) {
       console.error("Error fetching social media data:", error);
@@ -127,10 +131,11 @@ export default function SocialMediaIntegrationPage() {
     } catch (error) {
       console.error("Error posting to social media:", error);
     }
-  };
-
-  const connectPlatform = async (platform: string) => {
+  };  const connectPlatform = async (platform: string) => {
     try {
+      console.log(`Attempting to connect to ${platform}...`);
+      setConnecting(platform);
+      
       const response = await fetch('/api/ai-image/social-media', {
         method: 'POST',
         headers: {
@@ -142,13 +147,46 @@ export default function SocialMediaIntegrationPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`Connection result:`, result);
+      
+      if (result.success) {
+        console.log(`Successfully connected to ${platform}`);
+        await fetchSocialMediaData();
+      } else {
+        console.error(`Failed to connect to ${platform}:`, result.message);
+      }
+    } catch (error) {
+      console.error("Error connecting platform:", error);
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const disconnectPlatform = async (platform: string) => {
+    try {
+      const response = await fetch('/api/ai-image/social-media', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'disconnect_platform',
+          platform,
+        }),
+      });
+
       const result = await response.json();
       
       if (result.success) {
         fetchSocialMediaData();
       }
     } catch (error) {
-      console.error("Error connecting platform:", error);
+      console.error("Error disconnecting platform:", error);
     }
   };
 
@@ -394,21 +432,32 @@ export default function SocialMediaIntegrationPage() {
                         <p className="text-xs text-muted-foreground">
                           Last sync: {connection.lastSync ? format(new Date(connection.lastSync), 'MMM d, HH:mm') : 'Never'}
                         </p>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => disconnectPlatform(platform)}
+                        >
                           Disconnect
                         </Button>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
+                    ) : (                      <div className="space-y-2">
                         <p className="text-xs text-muted-foreground">
                           Connect your {platform} account to start posting
-                        </p>
-                        <Button 
+                        </p>                        <Button 
                           size="sm" 
                           className="w-full"
                           onClick={() => connectPlatform(platform)}
+                          disabled={connecting === platform}
                         >
-                          Connect
+                          {connecting === platform ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Connecting...
+                            </>
+                          ) : (
+                            "Connect"
+                          )}
                         </Button>
                       </div>
                     )}

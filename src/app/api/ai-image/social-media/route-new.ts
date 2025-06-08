@@ -1,27 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
-
-// Define our own enums temporarily until Prisma client is updated
-enum SocialMediaPlatform {
-  TWITTER = 'TWITTER',
-  INSTAGRAM = 'INSTAGRAM',
-  FACEBOOK = 'FACEBOOK',
-  LINKEDIN = 'LINKEDIN',
-  PINTEREST = 'PINTEREST',
-  WHATSAPP_BUSINESS = 'WHATSAPP_BUSINESS'
-}
-
-enum SocialMediaPostStatus {
-  DRAFT = 'DRAFT',
-  SCHEDULED = 'SCHEDULED',
-  PUBLISHED = 'PUBLISHED',
-  FAILED = 'FAILED',
-  DELETED = 'DELETED'
-}
-
-// Temporary in-memory storage for connections (in production, this would be in database)
-const connectionStore = new Map<string, Array<any>>();
+import { SocialMediaPlatform, SocialMediaPostStatus } from "@prisma/client";
 
 // Mock social media API clients (for demonstration)
 const mockSocialMediaAPI = {
@@ -120,67 +100,81 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { action, platform, imageId, platforms, caption, scheduleTime } = body;    // Handle connection management
+    const { action, platform, imageId, platforms, caption, scheduleTime } = body;
+
+    // Handle connection management
     if (action === 'connect_platform') {
+      // Check if connection already exists
+      const existingConnection = await prismadb.socialMediaConnection.findUnique({
+        where: {
+          userId_platform: {
+            userId,
+            platform: platform.toUpperCase() as SocialMediaPlatform,
+          },
+        },
+      });
+
+      if (existingConnection && existingConnection.isActive) {
+        return NextResponse.json({
+          success: false,
+          message: `Already connected to ${platform}`,
+        });
+      }
+
       // Simulate OAuth flow delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Get or create user connections
-      let userConnections = connectionStore.get(userId) || [
-        { platform: 'instagram', connected: false },
-        { platform: 'twitter', connected: false },
-        { platform: 'linkedin', connected: false },
-        { platform: 'facebook', connected: false },
-      ];
-
-      // Update the specific platform connection
-      userConnections = userConnections.map(conn => 
-        conn.platform === platform 
-          ? {
-              ...conn,
-              connected: true,
-              accountName: `@user_${platform}`,
-              lastSync: new Date().toISOString(),
-            }
-          : conn
-      );
-
-      // Store updated connections
-      connectionStore.set(userId, userConnections);
-      
-      const mockConnection = {
-        platform,
-        connected: true,
-        accountName: `@user_${platform}`,
-        lastSync: new Date().toISOString(),
-        accessToken: `mock_token_${platform}`, // In real app, store securely
-      };
+      // Create or update connection
+      const connection = await prismadb.socialMediaConnection.upsert({
+        where: {
+          userId_platform: {
+            userId,
+            platform: platform.toUpperCase() as SocialMediaPlatform,
+          },
+        },
+        update: {
+          isActive: true,
+          platformUsername: `@user_${platform}`,
+          accessToken: `mock_token_${platform}_${Date.now()}`, // In production, encrypt this
+          lastSyncAt: new Date(),
+        },
+        create: {
+          userId,
+          platform: platform.toUpperCase() as SocialMediaPlatform,
+          platformUserId: `user_${platform}_${Date.now()}`,
+          platformUsername: `@user_${platform}`,
+          accessToken: `mock_token_${platform}_${Date.now()}`, // In production, encrypt this
+          isActive: true,
+          lastSyncAt: new Date(),
+        },
+      });
 
       console.log(`Successfully connected to ${platform} for user ${userId}`);
 
       return NextResponse.json({
         success: true,
-        connection: mockConnection,
+        connection: {
+          platform: connection.platform.toLowerCase(),
+          connected: true,
+          accountName: connection.platformUsername,
+          lastSync: connection.lastSyncAt?.toISOString(),
+        },
         message: `Successfully connected to ${platform}`,
       });
-    }    if (action === 'disconnect_platform') {
-      // Get user connections
-      let userConnections = connectionStore.get(userId) || [
-        { platform: 'instagram', connected: false },
-        { platform: 'twitter', connected: false },
-        { platform: 'linkedin', connected: false },
-        { platform: 'facebook', connected: false },
-      ];
+    }
 
-      // Update the specific platform connection
-      userConnections = userConnections.map(conn => 
-        conn.platform === platform 
-          ? { ...conn, connected: false, accountName: undefined, lastSync: undefined }
-          : conn
-      );
-
-      // Store updated connections
-      connectionStore.set(userId, userConnections);
+    if (action === 'disconnect_platform') {
+      // Deactivate the connection
+      const connection = await prismadb.socialMediaConnection.updateMany({
+        where: {
+          userId,
+          platform: platform.toUpperCase() as SocialMediaPlatform,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+        },
+      });
 
       console.log(`Successfully disconnected from ${platform} for user ${userId}`);
 
@@ -221,12 +215,17 @@ export async function POST(req: NextRequest) {
           error: 'Platform not supported',
         });
         continue;
-      }      try {
-        // Check if user has connection to this platform (from memory store)
-        const userConnections = connectionStore.get(userId) || [];
-        const connection = userConnections.find(conn => 
-          conn.platform === platform && conn.connected
-        );
+      }
+
+      try {
+        // Check if user has connection to this platform
+        const connection = await prismadb.socialMediaConnection.findFirst({
+          where: {
+            userId,
+            platform: platform.toUpperCase() as SocialMediaPlatform,
+            isActive: true,
+          },
+        });
 
         if (!connection) {
           postResults.push({
@@ -237,11 +236,24 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // If scheduleTime is provided, this would normally schedule the post
+        // If scheduleTime is provided, create scheduled post
         if (scheduleTime) {
+          const scheduledPost = await prismadb.socialMediaPost.create({
+            data: {
+              aiGeneratedImageId: imageId,
+              socialMediaConnectionId: connection.id,
+              platform: platform.toUpperCase() as SocialMediaPlatform,
+              platformPostId: `scheduled_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              caption: caption || image.prompt,
+              status: SocialMediaPostStatus.SCHEDULED,
+              scheduledAt: new Date(scheduleTime),
+            },
+          });
+
           postResults.push({
             platform,
             status: 'scheduled',
+            postId: scheduledPost.id,
             scheduledFor: scheduleTime,
             message: `Post scheduled for ${new Date(scheduleTime).toLocaleString()}`,
           });
@@ -253,6 +265,14 @@ export async function POST(req: NextRequest) {
           image.generatedImageUrl, 
           caption || image.prompt
         );
+
+        // Create database record for the post
+        const socialMediaPost = await prismadb.socialMediaPost.create({
+          data: {
+            aiGeneratedImageId: imageId,
+            socialMediaConnectionId: connection.id,
+            platform: platform.toUpperCase() as SocialMediaPlatform,
+            platformPostId: result.postId,
             caption: caption || image.prompt,
             postUrl: result.url,
             status: SocialMediaPostStatus.PUBLISHED,

@@ -828,7 +828,7 @@ model IncomeDetail {
   bankAccountId      String?
   cashAccountId      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   incomeCategoryId   String?
   incomeCategory     IncomeCategory?   @relation(fields: [incomeCategoryId], references: [id])
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
@@ -858,7 +858,7 @@ model ExpenseCategory {
   description String?
   isActive    Boolean         @default(true)
   createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  updatedAt   DateTime        @default(now())
   expenses    ExpenseDetail[]
 }
 
@@ -916,7 +916,7 @@ model UnitOfMeasure {
   description         String?
   isActive            Boolean              @default(true)
   createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  updatedAt           DateTime             @default(now())
   purchaseItems       PurchaseItem[]
   saleItems           SaleItem[]
   purchaseReturnItems PurchaseReturnItem[]
@@ -1069,7 +1069,7 @@ model TransportDetail {
   capacity                Int?
   description             String?
   createdAt               DateTime         @default(now())
-  updatedAt               DateTime         @updatedAt
+  updatedAt               DateTime         @default(now())
   dropLocation            String?
   inquiryId               String?
   isAirportDropRequired   Boolean?         @default(false)
@@ -1199,11 +1199,96 @@ model AiGeneratedImage {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  // Relationships
+  socialMediaPosts  SocialMediaPost[]
+
   @@index([createdAt])
   @@index([userId])
   @@index([campaignId])
   @@index([platform])
   @@index([isApproved])
+}
+
+model SocialMediaConnection {
+  id                String              @id @default(uuid())
+  userId            String              // Connect to your user system
+  platform          SocialMediaPlatform
+  platformUserId    String              // User ID on the platform
+  platformUsername  String?             // Username/handle on the platform
+  accessToken       String              @db.Text // Encrypted access token
+  refreshToken      String?             @db.Text // Encrypted refresh token (if applicable)
+  tokenExpiresAt    DateTime?           // When the token expires
+  isActive          Boolean             @default(true)
+  lastSyncAt        DateTime?           // Last time we synced data
+  platformData      Json?               // Additional platform-specific data
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relationships
+  socialMediaPosts  SocialMediaPost[]
+
+  @@unique([userId, platform])
+  @@index([userId])
+  @@index([platform])
+  @@index([isActive])
+}
+
+model SocialMediaPost {
+  id                    String                @id @default(uuid())
+  aiGeneratedImageId    String
+  socialMediaConnectionId String
+  platform              SocialMediaPlatform
+  platformPostId        String               // Post ID on the platform
+  caption               String?              @db.Text
+  hashtags              Json?                // Array of hashtags used
+  postUrl               String?              // URL to the post on the platform
+  status                SocialMediaPostStatus @default(DRAFT)
+  scheduledAt           DateTime?            // When the post is scheduled
+  publishedAt           DateTime?            // When the post was actually published
+  
+  // Performance metrics
+  views                 Int                  @default(0)
+  likes                 Int                  @default(0)
+  shares                Int                  @default(0)
+  comments              Int                  @default(0)
+  clicks                Int                  @default(0)
+  impressions           Int                  @default(0)
+  engagementRate        Float                @default(0)
+  
+  // Metadata
+  postData              Json?                // Additional post-specific data from platform
+  lastSyncAt            DateTime?            // Last time metrics were synced
+  
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @default(now())
+  
+  // Relationships
+  aiGeneratedImage      AiGeneratedImage     @relation(fields: [aiGeneratedImageId], references: [id], onDelete: Cascade)
+  socialMediaConnection SocialMediaConnection @relation(fields: [socialMediaConnectionId], references: [id], onDelete: Cascade)
+
+  @@unique([platform, platformPostId])
+  @@index([aiGeneratedImageId])
+  @@index([socialMediaConnectionId])
+  @@index([platform])
+  @@index([status])
+  @@index([publishedAt])
+}
+
+enum SocialMediaPlatform {
+  TWITTER
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  PINTEREST
+  WHATSAPP_BUSINESS
+}
+
+enum SocialMediaPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  DELETED
 }
 
 enum OperationalStaffRole {

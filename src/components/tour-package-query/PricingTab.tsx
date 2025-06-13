@@ -1,6 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PricingTab.tsx
 import { Control, useFieldArray, useWatch } from "react-hook-form";
-import { Calculator, Plus, Trash, DollarSign, Loader2 } from "lucide-react"; // Added icons
+import { Calculator, Plus, Trash, DollarSign, Loader2, Package, Settings, Star, Sparkles, CheckCircle, AlertCircle, RefreshCw, ArrowRight, CreditCard, Receipt, Target, Trophy, ShoppingCart, Wallet } from "lucide-react"; // Enhanced icons
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -366,8 +366,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
     const occupancyMultiplier = getOccupancyMultiplier(componentName);
     
     return basePrice * occupancyMultiplier * roomQuantity;
-  };
-  // Function to apply selected pricing components
+  };  // Function to apply selected pricing components
   const handleApplySelectedPricingComponents = () => {
     if (selectedPricingComponentIds.length === 0) {
       toast.error("Please select at least one pricing component to apply.");
@@ -388,10 +387,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
       
       finalPricingComponents.push({
         name: componentName,
-        price: totalComponentPrice.toString(),
-        description: roomQuantity === 1 
-          ? `Component for ${roomQuantity} room (${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy)` 
-          : `Component for ${roomQuantity} rooms (${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${roomQuantity} rooms)`
+        price: comp.price || '0', // Use original base price, not calculated total
+        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
       });
       
       totalPrice += totalComponentPrice;
@@ -402,7 +399,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
     form.setValue('pricingSection', finalPricingComponents);
 
     toast.success(`Applied ${componentsToApply.length} selected pricing component${componentsToApply.length !== 1 ? 's' : ''} successfully!`);
-  };  // Note: Old occupancy-based calculation functions removed - now using room + meal plan model
+  };// Note: Old occupancy-based calculation functions removed - now using room + meal plan model
   // Function to handle fetching and applying Tour Package Pricing (Legacy - kept for backward compatibility)
   const handleFetchTourPackagePricing = async () => {
     // First check if we have a selected template id from props
@@ -582,81 +579,91 @@ const PricingTab: React.FC<PricingTabProps> = ({
       setPricingComponentsFetched(false);
     }
   }, [numberOfRooms, form]);
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <DollarSign className="h-5 w-5" /> {/* Added icon */}
-          Pricing
+    <Card className="bg-gradient-to-br from-slate-50 to-blue-50 border-slate-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg">
+        <CardTitle className="flex items-center text-xl font-bold">
+          <CreditCard className="mr-3 h-6 w-6" />
+          💰 Pricing Configuration
+          <Sparkles className="ml-2 h-5 w-5 text-yellow-300" />
         </CardTitle>
+        <p className="text-blue-100 text-sm mt-1">
+          Configure your tour package pricing with advanced calculation methods
+        </p>
       </CardHeader>
-      <CardContent className="space-y-6">
-
-        {/* Pricing Calculation Method Selection */}
-        <FormItem className="space-y-3">
-          <FormLabel className="text-base font-semibold">Pricing Calculation Method</FormLabel>
-          <FormControl>
-            <RadioGroup
-              onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
-              defaultValue={calculationMethod}
-              className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 pt-2"
-            >
-              <FormItem className="flex items-center space-x-3 space-y-0">
-                <FormControl>
-                  <RadioGroupItem value="manual" id="manual-pricing" />
-                </FormControl>
-                <FormLabel htmlFor="manual-pricing" className="font-normal cursor-pointer">Manual Pricing</FormLabel>
-              </FormItem>
-              <FormItem className="flex items-center space-x-3 space-y-0">
-                <FormControl>
-                  <RadioGroupItem value="autoHotelTransport" id="auto-hotel-transport" />
-                </FormControl>
-                <FormLabel htmlFor="auto-hotel-transport" className="font-normal cursor-pointer">Auto Calculate (Hotel & Transport)</FormLabel>
-              </FormItem>
-              <FormItem className="flex items-center space-x-3 space-y-0">
-                <FormControl>
-                  <RadioGroupItem 
-                    value="autoTourPackage" 
-                    id="auto-tour-package"
-                    disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'} 
-                  />
-                </FormControl>
-                <FormLabel 
-                  htmlFor="auto-tour-package" 
-                  className={`font-normal ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  Use Tour Package Pricing
-                  {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
-                    <span className="text-xs text-amber-500 block">
-                      {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
-                    </span>
-                  )}
-                </FormLabel>
-              </FormItem>
-            </RadioGroup>
-          </FormControl>
-        </FormItem>
-
-        {/* Conditional Sections based on calculationMethod */}
-
-        {/* Auto-calculate pricing section (Hotel & Transport) */}
-        {calculationMethod === 'autoHotelTransport' && (
-          <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-blue-800">Auto Price (Hotel & Transport)</h3>
-                <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-blue-800"></div>
-                <div id="calculation-status" className="hidden text-sm px-2 py-1 rounded"></div>
+      <CardContent className="p-6 space-y-6">        {/* Method Selection */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <Settings className="mr-2 h-5 w-5 text-indigo-600" />
+            <h3 className="text-lg font-semibold text-slate-800">💼 Calculation Method</h3>
+          </div>
+          <RadioGroup
+            value={calculationMethod}
+            onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
+            className="space-y-3"
+          >
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200">
+              <RadioGroupItem value="manual" id="manual" className="text-indigo-600" />
+              <div className="flex-1">
+                <label htmlFor="manual" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center">
+                  <Receipt className="mr-2 h-4 w-4 text-blue-600" />
+                  ✍️ Manual Pricing Entry
+                </label>
+                <p className="text-xs text-slate-500 mt-1">Enter pricing components manually with full control</p>
               </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200">
+              <RadioGroupItem value="autoHotelTransport" id="autoHotelTransport" className="text-green-600" />
+              <div className="flex-1">
+                <label htmlFor="autoHotelTransport" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center">
+                  <Calculator className="mr-2 h-4 w-4 text-green-600" />
+                  🤖 Auto Calculate (Hotel + Transport)
+                </label>
+                <p className="text-xs text-slate-500 mt-1">Automatically calculate based on itinerary hotels and transport</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
+              <RadioGroupItem 
+                value="autoTourPackage" 
+                id="autoTourPackage"
+                disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'} 
+                className="text-purple-600" 
+              />
+              <div className="flex-1">
+                <label htmlFor="autoTourPackage" className={`text-sm font-medium cursor-pointer flex items-center ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-slate-400' : 'text-slate-700'}`}>
+                  <Package className="mr-2 h-4 w-4 text-purple-600" />
+                  📦 Use Tour Package Pricing
+                </label>
+                <p className="text-xs text-slate-500 mt-1">Use pre-defined pricing from selected tour package template</p>
+                {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
+                  <p className="text-xs text-amber-500 mt-1">
+                    {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </RadioGroup>
+        </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
-                <div className="flex items-center">
-                  <label htmlFor="markup" className="text-sm mr-2 text-blue-700 whitespace-nowrap">Markup %:</label>
+        {/* Conditional Sections based on calculationMethod */}        {/* Auto-calculate pricing section (Hotel & Transport) */}
+        {calculationMethod === 'autoHotelTransport' && (
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center mb-4">
+              <Calculator className="mr-2 h-5 w-5 text-emerald-600" />
+              <h3 className="text-lg font-semibold text-emerald-800">🤖 Auto Price Calculator</h3>
+              <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600 ml-2"></div>
+              <div id="calculation-status" className="hidden text-sm px-3 py-1 rounded-full ml-2 font-medium"></div>
+            </div>
+            
+            <div className="bg-white rounded-lg p-4 border border-emerald-200 mb-4">
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-emerald-600" />
+                  <label htmlFor="markup" className="text-sm font-medium text-emerald-700 whitespace-nowrap">Markup %:</label>
                   <Input
                     id="markup"
                     type="number"
-                    className="w-20 h-8 bg-white"
+                    className="w-20 h-8 bg-white border-emerald-300 focus:border-emerald-500"
                     defaultValue="0"
                     min="0"
                     max="100"
@@ -668,7 +675,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     }}
                   />
                 </div>
-                <div className="w-full sm:w-auto">
+                
+                <div className="flex-1 max-w-xs">
                   <Select onValueChange={(value) => {
                     if (value === 'standard') {
                       if ((window as any).markupInput) (window as any).markupInput.value = '10';
@@ -683,190 +691,187 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       (window as any).customMarkupValue = (window as any).markupInput.value;
                     }
                   }}>
-                    <SelectTrigger className="w-36 h-8 bg-white">
-                      <SelectValue placeholder="Pricing Tier" />
+                    <SelectTrigger className="h-8 bg-white border-emerald-300 focus:border-emerald-500">
+                      <SelectValue placeholder="🎯 Pricing Tier" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="standard">Standard (10%)</SelectItem>
-                      <SelectItem value="premium">Premium (20%)</SelectItem>
-                      <SelectItem value="luxury">Luxury (30%)</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
+                      <SelectItem value="standard">⭐ Standard (10%)</SelectItem>
+                      <SelectItem value="premium">🌟 Premium (20%)</SelectItem>
+                      <SelectItem value="luxury">✨ Luxury (30%)</SelectItem>
+                      <SelectItem value="custom">🎛️ Custom</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setPriceCalculationResult(null);
-                      const calculatingElement = document.getElementById('price-calculating-spinner');
-                      const calculationStatus = document.getElementById('calculation-status');
-                      if (calculatingElement) calculatingElement.classList.remove('hidden');
-                      if (calculationStatus) {
-                        calculationStatus.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
-                        calculationStatus.classList.add('bg-blue-100', 'text-blue-700');
-                        calculationStatus.textContent = 'Calculating...';
-                      }
-                      console.log("Starting simple price calculation...");
-                      const tourStartsFrom = form.getValues('tourStartsFrom');
-                      const tourEndsOn = form.getValues('tourEndsOn');
-                      const itineraries = form.getValues('itineraries');
-                      if (!tourStartsFrom || !tourEndsOn) {
-                        const errorMsg = 'Please select tour start and end dates first';
-                        console.error(errorMsg);
-                        toast.error(errorMsg);
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setPriceCalculationResult(null);
+                        const calculatingElement = document.getElementById('price-calculating-spinner');
+                        const calculationStatus = document.getElementById('calculation-status');
+                        if (calculatingElement) calculatingElement.classList.remove('hidden');
                         if (calculationStatus) {
-                          calculationStatus.textContent = 'Error';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                          calculationStatus.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+                          calculationStatus.classList.add('bg-blue-100', 'text-blue-700');
+                          calculationStatus.textContent = 'Calculating...';
                         }
-                        if (calculatingElement) calculatingElement.classList.add('hidden');
-                        return;
-                      }
-                      const validItineraries = itineraries.filter((itinerary: any) => {
-                        return itinerary.hotelId &&
-                          hotels.some(hotel => hotel.id === itinerary.hotelId);
-                      });
-                      if (validItineraries.length === 0) {
-                        toast.error('Please select hotels for at least one day to calculate pricing');
-                        if (calculationStatus) {
-                          calculationStatus.textContent = 'Error';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        console.log("Starting simple price calculation...");
+                        const tourStartsFrom = form.getValues('tourStartsFrom');
+                        const tourEndsOn = form.getValues('tourEndsOn');
+                        const itineraries = form.getValues('itineraries');
+                        if (!tourStartsFrom || !tourEndsOn) {
+                          const errorMsg = 'Please select tour start and end dates first';
+                          console.error(errorMsg);
+                          toast.error(errorMsg);
+                          if (calculationStatus) {
+                            calculationStatus.textContent = 'Error';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                          }
+                          if (calculatingElement) calculatingElement.classList.add('hidden');
+                          return;
                         }
-                        if (calculatingElement) calculatingElement.classList.add('hidden');
-                        return;
-                      }
-                      toast('Calculating room prices...'); // Changed to info -> Changed to base toast
-                      const pricingItineraries = validItineraries.map((itinerary: any) => ({
-                        locationId: itinerary.locationId,
-                        dayNumber: itinerary.dayNumber || 0,
-                        hotelId: itinerary.hotelId,
-                        roomAllocations: itinerary.roomAllocations || [],
-                        transportDetails: itinerary.transportDetails || [],
-                      }));
-                      const markupValue = (window as any).customMarkupValue || '0';
-                      const markupPercentage = parseFloat(markupValue);
-                      console.log('Sending data to price calculation API:', {
-                        tourStartsFrom,
-                        tourEndsOn,
-                        itineraries: pricingItineraries,
-                        markup: markupPercentage
-                      });
-                      const response = await axios.post('/api/pricing/calculate', {
-                        tourStartsFrom,
-                        tourEndsOn,
-                        itineraries: pricingItineraries,
-                        markup: markupPercentage
-                      });
-                      const result = response.data;
-                      console.log('Price calculation result:', result);
-                      if (result && typeof result === 'object') {
-                        const totalCost = result.totalCost || 0;
-                        form.setValue('totalPrice', totalCost.toString());
-                        const pricingItems = [];
-                        pricingItems.push({
-                          name: 'Total Cost',
-                          price: totalCost.toString(),
-                          description: 'Total package cost with markup'
+                        const validItineraries = itineraries.filter((itinerary: any) => {
+                          return itinerary.hotelId &&
+                            hotels.some(hotel => hotel.id === itinerary.hotelId);
                         });
-                        if (result.breakdown && typeof result.breakdown === 'object') {
-                          const accommodationCost = result.breakdown.accommodation || 0;
+                        if (validItineraries.length === 0) {
+                          toast.error('Please select hotels for at least one day to calculate pricing');
+                          if (calculationStatus) {
+                            calculationStatus.textContent = 'Error';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                          }
+                          if (calculatingElement) calculatingElement.classList.add('hidden');
+                          return;
+                        }
+                        toast('Calculating room prices...'); // Changed to info -> Changed to base toast
+                        const pricingItineraries = validItineraries.map((itinerary: any) => ({
+                          locationId: itinerary.locationId,
+                          dayNumber: itinerary.dayNumber || 0,
+                          hotelId: itinerary.hotelId,
+                          roomAllocations: itinerary.roomAllocations || [],
+                          transportDetails: itinerary.transportDetails || [],
+                        }));
+                        const markupValue = (window as any).customMarkupValue || '0';
+                        const markupPercentage = parseFloat(markupValue);
+                        console.log('Sending data to price calculation API:', {
+                          tourStartsFrom,
+                          tourEndsOn,
+                          itineraries: pricingItineraries,
+                          markup: markupPercentage
+                        });
+                        const response = await axios.post('/api/pricing/calculate', {
+                          tourStartsFrom,
+                          tourEndsOn,
+                          itineraries: pricingItineraries,
+                          markup: markupPercentage
+                        });
+                        const result = response.data;
+                        console.log('Price calculation result:', result);
+                        if (result && typeof result === 'object') {
+                          const totalCost = result.totalCost || 0;
+                          form.setValue('totalPrice', totalCost.toString());
+                          const pricingItems = [];
                           pricingItems.push({
-                            name: 'Accommodation',
-                            price: accommodationCost.toString(),
-                            description: 'Hotel room costs'
+                            name: 'Total Cost',
+                            price: totalCost.toString(),
+                            description: 'Total package cost with markup'
                           });
-                          const transportCost = result.breakdown.transport || 0;
-                          if (transportCost > 0) {
+                          if (result.breakdown && typeof result.breakdown === 'object') {
+                            const accommodationCost = result.breakdown.accommodation || 0;
                             pricingItems.push({
-                              name: 'Transport',
-                              price: transportCost.toString(),
-                              description: 'Vehicle costs'
+                              name: 'Accommodation',
+                              price: accommodationCost.toString(),
+                              description: 'Hotel room costs'
                             });
+                            const transportCost = result.breakdown.transport || 0;
+                            if (transportCost > 0) {
+                              pricingItems.push({
+                                name: 'Transport',
+                                price: transportCost.toString(),
+                                description: 'Vehicle costs'
+                              });
+                            }
+                          }
+                          form.setValue('pricingSection', pricingItems);
+                          (window as any).priceCalculationResult = result;
+                          setPriceCalculationResult(result);
+                          toast.success('Price calculation complete!');
+                          if (calculationStatus) {
+                            calculationStatus.textContent = '✅ Complete';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-green-100', 'text-green-700');
+                            setTimeout(() => {
+                              calculationStatus.classList.add('hidden');
+                            }, 3000);
+                          }
+                        } else {
+                          console.error('Invalid price calculation result structure:', result);
+                          toast.error('Invalid price calculation result: The server returned an unexpected response');
+                          if (calculationStatus) {
+                            calculationStatus.textContent = '❌ Error';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-red-100', 'text-red-700');
                           }
                         }
-                        form.setValue('pricingSection', pricingItems);
-                        (window as any).priceCalculationResult = result;
-                        setPriceCalculationResult(result);
-                        toast.success('Price calculation complete!');
-                        if (calculationStatus) {
-                          calculationStatus.textContent = 'Complete';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-green-100', 'text-green-700');
-                          setTimeout(() => {
-                            calculationStatus.classList.add('hidden');
-                          }, 3000);
+                        if (calculatingElement) calculatingElement.classList.add('hidden');
+                      } catch (error: any) {
+                        console.error('Price calculation error:', error);
+                        let errorMessage = 'Error calculating price';
+                        if (error instanceof Error) {
+                          errorMessage = error.message;
+                          console.error('Error details:', error.stack);
                         }
-                      } else {
-                        console.error('Invalid price calculation result structure:', result);
-                        toast.error('Invalid price calculation result: The server returned an unexpected response');
-                        if (calculationStatus) {
-                          calculationStatus.textContent = 'Error';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        if (error.response) {
+                          console.error('API response error data:', error.response.data);
+                          console.error('API response error status:', error.response.status);
+                          if (error.response.data) {
+                            errorMessage = typeof error.response.data === 'string'
+                              ? `API Error: ${error.response.data}`
+                              : `API Error: Status ${error.response.status}`;
+                          }
                         }
-                      }
-                      if (calculatingElement) calculatingElement.classList.add('hidden');
-                    } catch (error: any) {
-                      console.error('Price calculation error:', error);
-                      let errorMessage = 'Error calculating price';
-                      if (error instanceof Error) {
-                        errorMessage = error.message;
-                        console.error('Error details:', error.stack);
-                      }
-                      if (error.response) {
-                        console.error('API response error data:', error.response.data);
-                        console.error('API response error status:', error.response.status);
-                        if (error.response.data) {
-                          errorMessage = typeof error.response.data === 'string'
-                            ? `API Error: ${error.response.data}`
-                            : `API Error: Status ${error.response.status}`;
+                        toast.error(`Price calculation failed: ${errorMessage}`);
+                        const spinnerElement = document.getElementById('price-calculating-spinner');
+                        const statusElement = document.getElementById('calculation-status');
+                        if (spinnerElement) spinnerElement.classList.add('hidden');
+                        if (statusElement) {
+                          statusElement.textContent = '❌ Error';
+                          statusElement.classList.remove('bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
+                          statusElement.classList.add('bg-red-100', 'text-red-700');
                         }
                       }
-                      toast.error(`Price calculation failed: ${errorMessage}`);
-                      const spinnerElement = document.getElementById('price-calculating-spinner');
+                    }}
+                    className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white border-emerald-600 shadow-md"
+                    disabled={loading}
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    🧮 Calculate Price
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setPriceCalculationResult(null);
+                      (window as any).priceCalculationResult = null;
+                      if ((window as any).markupInput) {
+                        (window as any).markupInput.value = '0';
+                        (window as any).customMarkupValue = '0';
+                      }
+                      toast.success('Price calculation reset');
                       const statusElement = document.getElementById('calculation-status');
-                      if (spinnerElement) spinnerElement.classList.add('hidden');
-                      if (statusElement) {
-                        statusElement.textContent = 'Error';
-                        statusElement.classList.remove('bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
-                        statusElement.classList.add('bg-red-100', 'text-red-700');
-                      }
-                    }
-                  }}
-                  variant="outline"
-                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-600"
-                  disabled={loading}
-                >
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Calculate Price
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setPriceCalculationResult(null);
-                    (window as any).priceCalculationResult = null;
-                    if ((window as any).markupInput) {
-                      (window as any).markupInput.value = '0';
-                      (window as any).customMarkupValue = '0';
-                    }
-                    // Optionally reset total price and pricing section in the form
-                    // form.setValue('totalPrice', '0');
-                    // form.setValue('pricingSection', []);
-                    toast.success('Price calculation reset');
-                    const statusElement = document.getElementById('calculation-status');
-                    if (statusElement) statusElement.classList.add('hidden');
-                  }}
-                  variant="outline"
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300"
-                  disabled={loading}
-                >
-                  Reset
-                </Button>
+                      if (statusElement) statusElement.classList.add('hidden');
+                    }}
+                    variant="outline"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                    disabled={loading}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -1021,170 +1026,198 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </div>
             )}
           </div>
-        )}
-
-        {/* Use Tour Package Pricing Section */}
+        )}        {/* Use Tour Package Pricing Section */}
         {calculationMethod === 'autoTourPackage' && (
-          <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-4">
-            <h3 className="text-lg font-semibold text-green-800 mb-3">Use Tour Package Pricing</h3>
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center mb-4">
+              <Package className="mr-2 h-5 w-5 text-purple-600" />
+              <h3 className="text-lg font-semibold text-purple-800">📦 Tour Package Pricing</h3>
+            </div>
             
             {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? (
-              <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-md p-3">
-                <p className="text-sm font-medium">
-                  {!selectedTemplateId ? (
-                    "Please select a Tour Package template first in the Basic Info tab."
-                  ) : (
-                    "Auto calculation of pricing is only available for Tour Package templates."
-                  )}
-                </p>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="mr-2 h-5 w-5 text-amber-600" />
+                  <p className="font-medium">
+                    {!selectedTemplateId ? (
+                      "🔧 Please select a Tour Package template first in the Basic Info tab."
+                    ) : (
+                      "⚠️ Auto calculation of pricing is only available for Tour Package templates."
+                    )}
+                  </p>
+                </div>
               </div>
             ) : (
-              <>                <div className="bg-white border border-green-200 rounded-md p-3 flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-gray-600">Selected Tour Package:</p>
-                    {isFetchingPackage ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full mr-2"></div>
-                        <p className="font-medium text-sm">Loading package details...</p>
+              <>
+                <div className="bg-white border border-purple-200 rounded-lg p-4 mb-4 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm text-slate-600">Selected Tour Package:</p>
+                        {isFetchingPackage ? (
+                          <div className="flex items-center">
+                            <Loader2 className="animate-spin h-4 w-4 text-purple-500 mr-2" />
+                            <p className="font-medium text-sm">Loading package details...</p>
+                          </div>
+                        ) : (
+                          <p className="font-semibold text-purple-700">
+                            📋 {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId}`}
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <p className="font-medium">
-                        {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId}`}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Navigate to the basicInfo tab
-                      try {
-                        // First try to find the tab container
-                        const tabsElement = document.querySelector('[role="tablist"]');
-                        if (tabsElement) {
-                          // Try various selectors for the basic info tab
-                          let basicInfoTab = tabsElement.querySelector('button[data-value="basic"], button[value="basic"], button[data-value="basicInfo"], button[value="basicInfo"]') as HTMLButtonElement;
-                          
-                          if (!basicInfoTab) {
-                            // Try finding by text content
-                            const allTabs = tabsElement.querySelectorAll('button');
-                            basicInfoTab = Array.from(allTabs).find(tab => 
-                              tab.textContent?.toLowerCase().includes('basic') || 
-                              tab.getAttribute('value')?.toLowerCase().includes('basic') ||
-                              tab.getAttribute('data-value')?.toLowerCase().includes('basic')
-                            ) as HTMLButtonElement;
-                          }
-                          
-                          if (basicInfoTab) {
-                            toast.success("Navigating to Basic Info tab");
-                            console.log("Clicking on tab:", basicInfoTab);
-                            basicInfoTab.click();
-                          } else {
-                            // Last resort - just try to click the first tab
-                            const firstTab = tabsElement.querySelector('button') as HTMLButtonElement;
-                            if (firstTab) {
-                              toast.success("Navigating to first tab");
-                              firstTab.click();
-                            } else {
-                              console.error("Could not find any tab");
-                              toast.error("Could not navigate to Basic Info tab. Please select it manually.");
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Navigate to the basicInfo tab
+                        try {
+                          // First try to find the tab container
+                          const tabsElement = document.querySelector('[role="tablist"]');
+                          if (tabsElement) {
+                            // Try various selectors for the basic info tab
+                            let basicInfoTab = tabsElement.querySelector('button[data-value="basic"], button[value="basic"], button[data-value="basicInfo"], button[value="basicInfo"]') as HTMLButtonElement;
+                            
+                            if (!basicInfoTab) {
+                              // Try finding by text content
+                              const allTabs = tabsElement.querySelectorAll('button');
+                              basicInfoTab = Array.from(allTabs).find(tab => 
+                                tab.textContent?.toLowerCase().includes('basic') || 
+                                tab.getAttribute('value')?.toLowerCase().includes('basic') ||
+                                tab.getAttribute('data-value')?.toLowerCase().includes('basic')
+                              ) as HTMLButtonElement;
                             }
+                            
+                            if (basicInfoTab) {
+                              toast.success("Navigating to Basic Info tab");
+                              console.log("Clicking on tab:", basicInfoTab);
+                              basicInfoTab.click();
+                            } else {
+                              // Last resort - just try to click the first tab
+                              const firstTab = tabsElement.querySelector('button') as HTMLButtonElement;
+                              if (firstTab) {
+                                toast.success("Navigating to first tab");
+                                firstTab.click();
+                              } else {
+                                console.error("Could not find any tab");
+                                toast.error("Could not navigate to Basic Info tab. Please select it manually.");
+                              }
+                            }
+                          } else {
+                            toast.error("Tab navigation not found. Please select Basic Info tab manually.");
                           }
-                        } else {
-                          toast.error("Tab navigation not found. Please select Basic Info tab manually.");
+                        } catch (error) {
+                          console.error("Error navigating tabs:", error);
+                          toast.error("Navigation error. Please select Basic Info tab manually.");
                         }
-                      } catch (error) {
-                        console.error("Error navigating tabs:", error);
-                        toast.error("Navigation error. Please select Basic Info tab manually.");
-                      }
-                    }}
-                    className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300"
-                  >
-                    Change
-                  </Button>
-                </div>                <p className="text-sm text-green-700">
-                  Fetch pre-defined pricing based on the selected Tour Package Template, Number of Rooms, and Meal Plan.
-                  This will overwrite the current Total Price and Pricing Options below.
-                </p>
+                      }}
+                      className="bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300"
+                    >
+                      <ArrowRight className="mr-1 h-3 w-3" />
+                      Change
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-indigo-700 flex items-center">
+                    <Star className="mr-2 h-4 w-4" />
+                    Fetch pre-defined pricing based on the selected Tour Package Template, Number of Rooms, and Meal Plan.
+                    This will overwrite the current Total Price and Pricing Options below.
+                  </p>
+                </div>
 
                 {/* Meal Plan Selection */}
-                <FormItem className="space-y-2">
-                  <FormLabel className="font-medium">Meal Plan <span className="text-red-500">*</span></FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={setSelectedMealPlanId}
-                    value={selectedMealPlanId || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select Meal Plan" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {mealPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
-                </FormItem>
+                <div className="bg-white rounded-lg p-4 border border-purple-200 mb-4">
+                  <FormItem className="space-y-3">
+                    <FormLabel className="font-semibold text-purple-700 flex items-center">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      🍽️ Meal Plan <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select
+                      disabled={loading}
+                      onValueChange={setSelectedMealPlanId}
+                      value={selectedMealPlanId || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="bg-white border-purple-300 focus:border-purple-500">
+                          <SelectValue placeholder="Select Meal Plan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {mealPlans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            🍽️ {plan.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
+                  </FormItem>
+                </div>
 
                 {/* Number of Rooms Selection */}
-                <FormItem className="space-y-2">
-                  <FormLabel className="font-medium">Number of Rooms <span className="text-red-500">*</span></FormLabel>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="rounded-full w-8 h-8 flex-shrink-0 bg-white"
-                      onClick={() => handleRoomCountChange(numberOfRooms - 1)}
-                      disabled={loading || numberOfRooms <= 1}
-                    >
-                      <span className="sr-only">Decrease</span>
-                      <span className="text-lg font-bold">-</span>
-                    </Button>
-                    <Input
-                      type="number"
-                      value={numberOfRooms}
-                      onChange={(e) => handleRoomCountChange(parseInt(e.target.value) || 1)}
-                      min="1"
-                      pattern="[0-9]*"
-                      inputMode="numeric"
-                      disabled={loading}
-                      className="w-24 text-center bg-white"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      className="rounded-full w-8 h-8 flex-shrink-0 bg-white"
-                      onClick={() => handleRoomCountChange(numberOfRooms + 1)}
-                      disabled={loading}
-                    >
-                      <span className="sr-only">Increase</span>
-                      <span className="text-lg font-bold">+</span>
-                    </Button>
-                    <span className="text-sm text-gray-600 ml-2">
-                      {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
-                    </span>
-                  </div>                  {numberOfRooms <= 0 && <p className="text-xs text-red-500 pt-1">Must be at least 1 room</p>}
-                </FormItem>
+                <div className="bg-white rounded-lg p-4 border border-purple-200 mb-4">
+                  <FormItem className="space-y-3">
+                    <FormLabel className="font-semibold text-purple-700 flex items-center">
+                      <Wallet className="mr-2 h-4 w-4" />
+                      🏨 Number of Rooms <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="rounded-full w-10 h-10 flex-shrink-0 bg-white border-purple-300 hover:bg-purple-50"
+                        onClick={() => handleRoomCountChange(numberOfRooms - 1)}
+                        disabled={loading || numberOfRooms <= 1}
+                      >
+                        <span className="sr-only">Decrease</span>
+                        <span className="text-lg font-bold text-purple-600">-</span>
+                      </Button>
+                      <Input
+                        type="number"
+                        value={numberOfRooms}
+                        onChange={(e) => handleRoomCountChange(parseInt(e.target.value) || 1)}
+                        min="1"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
+                        disabled={loading}
+                        className="w-24 text-center bg-white border-purple-300 focus:border-purple-500 font-semibold text-lg"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="rounded-full w-10 h-10 flex-shrink-0 bg-white border-purple-300 hover:bg-purple-50"
+                        onClick={() => handleRoomCountChange(numberOfRooms + 1)}
+                        disabled={loading}
+                      >
+                        <span className="sr-only">Increase</span>
+                        <span className="text-lg font-bold text-purple-600">+</span>
+                      </Button>
+                      <div className="flex items-center bg-purple-100 px-3 py-2 rounded-lg">
+                        <span className="text-sm font-medium text-purple-700">
+                          🏨 {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    {numberOfRooms <= 0 && <p className="text-xs text-red-500 pt-1">Must be at least 1 room</p>}
+                  </FormItem>
+                </div>
 
                 {/* Fetch Pricing Components Button */}
                 <Button
                   type="button"
                   onClick={handleFetchAvailablePricingComponents}
-                  variant="outline"
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white border-blue-600 mt-4"
+                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-purple-600 shadow-md mb-4"
                   disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
                 >
                   <Calculator className="mr-2 h-4 w-4" />
-                  Fetch Available Pricing Components
-                </Button>                {/* Pricing Components Selection */}
+                  🔍 Fetch Available Pricing Components
+                </Button>{/* Pricing Components Selection */}
                 {pricingComponentsFetched && availablePricingComponents.length > 0 && (
                   <div className="mt-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
                     <div className="flex justify-between items-center mb-3">
@@ -1398,62 +1431,45 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 </div>
               </>
             )}
-          </div>
-        )}
-
-        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
-        <FormField
-          control={control}
-          name="totalPrice"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base font-semibold">Total Price</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  disabled={loading} // Only disable when loading
-                  placeholder="Total price for the package"
-                  className="text-lg font-bold"
-                  type="number" // Ensure type is number if appropriate
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
-        <div className="space-y-4 border-t pt-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-base font-semibold">Pricing Breakdown</h3>
+          </div>        )}        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center">
+              <Receipt className="mr-2 h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-slate-800">💰 Pricing Breakdown</h3>
+            </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled={loading} // Only disable when loading
               onClick={() => handleAddPricingItem()}
-              className="ml-auto"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
             >
-              <Plus className="mr-2 h-4 w-4" /> Add Item
+              <Plus className="mr-2 h-4 w-4" /> 
+              ➕ Add Item
             </Button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {pricingFields.map((item, index) => (
-              <div key={item.id} className="flex items-start gap-3 p-3 border rounded-md bg-slate-50/50">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-grow">
+              <div key={item.id} className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow">
                   {/* Item Name */}
                   <FormField
                     control={control}
                     name={`pricingSection.${index}.name`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Item Name</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-slate-700 flex items-center">
+                          <Star className="mr-1 h-3 w-3 text-yellow-500" />
+                          Item Name
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             disabled={loading} // Only disable when loading
                             placeholder="e.g., Per Person Cost"
-                            className="bg-white"
+                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
                           />
                         </FormControl>
                         <FormMessage />
@@ -1466,14 +1482,17 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     name={`pricingSection.${index}.price`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Price</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-slate-700 flex items-center">
+                          <DollarSign className="mr-1 h-3 w-3 text-green-500" />
+                          Price (Base)
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             disabled={loading} // Only disable when loading
                             placeholder="e.g., 15000"
                             type="number"
-                            className="bg-white"
+                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
                           />
                         </FormControl>
                         <FormMessage />
@@ -1486,13 +1505,16 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     name={`pricingSection.${index}.description`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Description (Optional)</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-slate-700 flex items-center">
+                          <Calculator className="mr-1 h-3 w-3 text-blue-500" />
+                          Calculation & Total
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             disabled={loading} // Only disable when loading
-                            placeholder="Brief description"
-                            className="bg-white"
+                            placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = Rs. 135000"
+                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
                           />
                         </FormControl>
                         <FormMessage />
@@ -1501,55 +1523,109 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   />
                 </div>
                 {/* Remove Button */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={loading} // Only disable when loading
-                  onClick={() => handleRemovePricingItem(index)}
-                  className="mt-6 text-red-500 hover:text-red-700"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-end mt-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={loading} // Only disable when loading
+                    onClick={() => handleRemovePricingItem(index)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
-             {/* Button to add first item if list is empty */}
-             {pricingFields.length === 0 && (
-                 <Button
+            {/* Button to add first item if list is empty */}
+            {pricingFields.length === 0 && (
+              <div className="text-center py-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300">
+                <Receipt className="mx-auto h-12 w-12 text-blue-400 mb-3" />
+                <p className="text-slate-600 mb-4">No pricing items added yet</p>
+                <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="mt-4 border-dashed border-primary text-primary hover:bg-primary/10"
+                  className="border-dashed border-blue-400 text-blue-600 hover:bg-blue-50"
                   disabled={loading}
                   onClick={() => handleAddPricingItem()} // Add first item
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Pricing Option
+                  ➕ Add Your First Pricing Option
                 </Button>
-              )}
+              </div>
+            )}
           </div>
-        </div>        <div className="mt-4">
+        </div>        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center mb-3">
+            <Target className="mr-2 h-6 w-6 text-orange-600" />
+            <h3 className="text-xl font-bold text-orange-800">🎯 Total Package Price</h3>
+          </div>
+          <FormField
+            control={control}
+            name="totalPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-semibold text-orange-700 flex items-center">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  💰 Final Amount
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                    <Input
+                      {...field}
+                      disabled={loading} // Only disable when loading
+                      placeholder="Total price for the package"
+                      className="text-2xl font-bold pl-8 bg-white border-orange-300 focus:border-orange-500 h-14"
+                      type="number" // Ensure type is number if appropriate
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+                <p className="text-sm text-orange-600 mt-2 flex items-center">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  This represents the final total price for your tour package
+                </p>
+              </FormItem>
+            )}
+          />
+        </div>        {/* Configuration Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Display selected meal plan */}
           {selectedMealPlanId && (
-            <div className="bg-white border border-green-200 rounded-md p-3 mb-2">
-              <p className="text-sm text-gray-600">Selected Meal Plan:</p>
-              <p className="font-medium">
-                {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
-              </p>
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center mb-2">
+                <ShoppingCart className="mr-2 h-4 w-4 text-green-600" />
+                <p className="text-sm font-semibold text-green-700">Selected Meal Plan:</p>
+              </div>
+              <div className="flex items-center bg-white p-2 rounded-md border border-green-200">
+                <span className="text-lg mr-2">🍽️</span>
+                <p className="font-semibold text-green-800">
+                  {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
+                </p>
+              </div>
             </div>
           )}
 
           {/* Display selected room configuration */}
           {numberOfRooms > 0 && (
-            <div className="bg-white border border-green-200 rounded-md p-3">
-              <p className="text-sm text-gray-600 mb-2">Room Configuration:</p>
-              <div className="flex items-center justify-between bg-green-50 p-2 rounded-md">
-                <span className="font-medium">
-                  Number of Rooms
-                </span>
-                <span className="text-sm">
-                  {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
-                </span>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center mb-2">
+                <Wallet className="mr-2 h-4 w-4 text-blue-600" />
+                <p className="text-sm font-semibold text-blue-700">Room Configuration:</p>
+              </div>
+              <div className="flex items-center justify-between bg-white p-2 rounded-md border border-blue-200">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">🏨</span>
+                  <span className="font-semibold text-blue-800">Number of Rooms</span>
+                </div>
+                <div className="bg-blue-100 px-3 py-1 rounded-full">
+                  <span className="text-sm font-bold text-blue-700">
+                    {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
             </div>
           )}

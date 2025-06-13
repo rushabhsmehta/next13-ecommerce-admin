@@ -1,6 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PricingTab.tsx
 import { Control, useFieldArray, useWatch } from "react-hook-form";
-import { Calculator, Plus, Trash, DollarSign, Loader2 } from "lucide-react"; // Added icons
+import { Calculator, Plus, Trash, DollarSign, Loader2, AlertCircle, ArrowRight, CheckCircle, CreditCard, Package, Receipt, RefreshCw, Settings, ShoppingCart, Sparkles, Star, Target, Trophy, Wallet } from "lucide-react"; // Added icons
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -33,8 +33,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format } from "date-fns";
+import { Checkbox } from "@radix-ui/react-checkbox";
 
-// Define the props interface with a union type for control
 interface PricingTabProps {
   control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
@@ -55,11 +55,9 @@ interface PricingTabProps {
 // Define calculation methods
 type CalculationMethod = 'manual' | 'autoHotelTransport' | 'autoTourPackage';
 
-// Define interface for occupancy selection with occurrences
-interface OccupancySelection {
-  occupancyTypeId: string;
-  count: number;
-  paxPerUnit: number;
+// Define interface for number of rooms selection
+interface RoomConfiguration {
+  numberOfRooms: number;
 }
 
 const PricingTab: React.FC<PricingTabProps> = ({
@@ -79,17 +77,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // State for selected calculation method
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(
     selectedTemplateId && selectedTemplateType === 'TourPackage' ? 'autoTourPackage' : 'manual'
-  );
-  // State for Tour Package Pricing selection criteria
-  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);
-  // State for multiple occupancy selections with counts
-  const [occupancySelections, setOccupancySelections] = useState<OccupancySelection[]>([]);
-  // State for new occupancy being added
-  const [newOccupancyTypeId, setNewOccupancyTypeId] = useState<string>("");
-  const [newOccupancyCount, setNewOccupancyCount] = useState<number>(1);
+  );  // State for Tour Package Pricing selection criteria
+  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);  // State for number of rooms
+  const [numberOfRooms, setNumberOfRooms] = useState<number>(1);
   // State for tour package details
   const [tourPackageName, setTourPackageName] = useState<string>("");
-  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);  // Fetch tour package details when selectedTemplateId changes
+  const [isFetchingPackage, setIsFetchingPackage] = useState<boolean>(false);
+  // State for available pricing components from matched tour package pricing
+  const [availablePricingComponents, setAvailablePricingComponents] = useState<any[]>([]);  // State for selected pricing components
+  const [selectedPricingComponentIds, setSelectedPricingComponentIds] = useState<string[]>([]);
+  // State for room quantities per component (componentId -> quantity)
+  const [componentRoomQuantities, setComponentRoomQuantities] = useState<Record<string, number>>({});
+  // State to track if pricing components have been fetched
+  const [pricingComponentsFetched, setPricingComponentsFetched] = useState<boolean>(false);
+  // State to track initial load to prevent loops
+  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);// Fetch tour package details when selectedTemplateId changes
   useEffect(() => {
     if (selectedTemplateId && selectedTemplateType === 'TourPackage') {
       // Try to get tour package name from form first
@@ -123,46 +125,22 @@ const PricingTab: React.FC<PricingTabProps> = ({
     } else {
       setTourPackageName("");
     }
-  }, [selectedTemplateId, selectedTemplateType, form]);
-    // Load and handle saved meal plan and occupancy selections
+  }, [selectedTemplateId, selectedTemplateType, form]);  // Load and handle saved meal plan and room configuration
   useEffect(() => {
-    // Try to restore any saved meal plan and occupancy selections
+    // Try to restore any saved meal plan and room configuration
     const savedMealPlanId = form.getValues('selectedMealPlanId');
-    const savedOccupancySelections = form.getValues('occupancySelections');
+    const savedNumberOfRooms = form.getValues('numberOfRooms');
     
     if (savedMealPlanId && !selectedMealPlanId) {
       console.log('Restoring saved meal plan ID:', savedMealPlanId);
-      setSelectedMealPlanId(savedMealPlanId);
-    }
+      setSelectedMealPlanId(savedMealPlanId);    }
     
-    // Handle various formats that might be returned from the database for occupancySelections
-    if (savedOccupancySelections && (!occupancySelections || occupancySelections.length === 0)) {
-      console.log('Trying to restore occupancy selections from form:', savedOccupancySelections);
-      
-      try {
-        // Case 1: It's already an array
-        if (Array.isArray(savedOccupancySelections) && savedOccupancySelections.length > 0) {
-          setOccupancySelections(savedOccupancySelections);
-        } 
-        // Case 2: It's in the {set: [...]} format that Prisma might return
-        else if (typeof savedOccupancySelections === 'object' && savedOccupancySelections.set && 
-                Array.isArray(savedOccupancySelections.set) && savedOccupancySelections.set.length > 0) {
-          setOccupancySelections(savedOccupancySelections.set);
-        }
-        // Case 3: It might be a JSON string that needs parsing
-        else if (typeof savedOccupancySelections === 'string') {
-          const parsed = JSON.parse(savedOccupancySelections);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setOccupancySelections(parsed);
-          } else if (typeof parsed === 'object' && parsed.set && Array.isArray(parsed.set)) {
-            setOccupancySelections(parsed.set);
-          }
-        }
-      } catch (e) {
-        console.error("Error parsing occupancy selections:", e);
-      }
+    // Only restore numberOfRooms if it's different from current state
+    if (savedNumberOfRooms && savedNumberOfRooms > 0 && savedNumberOfRooms !== numberOfRooms) {
+      console.log('Restoring saved number of rooms:', savedNumberOfRooms);
+      setNumberOfRooms(savedNumberOfRooms);
     }
-  }, [selectedTemplateId, selectedTemplateType, form, occupancySelections, selectedMealPlanId]);
+  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId]);
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {
@@ -172,15 +150,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
     });
     
     return () => subscription.unsubscribe();
-  }, [form]);
-
-  // Initialize data from form when component loads
+  }, [form]);  // Initialize data from form when component loads
   useEffect(() => {
+    if (!isInitialLoad) return; // Only run on initial load
+    
     // Initialize from form data when component mounts
     const initializeFromForm = () => {
       // Get stored data from form
       const storedMealPlanId = form.getValues('selectedMealPlanId');
-      const storedOccupancySelections = form.getValues('occupancySelections');
+      const storedNumberOfRooms = form.getValues('numberOfRooms');
       const storedTourPackageName = form.getValues('tourPackageTemplateName');
       
       // Set tour package name if available
@@ -193,33 +171,18 @@ const PricingTab: React.FC<PricingTabProps> = ({
         setSelectedMealPlanId(storedMealPlanId);
       }
       
-      // Handle different formats of occupancy selections
-      if (storedOccupancySelections) {
-        try {
-          if (Array.isArray(storedOccupancySelections) && storedOccupancySelections.length > 0) {
-            // Direct array format
-            setOccupancySelections(storedOccupancySelections);
-          } else if (typeof storedOccupancySelections === 'object' && storedOccupancySelections.set) {
-            // Prisma format with { set: [...] }
-            setOccupancySelections(storedOccupancySelections.set);
-          } else if (typeof storedOccupancySelections === 'string') {
-            // JSON string format
-            const parsed = JSON.parse(storedOccupancySelections);
-            if (Array.isArray(parsed)) {
-              setOccupancySelections(parsed);
-            } else if (parsed && parsed.set && Array.isArray(parsed.set)) {
-              setOccupancySelections(parsed.set);
-            }
-          }
-        } catch (err) {
-          console.error("Error parsing occupancy selections from form:", err);
-        }
+      // Set number of rooms if available
+      if (storedNumberOfRooms && storedNumberOfRooms > 0) {
+        setNumberOfRooms(storedNumberOfRooms);
       }
+      
+      // Mark initial load as complete
+      setIsInitialLoad(false);
     };
     
     // Run initialization
     initializeFromForm();
-  }, [form]);
+  }, [form, isInitialLoad]);
 
   // Set up field array for pricing section
   const {
@@ -251,100 +214,38 @@ const PricingTab: React.FC<PricingTabProps> = ({
   const handleRemovePricingItem = (indexToRemove: number) => {
     removePricing(indexToRemove);
     console.log("Removed pricing item at index", indexToRemove);
+  };  // Function to handle updating number of rooms
+  const handleRoomCountChange = (newCount: number) => {
+    if (newCount >= 1) {
+      setNumberOfRooms(newCount);
+      // Reset pricing components when room count changes
+      setAvailablePricingComponents([]);
+      setSelectedPricingComponentIds([]);
+      setComponentRoomQuantities({});
+      setPricingComponentsFetched(false);
+    }
   };
 
-  // Function to add a new occupancy selection
-  const handleAddOccupancySelection = () => {
-    if (!newOccupancyTypeId) {
-      toast.error("Please select an occupancy type");
-      return;
-    }
-
-    // Find the occupancy type to get paxPerUnit
-    const occupancyType = occupancyTypes.find(ot => ot.id === newOccupancyTypeId);
-    if (!occupancyType) {
-      toast.error("Invalid occupancy type selected");
-      return;
-    }
-
-    // Determine pax per unit based on occupancy type name
-    let paxPerUnit = 1; // Default
-    if (occupancyType.name?.toLowerCase().includes('double')) {
-      paxPerUnit = 2;
-    } else if (occupancyType.name?.toLowerCase().includes('triple')) {
-      paxPerUnit = 3;
-    } else if (occupancyType.name?.toLowerCase().includes('quad')) {
-      paxPerUnit = 4;
-    }
-
-    // Add to selections
-    setOccupancySelections([
-      ...occupancySelections,
-      {
-        occupancyTypeId: newOccupancyTypeId,
-        count: newOccupancyCount,
-        paxPerUnit
-      }
-    ]);
-
-    // Reset form fields
-    setNewOccupancyTypeId("");
-    setNewOccupancyCount(1);
-  };
-
-  // Function to remove an occupancy selection
-  const handleRemoveOccupancySelection = (index: number) => {
-    setOccupancySelections(occupancySelections.filter((_, i) => i !== index));
-  };  // Function to calculate total PAX based on occupancy selections
-  const calculateTotalPax = useCallback((): number => {
-    return occupancySelections.reduce((total, selection) => {
-      // Ensure we have valid numbers by providing fallbacks
-      const count = typeof selection.count === 'number' ? selection.count : 1;
-      const paxPerUnit = typeof selection.paxPerUnit === 'number' ? selection.paxPerUnit : 1;
-      
-      return total + (count * paxPerUnit);
-    }, 0);
-  }, [occupancySelections]);
-  // Function to calculate PAX for pricing matches (only counting Double occupancy)
-  const calculatePricingPax = (): number => {
-    return occupancySelections.reduce((total, selection) => {
-      // Find the occupancy type to check if it's Double
-      const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-      
-      // Ensure we have valid numbers by providing fallbacks
-      const count = typeof selection.count === 'number' ? selection.count : 1;
-      const paxPerUnit = typeof selection.paxPerUnit === 'number' ? selection.paxPerUnit : 1;
-      
-      // Only count Double occupancy for pricing match
-      if (occupancyType && occupancyType.name?.toLowerCase().includes('double')) {
-        return total + (count * paxPerUnit);
-      }
-      return total;
-    }, 0);
-  };
-
-  // Function to handle fetching and applying Tour Package Pricing
-  const handleFetchTourPackagePricing = async () => {
-    // First check if we have a selected template id from props
+  // Function to handle fetching available pricing components without applying them
+  const handleFetchAvailablePricingComponents = async () => {
     const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
     if (!tourPackageTemplateId) {
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
-    }    // Check if the selectedTemplateType is 'TourPackage'
+    }
+
     if (selectedTemplateType !== 'TourPackage') {
       toast.error("Auto calculation of pricing is only available for Tour Package templates.");
       return;
     }
 
-    // Both meal plan and occupancy selections are optional, but if we're calculating prices, we need them
     if (!selectedMealPlanId) {
       toast.error("Please select a Meal Plan for Tour Package Pricing.");
       return;
     }
 
-    // Check occupancy selections - still needed for calculations but not required for form submission
-    if (occupancySelections.length === 0) {
-      toast.error("Please add at least one occupancy selection.");
+    if (numberOfRooms <= 0) {
+      toast.error("Number of rooms must be greater than 0.");
       return;
     }
 
@@ -353,18 +254,181 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (!queryStartDate || !queryEndDate) {
       toast.error("Please select Tour Start and End Dates first.");
       return;
-    }    // Calculate pax from Double occupancy selections only for pricing match
-    const pricingQueryPax = calculatePricingPax();
-    // Calculate total pax for validation and display
-    const totalQueryPax = calculateTotalPax();
+    }
 
-    if (totalQueryPax <= 0) {
-      toast.error("Total number of guests must be greater than 0.");
+    toast.loading("Fetching available pricing components...");
+    try {
+      const response = await axios.get(`/api/tourPackages/${tourPackageTemplateId}/pricing`);
+      const tourPackagePricings = response.data;
+      toast.dismiss();
+
+      if (!tourPackagePricings || tourPackagePricings.length === 0) {
+        toast.error("No pricing periods found for the selected tour package.");
+        return;
+      }
+
+      // Filter matching pricing periods
+      const matchedPricings = tourPackagePricings.filter((p: any) => {
+        const periodStart = new Date(p.startDate);
+        const periodEnd = new Date(p.endDate);
+        const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
+        const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
+        const isRoomMatch = p.numberOfRooms === numberOfRooms;
+
+        return isDateMatch && isMealPlanMatch && isRoomMatch;
+      });
+
+      if (matchedPricings.length === 0) {
+        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${numberOfRooms} Room${numberOfRooms > 1 ? 's' : ''}).`);
+        setAvailablePricingComponents([]);
+        setPricingComponentsFetched(false);
+        return;
+      }
+
+      if (matchedPricings.length > 1) {
+        console.warn("Multiple matching pricing periods found:", matchedPricings);
+        toast.error("Multiple pricing periods match the criteria. Cannot automatically fetch components. Please refine Tour Package pricing definitions.");        setAvailablePricingComponents([]);
+        setPricingComponentsFetched(false);
+        return;
+      }
+
+      // Get components from the matched pricing
+      const selectedPricing = matchedPricings[0];
+      const components = selectedPricing.pricingComponents || [];
+      
+      setAvailablePricingComponents(components);
+      setPricingComponentsFetched(true);
+      
+      // Initially select all components and set default room quantities
+      const allComponentIds = components.map((comp: any) => comp.id);
+      setSelectedPricingComponentIds(allComponentIds);
+      
+      // Initialize room quantities for all components (default to 1)
+      const initialQuantities: Record<string, number> = {};
+      components.forEach((comp: any) => {
+        initialQuantities[comp.id] = 1;
+      });
+      setComponentRoomQuantities(initialQuantities);
+
+      toast.success(`Found ${components.length} pricing component${components.length !== 1 ? 's' : ''} available for selection.`);
+
+    } catch (error) {
+      toast.dismiss();
+      console.error("Error fetching pricing components:", error);
+      toast.error("Failed to fetch pricing components.");
+      setAvailablePricingComponents([]);
+      setPricingComponentsFetched(false);
+    }
+  };
+  // Function to handle toggling pricing component selection
+  const handleTogglePricingComponent = (componentId: string) => {
+    setSelectedPricingComponentIds(prev => {
+      if (prev.includes(componentId)) {
+        return prev.filter(id => id !== componentId);
+      } else {
+        return [...prev, componentId];
+      }
+    });
+  };
+  // Function to handle changing room quantity for a specific component
+  const handleComponentRoomQuantityChange = (componentId: string, newQuantity: number) => {
+    if (newQuantity >= 1) {
+      setComponentRoomQuantities(prev => ({
+        ...prev,
+        [componentId]: newQuantity
+      }));
+    }
+  };
+
+  // Function to get occupancy multiplier from component name
+  const getOccupancyMultiplier = (componentName: string): number => {
+    const name = componentName.toLowerCase();
+    
+    if (name.includes('single')) {
+      return 1;
+    } else if (name.includes('double')) {
+      return 2;
+    } else if (name.includes('triple')) {
+      return 3;
+    } else if (name.includes('quad')) {
+      return 4;
+    }
+    
+    // Default to 1 if no occupancy type is detected (for components like "per person", etc.)
+    return 1;
+  };
+
+  // Function to calculate total price for a component including occupancy and room quantity
+  const calculateComponentTotalPrice = (component: any, roomQuantity: number = 1): number => {
+    const basePrice = parseFloat(component.price || '0');
+    const componentName = component.pricingAttribute?.name || '';
+    const occupancyMultiplier = getOccupancyMultiplier(componentName);
+    
+    return basePrice * occupancyMultiplier * roomQuantity;
+  };  // Function to apply selected pricing components
+  const handleApplySelectedPricingComponents = () => {
+    if (selectedPricingComponentIds.length === 0) {
+      toast.error("Please select at least one pricing component to apply.");
       return;
     }
 
-    if (pricingQueryPax <= 0) {
-      toast.error("You need at least one Double occupancy selection for tour package pricing.");
+    // Filter available components by selected IDs
+    const componentsToApply = availablePricingComponents.filter((comp: any) => 
+      selectedPricingComponentIds.includes(comp.id)
+    );    // Create pricing components for the form
+    const finalPricingComponents: { name: string; price: string; description: string }[] = [];
+    let totalPrice = 0;    componentsToApply.forEach((comp: any) => {
+      const componentName = comp.pricingAttribute?.name || 'Pricing Component';
+      const basePrice = parseFloat(comp.price || '0');
+      const roomQuantity = componentRoomQuantities[comp.id] || 1;
+      const occupancyMultiplier = getOccupancyMultiplier(componentName);
+      const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
+      
+      finalPricingComponents.push({
+        name: componentName,
+        price: comp.price || '0', // Use original base price, not calculated total
+        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
+      });
+      
+      totalPrice += totalComponentPrice;
+    });
+
+    // Set the calculated values to the form
+    form.setValue('totalPrice', totalPrice.toString());
+    form.setValue('pricingSection', finalPricingComponents);
+
+    toast.success(`Applied ${componentsToApply.length} selected pricing component${componentsToApply.length !== 1 ? 's' : ''} successfully!`);
+  };// Note: Old occupancy-based calculation functions removed - now using room + meal plan model
+  // Function to handle fetching and applying Tour Package Pricing (Legacy - kept for backward compatibility)
+  const handleFetchTourPackagePricing = async () => {
+    // First check if we have a selected template id from props
+    const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
+    if (!tourPackageTemplateId) {
+      toast.error("Please select a Tour Package Template first in the Basic Info tab.");
+      return;
+    }
+
+    // Check if the selectedTemplateType is 'TourPackage'
+    if (selectedTemplateType !== 'TourPackage') {
+      toast.error("Auto calculation of pricing is only available for Tour Package templates.");
+      return;
+    }
+
+    // Check required fields for new model
+    if (!selectedMealPlanId) {
+      toast.error("Please select a Meal Plan for Tour Package Pricing.");
+      return;
+    }
+
+    if (numberOfRooms <= 0) {
+      toast.error("Number of rooms must be greater than 0.");
+      return;
+    }
+
+    const queryStartDate = form.getValues('tourStartsFrom');
+    const queryEndDate = form.getValues('tourEndsOn');
+    if (!queryStartDate || !queryEndDate) {
+      toast.error("Please select Tour Start and End Dates first.");
       return;
     }
 
@@ -377,21 +441,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
         toast.error("No pricing periods found for the selected tour package.");
         return;
-      }      // --- Enhanced Filtering Logic --- 
-      // First, find all possible matches for date range, meal plan and pax count
+      }
+
+      // Enhanced Filtering Logic for new schema (Number of Rooms + Meal Plan)
       const matchedPricings = tourPackagePricings.filter((p: any) => {
         const periodStart = new Date(p.startDate);
         const periodEnd = new Date(p.endDate);
         const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
         const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
-        // Use ONLY Double occupancy for PAX matching
-        const isPaxMatch = p.numPax === pricingQueryPax;
+        const isRoomMatch = p.numberOfRooms === numberOfRooms;
 
-        return isDateMatch && isMealPlanMatch && isPaxMatch;
+        return isDateMatch && isMealPlanMatch && isRoomMatch;
       });
 
       if (matchedPricings.length === 0) {
-        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${pricingQueryPax} Double PAX).`);
+        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${numberOfRooms} Room${numberOfRooms > 1 ? 's' : ''}).`);
         return;
       }
 
@@ -399,170 +463,39 @@ const PricingTab: React.FC<PricingTabProps> = ({
         console.warn("Multiple matching pricing periods found:", matchedPricings);
         toast.error("Multiple pricing periods match the criteria. Cannot automatically apply price. Please refine Tour Package pricing definitions.");
         return;
-      }      // --- Apply the uniquely matched pricing --- 
-      const selectedPricing = matchedPricings[0];      // First, extract Per Person and Per Couple costs (required for Double occupancy)
-      const perPersonComponent = selectedPricing.pricingComponents.find((comp: any) =>
-        comp.pricingAttribute?.name?.toLowerCase().includes('per person')
-      );
-
-      const perCoupleComponent = selectedPricing.pricingComponents.find((comp: any) =>
-        comp.pricingAttribute?.name?.toLowerCase().includes('per couple')
-      );
-        // Extract costs ONLY for the specific selected occupancy types
-      const otherOccupancyComponents = occupancySelections
-        .filter(selection => {
-          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-          return occupancyType && !occupancyType.name?.toLowerCase().includes('double');
-        })
-        .map(selection => {
-          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-          const occupancyName = occupancyType?.name?.toLowerCase() || '';
-
-          // Find components that specifically match this occupancy type based on well-defined mappings
-          return selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-
-            // Double occupancy uses Per Person Cost or Per Couple Cost
-            if (occupancyName.includes('double')) {
-              return compName.includes('per person') || compName.includes('per couple');
-            }
-            // CNB (Child with No Bed) uses Child With No Bed pricing
-            if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
-              return compName.includes('cnb') || (compName.includes('child') && compName.includes('no bed'));
-            }
-            // Extra Bed uses Extra Bed/Mattress pricing
-            if (occupancyName.includes('extra bed') || occupancyName.includes('extra mattress')) {
-              return compName.includes('extra bed') || compName.includes('extrabed') || compName.includes('mattress');
-            }
-            // Child With Bed uses Child With Bed pricing
-            if (occupancyName.includes('child') && occupancyName.includes('with bed')) {
-              return compName.includes('child') && compName.includes('with bed');
-            }
-            // Infant pricing
-            if (occupancyName.includes('infant')) {
-              return compName.includes('infant');
-            }
-
-            // More specific matching as fallback
-            const occupancyWords = occupancyName.split(/\s+/);
-            for (const word of occupancyWords) {
-              if (word.length > 2 && compName.includes(word)) return true;
-            }
-
-            return false;
-          });
-        })
-        .filter(Boolean); // Remove any undefined components
-
-      // Create the final pricing components array
-      const finalPricingComponents = [];
-        // Always add Per Person and Per Couple if available (for Double occupancy)
-      if (perPersonComponent) {
-        finalPricingComponents.push({
-          name: perPersonComponent.pricingAttribute?.name || 'Per Person Cost',
-          price: perPersonComponent.price || '0',
-          description: 'Cost per person'
-        });
       }
 
-      if (perCoupleComponent) {
-        finalPricingComponents.push({
-          name: perCoupleComponent.pricingAttribute?.name || 'Per Couple Cost',
-          price: perCoupleComponent.price || '0',
-          description: 'Cost per couple'
-        });
-      }
-        // Add other occupancy type specific components
-      otherOccupancyComponents.forEach((comp: any) => {
-        if (comp) {
-          finalPricingComponents.push({
-            name: comp.pricingAttribute?.name || 'Other Cost',
-            price: comp.price || '0',
-            description: ''
-          });
-        }
-      });
-        // Calculate the total price based on all applied components
-      const doubleOccupancySelections = occupancySelections.filter(selection => {
-        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-        return occupancyType && occupancyType.name?.toLowerCase().includes('double');
-      });
-
+      // Apply the uniquely matched pricing
+      const selectedPricing = matchedPricings[0];      // Create pricing components from the matched pricing
+      const finalPricingComponents: { name: string; price: string; description: string }[] = [];
       let totalPrice = 0;
 
-      // Apply Double occupancy pricing with correct multiplication
-      if (doubleOccupancySelections.length > 0) {
-        // Prefer Per Couple price if available, otherwise use Per Person price
-        if (perCoupleComponent) {
-          const perCouplePrice = parseFloat(perCoupleComponent.price || '0');
-          // Each double room counts as 1 couple
-          const doubleCoupleCount = doubleOccupancySelections.reduce((total, selection) => {
-            return total + selection.count;
-          }, 0);
-          totalPrice += perCouplePrice * doubleCoupleCount;
-        } else if (perPersonComponent) {
-          const perPersonPrice = parseFloat(perPersonComponent.price || '0');
-          // Each double room counts as 2 persons
-          const doublePersonCount = doubleOccupancySelections.reduce((total, selection) => {
-            // Multiply by 2 since each Double occupancy has 2 people
-            return total + (selection.count * 2);
-          }, 0);
-          totalPrice += perPersonPrice * doublePersonCount;
-        }
+      // Process all pricing components from the matched tour package pricing
+      if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
+        selectedPricing.pricingComponents.forEach((comp: any) => {
+          const componentName = comp.pricingAttribute?.name || 'Pricing Component';
+          const componentPrice = parseFloat(comp.price || '0');
+          
+          finalPricingComponents.push({
+            name: componentName,
+            price: comp.price || '0',
+            description: `Component for ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''}`
+          });
+          
+          totalPrice += componentPrice;
+        });
       }
 
-      // Apply other occupancy pricing with correct multiplication for each type
-      occupancySelections.forEach(selection => {
-        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-        if (!occupancyType) return;
+      // If no pricing components found, create a basic one
+      if (finalPricingComponents.length === 0) {
+        finalPricingComponents.push({
+          name: 'Tour Package Price',
+          price: '0',
+          description: `Package price for ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''}`
+        });
+      }
 
-        // Skip double occupancy as it's already handled above
-        if (occupancyType.name?.toLowerCase().includes('double')) return;
-
-        const occupancyName = occupancyType.name?.toLowerCase() || '';
-        let matchedComp;
-
-        // Find the matching price component based on occupancy type
-        if (occupancyName.includes('cnb') || (occupancyName.includes('child') && occupancyName.includes('no bed'))) {
-          // Find Child With No Bed pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('cnb') || (compName.includes('child') && compName.includes('no bed'));
-          });
-        } else if (occupancyName.includes('extra bed') || occupancyName.includes('extra mattress')) {
-          // Find Extra Bed pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('extra bed') || compName.includes('extrabed') || compName.includes('mattress');
-          });
-        } else if (occupancyName.includes('child') && occupancyName.includes('with bed')) {
-          // Find Child With Bed pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('child') && compName.includes('with bed');
-          });
-        } else if (occupancyName.includes('infant')) {
-          // Find Infant pricing
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes('infant');
-          });
-        } else {
-          // Fallback for any other occupancy types
-          matchedComp = selectedPricing.pricingComponents.find((comp: any) => {
-            const compName = comp.pricingAttribute?.name?.toLowerCase() || '';
-            return compName.includes(occupancyName);
-          });
-        }
-
-        // Apply the price if a matching component is found
-        if (matchedComp) {
-          const unitPrice = parseFloat(matchedComp.price || '0');
-          totalPrice += unitPrice * selection.count; // Multiply by the number of this occupancy type
-        }
-      });
-
-      // Always attempt to set the price and components
+      // Set the calculated values to the form
       form.setValue('totalPrice', totalPrice.toString());
       form.setValue('pricingSection', finalPricingComponents);
 
@@ -573,7 +506,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       console.error("Error fetching/applying tour package pricing:", error);
       toast.error("Failed to fetch or apply tour package pricing.");
     }
-  };  // Function to fetch and set the tour package name based on ID
+  };// Function to fetch and set the tour package name based on ID
   const fetchTourPackageName = useCallback(async (packageId: string) => {
     if (!packageId) {
       setTourPackageName("");
@@ -617,106 +550,119 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Fetch tour package name when selectedTemplateId changes
   useEffect(() => {
     fetchTourPackageName(selectedTemplateId || "");
-  }, [selectedTemplateId, fetchTourPackageName]);
-
-  // When meal plan changes, save it to the form
+  }, [selectedTemplateId, fetchTourPackageName]);  // When meal plan and room configuration change, save them to the form
   useEffect(() => {
     if (selectedMealPlanId) {
-      form.setValue('selectedMealPlanId', selectedMealPlanId);
+      const currentFormValue = form.getValues('selectedMealPlanId');
+      // Only update form if the value is actually different
+      if (currentFormValue !== selectedMealPlanId) {
+        form.setValue('selectedMealPlanId', selectedMealPlanId);
+      }      // Reset pricing components when meal plan changes
+      setAvailablePricingComponents([]);
+      setSelectedPricingComponentIds([]);
+      setComponentRoomQuantities({});
+      setPricingComponentsFetched(false);
     }
   }, [selectedMealPlanId, form]);
-    // When occupancy selections change, save them to the form
+  // When number of rooms changes, save it to the form (but avoid circular updates)
   useEffect(() => {
-    // Always save the occupancy selections to the form, even if empty
-    // This ensures the form state is always in sync with the component state
-    form.setValue('occupancySelections', occupancySelections);
-    
-    // Update total price display when occupancy selections change
-    if (calculationMethod === 'autoTourPackage' && selectedMealPlanId && occupancySelections.length > 0) {
-      // Recalculate total guest count in the UI
-      const totalPax = calculateTotalPax();
-      console.log(`Occupancy selections updated, total guests: ${totalPax}`);
+    if (numberOfRooms > 0) {
+      const currentFormValue = form.getValues('numberOfRooms');
+      // Only update form if the value is actually different
+      if (currentFormValue !== numberOfRooms) {
+        form.setValue('numberOfRooms', numberOfRooms);
+      }      // Reset pricing components when room count changes
+      setAvailablePricingComponents([]);
+      setSelectedPricingComponentIds([]);
+      setComponentRoomQuantities({});
+      setPricingComponentsFetched(false);
     }
-  }, [occupancySelections, form, calculationMethod, selectedMealPlanId, calculateTotalPax]);
+  }, [numberOfRooms, form]);
   return (
-    <Card>
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b py-4 sm:py-6">
-        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-          <DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />
-          Pricing
+    <Card className="bg-gradient-to-br from-slate-50 to-blue-50 border-slate-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg">
+        <CardTitle className="flex items-center text-xl font-bold">
+          <CreditCard className="mr-3 h-6 w-6" />
+          💰 Pricing Configuration
+          <Sparkles className="ml-2 h-5 w-5 text-yellow-300" />
         </CardTitle>
+        <p className="text-blue-100 text-sm mt-1">
+          Configure your tour package pricing with advanced calculation methods
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6 p-3 sm:p-6">{/* Pricing Calculation Method Selection - Enhanced for mobile */}        
-        <FormItem className="space-y-2 sm:space-y-3">
-          <FormLabel className="text-sm sm:text-base font-semibold">Pricing Calculation Method</FormLabel>
-          <FormControl>
-            <RadioGroup
-              onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
-              defaultValue={calculationMethod}
-              className="flex flex-col space-y-1.5 sm:space-y-2 pt-1 sm:pt-2"
-            >
-              <FormItem className="flex items-center space-x-2 sm:space-x-3 space-y-0 bg-white p-1.5 sm:p-2 rounded-md border border-transparent hover:border-gray-200">
-                <FormControl>
-                  <RadioGroupItem value="manual" id="manual-pricing" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </FormControl>
-                <FormLabel htmlFor="manual-pricing" className="text-xs sm:text-sm font-normal cursor-pointer m-0">Manual Pricing</FormLabel>
-              </FormItem>
-              <FormItem className="flex items-center space-x-2 sm:space-x-3 space-y-0 bg-white p-1.5 sm:p-2 rounded-md border border-transparent hover:border-gray-200">
-                <FormControl>
-                  <RadioGroupItem value="autoHotelTransport" id="auto-hotel-transport" className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </FormControl>
-                <FormLabel htmlFor="auto-hotel-transport" className="text-xs sm:text-sm font-normal cursor-pointer m-0">
-                  <span className="hidden sm:inline">Auto Calculate (Hotel & Transport)</span>
-                  <span className="inline sm:hidden">Auto (Hotel/Transport)</span>
-                </FormLabel>
-              </FormItem>
-              <FormItem className="flex items-center space-x-2 sm:space-x-3 space-y-0 bg-white p-1.5 sm:p-2 rounded-md border border-transparent hover:border-gray-200">
-                <FormControl>
-                  <RadioGroupItem 
-                    value="autoTourPackage" 
-                    id="auto-tour-package"
-                    disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'}
-                    className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                  />
-                </FormControl>
-                <div className="flex flex-col">
-                  <FormLabel 
-                    htmlFor="auto-tour-package" 
-                    className={`text-xs sm:text-sm font-normal m-0 ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <span className="hidden sm:inline">Use Tour Package Pricing</span>
-                    <span className="inline sm:hidden">Package Pricing</span>
-                  </FormLabel>
-                  {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
-                    <span className="text-2xs text-amber-500 block mt-0.5">
-                      {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
-                    </span>
-                  )}
-                </div>
-              </FormItem>
-            </RadioGroup>
-          </FormControl>
-        </FormItem>
-
-        {/* Conditional Sections based on calculationMethod */}
-
-        {/* Auto-calculate pricing section (Hotel & Transport) */}
-        {calculationMethod === 'autoHotelTransport' && (
-          <div className="border border-blue-200 bg-blue-50 rounded-lg p-4 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold text-blue-800">Auto Price (Hotel & Transport)</h3>
-                <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-blue-800"></div>
-                <div id="calculation-status" className="hidden text-sm px-2 py-1 rounded"></div>
+      <CardContent className="p-6 space-y-6">        {/* Method Selection */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <Settings className="mr-2 h-5 w-5 text-indigo-600" />
+            <h3 className="text-lg font-semibold text-slate-800">💼 Calculation Method</h3>
+          </div>
+          <RadioGroup
+            value={calculationMethod}
+            onValueChange={(value: CalculationMethod) => setCalculationMethod(value)}
+            className="space-y-3"
+          >
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all duration-200">
+              <RadioGroupItem value="manual" id="manual" className="text-indigo-600" />
+              <div className="flex-1">
+                <label htmlFor="manual" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center">
+                  <Receipt className="mr-2 h-4 w-4 text-blue-600" />
+                  ✍️ Manual Pricing Entry
+                </label>
+                <p className="text-xs text-slate-500 mt-1">Enter pricing components manually with full control</p>
               </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200">
+              <RadioGroupItem value="autoHotelTransport" id="autoHotelTransport" className="text-green-600" />
+              <div className="flex-1">
+                <label htmlFor="autoHotelTransport" className="text-sm font-medium text-slate-700 cursor-pointer flex items-center">
+                  <Calculator className="mr-2 h-4 w-4 text-green-600" />
+                  🤖 Auto Calculate (Hotel + Transport)
+                </label>
+                <p className="text-xs text-slate-500 mt-1">Automatically calculate based on itinerary hotels and transport</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
+              <RadioGroupItem 
+                value="autoTourPackage" 
+                id="autoTourPackage"
+                disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'} 
+                className="text-purple-600" 
+              />
+              <div className="flex-1">
+                <label htmlFor="autoTourPackage" className={`text-sm font-medium cursor-pointer flex items-center ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-slate-400' : 'text-slate-700'}`}>
+                  <Package className="mr-2 h-4 w-4 text-purple-600" />
+                  📦 Use Tour Package Pricing
+                </label>
+                <p className="text-xs text-slate-500 mt-1">Use pre-defined pricing from selected tour package template</p>
+                {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
+                  <p className="text-xs text-amber-500 mt-1">
+                    {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </RadioGroup>
+        </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center w-full sm:w-auto">
-                <div className="flex items-center">
-                  <label htmlFor="markup" className="text-sm mr-2 text-blue-700 whitespace-nowrap">Markup %:</label>
+        {/* Conditional Sections based on calculationMethod */}        {/* Auto-calculate pricing section (Hotel & Transport) */}
+        {calculationMethod === 'autoHotelTransport' && (
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center mb-4">
+              <Calculator className="mr-2 h-5 w-5 text-emerald-600" />
+              <h3 className="text-lg font-semibold text-emerald-800">🤖 Auto Price Calculator</h3>
+              <div id="price-calculating-spinner" className="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600 ml-2"></div>
+              <div id="calculation-status" className="hidden text-sm px-3 py-1 rounded-full ml-2 font-medium"></div>
+            </div>
+            
+            <div className="bg-white rounded-lg p-4 border border-emerald-200 mb-4">
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-emerald-600" />
+                  <label htmlFor="markup" className="text-sm font-medium text-emerald-700 whitespace-nowrap">Markup %:</label>
                   <Input
                     id="markup"
                     type="number"
-                    className="w-20 h-8 bg-white"
+                    className="w-20 h-8 bg-white border-emerald-300 focus:border-emerald-500"
                     defaultValue="0"
                     min="0"
                     max="100"
@@ -728,7 +674,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     }}
                   />
                 </div>
-                <div className="w-full sm:w-auto">
+                
+                <div className="flex-1 max-w-xs">
                   <Select onValueChange={(value) => {
                     if (value === 'standard') {
                       if ((window as any).markupInput) (window as any).markupInput.value = '10';
@@ -743,190 +690,187 @@ const PricingTab: React.FC<PricingTabProps> = ({
                       (window as any).customMarkupValue = (window as any).markupInput.value;
                     }
                   }}>
-                    <SelectTrigger className="w-36 h-8 bg-white">
-                      <SelectValue placeholder="Pricing Tier" />
+                    <SelectTrigger className="h-8 bg-white border-emerald-300 focus:border-emerald-500">
+                      <SelectValue placeholder="🎯 Pricing Tier" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="standard">Standard (10%)</SelectItem>
-                      <SelectItem value="premium">Premium (20%)</SelectItem>
-                      <SelectItem value="luxury">Luxury (30%)</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
+                      <SelectItem value="standard">⭐ Standard (10%)</SelectItem>
+                      <SelectItem value="premium">🌟 Premium (20%)</SelectItem>
+                      <SelectItem value="luxury">✨ Luxury (30%)</SelectItem>
+                      <SelectItem value="custom">🎛️ Custom</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-2 mt-3 sm:mt-0">
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setPriceCalculationResult(null);
-                      const calculatingElement = document.getElementById('price-calculating-spinner');
-                      const calculationStatus = document.getElementById('calculation-status');
-                      if (calculatingElement) calculatingElement.classList.remove('hidden');
-                      if (calculationStatus) {
-                        calculationStatus.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
-                        calculationStatus.classList.add('bg-blue-100', 'text-blue-700');
-                        calculationStatus.textContent = 'Calculating...';
-                      }
-                      console.log("Starting simple price calculation...");
-                      const tourStartsFrom = form.getValues('tourStartsFrom');
-                      const tourEndsOn = form.getValues('tourEndsOn');
-                      const itineraries = form.getValues('itineraries');
-                      if (!tourStartsFrom || !tourEndsOn) {
-                        const errorMsg = 'Please select tour start and end dates first';
-                        console.error(errorMsg);
-                        toast.error(errorMsg);
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setPriceCalculationResult(null);
+                        const calculatingElement = document.getElementById('price-calculating-spinner');
+                        const calculationStatus = document.getElementById('calculation-status');
+                        if (calculatingElement) calculatingElement.classList.remove('hidden');
                         if (calculationStatus) {
-                          calculationStatus.textContent = 'Error';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                          calculationStatus.classList.remove('hidden', 'bg-green-100', 'text-green-700', 'bg-red-100', 'text-red-700');
+                          calculationStatus.classList.add('bg-blue-100', 'text-blue-700');
+                          calculationStatus.textContent = 'Calculating...';
                         }
-                        if (calculatingElement) calculatingElement.classList.add('hidden');
-                        return;
-                      }
-                      const validItineraries = itineraries.filter((itinerary: any) => {
-                        return itinerary.hotelId &&
-                          hotels.some(hotel => hotel.id === itinerary.hotelId);
-                      });
-                      if (validItineraries.length === 0) {
-                        toast.error('Please select hotels for at least one day to calculate pricing');
-                        if (calculationStatus) {
-                          calculationStatus.textContent = 'Error';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        console.log("Starting simple price calculation...");
+                        const tourStartsFrom = form.getValues('tourStartsFrom');
+                        const tourEndsOn = form.getValues('tourEndsOn');
+                        const itineraries = form.getValues('itineraries');
+                        if (!tourStartsFrom || !tourEndsOn) {
+                          const errorMsg = 'Please select tour start and end dates first';
+                          console.error(errorMsg);
+                          toast.error(errorMsg);
+                          if (calculationStatus) {
+                            calculationStatus.textContent = 'Error';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                          }
+                          if (calculatingElement) calculatingElement.classList.add('hidden');
+                          return;
                         }
-                        if (calculatingElement) calculatingElement.classList.add('hidden');
-                        return;
-                      }
-                      toast('Calculating room prices...'); // Changed to info -> Changed to base toast
-                      const pricingItineraries = validItineraries.map((itinerary: any) => ({
-                        locationId: itinerary.locationId,
-                        dayNumber: itinerary.dayNumber || 0,
-                        hotelId: itinerary.hotelId,
-                        roomAllocations: itinerary.roomAllocations || [],
-                        transportDetails: itinerary.transportDetails || [],
-                      }));
-                      const markupValue = (window as any).customMarkupValue || '0';
-                      const markupPercentage = parseFloat(markupValue);
-                      console.log('Sending data to price calculation API:', {
-                        tourStartsFrom,
-                        tourEndsOn,
-                        itineraries: pricingItineraries,
-                        markup: markupPercentage
-                      });
-                      const response = await axios.post('/api/pricing/calculate', {
-                        tourStartsFrom,
-                        tourEndsOn,
-                        itineraries: pricingItineraries,
-                        markup: markupPercentage
-                      });
-                      const result = response.data;
-                      console.log('Price calculation result:', result);
-                      if (result && typeof result === 'object') {
-                        const totalCost = result.totalCost || 0;
-                        form.setValue('totalPrice', totalCost.toString());
-                        const pricingItems = [];
-                        pricingItems.push({
-                          name: 'Total Cost',
-                          price: totalCost.toString(),
-                          description: 'Total package cost with markup'
+                        const validItineraries = itineraries.filter((itinerary: any) => {
+                          return itinerary.hotelId &&
+                            hotels.some(hotel => hotel.id === itinerary.hotelId);
                         });
-                        if (result.breakdown && typeof result.breakdown === 'object') {
-                          const accommodationCost = result.breakdown.accommodation || 0;
+                        if (validItineraries.length === 0) {
+                          toast.error('Please select hotels for at least one day to calculate pricing');
+                          if (calculationStatus) {
+                            calculationStatus.textContent = 'Error';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                          }
+                          if (calculatingElement) calculatingElement.classList.add('hidden');
+                          return;
+                        }
+                        toast('Calculating room prices...'); // Changed to info -> Changed to base toast
+                        const pricingItineraries = validItineraries.map((itinerary: any) => ({
+                          locationId: itinerary.locationId,
+                          dayNumber: itinerary.dayNumber || 0,
+                          hotelId: itinerary.hotelId,
+                          roomAllocations: itinerary.roomAllocations || [],
+                          transportDetails: itinerary.transportDetails || [],
+                        }));
+                        const markupValue = (window as any).customMarkupValue || '0';
+                        const markupPercentage = parseFloat(markupValue);
+                        console.log('Sending data to price calculation API:', {
+                          tourStartsFrom,
+                          tourEndsOn,
+                          itineraries: pricingItineraries,
+                          markup: markupPercentage
+                        });
+                        const response = await axios.post('/api/pricing/calculate', {
+                          tourStartsFrom,
+                          tourEndsOn,
+                          itineraries: pricingItineraries,
+                          markup: markupPercentage
+                        });
+                        const result = response.data;
+                        console.log('Price calculation result:', result);
+                        if (result && typeof result === 'object') {
+                          const totalCost = result.totalCost || 0;
+                          form.setValue('totalPrice', totalCost.toString());
+                          const pricingItems = [];
                           pricingItems.push({
-                            name: 'Accommodation',
-                            price: accommodationCost.toString(),
-                            description: 'Hotel room costs'
+                            name: 'Total Cost',
+                            price: totalCost.toString(),
+                            description: 'Total package cost with markup'
                           });
-                          const transportCost = result.breakdown.transport || 0;
-                          if (transportCost > 0) {
+                          if (result.breakdown && typeof result.breakdown === 'object') {
+                            const accommodationCost = result.breakdown.accommodation || 0;
                             pricingItems.push({
-                              name: 'Transport',
-                              price: transportCost.toString(),
-                              description: 'Vehicle costs'
+                              name: 'Accommodation',
+                              price: accommodationCost.toString(),
+                              description: 'Hotel room costs'
                             });
+                            const transportCost = result.breakdown.transport || 0;
+                            if (transportCost > 0) {
+                              pricingItems.push({
+                                name: 'Transport',
+                                price: transportCost.toString(),
+                                description: 'Vehicle costs'
+                              });
+                            }
+                          }
+                          form.setValue('pricingSection', pricingItems);
+                          (window as any).priceCalculationResult = result;
+                          setPriceCalculationResult(result);
+                          toast.success('Price calculation complete!');
+                          if (calculationStatus) {
+                            calculationStatus.textContent = '✅ Complete';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-green-100', 'text-green-700');
+                            setTimeout(() => {
+                              calculationStatus.classList.add('hidden');
+                            }, 3000);
+                          }
+                        } else {
+                          console.error('Invalid price calculation result structure:', result);
+                          toast.error('Invalid price calculation result: The server returned an unexpected response');
+                          if (calculationStatus) {
+                            calculationStatus.textContent = '❌ Error';
+                            calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
+                            calculationStatus.classList.add('bg-red-100', 'text-red-700');
                           }
                         }
-                        form.setValue('pricingSection', pricingItems);
-                        (window as any).priceCalculationResult = result;
-                        setPriceCalculationResult(result);
-                        toast.success('Price calculation complete!');
-                        if (calculationStatus) {
-                          calculationStatus.textContent = 'Complete';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-green-100', 'text-green-700');
-                          setTimeout(() => {
-                            calculationStatus.classList.add('hidden');
-                          }, 3000);
+                        if (calculatingElement) calculatingElement.classList.add('hidden');
+                      } catch (error: any) {
+                        console.error('Price calculation error:', error);
+                        let errorMessage = 'Error calculating price';
+                        if (error instanceof Error) {
+                          errorMessage = error.message;
+                          console.error('Error details:', error.stack);
                         }
-                      } else {
-                        console.error('Invalid price calculation result structure:', result);
-                        toast.error('Invalid price calculation result: The server returned an unexpected response');
-                        if (calculationStatus) {
-                          calculationStatus.textContent = 'Error';
-                          calculationStatus.classList.remove('bg-blue-100', 'text-blue-700');
-                          calculationStatus.classList.add('bg-red-100', 'text-red-700');
+                        if (error.response) {
+                          console.error('API response error data:', error.response.data);
+                          console.error('API response error status:', error.response.status);
+                          if (error.response.data) {
+                            errorMessage = typeof error.response.data === 'string'
+                              ? `API Error: ${error.response.data}`
+                              : `API Error: Status ${error.response.status}`;
+                          }
                         }
-                      }
-                      if (calculatingElement) calculatingElement.classList.add('hidden');
-                    } catch (error: any) {
-                      console.error('Price calculation error:', error);
-                      let errorMessage = 'Error calculating price';
-                      if (error instanceof Error) {
-                        errorMessage = error.message;
-                        console.error('Error details:', error.stack);
-                      }
-                      if (error.response) {
-                        console.error('API response error data:', error.response.data);
-                        console.error('API response error status:', error.response.status);
-                        if (error.response.data) {
-                          errorMessage = typeof error.response.data === 'string'
-                            ? `API Error: ${error.response.data}`
-                            : `API Error: Status ${error.response.status}`;
+                        toast.error(`Price calculation failed: ${errorMessage}`);
+                        const spinnerElement = document.getElementById('price-calculating-spinner');
+                        const statusElement = document.getElementById('calculation-status');
+                        if (spinnerElement) spinnerElement.classList.add('hidden');
+                        if (statusElement) {
+                          statusElement.textContent = '❌ Error';
+                          statusElement.classList.remove('bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
+                          statusElement.classList.add('bg-red-100', 'text-red-700');
                         }
                       }
-                      toast.error(`Price calculation failed: ${errorMessage}`);
-                      const spinnerElement = document.getElementById('price-calculating-spinner');
+                    }}
+                    className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white border-emerald-600 shadow-md"
+                    disabled={loading}
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    🧮 Calculate Price
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setPriceCalculationResult(null);
+                      (window as any).priceCalculationResult = null;
+                      if ((window as any).markupInput) {
+                        (window as any).markupInput.value = '0';
+                        (window as any).customMarkupValue = '0';
+                      }
+                      toast.success('Price calculation reset');
                       const statusElement = document.getElementById('calculation-status');
-                      if (spinnerElement) spinnerElement.classList.add('hidden');
-                      if (statusElement) {
-                        statusElement.textContent = 'Error';
-                        statusElement.classList.remove('bg-blue-100', 'text-blue-700', 'bg-green-100', 'text-green-700');
-                        statusElement.classList.add('bg-red-100', 'text-red-700');
-                      }
-                    }
-                  }}
-                  variant="outline"
-                  className="bg-blue-500 hover:bg-blue-600 text-white border-blue-600"
-                  disabled={loading}
-                >
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Calculate Price
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setPriceCalculationResult(null);
-                    (window as any).priceCalculationResult = null;
-                    if ((window as any).markupInput) {
-                      (window as any).markupInput.value = '0';
-                      (window as any).customMarkupValue = '0';
-                    }
-                    // Optionally reset total price and pricing section in the form
-                    // form.setValue('totalPrice', '0');
-                    // form.setValue('pricingSection', []);
-                    toast.success('Price calculation reset');
-                    const statusElement = document.getElementById('calculation-status');
-                    if (statusElement) statusElement.classList.add('hidden');
-                  }}
-                  variant="outline"
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 border-gray-300"
-                  disabled={loading}
-                >
-                  Reset
-                </Button>
+                      if (statusElement) statusElement.classList.add('hidden');
+                    }}
+                    variant="outline"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                    disabled={loading}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -1081,297 +1025,453 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </div>
             )}
           </div>
-        )}
-
-        {/* Use Tour Package Pricing Section */}
+        )}        {/* Use Tour Package Pricing Section */}
         {calculationMethod === 'autoTourPackage' && (
-          <div className="border border-green-200 bg-green-50 rounded-lg p-4 space-y-4">
-            <h3 className="text-lg font-semibold text-green-800 mb-3">Use Tour Package Pricing</h3>
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center mb-4">
+              <Package className="mr-2 h-5 w-5 text-purple-600" />
+              <h3 className="text-lg font-semibold text-purple-800">📦 Tour Package Pricing</h3>
+            </div>
             
             {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? (
-              <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-md p-3">
-                <p className="text-sm font-medium">
-                  {!selectedTemplateId ? (
-                    "Please select a Tour Package template first in the Basic Info tab."
-                  ) : (
-                    "Auto calculation of pricing is only available for Tour Package templates."
-                  )}
-                </p>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <AlertCircle className="mr-2 h-5 w-5 text-amber-600" />
+                  <p className="font-medium">
+                    {!selectedTemplateId ? (
+                      "🔧 Please select a Tour Package template first in the Basic Info tab."
+                    ) : (
+                      "⚠️ Auto calculation of pricing is only available for Tour Package templates."
+                    )}
+                  </p>
+                </div>
               </div>
             ) : (
-              <>                <div className="bg-white border border-green-200 rounded-md p-3 flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-gray-600">Selected Tour Package:</p>
-                    {isFetchingPackage ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin h-4 w-4 border-2 border-green-500 border-t-transparent rounded-full mr-2"></div>
-                        <p className="font-medium text-sm">Loading package details...</p>
+              <>
+                <div className="bg-white border border-purple-200 rounded-lg p-4 mb-4 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm text-slate-600">Selected Tour Package:</p>
+                        {isFetchingPackage ? (
+                          <div className="flex items-center">
+                            <Loader2 className="animate-spin h-4 w-4 text-purple-500 mr-2" />
+                            <p className="font-medium text-sm">Loading package details...</p>
+                          </div>
+                        ) : (
+                          <p className="font-semibold text-purple-700">
+                            📋 {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId}`}
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <p className="font-medium">
-                        {tourPackageName || form.getValues('tourPackageTemplateName') || `Package ID: ${selectedTemplateId}`}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Navigate to the basicInfo tab
-                      try {
-                        // First try to find the tab container
-                        const tabsElement = document.querySelector('[role="tablist"]');
-                        if (tabsElement) {
-                          // Try various selectors for the basic info tab
-                          let basicInfoTab = tabsElement.querySelector('button[data-value="basic"], button[value="basic"], button[data-value="basicInfo"], button[value="basicInfo"]') as HTMLButtonElement;
-                          
-                          if (!basicInfoTab) {
-                            // Try finding by text content
-                            const allTabs = tabsElement.querySelectorAll('button');
-                            basicInfoTab = Array.from(allTabs).find(tab => 
-                              tab.textContent?.toLowerCase().includes('basic') || 
-                              tab.getAttribute('value')?.toLowerCase().includes('basic') ||
-                              tab.getAttribute('data-value')?.toLowerCase().includes('basic')
-                            ) as HTMLButtonElement;
-                          }
-                          
-                          if (basicInfoTab) {
-                            toast.success("Navigating to Basic Info tab");
-                            console.log("Clicking on tab:", basicInfoTab);
-                            basicInfoTab.click();
-                          } else {
-                            // Last resort - just try to click the first tab
-                            const firstTab = tabsElement.querySelector('button') as HTMLButtonElement;
-                            if (firstTab) {
-                              toast.success("Navigating to first tab");
-                              firstTab.click();
-                            } else {
-                              console.error("Could not find any tab");
-                              toast.error("Could not navigate to Basic Info tab. Please select it manually.");
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Navigate to the basicInfo tab
+                        try {
+                          // First try to find the tab container
+                          const tabsElement = document.querySelector('[role="tablist"]');
+                          if (tabsElement) {
+                            // Try various selectors for the basic info tab
+                            let basicInfoTab = tabsElement.querySelector('button[data-value="basic"], button[value="basic"], button[data-value="basicInfo"], button[value="basicInfo"]') as HTMLButtonElement;
+                            
+                            if (!basicInfoTab) {
+                              // Try finding by text content
+                              const allTabs = tabsElement.querySelectorAll('button');
+                              basicInfoTab = Array.from(allTabs).find(tab => 
+                                tab.textContent?.toLowerCase().includes('basic') || 
+                                tab.getAttribute('value')?.toLowerCase().includes('basic') ||
+                                tab.getAttribute('data-value')?.toLowerCase().includes('basic')
+                              ) as HTMLButtonElement;
                             }
+                            
+                            if (basicInfoTab) {
+                              toast.success("Navigating to Basic Info tab");
+                              console.log("Clicking on tab:", basicInfoTab);
+                              basicInfoTab.click();
+                            } else {
+                              // Last resort - just try to click the first tab
+                              const firstTab = tabsElement.querySelector('button') as HTMLButtonElement;
+                              if (firstTab) {
+                                toast.success("Navigating to first tab");
+                                firstTab.click();
+                              } else {
+                                console.error("Could not find any tab");
+                                toast.error("Could not navigate to Basic Info tab. Please select it manually.");
+                              }
+                            }
+                          } else {
+                            toast.error("Tab navigation not found. Please select Basic Info tab manually.");
                           }
-                        } else {
-                          toast.error("Tab navigation not found. Please select Basic Info tab manually.");
+                        } catch (error) {
+                          console.error("Error navigating tabs:", error);
+                          toast.error("Navigation error. Please select Basic Info tab manually.");
                         }
-                      } catch (error) {
-                        console.error("Error navigating tabs:", error);
-                        toast.error("Navigation error. Please select Basic Info tab manually.");
-                      }
-                    }}
-                    className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300"
-                  >
-                    Change
-                  </Button>
+                      }}
+                      className="bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300"
+                    >
+                      <ArrowRight className="mr-1 h-3 w-3" />
+                      Change
+                    </Button>
+                  </div>
                 </div>
 
-                <p className="text-sm text-green-700">
-                  Fetch pre-defined pricing based on the selected Tour Package Template, Meal Plan, and Occupancy combinations.
-                  This will overwrite the current Total Price and Pricing Options below.
-                </p>                {/* Meal Plan Selection First - Enhanced for mobile */}
-                <FormItem className="space-y-1 sm:space-y-2">
-                  <FormLabel className="font-medium text-sm sm:text-base">Meal Plan <span className="text-red-500">*</span></FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={setSelectedMealPlanId}
-                    value={selectedMealPlanId || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="bg-white text-xs sm:text-sm h-9 sm:h-10">
-                        <SelectValue placeholder="Select Meal Plan" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-[200px]">
-                      {mealPlans.map((plan) => (
-                        <SelectItem key={plan.id} value={plan.id} className="text-xs sm:text-sm">
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {!selectedMealPlanId && <p className="text-2xs sm:text-xs text-red-500 pt-0.5 sm:pt-1">Required</p>}
-                </FormItem>
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-indigo-700 flex items-center">
+                    <Star className="mr-2 h-4 w-4" />
+                    Fetch pre-defined pricing based on the selected Tour Package Template, Number of Rooms, and Meal Plan.
+                    This will overwrite the current Total Price and Pricing Options below.
+                  </p>
+                </div>
 
-                {/* Occupancy Selections */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-green-800">Occupancy Selections <span className="text-red-500">*</span></h4>                  {/* Show current selections - Enhanced for mobile */}
-                  {occupancySelections.length > 0 ? (
-                    <div className="space-y-2">
-                      {occupancySelections.map((selection, index) => {
-                        const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-                        return (
-                          <div key={index} className="flex flex-wrap sm:flex-nowrap items-center justify-between p-2 sm:p-3 bg-white rounded border border-green-200 shadow-sm">
-                            <div className="flex flex-col sm:flex-row sm:items-center w-full sm:w-auto">
-                              <span className="font-medium text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none">{occupancyType?.name}</span>
-                              <span className="text-xs text-gray-600 sm:ml-2 mt-0.5 sm:mt-0">
-                                × {selection.count} = {selection.count * selection.paxPerUnit} PAX
-                              </span>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveOccupancySelection(index)}
-                              className="h-7 w-7 p-0 ml-auto"
-                              disabled={loading}
-                            >
-                              <Trash className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 hover:text-red-700" />
-                            </Button>
-                          </div>
-                        );
-                      })}
+                {/* Meal Plan Selection */}
+                <div className="bg-white rounded-lg p-4 border border-purple-200 mb-4">
+                  <FormItem className="space-y-3">
+                    <FormLabel className="font-semibold text-purple-700 flex items-center">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      🍽️ Meal Plan <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <Select
+                      disabled={loading}
+                      onValueChange={setSelectedMealPlanId}
+                      value={selectedMealPlanId || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="bg-white border-purple-300 focus:border-purple-500">
+                          <SelectValue placeholder="Select Meal Plan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {mealPlans.map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            🍽️ {plan.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!selectedMealPlanId && <p className="text-xs text-red-500 pt-1">Required</p>}
+                  </FormItem>
+                </div>
 
-                      <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200 text-center">
-                        <span className="font-semibold text-xs sm:text-sm">Total: {calculateTotalPax()} PAX</span>
+                {/* Number of Rooms Selection */}
+                <div className="bg-white rounded-lg p-4 border border-purple-200 mb-4">
+                  <FormItem className="space-y-3">
+                    <FormLabel className="font-semibold text-purple-700 flex items-center">
+                      <Wallet className="mr-2 h-4 w-4" />
+                      🏨 Number of Rooms <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="rounded-full w-10 h-10 flex-shrink-0 bg-white border-purple-300 hover:bg-purple-50"
+                        onClick={() => handleRoomCountChange(numberOfRooms - 1)}
+                        disabled={loading || numberOfRooms <= 1}
+                      >
+                        <span className="sr-only">Decrease</span>
+                        <span className="text-lg font-bold text-purple-600">-</span>
+                      </Button>
+                      <Input
+                        type="number"
+                        value={numberOfRooms}
+                        onChange={(e) => handleRoomCountChange(parseInt(e.target.value) || 1)}
+                        min="1"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
+                        disabled={loading}
+                        className="w-24 text-center bg-white border-purple-300 focus:border-purple-500 font-semibold text-lg"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        className="rounded-full w-10 h-10 flex-shrink-0 bg-white border-purple-300 hover:bg-purple-50"
+                        onClick={() => handleRoomCountChange(numberOfRooms + 1)}
+                        disabled={loading}
+                      >
+                        <span className="sr-only">Increase</span>
+                        <span className="text-lg font-bold text-purple-600">+</span>
+                      </Button>
+                      <div className="flex items-center bg-purple-100 px-3 py-2 rounded-lg">
+                        <span className="text-sm font-medium text-purple-700">
+                          🏨 {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
+                        </span>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-xs sm:text-sm text-amber-600 bg-amber-50 border border-amber-200 p-2 sm:p-3 rounded text-center">No occupancy selections added yet. Add at least one.</p>
-                  )}{/* Add new occupancy selection - Enhanced for mobile */}
-                  <div className="border-t border-green-100 pt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-2">
-                      <div className="space-y-1">
-                        <FormLabel className="text-xs font-medium">Occupancy Type</FormLabel>
-                        <Select
-                          disabled={loading}
-                          onValueChange={setNewOccupancyTypeId}
-                          value={newOccupancyTypeId || undefined}
-                        >
-                          <SelectTrigger className="bg-white h-9 text-sm">
-                            <SelectValue placeholder="Select Type" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[200px]">
-                            {occupancyTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id} className="text-sm">
-                                {type.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <FormLabel className="text-xs font-medium">Count</FormLabel>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="outline"
-                            className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                            onClick={() => setNewOccupancyCount(Math.max(1, newOccupancyCount - 1))}
-                            disabled={loading || newOccupancyCount <= 1}
-                          >
-                            <span className="sr-only">Decrease</span>
-                            <span className="text-lg font-bold">-</span>
-                          </Button>
-                          <Input
-                            type="number"
-                            value={newOccupancyCount}
-                            onChange={(e) => setNewOccupancyCount(parseInt(e.target.value) || 1)}
-                            min="1"
-                            pattern="[0-9]*"
-                            inputMode="numeric"
-                            disabled={loading}
-                            className="w-full text-center h-9 bg-white text-sm"
-                          />
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="outline"
-                            className="rounded-full w-7 h-7 flex-shrink-0 bg-white"
-                            onClick={() => setNewOccupancyCount(newOccupancyCount + 1)}
-                            disabled={loading}
-                          >
-                            <span className="sr-only">Increase</span>
-                            <span className="text-lg font-bold">+</span>
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="mt-1 sm:mt-0 flex items-end">
-                        <Button
-                          type="button"
-                          onClick={handleAddOccupancySelection}
-                          variant="outline"
-                          size="sm"
-                          className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 h-9 w-full sm:w-auto"
-                          disabled={loading || !newOccupancyTypeId}
-                        >
-                          <Plus className="mr-1 h-4 w-4" />
-                          <span className="text-xs sm:text-sm">Add Room</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>                {/* Fetch Button - Enhanced for mobile */}
+                    {numberOfRooms <= 0 && <p className="text-xs text-red-500 pt-1">Must be at least 1 room</p>}
+                  </FormItem>
+                </div>
+
+                {/* Fetch Pricing Components Button */}
                 <Button
                   type="button"
-                  onClick={handleFetchTourPackagePricing}
-                  variant="outline"
-                  className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4 py-2 sm:py-3"
-                  disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || occupancySelections.length === 0}
+                  onClick={handleFetchAvailablePricingComponents}
+                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-purple-600 shadow-md mb-4"
+                  disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
                 >
                   <Calculator className="mr-2 h-4 w-4" />
-                  <span className="text-xs sm:text-sm md:text-base">
-                    <span className="hidden sm:inline">Fetch & Apply Tour Package Price</span>
-                    <span className="inline sm:hidden">Apply Package Price</span>
-                  </span>
-                </Button>
+                  🔍 Fetch Available Pricing Components
+                </Button>{/* Pricing Components Selection */}
+                {pricingComponentsFetched && availablePricingComponents.length > 0 && (
+                  <div className="mt-4 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-semibold text-blue-800">Select Pricing Components</h4>                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setAvailablePricingComponents([]);
+                          setSelectedPricingComponentIds([]);
+                          setComponentRoomQuantities({});
+                          setPricingComponentsFetched(false);
+                          toast.success("Pricing components selection cleared.");
+                        }}
+                        className="text-blue-600 hover:text-blue-800 border-blue-300"
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">
+                      Choose which pricing components to include in your tour package pricing breakdown:
+                    </p>
+                    
+                    {/* Select All / Deselect All */}
+                    <div className="flex gap-2 mb-3">                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
+                          setSelectedPricingComponentIds(allComponentIds);
+                          
+                          // Initialize room quantities for all components if not already set
+                          const newQuantities = { ...componentRoomQuantities };
+                          availablePricingComponents.forEach((comp: any) => {
+                            if (!newQuantities[comp.id]) {
+                              newQuantities[comp.id] = 1;
+                            }
+                          });
+                          setComponentRoomQuantities(newQuantities);
+                        }}
+                        className="text-xs"
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedPricingComponentIds([])}
+                        className="text-xs"
+                      >
+                        Deselect All
+                      </Button>
+                    </div>                    <div className="space-y-3">
+                      {availablePricingComponents.map((component: any) => (
+                        <div key={component.id} className="flex items-center space-x-3 p-3 bg-white rounded-md border">
+                          <Checkbox
+                            id={`component-${component.id}`}
+                            checked={selectedPricingComponentIds.includes(component.id)}
+                            onCheckedChange={() => handleTogglePricingComponent(component.id)}
+                          />
+                          <label 
+                            htmlFor={`component-${component.id}`}
+                            className="flex-1 cursor-pointer"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">
+                                  {component.pricingAttribute?.name || 'Pricing Component'}
+                                </p>
+                                {component.description && (
+                                  <p className="text-sm text-gray-600">{component.description}</p>
+                                )}                                <p className="text-xs text-gray-500 mt-1">
+                                  Base Price: ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                  {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
+                                    <span className="text-blue-600 ml-1">
+                                      (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {/* Room Quantity Selector */}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-600 whitespace-nowrap">Rooms:</span>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    className="rounded-full w-6 h-6 flex-shrink-0"
+                                    onClick={() => handleComponentRoomQuantityChange(
+                                      component.id, 
+                                      (componentRoomQuantities[component.id] || 1) - 1
+                                    )}
+                                    disabled={loading || (componentRoomQuantities[component.id] || 1) <= 1}
+                                  >
+                                    <span className="sr-only">Decrease</span>
+                                    <span className="text-sm font-bold">-</span>
+                                  </Button>
+                                  <Input
+                                    type="number"
+                                    value={componentRoomQuantities[component.id] || 1}
+                                    onChange={(e) => handleComponentRoomQuantityChange(
+                                      component.id, 
+                                      parseInt(e.target.value) || 1
+                                    )}
+                                    min="1"
+                                    className="w-16 text-center text-sm h-6"
+                                    disabled={loading}
+                                  />
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    className="rounded-full w-6 h-6 flex-shrink-0"
+                                    onClick={() => handleComponentRoomQuantityChange(
+                                      component.id, 
+                                      (componentRoomQuantities[component.id] || 1) + 1
+                                    )}
+                                    disabled={loading}
+                                  >
+                                    <span className="sr-only">Increase</span>
+                                    <span className="text-sm font-bold">+</span>
+                                  </Button>
+                                </div>                                {/* Total Price for this component */}
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900">
+                                    ₹{calculateComponentTotalPrice(component, componentRoomQuantities[component.id] || 1).toFixed(2)}
+                                  </p>
+                                  {(componentRoomQuantities[component.id] || 1) > 1 || getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 ? (
+                                    <p className="text-xs text-gray-500">
+                                      {componentRoomQuantities[component.id] || 1} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {getOccupancyMultiplier(component.pricingAttribute?.name || '')} occupancy
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                      {/* Summary of selected components */}
+                    {selectedPricingComponentIds.length > 0 && (
+                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p className="text-sm font-medium text-green-800">
+                          Selected: {selectedPricingComponentIds.length} component{selectedPricingComponentIds.length !== 1 ? 's' : ''}
+                        </p>                        <div className="text-sm text-green-700 mt-1 space-y-1">
+                          {availablePricingComponents
+                            .filter(comp => selectedPricingComponentIds.includes(comp.id))
+                            .map(comp => {
+                              const quantity = componentRoomQuantities[comp.id] || 1;
+                              const basePrice = parseFloat(comp.price || '0');
+                              const componentName = comp.pricingAttribute?.name || 'Component';
+                              const occupancyMultiplier = getOccupancyMultiplier(componentName);
+                              const totalPrice = calculateComponentTotalPrice(comp, quantity);
+                              return (
+                                <div key={comp.id} className="flex justify-between text-xs">
+                                  <span>{componentName} {quantity > 1 ? `(${quantity} rooms)` : ''} 
+                                    {occupancyMultiplier > 1 ? ` × ${occupancyMultiplier}` : ''}
+                                  </span>
+                                  <span>₹{totalPrice.toFixed(2)}</span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                        <div className="border-t border-green-300 mt-2 pt-2">
+                          <p className="text-sm font-semibold text-green-800 flex justify-between">
+                            <span>Total:</span>
+                            <span>₹{availablePricingComponents
+                              .filter(comp => selectedPricingComponentIds.includes(comp.id))
+                              .reduce((sum, comp) => {
+                                const quantity = componentRoomQuantities[comp.id] || 1;
+                                return sum + calculateComponentTotalPrice(comp, quantity);
+                              }, 0)
+                              .toFixed(2)}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Apply Selected Components Button */}
+                    <Button
+                      type="button"
+                      onClick={handleApplySelectedPricingComponents}
+                      variant="outline"
+                      className="w-full bg-green-500 hover:bg-green-600 text-white border-green-600 mt-4"
+                      disabled={loading || selectedPricingComponentIds.length === 0}
+                    >
+                      <Calculator className="mr-2 h-4 w-4" />
+                      Apply Selected Components ({selectedPricingComponentIds.length})
+                    </Button>
+                  </div>
+                )}
+
+                {/* Legacy Direct Apply Button (for backward compatibility) */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Or apply all pricing components directly:
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={handleFetchTourPackagePricing}
+                    variant="outline"
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white border-gray-600"
+                    disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Fetch & Apply All Components (Legacy)
+                  </Button>
+                </div>
               </>
             )}
-          </div>
-        )}        {/* Total Price Field - Enhanced for mobile */}
-        <FormField
-          control={control}
-          name="totalPrice"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm sm:text-base font-semibold">Total Price</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  disabled={loading}
-                  placeholder="Total price for the package"
-                  className="text-base sm:text-lg font-bold h-10 sm:h-12"
-                  type="number"
-                />
-              </FormControl>
-              <FormMessage className="text-xs sm:text-sm" />
-            </FormItem>
-          )}
-        />{/* Pricing Section Details - Enhanced for mobile */}
-        <div className="space-y-4 border-t pt-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-            <h3 className="text-sm sm:text-base font-semibold">Pricing Breakdown</h3>
+          </div>        )}        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center">
+              <Receipt className="mr-2 h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-slate-800">💰 Pricing Breakdown</h3>
+            </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={loading}
+              disabled={loading} // Only disable when loading
               onClick={() => handleAddPricingItem()}
-              className="w-full sm:w-auto sm:ml-auto text-xs sm:text-sm"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
             >
-              <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Item
+              <Plus className="mr-2 h-4 w-4" /> 
+              ➕ Add Item
             </Button>
           </div>
-          <div className="space-y-4 sm:space-y-3">
+          <div className="space-y-4">
             {pricingFields.map((item, index) => (
-              <div key={item.id} className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 p-2 sm:p-3 border rounded-md bg-slate-50/50">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+              <div key={item.id} className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow">
                   {/* Item Name */}
                   <FormField
                     control={control}
                     name={`pricingSection.${index}.name`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-2xs sm:text-xs">Item Name</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-slate-700 flex items-center">
+                          <Star className="mr-1 h-3 w-3 text-yellow-500" />
+                          Item Name
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading}
+                            disabled={loading} // Only disable when loading
                             placeholder="e.g., Per Person Cost"
-                            className="bg-white text-xs sm:text-sm h-8 sm:h-9"
+                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
                           />
                         </FormControl>
-                        <FormMessage className="text-2xs sm:text-xs" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -1381,17 +1481,20 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     name={`pricingSection.${index}.price`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-2xs sm:text-xs">Price</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-slate-700 flex items-center">
+                          <DollarSign className="mr-1 h-3 w-3 text-green-500" />
+                          Price (Base)
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading}
+                            disabled={loading} // Only disable when loading
                             placeholder="e.g., 15000"
                             type="number"
-                            className="bg-white text-xs sm:text-sm h-8 sm:h-9"
+                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
                           />
                         </FormControl>
-                        <FormMessage className="text-2xs sm:text-xs" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -1401,105 +1504,131 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     name={`pricingSection.${index}.description`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-2xs sm:text-xs">Description (Optional)</FormLabel>
+                        <FormLabel className="text-xs font-semibold text-slate-700 flex items-center">
+                          <Calculator className="mr-1 h-3 w-3 text-blue-500" />
+                          Calculation & Total
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
-                            disabled={loading}
-                            placeholder="Brief description"
-                            className="bg-white text-xs sm:text-sm h-8 sm:h-9"
+                            disabled={loading} // Only disable when loading
+                            placeholder="e.g., 15000.00 × 3 occupancy × 3 rooms = Rs. 135000"
+                            className="bg-white border-slate-300 focus:border-blue-500 transition-colors"
                           />
                         </FormControl>
-                        <FormMessage className="text-2xs sm:text-xs" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
                 {/* Remove Button */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={loading}
-                  onClick={() => handleRemovePricingItem(index)}
-                  className="ml-auto sm:ml-0 sm:mt-6 h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                >
-                  <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                </Button>
+                <div className="flex justify-end mt-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={loading} // Only disable when loading
+                    onClick={() => handleRemovePricingItem(index)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
-             {/* Button to add first item if list is empty */}
-             {pricingFields.length === 0 && (
-                 <Button
+            {/* Button to add first item if list is empty */}
+            {pricingFields.length === 0 && (
+              <div className="text-center py-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300">
+                <Receipt className="mx-auto h-12 w-12 text-blue-400 mb-3" />
+                <p className="text-slate-600 mb-4">No pricing items added yet</p>
+                <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="w-full sm:w-auto mt-2 sm:mt-4 border-dashed border-primary text-primary hover:bg-primary/10 text-xs sm:text-sm"
+                  className="border-dashed border-blue-400 text-blue-600 hover:bg-blue-50"
                   disabled={loading}
-                  onClick={() => handleAddPricingItem()}
+                  onClick={() => handleAddPricingItem()} // Add first item
                 >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Add Pricing Option
+                  <Plus className="mr-2 h-4 w-4" />
+                  ➕ Add Your First Pricing Option
                 </Button>
-              )}
+              </div>
+            )}
           </div>
-        </div>
+        </div>        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 shadow-lg">
+          <div className="flex items-center mb-3">
+            <Target className="mr-2 h-6 w-6 text-orange-600" />
+            <h3 className="text-xl font-bold text-orange-800">🎯 Total Package Price</h3>
+          </div>
+          <FormField
+            control={control}
+            name="totalPrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base font-semibold text-orange-700 flex items-center">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  💰 Final Amount
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-lg font-bold text-orange-600">₹</span>
+                    <Input
+                      {...field}
+                      disabled={loading} // Only disable when loading
+                      placeholder="Total price for the package"
+                      className="text-2xl font-bold pl-8 bg-white border-orange-300 focus:border-orange-500 h-14"
+                      type="number" // Ensure type is number if appropriate
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+                <p className="text-sm text-orange-600 mt-2 flex items-center">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  This represents the final total price for your tour package
+                </p>
+              </FormItem>
+            )}
+          />
+        </div>        {/* Configuration Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Display selected meal plan */}
+          {selectedMealPlanId && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center mb-2">
+                <ShoppingCart className="mr-2 h-4 w-4 text-green-600" />
+                <p className="text-sm font-semibold text-green-700">Selected Meal Plan:</p>
+              </div>
+              <div className="flex items-center bg-white p-2 rounded-md border border-green-200">
+                <span className="text-lg mr-2">🍽️</span>
+                <p className="font-semibold text-green-800">
+                  {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
+                </p>
+              </div>
+            </div>
+          )}
 
-        <div className="mt-4">
-                  {/* Display selected meal plan */}
-                  {selectedMealPlanId && (
-                    <div className="bg-white border border-green-200 rounded-md p-3 mb-2">
-                      <p className="text-sm text-gray-600">Selected Meal Plan:</p>
-                      <p className="font-medium">
-                        {mealPlans.find(mp => mp.id === selectedMealPlanId)?.name || 'Unknown Meal Plan'}
-                      </p>
-                    </div>
-                  )}                  {/* Display selected occupancy configurations - Enhanced for mobile */}                
-                  {occupancySelections.length > 0 && (
-                    <div className="bg-white border border-green-200 rounded-md p-2 sm:p-3">
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1 sm:mb-2">Selected Room Configurations:</p>
-                      <div className="grid grid-cols-1 gap-1.5 sm:gap-2">
-                        {occupancySelections.map((selection, index) => {
-                          const occupancyType = occupancyTypes.find(ot => ot.id === selection.occupancyTypeId);
-                          
-                          return (
-                            <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-green-50 p-1.5 sm:p-2 rounded-md">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 mb-1 sm:mb-0">
-                                <span className="font-medium text-xs sm:text-sm truncate max-w-[200px]">
-                                  {occupancyType?.name || `Room Type (ID: ${selection.occupancyTypeId?.substring(0, 8)}...)`}
-                                </span>
-                                <span className="text-2xs sm:text-xs text-gray-600">
-                                  {selection.count} room(s), {selection.count * (selection.paxPerUnit || 1)} guest(s)
-                                </span>
-                              </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-red-500 ml-auto sm:ml-0"
-                                onClick={() => handleRemoveOccupancySelection(index)}
-                              >
-                                <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                        <p className="text-xs sm:text-sm text-gray-600 mt-1 font-medium text-center sm:text-left">
-                          Total Guests: {calculateTotalPax()}
-                        </p>
-                      </div>
-                      {/* Debug info - Remove in production */}
-                      {process.env.NODE_ENV !== 'production' && (
-                        <details className="mt-2 sm:mt-3 text-2xs sm:text-xs text-gray-500 border-t pt-1 sm:pt-2">
-                          <summary className="cursor-pointer">Debug Info</summary>
-                          <pre className="mt-1 bg-gray-100 p-1 sm:p-2 rounded text-2xs sm:text-xs overflow-auto max-h-24 sm:max-h-32">
-                            {JSON.stringify(occupancySelections, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </div>
-                  )}
+          {/* Display selected room configuration */}
+          {numberOfRooms > 0 && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center mb-2">
+                <Wallet className="mr-2 h-4 w-4 text-blue-600" />
+                <p className="text-sm font-semibold text-blue-700">Room Configuration:</p>
+              </div>
+              <div className="flex items-center justify-between bg-white p-2 rounded-md border border-blue-200">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">🏨</span>
+                  <span className="font-semibold text-blue-800">Number of Rooms</span>
                 </div>
+                <div className="bg-blue-100 px-3 py-1 rounded-full">
+                  <span className="text-sm font-bold text-blue-700">
+                    {numberOfRooms} room{numberOfRooms > 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

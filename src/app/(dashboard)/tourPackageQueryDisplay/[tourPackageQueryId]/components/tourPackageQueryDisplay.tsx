@@ -203,17 +203,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             />
           </div>
         ))}
-      </Card>
-      <Card>
+      </Card>      <Card>
         <CardHeader>
           <div>
-            <CardDescription className="text-xl font-bold  mb-4">
+            <CardDescription className="text-2xl font-bold mb-4">
               {initialData.tourPackageQueryNumber}
             </CardDescription>
 
             {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
-              <CardDescription className="text-xl">
-                <div className="mb-2">
+              <CardDescription className="text-lg">
+                <div className="mb-3">
                   <span className="font-bold">Customer:</span> {initialData.customerName} | {initialData.customerNumber}
                 </div>
                 <div>
@@ -221,9 +220,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 </div>
               </CardDescription>
             )}
-            <CardDescription>
+            <CardDescription className="text-lg">
               {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
-                <div className="mb-2">
+                <div className="mb-3">
                   <div className="font-bold">
                     Associate Partner: {initialData.associatePartner?.name || 'No Associate Partner Assigned yet'}
                   </div>
@@ -242,17 +241,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
       {/* Tour Package Details */}
-      <Card className="break-inside-avoid border shadow-lg rounded-lg">
-        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <h2 className="text-xl font-bold">Tour Information</h2>
+      <Card className="break-inside-avoid border shadow-lg rounded-lg">        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+          <h2 className="text-2xl font-bold">Tour Information</h2>
         </CardHeader>
 
         <CardContent className="p-6">
           <div className="grid gap-6 md:grid-cols-1 text-gray-700">
             <div className="mb-4">
-              <div className="font-semibold text-xl">
+              <div className="font-semibold text-2xl">
                 Location:
-                <span className="ml-2 text-xl text-gray-900">
+                <span className="ml-2 text-2xl text-gray-900">
                   {locations.find(location => location.id === initialData.locationId)?.label}
                 </span>
               </div>
@@ -260,78 +258,78 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
             {initialData.numDaysNight && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Duration:
-                  <span className="ml-2 text-xl text-gray-900">{initialData.numDaysNight}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numDaysNight}</span>
                 </div>
               </div>
             )}
 
             <div className="flex mb-4">
               {initialData.tourStartsFrom && (
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Period:
-                  <span className="ml-2 text-xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
                 </div>
               )}
               {initialData.tourEndsOn && (
-                <div className="ml-4 font-semibold text-xl">
+                <div className="ml-4 font-semibold text-2xl">
                   To:
-                  <span className="ml-2 text-xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
                 </div>
               )}
             </div>
 
             {initialData.transport && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Transport:
-                  <span className="ml-2 text-xl text-gray-900">{initialData.transport}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.transport}</span>
                 </div>
               </div>
             )}
 
             {initialData.pickup_location && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Pickup:
-                  <span className="ml-2 text-xl text-gray-900">{initialData.pickup_location}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.pickup_location}</span>
                 </div>
               </div>
             )}
 
             {initialData.drop_location && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Drop:
-                  <span className="ml-2 text-xl text-gray-900">{initialData.drop_location}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.drop_location}</span>
                 </div>
               </div>
             )}
 
             {initialData.numAdults && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Adults:
-                  <span className="ml-2 text-xl text-gray-900">{initialData.numAdults}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numAdults}</span>
                 </div>
               </div>
             )}
 
             {initialData.numChild5to12 && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Children (5 - 12 Years):
-                  <span className="ml-2 text-xl text-gray-900">{initialData.numChild5to12}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild5to12}</span>
                 </div>
               </div>
             )}
 
             {initialData.numChild0to5 && (
               <div className="mb-4">
-                <div className="font-semibold text-xl">
+                <div className="font-semibold text-2xl">
                   Children (0 - 5 Years):
-                  <span className="ml-2 text-xl text-gray-900">{initialData.numChild0to5}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild0to5}</span>
                 </div>
               </div>
             )}
@@ -393,30 +391,28 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )}
  */}      {/* Enhanced Pricing Options Table */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
-        <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden shadow-lg">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-200">
-            <h3 className="text-xl font-bold text-blue-800">💰 Pricing Options</h3>
-            <p className="text-sm text-blue-600 mt-1">Detailed breakdown of tour package pricing</p>
+        <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-200">
+            <h3 className="text-2xl font-bold text-blue-800">💰 Pricing Options</h3>
+            <p className="text-base text-blue-600 mt-1">Detailed breakdown of tour package pricing</p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 bg-white">
+          <div className="overflow-x-auto">            <table className="min-w-full divide-y divide-gray-200 bg-white">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                    <div className="flex items-center space-x-1">
-                      <span>📋</span>
+                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">📋</span>
                       <span>Item Name</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                    <div className="flex items-center space-x-1">
-                      <span>💵</span>
+                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">💵</span>
                       <span>Price (Base)</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    <div className="flex items-center space-x-1">
-                      <span>📊</span>
+                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">📊</span>
                       <span>Calculation & Total</span>
                     </div>
                   </th>
@@ -425,16 +421,16 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               <tbody className="bg-white divide-y divide-gray-100">
                 {parsePricingSection(initialData.pricingSection).map((item, index) => (
                   <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-200`}>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-100">
-                      <div className="text-sm font-semibold text-gray-900">{item.name}</div>
+                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                      <div className="text-lg font-semibold text-gray-900">{item.name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-100">
-                      <div className="text-sm font-bold text-green-600">
+                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                      <div className="text-lg font-bold text-green-600">
                         {item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-700 leading-relaxed">
+                    <td className="px-6 py-5">
+                      <div className="text-base text-gray-700 leading-relaxed">
                         {item.description || '-'}
                       </div>
                     </td>
@@ -442,9 +438,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 ))}
               </tbody>
             </table>
-          </div>
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200">
-            <p className="text-xs text-blue-600 italic">* All prices are in INR and subject to availability at the time of confirmation.</p>
+          </div>          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200">
+            <p className="text-sm text-blue-600 italic font-medium">* All prices are in INR and subject to availability at the time of confirmation.</p>
           </div>
         </div>
       )}
@@ -452,16 +447,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Enhanced Total Price Display */}
       {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
         <div className="mt-6">
-          <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-4">
-              <h3 className="text-xl font-bold text-white flex items-center">
-                <span className="mr-2">🎯</span>
+          <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">            <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-5">
+              <h3 className="text-2xl font-bold text-white flex items-center">
+                <span className="mr-3 text-3xl">🎯</span>
                 Total Package Price
               </h3>
             </div>
-            <CardContent className="p-6">
+            <CardContent className="p-8">
               <div className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-2">
+                <div className="text-5xl font-bold text-gray-900 mb-4">
                   <span className="text-orange-600">₹ </span>
                   <span dangerouslySetInnerHTML={{ 
                     __html: initialData.totalPrice ? 
@@ -469,17 +463,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       initialData.totalPrice 
                   }} />
                 </div>
-                <div className="text-sm text-gray-600 bg-orange-50 px-4 py-2 rounded-full inline-block">
-                  <span className="font-medium">Final Tour Package Cost</span>
+                <div className="text-lg text-gray-600 bg-orange-50 px-6 py-3 rounded-full inline-block">
+                  <span className="font-semibold">Final Tour Package Cost</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {initialData.remarks !== '' && (
-        <Card className="break-inside-avoid text-xl">
+      )}      {initialData.remarks !== '' && (
+        <Card className="break-inside-avoid text-2xl">
           <CardContent>
             <div>
               <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
@@ -501,16 +493,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
 
 
-      {/* Tour Highlights */}
-
-      <Card className="break-inside-avoid border rounded-lg">
-        <CardTitle className="text-4xl font-bold shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">Tour Highlights</CardTitle>
+      {/* Tour Highlights */}      <Card className="break-inside-avoid border rounded-lg">
+        <CardTitle className="text-5xl font-bold shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">Tour Highlights</CardTitle>
         {initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-          <div key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between p-4 rounded-t-lg">
+          <div key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between p-6 rounded-t-lg">
               {/* Day and Title grouped */}
               <div>
-                <CardTitle className="text-xl font-bold"
+                <CardTitle className="text-2xl font-bold"
                   dangerouslySetInnerHTML={{
                     __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
                   }} />
@@ -533,35 +523,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       )} */}
 
 
-      {/* Flight Details */}
-      {
+      {/* Flight Details */}      {
         initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
           <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
-            <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-              <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
+            <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+              <CardTitle className="text-2xl font-bold">Flight Details</CardTitle>
             </CardHeader>
             {initialData.flightDetails.map((flight, index) => (
-              <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
-                <div className="flex items-center justify-between border-b pb-2 mb-2">
-                  <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
-                  <div className="text-xl text-gray-700">
+              <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-6 my-4">
+                <div className="flex items-center justify-between border-b pb-3 mb-3">
+                  <span className="font-semibold text-2xl text-gray-700">{flight.date}</span>
+                  <div className="text-2xl text-gray-700">
                     <span className="font-semibold">{flight.flightName}</span> |
                     <span className="ml-1">{flight.flightNumber}</span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="font-bold text-xs text-gray-700">{flight.from}</div>
-                    <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
+                    <div className="font-bold text-lg text-gray-700">{flight.from}</div>
+                    <div className="text-lg text-gray-600 ml-2">{flight.departureTime}</div>
                   </div>
                   <div className="mx-2 text-center">
                     <span className="text-gray-600"><PlaneTakeoffIcon /></span>
-                    <div className="text-xs text-gray-600">{flight.flightDuration}</div>
+                    <div className="text-lg text-gray-600">{flight.flightDuration}</div>
                     <hr className="border-t-2 border-gray-400 mx-1" />
                   </div>
                   <div className="flex items-center">
-                    <div className="font-bold text-xs text-gray-700">{flight.to}</div>
-                    <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
+                    <div className="font-bold text-lg text-gray-700">{flight.to}</div>
+                    <div className="text-lg text-gray-600 ml-2">{flight.arrivalTime}</div>
                   </div>
                 </div>
               </CardContent>
@@ -573,19 +562,17 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Itineraries */}
       {
-        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-
-          <Card key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (          <Card key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
             {index === 0 &&
-              <Card className="border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
-                <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
+              <Card className="border rounded-lg shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
+                <CardTitle className="text-5xl font-bold">Itinerary</CardTitle>
               </Card>}
-            <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 rounded-t-lg">
+            <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 rounded-t-lg">
               {/* Day and Title grouped */}
 
 
               <div>
-                <CardTitle className="text-xl font-bold"
+                <CardTitle className="text-2xl font-bold"
                   dangerouslySetInnerHTML={{
                     __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
                   }} />
@@ -605,21 +592,18 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   />
                 </div>
               ))}
-            </div>
-
-            {/* Description Section */}
+            </div>            {/* Description Section */}
             <div className="flex-grow p-8">
-              <div className="text-xl text-justify mb-4" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
+              <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
             </div>
 
             <CardContent className="p-8">
               {/* Hotel Section */}
               {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-                <Card className="my-4">
-                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
+                <Card className="my-4">                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
                     Hotel Details
                   </CardHeader>
-                  <div className="p-4">                    {/* Hotel Images */}
+                  <div className="p-6">                    {/* Hotel Images */}
                     {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
                       <div className="flex items-start mb-4">
                         <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
@@ -632,35 +616,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                               height={250}
                             />
                           </div>
-                        </Link>
-                        {/* Hotel Text Content */}
+                        </Link>                        {/* Hotel Text Content */}
                         <div className="ml-4">
-                          <div className="text-xl font-bold">Hotel Name:</div>
+                          <div className="text-2xl font-bold">Hotel Name:</div>
                           <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                            <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                            <p className="text-2xl mb-3">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
                           </Link>
 
                           {/* Room Allocations Section */}
                           {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
-                            <div className="mt-4">
-                              <div className="text-xl font-bold border-b pb-2 mb-3">Room Details:</div>
-                              <div className="space-y-3">
+                            <div className="mt-6">
+                              <div className="text-2xl font-bold border-b pb-3 mb-4">Room Details:</div>
+                              <div className="space-y-4">
                                 {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
-                                  <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
-                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                                  <div key={roomIndex} className="bg-gray-50 rounded-lg p-4 border">
+                                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                                      <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
                                         Occupancy Type #{roomIndex + 1}
-                                      </span>                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                      </span>                                      <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
                                         {room.roomType?.name || 'Standard'}
                                       </span>
-                                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                                      <span className="px-3 py-2 bg-green-100 text-green-800 rounded text-lg">
                                         {room.occupancyType?.name || 'Double'}
                                       </span>
-                                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                                      <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded text-lg">
                                         {room.mealPlan?.name || 'CP (Breakfast Only)'}
                                       </span>
                                     </div>
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-lg text-gray-600">
                                       <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
                                       {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
                                     </p>
@@ -675,22 +658,22 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             <>
                               {itinerary.numberofRooms && (
                                 <>
-                                  <div className="text-xl font-bold">Number of Rooms/Occupancy:</div>
-                                  <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                                  <div className="text-2xl font-bold">Number of Rooms/Occupancy:</div>
+                                  <p className="text-2xl mb-3">{itinerary.numberofRooms}</p>
                                 </>
                               )}
 
                               {itinerary.roomCategory && (
                                 <>
-                                  <div className="text-xl font-bold">Room Category:</div>
-                                  <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                                  <div className="text-2xl font-bold">Room Category:</div>
+                                  <p className="text-2xl mb-3">{itinerary.roomCategory}</p>
                                 </>
                               )}
 
                               {itinerary.mealsIncluded && (
                                 <>
-                                  <div className="text-xl font-bold">Meal Plan:</div>
-                                  <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                                  <div className="text-2xl font-bold">Meal Plan:</div>
+                                  <p className="text-2xl mb-3">{itinerary.mealsIncluded}</p>
                                 </>
                               )}
                             </>
@@ -776,26 +759,24 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             </>
                           )}
                         </div>
-                      </div>)}
-
-                    {/* Transport Details Section */}
+                      </div>)}                    {/* Transport Details Section */}
                     {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
-                      <div className="mt-6">
-                        <div className="text-xl font-bold border-b pb-2 mb-3">Transport Details:</div>
-                        <div className="space-y-3">
+                      <div className="mt-8">
+                        <div className="text-2xl font-bold border-b pb-3 mb-4">Transport Details:</div>
+                        <div className="space-y-4">
                           {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
-                            <div key={transportIndex} className="bg-gray-50 rounded-lg p-3 border">
-                              <div className="flex flex-wrap items-center gap-2 mb-1">                                <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                            <div key={transportIndex} className="bg-gray-50 rounded-lg p-4 border">
+                              <div className="flex flex-wrap items-center gap-3 mb-2">                                <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
                                   Transport #{transportIndex + 1}
                                 </span>
-                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
                                   {transport.vehicleType?.name || 'Car'}
                                 </span>
                                 {/* <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                                   {transport.transportType || 'Per Day'}
                                 </span> */}
                               </div>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-lg text-gray-600">
                                 <span className="font-medium">Number of Vehicles:</span> {transport.quantity || '1'}
                                 {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
                               </p>
@@ -806,20 +787,18 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     )}
                   </div>
                 </Card>
-              )}
-
-              {/* Activities Section */}
+              )}              {/* Activities Section */}
               {itinerary.activities && itinerary.activities.length > 0 && (
-                <Card className="my-4">
-                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-4 text-xl font-bold text-center rounded-t-lg">
+                <Card className="my-6">
+                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
                     Activities
                   </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="grid gap-4">
+                  <CardContent className="p-6">
+                    <div className="grid gap-6">
                       {itinerary.activities.map((activity, activityIndex) => (
-                        <div key={activityIndex} className="mb-4">
+                        <div key={activityIndex} className="mb-6">
                           {activity.activityImages && activity.activityImages.length === 1 ? (
-                            <div className="flex items-start mb-4 w-full">
+                            <div className="flex items-start mb-6 w-full">
                               <div className="w-[250px] h-[250px] flex-shrink-0">
                                 <Image
                                   src={activity.activityImages[0].url}
@@ -829,14 +808,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                   height={250}
                                 />
                               </div>
-                              <div className="ml-4 w-full">
-                                <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                                <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                              <div className="ml-6 w-full">
+                                <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                                <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                               </div>
                             </div>
                           ) : (
                             <div className="w-full">
-                              <div className="flex justify-start items-center mb-4 gap-4">
+                              <div className="flex justify-start items-center mb-6 gap-6">
                                 {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
                                   <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
                                     <Image
@@ -849,8 +828,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                   </div>
                                 ))}
                               </div>
-                              <div className="text-3xl font-bold" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                              <p className="text-xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                              <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                              <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                             </div>
                           )}
                         </div>
@@ -864,13 +843,10 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </Card>
 
         ))
-      }
-
-
-      {
+      }      {
         selectedOption === 'SupplierA' && initialData.itineraries && (
-          <Card className="break-inside-avoid border rounded-lg shadow-lg p-4 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
-            <CardTitle className="text-4xl font-bold">Itinerary</CardTitle>
+          <Card className="break-inside-avoid border rounded-lg shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
+            <CardTitle className="text-5xl font-bold">Itinerary</CardTitle>
           </Card>
         )
       }
@@ -879,11 +855,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
         {/* Itineraries */}
         {selectedOption === 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
-          <div key={index} className="mb-4 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between p-4 rounded-t-lg">
+          <div key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+            <div className="flex items-center justify-between p-6 rounded-t-lg">
               {/* Day and Title grouped */}
               <div>
-                <CardTitle className="text-xl font-bold"
+                <CardTitle className="text-2xl font-bold"
                   dangerouslySetInnerHTML={{
                     __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
                   }} />
@@ -892,15 +868,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </div>
         ))}
       </Card>
-
-
-
       {/* Replace individual policy sections with a single organized section */}
       <Card className="break-before-all border rounded-lg shadow-lg overflow-hidden mb-8">
-        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 text-center">
-          <CardTitle className="text-4xl font-bold">Policies & Terms</CardTitle>
+        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-8 text-center">
+          <CardTitle className="text-5xl font-bold">Policies & Terms</CardTitle>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-8 space-y-8">
           <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
           <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
           <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
@@ -911,17 +884,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />
           <PolicySection title="Terms and Conditions" items={parsePolicyField(initialData.termsconditions)} />
         </CardContent>
-      </Card>
-
-      {
+      </Card>      {
         selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
 
-          <Card className="border-b break-inside-avoid m-2">
-            <CardDescription className="flex justify-between items-center px-4">
+          <Card className="border-b break-inside-avoid m-4">
+            <CardDescription className="flex justify-between items-center px-6 py-4">
               <div className="inline-block relative w-48 h-48">
                 <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
               </div>
-              <ul className='font-bold'>
+              <ul className='font-bold text-lg space-y-2'>
                 <li>{currentCompany.address}</li>
                 <li>Phone: {currentCompany.phone}</li>
                 <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
@@ -935,12 +906,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {
         (selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
-          <Card className="border-b break-inside-avoid">
-            <CardDescription className="flex justify-between items-center px-4">
+          <Card className="border-b break-inside-avoid m-4">
+            <CardDescription className="flex justify-between items-center px-6 py-4">
               <div className="inline-block relative w-48 h-48">
                 <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
               </div>
-              <ul className="font-bold">
+              <ul className="font-bold text-lg space-y-2">
                 <li>{companyInfo.AH.address}</li>
                 <li>Phone: {companyInfo.AH.phone}</li>
                 <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
+import { dateToUtc } from '@/lib/timezone-utils';
 
 import prismadb from '@/lib/prismadb';
 
@@ -207,9 +208,8 @@ export async function POST(
                 selectedTemplateType,
                 tourPackageTemplateName,
                 selectedMealPlanId,                // Store occupancy selections directly - don't transform it
-                occupancySelections: occupancySelections || undefined,
-                tourStartsFrom: tourStartsFrom ? new Date(new Date(tourStartsFrom).toISOString()) : undefined,
-                tourEndsOn: tourEndsOn ? new Date(new Date(tourEndsOn).toISOString()) : undefined,
+                occupancySelections: occupancySelections || undefined,                tourStartsFrom: dateToUtc(tourStartsFrom),
+                tourEndsOn: dateToUtc(tourEndsOn),
                 transport,
                 pickup_location,
                 drop_location,

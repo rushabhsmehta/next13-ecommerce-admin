@@ -53,6 +53,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { format } from "date-fns"
 import JoditEditor from "jodit-react";
 import { Switch } from "@/components/ui/switch"
+import { convertJourneyDateToTourStart, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -295,11 +296,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     period: '',
     locationId: inquiry?.locationId || '',
     pickup_location: '',
-    drop_location: '',
-    numAdults: inquiry?.numAdults?.toString() || '',
+    drop_location: '',    numAdults: inquiry?.numAdults?.toString() || '',
     numChild5to12: inquiry?.numChildren5to11?.toString() || '',
     numChild0to5: inquiry?.numChildrenBelow5?.toString() || '',
-    tourStartsFrom: inquiry?.journeyDate ? new Date(inquiry.journeyDate) : undefined,
+    tourStartsFrom: convertJourneyDateToTourStart(inquiry?.journeyDate),
     tourEndsOn: undefined,  
     remarks: REMARKS_DEFAULT,
     tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
@@ -599,7 +599,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       }
     }
   };
-
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     // --- ADJUST onSubmit TO MATCH SCHEMA ---
     const formattedData = {
@@ -610,6 +609,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       drop_location: data.drop_location || '',
       totalPrice: data.totalPrice || '',
       disclaimer: data.disclaimer || '',
+      // Apply timezone normalization to date fields
+      tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
+      tourEndsOn: normalizeApiDate(data.tourEndsOn),
       // Explicitly type the 'itinerary' parameter
       itineraries: data.itineraries.map((itinerary: z.infer<typeof itinerarySchema>) => ({
         ...itinerary,

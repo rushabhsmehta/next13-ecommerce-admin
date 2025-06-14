@@ -140,7 +140,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       console.log('Restoring saved number of rooms:', savedNumberOfRooms);
       setNumberOfRooms(savedNumberOfRooms);
     }
-  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId]);
+  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId, numberOfRooms]);
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {

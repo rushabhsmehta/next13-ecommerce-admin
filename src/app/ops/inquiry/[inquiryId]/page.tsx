@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Calendar, Phone, MapPin, User, Tag } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -139,9 +140,8 @@ export default function InquiryDetail({
               <div className="flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-gray-500" />
                 <div>
-                  <p className="text-sm text-gray-500">Journey Date</p>
-                  <p className="font-medium">
-                    {format(new Date(inquiry.journeyDate), "PPP")}
+                  <p className="text-sm text-gray-500">Journey Date</p>                  <p className="font-medium">
+                    {formatLocalDate(inquiry.journeyDate, "PPP")}
                   </p>
                 </div>
               </div>
@@ -254,9 +254,8 @@ export default function InquiryDetail({
                           )}
                           {pkg.tourStartsFrom && (
                             <div>
-                              <p className="text-gray-500">Start Date</p>
-                              <p className="font-medium">
-                                {format(new Date(pkg.tourStartsFrom), "MMM d, yyyy")}
+                              <p className="text-gray-500">Start Date</p>                              <p className="font-medium">
+                                {formatLocalDate(pkg.tourStartsFrom, "MMM d, yyyy")}
                               </p>
                             </div>
                           )}

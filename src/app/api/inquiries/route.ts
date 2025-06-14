@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from "@/lib/timezone-utils";
 import { 
   startOfDay, 
   endOfDay, 
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
         numChildren5to11,
         numChildrenBelow5,
         status,
-        journeyDate: new Date(new Date(journeyDate).toISOString()),
+        journeyDate: dateToUtc(journeyDate),
         remarks: remarks || null,
         roomAllocations: roomAllocations ? {
           create: roomAllocations.map((allocation: any) => ({

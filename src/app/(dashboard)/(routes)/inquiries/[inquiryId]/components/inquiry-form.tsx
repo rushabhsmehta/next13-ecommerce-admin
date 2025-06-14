@@ -10,6 +10,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate, normalizeApiDate } from "@/lib/timezone-utils";
 import { useAssociatePartner } from "@/hooks/use-associate-partner";
 import { Button } from "@/components/ui/button";
 import {
@@ -170,7 +171,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         remarks: action.remarks,
         actionDate: new Date(action.actionDate),
       })),
-      journeyDate: initialData.journeyDate ? new Date(initialData.journeyDate) : null,
+      journeyDate: createDatePickerValue(initialData.journeyDate),
     } : {
       status: "PENDING",
       customerName: '',
@@ -293,13 +294,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         form.setValue('associatePartnerId', associatePartner.id);
       }
     }
-  }, [form, initialData, associatePartner]);
-  const onSubmit = async (data: InquiryFormValues) => {
+  }, [form, initialData, associatePartner]);  const onSubmit = async (data: InquiryFormValues) => {
     try {
       setLoading(true);
       // Prepare the data - ensure all required fields are properly formatted
       const formattedData = {
         ...data,
+        // Apply timezone normalization to journey date
+        journeyDate: normalizeApiDate(data.journeyDate),
         roomAllocations: data.roomAllocations?.map(allocation => ({
           ...allocation,
           quantity: Number(allocation.quantity),
@@ -520,8 +522,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )}
-            />
-            <FormField
+            />            <FormField
               control={form.control}
               name="journeyDate"
               render={({ field }) => (
@@ -537,14 +538,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {field.value ? format(field.value, "PPP") : "Pick a date"}
+                          {field.value ? formatLocalDate(field.value, "PPP") : "Pick a date"}
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value || undefined}
+                        selected={createDatePickerValue(field.value)}
                         onSelect={(date: Date | undefined) => date && field.onChange(date)}
                         initialFocus
                       />

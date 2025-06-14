@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from "@/lib/timezone-utils";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 
 const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY"];
@@ -131,7 +132,7 @@ export async function PATCH(
       numChildren5to11,
       numChildrenBelow5,
       status,
-      journeyDate: new Date(new Date(journeyDate).toISOString()),
+      journeyDate: dateToUtc(journeyDate),
       remarks: remarks || null
     };    // First, check if roomAllocations and transportDetails are actually present in the request
     console.log('[INQUIRY_PATCH] Room allocations present:', roomAllocations ? `Yes, count: ${roomAllocations.length}` : 'No');

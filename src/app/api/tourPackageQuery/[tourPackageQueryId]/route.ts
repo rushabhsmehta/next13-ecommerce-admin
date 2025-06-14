@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 import prismadb from "@/lib/prismadb";
 import { string } from "zod";
@@ -304,9 +305,8 @@ export async function PATCH(
       numDaysNight,
       locationId,
       period,
-      tour_highlights,
-      tourStartsFrom: tourStartsFrom ? new Date(new Date(tourStartsFrom).toISOString()) : undefined,
-      tourEndsOn: tourEndsOn ? new Date(new Date(tourEndsOn).toISOString()) : undefined,
+      tour_highlights,      tourStartsFrom: dateToUtc(tourStartsFrom),
+      tourEndsOn: dateToUtc(tourEndsOn),
       transport,
       pickup_location,
       drop_location,

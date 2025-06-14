@@ -5,6 +5,7 @@ import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPack
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 
 import {
   FormControl,
@@ -42,8 +43,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
           Tour Dates
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <FormField
+      <CardContent className="space-y-6">        <FormField
           control={control}
           name="tourStartsFrom"
           render={({ field }) => (
@@ -61,7 +61,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                       disabled={loading}
                     >
                       {field.value ? (
-                        format(new Date(field.value), "PPP") // Ensure value is a Date object
+                        formatLocalDate(field.value, "PPP")
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -72,7 +72,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value ? new Date(field.value) : undefined} // Ensure value is a Date object
+                    selected={createDatePickerValue(field.value)}
                     onSelect={(date) => date && field.onChange(date)}
                     initialFocus
                   />
@@ -101,7 +101,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                       disabled={loading}
                     >
                       {field.value ? (
-                        format(new Date(field.value), "PPP") // Ensure value is a Date object
+                        formatLocalDate(field.value, "PPP")
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -112,7 +112,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={field.value ? new Date(field.value) : undefined} // Ensure value is a Date object
+                    selected={createDatePickerValue(field.value)}
                     onSelect={(date) => date && field.onChange(date)}
                     initialFocus
                   />

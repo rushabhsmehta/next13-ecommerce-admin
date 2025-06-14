@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, LogOut, Search } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useUser, SignOutButton } from "@clerk/nextjs";
@@ -174,9 +175,8 @@ export default function OperationalStaffDashboard() {
                   </div>
                   {inquiry.journeyDate && (
                     <div>
-                      <p className="text-gray-500">Journey Date</p>
-                      <p className="font-medium">
-                        {format(new Date(inquiry.journeyDate), "MMM d, yyyy")}
+                      <p className="text-gray-500">Journey Date</p>                      <p className="font-medium">
+                        {formatLocalDate(inquiry.journeyDate, "MMM d, yyyy")}
                       </p>
                     </div>
                   )}

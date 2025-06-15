@@ -4,15 +4,16 @@ import prismadb from "@/lib/prismadb";
 
 export async function GET(
   req: Request
-) {
-  try {
+) {  try {
     // Get all pricing components with their related pricing attributes
     const pricingComponents = await prismadb.pricingComponent.findMany({
       include: {
         pricingAttribute: true,
       },
       orderBy: {
-        createdAt: 'desc'
+        pricingAttribute: {
+          sortOrder: 'asc'
+        }
       }
     });
 

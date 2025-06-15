@@ -21,83 +21,109 @@ async function createItineraryAndActivities(itinerary: {
     roomAllocations?: any[];
     transportDetails?: any[];
 }, tourPackageQueryId: any) {
-    console.log("Received itinerary with roomAllocations:", itinerary.roomAllocations);
-    console.log("Received itinerary with transportDetails:", itinerary.transportDetails);
-
-    // First, create the itinerary and get its id
-    const createdItinerary = await prismadb.itinerary.create({
-        data: {
-            itineraryTitle: itinerary.itineraryTitle,
-            itineraryDescription: itinerary.itineraryDescription,
-            locationId: itinerary.locationId,
-            tourPackageId: itinerary.tourPackageId,
-            tourPackageQueryId: tourPackageQueryId,
-            dayNumber: itinerary.dayNumber,
-            days: itinerary.days,
-            hotelId: itinerary.hotelId,
-            numberofRooms: itinerary.numberofRooms,
-            roomCategory: itinerary.roomCategory,
-            mealsIncluded: itinerary.mealsIncluded,
-            itineraryImages: {
-                createMany: {
-                    data: itinerary.itineraryImages.map((image: { url: any; }) => ({ url: image.url })),
-                },
-            },
-        },
+    console.log("Creating itinerary:", {
+        title: itinerary.itineraryTitle,
+        dayNumber: itinerary.dayNumber,
+        days: itinerary.days,
+        tourPackageQueryId
     });
 
-    // Next, create activities linked to this itinerary
-    if (itinerary.activities && itinerary.activities.length > 0) {
-        await Promise.all(itinerary.activities.map((activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
-            // console.log("Received Activities is ", activity);
-            return prismadb.activity.create({
-                data: {
-                    itineraryId: createdItinerary.id, // Link to the created itinerary
-                    activityTitle: activity.activityTitle,
-                    activityDescription: activity.activityDescription,
-                    locationId: activity.locationId,
-                    activityImages: {
-                        createMany: {
-                            data: activity.activityImages.map((img: { url: any; }) => ({ url: img.url })),
-                        },
+    try {
+        // First, create the itinerary and get its id
+        const createdItinerary = await prismadb.itinerary.create({
+            data: {
+                itineraryTitle: itinerary.itineraryTitle,
+                itineraryDescription: itinerary.itineraryDescription,
+                locationId: itinerary.locationId,
+                tourPackageId: itinerary.tourPackageId,
+                tourPackageQueryId: tourPackageQueryId,
+                dayNumber: itinerary.dayNumber,
+                days: itinerary.days,
+                hotelId: itinerary.hotelId,
+                numberofRooms: itinerary.numberofRooms,
+                roomCategory: itinerary.roomCategory,
+                mealsIncluded: itinerary.mealsIncluded,
+                itineraryImages: {
+                    createMany: {
+                        data: (itinerary.itineraryImages || []).map((image: { url: any; }) => ({ url: image.url })),
                     },
                 },
-            });
-        }));
-    }
+            },
+        });
 
-    // Create room allocations for this itinerary
-    if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
-        await Promise.all(itinerary.roomAllocations.map((roomAllocation: any) => {
-            return prismadb.roomAllocation.create({
-                data: {
-                    itineraryId: createdItinerary.id,
-                    roomTypeId: roomAllocation.roomTypeId,
-                    occupancyTypeId: roomAllocation.occupancyTypeId,
-                    mealPlanId: roomAllocation.mealPlanId,
-                    quantity: roomAllocation.quantity,
-                    guestNames: roomAllocation.guestNames || "",
-                    roomType: roomAllocation.roomType || "Standard",
-                    occupancyType: roomAllocation.occupancyType || "Single",
-                }
-            });
-        }));
-    }
-    // Create transport details for this itinerary
-    if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
-        await Promise.all(itinerary.transportDetails.map((transport: any) => {
-            return prismadb.transportDetail.create({
-                data: {
-                    itineraryId: createdItinerary.id,
-                    vehicleTypeId: transport.vehicleTypeId,
-                    quantity: transport.quantity,
-                    description: transport.description || "",
-                }
-            });
-        }));
-    }
+        console.log("Created itinerary with ID:", createdItinerary.id);
 
-    return createdItinerary;
+        // Create activities in parallel with error handling
+        if (itinerary.activities && itinerary.activities.length > 0) {
+            await Promise.all(itinerary.activities.map(async (activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
+                try {
+                    return await prismadb.activity.create({
+                        data: {
+                            itineraryId: createdItinerary.id,
+                            activityTitle: activity.activityTitle,
+                            activityDescription: activity.activityDescription,
+                            locationId: activity.locationId,
+                            activityImages: {
+                                createMany: {
+                                    data: (activity.activityImages || []).map((img: { url: any; }) => ({ url: img.url })),
+                                },
+                            },
+                        },
+                    });
+                } catch (activityError) {
+                    console.error('Failed to create activity:', activity.activityTitle, activityError);
+                    throw activityError;
+                }
+            }));
+        }
+
+        // Create room allocations with error handling
+        if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
+            await Promise.all(itinerary.roomAllocations.map(async (roomAllocation: any) => {
+                try {
+                    return await prismadb.roomAllocation.create({
+                        data: {
+                            itineraryId: createdItinerary.id,
+                            roomTypeId: roomAllocation.roomTypeId,
+                            occupancyTypeId: roomAllocation.occupancyTypeId,
+                            mealPlanId: roomAllocation.mealPlanId,
+                            quantity: roomAllocation.quantity || 1,
+                            guestNames: roomAllocation.guestNames || "",
+                            roomType: roomAllocation.roomType || "Standard",
+                            occupancyType: roomAllocation.occupancyType || "Single",
+                        }
+                    });
+                } catch (roomError) {
+                    console.error('Failed to create room allocation:', roomError);
+                    throw roomError;
+                }
+            }));
+        }
+
+        // Create transport details with error handling
+        if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
+            await Promise.all(itinerary.transportDetails.map(async (transport: any) => {
+                try {
+                    return await prismadb.transportDetail.create({
+                        data: {
+                            itineraryId: createdItinerary.id,
+                            vehicleTypeId: transport.vehicleTypeId,
+                            quantity: transport.quantity || 1,
+                            description: transport.description || "",
+                        }
+                    });
+                } catch (transportError) {
+                    console.error('Failed to create transport detail:', transportError);
+                    throw transportError;
+                }
+            }));
+        }
+
+        console.log("Successfully created itinerary and all related data for:", itinerary.itineraryTitle);
+        return createdItinerary;    } catch (error) {
+        console.error("Failed to create itinerary:", itinerary.itineraryTitle, error);
+        throw error;
+    }
 }
 
 export async function POST(
@@ -246,17 +272,39 @@ export async function POST(
                     },
                 },
                 flightDetails: {
-                    createMany: {
-                        data: [
-                            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
-                    }                },
+                    createMany: {                        data: [
+                            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),
+                        ]
+                    }
+                },
             } as any,
-        }
-        )
+        });
 
         if (itineraries && itineraries.length > 0) {
-            for (const itinerary of itineraries) {
-                await createItineraryAndActivities(itinerary, newTourPackageQuery.id);
+            // Create all itineraries in parallel with better error handling
+            try {
+                await Promise.all(
+                    itineraries.map(async (itinerary: any) => {
+                        try {
+                            await createItineraryAndActivities(itinerary, newTourPackageQuery.id);
+                        } catch (itineraryError) {
+                            console.error('[ITINERARY_CREATION_ERROR]', {
+                                itineraryTitle: itinerary.itineraryTitle,
+                                dayNumber: itinerary.dayNumber,
+                                error: itineraryError
+                            });
+                            // Re-throw to fail the entire operation if any itinerary fails
+                            throw itineraryError;
+                        }
+                    })
+                );
+            } catch (error) {
+                console.error('[ITINERARIES_CREATION_FAILED]', error);
+                // Delete the tour package query if itinerary creation fails
+                await prismadb.tourPackageQuery.delete({
+                    where: { id: newTourPackageQuery.id }
+                });
+                throw new Error("Failed to create itineraries");
             }
         }
 
@@ -298,8 +346,7 @@ export async function GET(
             },
             include: {
                 associatePartner: true,  // Add this line
-                images: true,
-                location: true, itineraries: {
+                images: true,                location: true, itineraries: {
                     include: {
                         itineraryImages: true,
                         roomAllocations: true,
@@ -310,6 +357,10 @@ export async function GET(
                             },
                         },
                     },
+                    orderBy: [
+                        { dayNumber: 'asc' },
+                        { days: 'asc' }
+                    ]
                 },
             },
             orderBy: {

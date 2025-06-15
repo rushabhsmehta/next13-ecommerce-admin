@@ -22,7 +22,16 @@ export async function GET(
       },
       include: {
         mealPlan: true,
-        pricingComponents: true,
+        pricingComponents: {
+          include: {
+            pricingAttribute: true
+          },
+          orderBy: {
+            pricingAttribute: {
+              sortOrder: 'asc'
+            }
+          }
+        },
       }
     });
 
@@ -109,9 +118,17 @@ export async function PATCH(
             price: parseFloat(component.price || 0)
           }))
         } : undefined
-      },
-      include: {
-        pricingComponents: true
+      },      include: {
+        pricingComponents: {
+          include: {
+            pricingAttribute: true
+          },
+          orderBy: {
+            pricingAttribute: {
+              sortOrder: 'asc'
+            }
+          }
+        }
       }
     });
 

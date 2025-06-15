@@ -31,10 +31,10 @@ export async function GET(
                 activityImages: true,
               }
             }
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
+          },          orderBy: [
+            { dayNumber: 'asc' },
+            { days: 'asc' }
+          ],
         },
       },
     },)
@@ -321,8 +321,7 @@ export async function PATCH(
       include: {
         location: true,
         flightDetails: true,
-        images: true,
-        itineraries: {
+        images: true,        itineraries: {
           include: {
             itineraryImages: true,
             activities: {
@@ -331,6 +330,10 @@ export async function PATCH(
               }
             }
           },
+          orderBy: [
+            { dayNumber: 'asc' },
+            { days: 'asc' }
+          ]
         },
       }
     });

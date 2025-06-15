@@ -38,10 +38,14 @@ export async function GET(
         isActive: true,
         ...dateFilter
       },      include: {
-        mealPlan: true,
-        pricingComponents: {
+        mealPlan: true,        pricingComponents: {
           include: {
             pricingAttribute: true
+          },
+          orderBy: {
+            pricingAttribute: {
+              sortOrder: 'asc'
+            }
           }
         },
       },
@@ -115,9 +119,17 @@ export async function POST(
             price: parseFloat(component.price || 0)
           }))
         } : undefined
-      },
-      include: {
-        pricingComponents: true
+      },      include: {
+        pricingComponents: {
+          include: {
+            pricingAttribute: true
+          },
+          orderBy: {
+            pricingAttribute: {
+              sortOrder: 'asc'
+            }
+          }
+        }
       }
     });
 

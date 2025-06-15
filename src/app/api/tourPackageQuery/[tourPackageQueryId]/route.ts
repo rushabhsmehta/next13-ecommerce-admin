@@ -20,8 +20,7 @@ export async function GET(
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: {
         id: params.tourPackageQueryId
-      },
-      include: {
+      },      include: {
         associatePartner: true,
         flightDetails: true,
         images: true,
@@ -38,12 +37,13 @@ export async function GET(
               }
             }
           },
-          orderBy: {
-            createdAt: 'asc',
-          },
-        },
-      },
-    },)
+          orderBy: [
+            { dayNumber: 'asc' },
+            { days: 'asc' }
+          ]
+        }
+      }
+    });
     return NextResponse.json(tourPackageQuery);
   } catch (error) {
     console.log('[TOUR_PACKAGE_QUERY_GET]', error);
@@ -405,8 +405,7 @@ export async function PATCH(
         associatePartner: true,
         location: true,
         flightDetails: true,
-        images: true,
-        itineraries: {
+        images: true,        itineraries: {
           include: {
             itineraryImages: true,
             activities: {
@@ -415,6 +414,10 @@ export async function PATCH(
               }
             }
           },
+          orderBy: [
+            { dayNumber: 'asc' },
+            { days: 'asc' }
+          ]
         },
       }
     });

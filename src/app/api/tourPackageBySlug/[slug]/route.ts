@@ -29,10 +29,10 @@ export async function GET(
                 activityImages: true,
               }
             }
-          },
-          orderBy: {
-            createdAt: 'asc',
-          },
+          },          orderBy: [
+            { dayNumber: 'asc' },
+            { days: 'asc' }
+          ],
         },
       },
     },)

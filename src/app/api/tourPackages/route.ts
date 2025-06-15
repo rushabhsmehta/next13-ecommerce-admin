@@ -228,8 +228,7 @@ export async function GET(
             },
             include: {
                 images: true,
-                location: true,
-                itineraries: {
+                location: true,                itineraries: {
                     include: {
                         itineraryImages: true,
                         activities: {
@@ -238,6 +237,10 @@ export async function GET(
                             },
                         },
                     },
+                    orderBy: [
+                        { dayNumber: 'asc' },
+                        { days: 'asc' }
+                    ]
                 },
             },
             orderBy: {

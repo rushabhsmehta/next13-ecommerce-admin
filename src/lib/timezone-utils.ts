@@ -28,8 +28,8 @@ export function getUserTimezone(): string {
  * Convert a date string/Date to UTC for database storage
  * Handles timezone offset to prevent date shifting
  */
-export function dateToUtc(date: string | Date | null | undefined, timezone?: string): Date | null {
-  if (!date) return null;
+export function dateToUtc(date: string | Date | null | undefined, timezone?: string): Date | undefined {
+  if (!date) return undefined;
   
   const tz = timezone || getUserTimezone();
   
@@ -51,15 +51,15 @@ export function dateToUtc(date: string | Date | null | undefined, timezone?: str
     return zonedTimeToUtc(startOfDay(parsedDate), tz);
   } catch (error) {
     console.error('Error converting date to UTC:', error);
-    return null;
+    return undefined;
   }
 }
 
 /**
  * Convert a UTC date from database to local timezone for display
  */
-export function utcToLocal(utcDate: string | Date | null | undefined, timezone?: string): Date | null {
-  if (!utcDate) return null;
+export function utcToLocal(utcDate: string | Date | null | undefined, timezone?: string): Date | undefined {
+  if (!utcDate) return undefined;
   
   const tz = timezone || getUserTimezone();
   
@@ -68,7 +68,7 @@ export function utcToLocal(utcDate: string | Date | null | undefined, timezone?:
     return utcToZonedTime(date, tz);
   } catch (error) {
     console.error('Error converting UTC to local:', error);
-    return null;
+    return undefined;
   }
 }
 

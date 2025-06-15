@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from "@/lib/prismadb";
 
 export async function POST(req: Request) {
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       return new NextResponse("Cannot transfer to the same account", { status: 400 });
     }    const transferDetail = await prismadb.transfer.create({
       data: {
-        transferDate: new Date(new Date(transferDate).toISOString()),
+        transferDate: dateToUtc(transferDate)!,
         amount: parseFloat(amount.toString()),
         reference,
         description,

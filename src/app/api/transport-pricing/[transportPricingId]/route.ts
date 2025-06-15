@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from "@/lib/prismadb";
 
 export async function GET(
@@ -58,9 +59,8 @@ export async function PATCH(
     if (vehicleTypeId !== undefined) updateData.vehicleTypeId = vehicleTypeId;
     if (price !== undefined) updateData.price = price;
     if (transportType !== undefined) updateData.transportType = transportType;
-    if (description !== undefined) updateData.description = description;
-    if (startDate !== undefined) updateData.startDate = new Date(new Date(startDate).toISOString());
-    if (endDate !== undefined) updateData.endDate = new Date(new Date(endDate).toISOString());
+    if (description !== undefined) updateData.description = description;    if (startDate !== undefined) updateData.startDate = dateToUtc(startDate)!;
+    if (endDate !== undefined) updateData.endDate = dateToUtc(endDate)!;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const transportPricing = await prismadb.transportPricing.update({

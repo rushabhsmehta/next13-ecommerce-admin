@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from "@/lib/prismadb";
 
 export async function GET(
@@ -80,7 +81,7 @@ export async function PATCH(
         id: params.transferId
       },
       data: {
-        transferDate: new Date(new Date(transferDate).toISOString()),
+        transferDate: dateToUtc(transferDate)!,
         amount: parseFloat(amount.toString()),
         reference,
         description,

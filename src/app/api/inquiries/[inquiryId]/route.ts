@@ -191,7 +191,7 @@ export async function PATCH(
               isAirportDropRequired: detail.isAirportDropRequired || false,
               pickupLocation: detail.pickupLocation || null,
               dropLocation: detail.dropLocation || null,
-              requirementDate: detail.requirementDate ? new Date(new Date(detail.requirementDate).toISOString()) : null,
+              requirementDate: dateToUtc(detail.requirementDate),
               notes: detail.notes || null
             };
           })

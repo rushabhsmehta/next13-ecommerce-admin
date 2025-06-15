@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
+import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from '@/lib/prismadb';
 
 export async function GET(
@@ -116,7 +117,7 @@ export async function PATCH(
                 },
                 data: {
                     customerId,
-                    saleDate: new Date(new Date(saleDate).toISOString()),
+                    saleDate: dateToUtc(saleDate)!,
                     invoiceNumber: invoiceNumber || null,
                     salePrice: parseFloat(salePrice.toString()),
                     gstAmount: gstAmount !== undefined ? parseFloat(gstAmount.toString()) : null,

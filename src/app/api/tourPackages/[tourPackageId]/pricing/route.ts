@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from "@/lib/prismadb";
 
 // GET tour package pricing for a specific tourPackageId
@@ -25,9 +26,8 @@ export async function GET(
     let dateFilter = {};
     if (startDate && endDate) {
       dateFilter = {
-        AND: [
-          { startDate: { lte: new Date(new Date(endDate).toISOString()) } },
-          { endDate: { gte: new Date(new Date(startDate).toISOString()) } }
+        AND: [          { startDate: { lte: dateToUtc(endDate)! } },
+          { endDate: { gte: dateToUtc(startDate)! } }
         ]
       };
     }
@@ -102,9 +102,8 @@ export async function POST(
     }    // Create the tour package pricing record
     const tourPackagePricing = await prismadb.tourPackagePricing.create({
       data: {
-        tourPackageId: params.tourPackageId,
-        startDate: new Date(new Date(startDate).toISOString()),
-        endDate: new Date(new Date(endDate).toISOString()),
+        tourPackageId: params.tourPackageId,        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
         description: description || null,

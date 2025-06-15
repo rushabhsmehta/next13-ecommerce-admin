@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from "@/lib/prismadb";
 
 export async function POST(
@@ -46,9 +47,8 @@ export async function POST(
         vehicleTypeId,
         price,
         transportType,
-        description,
-        startDate: new Date(new Date(startDate).toISOString()),
-        endDate: new Date(new Date(endDate).toISOString()),
+        description,        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         isActive: isActive ?? true
       }
     });
@@ -69,7 +69,7 @@ export async function GET(
     const transportType = searchParams.get("transportType");
     const isActive = searchParams.get("isActive");      // Parse date parameters if provided
     const dateString = searchParams.get("date");
-    let date = dateString ? new Date(new Date(dateString).toISOString()) : null;
+    let date = dateString ? dateToUtc(dateString)! : null;
       // Build the query filter
     let whereClause: any = {};
 

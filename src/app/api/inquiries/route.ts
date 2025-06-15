@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
-import { dateToUtc } from "@/lib/timezone-utils";
+import { dateToUtc, getUserTimezone } from "@/lib/timezone-utils";
 import { 
   startOfDay, 
   endOfDay, 
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
             isAirportDropRequired: detail.isAirportDropRequired || false,
             pickupLocation: detail.pickupLocation || null,
             dropLocation: detail.dropLocation || null,
-            requirementDate: detail.requirementDate ? new Date(new Date(detail.requirementDate).toISOString()) : null,
+            requirementDate: dateToUtc(detail.requirementDate),
             notes: detail.notes || null
           }))
         } : undefined
@@ -225,22 +225,23 @@ export async function GET(req: Request) {
               lte: endOfMonth(lastMonth)
             }
           };
-          break;
-        case 'CUSTOM':
+          break;        case 'CUSTOM':
           if (startDate && endDate) {
             try {
-              const parsedStartDate = parseISO(startDate);
-              const parsedEndDate = parseISO(endDate);
+              const parsedStartDate = dateToUtc(startDate);
+              const parsedEndDate = dateToUtc(endDate);
               
-              // Set end date to end of day to include the entire day
-              parsedEndDate.setHours(23, 59, 59, 999);
-              
-              dateFilter = {
-                createdAt: {
-                  gte: parsedStartDate,
-                  lte: parsedEndDate
-                }
-              };
+              if (parsedStartDate && parsedEndDate) {
+                // Set end date to end of day to include the entire day
+                parsedEndDate.setHours(23, 59, 59, 999);
+                
+                dateFilter = {
+                  createdAt: {
+                    gte: parsedStartDate,
+                    lte: parsedEndDate
+                  }
+                };
+              }
             } catch (error) {
               console.error("Invalid date format:", error);
             }

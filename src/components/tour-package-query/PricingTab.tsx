@@ -135,13 +135,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (savedMealPlanId && !selectedMealPlanId) {
       console.log('Restoring saved meal plan ID:', savedMealPlanId);
       setSelectedMealPlanId(savedMealPlanId);    }
-    
-    // Only restore numberOfRooms if it's different from current state
+      // Only restore numberOfRooms if it's different from current state
     if (savedNumberOfRooms && savedNumberOfRooms > 0 && savedNumberOfRooms !== numberOfRooms) {
       console.log('Restoring saved number of rooms:', savedNumberOfRooms);
       setNumberOfRooms(savedNumberOfRooms);
     }
-  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId, numberOfRooms]);
+  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId]);
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {
@@ -219,6 +218,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
   const handleRoomCountChange = (newCount: number) => {
     if (newCount >= 1) {
       setNumberOfRooms(newCount);
+      // Save to form for persistence
+      form.setValue('numberOfRooms', newCount);
       // Reset pricing components when room count changes
       setAvailablePricingComponents([]);
       setSelectedPricingComponentIds([]);

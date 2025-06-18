@@ -26,12 +26,14 @@ export async function GET(
           include: {
             customer: true
           }
-        },
-        items: {
+        },        items: {
           include: {
             taxSlab: true,
             unitOfMeasure: true,
             saleItem: true
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       }

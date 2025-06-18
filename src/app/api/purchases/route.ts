@@ -131,11 +131,13 @@ export async function GET(req: Request) {
     const purchases = await prismadb.purchaseDetail.findMany({
       where: query,
       include: {
-        supplier: true,
-        items: {
+        supplier: true,        items: {
           include: {
             taxSlab: true,
             unitOfMeasure: true
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       },

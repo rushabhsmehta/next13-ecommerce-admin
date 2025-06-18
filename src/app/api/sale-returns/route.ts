@@ -99,12 +99,14 @@ export async function GET(req: Request) {
           include: {
             customer: true
           }
-        },
-        items: {
+        },        items: {
           include: {
             taxSlab: true,
             unitOfMeasure: true,
             saleItem: true
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       },

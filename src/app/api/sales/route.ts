@@ -102,10 +102,12 @@ export async function GET(req: Request) {
     const sales = await prismadb.saleDetail.findMany({
       where: query,
       include: {
-        customer: true,
-        items: {
+        customer: true,        items: {
           include: {
             taxSlab: true,
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       },

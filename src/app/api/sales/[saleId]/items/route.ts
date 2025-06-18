@@ -116,11 +116,13 @@ export async function PATCH(
       // Return the updated sale with items
       return await tx.saleDetail.findUnique({
         where: { id: params.saleId },
-        include: {
-          items: {
+        include: {          items: {
             include: {
               unitOfMeasure: true,
               taxSlab: true
+            },
+            orderBy: {
+              createdAt: 'asc'
             }
           }
         }

@@ -22,10 +22,12 @@ export async function GET(
                 id: params.saleId
             },
             include: {
-                customer: true,
-                items: {
+                customer: true,                items: {
                     include: {
                         taxSlab: true,
+                    },
+                    orderBy: {
+                        createdAt: 'asc'
                     }
                 }
             }
@@ -152,10 +154,12 @@ export async function PATCH(
                     id: params.saleId
                 },
                 include: {
-                    customer: true,
-                    items: {
+                    customer: true,                    items: {
                         include: {
                             taxSlab: true
+                        },
+                        orderBy: {
+                            createdAt: 'asc'
                         }
                     }
                 }

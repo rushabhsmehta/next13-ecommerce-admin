@@ -98,12 +98,14 @@ export async function GET(req: Request) {
           include: {
             supplier: true
           }
-        },
-        items: {
+        },        items: {
           include: {
             taxSlab: true,
             unitOfMeasure: true,
             purchaseItem: true
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       },

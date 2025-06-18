@@ -21,11 +21,13 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
     where: { id: params.saleId },
     include: {
       tourPackageQuery: true,
-      customer: true,
-      items: {
+      customer: true,      items: {
         include: {
           unitOfMeasure: true,
           taxSlab: true
+        },
+        orderBy: {
+          createdAt: 'asc'
         }
       }
     },

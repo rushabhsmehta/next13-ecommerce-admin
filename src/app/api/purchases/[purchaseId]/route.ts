@@ -14,9 +14,7 @@ export async function GET(
 
     if (!params.purchaseId) {
       return new NextResponse("Purchase ID is required", { status: 400 });
-    }
-
-    const purchase = await prismadb.purchaseDetail.findUnique({
+    }    const purchase = await prismadb.purchaseDetail.findUnique({
       where: {
         id: params.purchaseId
       },
@@ -26,6 +24,9 @@ export async function GET(
           include: {
             taxSlab: true,
             unitOfMeasure: true
+          },
+          orderBy: {
+            createdAt: 'asc'
           }
         }
       }
@@ -174,9 +175,7 @@ export async function PATCH(
             }
           });
         }
-      }
-
-      // Return the updated purchase with items
+      }      // Return the updated purchase with items
       const updatedPurchaseWithItems = await prismadb.purchaseDetail.findUnique({
         where: {
           id: params.purchaseId
@@ -187,6 +186,9 @@ export async function PATCH(
             include: {
               taxSlab: true,
               unitOfMeasure: true
+            },
+            orderBy: {
+              createdAt: 'asc'
             }
           }
         }

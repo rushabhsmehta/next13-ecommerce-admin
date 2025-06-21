@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { utcToLocal } from "@/lib/timezone-utils"
 
 import { Heading } from "@/components/ui/heading"
 import { Button } from "@/components/ui/button"
@@ -226,16 +227,15 @@ export default function TourPackagePricingPage() {
   const handleEdit = async (pricingPeriod: any) => {
     setIsEditMode(true)
     setEditId(pricingPeriod.id)
-    setShowForm(true)
-      // Map pricing components to the form schema structure
+    setShowForm(true)    // Map pricing components to the form schema structure
     const formattedPricingComponents = pricingPeriod.pricingComponents.map((comp: any) => ({
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
     }))
 
     form.reset({
-      startDate: new Date(pricingPeriod.startDate),
-      endDate: new Date(pricingPeriod.endDate),
+      startDate: utcToLocal(pricingPeriod.startDate) || new Date(),
+      endDate: utcToLocal(pricingPeriod.endDate) || new Date(),
       mealPlanId: pricingPeriod.mealPlanId || "",
       numberOfRooms: pricingPeriod.numberOfRooms || 1,
       description: pricingPeriod.description || "",
@@ -300,7 +300,8 @@ export default function TourPackagePricingPage() {
               description: "",
               pricingComponents: [],
             })
-            setShowForm(true)
+            setShowForm(true
+            )
           }}>
             <Plus className="mr-2 h-4 w-4" />
             Add Pricing Period
@@ -604,7 +605,7 @@ export default function TourPackagePricingPage() {
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>                      <CardTitle className="text-lg">
-                        {format(new Date(period.startDate), 'MMM dd, yyyy')} to {format(new Date(period.endDate), 'MMM dd, yyyy')}
+                        {format(utcToLocal(period.startDate) || new Date(), 'MMM dd, yyyy')} to {format(utcToLocal(period.endDate) || new Date(), 'MMM dd, yyyy')}
                       </CardTitle>
                       <CardDescription>
                         <span className="font-medium">Number of Rooms:</span> {period.numberOfRooms || 1} | 

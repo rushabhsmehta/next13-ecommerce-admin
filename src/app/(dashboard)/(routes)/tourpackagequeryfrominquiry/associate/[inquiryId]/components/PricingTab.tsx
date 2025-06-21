@@ -4,6 +4,7 @@ import { Calculator, Plus, Trash, DollarSign, Loader2, AlertCircle, ArrowRight, 
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { utcToLocal } from "@/lib/timezone-utils";
 
 // Import form value types
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
@@ -441,12 +442,10 @@ const PricingTab: React.FC<PricingTabProps> = ({
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
         toast.error("No pricing periods found for the selected tour package.");
         return;
-      }
-
-      // Enhanced Filtering Logic for new schema (Number of Rooms + Meal Plan)
+      }      // Enhanced Filtering Logic for new schema (Number of Rooms + Meal Plan)
       const matchedPricings = tourPackagePricings.filter((p: any) => {
-        const periodStart = new Date(p.startDate);
-        const periodEnd = new Date(p.endDate);
+        const periodStart = utcToLocal(p.startDate) || new Date(p.startDate);
+        const periodEnd = utcToLocal(p.endDate) || new Date(p.endDate);
         const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
         const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
         const isRoomMatch = p.numberOfRooms === numberOfRooms;

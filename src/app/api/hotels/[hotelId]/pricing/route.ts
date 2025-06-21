@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 import { ROOM_TYPES, OCCUPANCY_TYPES, MEAL_PLANS } from "@/lib/constants";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET hotel pricing for a specific hotelId
 export async function GET(
@@ -10,22 +11,25 @@ export async function GET(
 ) {
   try {
     if (!params.hotelId) {
-      return new NextResponse("Hotel ID is required", { status: 400 });
-    }
+      return new NextResponse("Hotel ID is required", { status: 400 });    }
 
     // Get query parameters for date filtering
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
-    const endDate = url.searchParams.get("endDate");    // Build the filter based on available parameters
+    const endDate = url.searchParams.get("endDate");
+
+    // Build the filter based on available parameters
     let dateFilter = {};
     if (startDate && endDate) {
       dateFilter = {
         AND: [
-          { startDate: { lte: new Date(new Date(endDate).toISOString()) } },
-          { endDate: { gte: new Date(new Date(startDate).toISOString()) } }
+          { startDate: { lte: dateToUtc(endDate)! } },
+          { endDate: { gte: dateToUtc(startDate)! } }
         ]
       };
-    }const hotelPricing = await prismadb.hotelPricing.findMany({
+    }
+
+    const hotelPricing = await prismadb.hotelPricing.findMany({
       where: {
         hotelId: params.hotelId,
         isActive: true,
@@ -96,8 +100,8 @@ export async function POST(
     const hotelPricing = await prismadb.hotelPricing.create({
       data: {
         hotelId: params.hotelId,
-        startDate: new Date(new Date(startDate).toISOString()),
-        endDate: new Date(new Date(endDate).toISOString()),
+        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         roomTypeId,
         occupancyTypeId,
         price,

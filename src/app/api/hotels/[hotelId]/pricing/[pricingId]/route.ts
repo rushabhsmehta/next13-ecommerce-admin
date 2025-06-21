@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET a specific pricing period
 export async function GET(
@@ -93,9 +94,8 @@ export async function PATCH(
         id: params.pricingId,
         hotelId: params.hotelId
       },
-      data: {
-        startDate: new Date(new Date(startDate).toISOString()),
-        endDate: new Date(new Date(endDate).toISOString()),
+      data: {        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         roomTypeId,
         occupancyTypeId,
         price,

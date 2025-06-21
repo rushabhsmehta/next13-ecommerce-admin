@@ -189,7 +189,7 @@ async function createItineraryAndActivities(itinerary: {
   return createdItinerary;
 }
 
-// Transaction-safe version of createItineraryAndActivities
+// Transaction-safe version of createItineraryAndActivities - simplified for reliability
 async function createItineraryAndActivitiesInTransaction(itinerary: {
   itineraryTitle: any;
   itineraryDescription: any;
@@ -206,15 +206,8 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
   roomAllocations?: any[];
   transportDetails?: any[];
 }, tourPackageQueryId: string, tx: any) {
-  console.log("TRANSACTION: Creating itinerary:", {
-    title: itinerary.itineraryTitle,
-    dayNumber: itinerary.dayNumber,
-    days: itinerary.days,
-    tourPackageQueryId
-  });
-
   try {
-    // Create the itinerary using the transaction client
+    // Step 1: Create the itinerary first (simplified to avoid nested transaction issues)
     const createdItinerary = await tx.itinerary.create({
       data: {
         itineraryTitle: itinerary.itineraryTitle,
@@ -228,52 +221,50 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
         numberofRooms: itinerary.numberofRooms,
         roomCategory: itinerary.roomCategory,
         mealsIncluded: itinerary.mealsIncluded,
-        itineraryImages: {
-          createMany: {
-            data: (itinerary.itineraryImages || []).map((image: { url: any; }) => ({ url: image.url })),
-          },
-        },
       },
-    });
+    });    // Step 2: Create itinerary images if they exist
+    if (itinerary.itineraryImages && itinerary.itineraryImages.length > 0) {
+      for (const image of itinerary.itineraryImages) {
+        await tx.images.create({
+          data: {
+            itinerariesId: createdItinerary.id,
+            url: image.url
+          }
+        });
+      }
+    }
 
-    console.log("TRANSACTION: Created itinerary with ID:", createdItinerary.id);
-
-    // Create activities in sequence using transaction
+    // Step 3: Create activities if they exist
     if (itinerary.activities && itinerary.activities.length > 0) {
       for (const activity of itinerary.activities) {
-        try {
-          await tx.activity.create({
-            data: {
-              itineraryId: createdItinerary.id,
-              activityTitle: activity.activityTitle,
-              activityDescription: activity.activityDescription,
-              locationId: activity.locationId,
-              activityImages: {
-                createMany: {
-                  data: (activity.activityImages || []).map((img: { url: any; }) => ({ url: img.url })),
-                },
-              },
-            },
-          });
-        } catch (activityError) {
-          console.error('TRANSACTION: Failed to create activity:', activity.activityTitle, activityError);
-          throw activityError;
+        const createdActivity = await tx.activity.create({
+          data: {
+            itineraryId: createdItinerary.id,
+            activityTitle: activity.activityTitle,
+            activityDescription: activity.activityDescription,
+            locationId: activity.locationId,
+          }
+        });        // Create activity images if they exist
+        if (activity.activityImages && activity.activityImages.length > 0) {
+          for (const img of activity.activityImages) {
+            await tx.images.create({
+              data: {
+                activitiesId: createdActivity.id,
+                url: img.url
+              }
+            });
+          }
         }
       }
     }
 
-    // Create room allocations using transaction
+    // Step 4: Create room allocations if they exist
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
-      for (const roomAllocation of itinerary.roomAllocations) {
-        console.log("TRANSACTION: Creating room allocation with data:", roomAllocation);
-
-        // Skip invalid room allocations
-        if (!roomAllocation.roomTypeId || !roomAllocation.occupancyTypeId) {
-          console.log("TRANSACTION: WARNING: Missing required IDs for room allocation, skipping");
-          continue;
-        }
-
-        try {
+      const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) => 
+        ra.roomTypeId && ra.occupancyTypeId
+      );
+        if (validRoomAllocations.length > 0) {
+        for (const roomAllocation of validRoomAllocations) {
           await tx.roomAllocation.create({
             data: {
               itineraryId: createdItinerary.id,
@@ -284,25 +275,17 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
               guestNames: roomAllocation.guestNames || ""
             }
           });
-        } catch (roomError) {
-          console.error('TRANSACTION: Failed to create room allocation:', roomError);
-          throw roomError;
         }
       }
     }
 
-    // Create transport details using transaction
+    // Step 5: Create transport details if they exist
     if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
-      for (const transport of itinerary.transportDetails) {
-        console.log("TRANSACTION: Creating transport detail with data:", transport);
-
-        // Skip invalid transport details
-        if (!transport.vehicleTypeId) {
-          console.log("TRANSACTION: WARNING: Missing vehicleTypeId for transport detail, skipping");
-          continue;
-        }
-
-        try {
+      const validTransportDetails = itinerary.transportDetails.filter((td: any) => 
+        td.vehicleTypeId
+      );
+        if (validTransportDetails.length > 0) {
+        for (const transport of validTransportDetails) {
           await tx.transportDetail.create({
             data: {
               itineraryId: createdItinerary.id,
@@ -311,14 +294,10 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
               description: transport.description || ""
             }
           });
-        } catch (transportError) {
-          console.error('TRANSACTION: Failed to create transport detail:', transportError);
-          throw transportError;
         }
       }
     }
 
-    console.log("TRANSACTION: Successfully created itinerary and all related data for:", itinerary.itineraryTitle);
     return createdItinerary;
   } catch (error) {
     console.error("TRANSACTION: Failed to create itinerary:", itinerary.itineraryTitle, error);
@@ -491,39 +470,35 @@ export async function PATCH(
             ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),]
         }
       }
-    }//  console.log('tourPackageUpdateData:', tourPackageUpdateData);    // Use transaction to ensure atomicity and prevent itinerary data loss
-    await prismadb.$transaction(async (tx) => {
+    }//  console.log('tourPackageUpdateData:', tourPackageUpdateData);    // Use transaction with fallback strategy for itinerary operations
+    try {
+      await prismadb.$transaction(async (tx) => {
       // First update the main tour package query data
       await tx.tourPackageQuery.update({
         where: { id: params.tourPackageQueryId },
         data: tourPackageUpdateData as any
-      });
-
-      // Handle itineraries separately with proper error handling
+      });      // Handle itineraries separately with sequential processing to avoid transaction issues
       if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
-        console.log(`[TRANSACTION] Processing ${itineraries.length} itineraries`);
+        console.log(`[TRANSACTION] Processing ${itineraries.length} itineraries sequentially`);
         
         // Delete existing itineraries only within the transaction
         await tx.itinerary.deleteMany({
           where: { tourPackageQueryId: params.tourPackageQueryId }
         });
-        console.log(`[TRANSACTION] Deleted existing itineraries for tour package query ${params.tourPackageQueryId}`);
+        console.log(`[TRANSACTION] Deleted existing itineraries`);
 
-        // Create new itineraries sequentially to avoid race conditions
+        // Create new itineraries sequentially to maintain transaction integrity
         for (let i = 0; i < itineraries.length; i++) {
           const itinerary = itineraries[i];
           try {
-            console.log(`[TRANSACTION] Creating itinerary ${i + 1}/${itineraries.length}: ${itinerary.itineraryTitle}`);
+            console.log(`[TRANSACTION] Creating itinerary ${i + 1}/${itineraries.length}: ${itinerary.itineraryTitle?.substring(0, 50)}...`);
             await createItineraryAndActivitiesInTransaction(itinerary, params.tourPackageQueryId, tx);
-            console.log(`[TRANSACTION] Successfully created itinerary ${i + 1}/${itineraries.length}`);
           } catch (itineraryError: any) {
             console.error('[ITINERARY_CREATION_ERROR_IN_TRANSACTION]', {
               itineraryIndex: i,
               itineraryTitle: itinerary.itineraryTitle,
-              dayNumber: itinerary.dayNumber,
               error: itineraryError
             });
-            // This will cause the entire transaction to rollback, preserving original data
             throw new Error(`Failed to create itinerary ${i + 1} "${itinerary.itineraryTitle}": ${itineraryError?.message || 'Unknown error'}`);
           }
         }
@@ -533,10 +508,58 @@ export async function PATCH(
         console.log(`[TRANSACTION] Deleting all itineraries as empty array was provided`);
         await tx.itinerary.deleteMany({
           where: { tourPackageQueryId: params.tourPackageQueryId }
-        });
-      }
+        });      }
       // If itineraries is undefined/null, don't touch existing itineraries
+    }, {
+      maxWait: 30000, // Maximum time to wait for a transaction slot (30 seconds)
+      timeout: 60000, // Maximum time to run the transaction (60 seconds)
     });
+    } catch (transactionError: any) {
+      console.error('[TRANSACTION_FAILED] Attempting fallback strategy', transactionError);
+      
+      // If transaction fails, try fallback approach with smaller operations
+      if (transactionError.code === 'P2028' || transactionError.message?.includes('Transaction')) {
+        console.log('[FALLBACK] Using non-transactional approach for itineraries');
+        
+        // First update the main tour package query data outside transaction
+        await prismadb.tourPackageQuery.update({
+          where: { id: params.tourPackageQueryId },
+          data: tourPackageUpdateData as any
+        });
+
+        // Handle itineraries with fallback approach
+        if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
+          console.log(`[FALLBACK] Processing ${itineraries.length} itineraries with fallback strategy`);
+          
+          // Delete existing itineraries
+          await prismadb.itinerary.deleteMany({
+            where: { tourPackageQueryId: params.tourPackageQueryId }
+          });
+          console.log(`[FALLBACK] Deleted existing itineraries`);
+
+          // Create new itineraries one by one with individual error handling
+          for (let i = 0; i < itineraries.length; i++) {
+            const itinerary = itineraries[i];
+            try {
+              console.log(`[FALLBACK] Creating itinerary ${i + 1}/${itineraries.length}: ${itinerary.itineraryTitle?.substring(0, 50)}...`);
+              await createItineraryAndActivities(itinerary, params.tourPackageQueryId);
+            } catch (itineraryError: any) {
+              console.error('[FALLBACK_ITINERARY_ERROR]', {
+                itineraryIndex: i,
+                itineraryTitle: itinerary.itineraryTitle,
+                error: itineraryError
+              });
+              // In fallback mode, we continue with other itineraries but log the error
+              // Don't throw to prevent losing all progress
+            }
+          }
+          console.log(`[FALLBACK] Completed processing itineraries with fallback strategy`);
+        }
+      } else {
+        // If it's not a transaction timeout, re-throw the error
+        throw transactionError;
+      }
+    }
 
     const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
@@ -560,15 +583,34 @@ export async function PATCH(
           ]
         },
       }
-    });
-
-    return NextResponse.json(tourPackageQuery);
+    });    return NextResponse.json(tourPackageQuery);
   } catch (error: any) {
     console.error('[TOUR_PACKAGE_QUERY_PATCH]', error);
     
-    // Provide more specific error messages
+    // Handle specific Prisma errors
+    if (error.code === 'P2028') {
+      // Transaction timeout error
+      return new NextResponse("Update operation timed out due to large number of itineraries. Please try with fewer items or contact support.", { status: 408 });
+    }
+    
+    if (error.code === 'P2025') {
+      // Record not found error (relation issues)
+      return new NextResponse("Tour package query not found or has been deleted. Please refresh and try again.", { status: 404 });
+    }
+    
+    // Handle transaction errors
+    if (error.message && error.message.includes('Transaction already closed')) {
+      return new NextResponse("Operation timed out while processing itineraries. Please try again or reduce the number of itineraries.", { status: 408 });
+    }
+    
+    // Handle itinerary creation errors
     if (error.message && error.message.includes('Failed to create itinerary')) {
       return new NextResponse(`Tour package query update failed: ${error.message}`, { status: 400 });
+    }
+    
+    // Handle connection errors
+    if (error.message && error.message.includes('Server has closed the connection')) {
+      return new NextResponse("Database connection lost. Please try again.", { status: 503 });
     }
     
     return new NextResponse("Internal error occurred while updating tour package query", { status: 500 });

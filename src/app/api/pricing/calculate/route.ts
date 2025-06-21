@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
+import { dateToUtc } from '@/lib/timezone-utils';
 
 interface RoomCostDetail {
   roomTypeId: string;
@@ -53,11 +54,9 @@ export async function POST(req: Request) {
       markup = 0,
     } = body;    if (!tourStartsFrom || !tourEndsOn || !itineraries || !itineraries.length) {
       return new NextResponse("Missing required fields", { status: 400 });
-    }
-
-    // Ensure dates are handled consistently by converting to UTC
-    const startDate = new Date(new Date(tourStartsFrom).toISOString());
-    const endDate = new Date(new Date(tourEndsOn).toISOString());
+    }    // Ensure dates are handled consistently using timezone-aware conversion
+    const startDate = dateToUtc(tourStartsFrom) || new Date();
+    const endDate = dateToUtc(tourEndsOn) || new Date();
     const durationMs = endDate.getTime() - startDate.getTime();
     const durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24)) + 1;
 

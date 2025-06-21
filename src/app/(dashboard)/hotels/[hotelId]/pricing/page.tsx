@@ -14,6 +14,7 @@ import {
   Trash 
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { utcToLocal } from "@/lib/timezone-utils"
 
 import { Heading } from "@/components/ui/heading"
 import { Button } from "@/components/ui/button"
@@ -216,11 +217,10 @@ export default function HotelPricingPage() {
       setLoading(false)
     }
   }
-    const handleEdit = (pricing: any) => {
-    setIsEditMode(true)
+    const handleEdit = (pricing: any) => {    setIsEditMode(true)
     setEditId(pricing.id)
-    form.setValue("startDate", new Date(pricing.startDate))
-    form.setValue("endDate", new Date(pricing.endDate))
+    form.setValue("startDate", utcToLocal(pricing.startDate) || new Date())
+    form.setValue("endDate", utcToLocal(pricing.endDate) || new Date())
     // Properly handle the room type ID from the relation or direct field
     form.setValue("roomTypeId", pricing.roomTypeId)
     // Properly handle the occupancy type ID from the relation or direct field
@@ -299,7 +299,7 @@ export default function HotelPricingPage() {
                 <TableBody>                  {pricingPeriods.map((pricing) => (
                     <TableRow key={pricing.id}>
                       <TableCell>
-                        {format(new Date(pricing.startDate), "PPP")} to {format(new Date(pricing.endDate), "PPP")}
+                        {format(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {format(utcToLocal(pricing.endDate) || new Date(), "PPP")}
                       </TableCell>
                       <TableCell>
                         {pricing.roomType?.name || 

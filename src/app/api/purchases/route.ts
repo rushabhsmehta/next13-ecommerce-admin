@@ -57,7 +57,8 @@ export async function POST(req: Request) {
       }
     });// Create purchase items
     if (items && Array.isArray(items) && items.length > 0) {
-      for (const item of items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         await prismadb.purchaseItem.create({
           data: {            purchaseDetailId: purchaseDetail.id,
             productName: item.productName || "Item",
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
           }
         });
       }
-    }    // If no items were provided but price > 0, create a default item
+    }// If no items were provided but price > 0, create a default item
     else if (price > 0) {
       // Get tour package query name if available
       let productName = "Purchase";

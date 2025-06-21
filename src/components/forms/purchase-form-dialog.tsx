@@ -358,7 +358,6 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
     setFormErrors(errorMessages);
     toast.error("Please check the form for errors");
   };
-
   const handleAddItem = () => {
     append({
       productName: "",
@@ -374,6 +373,7 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
 
   const handleRemoveItem = (index: number) => {
     remove(index);
+    // Slight delay to ensure DOM updates properly
     setTimeout(() => recalculateTotals(), 0);
   };
 
@@ -640,10 +640,9 @@ export const PurchaseFormDialog: React.FC<PurchaseFormProps> = ({
                       <th className="h-10 px-4 text-right font-medium">Total</th>
                       <th className="h-10 px-2 text-center font-medium w-[60px]"></th>
                     </tr>
-                  </thead>
-                  <tbody>
+                  </thead>                  <tbody>
                     {fields.map((field, index) => (
-                      <tr key={field.id} className="border-b hover:bg-muted/30">
+                      <tr key={`item-${index}`} className="border-b hover:bg-muted/30">
                         <td className="p-2">
                           <FormField
                             control={form.control}

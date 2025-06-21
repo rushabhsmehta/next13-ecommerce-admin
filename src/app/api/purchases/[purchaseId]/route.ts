@@ -125,11 +125,10 @@ export async function PATCH(
         // Delete existing items only if we're replacing them
         await prismadb.purchaseItem.deleteMany({
           where: { purchaseDetailId: params.purchaseId }
-        });
-
-        // Create new purchase items if provided
+        });        // Create new purchase items if provided
         if (Array.isArray(items) && items.length > 0) {
-          for (const item of items) {
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
             try {
               await prismadb.purchaseItem.create({
                 data: {                  purchaseDetailId: params.purchaseId,

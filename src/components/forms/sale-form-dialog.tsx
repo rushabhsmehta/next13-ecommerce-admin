@@ -619,7 +619,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                   </thead>
                   <tbody>
                     {fields.map((field, index) => (
-                      <tr key={field.id} className="border-b hover:bg-muted/30">
+                      <tr key={`item-${index}`} className="border-b hover:bg-muted/30">
                         {/* Product Name field */}
                         <td className="p-2">
                           <FormField

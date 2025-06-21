@@ -392,9 +392,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )}
  */}      {/* Enhanced Pricing Options Table */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
-        <div className="mt-6 border border-blue-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-200">
-            <h3 className="text-2xl font-bold text-blue-800">💰 Pricing Options</h3>
-            <p className="text-base text-blue-600 mt-1">Detailed breakdown of tour package pricing</p>
+        <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-4 border-b border-orange-200">
+            <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
+            <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
           </div>
           <div className="overflow-x-auto">            <table className="min-w-full divide-y divide-gray-200 bg-white">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
@@ -421,7 +421,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {parsePricingSection(initialData.pricingSection).map((item, index) => (
-                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-200`}>
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-orange-50 transition-colors duration-200`}>
                     <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
                       <div className="text-lg font-semibold text-gray-900">{item.name}</div>
                     </td>
@@ -439,8 +439,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 ))}
               </tbody>
             </table>
-          </div>          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-3 border-t border-blue-200">
-            <p className="text-sm text-blue-600 italic font-medium">* All prices are in INR and subject to availability at the time of confirmation.</p>
+          </div>          <div className="bg-gradient-to-r from-orange-50 to-pink-50 px-6 py-3 border-t border-orange-200">
+            <p className="text-sm text-orange-600 italic font-medium">* All prices are in INR and subject to availability at the time of confirmation.</p>
           </div>
         </div>
       )}

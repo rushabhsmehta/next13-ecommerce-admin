@@ -391,45 +391,59 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </CardContent>
           </Card>
         )}
- */}
-
-      {/* Add this before the Tour Highlights section */}
+ */}      {/* Add this before the Tour Highlights section */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
-        <div className="mt-6 border rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-4 py-3 border-b">
-            <h3 className="text-lg font-medium text-gray-900">Pricing Options</h3>
+        <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-4 border-b border-orange-200">
+            <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
+            <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 bg-white">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
+                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">📋</span>
+                      <span>Item Name</span>
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
+                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">💵</span>
+                      <span>Price (Base)</span>
+                    </div>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
+                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">📊</span>
+                      <span>Calculation & Total</span>
+                    </div>
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {parsePricingSection(initialData.pricingSection).map((item, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {item.name}
+                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-orange-50 transition-colors duration-200`}>
+                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                      <div className="text-lg font-semibold text-gray-900">{item.name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.price || '-'}
+                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                      <div className="text-lg font-bold text-green-600">
+                        {item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {item.description || '-'}
+                    <td className="px-6 py-5">
+                      <div className="text-base text-gray-700 leading-relaxed">
+                        {item.description || '-'}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="bg-gradient-to-r from-orange-50 to-pink-50 px-6 py-3 border-t border-orange-200">
+            <p className="text-sm text-orange-600 italic font-medium">* All prices are in INR and subject to availability at the time of confirmation.</p>
           </div>
         </div>
       )}

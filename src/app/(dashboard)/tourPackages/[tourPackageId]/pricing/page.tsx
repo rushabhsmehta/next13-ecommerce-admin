@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
-import { formatLocalDate } from "@/lib/timezone-utils"
+import { formatLocalDate, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
 import { 
   CalendarIcon, 
@@ -195,16 +195,22 @@ export default function TourPackagePricingPage() {
     fetchMealPlans()
     fetchPricingAttributes()
   }, [tourPackageId])
-
   const onSubmit = async (data: PricingFormValues) => {
     try {
       setLoading(true)
       
+      // Normalize dates for API submission
+      const normalizedData = {
+        ...data,
+        startDate: normalizeApiDate(data.startDate),
+        endDate: normalizeApiDate(data.endDate)
+      };
+      
       if (isEditMode && editId) {
-        await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${editId}`, data)
+        await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${editId}`, normalizedData)
         toast.success("Pricing period updated successfully")
       } else {
-        await axios.post(`/api/tourPackages/${tourPackageId}/pricing`, data)
+        await axios.post(`/api/tourPackages/${tourPackageId}/pricing`, normalizedData)
         toast.success("Pricing period created successfully")
       }
       
@@ -225,18 +231,19 @@ export default function TourPackagePricingPage() {
     }
   }
 
-  const handleEdit = async (pricingPeriod: any) => {
-    setIsEditMode(true)
+  const handleEdit = async (pricingPeriod: any) => {    setIsEditMode(true)
     setEditId(pricingPeriod.id)
-    setShowForm(true)    // Map pricing components to the form schema structure
+    setShowForm(true)
+    
+    // Map pricing components to the form schema structure
     const formattedPricingComponents = pricingPeriod.pricingComponents.map((comp: any) => ({
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
-    }))
+    }));
 
     form.reset({
-      startDate: utcToLocal(pricingPeriod.startDate) || new Date(),
-      endDate: utcToLocal(pricingPeriod.endDate) || new Date(),
+      startDate: createDatePickerValue(utcToLocal(pricingPeriod.startDate)),
+      endDate: createDatePickerValue(utcToLocal(pricingPeriod.endDate)),
       mealPlanId: pricingPeriod.mealPlanId || "",
       numberOfRooms: pricingPeriod.numberOfRooms || 1,
       description: pricingPeriod.description || "",
@@ -324,8 +331,7 @@ export default function TourPackagePricingPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {/* Start Date */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">                  {/* Start Date */}
                   <FormField
                     control={form.control}
                     name="startDate"
@@ -343,7 +349,7 @@ export default function TourPackagePricingPage() {
                                 )}
                               >
                                 {field.value ? (
-                                  format(field.value, "PPP")
+                                  formatLocalDate(field.value, "PPP")
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -354,7 +360,7 @@ export default function TourPackagePricingPage() {
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={createDatePickerValue(field.value)}
                               onSelect={(date) => date && field.onChange(date)}
                               // Removed date restriction to allow selecting past dates
                               initialFocus
@@ -365,8 +371,7 @@ export default function TourPackagePricingPage() {
                       </FormItem>
                     )}
                   />
-                  
-                  {/* End Date */}
+                    {/* End Date */}
                   <FormField
                     control={form.control}
                     name="endDate"
@@ -384,7 +389,7 @@ export default function TourPackagePricingPage() {
                                 )}
                               >
                                 {field.value ? (
-                                  format(field.value, "PPP")
+                                  formatLocalDate(field.value, "PPP")
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -395,7 +400,7 @@ export default function TourPackagePricingPage() {
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={createDatePickerValue(field.value)}
                               onSelect={(date) => date && field.onChange(date)}
                               initialFocus
                             />

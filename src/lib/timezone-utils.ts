@@ -65,8 +65,6 @@ export function utcToLocal(utcDate: string | Date | null | undefined, timezone?:
   try {
     const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
     
-    console.log('utcToLocal input:', utcDate);
-    
     // For date-only fields stored as UTC, extract the date components
     // and create a local date with the same year/month/day
     if (date instanceof Date) {
@@ -74,11 +72,8 @@ export function utcToLocal(utcDate: string | Date | null | undefined, timezone?:
       const month = date.getUTCMonth();
       const day = date.getUTCDate();
       
-      console.log('UTC date components:', { year, month, day });
-      
       // Create local date with same date components
       const result = new Date(year, month, day);
-      console.log('utcToLocal result:', result);
       return result;
     }
     
@@ -149,14 +144,10 @@ export function normalizeApiDate(date: string | Date | null | undefined): string
       const month = dateObj.getMonth();
       const day = dateObj.getDate();
       
-      console.log('normalizeApiDate input:', dateObj);
-      console.log('Extracted components:', { year, month, day });
-      
       // Create a UTC date with the same year/month/day
       const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
       const result = utcDate.toISOString();
       
-      console.log('normalizeApiDate result:', result);
       return result;
     }
     

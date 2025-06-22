@@ -57,15 +57,32 @@ export function dateToUtc(date: string | Date | null | undefined, timezone?: str
 
 /**
  * Convert a UTC date from database to local timezone for display
+ * For date-only fields, preserves the date components
  */
 export function utcToLocal(utcDate: string | Date | null | undefined, timezone?: string): Date | undefined {
   if (!utcDate) return undefined;
   
-  const tz = timezone || getUserTimezone();
-  
   try {
     const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
-    return utcToZonedTime(date, tz);
+    
+    console.log('utcToLocal input:', utcDate);
+    
+    // For date-only fields stored as UTC, extract the date components
+    // and create a local date with the same year/month/day
+    if (date instanceof Date) {
+      const year = date.getUTCFullYear();
+      const month = date.getUTCMonth();
+      const day = date.getUTCDate();
+      
+      console.log('UTC date components:', { year, month, day });
+      
+      // Create local date with same date components
+      const result = new Date(year, month, day);
+      console.log('utcToLocal result:', result);
+      return result;
+    }
+    
+    return undefined;
   } catch (error) {
     console.error('Error converting UTC to local:', error);
     return undefined;
@@ -116,13 +133,34 @@ export function convertJourneyDateToTourStart(journeyDate: string | Date | null 
 /**
  * Ensure date consistency for API requests
  * Normalizes dates to prevent timezone-related shifts
+ * For date-only fields, preserves the date regardless of timezone
  */
 export function normalizeApiDate(date: string | Date | null | undefined): string | undefined {
   if (!date) return undefined;
   
   try {
-    const utcDate = dateToUtc(date);
-    return utcDate ? utcDate.toISOString() : undefined;
+    // For date-only fields, we want to preserve the date components
+    // and store as UTC date with same year/month/day
+    const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    
+    if (dateObj instanceof Date) {
+      // Extract date components from the local date
+      const year = dateObj.getFullYear();
+      const month = dateObj.getMonth();
+      const day = dateObj.getDate();
+      
+      console.log('normalizeApiDate input:', dateObj);
+      console.log('Extracted components:', { year, month, day });
+      
+      // Create a UTC date with the same year/month/day
+      const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      const result = utcDate.toISOString();
+      
+      console.log('normalizeApiDate result:', result);
+      return result;
+    }
+    
+    return undefined;
   } catch (error) {
     console.error('Error normalizing API date:', error);
     return undefined;

@@ -13,8 +13,10 @@ const tourPackageQueryPage = async ({
       id: params.tourPackageQueryId,
     },
     include: {
-      images: true,
-      flightDetails: {
+      images: true,      flightDetails: {
+        include: {
+          images: true,
+        },
         orderBy: {
           createdAt: 'asc',
         },

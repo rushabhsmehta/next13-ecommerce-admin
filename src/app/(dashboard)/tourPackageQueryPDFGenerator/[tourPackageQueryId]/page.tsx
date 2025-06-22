@@ -15,7 +15,11 @@ const tourPackageQueryPage = async ({
     },
     include: {
       images: true,
-      flightDetails: true,
+      flightDetails: {
+        include: {
+          images: true,
+        },
+      },
       itineraries: {
         include: {
           itineraryImages: true,

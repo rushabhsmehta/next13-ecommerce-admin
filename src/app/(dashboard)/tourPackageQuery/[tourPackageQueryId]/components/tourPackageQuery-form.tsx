@@ -145,6 +145,7 @@ const flightDetailsSchema = z.object({
   departureTime: z.string().optional(),
   arrivalTime: z.string().optional(),
   flightDuration: z.string().optional(),
+  images: z.object({ url: z.string() }).array().optional(), // Added images array
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
@@ -390,9 +391,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
   const action = initialData ? 'Save changes' : 'Create';
-  console.log("Initial Data : ", initialData?.itineraries)
-
-  // Ensure quantity is always treated as a string in roomAllocations and transportDetails
+  console.log("Initial Data : ", initialData?.itineraries)  // Ensure quantity is always treated as a string in roomAllocations and transportDetails
   const transformInitialData = (data: any) => {
     return {
       ...data,
@@ -404,7 +403,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transportDetails: itinerary.transportDetails?.map((detail: any) => ({
           ...detail,
         })) || []
-      }))
+      })),
+      // Transform flight details to ensure images are properly handled
+      flightDetails: data.flightDetails?.map((flight: any) => ({
+        ...flight,
+        images: flight.images || []
+      })) || []
     };
   };
 
@@ -476,9 +480,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplateName: '',
       selectedMealPlanId: '',
       occupancySelections: [],
-    };
-
-  const form = useForm<TourPackageQueryFormValues>({
+    };  const form = useForm<TourPackageQueryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
   });
@@ -588,8 +590,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transportDetails: (itinerary as any).transportDetails || [],
 
       })) || [];
-      form.setValue('itineraries', transformedItineraries);
-      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
+      form.setValue('itineraries', transformedItineraries);      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
         flightNumber: flight.flightNumber || undefined,
@@ -597,7 +598,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         to: flight.to || undefined,
         departureTime: flight.departureTime || undefined,
         arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined
+        flightDuration: flight.flightDuration || undefined,
+        images: (flight as any).images || []
       })));
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
     }
@@ -650,9 +652,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         roomAllocations: (itinerary as any).roomAllocations || [],
         transportDetails: (itinerary as any).transportDetails || [],
       })) || [];
-      form.setValue('itineraries', transformedItineraries);
-
-      // Set flight details
+      form.setValue('itineraries', transformedItineraries);      // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
@@ -661,7 +661,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         to: flight.to || undefined,
         departureTime: flight.departureTime || undefined,
         arrivalTime: flight.arrivalTime || undefined,
-        flightDuration: flight.flightDuration || undefined
+        flightDuration: flight.flightDuration || undefined,
+        images: (flight as any).images || []
       })));
 
       toast.success('Tour Package Query template applied successfully');

@@ -11,10 +11,13 @@ const tourPackageQueryPage = async ({
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryCreateCopyId,
-    },
-    include: {
+    },    include: {
       images: true,      
-      flightDetails: true,
+      flightDetails: {
+        include: {
+          images: true,
+        }
+      },
       itineraries: {
         include: {
           itineraryImages: true,

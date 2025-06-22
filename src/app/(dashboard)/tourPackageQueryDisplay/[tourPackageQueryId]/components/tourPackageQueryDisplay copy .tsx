@@ -17,7 +17,9 @@ interface TourPackageQueryDisplayProps {
         activityImages: Images[];
       })[];
     })[];
-    flightDetails: FlightDetails[];
+    flightDetails: (FlightDetails & {
+      images: Images[];
+    })[];
     associatePartner: AssociatePartner | null;
   } | null;
   locations: Location[];
@@ -510,45 +512,121 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div className="text-gray-900" dangerouslySetInnerHTML={{ __html: initialData.tour_highlights || ' ' }}></div>
           </CardContent>
         </Card>
-      )} */}
-
-
-      {/* Flight Details */}
-      {
-        initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
-          <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
-            <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-              <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
-            </CardHeader>
-            {initialData.flightDetails.map((flight, index) => (
+      )} */}      {/* Flight Details */}
+      {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+        <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
+          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
+            <CardTitle className="text-xl font-bold">Flight Details</CardTitle>
+          </CardHeader>
+          
+          {/* Debug Information */}
+          {process.env.NODE_ENV === 'development' && (
+            <CardContent className="p-4 bg-yellow-50 border border-yellow-200">
+              <div className="text-xs text-gray-600">
+                <p><strong>Debug Info:</strong></p>
+                <p>Flight Details Array Length: {initialData.flightDetails ? initialData.flightDetails.length : 'null'}</p>
+                <p>Flight Details Data: {JSON.stringify(initialData.flightDetails, null, 2)}</p>
+              </div>
+            </CardContent>
+          )}
+          
+          {/* Show if flight details exist */}
+          {initialData.flightDetails && initialData.flightDetails.length > 0 ? (
+            initialData.flightDetails.map((flight, index) => (
               <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
                 <div className="flex items-center justify-between border-b pb-2 mb-2">
-                  <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
+                  <span className="font-semibold text-xl text-gray-700">
+                    {flight.date || 'No date specified'}
+                  </span>
                   <div className="text-xl text-gray-700">
-                    <span className="font-semibold">{flight.flightName}</span> |
-                    <span className="ml-1">{flight.flightNumber}</span>
+                    <span className="font-semibold">{flight.flightName || 'Flight name not specified'}</span>
+                    {flight.flightNumber && (
+                      <>
+                        {' | '}
+                        <span className="ml-1">{flight.flightNumber}</span>
+                      </>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center">
-                    <div className="font-bold text-xs text-gray-700">{flight.from}</div>
-                    <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
+                    <div className="font-bold text-xs text-gray-700">
+                      {flight.from || 'Departure not specified'}
+                    </div>
+                    {flight.departureTime && (
+                      <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
+                    )}
                   </div>
                   <div className="mx-2 text-center">
                     <span className="text-gray-600"><PlaneTakeoffIcon /></span>
-                    <div className="text-xs text-gray-600">{flight.flightDuration}</div>
+                    <div className="text-xs text-gray-600">
+                      {flight.flightDuration || 'Duration not specified'}
+                    </div>
                     <hr className="border-t-2 border-gray-400 mx-1" />
                   </div>
                   <div className="flex items-center">
-                    <div className="font-bold text-xs text-gray-700">{flight.to}</div>
-                    <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
+                    <div className="font-bold text-xs text-gray-700">
+                      {flight.to || 'Arrival not specified'}
+                    </div>
+                    {flight.arrivalTime && (
+                      <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
+                    )}
                   </div>
                 </div>
+                
+                {/* Debug info for images */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-red-600 mb-2">
+                    <strong>Debug - Images:</strong> {JSON.stringify(flight.images, null, 2)}
+                  </div>
+                )}
+                
+                {/* Flight Images Section */}
+                {flight.images && flight.images.length > 0 ? (
+                  <div className="border-t pt-3 mt-3">
+                    <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2 text-sm">
+                      <PlaneIcon className="h-3 w-3" />
+                      Flight Documents & Images ({flight.images.length} images)
+                    </h4>
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                      {flight.images.map((image, imgIndex) => (
+                        <div key={imgIndex} className="relative group">
+                          <div className="aspect-square bg-white rounded-md overflow-hidden shadow-sm border hover:shadow-md transition-shadow duration-200">
+                            <Image
+                              src={image.url}
+                              alt={`Flight ${flight.flightName || ''} ${flight.flightNumber || ''} - Image ${imgIndex + 1}`}
+                              width={100}
+                              height={100}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-t pt-3 mt-3 text-gray-500 text-sm">
+                    <PlaneIcon className="h-4 w-4 inline mr-2" />
+                    No flight images uploaded yet.
+                  </div>
+                )}
               </CardContent>
-            ))}
-          </Card>
-        )
-      }
+            ))
+          ) : (
+            <CardContent className="p-4">
+              <div className="text-center text-gray-500 py-8">
+                <PlaneTakeoffIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p className="text-lg">No flight details available</p>
+                <p className="text-sm">Flight information has not been added to this tour package yet.</p>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
 
       {/* Itineraries */}

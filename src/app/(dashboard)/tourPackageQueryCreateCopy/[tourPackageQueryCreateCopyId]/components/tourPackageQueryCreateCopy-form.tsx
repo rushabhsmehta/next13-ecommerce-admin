@@ -144,6 +144,7 @@ const flightDetailsSchema = z.object({
   departureTime: z.string().optional(),
   arrivalTime: z.string().optional(),
   flightDuration: z.string().optional(),
+  images: z.object({ url: z.string() }).array().optional(), // Added images array
 }); // Assuming an array of flight details
 
 const formSchema = z.object({
@@ -380,7 +381,6 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const toastMessage = initialData ? 'Tour Package Query updated.' : 'Tour Package Query created.';
   const action = initialData ? 'Save changes' : 'Create';
   console.log("Initial Data : ", initialData?.itineraries)
-
   // Ensure quantity is always treated as a string in roomAllocations and transportDetails
   const transformInitialData = (data: any) => {
     return {
@@ -393,7 +393,12 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
         transportDetails: itinerary.transportDetails?.map((detail: any) => ({
           ...detail,
         })) || []
-      }))
+      })),
+      // Transform flight details to ensure images are properly handled
+      flightDetails: data.flightDetails?.map((flight: any) => ({
+        ...flight,
+        images: flight.images || []
+      })) || []
     };
   };
 

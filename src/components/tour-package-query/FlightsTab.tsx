@@ -1,8 +1,9 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\FlightsTab.tsx
+import React from "react";
 import { Control } from "react-hook-form";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
-import { Trash, PlaneTakeoff } from "lucide-react"; // Added PlaneTakeoff icon
+import { Trash, PlaneTakeoff, ImageIcon } from "lucide-react"; // Added ImageIcon
 
 // Import necessary UI components
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ImageUpload from "@/components/ui/image-upload"; // Added ImageUpload import
 
 // Define the props interface with a union type for control
 interface FlightsTabProps {
@@ -189,9 +191,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                          className="bg-slate-50"
                       />
                     </FormControl>
-                  </FormItem>
-
-                  {/* Remove Button */}
+                  </FormItem>                  {/* Remove Button */}
                   <div className="flex items-end"> {/* Align button to bottom */}
                     <Button
                       type="button"
@@ -208,6 +208,39 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                       Remove
                     </Button>
                   </div>
+
+                  {/* Flight Images Section */}
+                  <div className="col-span-full mt-4">
+                    <div className="bg-slate-50 p-3 rounded-md">                      <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        Flight Images
+                      </h3>                      <ImageUpload
+                        value={(flight.images || []).map((img: any) => typeof img === 'string' ? img : img.url)}
+                        disabled={loading}
+                        onChange={(url) => {
+                          const newFlightDetails = [...value];
+                          const currentImages = flight.images || [];
+                          newFlightDetails[index] = {
+                            ...flight,
+                            images: [...currentImages, { url }]
+                          };
+                          onChange(newFlightDetails);
+                        }}
+                        onRemove={(url) => {
+                          const newFlightDetails = [...value];
+                          const currentImages = flight.images || [];
+                          newFlightDetails[index] = {
+                            ...flight,
+                            images: currentImages.filter((img: any) => {
+                              const imgUrl = typeof img === 'string' ? img : img.url;
+                              return imgUrl !== url;
+                            })
+                          };
+                          onChange(newFlightDetails);
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
 
@@ -216,8 +249,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline" // Changed variant for distinction
-                  disabled={loading}
+                  variant="outline" // Changed variant for distinction                  disabled={loading}
                   onClick={() => onChange([...value, {
                     date: '',
                     flightName: '',
@@ -226,7 +258,8 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                     to: '',
                     departureTime: '',
                     arrivalTime: '',
-                    flightDuration: ''
+                    flightDuration: '',
+                    images: [] // Added images array for new flights
                   }])}
                   className="border-dashed border-primary text-primary hover:bg-primary/10" // Added styling
                 >

@@ -414,6 +414,7 @@ model FlightDetails {
   tourPackageId      String?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
+  images             Images[]
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
 
@@ -648,6 +649,7 @@ model Images {
   receiptDetailsId    String?
   expenseDetailsId    String?
   incomeDetailsId     String?
+  flightDetailsId     String?
   tourPackage         TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery    TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   hotel               Hotel?            @relation(fields: [hotelId], references: [id], onDelete: Cascade)
@@ -659,6 +661,7 @@ model Images {
   receiptDetails      ReceiptDetail?    @relation(fields: [receiptDetailsId], references: [id], onDelete: Cascade)
   incomeDetails       IncomeDetail?     @relation(fields: [incomeDetailsId], references: [id], onDelete: Cascade)
   expenseDetails      ExpenseDetail?    @relation(fields: [expenseDetailsId], references: [id], onDelete: Cascade)
+  flightDetails       FlightDetails?    @relation(fields: [flightDetailsId], references: [id], onDelete: Cascade)
 
   @@index([hotelId])
   @@index([itinerariesId])
@@ -671,6 +674,7 @@ model Images {
   @@index([receiptDetailsId])
   @@index([incomeDetailsId])
   @@index([expenseDetailsId])
+  @@index([flightDetailsId])
 }
 
 model Customer {

@@ -24,7 +24,9 @@ interface TourPackageQueryPDFGeneratorProps {
         activityImages: Images[];
       })[];
     })[];
-    flightDetails: FlightDetails[];
+    flightDetails: (FlightDetails & {
+      images: Images[];
+    })[];
     associatePartner: AssociatePartner | null;
   } | null;
   locations: Location[];
@@ -393,32 +395,38 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       <div style="${cardStyle}">
         <div style="${headerStyle}">
           <h2 style="${sectionTitleStyle}">Flight Details</h2>
-        </div>
-        ${initialData.flightDetails
+        </div>        ${initialData.flightDetails
           .map(
             (flight) => `
           <div style="padding: 16px; background: #f7fafc; border-bottom: 1px solid #ddd;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
-              <span style="font-weight: bold; font-size: 20px; color: #4a5568;">${flight.date}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">              <span style="font-weight: bold; font-size: 20px; color: #4a5568;">${flight.date}</span>
               <div style="font-size: 20px; color: #4a5568;">
-                <span style="font-weight: bold;">${flight.flightName}</span> | ${flight.flightNumber}
+                <span style="font-weight: bold;">${flight.flightName}</span>${flight.flightNumber ? ` | ${flight.flightNumber}` : ''}
               </div>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; color: #4a5568;">
+            <div style="display: flex; justify-content: space-between; align-items: center; color: #4a5568; margin-bottom: 12px;">
               <div>
                 <div style="font-weight: bold; font-size: 14px;">${flight.from}</div>
-                <div style="font-size: 14px; margin-top: 4px;">${flight.departureTime}</div>
-              </div>
-              <div style="text-align: center; font-size: 14px; color: #718096;">
-                <div style="margin-bottom: 4px;">&#9992;</div>
+                <div style="font-size: 14px; margin-top: 4px;">${flight.departureTime || '--:--'}</div>
+              </div>              <div style="text-align: center; font-size: 14px; color: #718096;">
                 <div>${flight.flightDuration}</div>
                 <hr style="border-top: 2px solid #cbd5e0; margin: 4px 0;" />
               </div>
               <div>
                 <div style="font-weight: bold; font-size: 14px;">${flight.to}</div>
-                <div style="font-size: 14px; margin-top: 4px;">${flight.arrivalTime}</div>
+                <div style="font-size: 14px; margin-top: 4px;">${flight.arrivalTime || '--:--'}</div>
               </div>
-            </div>
+            </div>            ${flight.images && flight.images.length > 0 ? `
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  ${flight.images.map((image, index) => `
+                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background: white;">                      <img src="${image.url}" alt="Flight ${flight.flightName || ''} ${flight.flightNumber || ''} - Image ${index + 1}" 
+                           style="width: 100%; max-width: 700px; height: auto; max-height: 140px; object-fit: contain; border-radius: 4px;" />
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
           </div>
         `
           )

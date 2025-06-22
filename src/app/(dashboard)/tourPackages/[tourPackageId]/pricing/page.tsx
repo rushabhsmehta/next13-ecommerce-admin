@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
-import { formatLocalDate, createDatePickerValue, normalizeApiDate } from "@/lib/timezone-utils"
+import { formatLocalDate, createDatePickerValue, normalizeApiDate, utcToLocal } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
 import { 
   CalendarIcon, 
@@ -16,7 +16,6 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { utcToLocal } from "@/lib/timezone-utils"
 
 import { Heading } from "@/components/ui/heading"
 import { Button } from "@/components/ui/button"
@@ -152,16 +151,28 @@ export default function TourPackagePricingPage() {
     const fetchTourPackage = async () => {
       try {
         const response = await axios.get(`/api/tourPackages/${tourPackageId}`)
-        setTourPackage(response.data)
-      } catch (error) {
+        setTourPackage(response.data)      } catch (error) {
         toast.error("Failed to fetch tour package details")
         console.error(error)
       }
     }
-
+    
     const fetchPricingPeriods = async () => {
       try {
         const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`)
+        console.log('Fetched pricing periods from API:', response.data);
+        
+        // Debug individual periods
+        response.data.forEach((period: any, index: number) => {
+          console.log(`Period ${index}:`, {
+            id: period.id,
+            startDate: period.startDate,
+            endDate: period.endDate,
+            startDateConverted: utcToLocal(period.startDate),
+            endDateConverted: utcToLocal(period.endDate)
+          });
+        });
+        
         setPricingPeriods(response.data)
       } catch (error) {
         toast.error("Failed to fetch pricing periods")
@@ -189,15 +200,20 @@ export default function TourPackagePricingPage() {
         setLoading(false)
       }
     }
-    
-    fetchTourPackage()
+      fetchTourPackage()
     fetchPricingPeriods()
     fetchMealPlans()
     fetchPricingAttributes()
   }, [tourPackageId])
+
   const onSubmit = async (data: PricingFormValues) => {
     try {
       setLoading(true)
+      
+      // Debug logging
+      console.log('Original form data:', data);
+      console.log('Start date:', data.startDate);
+      console.log('End date:', data.endDate);
       
       // Normalize dates for API submission
       const normalizedData = {
@@ -205,6 +221,10 @@ export default function TourPackagePricingPage() {
         startDate: normalizeApiDate(data.startDate),
         endDate: normalizeApiDate(data.endDate)
       };
+      
+      console.log('Normalized data:', normalizedData);
+      console.log('Normalized start date:', normalizedData.startDate);
+      console.log('Normalized end date:', normalizedData.endDate);
       
       if (isEditMode && editId) {
         await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${editId}`, normalizedData)
@@ -357,11 +377,15 @@ export default function TourPackagePricingPage() {
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
+                          <PopoverContent className="w-auto p-0" align="start">                            <Calendar
                               mode="single"
                               selected={createDatePickerValue(field.value)}
-                              onSelect={(date) => date && field.onChange(date)}
+                              onSelect={(date) => {
+                                console.log('Date selected in calendar:', date);
+                                console.log('Date type:', typeof date);
+                                console.log('Date toString:', date?.toString());
+                                if (date) field.onChange(date);
+                              }}
                               // Removed date restriction to allow selecting past dates
                               initialFocus
                             />
@@ -397,11 +421,15 @@ export default function TourPackagePricingPage() {
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
+                          <PopoverContent className="w-auto p-0" align="start">                            <Calendar
                               mode="single"
                               selected={createDatePickerValue(field.value)}
-                              onSelect={(date) => date && field.onChange(date)}
+                              onSelect={(date) => {
+                                console.log('End date selected in calendar:', date);
+                                console.log('End date type:', typeof date);
+                                console.log('End date toString:', date?.toString());
+                                if (date) field.onChange(date);
+                              }}
                               initialFocus
                             />
                           </PopoverContent>

@@ -8,6 +8,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { columns } from "./columns";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 
 interface SaleReturnClientProps {
   data: any[];
@@ -18,11 +19,10 @@ export const SaleReturnClient: React.FC<SaleReturnClientProps> = ({
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
-  // Transform data for display
+    // Transform data for display
   const formattedData = data.map(item => ({
     id: item.id,
-    date: format(new Date(item.returnDate), "MMMM d, yyyy"),
+    date: formatLocalDate(item.returnDate, "MMMM d, yyyy"),
     customer: item.saleDetail?.customer?.name || "Unknown",
     amount: item.amount,
     gstAmount: item.gstAmount || 0,

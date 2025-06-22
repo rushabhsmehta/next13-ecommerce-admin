@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -314,9 +315,8 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
                               "w-full pl-3 text-left font-normal h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
                               !field.value && "text-muted-foreground"
                             )}
-                          >
-                            {field.value
-                              ? format(field.value, "PPP")
+                          >                            {field.value
+                              ? formatLocalDate(field.value, "PPP")
                               : "Select date"}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -324,7 +324,7 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={field.value}
+                            selected={createDatePickerValue(field.value)}
                             onSelect={(date) => date && field.onChange(date)}
                             initialFocus
                           />

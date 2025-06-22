@@ -1,6 +1,7 @@
 "use client";
 
 import { format } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip
@@ -99,7 +100,7 @@ export function GSTPurchasesTab({ gstMetrics, filteredPurchases, taxSlabs }: GST
 
                       return (
                         <tr key={purchase.id} className={index % 2 ? "bg-muted/30" : ""}>
-                          <td className="p-2">{format(new Date(purchase.purchaseDate || purchase.createdAt), "dd MMM yyyy")}</td>
+                          <td className="p-2">{formatLocalDate(purchase.purchaseDate || purchase.createdAt, "dd MMM yyyy")}</td>
                           <td className="p-2">{purchase.billNumber || "-"}</td>
                           <td className="p-2 text-right">{baseAmount.toFixed(2)}</td>
                           <td className="p-2 text-right">{gstAmount.toFixed(2)}</td>

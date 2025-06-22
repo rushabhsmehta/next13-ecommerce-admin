@@ -5,6 +5,7 @@ import { Page, Text, View, Document, StyleSheet, Image, Link } from '@react-pdf/
 import htmlReactParser, { DOMNode, Element, Text as HtmlTextNode } from 'html-react-parser';
 import { TourPackageQuery, Images, Itinerary, Activity, FlightDetails, Location, Hotel } from "@prisma/client"
 import { format, parseISO } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 import { useSearchParams } from 'next/navigation';
 import { MailIcon, PhoneCallIcon, PhoneIcon } from 'lucide-react';
 import parse from 'html-react-parser'; // Assuming you have this installed
@@ -436,9 +437,8 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           <View style={styles.tableRow}>
             {data.tourStartsFrom && data.tourEndsOn && (
               <>
-                <Text style={styles.tableLabel}>Period:</Text>
-                <Text style={styles.tableValue}>
-                  {format(new Date(data.tourStartsFrom), 'dd-MM-yyyy')} To {format(new Date(data.tourEndsOn), 'dd-MM-yyyy')}
+                <Text style={styles.tableLabel}>Period:</Text>                <Text style={styles.tableValue}>
+                  {formatLocalDate(data.tourStartsFrom, 'dd-MM-yyyy')} To {formatLocalDate(data.tourEndsOn, 'dd-MM-yyyy')}
                 </Text>
               </>
             )}

@@ -8,6 +8,7 @@ import { Check, ChevronsUpDown, Loader2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { useAssociatePartner } from "@/hooks/use-associate-partner";
 
 interface OperationalStaff {
@@ -55,11 +56,10 @@ export function InquiryStaffAssignment({
         <div className={cn("flex flex-col space-y-1", className)}>
           <span className="text-sm font-medium text-slate-700">Assigned Staff</span>
           <div className="flex items-center text-sm text-slate-600">
-            <User className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
-            {staffList.find(staff => staff.id === assignedStaffId)?.name || "Staff Member"}
+            <User className="h-3.5 w-3.5 mr-1.5 text-slate-500" />            {staffList.find(staff => staff.id === assignedStaffId)?.name || "Staff Member"}
             {assignedStaffAt && (
               <span className="ml-2 text-xs text-slate-500">
-                (Assigned on {format(new Date(assignedStaffAt), "MMM d, yyyy")})
+                (Assigned on {formatLocalDate(assignedStaffAt, "MMM d, yyyy")})
               </span>
             )}
           </div>
@@ -230,11 +230,9 @@ export function InquiryStaffAssignment({
             </Command>
           </PopoverContent>
         </Popover>
-      </div>
-
-      {assignedStaffId && assignedStaffAt && (
+      </div>      {assignedStaffId && assignedStaffAt && (
         <div className="text-xs text-muted-foreground">
-          Assigned on {format(new Date(assignedStaffAt), "PPp")}
+          Assigned on {formatLocalDate(assignedStaffAt, "PPp")}
         </div>
       )}
     </div>

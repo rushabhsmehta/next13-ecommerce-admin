@@ -7,6 +7,7 @@ import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Ac
 import { useSearchParams } from 'next/navigation';
 import { table } from 'console';
 import { format, parseISO } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 
 interface TourPackageQueryVoucherDisplayProps {
   initialData: TourPackageQuery & {
@@ -248,13 +249,13 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
               {initialData.tourStartsFrom && (
                 <div className="font-semibold text-xl">
                   Period:
-                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
                 </div>
               )}
               {initialData.tourEndsOn && (
                 <div className="ml-4 font-semibold text-xl">
                   To:
-                  <span className="ml-2 text-2xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-2xl text-gray-900">{formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
                 </div>
               )}
             </div>

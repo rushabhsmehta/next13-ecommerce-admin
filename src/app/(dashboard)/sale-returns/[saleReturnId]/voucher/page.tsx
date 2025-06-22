@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
@@ -45,10 +46,9 @@ const CreditNoteVoucherPage = async ({ params }: CreditNoteVoucherPageProps) => 
     const organization = await prismadb.organization.findFirst({
         orderBy: {
             createdAt: 'asc'
-        }
-    });    // Format the sale return date
-    const formattedDate = format(saleReturn.returnDate, "MMMM d, yyyy");
-    const originalSaleDate = format(saleReturn.saleDetail.saleDate, "MMMM d, yyyy");
+        }    });    // Format the sale return date
+    const formattedDate = formatLocalDate(saleReturn.returnDate, "MMMM d, yyyy");
+    const originalSaleDate = formatLocalDate(saleReturn.saleDetail.saleDate, "MMMM d, yyyy");
 
     // Check if this is a multi-item return
     const isMultiItem = saleReturn.items && saleReturn.items.length > 0;

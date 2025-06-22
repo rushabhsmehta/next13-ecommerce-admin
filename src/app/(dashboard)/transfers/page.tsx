@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { TransferClient } from "./components/client";
 import { Heading } from "@/components/ui/heading";
@@ -16,10 +17,9 @@ const TransfersPage = async () => {
       transferDate: 'desc',
     },
   });
-
   const formattedTransfers = transfers.map((item) => ({
     id: item.id,
-    date: format(item.transferDate, "MMMM d, yyyy"),
+    date: formatLocalDate(item.transferDate, "MMMM d, yyyy"),
     amount: item.amount,
     reference: item.reference || "",
     fromAccount: getAccountName(item, 'from'),

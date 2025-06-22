@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
+import { formatLocalDate } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
 import { 
   CalendarIcon, 
@@ -299,7 +300,7 @@ export default function HotelPricingPage() {
                 <TableBody>                  {pricingPeriods.map((pricing) => (
                     <TableRow key={pricing.id}>
                       <TableCell>
-                        {format(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {format(utcToLocal(pricing.endDate) || new Date(), "PPP")}
+                        {formatLocalDate(utcToLocal(pricing.startDate) || new Date(), "PPP")} to {formatLocalDate(utcToLocal(pricing.endDate) || new Date(), "PPP")}
                       </TableCell>
                       <TableCell>
                         {pricing.roomType?.name || 

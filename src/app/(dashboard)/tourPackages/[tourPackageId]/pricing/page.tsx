@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import axios from "axios"
 import { format } from "date-fns"
+import { formatLocalDate } from "@/lib/timezone-utils"
 import { toast } from "react-hot-toast"
 import { 
   CalendarIcon, 
@@ -605,7 +606,7 @@ export default function TourPackagePricingPage() {
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>                      <CardTitle className="text-lg">
-                        {format(utcToLocal(period.startDate) || new Date(), 'MMM dd, yyyy')} to {format(utcToLocal(period.endDate) || new Date(), 'MMM dd, yyyy')}
+                        {formatLocalDate(utcToLocal(period.startDate) || new Date(), 'MMM dd, yyyy')} to {formatLocalDate(utcToLocal(period.endDate) || new Date(), 'MMM dd, yyyy')}
                       </CardTitle>
                       <CardDescription>
                         <span className="font-medium">Number of Rooms:</span> {period.numberOfRooms || 1} | 

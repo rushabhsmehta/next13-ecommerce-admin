@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 
 import prismadb from "@/lib/prismadb";
 import { TourPackagesClient } from "./components/client";
@@ -27,10 +28,9 @@ const tourPackagesPage = async ({
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     price: item.price ?? '',
-    location: item.location.label,
-    //  hotel: item.hotel.name,
-    createdAt: format(item.createdAt, 'MMMM d, yyyy'),
-    updatedAt: format(item.updatedAt, 'MMMM d, yyyy'),
+    location: item.location.label,    //  hotel: item.hotel.name,
+    createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
+    updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
   }));
 
   return (

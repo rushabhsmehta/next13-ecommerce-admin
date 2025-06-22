@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { Calendar as CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -86,9 +87,8 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
                     "w-[200px] justify-start text-left font-normal",
                     !startDateValue && "text-muted-foreground"
                   )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDateValue ? format(startDateValue, "PPP") : <span>Pick a date</span>}
+                >                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDateValue ? formatLocalDate(startDateValue, "PPP") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -114,9 +114,8 @@ export const TourPackageQueryClient: React.FC<TourPackageQueryClientProps> = ({
                     "w-[200px] justify-start text-left font-normal",
                     !endDateValue && "text-muted-foreground"
                   )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDateValue ? format(endDateValue, "PPP") : <span>Pick a date</span>}
+                >                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDateValue ? formatLocalDate(endDateValue, "PPP") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">

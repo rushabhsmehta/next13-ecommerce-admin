@@ -13,6 +13,7 @@ import {
   AssociatePartner,
 } from "@prisma/client";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 
 // Define the props interface.
 interface TourPackageQueryPDFGeneratorProps {
@@ -189,8 +190,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           <div style="display: flex; gap: 16px; margin-bottom: 12px;">
             ${initialData.tourStartsFrom
         ? `<div>
-                     <span style="${subTitleStyle}">Period:</span>
-                     <span style="${textStyle}">${format(
+                     <span style="${subTitleStyle}">Period:</span>                     <span style="${textStyle}">${formatLocalDate(
           initialData.tourStartsFrom,
           "dd-MM-yyyy"
         )}</span>
@@ -199,8 +199,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
             ${initialData.tourEndsOn
         ? `<div>
-                     <span style="${subTitleStyle}">To:</span>
-                     <span style="${textStyle}">${format(
+                     <span style="${subTitleStyle}">To:</span>                     <span style="${textStyle}">${formatLocalDate(
           initialData.tourEndsOn,
           "dd-MM-yyyy"
         )}</span>

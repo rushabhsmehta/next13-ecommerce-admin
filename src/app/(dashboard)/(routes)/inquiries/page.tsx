@@ -1,4 +1,5 @@
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { InquiriesClient } from "./components/client";
 import { InquiryColumn } from "./components/columns";
@@ -181,15 +182,14 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     location: item.location.label,
     associatePartner: item.associatePartner?.name || 'Direct',
     status: item.status,
-    journeyDate: item.journeyDate ? format(new Date(item.journeyDate), 'dd MMM yyyy') : 'No date',
-    assignedToStaffId: item.assignedToStaffId || null,
-    assignedStaffName: item.assignedStaff?.name || null,
-    assignedStaffAt: item.assignedStaffAt ? format(new Date(item.assignedStaffAt), 'dd MMM yyyy HH:mm') : null,
+    journeyDate: item.journeyDate ? formatLocalDate(item.journeyDate, 'dd MMM yyyy') : 'No date',
+    assignedToStaffId: item.assignedToStaffId || null,    assignedStaffName: item.assignedStaff?.name || null,
+    assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
     tourPackageQueries: item.tourPackageQueries || 'Not specified',
     actionHistory: item.actions?.map(action => ({
       status: action.actionType,
       remarks: action.remarks,
-      timestamp: format(new Date(action.actionDate), 'dd MMM yyyy HH:mm'),
+      timestamp: formatLocalDate(action.actionDate, 'dd MMM yyyy HH:mm'),
       type: action.actionType
     })) || []
   }));

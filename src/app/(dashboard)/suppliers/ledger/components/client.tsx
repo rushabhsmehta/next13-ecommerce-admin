@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -482,9 +483,8 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
                 <Button
                   variant={"outline"}
                   className="w-full md:w-auto justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFrom ? format(dateFrom, "PPP") : "From Date"}
+                >                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? formatLocalDate(dateFrom, "PPP") : "From Date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -502,9 +502,8 @@ export const SupplierLedgerClient: React.FC<SupplierLedgerClientProps> = ({
                 <Button
                   variant={"outline"}
                   className="w-full md:w-auto justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateTo ? format(dateTo, "PPP") : "To Date"}
+                >                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? formatLocalDate(dateTo, "PPP") : "To Date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">

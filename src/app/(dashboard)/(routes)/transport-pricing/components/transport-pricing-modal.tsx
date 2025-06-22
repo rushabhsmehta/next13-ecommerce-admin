@@ -33,6 +33,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import * as z from "zod";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -307,8 +308,7 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
                   <FormField
                     control={form.control}
                     name="startDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                    render={({ field }) => (                      <FormItem className="flex flex-col">
                         <FormLabel>Start Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -321,14 +321,14 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                {field.value ? formatLocalDate(field.value, "PPP") : <span>Pick a date</span>}
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={createDatePickerValue(field.value)}
                               onSelect={(date) => date && field.onChange(date)}
                               initialFocus
                             />
@@ -342,8 +342,7 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
                   <FormField
                     control={form.control}
                     name="endDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                    render={({ field }) => (                      <FormItem className="flex flex-col">
                         <FormLabel>End Date</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -356,14 +355,14 @@ export const TransportPricingModal: React.FC<TransportPricingModalProps> = ({
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                {field.value ? formatLocalDate(field.value, "PPP") : <span>Pick a date</span>}
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={createDatePickerValue(field.value)}
                               onSelect={(date) => date && field.onChange(date)}
                               initialFocus
                             />

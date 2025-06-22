@@ -168,9 +168,8 @@ export default function OperationalStaffDashboard() {
                     <p className="font-medium">{inquiry.location.label}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Created On</p>
-                    <p className="font-medium">
-                      {format(new Date(inquiry.createdAt), "MMM d, yyyy")}
+                    <p className="text-gray-500">Created On</p>                    <p className="font-medium">
+                      {formatLocalDate(inquiry.createdAt, "MMM d, yyyy")}
                     </p>
                   </div>
                   {inquiry.journeyDate && (

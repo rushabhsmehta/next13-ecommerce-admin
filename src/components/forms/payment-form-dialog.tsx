@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -333,9 +334,8 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                                 "w-full pl-3 text-left font-normal h-11 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
                                 !field.value && "text-muted-foreground"
                               )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
+                            >                              {field.value ? (
+                                formatLocalDate(field.value, "PPP")
                               ) : (
                                 <span>Pick a date</span>
                               )}
@@ -345,7 +345,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                         </PopoverTrigger>                        <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value}
+                            selected={createDatePickerValue(field.value)}
                             onSelect={(date) => date && field.onChange(date)}
                             disabled={(date) =>
                               date > new Date() || date < new Date("1900-01-01")

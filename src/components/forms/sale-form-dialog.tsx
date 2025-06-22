@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -476,9 +477,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                                 !field.value && "text-muted-foreground"
                               )}
                               disabled={loading}
-                            >
-                              {field.value
-                                ? format(field.value, "dd/MM/yyyy")
+                            >                              {field.value
+                                ? formatLocalDate(field.value, "dd/MM/yyyy")
                                 : "Select date"}
                               <CalendarIcon className="ml-auto h-4 w-4" />
                             </Button>
@@ -486,7 +486,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                           <PopoverContent className="w-auto p-0">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={createDatePickerValue(field.value)}
                               onSelect={(date) => date && field.onChange(date)}
                               initialFocus
                             />

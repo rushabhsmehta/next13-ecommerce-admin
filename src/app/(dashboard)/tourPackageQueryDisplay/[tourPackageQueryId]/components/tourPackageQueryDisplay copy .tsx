@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 import { Separator } from '@radix-ui/react-separator';
 
 interface TourPackageQueryDisplayProps {
@@ -273,13 +274,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               {initialData.tourStartsFrom && (
                 <div className="font-semibold text-xl">
                   Period:
-                  <span className="ml-2 text-xl text-gray-900">{format(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-xl text-gray-900">{formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
                 </div>
               )}
               {initialData.tourEndsOn && (
                 <div className="ml-4 font-semibold text-xl">
                   To:
-                  <span className="ml-2 text-xl text-gray-900">{format(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
+                  <span className="ml-2 text-xl text-gray-900">{formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
                 </div>
               )}
             </div>

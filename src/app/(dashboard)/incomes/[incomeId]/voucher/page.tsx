@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
@@ -28,9 +29,8 @@ const IncomeVoucherPage = async ({ params }: IncomeVoucherPageProps) => {
   if (!income) {
     return notFound();
   }
-
   // Format the income date
-  const formattedDate = format(income.incomeDate, "MMMM d, yyyy");
+  const formattedDate = formatLocalDate(income.incomeDate, "MMMM d, yyyy");
   
   // Determine payment method and account details
   const paymentMethod = income.bankAccount 

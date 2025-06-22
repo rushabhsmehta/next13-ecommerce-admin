@@ -1,6 +1,7 @@
 import * as React from "react";
 import { CalendarIcon } from "@radix-ui/react-icons";
 import { addDays, format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { DateRange } from "react-day-picker";
 import { Controller } from "react-hook-form";
 
@@ -39,15 +40,14 @@ export function DatePickerWithRange({ control, name }: { control: any, name: any
                     !date && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date?.from ? (
+                  <CalendarIcon className="mr-2 h-4 w-4" />                  {date?.from ? (
                     date.to ? (
                       <>
-                        {format(new Date(date.from), "LLL dd, y")} -{" "}
-                        {format(new Date(date.to), "LLL dd, y")}
+                        {formatLocalDate(date.from, "LLL dd, y")} -{" "}
+                        {formatLocalDate(date.to, "LLL dd, y")}
                       </>
                     ) : (
-                      format(new Date(date.from), "LLL dd, y")
+                      formatLocalDate(date.from, "LLL dd, y")
                     )
                   ) : (
                     <span>Pick Date Range</span>
@@ -57,8 +57,7 @@ export function DatePickerWithRange({ control, name }: { control: any, name: any
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   initialFocus
-                  mode="range"
-                  defaultMonth={date?.from ? new Date(date.from) : undefined}
+                  mode="range"                  defaultMonth={date?.from ? new Date(date.from) : undefined}
                   selected={date ? { from: new Date(date.from), to: date.to ? new Date(date.to) : undefined } : undefined}
                   onSelect={(value) => {
                     // Convert the DateRange object to a string when setting the field value

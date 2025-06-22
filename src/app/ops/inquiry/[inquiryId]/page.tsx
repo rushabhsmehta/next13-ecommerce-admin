@@ -129,9 +129,8 @@ export default function InquiryDetail({
             <div className="flex items-center">
               <Calendar className="h-5 w-5 mr-2 text-gray-500" />
               <div>
-                <p className="text-sm text-gray-500">Created On</p>
-                <p className="font-medium">
-                  {format(new Date(inquiry.createdAt), "PPP")}
+                <p className="text-sm text-gray-500">Created On</p>                <p className="font-medium">
+                  {formatLocalDate(inquiry.createdAt, "PPP")}
                 </p>
               </div>
             </div>
@@ -214,9 +213,8 @@ export default function InquiryDetail({
                         <div>
                           <p className="font-medium">{action.actionType}</p>
                           <p className="text-sm text-gray-700">{action.remarks}</p>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(action.actionDate), "PPp")}
+                        </div>                        <p className="text-sm text-gray-500">
+                          {formatLocalDate(action.actionDate, "PPp")}
                         </p>
                       </div>
                     </div>

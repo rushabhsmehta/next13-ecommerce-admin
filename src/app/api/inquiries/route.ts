@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
-import { dateToUtc, getUserTimezone } from "@/lib/timezone-utils";
+import { dateToUtc, getUserTimezone, formatLocalDate } from "@/lib/timezone-utils";
 import { 
   startOfDay, 
   endOfDay, 
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
 
     // Create a notification for the new inquiry
     try {
-      const journeyDateFormatted = format(new Date(journeyDate), 'dd MMM yyyy');
+      const journeyDateFormatted = formatLocalDate(journeyDate, 'dd MMM yyyy');
       const locationName = inquiry.location?.label || 'Unknown location';
       const associateName = inquiry.associatePartner?.name || 'Direct inquiry';
       
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
       metadata: {
         locationName: inquiry.location?.label,
         associatePartnerName: inquiry.associatePartner?.name,
-        journeyDate: format(new Date(journeyDate), 'yyyy-MM-dd')
+        journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd')
       }
     });
   

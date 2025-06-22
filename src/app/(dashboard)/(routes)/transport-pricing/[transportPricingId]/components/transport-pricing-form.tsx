@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import axios from "axios";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 import { CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -253,16 +254,15 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          >                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? formatLocalDate(field.value, "PPP") : <span>Pick a date</span>}
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={createDatePickerValue(field.value)}
                           onSelect={(date: Date | undefined) => date && field.onChange(date)}
                           initialFocus
                         />
@@ -288,16 +288,15 @@ export const TransportPricingForm: React.FC<TransportPricingFormProps> = ({
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          >                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? formatLocalDate(field.value, "PPP") : <span>Pick a date</span>}
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={createDatePickerValue(field.value)}
                           onSelect={(date) => date && field.onChange(date)}
                           initialFocus
                         />

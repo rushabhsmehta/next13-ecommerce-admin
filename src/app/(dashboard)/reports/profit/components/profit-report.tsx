@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { format, subMonths, isAfter, isBefore, parseISO } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -156,10 +157,8 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
 
             if (packageProfit > 0) {
                 profitablePackages++;
-            }
-
-            // Track monthly data
-            const monthYear = format(new Date(pkg.createdAt), "MMM yyyy");
+            }            // Track monthly data
+            const monthYear = formatLocalDate(pkg.createdAt, "MMM yyyy");
             if (!monthlyProfits[monthYear]) {
                 monthlyProfits[monthYear] = {
                     month: monthYear,
@@ -181,10 +180,8 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
         // Track general expenses by category
         filteredGeneralExpenses.forEach((expense) => {
             const category = expense.expenseCategory?.name || "Uncategorized";
-            categoryExpenses[category] = (categoryExpenses[category] || 0) + expense.amount;
-
-            // Add to monthly data
-            const monthYear = format(new Date(expense.expenseDate), "MMM yyyy");
+            categoryExpenses[category] = (categoryExpenses[category] || 0) + expense.amount;            // Add to monthly data
+            const monthYear = formatLocalDate(expense.expenseDate, "MMM yyyy");
             if (!monthlyProfits[monthYear]) {
                 monthlyProfits[monthYear] = {
                     month: monthYear,
@@ -204,10 +201,8 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
         // Track general incomes by category
         filteredGeneralIncomes.forEach((income) => {
             const category = income.incomeCategory?.name || "Uncategorized";
-            categoryIncomes[category] = (categoryIncomes[category] || 0) + income.amount;
-
-            // Add to monthly data
-            const monthYear = format(new Date(income.incomeDate), "MMM yyyy");
+            categoryIncomes[category] = (categoryIncomes[category] || 0) + income.amount;            // Add to monthly data
+            const monthYear = formatLocalDate(income.incomeDate, "MMM yyyy");
             if (!monthlyProfits[monthYear]) {
                 monthlyProfits[monthYear] = {
                     month: monthYear,
@@ -694,9 +689,8 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
                                             {filteredGeneralExpenses
                                                 .sort((a, b) => new Date(b.expenseDate).getTime() - new Date(a.expenseDate).getTime())
                                                 .map((expense, index) => (
-                                                    <tr key={expense.id} className={index % 2 ? "bg-muted/30" : ""}>
-                                                        <td className="p-2">{expense.expenseCategory?.name || "Uncategorized"}</td>
-                                                        <td className="p-2">{format(new Date(expense.expenseDate), "dd MMM yyyy")}</td>
+                                                    <tr key={expense.id} className={index % 2 ? "bg-muted/30" : ""}>                                                        <td className="p-2">{expense.expenseCategory?.name || "Uncategorized"}</td>
+                                                        <td className="p-2">{formatLocalDate(expense.expenseDate, "dd MMM yyyy")}</td>
                                                         <td className="p-2 text-right font-medium text-red-600">{expense.amount.toFixed(2)}</td>
                                                         <td className="p-2">{expense.description || "No description"}</td>
                                                     </tr>
@@ -822,9 +816,8 @@ export default function ProfitReport({ initialData, generalExpenses, generalInco
                                         {filteredGeneralIncomes
                                             .sort((a, b) => new Date(b.incomeDate).getTime() - new Date(a.incomeDate).getTime())
                                             .map((income, index) => (
-                                                <tr key={income.id} className={index % 2 ? "bg-muted/30" : ""}>
-                                                    <td className="p-2">{income.incomeCategory?.name || "Uncategorized"}</td>
-                                                    <td className="p-2">{format(new Date(income.incomeDate), "dd MMM yyyy")}</td>
+                                                <tr key={income.id} className={index % 2 ? "bg-muted/30" : ""}>                                                    <td className="p-2">{income.incomeCategory?.name || "Uncategorized"}</td>
+                                                    <td className="p-2">{formatLocalDate(income.incomeDate, "dd MMM yyyy")}</td>
                                                     <td className="p-2 text-right font-medium text-green-600">{income.amount.toFixed(2)}</td>
                                                     <td className="p-2">{income.description || "No description"}</td>
                                                 </tr>

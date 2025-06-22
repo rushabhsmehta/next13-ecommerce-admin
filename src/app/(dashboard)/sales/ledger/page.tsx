@@ -1,5 +1,6 @@
 import { SaleLedgerClient } from "./components/client";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 
 const SalesPage = async () => {
@@ -41,10 +42,9 @@ const SalesPage = async () => {
         pricePerUnit: itemDetail.pricePerUnit,
         totalAmount: itemDetail.totalAmount,
       }));
-    }
-    return {
+    }    return {
       id: item.id,
-      date: format(item.saleDate, 'MMMM d, yyyy'),
+      date: formatLocalDate(item.saleDate, 'MMMM d, yyyy'),
       amount: item.salePrice,
       customerName: item.customer?.name || "Guest Customer",
       customerContact: item.customer?.contact || "N/A",

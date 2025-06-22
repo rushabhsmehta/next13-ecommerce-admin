@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "@radix-ui/react-icons"
 import { format } from "date-fns"
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils"
 import {
   Dialog,
   DialogContent,
@@ -635,8 +636,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                   <FormField
                     control={form.control}
                     name={`purchaseDetails.${index}.purchaseDate`}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                    render={({ field }) => (                      <FormItem className="flex flex-col">
                         <FormLabel>Date of Purchase</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -649,7 +649,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 )}
                               >
                                 {field.value ? (
-                                  format(field.value, "PPP")
+                                  formatLocalDate(field.value, "PPP")
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -660,7 +660,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={createDatePickerValue(field.value)}
                               onSelect={(day) => {
                                 if (day) {
                                   field.onChange(day);

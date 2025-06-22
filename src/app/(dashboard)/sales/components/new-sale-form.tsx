@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format } from "date-fns";
+import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
 
 import {
   Form,
@@ -217,9 +218,8 @@ export const NewSaleForm: React.FC<NewSaleFormProps> = ({
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
-                        >
-                          {field.value ? (
-                            format(field.value, "MMMM d, yyyy")
+                        >                          {field.value ? (
+                            formatLocalDate(field.value, "MMMM d, yyyy")
                           ) : (
                             <span>Select date</span>
                           )}
@@ -227,10 +227,9 @@ export const NewSaleForm: React.FC<NewSaleFormProps> = ({
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
+                    <PopoverContent className="w-auto p-0" align="start">                      <Calendar
                         mode="single"
-                        selected={field.value}
+                        selected={createDatePickerValue(field.value)}
                         onSelect={(date) => date && field.onChange(date)}
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")

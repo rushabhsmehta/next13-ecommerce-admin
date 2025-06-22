@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { format, isAfter, isBefore, parseISO } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 import { DateRange } from "react-day-picker";
 
 interface UseGSTDataProps {
@@ -187,11 +188,9 @@ export const useGSTData = ({
       outputTax: number,
       inputTax: number,
       netTax: number
-    }> = {};
-
-    // Process monthly sales GST
+    }> = {};    // Process monthly sales GST
     filteredSales.forEach(sale => {
-      const monthYear = format(new Date(sale.saleDate || sale.createdAt), "MMM yyyy");
+      const monthYear = formatLocalDate(sale.saleDate || sale.createdAt, "MMM yyyy");
       if (!monthlyGstData[monthYear]) {
         monthlyGstData[monthYear] = {
           month: monthYear,
@@ -211,11 +210,9 @@ export const useGSTData = ({
       if (sale.gstAmount) {
         monthlyGstData[monthYear].outputTax += sale.gstAmount;
       }
-    });
-
-    // Process monthly purchase GST
+    });    // Process monthly purchase GST
     filteredPurchases.forEach(purchase => {
-      const monthYear = format(new Date(purchase.purchaseDate || purchase.createdAt), "MMM yyyy");
+      const monthYear = formatLocalDate(purchase.purchaseDate || purchase.createdAt, "MMM yyyy");
       if (!monthlyGstData[monthYear]) {
         monthlyGstData[monthYear] = {
           month: monthYear,

@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import prismadb from "@/lib/prismadb";
 import { notFound } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
@@ -43,10 +44,9 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
       createdAt: 'asc'
     }
   });
-
   // Format the sale date
-  const formattedDate = format(sale.saleDate, "MMMM d, yyyy");
-  const formattedDueDate = sale.dueDate ? format(sale.dueDate, "MMMM d, yyyy") : null;
+  const formattedDate = formatLocalDate(sale.saleDate, "MMMM d, yyyy");
+  const formattedDueDate = sale.dueDate ? formatLocalDate(sale.dueDate, "MMMM d, yyyy") : null;
 
   // Check if this is a multi-item sale
   const isMultiItem = sale.items && sale.items.length > 0;

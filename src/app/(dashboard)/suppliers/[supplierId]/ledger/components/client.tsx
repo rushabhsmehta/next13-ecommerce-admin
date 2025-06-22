@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/timezone-utils";
 import { TransactionsTable } from "./transactions-table";
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
@@ -181,9 +182,8 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
       [`Total Returns: ${formatPrice(totalReturns)}`],
       [`Total Payments: ${formatPrice(totalPayments)}`],
       [`Current Balance: ${formatPrice(currentBalance)}`],
-      [""],
-      dateFrom || dateTo ? [
-        `Date Filter: ${dateFrom ? format(dateFrom, 'MM/dd/yyyy') : ''} ${dateFrom && dateTo ? 'to' : ''} ${dateTo ? format(dateTo, 'MM/dd/yyyy') : ''}`
+      [""],      dateFrom || dateTo ? [
+        `Date Filter: ${dateFrom ? formatLocalDate(dateFrom, 'MM/dd/yyyy') : ''} ${dateFrom && dateTo ? 'to' : ''} ${dateTo ? formatLocalDate(dateTo, 'MM/dd/yyyy') : ''}`
       ] : [""],
       [""] // Empty row before the table
     ];
@@ -194,10 +194,9 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
     const headers = [
       ["Date", "Type", "Description", "Purchase", "Payment", "Balance"]
     ];
-    
-    // Prepare transaction data
+      // Prepare transaction data
     const dataRows = filteredTransactions.map(transaction => [
-      format(new Date(transaction.date), 'MM/dd/yyyy'),
+      formatLocalDate(transaction.date, 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
       transaction.isInflow ? formatPrice(transaction.amount) : "",
@@ -304,9 +303,8 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
                 <Button
                   variant={"outline"}
                   className="w-full md:w-auto justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFrom ? format(dateFrom, "PPP") : "From Date"}
+                >                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? formatLocalDate(dateFrom, "PPP") : "From Date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -324,9 +322,8 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
                 <Button
                   variant={"outline"}
                   className="w-full md:w-auto justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateTo ? format(dateTo, "PPP") : "To Date"}
+                >                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? formatLocalDate(dateTo, "PPP") : "To Date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">

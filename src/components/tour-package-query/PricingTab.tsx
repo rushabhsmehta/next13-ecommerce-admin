@@ -387,7 +387,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       
       finalPricingComponents.push({
         name: componentName,
-        price: comp.price || '0', // Use original base price, not calculated total
+        price: totalComponentPrice.toString(), // Store calculated total instead of base price
         description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
       });
       
@@ -469,21 +469,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
       // Apply the uniquely matched pricing
       const selectedPricing = matchedPricings[0];      // Create pricing components from the matched pricing
       const finalPricingComponents: { name: string; price: string; description: string }[] = [];
-      let totalPrice = 0;
-
-      // Process all pricing components from the matched tour package pricing
+      let totalPrice = 0;      // Process all pricing components from the matched tour package pricing
       if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
         selectedPricing.pricingComponents.forEach((comp: any) => {
           const componentName = comp.pricingAttribute?.name || 'Pricing Component';
-          const componentPrice = parseFloat(comp.price || '0');
+          const basePrice = parseFloat(comp.price || '0');
+          const occupancyMultiplier = getOccupancyMultiplier(componentName);
+          const totalComponentPrice = basePrice * occupancyMultiplier * numberOfRooms;
           
           finalPricingComponents.push({
             name: componentName,
-            price: comp.price || '0',
-            description: `Component for ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''}`
+            price: totalComponentPrice.toString(), // Store calculated total
+            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
           });
           
-          totalPrice += componentPrice;
+          totalPrice += totalComponentPrice;
         });
       }
 

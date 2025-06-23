@@ -1,13 +1,13 @@
 {
     "name": "next13-ecommerce-admin",
     "version": "0.1.0",
-    "private": true,
-    "scripts": {
+    "private": true,    "scripts": {
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "postinstall": "prisma generate"
+        "postinstall": "prisma generate",
+        "update-accommodation-policies": "node update-accommodation-policies.js"
     },
     "dependencies": {
         "@clerk/nextjs": "^4.31.8",

@@ -42,7 +42,8 @@ export const DEFAULT_PRICING_SECTION = [
 ];
 
 export const INCLUSIONS_DEFAULT = [
-  "Accommodation in preferred Hotel",
+  "Accommodation in standard rooms",
+  "For pool/beach facing / pvt pool villa/ suites rooms additional charges applicable",
   "Meal As Per Plan",
   "All Transfers & Sightseeing By Private Vehicle",
   "All Toll, Tax, Parking, Driver's Allowance"

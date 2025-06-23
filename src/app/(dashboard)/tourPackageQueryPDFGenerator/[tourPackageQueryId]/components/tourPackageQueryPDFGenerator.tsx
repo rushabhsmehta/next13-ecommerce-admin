@@ -426,6 +426,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   `).join('')}
                 </div>
               </div>
+              
             ` : ''}
           </div>
         `

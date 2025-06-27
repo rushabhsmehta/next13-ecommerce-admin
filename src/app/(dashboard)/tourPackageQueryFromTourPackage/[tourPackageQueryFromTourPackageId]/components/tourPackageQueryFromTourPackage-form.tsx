@@ -13,6 +13,7 @@ import { useParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { normalizeApiDate } from "@/lib/timezone-utils"
 import {
   Form,
   FormControl,
@@ -430,10 +431,11 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
   };
 
 
-  const onSubmit = async (data: TourPackageQueryFromTourPackageFormValues) => {
-
-    const formattedData = {
+  const onSubmit = async (data: TourPackageQueryFromTourPackageFormValues) => {    const formattedData = {
       ...data,
+      // Apply timezone normalization to tour dates
+      tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
+      tourEndsOn: normalizeApiDate(data.tourEndsOn),
       itineraries: data.itineraries.map(itinerary => ({
         ...itinerary,
         locationId: data.locationId,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function POST(req: Request) {
   try {
@@ -58,8 +59,8 @@ export async function POST(req: Request) {
           airline,
           flightNumber,
           departureAirport,
-          arrivalAirport,          departureTime: new Date(new Date(departureTime).toISOString()),
-          arrivalTime: new Date(new Date(arrivalTime).toISOString()),
+          arrivalAirport,          departureTime: dateToUtc(departureTime)!,
+          arrivalTime: dateToUtc(arrivalTime)!,
           ticketClass,
           status,
           baggageAllowance,

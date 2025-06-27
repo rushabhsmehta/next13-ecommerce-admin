@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function POST(
   req: Request,
@@ -22,14 +23,12 @@ export async function POST(
 
     if (!remarks) {
       return new NextResponse("Remarks are required", { status: 400 });
-    }
-
-    const action = await prismadb.inquiryAction.create({
+    }    const action = await prismadb.inquiryAction.create({
       data: {
         inquiryId: params.inquiryId,
         actionType,
         remarks,
-        actionDate: new Date(actionDate),
+        actionDate: dateToUtc(actionDate)!,
       }
     });
   

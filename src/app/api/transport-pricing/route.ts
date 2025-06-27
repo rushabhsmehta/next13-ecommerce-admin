@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function POST(
   req: Request
@@ -40,14 +41,15 @@ export async function POST(
 
     if (!startDate || !endDate) {
       return new NextResponse("Start and end dates are required", { status: 400 });
-    }    const transportPricing = await prismadb.transportPricing.create({      data: {
+    }    const transportPricing = await prismadb.transportPricing.create({
+      data: {
         locationId,
         vehicleTypeId,
         price,
         transportType,
         description,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         isActive: isActive ?? true
       }
     });
@@ -66,9 +68,9 @@ export async function GET(
     const locationId = searchParams.get("locationId");
     const vehicleTypeId = searchParams.get("vehicleTypeId");
     const transportType = searchParams.get("transportType");
-    const isActive = searchParams.get("isActive");      // Parse date parameters if provided
+    const isActive = searchParams.get("isActive");    // Parse date parameters if provided
     const dateString = searchParams.get("date");
-    let date = dateString ? new Date(dateString) : null;
+    let date = dateString ? dateToUtc(dateString) : null;
       // Build the query filter
     let whereClause: any = {};
 

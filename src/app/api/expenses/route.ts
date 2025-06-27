@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function POST(req: Request) {
   try {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     const expenseDetail = await prismadb.expenseDetail.create({
       data: {        
         tourPackageQueryId: tourPackageQueryId || null,
-        expenseDate: new Date(new Date(expenseDate).toISOString()),
+        expenseDate: dateToUtc(expenseDate)!,
         amount: parseFloat(amount.toString()),
         expenseCategoryId: expenseCategoryId || null,
         description: description || null,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function POST(req: Request) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     const purchaseReturn = await prismadb.purchaseReturn.create({
       data: {
         purchaseDetailId,
-        returnDate: new Date(new Date(returnDate).toISOString()),
+        returnDate: dateToUtc(returnDate)!,
         returnReason: returnReason || null,
         amount: parseFloat(amount.toString()),
         gstAmount: gstAmount ? parseFloat(gstAmount.toString()) : null,

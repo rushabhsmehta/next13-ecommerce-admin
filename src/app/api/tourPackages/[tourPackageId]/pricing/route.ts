@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET tour package pricing for a specific tourPackageId
 export async function GET(
@@ -22,12 +23,11 @@ export async function GET(
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");    // Build the filter based on available parameters
-    let dateFilter = {};
-    if (startDate && endDate) {
+    let dateFilter = {};    if (startDate && endDate) {
       dateFilter = {
         AND: [
-          { startDate: { lte: new Date(endDate) } },
-          { endDate: { gte: new Date(startDate) } }
+          { startDate: { lte: dateToUtc(endDate)! } },
+          { endDate: { gte: dateToUtc(startDate)! } }
         ]
       };
     }
@@ -107,9 +107,8 @@ export async function POST(
     const tourPackagePricing = await prismadb.tourPackagePricing.create({
       data: {
         tourPackageId: params.tourPackageId,
-        // Dates are already normalized from frontend, store as-is
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
         description: description || null,

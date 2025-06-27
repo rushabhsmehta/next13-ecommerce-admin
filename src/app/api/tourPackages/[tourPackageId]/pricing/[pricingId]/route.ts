@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET a specific pricing record
 export async function GET(
@@ -103,11 +104,9 @@ export async function PATCH(
     const updatedPricing = await prismadb.tourPackagePricing.update({
       where: {
         id: params.pricingId
-      },
-      data: {
-        // Dates are already normalized from frontend, store as-is
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+      },      data: {
+        startDate: dateToUtc(startDate)!,
+        endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
         isActive: isActive !== undefined ? isActive : true,

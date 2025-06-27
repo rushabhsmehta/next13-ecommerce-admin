@@ -44,6 +44,7 @@ import {
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { normalizeApiDate } from "@/lib/timezone-utils"
 import {
   Form,
   FormControl,
@@ -758,10 +759,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
         setLoading(false);
         return;
-      }
-
-      const formattedData = {
+      }      const formattedData = {
         ...data,
+        // Apply timezone normalization to tour dates
+        tourStartsFrom: normalizeApiDate(data.tourStartsFrom),
+        tourEndsOn: normalizeApiDate(data.tourEndsOn),
         itineraries: data.itineraries.map(itinerary => ({
           ...itinerary,
           locationId: data.locationId,

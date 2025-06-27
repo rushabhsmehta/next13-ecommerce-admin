@@ -55,24 +55,26 @@ export function dateToUtc(date: string | Date | null | undefined, timezone?: str
       const day = date.getDate();
       console.log('    - Extracted components:', { year, month, day });
       
-      // Create a new date at start of day in the specified timezone
-      const localDate = new Date(year, month, day);
-      console.log('    - LocalDate created:', localDate.toString());
-      console.log('    - startOfDay(localDate):', startOfDay(localDate).toString());
-      
-      const result = zonedTimeToUtc(startOfDay(localDate), tz);
-      console.log('    - Final UTC result:', result.toString());
-      console.log('    - Final UTC ISO:', result.toISOString());
-      return result;
+      // Create a UTC date with the same year/month/day (no timezone conversion)
+      const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      console.log('    - Created UTC date:', utcDate.toString());
+      console.log('    - UTC date ISO:', utcDate.toISOString());
+      return utcDate;
     }
     
-    // If it's a string, parse it and convert
+    // If it's a string, parse it and extract components to avoid timezone conversion
     console.log('  - Processing string date:');
-    const parsedDate = typeof date === 'string' ? parseISO(date) : date;
+    const parsedDate = parseISO(date);
     console.log('    - Parsed date:', parsedDate.toString());
-    console.log('    - startOfDay(parsedDate):', startOfDay(parsedDate).toString());
     
-    const result = zonedTimeToUtc(startOfDay(parsedDate), tz);
+    // Extract components from the parsed date
+    const year = parsedDate.getFullYear();
+    const month = parsedDate.getMonth();
+    const day = parsedDate.getDate();
+    console.log('    - Extracted components:', { year, month, day });
+    
+    // Create UTC date with same components
+    const result = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
     console.log('    - Final UTC result:', result.toString());
     console.log('    - Final UTC ISO:', result.toISOString());
     return result;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from '@/lib/timezone-utils';
 
 // GET handler to fetch sale items
 export async function GET(
@@ -87,8 +88,8 @@ export async function PATCH(
           gstAmount: totalGstAmount > 0 ? totalGstAmount : undefined,
           gstPercentage: avgGstPercentage > 0 ? parseFloat(avgGstPercentage.toFixed(2)) : undefined,
           invoiceNumber,
-          invoiceDate: invoiceDate ? new Date(new Date(invoiceDate).toISOString()) : undefined,
-          dueDate: dueDate ? new Date(new Date(dueDate).toISOString()) : undefined,
+          invoiceDate: invoiceDate ? dateToUtc(invoiceDate) : undefined,
+          dueDate: dueDate ? dateToUtc(dueDate) : undefined,
           stateOfSupply,
           description
         }

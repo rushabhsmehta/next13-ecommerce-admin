@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function GET(
   req: Request,
@@ -112,7 +113,7 @@ export async function PATCH(
       where: {
         id: params.incomeId
       },      data: {        
-        incomeDate: new Date(new Date(incomeDate).toISOString()),
+        incomeDate: dateToUtc(incomeDate)!,
         amount: parseFloat(amount.toString()),
         incomeCategoryId: incomeCategoryId || null,
         description: description || null,

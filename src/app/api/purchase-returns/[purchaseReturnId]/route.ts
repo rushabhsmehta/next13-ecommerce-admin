@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
+import { dateToUtc } from '@/lib/timezone-utils';
 
 export async function GET(
   req: Request,
@@ -80,7 +81,7 @@ export async function PATCH(
       where: {
         id: params.purchaseReturnId
       },      data: {
-        returnDate: returnDate ? new Date(new Date(returnDate).toISOString()) : undefined,
+        returnDate: returnDate ? dateToUtc(returnDate) : undefined,
         returnReason: returnReason || undefined,
         amount: amount !== undefined ? parseFloat(amount.toString()) : undefined,
         gstAmount: gstAmount !== undefined ? parseFloat(gstAmount.toString()) : undefined,

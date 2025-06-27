@@ -546,7 +546,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       <Calendar
                         mode="single"
                         selected={createDatePickerValue(field.value)}
-                        onSelect={(date: Date | undefined) => date && field.onChange(date)}
+                        onSelect={(date: Date | undefined) => {
+                          if (date) {
+                            // Normalize the date to prevent timezone shifts
+                            const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                            field.onChange(normalizedDate);
+                          }
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

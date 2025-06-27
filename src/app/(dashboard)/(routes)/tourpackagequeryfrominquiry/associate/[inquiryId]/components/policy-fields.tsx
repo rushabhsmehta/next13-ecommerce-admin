@@ -50,28 +50,28 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
         <AccordionItem value={name}>
           <AccordionTrigger className="font-medium">
             {label} ({policyItems.length})
-          </AccordionTrigger>          <AccordionContent className="space-y-4">
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4">
             <FormDescription>
               {description}
             </FormDescription>
             
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2">
               <Switch
                 checked={useDefaultsChecked} 
                 onCheckedChange={onUseDefaultsChange}
                 disabled={loading}
               />
-              <FormLabel className="!m-0 text-sm">Use location defaults</FormLabel>
+              <FormLabel className="!m-0">Use location defaults</FormLabel>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               {policyItems.map((item: string, index: number) => (
-                <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                  <FormControl className="w-full">
+                <div key={index} className="flex items-center space-x-2">
+                  <FormControl>
                     <Input 
                       disabled={loading}
                       value={item}
-                      className="flex-1"
                       onChange={(e) => {
                         const updatedItems = [...policyItems];
                         updatedItems[index] = e.target.value;
@@ -83,7 +83,6 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
                     type="button"
                     variant="destructive"
                     size="icon"
-                    className="shrink-0"
                     disabled={loading}
                     onClick={() => handleRemovePolicyItem(index)}
                   >
@@ -93,13 +92,12 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
               ))}
             </div>
             
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-4">
-              <FormControl className="w-full">
+            <div className="flex items-center space-x-2">
+              <FormControl>
                 <Input
                   disabled={loading}
                   placeholder="Add new item..."
                   value={newPolicyItem}
-                  className="flex-1"
                   onChange={(e) => setNewPolicyItem(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
@@ -108,15 +106,14 @@ export const PolicyField: React.FC<PolicyFieldProps> = ({  form,
                     }
                   }}
                 />
-              </FormControl>              <Button
+              </FormControl>
+              <Button
                 type="button"
                 size="sm"
-                disabled={loading || !newPolicyItem.trim()}
+                disabled={loading}
                 onClick={handleAddPolicyItem}
-                className="shrink-0 h-9 px-3"
               >
-                <Plus className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Add</span>
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
             

@@ -324,7 +324,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       } else {
         await fetch(`/api/inquiries`, {
           method: 'POST',
-          body: JSON.stringify(data),
+          body: JSON.stringify(formattedData),
         });
       }
       router.refresh();

@@ -1,7 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\DatesTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
-import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -25,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 
 // Use a union type for the control prop and form type
 interface DatesTabProps {
-  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   form: any; // Use a more specific type if available, consider a union type here too if form methods differ
 }
@@ -35,16 +34,17 @@ const DatesTab: React.FC<DatesTabProps> = ({
   loading,
   form
 }) => {
-  return (    <Card>
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
+  return (
+    <Card>
+      <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5 text-primary" />
+          <CalendarIcon className="h-5 w-5" />
           Tour Dates
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 p-6">
-        <FormField
-          control={control}          name="tourStartsFrom"
+      <CardContent className="space-y-6">        <FormField
+          control={control}
+          name="tourStartsFrom"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Tour Starts From</FormLabel>
@@ -80,7 +80,9 @@ const DatesTab: React.FC<DatesTabProps> = ({
               <FormMessage />
             </FormItem>
           )}
-        />        <FormField
+        />
+
+        <FormField
           control={control}
           name="tourEndsOn"
           render={({ field }) => (
@@ -92,11 +94,12 @@ const DatesTab: React.FC<DatesTabProps> = ({
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full pl-3 text-left font-normal text-sm md:text-base",
+                        "w-full pl-3 text-left font-normal",
                         !field.value && "text-muted-foreground"
                       )}
                       disabled={loading}
-                    >                      {field.value ? (
+                    >
+                      {field.value ? (
                         formatLocalDate(field.value, "PPP")
                       ) : (
                         <span>Pick a date</span>
@@ -105,7 +108,8 @@ const DatesTab: React.FC<DatesTabProps> = ({
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">                  <Calendar
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
                     mode="single"
                     selected={createDatePickerValue(field.value)}
                     onSelect={(date) => date && field.onChange(date)}

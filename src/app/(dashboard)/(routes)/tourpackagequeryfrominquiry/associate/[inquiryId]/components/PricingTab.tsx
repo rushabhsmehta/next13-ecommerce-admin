@@ -1,13 +1,13 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\PricingTab.tsx
 import { Control, useFieldArray, useWatch } from "react-hook-form";
-import { Calculator, Plus, Trash, DollarSign, Loader2, AlertCircle, ArrowRight, CheckCircle, CreditCard, Package, Receipt, RefreshCw, Settings, ShoppingCart, Sparkles, Star, Target, Trophy, Wallet } from "lucide-react"; // Added icons
+import { Calculator, Plus, Trash, DollarSign, Loader2, Package, Settings, Star, Sparkles, CheckCircle, AlertCircle, RefreshCw, ArrowRight, CreditCard, Receipt, Target, Trophy, ShoppingCart, Wallet } from "lucide-react"; // Enhanced icons
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { utcToLocal } from "@/lib/timezone-utils";
 
 // Import form value types
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
 
 // Import necessary UI components
@@ -31,11 +31,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Hotel, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format } from "date-fns";
-import { Checkbox } from "@radix-ui/react-checkbox";
 
+// Define the props interface with a union type for control
 interface PricingTabProps {
   control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
@@ -135,13 +136,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
     if (savedMealPlanId && !selectedMealPlanId) {
       console.log('Restoring saved meal plan ID:', savedMealPlanId);
       setSelectedMealPlanId(savedMealPlanId);    }
-    
-    // Only restore numberOfRooms if it's different from current state
+      // Only restore numberOfRooms if it's different from current state
     if (savedNumberOfRooms && savedNumberOfRooms > 0 && savedNumberOfRooms !== numberOfRooms) {
       console.log('Restoring saved number of rooms:', savedNumberOfRooms);
       setNumberOfRooms(savedNumberOfRooms);
     }
-  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId, numberOfRooms]);
+  }, [selectedTemplateId, selectedTemplateType, form, selectedMealPlanId]);
   // Update our local state when the form value changes
   useEffect(() => {
     const subscription = form.watch((value: any, { name }: { name: string }) => {
@@ -219,6 +219,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
   const handleRoomCountChange = (newCount: number) => {
     if (newCount >= 1) {
       setNumberOfRooms(newCount);
+      // Save to form for persistence
+      form.setValue('numberOfRooms', newCount);
       // Reset pricing components when room count changes
       setAvailablePricingComponents([]);
       setSelectedPricingComponentIds([]);
@@ -266,12 +268,10 @@ const PricingTab: React.FC<PricingTabProps> = ({
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
         toast.error("No pricing periods found for the selected tour package.");
         return;
-      }
-
-      // Filter matching pricing periods
+      }      // Filter matching pricing periods
       const matchedPricings = tourPackagePricings.filter((p: any) => {
-        const periodStart = new Date(p.startDate);
-        const periodEnd = new Date(p.endDate);
+        const periodStart = utcToLocal(p.startDate) || new Date(p.startDate);
+        const periodEnd = utcToLocal(p.endDate) || new Date(p.endDate);
         const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
         const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
         const isRoomMatch = p.numberOfRooms === numberOfRooms;
@@ -387,7 +387,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       
       finalPricingComponents.push({
         name: componentName,
-        price: comp.price || '0', // Use original base price, not calculated total
+        price: totalComponentPrice.toString(), // Store calculated total instead of base price
         description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
       });
       
@@ -442,10 +442,12 @@ const PricingTab: React.FC<PricingTabProps> = ({
       if (!tourPackagePricings || tourPackagePricings.length === 0) {
         toast.error("No pricing periods found for the selected tour package.");
         return;
-      }      // Enhanced Filtering Logic for new schema (Number of Rooms + Meal Plan)
+      }
+
+      // Enhanced Filtering Logic for new schema (Number of Rooms + Meal Plan)
       const matchedPricings = tourPackagePricings.filter((p: any) => {
-        const periodStart = utcToLocal(p.startDate) || new Date(p.startDate);
-        const periodEnd = utcToLocal(p.endDate) || new Date(p.endDate);
+        const periodStart = new Date(p.startDate);
+        const periodEnd = new Date(p.endDate);
         const isDateMatch = queryStartDate >= periodStart && queryEndDate <= periodEnd;
         const isMealPlanMatch = p.mealPlanId === selectedMealPlanId;
         const isRoomMatch = p.numberOfRooms === numberOfRooms;
@@ -467,21 +469,21 @@ const PricingTab: React.FC<PricingTabProps> = ({
       // Apply the uniquely matched pricing
       const selectedPricing = matchedPricings[0];      // Create pricing components from the matched pricing
       const finalPricingComponents: { name: string; price: string; description: string }[] = [];
-      let totalPrice = 0;
-
-      // Process all pricing components from the matched tour package pricing
+      let totalPrice = 0;      // Process all pricing components from the matched tour package pricing
       if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
         selectedPricing.pricingComponents.forEach((comp: any) => {
           const componentName = comp.pricingAttribute?.name || 'Pricing Component';
-          const componentPrice = parseFloat(comp.price || '0');
+          const basePrice = parseFloat(comp.price || '0');
+          const occupancyMultiplier = getOccupancyMultiplier(componentName);
+          const totalComponentPrice = basePrice * occupancyMultiplier * numberOfRooms;
           
           finalPricingComponents.push({
             name: componentName,
-            price: comp.price || '0',
-            description: `Component for ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''}`
+            price: totalComponentPrice.toString(), // Store calculated total
+            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
           });
           
-          totalPrice += componentPrice;
+          totalPrice += totalComponentPrice;
         });
       }
 

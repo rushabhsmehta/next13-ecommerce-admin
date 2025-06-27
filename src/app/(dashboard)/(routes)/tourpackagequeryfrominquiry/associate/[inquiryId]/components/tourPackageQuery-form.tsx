@@ -120,7 +120,6 @@ const itinerarySchema = z.object({
 
 
 const flightDetailsSchema = z.object({
-
   date: z.string().optional(),
   flightName: z.string().optional(),
   flightNumber: z.string().optional(),
@@ -129,7 +128,7 @@ const flightDetailsSchema = z.object({
   departureTime: z.string().optional(),
   arrivalTime: z.string().optional(),
   flightDuration: z.string().optional(),
-
+  images: z.object({ url: z.string() }).array().optional(),
 }); // Assuming an array of flight details
 
 const pricingItemSchema = z.object({
@@ -192,7 +191,7 @@ const formSchema = z.object({
   customMarkup: z.string().optional(), // Added for custom markup percentage
 });
 
-type TourPackageQueryFormValues = z.infer<typeof formSchema>
+export type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
   inquiry: Inquiry | null;

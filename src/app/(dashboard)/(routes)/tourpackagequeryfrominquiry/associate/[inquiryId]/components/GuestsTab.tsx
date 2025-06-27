@@ -1,7 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\GuestsTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
-import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { Users } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -16,22 +15,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Use a union type for the control prop to accept both form value types
 interface GuestsProps {
-  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues>;
   loading: boolean;
 }
 
 const GuestsTab: React.FC<GuestsProps> = ({
   control,
   loading
-}) => {  return (
+}) => {
+  return (
     <Card>
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-primary" />
-          Guests
-        </CardTitle>
+      <CardHeader>
+        <CardTitle>Guests</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 p-6">
+      <CardContent className="space-y-4">
         <FormField
           control={control}
           name="customerName"

@@ -1,8 +1,8 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\FlightsTab.tsx
+import React from "react";
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
-import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
-import { Trash, PlaneTakeoff } from "lucide-react"; // Added PlaneTakeoff icon
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
+import { Trash, PlaneTakeoff, ImageIcon } from "lucide-react"; // Added ImageIcon
 
 // Import necessary UI components
 import { Input } from "@/components/ui/input";
@@ -14,10 +14,11 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ImageUpload from "@/components/ui/image-upload"; // Added ImageUpload import
 
 // Define the props interface with a union type for control
 interface FlightsTabProps {
-  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   form: any; // Consider using a more specific type or a union type if form methods differ
 }
@@ -27,14 +28,15 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
   loading,
   form
 }) => {
-  return (    <Card>
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
+  return (
+    <Card>
+      <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <PlaneTakeoff className="h-5 w-5 text-primary" />
+          <PlaneTakeoff className="h-5 w-5" /> {/* Added icon */}
           Flights
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 p-6"> {/* Increased spacing and padding */}
+      <CardContent className="space-y-6"> {/* Increased spacing */}
         <FormField
           control={control}
           name="flightDetails"
@@ -42,7 +44,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
             <FormItem>
               <FormLabel className="text-lg font-semibold mb-4 block">Flight Plan</FormLabel> {/* Styled label */}
               {value.map((flight, index) => (
-                <div key={index} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 mb-6 border rounded-lg p-3 md:p-4 shadow-sm bg-white hover:shadow-md transition-all"> {/* Mobile-responsive layout */}
+                <div key={index} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6 border rounded-lg p-4 shadow-sm bg-white"> {/* Improved layout and styling */}
                   {/* Date Input */}
                   <FormItem>
                     <FormLabel className="text-sm font-medium">Date</FormLabel>
@@ -189,7 +191,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                       />
                     </FormControl>
                   </FormItem>                  {/* Remove Button */}
-                  <div className="flex items-end justify-center sm:justify-start col-span-1 sm:col-auto"> {/* Better alignment */}
+                  <div className="flex items-end"> {/* Align button to bottom */}
                     <Button
                       type="button"
                       variant="destructive"
@@ -199,20 +201,54 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                         const newFlightDetails = value.filter((_, i: number) => i !== index);
                         onChange(newFlightDetails);
                       }}
-                      className="w-full sm:w-auto text-xs md:text-sm" // Responsive text size
+                      className="w-full md:w-auto" // Adjust width for responsiveness
                     >
-                      <Trash className="h-4 w-4 sm:mr-1" />
-                      <span className="hidden sm:inline">Remove</span>
+                      <Trash className="h-4 w-4 mr-1" /> {/* Reduced margin */}
+                      Remove
                     </Button>
                   </div>
+
+                  {/* Flight Images Section */}
+                  <div className="col-span-full mt-4">
+                    <div className="bg-slate-50 p-3 rounded-md">                      <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        Flight Images
+                      </h3>                      <ImageUpload
+                        value={(flight.images || []).map((img: any) => typeof img === 'string' ? img : img.url)}
+                        disabled={loading}
+                        onChange={(url) => {
+                          const newFlightDetails = [...value];
+                          const currentImages = flight.images || [];
+                          newFlightDetails[index] = {
+                            ...flight,
+                            images: [...currentImages, { url }]
+                          };
+                          onChange(newFlightDetails);
+                        }}
+                        onRemove={(url) => {
+                          const newFlightDetails = [...value];
+                          const currentImages = flight.images || [];
+                          newFlightDetails[index] = {
+                            ...flight,
+                            images: currentImages.filter((img: any) => {
+                              const imgUrl = typeof img === 'string' ? img : img.url;
+                              return imgUrl !== url;
+                            })
+                          };
+                          onChange(newFlightDetails);
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
-              ))}              {/* Add Flight Button */}
-              <div className="mt-6 flex justify-center sm:justify-start">
+              ))}
+
+              {/* Add Flight Button */}
+              <div className="mt-4">
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
-                  disabled={loading}
+                  variant="outline" // Changed variant for distinction                  disabled={loading}
                   onClick={() => onChange([...value, {
                     date: '',
                     flightName: '',
@@ -221,12 +257,12 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                     to: '',
                     departureTime: '',
                     arrivalTime: '',
-                    flightDuration: ''
+                    flightDuration: '',
+                    images: [] // Added images array for new flights
                   }])}
-                  className="border-dashed border-primary text-primary hover:bg-primary/10 flex items-center gap-2 text-sm"
+                  className="border-dashed border-primary text-primary hover:bg-primary/10" // Added styling
                 >
-                  <PlaneTakeoff className="h-4 w-4" />
-                  Add Flight Details
+                  Add Flight
                 </Button>
               </div>
             </FormItem>

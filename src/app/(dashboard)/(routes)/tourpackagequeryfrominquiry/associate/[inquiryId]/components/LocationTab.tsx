@@ -1,7 +1,6 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\LocationTab.tsx
 import { Control } from "react-hook-form";
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
-import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { ChevronDown, MapPin, Check as CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Location } from "@prisma/client";
@@ -32,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Use a union type for the control prop and form type
 interface LocationTabProps {
-  control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
+  control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   locations: Location[];
   form: any; // Use a more specific type if available, consider a union type here too if form methods differ
@@ -113,13 +112,14 @@ const LocationTab: React.FC<LocationTabProps> = ({
   };
 
   return (
-    <Card>      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
+    <Card>
+      <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
           Location
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 p-4 sm:p-6">
+      <CardContent className="space-y-4">
         <FormField
           control={control}
           name="locationId"
@@ -128,35 +128,34 @@ const LocationTab: React.FC<LocationTabProps> = ({
               <FormLabel>Location<span className="text-red-500">*</span></FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
-                  <FormControl>                    <Button
+                  <FormControl>
+                    <Button
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-full justify-between py-2 text-sm md:text-base",
+                        "w-full justify-between",
                         !field.value && "text-muted-foreground",
                         form.formState.errors.locationId ? "border-red-500" : ""
                       )}
                       disabled={loading}
                     >
-                      <span className="truncate mr-1">
-                        {field.value
-                          ? locations.find((location) => location.id === field.value)?.label
-                          : "Select a location..."}
-                      </span>
-                      <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-50 flex-shrink-0" />
+                      {field.value
+                        ? locations.find((location) => location.id === field.value)?.label
+                        : "Select a location..."}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </FormControl>
-                </PopoverTrigger>                <PopoverContent className="w-[280px] sm:w-[350px] md:w-[400px] p-0">
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search location..." />
                     <CommandEmpty>No location found.</CommandEmpty>
-                    <CommandGroup className="max-h-[200px] overflow-auto">
+                    <CommandGroup>
                       {locations.map((location) => (
                         <CommandItem
                           value={location.label}
                           key={location.id}
                           onSelect={() => handleLocationSelection(location.id)}
-                          className="text-sm md:text-base"
                         >
                           <CheckIcon
                             className={cn(
@@ -164,7 +163,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
                               location.id === field.value ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          <span className="truncate">{location.label}</span>
+                          {location.label}
                         </CommandItem>
                       ))}
                     </CommandGroup>

@@ -35,7 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
+import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues";
 
 interface BasicInfoProps {
@@ -74,7 +74,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
       <CardHeader>
         <CardTitle>Basic Information</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">        <FormField
+      <CardContent className="space-y-4">
+        <FormField
           control={control}
           name="tourPackageTemplate"
           render={({ field }) => (
@@ -87,23 +88,21 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-full justify-between text-sm md:text-base",
+                        "w-full justify-between",
                         !field.value && "text-muted-foreground"
                       )}
                       disabled={!form.getValues('locationId')}                    >
-                      <span className="truncate">
-                        {!form.getValues('locationId')
-                          ? "Select a location first"
-                          : field.value && tourPackages?.find(tp => tp.id === field.value)
-                            ? tourPackages.find(tp => tp.id === field.value)?.tourPackageName
-                            : "Select Tour Package Template"
-                        }
-                      </span>
+                      {!form.getValues('locationId')
+                        ? "Select a location first"
+                        : field.value && tourPackages?.find(tp => tp.id === field.value)
+                          ? tourPackages.find(tp => tp.id === field.value)?.tourPackageName
+                          : "Select Tour Package Template"
+                      }
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] md:w-[400px] p-0">
+                <PopoverContent className="w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search tour package..." />
                     <CommandEmpty>No tour package found.</CommandEmpty>
@@ -139,7 +138,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
               <FormMessage />
             </FormItem>
           )}
-        />        <FormField
+        />
+
+        <FormField
           control={control}
           name="tourPackageQueryTemplate"
           render={({ field }) => (
@@ -152,18 +153,16 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-full justify-between text-sm md:text-base",
+                        "w-full justify-between",
                         !field.value && "text-muted-foreground"
                       )}
                     >
-                      <span className="truncate">
-                        {tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"}
-                      </span>
+                      {tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] md:w-[400px] p-0">
+                <PopoverContent className="w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search tour package query..." />
                     <CommandEmpty>No tour package query found.</CommandEmpty>
@@ -200,7 +199,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
+        
+        <div className="grid grid-cols-3 gap-8">
           <FormField
             control={control}
             name="associatePartnerId"
@@ -214,20 +214,18 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "w-full justify-between text-sm md:text-base",
+                          "w-full justify-between",
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        <span className="truncate">
-                          {field.value
-                            ? associatePartners.find((partner) => partner.id === field.value)?.name
-                            : "Select Associate Partner..."}
-                        </span>
+                        {field.value
+                          ? associatePartners.find((partner) => partner.id === field.value)?.name
+                          : "Select Associate Partner..."}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] md:w-[400px] p-0">
+                  <PopoverContent className="w-[400px] p-0">
                     <Command>
                       <CommandInput placeholder="Search associate partner..." />
                       <CommandEmpty>No associate partner found.</CommandEmpty>
@@ -253,7 +251,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     </Command>
                   </PopoverContent>
                 </Popover>
-                <FormDescription className="text-xs md:text-sm">
+                <FormDescription>
                   Associate partner details will be automatically linked to this query
                 </FormDescription>
                 <FormMessage />
@@ -262,7 +260,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           />
 
           <div className="space-y-2">
-            <div className="text-xs md:text-sm">
+            <div className="text-sm">
               {form.watch("associatePartnerId") ? (
                 <>
                   <div className="flex flex-col space-y-1">
@@ -279,7 +277,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-xs md:text-sm">
+            <div className="text-sm">
               {form.watch("associatePartnerId") ? (
                 <>
                   <div className="flex flex-col space-y-1">
@@ -337,7 +335,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
               </div>
             </FormItem>
           )}
-        />        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+        />
+
+        <div className="grid grid-cols-3 gap-8">
           <FormField
             control={control}
             name="tourPackageQueryNumber"
@@ -392,9 +392,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     onValueChange={field.onChange}
                   >
                     <SelectTrigger>
-                      <span className="truncate">
-                        {field.value || 'Select Tour Package Query Type'}
-                      </span>
+                      {field.value || 'Select Tour Package Query Type'}
                     </SelectTrigger>
                     <SelectContent>
                       {TOUR_PACKAGE_QUERY_TYPE_DEFAULT.map((value) => (
@@ -424,7 +422,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             )}
           />
         </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+        
+        <div className="grid grid-cols-3 gap-8">
           <FormField
             control={control}
             name="transport"
@@ -487,41 +486,31 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
               <FormMessage />
             </FormItem>
           )}
-        />        <FormField
+        />
+
+        <FormField
           control={control}
           name="disclaimer"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Disclaimer</FormLabel>
               <FormControl>
-                <div className="jodit-container">
-                  <JoditEditor
-                    ref={editor}
-                    value={field.value || DISCLAIMER_DEFAULT}
-                    config={{
-                      readonly: loading,
-                      // Mobile-friendly editor config
-                      height: 300,
-                      buttons: [
-                        'bold', 'italic', 'underline', '|',
-                        'ul', 'ol', '|',
-                        'font', 'fontsize', 'paragraph', '|',
-                        'link', 'table', '|',
-                        'undo', 'redo'
-                      ],
-                  
-                    }}
-                    onChange={(e) => field.onChange(e)}
-                  />
-                </div>
+                <JoditEditor
+                  ref={editor}
+                  value={field.value || DISCLAIMER_DEFAULT}
+                  config={{
+                    readonly: loading,
+                  }}
+                  onChange={(e) => field.onChange(e)}
+                />
               </FormControl>
-              <FormDescription className="text-xs md:text-sm">
+              <FormDescription>
                 Legal disclaimers and important information for the client
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
-        />{/* Tour Package Query Template Selection has been moved up in the form, right after Load from Tour Package */}
+        />        {/* Tour Package Query Template Selection has been moved up in the form, right after Load from Tour Package */}
       </CardContent>
     </Card>
   );

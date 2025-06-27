@@ -297,11 +297,65 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   }, [form, initialData, associatePartner]);  const onSubmit = async (data: InquiryFormValues) => {
     try {
       setLoading(true);
+      
+      console.log("🚀 COMPREHENSIVE FORM SUBMISSION LOGS:");
+      console.log("===============================================");
+      console.log("1. Raw form data received in onSubmit:");
+      console.log("   - Full data object:", data);
+      console.log("   - Raw journeyDate:", data.journeyDate);
+      console.log("   - journeyDate type:", typeof data.journeyDate);
+      
+      if (data.journeyDate) {
+        console.log("2. Original journeyDate detailed analysis:");
+        console.log("   - toString():", data.journeyDate.toString());
+        console.log("   - toISOString():", data.journeyDate.toISOString());
+        console.log("   - toDateString():", data.journeyDate.toDateString());
+        console.log("   - getFullYear():", data.journeyDate.getFullYear());
+        console.log("   - getMonth():", data.journeyDate.getMonth(), "(0-based, so add 1 for display)");
+        console.log("   - getDate():", data.journeyDate.getDate());
+        console.log("   - getHours():", data.journeyDate.getHours());
+        console.log("   - getMinutes():", data.journeyDate.getMinutes());
+        console.log("   - getTimezoneOffset():", data.journeyDate.getTimezoneOffset(), "minutes");
+        console.log("   - User timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+        
+        console.log("3. Expected display date: " + 
+          `${data.journeyDate.getDate()}/${data.journeyDate.getMonth() + 1}/${data.journeyDate.getFullYear()}`);
+      } else {
+        console.log("2. journeyDate is null/undefined");
+      }
+      
+      // Apply timezone normalization to journey date
+      const normalizedJourneyDate = normalizeApiDate(data.journeyDate);
+      console.log("4. After normalizeApiDate function:");
+      console.log("   - normalizedJourneyDate:", normalizedJourneyDate);
+      
+      if (normalizedJourneyDate) {
+        console.log("5. Normalized journeyDate detailed analysis:");
+        console.log("   - ISO string result:", normalizedJourneyDate);
+        
+        // Parse the ISO string to a Date object for analysis
+        const normalizedDateObj = new Date(normalizedJourneyDate);
+        console.log("   - Parsed Date object:", normalizedDateObj);
+        console.log("   - toString():", normalizedDateObj.toString());
+        console.log("   - toISOString():", normalizedDateObj.toISOString());
+        console.log("   - toDateString():", normalizedDateObj.toDateString());
+        console.log("   - getFullYear():", normalizedDateObj.getFullYear());
+        console.log("   - getMonth():", normalizedDateObj.getMonth(), "(0-based)");
+        console.log("   - getDate():", normalizedDateObj.getDate());
+        console.log("   - getHours():", normalizedDateObj.getHours());
+        console.log("   - getMinutes():", normalizedDateObj.getMinutes());
+        console.log("   - getTimezoneOffset():", normalizedDateObj.getTimezoneOffset(), "minutes");
+        
+        console.log("6. Expected display date after normalization: " + 
+          `${normalizedDateObj.getDate()}/${normalizedDateObj.getMonth() + 1}/${normalizedDateObj.getFullYear()}`);
+      } else {
+        console.log("5. normalizedJourneyDate is null/undefined");
+      }
+      
       // Prepare the data - ensure all required fields are properly formatted
       const formattedData = {
         ...data,
-        // Apply timezone normalization to journey date
-        journeyDate: normalizeApiDate(data.journeyDate),
+        journeyDate: normalizedJourneyDate,
         roomAllocations: data.roomAllocations?.map(allocation => ({
           ...allocation,
           quantity: Number(allocation.quantity),
@@ -316,21 +370,63 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
         }))
       };
       
+      console.log("7. Final formattedData being sent to API:");
+      console.log("   - formattedData.journeyDate:", formattedData.journeyDate);
+      console.log("   - journeyDate ISO string:", formattedData.journeyDate);
+      console.log("   - Full JSON payload preview:", JSON.stringify({
+        journeyDate: formattedData.journeyDate
+      }, null, 2));
+      
       if (initialData) {
-        await fetch(`/api/inquiries/${initialData.id}`, {
+        console.log("8. Sending PATCH request to:", `/api/inquiries/${initialData.id}`);
+        const response = await fetch(`/api/inquiries/${initialData.id}`, {
           method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(formattedData),
         });
+        console.log("9. PATCH Response status:", response.status);
+        
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log("10. PATCH Response data:", responseData);
+          if (responseData.journeyDate) {
+            console.log("11. Server returned journeyDate:", responseData.journeyDate);
+            console.log("12. Server journeyDate parsed:", new Date(responseData.journeyDate));
+          }
+        } else {
+          console.error("PATCH request failed:", await response.text());
+        }
       } else {
-        await fetch(`/api/inquiries`, {
+        console.log("8. Sending POST request to: /api/inquiries");
+        const response = await fetch(`/api/inquiries`, {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(formattedData),
         });
+        console.log("9. POST Response status:", response.status);
+        
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log("10. POST Response data:", responseData);
+          if (responseData.journeyDate) {
+            console.log("11. Server returned journeyDate:", responseData.journeyDate);
+            console.log("12. Server journeyDate parsed:", new Date(responseData.journeyDate));
+          }
+        } else {
+          console.error("POST request failed:", await response.text());
+        }
       }
+      console.log("===============================================");
+      
       router.refresh();
       router.push(`/inquiries`);
       toast.success(toastMessage);
     } catch (error) {
+      console.error("❌ Form submission error:", error);
       toast.error("Something went wrong.");
     } finally {
       setLoading(false);
@@ -547,11 +643,67 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                         mode="single"
                         selected={createDatePickerValue(field.value)}
                         onSelect={(date: Date | undefined) => {
+                          console.log("🗓️ COMPREHENSIVE JOURNEY DATE SELECTION LOGS:");
+                          console.log("=================================================");
+                          console.log("1. Raw date from calendar component:", date);
+                          
                           if (date) {
+                            console.log("2. Original date details:");
+                            console.log("   - toString():", date.toString());
+                            console.log("   - toISOString():", date.toISOString());
+                            console.log("   - toDateString():", date.toDateString());
+                            console.log("   - getFullYear():", date.getFullYear());
+                            console.log("   - getMonth():", date.getMonth(), "(0-based)");
+                            console.log("   - getDate():", date.getDate());
+                            console.log("   - getDay():", date.getDay(), "(0=Sunday)");
+                            console.log("   - getHours():", date.getHours());
+                            console.log("   - getMinutes():", date.getMinutes());
+                            console.log("   - getSeconds():", date.getSeconds());
+                            console.log("   - getTimezoneOffset():", date.getTimezoneOffset(), "minutes");
+                            console.log("   - User timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+                            
+                            console.log("3. Current field value before change:");
+                            console.log("   - field.value:", field.value);
+                            console.log("   - field.value type:", typeof field.value);
+                            console.log("   - field.value toString():", field.value?.toString());
+                            
                             // Normalize the date to prevent timezone shifts
                             const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                            console.log("4. After normalization (new Date(year, month, day)):");
+                            console.log("   - normalizedDate:", normalizedDate);
+                            console.log("   - toString():", normalizedDate.toString());
+                            console.log("   - toISOString():", normalizedDate.toISOString());
+                            console.log("   - toDateString():", normalizedDate.toDateString());
+                            console.log("   - getFullYear():", normalizedDate.getFullYear());
+                            console.log("   - getMonth():", normalizedDate.getMonth(), "(0-based)");
+                            console.log("   - getDate():", normalizedDate.getDate());
+                            console.log("   - getHours():", normalizedDate.getHours());
+                            console.log("   - getTimezoneOffset():", normalizedDate.getTimezoneOffset(), "minutes");
+                            
+                            // Try alternative normalization approach
+                            const alternativeDate = new Date(date.toDateString());
+                            console.log("5. Alternative normalization (new Date(dateString)):");
+                            console.log("   - alternativeDate:", alternativeDate);
+                            console.log("   - toString():", alternativeDate.toString());
+                            console.log("   - toISOString():", alternativeDate.toISOString());
+                            console.log("   - getDate():", alternativeDate.getDate());
+                            
                             field.onChange(normalizedDate);
+                            console.log("6. Date set in form field with field.onChange()");
+                            
+                            // Check field value immediately after setting
+                            setTimeout(() => {
+                              const fieldValueAfter = form.getValues("journeyDate");
+                              console.log("7. Field value after onChange (async check):");
+                              console.log("   - journeyDate field value:", fieldValueAfter);
+                              console.log("   - toString():", fieldValueAfter?.toString());
+                              console.log("   - toISOString():", fieldValueAfter?.toISOString());
+                              console.log("   - getDate():", fieldValueAfter?.getDate());
+                            }, 10);
+                          } else {
+                            console.log("2. Date is undefined/null");
                           }
+                          console.log("=================================================");
                         }}
                         initialFocus
                       />

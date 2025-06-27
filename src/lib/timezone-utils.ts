@@ -29,26 +29,53 @@ export function getUserTimezone(): string {
  * Handles timezone offset to prevent date shifting
  */
 export function dateToUtc(date: string | Date | null | undefined, timezone?: string): Date | undefined {
-  if (!date) return undefined;
+  console.log('🔧 dateToUtc function called:');
+  console.log('  - Input date:', date);
+  console.log('  - Input type:', typeof date);
+  console.log('  - Timezone:', timezone);
+  
+  if (!date) {
+    console.log('  - Returning undefined (no date)');
+    return undefined;
+  }
   
   const tz = timezone || getUserTimezone();
+  console.log('  - Using timezone:', tz);
   
   try {
     // If it's already a Date object, ensure it's treated as local date
     if (date instanceof Date) {
+      console.log('  - Processing Date object:');
+      console.log('    - Original date:', date.toString());
+      console.log('    - toISOString():', date.toISOString());
+      
       // Get the date components in local timezone
       const year = date.getFullYear();
       const month = date.getMonth();
       const day = date.getDate();
+      console.log('    - Extracted components:', { year, month, day });
       
       // Create a new date at start of day in the specified timezone
       const localDate = new Date(year, month, day);
-      return zonedTimeToUtc(startOfDay(localDate), tz);
+      console.log('    - LocalDate created:', localDate.toString());
+      console.log('    - startOfDay(localDate):', startOfDay(localDate).toString());
+      
+      const result = zonedTimeToUtc(startOfDay(localDate), tz);
+      console.log('    - Final UTC result:', result.toString());
+      console.log('    - Final UTC ISO:', result.toISOString());
+      return result;
     }
     
     // If it's a string, parse it and convert
+    console.log('  - Processing string date:');
     const parsedDate = typeof date === 'string' ? parseISO(date) : date;
-    return zonedTimeToUtc(startOfDay(parsedDate), tz);
+    console.log('    - Parsed date:', parsedDate.toString());
+    console.log('    - startOfDay(parsedDate):', startOfDay(parsedDate).toString());
+    
+    const result = zonedTimeToUtc(startOfDay(parsedDate), tz);
+    console.log('    - Final UTC result:', result.toString());
+    console.log('    - Final UTC ISO:', result.toISOString());
+    return result;
   } catch (error) {
     console.error('Error converting date to UTC:', error);
     return undefined;
@@ -92,13 +119,31 @@ export function formatLocalDate(
   formatStr: string = 'PPP',
   timezone?: string
 ): string {
-  if (!date) return '';
+  console.log('📝 formatLocalDate function called:');
+  console.log('  - Input date:', date);
+  console.log('  - Input type:', typeof date);
+  console.log('  - Format string:', formatStr);
+  console.log('  - Timezone:', timezone);
+  
+  if (!date) {
+    console.log('  - Returning empty string (no date)');
+    return '';
+  }
   
   const tz = timezone || getUserTimezone();
+  console.log('  - Using timezone:', tz);
   
   try {
     const dateObj = typeof date === 'string' ? parseISO(date) : date;
-    return formatInTimeZone(dateObj, tz, formatStr);
+    console.log('  - Date object for formatting:', dateObj);
+    console.log('  - Date object toString():', dateObj.toString());
+    console.log('  - Date object getDate():', dateObj.getDate());
+    console.log('  - Date object getMonth():', dateObj.getMonth());
+    console.log('  - Date object getFullYear():', dateObj.getFullYear());
+    
+    const formatted = formatInTimeZone(dateObj, tz, formatStr);
+    console.log('  - Formatted result:', formatted);
+    return formatted;
   } catch (error) {
     console.error('Error formatting date:', error);
     return '';
@@ -131,26 +176,44 @@ export function convertJourneyDateToTourStart(journeyDate: string | Date | null 
  * For date-only fields, preserves the date regardless of timezone
  */
 export function normalizeApiDate(date: string | Date | null | undefined): string | undefined {
-  if (!date) return undefined;
+  console.log('🔄 normalizeApiDate function called:');
+  console.log('  - Input date:', date);
+  console.log('  - Input type:', typeof date);
+  
+  if (!date) {
+    console.log('  - Returning undefined (no date)');
+    return undefined;
+  }
   
   try {
     // For date-only fields, we want to preserve the date components
     // and store as UTC date with same year/month/day
     const dateObj = typeof date === 'string' ? parseISO(date) : date;
+    console.log('  - Date object:', dateObj);
+    console.log('  - Date object toString():', dateObj.toString());
     
     if (dateObj instanceof Date) {
       // Extract date components from the local date
       const year = dateObj.getFullYear();
       const month = dateObj.getMonth();
       const day = dateObj.getDate();
+      console.log('  - Extracted components:', { year, month, day });
       
       // Create a UTC date with the same year/month/day
       const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      console.log('  - Created UTC date:', utcDate);
+      console.log('  - UTC date toString():', utcDate.toString());
+      console.log('  - UTC date getDate():', utcDate.getDate());
+      console.log('  - UTC date getMonth():', utcDate.getMonth());
+      console.log('  - UTC date getFullYear():', utcDate.getFullYear());
+      
       const result = utcDate.toISOString();
+      console.log('  - Final ISO string result:', result);
       
       return result;
     }
     
+    console.log('  - Not a Date instance, returning undefined');
     return undefined;
   } catch (error) {
     console.error('Error normalizing API date:', error);
@@ -162,16 +225,29 @@ export function normalizeApiDate(date: string | Date | null | undefined): string
  * Create a date picker value that preserves local date selection
  */
 export function createDatePickerValue(dateValue: string | Date | null | undefined): Date | undefined {
-  if (!dateValue) return undefined;
+  console.log('📅 createDatePickerValue function called:');
+  console.log('  - Input dateValue:', dateValue);
+  console.log('  - Input type:', typeof dateValue);
+  
+  if (!dateValue) {
+    console.log('  - Returning undefined (no dateValue)');
+    return undefined;
+  }
   
   try {
     // For date pickers, we want to show the local date without timezone conversion
     if (typeof dateValue === 'string') {
+      console.log('  - Processing string dateValue:');
       // If it's an ISO string from database, convert to local
-      return utcToLocal(dateValue) || undefined;
+      const result = utcToLocal(dateValue) || undefined;
+      console.log('  - utcToLocal result:', result);
+      console.log('  - utcToLocal result toString():', result?.toString());
+      return result;
     }
     
     // If it's already a Date object, use as-is
+    console.log('  - Using Date object as-is:', dateValue);
+    console.log('  - Date toString():', dateValue.toString());
     return dateValue instanceof Date ? dateValue : undefined;
   } catch (error) {
     console.error('Error creating date picker value:', error);

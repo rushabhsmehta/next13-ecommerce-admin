@@ -13,7 +13,7 @@ export async function GET(
   try {
     if (!params.inquiryId) {
       return new NextResponse("Inquiry ID is required", { status: 400 });
-    } const inquiry = await prismadb.inquiry.findUnique({
+    }    const inquiry = await prismadb.inquiry.findUnique({
       where: {
         id: params.inquiryId,
       },
@@ -35,6 +35,23 @@ export async function GET(
       }
     });
 
+    console.log('📤 SERVER GET ROUTE - RETURNING INQUIRY DATA:');
+    console.log('=============================================');
+    console.log('1. Retrieved inquiry journeyDate from database:', inquiry?.journeyDate);
+    if (inquiry?.journeyDate) {
+      console.log('2. Database journeyDate details:');
+      console.log('   - toString():', inquiry.journeyDate.toString());
+      console.log('   - toISOString():', inquiry.journeyDate.toISOString());
+      console.log('   - getDate():', inquiry.journeyDate.getDate());
+      console.log('   - getMonth():', inquiry.journeyDate.getMonth());
+      console.log('   - getFullYear():', inquiry.journeyDate.getFullYear());
+      console.log('   - getHours():', inquiry.journeyDate.getHours());
+      console.log('   - getTimezoneOffset():', inquiry.journeyDate.getTimezoneOffset());
+    } else {
+      console.log('2. journeyDate from database is null/undefined');
+    }
+    console.log('=============================================');
+
     return NextResponse.json(inquiry);
   } catch (error) {
     console.log('[INQUIRY_GET]', error);
@@ -51,6 +68,25 @@ export async function PATCH(
     const body = await req.json();
     
     console.log('[INQUIRY_PATCH] Received request body:', JSON.stringify(body, null, 2));
+    
+    // Add comprehensive logging for journeyDate processing
+    console.log('🔍 SERVER-SIDE JOURNEY DATE PROCESSING:');
+    console.log('======================================');
+    console.log('1. Raw journeyDate from request body:', body.journeyDate);
+    console.log('2. journeyDate type:', typeof body.journeyDate);
+    
+    if (body.journeyDate) {
+      console.log('3. Raw journeyDate string analysis:');
+      console.log('   - Original string:', body.journeyDate);
+      console.log('   - Parsed as Date:', new Date(body.journeyDate));
+      console.log('   - Parsed Date toString():', new Date(body.journeyDate).toString());
+      console.log('   - Parsed Date toISOString():', new Date(body.journeyDate).toISOString());
+      console.log('   - Parsed Date getDate():', new Date(body.journeyDate).getDate());
+      console.log('   - Parsed Date getMonth():', new Date(body.journeyDate).getMonth());
+      console.log('   - Parsed Date getFullYear():', new Date(body.journeyDate).getFullYear());
+    } else {
+      console.log('3. journeyDate is null/undefined');
+    }
 
     const {
       customerName,
@@ -122,6 +158,20 @@ export async function PATCH(
     // Create the updated data object  
     const { roomAllocations, transportDetails, ...mainFields } = body;
 
+    console.log('4. Before dateToUtc processing:');
+    console.log('   - journeyDate value:', journeyDate);
+    
+    const processedJourneyDate = dateToUtc(journeyDate);
+    console.log('5. After dateToUtc processing:');
+    console.log('   - processedJourneyDate:', processedJourneyDate);
+    if (processedJourneyDate) {
+      console.log('   - processedJourneyDate toString():', processedJourneyDate.toString());
+      console.log('   - processedJourneyDate toISOString():', processedJourneyDate.toISOString());
+      console.log('   - processedJourneyDate getDate():', processedJourneyDate.getDate());
+      console.log('   - processedJourneyDate getMonth():', processedJourneyDate.getMonth());
+      console.log('   - processedJourneyDate getFullYear():', processedJourneyDate.getFullYear());
+    }
+
     const updatedData = {
       customerName,
       customerMobileNumber,
@@ -132,9 +182,12 @@ export async function PATCH(
       numChildren5to11,
       numChildrenBelow5,
       status,
-      journeyDate: dateToUtc(journeyDate),
+      journeyDate: processedJourneyDate,
       remarks: remarks || null
-    };    // First, check if roomAllocations and transportDetails are actually present in the request
+    };
+    
+    console.log('6. Final updatedData.journeyDate for database:', updatedData.journeyDate);
+    console.log('======================================');    // First, check if roomAllocations and transportDetails are actually present in the request
     console.log('[INQUIRY_PATCH] Room allocations present:', roomAllocations ? `Yes, count: ${roomAllocations.length}` : 'No');
     console.log('[INQUIRY_PATCH] Transport details present:', transportDetails ? `Yes, count: ${transportDetails.length}` : 'No');
     

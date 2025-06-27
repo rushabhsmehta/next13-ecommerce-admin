@@ -175,24 +175,39 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       createdAt: 'desc'
     }
   });
-  const formattedInquiries: InquiryColumn[] = inquiries.map((item) => ({
-    id: item.id,
-    customerName: item.customerName,
-    customerMobileNumber: item.customerMobileNumber,
-    location: item.location.label,
-    associatePartner: item.associatePartner?.name || 'Direct',
-    status: item.status,
-    journeyDate: item.journeyDate ? formatLocalDate(item.journeyDate, 'dd MMM yyyy') : 'No date',
-    assignedToStaffId: item.assignedToStaffId || null,    assignedStaffName: item.assignedStaff?.name || null,
-    assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
-    tourPackageQueries: item.tourPackageQueries || 'Not specified',
-    actionHistory: item.actions?.map(action => ({
-      status: action.actionType,
-      remarks: action.remarks,
-      timestamp: formatLocalDate(action.actionDate, 'dd MMM yyyy HH:mm'),
-      type: action.actionType
-    })) || []
-  }));
+  const formattedInquiries: InquiryColumn[] = inquiries.map((item) => {
+    console.log('📋 INQUIRY LIST PAGE - FORMATTING JOURNEY DATE:');
+    console.log(`Inquiry ${item.id} - Raw journeyDate from server:`, item.journeyDate);
+    if (item.journeyDate) {
+      console.log(`  - toString():`, item.journeyDate.toString());
+      console.log(`  - getDate():`, item.journeyDate.getDate());
+      console.log(`  - getMonth():`, item.journeyDate.getMonth());
+      console.log(`  - getFullYear():`, item.journeyDate.getFullYear());
+      
+      const formattedDate = formatLocalDate(item.journeyDate, 'dd MMM yyyy');
+      console.log(`  - Formatted date:`, formattedDate);
+    }
+    
+    return {
+      id: item.id,
+      customerName: item.customerName,
+      customerMobileNumber: item.customerMobileNumber,
+      location: item.location.label,
+      associatePartner: item.associatePartner?.name || 'Direct',
+      status: item.status,
+      journeyDate: item.journeyDate ? formatLocalDate(item.journeyDate, 'dd MMM yyyy') : 'No date',
+      assignedToStaffId: item.assignedToStaffId || null,
+      assignedStaffName: item.assignedStaff?.name || null,
+      assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
+      tourPackageQueries: item.tourPackageQueries || 'Not specified',
+      actionHistory: item.actions?.map(action => ({
+        status: action.actionType,
+        remarks: action.remarks,
+        timestamp: formatLocalDate(action.actionDate, 'dd MMM yyyy HH:mm'),
+        type: action.actionType
+      })) || []
+    };
+  });
 
   return (
     <div className="flex-col">

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { Trash } from "lucide-react";
+import { Trash, CalendarIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,13 +22,19 @@ import { Separator } from "@/components/ui/separator";
 import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { createDatePickerValue, normalizeApiDate, formatLocalDate } from "@/lib/timezone-utils";
 
 const formSchema = z.object({
   name: z.string().min(1),
   contact: z.string().optional(),
   email: z.string().optional().or(z.literal('')), // Modified to make email optional
   associatePartnerId: z.string().optional(),
-
+  birthdate: z.date().optional(),
+  marriageAnniversary: z.date().optional(),
 });
 
 type CustomerFormValues = z.infer<typeof formSchema>;
@@ -51,21 +57,35 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      ...initialData,
+      birthdate: createDatePickerValue(initialData.birthdate),
+      marriageAnniversary: createDatePickerValue(initialData.marriageAnniversary),
+    } : {
       name: '',
       email: '',
       contact: '',
       associatePartnerId: '',
+      birthdate: undefined,
+      marriageAnniversary: undefined,
     }
   });
 
   const onSubmit = async (data: CustomerFormValues) => {
     try {
       setLoading(true);
+      
+      // Normalize dates to prevent timezone shifting
+      const submitData = {
+        ...data,
+        birthdate: normalizeApiDate(data.birthdate),
+        marriageAnniversary: normalizeApiDate(data.marriageAnniversary),
+      };
+      
       if (initialData) {
-        await axios.patch(`/api/customers/${params.customerId}`, data);
+        await axios.patch(`/api/customers/${params.customerId}`, submitData);
       } else {
-        await axios.post(`/api/customers`, data);
+        await axios.post(`/api/customers`, submitData);
       }
       router.refresh();
       router.push(`/customers`);
@@ -104,7 +124,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
       <Separator />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-          <div className="grid grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FormField
               control={form.control}
               name="name"
@@ -172,6 +192,90 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="birthdate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Birthdate</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          disabled={loading}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            formatLocalDate(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="marriageAnniversary"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Marriage Anniversary</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          disabled={loading}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            formatLocalDate(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

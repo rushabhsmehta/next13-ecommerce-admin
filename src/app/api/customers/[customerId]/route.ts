@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { dateToUtc } from "@/lib/timezone-utils";
 
 export async function GET(
   req: Request,
@@ -55,7 +56,7 @@ export async function PATCH(
     if (!params.customerId) return new NextResponse("Customer ID is required", { status: 400 });
 
     const body = await req.json();
-    const { name, contact, email, associatePartnerId } = body;
+    const { name, contact, email, associatePartnerId, birthdate, marriageAnniversary } = body;
     if (!name) return new NextResponse("Name is required", { status: 400 });
 
     const customer = await prismadb.customer.update({
@@ -64,7 +65,9 @@ export async function PATCH(
         name, 
         contact, 
         email,
-        associatePartnerId: associatePartnerId || null
+        associatePartnerId: associatePartnerId || null,
+        birthdate: dateToUtc(birthdate),
+        marriageAnniversary: dateToUtc(marriageAnniversary),
       },
       include: {
         associatePartner: true

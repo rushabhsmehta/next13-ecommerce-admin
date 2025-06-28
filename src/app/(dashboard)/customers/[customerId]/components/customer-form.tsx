@@ -144,7 +144,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                   Basic Information
                 </CardTitle>
                 <CardDescription className="text-blue-100">
-                  Enter the customer's essential details
+                  Enter the customer&apos;s essential details
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">

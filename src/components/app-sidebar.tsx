@@ -132,13 +132,15 @@ const NAV_ITEMS = [
   },
 ];
 
-// Sidebar items for associate users - only show inquiries and tour package queries
+// Sidebar items for associate users - only show inquiries, tour package queries, and view-only tour packages
 const ASSOCIATE_NAV_ITEMS = [
   {
     title: "Dashboard",
     items: [
       { title: "Inquiries", url: "/inquiries" },
       { title: "Tour Package Query", url: "/tourPackageQuery" },
+      { title: "Tour Package Query Display", url: "/tourPackageQueryDisplay" },
+      { title: "Tour Packages (View Only)", url: "/tourPackages" },
     ],
   },
 ];

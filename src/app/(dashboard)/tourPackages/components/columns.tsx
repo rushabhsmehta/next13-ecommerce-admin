@@ -60,3 +60,30 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
     cell: ({ row }) => <CellAction data={row.original} />
   },
 ];
+
+export const createColumns = (readOnly: boolean = false): ColumnDef<TourPackageColumn>[] => [
+  {
+    accessorKey: "tourPackageName",
+    header: "Tour Package Name",
+  },
+  {
+    accessorKey: "tourPackageType",
+    header: "Type",
+  },
+  {
+    accessorKey: "location",
+    header: "Location",
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created Date",
+  },
+  {
+    accessorKey: "updatedAt",
+    header: "Updated Date",
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => <CellAction data={row.original} readOnly={readOnly} />
+  },
+];

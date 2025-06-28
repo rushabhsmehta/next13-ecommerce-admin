@@ -5,6 +5,7 @@ import prismadb from "@/lib/prismadb";
 import { TourPackagesClient } from "./components/client";
 import { TourPackageColumn } from "./components/columns";
 import Navbar from "@/components/navbar";
+import { isCurrentUserAssociate } from "@/lib/associate-utils";
 
 const tourPackagesPage = async ({
 
@@ -20,6 +21,9 @@ const tourPackagesPage = async ({
       updatedAt: 'desc'
     }
   });
+
+  // Check if current user is an associate (for read-only mode)
+  const isAssociate = await isCurrentUserAssociate();
 
   const formattedtourPackages: TourPackageColumn[] = tourPackages.map((item) => ({
     id: item.id,
@@ -39,7 +43,7 @@ const tourPackagesPage = async ({
       
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackagesClient data={formattedtourPackages} />
+          <TourPackagesClient data={formattedtourPackages} readOnly={isAssociate} />
         </div>
       </div>
       

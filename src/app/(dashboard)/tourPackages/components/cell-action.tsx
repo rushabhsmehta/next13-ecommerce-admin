@@ -20,10 +20,12 @@ import { TourPackageColumn } from "./columns";
 
 interface CellActionProps {
   data: TourPackageColumn;
+  readOnly?: boolean;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({
   data,
+  readOnly = false,
 }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -72,37 +74,41 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
 
-          <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageQueryFromTourPackage/${data.id}`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Create New Query
-          </DropdownMenuItem>
+          {!readOnly && (
+            <>
+              <DropdownMenuItem
+                onClick={() => router.push(`/tourPackageQueryFromTourPackage/${data.id}`)}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Create New Query
+              </DropdownMenuItem>
 
-
-          <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageCreateCopy/${data.id}`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Copy and Create New
-          </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => router.push(`/tourPackageCreateCopy/${data.id}`)}
+              >
+                <Edit className="mr-2 h-4 w-4" /> Copy and Create New
+              </DropdownMenuItem>
+            </>
+          )}
 
           <DropdownMenuItem
             onClick={() => router.push(`/tourPackages/${data.id}`)}
           >
-            <Edit className="mr-2 h-4 w-4" /> Update
+            <Edit className="mr-2 h-4 w-4" /> {readOnly ? 'View' : 'Update'}
           </DropdownMenuItem>
 
-            <DropdownMenuItem
+          <DropdownMenuItem
             onClick={() => router.push(`/tourPackagePDFGenerator/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Download PDF
           </DropdownMenuItem>
           
-          <DropdownMenuItem
-            onClick={() => router.push(`/tourPackages/${data.id}/pricing`)}
-          >
-            <Edit className="mr-2 h-4 w-4" /> Manage Seasonal Pricing
-          </DropdownMenuItem>
-
+          {!readOnly && (
+            <DropdownMenuItem
+              onClick={() => router.push(`/tourPackages/${data.id}/pricing`)}
+            >
+              <Edit className="mr-2 h-4 w-4" /> Manage Seasonal Pricing
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuItem
             onClick={() => router.push(`/tourPackageDisplay/${data.id}`)}
@@ -110,11 +116,13 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Edit className="mr-2 h-4 w-4" /> Generate PDF
           </DropdownMenuItem>
 
-          <DropdownMenuItem
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="mr-2 h-4 w-4" /> Delete
-          </DropdownMenuItem>
+          {!readOnly && (
+            <DropdownMenuItem
+              onClick={() => setOpen(true)}
+            >
+              <Trash className="mr-2 h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

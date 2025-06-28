@@ -43,7 +43,8 @@ import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
 import { DevTool } from "@hookform/devtools"
 
-const editorConfig = {
+// This will be overridden in the component
+const defaultEditorConfig = {
   readonly: false, // all options from <https://xdsoft.net/jodit/doc/>
 };
 
@@ -152,6 +153,7 @@ interface TourPackageFormProps {
     })[] | null;
 
   })[] | null;
+  readOnly?: boolean;
 };
 
 export const TourPackageForm: React.FC<TourPackageFormProps> = ({
@@ -160,10 +162,19 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
-
+  readOnly = false,
 }) => {
   const params = useParams();
   const router = useRouter();
+
+  // Dynamic editor config based on readOnly prop
+  const editorConfig = {
+    readonly: readOnly,
+    toolbar: readOnly ? false : true,
+    showCharsCounter: !readOnly,
+    showWordsCounter: !readOnly,
+    showXPathInStatusbar: false,
+  };
 
   //const defaultItinerary = { days: '1', activities: '', places: '', mealsIncluded: false };
   const [useLocationDefaults, setUseLocationDefaults] = useState({
@@ -231,10 +242,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const editor = useRef(null)
 
   //console.log(initialData);
-  const title = initialData ? 'Edit Tour  ' : 'Create Tour Package ';
-  const description = initialData ? 'Edit a Tour Package .' : 'Add a new Tour Package ';
-  const toastMessage = initialData ? 'Tour Package  updated.' : 'Tour Package  created.';
-  const action = initialData ? 'Save changes' : 'Create';
+  const title = readOnly ? 'View Tour Package' : (initialData ? 'Edit Tour Package' : 'Create Tour Package');
+  const description = readOnly ? 'View Tour Package details.' : (initialData ? 'Edit a Tour Package.' : 'Add a new Tour Package');
+  const toastMessage = initialData ? 'Tour Package updated.' : 'Tour Package created.';
+  const action = readOnly ? 'Close' : (initialData ? 'Save changes' : 'Create');
   //console.log("Initial Data : ", initialData)
 
   const parseJsonField = (field: any): string[] => {
@@ -571,7 +582,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       />
       <div className="flex items-center justify-between">
         <Heading title={title} description={description} />
-        {initialData && (
+        {initialData && !readOnly && (
           <Button
             disabled={loading}
             variant="destructive"
@@ -660,7 +671,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                         <FormControl>
                           <ImageUpload
                             value={field.value.map((image) => image.url)}
-                            disabled={loading}
+                            disabled={loading || readOnly}
                             onChange={(url) => field.onChange([...field.value, { url }])}
                             onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
                           />
@@ -678,6 +689,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                         <FormControl>
                           <Checkbox
                             checked={field.value}
+                            disabled={readOnly}
                             // @ts-ignore
                             onCheckedChange={field.onChange}
                           />
@@ -706,7 +718,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           <FormLabel>Tour Package Query Name<span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <Input
-                              disabled={loading}
+                              disabled={loading || readOnly}
                               placeholder="Tour Package Name"
                               value={field.value}
                               onChange={field.onChange}
@@ -728,7 +740,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                           <FormLabel>Tour Package Type</FormLabel>
                           <FormControl>
                             <Select
-                              disabled={loading}
+                              disabled={loading || readOnly}
                               value={field.value}
                               onValueChange={field.onChange}
                             >
@@ -1916,19 +1928,29 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           </Tabs>
 
           <div className="flex justify-end mt-8">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              {loading && (
-                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              )}
-              {action}
-            </Button>
+            {readOnly ? (
+              <Button
+                type="button"
+                onClick={() => router.back()}
+                className="flex items-center gap-2"
+              >
+                {action}
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                {loading && (
+                  <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                {action}
+              </Button>
+            )}
           </div>
         </form>
       </Form>

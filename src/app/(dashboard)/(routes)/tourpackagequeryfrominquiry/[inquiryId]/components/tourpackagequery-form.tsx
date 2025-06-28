@@ -430,16 +430,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('tourPackageQueryTemplate', ''); // Clear the query template field
       const customerName = form.getValues('customerName');
       const packageName = selectedTourPackage.tourPackageName || '';
-      const days = String(selectedTourPackage.numDaysNight || '');
-      const packageType = String(selectedTourPackage.tourPackageType || '');
 
       const queryNameParts = [];
       if (customerName) queryNameParts.push(customerName);
       if (packageName) queryNameParts.push(packageName);
-      if (days) queryNameParts.push(`${days} Days`);
-      if (packageType) queryNameParts.push(packageType);
 
-      // Set the new tour package query name
+      // Set the new tour package query name - only client name + package name
       if (queryNameParts.length > 0) {
         form.setValue('tourPackageQueryName', queryNameParts.join(' - '));
       }

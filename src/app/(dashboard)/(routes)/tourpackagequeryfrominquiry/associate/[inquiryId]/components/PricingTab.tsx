@@ -387,7 +387,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
       
       finalPricingComponents.push({
         name: componentName,
-        price: totalComponentPrice.toString(), // Store calculated total instead of base price
+        price: basePrice.toString(), // Store base price per person, not total
         description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
       });
       
@@ -479,7 +479,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
           
           finalPricingComponents.push({
             name: componentName,
-            price: totalComponentPrice.toString(), // Store calculated total
+            price: basePrice.toString(), // Store base price per person, not total
             description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
           });
           

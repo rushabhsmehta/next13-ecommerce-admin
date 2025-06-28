@@ -8,7 +8,7 @@ export async function GET() {
         isActive: true
       },
       orderBy: {
-        name: 'asc'
+        rank: 'asc'
       }
     });
     

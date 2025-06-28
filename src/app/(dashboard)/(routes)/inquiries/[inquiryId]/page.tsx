@@ -36,7 +36,10 @@ const InquiryPage = async ({
   const locations = await prismadb.location.findMany();
   const associates = await prismadb.associatePartner.findMany();
   const roomTypes = await prismadb.roomType.findMany();
-  const occupancyTypes = await prismadb.occupancyType.findMany();
+  const occupancyTypes = await prismadb.occupancyType.findMany({
+    where: { isActive: true },
+    orderBy: { rank: 'asc' }
+  });
   const mealPlans = await prismadb.mealPlan.findMany();
   const vehicleTypes = await prismadb.vehicleType.findMany();
 

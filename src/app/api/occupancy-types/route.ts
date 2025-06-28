@@ -69,3 +69,34 @@ export async function POST(req: Request) {
     return new NextResponse("Internal error", { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const { userId } = auth();
+    const body = await req.json();
+    const { updates } = body; // Array of { id, rank } objects
+    
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
+
+    if (!Array.isArray(updates)) {
+      return new NextResponse("Updates array is required", { status: 400 });
+    }
+    
+    // Update all ranks in a transaction
+    const updatePromises = updates.map(({ id, rank }: { id: string, rank: number }) =>
+      prismadb.occupancyType.update({
+        where: { id },
+        data: { rank: parseInt(rank.toString()) }
+      })
+    );
+    
+    await Promise.all(updatePromises);
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.log('[OCCUPANCY_TYPES_BULK_PATCH]', error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}

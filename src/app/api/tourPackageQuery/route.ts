@@ -89,8 +89,6 @@ async function createItineraryAndActivities(itinerary: {
                             mealPlanId: roomAllocation.mealPlanId,
                             quantity: roomAllocation.quantity || 1,
                             guestNames: roomAllocation.guestNames || "",
-                            roomType: roomAllocation.roomType || "Standard",
-                            occupancyType: roomAllocation.occupancyType || "Single",
                         }
                     });
                 } catch (roomError) {

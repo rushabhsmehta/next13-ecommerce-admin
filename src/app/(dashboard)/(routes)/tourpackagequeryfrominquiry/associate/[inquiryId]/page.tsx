@@ -53,7 +53,8 @@ const TourPackageQueryPage = async ({
               activityImages: true
             }
           }
-        }
+        },
+        orderBy: { dayNumber: 'asc' }
       }
     }
   });
@@ -77,7 +78,8 @@ const TourPackageQueryPage = async ({
               activityImages: true
             }
           }
-        }
+        },
+        orderBy: { dayNumber: 'asc' }
       }
     }
   });

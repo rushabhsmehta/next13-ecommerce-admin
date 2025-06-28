@@ -242,7 +242,7 @@ export const OccupancyTypesClient: React.FC<OccupancyTypesClientProps> = ({
         </Button>
       </div>
       <Separator />
-      
+
       {/* Search Input */}
       <div className="flex items-center space-x-2 mb-4">
         <div className="relative flex-1">
@@ -316,7 +316,7 @@ export const OccupancyTypesClient: React.FC<OccupancyTypesClientProps> = ({
       
       {filteredItems.length === 0 && searchTerm && (
         <div className="text-center py-8 text-gray-500">
-          No occupancy types found matching "{searchTerm}"
+          No occupancy types found matching &quot;{searchTerm}&quot;
         </div>
       )}
     </>

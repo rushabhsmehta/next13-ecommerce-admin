@@ -230,6 +230,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
                         }
+                        defaultMonth={field.value || new Date(1990, 0)}
+                        captionLayout="dropdown-buttons"
+                        fromYear={1900}
+                        toYear={new Date().getFullYear()}
                         initialFocus
                       />
                     </PopoverContent>
@@ -272,6 +276,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ initialData, associa
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
                         }
+                        defaultMonth={field.value || new Date(2000, 0)}
+                        captionLayout="dropdown-buttons"
+                        fromYear={1950}
+                        toYear={new Date().getFullYear()}
                         initialFocus
                       />
                     </PopoverContent>

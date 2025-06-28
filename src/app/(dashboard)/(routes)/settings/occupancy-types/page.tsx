@@ -7,7 +7,7 @@ import { OccupancyTypesClient } from "./components/client";
 const OccupancyTypesPage = async () => {
   const occupancyTypes = await prismadb.occupancyType.findMany({
     orderBy: {
-      createdAt: 'desc',
+      rank: 'asc',
     },
   });
 
@@ -16,6 +16,7 @@ const OccupancyTypesPage = async () => {
     name: item.name,
     description: item.description || '',
     maxPersons: item.maxPersons,
+    rank: item.rank,
     isActive: item.isActive,
     createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));

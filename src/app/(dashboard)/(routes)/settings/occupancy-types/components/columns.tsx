@@ -19,6 +19,7 @@ export type OccupancyTypeColumn = {
   name: string;
   description: string;
   maxPersons: number;
+  rank: number;
   isActive: boolean;
   createdAt: string;
 };
@@ -45,6 +46,20 @@ export const columns: ColumnDef<OccupancyTypeColumn>[] = [
   {
     accessorKey: "maxPersons",
     header: "Max Persons",
+  },
+  {
+    accessorKey: "rank",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Display Order
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
   },
   {
     accessorKey: "isActive",

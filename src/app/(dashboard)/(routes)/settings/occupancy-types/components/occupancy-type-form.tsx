@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,7 +29,13 @@ const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   maxPersons: z.coerce.number().int().min(1, 'Maximum persons must be at least 1').default(1),
+  rank: z.coerce.number().int().min(0, 'Rank must be 0 or greater').default(0),
   isActive: z.boolean().default(true),
+}).refine(async (data) => {
+  // We'll handle rank validation in the onSubmit function for better UX
+  return true;
+}, {
+  message: "Validation error",
 });
 
 type OccupancyTypeFormValues = z.infer<typeof formSchema>;
@@ -42,6 +48,24 @@ export const OccupancyTypeForm: React.FC<OccupancyTypeFormProps> = ({ initialDat
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [suggestedRank, setSuggestedRank] = useState<number>(0);
+
+  // Fetch suggested rank for new occupancy types
+  useEffect(() => {
+    if (!initialData) {
+      const fetchSuggestedRank = async () => {
+        try {
+          const response = await axios.get('/api/occupancy-types');
+          const occupancyTypes = response.data;
+          const maxRank = Math.max(...occupancyTypes.map((ot: any) => ot.rank || 0), -1);
+          setSuggestedRank(maxRank + 1);
+        } catch (error) {
+          setSuggestedRank(0);
+        }
+      };
+      fetchSuggestedRank();
+    }
+  }, [initialData]);
 
   const title = initialData ? 'Edit occupancy type' : 'Create occupancy type';
   const description = initialData ? 'Edit an occupancy type' : 'Add a new occupancy type';
@@ -50,13 +74,24 @@ export const OccupancyTypeForm: React.FC<OccupancyTypeFormProps> = ({ initialDat
 
   const form = useForm<OccupancyTypeFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      ...initialData,
+      rank: initialData.rank ?? 0,
+    } : {
       name: '',
       description: '',
       maxPersons: 1,
+      rank: suggestedRank,
       isActive: true,
     },
   });
+
+  // Update form when suggested rank changes
+  useEffect(() => {
+    if (!initialData && suggestedRank > 0) {
+      form.setValue('rank', suggestedRank);
+    }
+  }, [suggestedRank, initialData, form]);
 
   const onSubmit = async (data: OccupancyTypeFormValues) => {
     try {
@@ -71,8 +106,16 @@ export const OccupancyTypeForm: React.FC<OccupancyTypeFormProps> = ({ initialDat
       router.refresh();
       router.push(`/settings/occupancy-types`);
       toast.success(toastMessage);
-    } catch (error) {
-      toast.error('Something went wrong.');
+    } catch (error: any) {
+      if (error.response?.status === 400 && error.response?.data?.includes('rank')) {
+        toast.error('Another occupancy type already has this display order. Please choose a different number.');
+        form.setError('rank', { 
+          type: 'manual', 
+          message: 'This display order is already taken by another active occupancy type' 
+        });
+      } else {
+        toast.error('Something went wrong.');
+      }
     } finally {
       setLoading(false);
     }
@@ -157,6 +200,31 @@ export const OccupancyTypeForm: React.FC<OccupancyTypeFormProps> = ({ initialDat
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="rank"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Display Order (Rank)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      disabled={loading}
+                      placeholder={suggestedRank.toString()}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Lower numbers appear first in lists (0 = highest priority).
+                    {!initialData && suggestedRank > 0 && ` Suggested: ${suggestedRank}`}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
             <FormField
               control={form.control}
               name="description"

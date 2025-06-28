@@ -25,16 +25,32 @@ export async function PATCH(
 ) {
   try {
     const body = await req.json();
-    const { name, description, maxPersons, isActive } = body;
+    const { name, description, maxPersons, rank, isActive } = body;
     
-    if (!name && description === undefined && maxPersons === undefined && isActive === undefined) {
+    if (!name && description === undefined && maxPersons === undefined && rank === undefined && isActive === undefined) {
       return new NextResponse("At least one field must be provided for update", { status: 400 });
+    }
+    
+    // Validate rank uniqueness if provided
+    if (rank !== undefined) {
+      const existingWithRank = await prismadb.occupancyType.findFirst({
+        where: {
+          rank: parseInt(rank),
+          id: { not: params.occupancyTypeId },
+          isActive: true
+        }
+      });
+      
+      if (existingWithRank) {
+        return new NextResponse("Another active occupancy type already has this rank", { status: 400 });
+      }
     }
     
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (maxPersons !== undefined) updateData.maxPersons = parseInt(maxPersons);
+    if (rank !== undefined) updateData.rank = parseInt(rank);
     if (isActive !== undefined) updateData.isActive = isActive;
     
     const occupancyType = await prismadb.occupancyType.update({

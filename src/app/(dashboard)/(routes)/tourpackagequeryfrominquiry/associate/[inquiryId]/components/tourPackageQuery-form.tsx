@@ -170,7 +170,8 @@ const formSchema = z.object({
 
   totalPrice: z.string().optional().nullable().transform(val => val || ''),
   remarks: z.string().optional(),
-  locationId: z.string().min(1),  flightDetails: flightDetailsSchema.array(),
+  locationId: z.string().min(1),  
+  flightDetails: flightDetailsSchema.array().optional().default([]),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
   kitchenGroupPolicy: z.array(z.string()),

@@ -187,7 +187,8 @@ const formSchema = z.object({
   pricingTier: z.string().default('standard').optional(), // Added for pricing tier options
   customMarkup: z.string().optional(), // Added for custom markup percentage
   remarks: z.string().optional(),
-  locationId: z.string().min(1, "Location is required"),  flightDetails: flightDetailsSchema.array(),
+  locationId: z.string().min(1, "Location is required"),
+  flightDetails: flightDetailsSchema.array().optional().default([]),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
   kitchenGroupPolicy: z.array(z.string()),

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Edit, Copy, MoreHorizontal, Trash } from "lucide-react";
+import { Edit, Copy, MoreHorizontal, Trash, Eye } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import {
@@ -79,6 +79,10 @@ export const CellAction: React.FC<CellActionProps> = ({
     router.push(`/incomes/${data.id}`);
   };
 
+  const onView = () => {
+    router.push(`/incomes/${data.id}/view`);
+  };
+
   return (
     <>
       <AlertModal 
@@ -96,6 +100,10 @@ export const CellAction: React.FC<CellActionProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem onClick={onView}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Details
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={onEdit}>
             <Edit className="mr-2 h-4 w-4" />
             Edit

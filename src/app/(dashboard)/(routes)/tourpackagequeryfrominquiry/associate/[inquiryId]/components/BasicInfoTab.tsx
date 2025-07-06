@@ -47,6 +47,9 @@ interface BasicInfoProps {
   setOpenTemplate: (open: boolean) => void;
   handleTourPackageSelection: (id: string) => void;
   form: any; // Use a more specific type if available
+  // Add props for associate partner restrictions
+  isAssociatePartner?: boolean;
+  enableTourPackageSelection?: boolean;
 }
 
 const BasicInfoTab: React.FC<BasicInfoProps> = ({
@@ -57,9 +60,19 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   openTemplate,
   setOpenTemplate,
   handleTourPackageSelection,
-  form
+  form,
+  isAssociatePartner = false,
+  enableTourPackageSelection = true
 }) => {
   const editor = useRef(null);
+
+  // For associate partners, disable all fields except tour package selection
+  const getFieldDisabled = (fieldEnabled: boolean = true) => {
+    if (isAssociatePartner) {
+      return loading || !fieldEnabled;
+    }
+    return loading;
+  };
 
   return (
     <Card>
@@ -72,7 +85,11 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           name="tourPackageTemplate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Load from Tour Package</FormLabel>
+              <FormLabel className={!enableTourPackageSelection && isAssociatePartner ? "text-muted-foreground" : ""}>
+                Load from Tour Package
+                {enableTourPackageSelection && isAssociatePartner && <span className="text-xs ml-2 text-green-600">(Editable)</span>}
+                {!enableTourPackageSelection && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+              </FormLabel>
               <Popover open={openTemplate} onOpenChange={setOpenTemplate}>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -81,9 +98,12 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       role="combobox"
                       className={cn(
                         "w-full justify-between",
-                        !field.value && "text-muted-foreground"
+                        !field.value && "text-muted-foreground",
+                        getFieldDisabled(enableTourPackageSelection) && "opacity-50",
+                        enableTourPackageSelection && isAssociatePartner && "border-green-200 bg-green-50"
                       )}
-                      disabled={!form.getValues('locationId')}                    >
+                      disabled={getFieldDisabled(enableTourPackageSelection) || !form.getValues('locationId')}
+                    >
                       {!form.getValues('locationId')
                         ? "Select a location first"
                         : field.value && tourPackages?.find(tp => tp.id === field.value)
@@ -138,7 +158,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="associatePartnerId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Associate Partner</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Associate Partner
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -147,8 +170,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                         role="combobox"
                         className={cn(
                           "w-full justify-between",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
+                          getFieldDisabled(false) && "opacity-50"
                         )}
+                        disabled={getFieldDisabled(false)}
                       >
                         {field.value
                           ? associatePartners.find((partner) => partner.id === field.value)?.name
@@ -231,11 +256,14 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           name="images"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Images</FormLabel>
+              <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                Images
+                {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+              </FormLabel>
               <FormControl>
                 <ImageUpload
                   value={field.value.map((image) => image.url)}
-                  disabled={loading}
+                  disabled={getFieldDisabled(false)}
                   onChange={(url) => field.onChange([...field.value, { url }])}
                   onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
                 />
@@ -249,17 +277,22 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           control={control}
           name="isFeatured"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+            <FormItem className={cn(
+              "flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4",
+              getFieldDisabled(false) && "opacity-50"
+            )}>
               <FormControl>
                 <Checkbox
                   checked={field.value}
+                  disabled={getFieldDisabled(false)}
                   // @ts-ignore
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
                   Confirmed
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
                 </FormLabel>
                 <FormDescription>
                   Please Select Whether Query is confirmed or not ?
@@ -275,13 +308,17 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="tourPackageQueryNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tour Package Query Number</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Tour Package Query Number
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
                   <Input
-                    disabled={loading}
+                    disabled={getFieldDisabled(false)}
                     placeholder="Tour Package Query Number"
                     value={field.value}
                     onChange={field.onChange}
+                    className={cn(getFieldDisabled(false) && "opacity-50")}
                   />
                 </FormControl>
                 <FormMessage />
@@ -294,14 +331,20 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="tourPackageQueryName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tour Package Query Name<span className="text-red-500">*</span></FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Tour Package Query Name<span className="text-red-500">*</span>
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
                   <Input
-                    disabled={loading}
+                    disabled={getFieldDisabled(false)}
                     placeholder="Tour Package Query Name"
                     value={field.value}
                     onChange={field.onChange}
-                    className={form.formState.errors.tourPackageQueryName ? "border-red-500" : ""}
+                    className={cn(
+                      form.formState.errors.tourPackageQueryName ? "border-red-500" : "",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}
                   />
                 </FormControl>
                 <FormMessage>
@@ -316,14 +359,17 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="tourPackageQueryType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tour Package Query Type</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Tour Package Query Type
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
                   <Select
-                    disabled={loading}
+                    disabled={getFieldDisabled(false)}
                     value={field.value}
                     onValueChange={field.onChange}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={cn(getFieldDisabled(false) && "opacity-50")}>
                       {field.value || 'Select Tour Package Query Type'}
                     </SelectTrigger>
                     <SelectContent>
@@ -345,9 +391,17 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="numDaysNight"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Number of Days/Night</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Number of Days/Night
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
-                  <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
+                  <Input 
+                    disabled={getFieldDisabled(false)} 
+                    placeholder="Number of Days/Night" 
+                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -361,9 +415,17 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="transport"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Transport</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Transport
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
-                  <Input disabled={loading} placeholder="Transport" {...field} />
+                  <Input 
+                    disabled={getFieldDisabled(false)} 
+                    placeholder="Transport" 
+                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -375,9 +437,17 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="pickup_location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Pickup Location</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Pickup Location
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
-                  <Input disabled={loading} placeholder="Pickup Location" {...field} />
+                  <Input 
+                    disabled={getFieldDisabled(false)} 
+                    placeholder="Pickup Location" 
+                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -389,9 +459,17 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             name="drop_location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Drop Location</FormLabel>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Drop Location
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
-                  <Input disabled={loading} placeholder="Drop Location" {...field} />
+                  <Input 
+                    disabled={getFieldDisabled(false)} 
+                    placeholder="Drop Location" 
+                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -404,11 +482,15 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           name="remarks"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Remarks</FormLabel>
+              <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                Remarks
+                {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+              </FormLabel>
               <FormControl>
                 <Input
-                  disabled={loading}
+                  disabled={getFieldDisabled(false)}
                   placeholder="Additional remarks for the tour package"
+                  className={cn(getFieldDisabled(false) && "opacity-50")}
                   {...field}
                 />
               </FormControl>
@@ -425,13 +507,16 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           name="disclaimer"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Disclaimer</FormLabel>
+              <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                Disclaimer
+                {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+              </FormLabel>
               <FormControl>
                 <JoditEditor
                   ref={editor}
                   value={field.value || DISCLAIMER_DEFAULT}
                   config={{
-                    readonly: loading,
+                    readonly: getFieldDisabled(false),
                   }}
                   onChange={(e) => field.onChange(e)}
                 />

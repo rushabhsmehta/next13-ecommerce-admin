@@ -745,6 +745,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 setOpenTemplate={setOpenTemplate}
                 handleTourPackageSelection={handleTourPackageSelection}
                 form={form}
+                isAssociatePartner={true}
+                enableTourPackageSelection={true}
               />
             </TabsContent>
 

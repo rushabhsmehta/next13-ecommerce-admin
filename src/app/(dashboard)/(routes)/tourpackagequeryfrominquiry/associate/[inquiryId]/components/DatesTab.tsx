@@ -27,13 +27,31 @@ interface DatesTabProps {
   control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   form: any; // Use a more specific type if available, consider a union type here too if form methods differ
+  // Add props for selective field enabling for associate partners
+  isAssociatePartner?: boolean;
+  enableTourStartsFrom?: boolean;
+  enableTourEndsOn?: boolean;
+  enableNumDaysNight?: boolean;
+  enablePeriod?: boolean;
 }
 
 const DatesTab: React.FC<DatesTabProps> = ({
   control,
   loading,
-  form
+  form,
+  isAssociatePartner = false,
+  enableTourStartsFrom = true,
+  enableTourEndsOn = true,
+  enableNumDaysNight = true,
+  enablePeriod = true
 }) => {
+  // For associate partners, override loading state for specific fields
+  const getFieldDisabled = (fieldEnabled: boolean) => {
+    if (isAssociatePartner) {
+      return loading || !fieldEnabled;
+    }
+    return loading;
+  };
   return (
     <Card>
       <CardHeader>
@@ -47,7 +65,10 @@ const DatesTab: React.FC<DatesTabProps> = ({
           name="tourStartsFrom"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Tour Starts From</FormLabel>
+              <FormLabel className={!enableTourStartsFrom && isAssociatePartner ? "text-muted-foreground" : ""}>
+                Tour Starts From
+                {!enableTourStartsFrom && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+              </FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -55,9 +76,10 @@ const DatesTab: React.FC<DatesTabProps> = ({
                       variant={"outline"}
                       className={cn(
                         "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
+                        !field.value && "text-muted-foreground",
+                        getFieldDisabled(enableTourStartsFrom) && "opacity-50"
                       )}
-                      disabled={loading}
+                      disabled={getFieldDisabled(enableTourStartsFrom)}
                     >
                       {field.value ? (
                         formatLocalDate(field.value, "PPP")
@@ -87,7 +109,11 @@ const DatesTab: React.FC<DatesTabProps> = ({
           name="tourEndsOn"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Tour Ends On</FormLabel>
+              <FormLabel className={!enableTourEndsOn && isAssociatePartner ? "text-muted-foreground" : ""}>
+                Tour Ends On
+                {!enableTourEndsOn && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                {enableTourEndsOn && isAssociatePartner && <span className="text-xs ml-2 text-green-600">(Editable)</span>}
+              </FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -95,9 +121,11 @@ const DatesTab: React.FC<DatesTabProps> = ({
                       variant={"outline"}
                       className={cn(
                         "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
+                        !field.value && "text-muted-foreground",
+                        getFieldDisabled(enableTourEndsOn) && "opacity-50",
+                        enableTourEndsOn && isAssociatePartner && "border-green-200 bg-green-50"
                       )}
-                      disabled={loading}
+                      disabled={getFieldDisabled(enableTourEndsOn)}
                     >
                       {field.value ? (
                         formatLocalDate(field.value, "PPP")
@@ -128,12 +156,18 @@ const DatesTab: React.FC<DatesTabProps> = ({
             name="numDaysNight"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Number of Days/Nights</FormLabel>
+                <FormLabel className={!enableNumDaysNight && isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Number of Days/Nights
+                  {!enableNumDaysNight && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
                   <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={cn(
+                      "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                      getFieldDisabled(enableNumDaysNight) && "opacity-50"
+                    )}
                     placeholder="Number of Days/Nights"
-                    disabled={loading}
+                    disabled={getFieldDisabled(enableNumDaysNight)}
                     {...field}
                   />
                 </FormControl>
@@ -147,12 +181,18 @@ const DatesTab: React.FC<DatesTabProps> = ({
             name="period"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Period</FormLabel>
+                <FormLabel className={!enablePeriod && isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Period
+                  {!enablePeriod && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
                 <FormControl>
                   <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={cn(
+                      "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                      getFieldDisabled(enablePeriod) && "opacity-50"
+                    )}
                     placeholder="Period (e.g. May 2023)"
-                    disabled={loading}
+                    disabled={getFieldDisabled(enablePeriod)}
                     {...field}
                   />
                 </FormControl>
@@ -163,11 +203,23 @@ const DatesTab: React.FC<DatesTabProps> = ({
         </div>
 
         {/* Add a helpful message about date selection */}
-        <div className="text-sm text-muted-foreground p-3 bg-slate-50 rounded-md border border-slate-100">
-          <p>
-            <strong>Note:</strong> Setting accurate tour dates is important for availability checking and pricing calculations.
-            The number of days/nights should match the number of itinerary days created.
-          </p>
+        <div className={cn(
+          "text-sm p-3 rounded-md border",
+          isAssociatePartner 
+            ? "text-blue-700 bg-blue-50 border-blue-200"
+            : "text-muted-foreground bg-slate-50 border-slate-100"
+        )}>
+          {isAssociatePartner ? (
+            <p>
+              <strong>Associate Partner:</strong> You can edit the &ldquo;Tour Ends On&rdquo; date to adjust the package duration. 
+              Other date fields are set by the tour package template and are read-only.
+            </p>
+          ) : (
+            <p>
+              <strong>Note:</strong> Setting accurate tour dates is important for availability checking and pricing calculations.
+              The number of days/nights should match the number of itinerary days created.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

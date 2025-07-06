@@ -692,7 +692,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </CardContent>
             </Card>
           )}<Tabs defaultValue="basic" className="w-full">
-            {/* Mobile-friendly tab list with responsive grid and scroll - Associate Partner: All tabs visible, but only Basic and Pricing editable */}
+            {/* Mobile-friendly tab list with responsive grid and scroll - Associate Partner: Basic, Dates (partial), Itinerary (partial), and Pricing are editable */}
             <div className="overflow-x-auto pb-2 mb-2 -mx-4 sm:mx-0">
               <div className="min-w-full px-4 sm:px-0">
                 <TabsList className="grid min-w-max md:min-w-0 grid-cols-8 w-full bg-muted/60">
@@ -708,9 +708,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <MapPin className="h-4 w-4" />
                     <span className="truncate">Location</span>
                   </TabsTrigger>
-                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
+                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 cursor-help" title="Tour Ends On field is editable for Associate Partners">
                     <CalendarIcon className="h-4 w-4" />
                     <span className="truncate">Dates</span>
+                    <span className="text-xs text-blue-600">⚬</span>
                   </TabsTrigger>
                   <TabsTrigger value="itinerary" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 cursor-help" title="Room Allocation and Transport sections are editable for Associate Partners">
                     <ListPlus className="h-4 w-4" />
@@ -796,18 +797,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </TabsContent>
 
-            {/* Use DatesTab from shared components - READ-ONLY for Associate Partners */}
+            {/* Use DatesTab from shared components - PARTIALLY EDITABLE for Associate Partners */}
             <TabsContent value="dates" className="space-y-4 mt-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-amber-700 flex items-center">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-700 flex items-center">
                   <AlertCircle className="mr-2 h-4 w-4" />
-                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                  For Associate Partners: &ldquo;Tour Ends On&rdquo; field is editable. Other date fields are read-only.
                 </p>
               </div>
               <DatesTab
                 control={form.control}
-                loading={true} // Always disabled for associate partners
+                loading={false} // Don't override with loading=true for associates
                 form={form}
+                isAssociatePartner={true}
+                enableTourStartsFrom={false}
+                enableTourEndsOn={true}
+                enableNumDaysNight={false}
+                enablePeriod={false}
               />
             </TabsContent>
 

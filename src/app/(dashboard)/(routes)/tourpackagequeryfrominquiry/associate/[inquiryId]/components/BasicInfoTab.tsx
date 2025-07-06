@@ -43,13 +43,9 @@ interface BasicInfoProps {
   loading: boolean;
   associatePartners: AssociatePartner[];
   tourPackages: TourPackage[] | null;
-  tourPackageQueries: TourPackageQuery[] | null;
   openTemplate: boolean;
   setOpenTemplate: (open: boolean) => void;
-  openQueryTemplate: boolean;
-  setOpenQueryTemplate: (open: boolean) => void;
   handleTourPackageSelection: (id: string) => void;
-  handleTourPackageQuerySelection: (id: string) => void;
   form: any; // Use a more specific type if available
 }
 
@@ -58,13 +54,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   loading,
   associatePartners,
   tourPackages,
-  tourPackageQueries,
   openTemplate,
   setOpenTemplate,
-  openQueryTemplate,
-  setOpenQueryTemplate,
   handleTourPackageSelection,
-  handleTourPackageQuerySelection,
   form
 }) => {
   const editor = useRef(null);
@@ -139,68 +131,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
-
-        <FormField
-          control={control}
-          name="tourPackageQueryTemplate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Load from Tour Package Query</FormLabel>
-              <Popover open={openQueryTemplate} onOpenChange={setOpenQueryTemplate}>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "w-full justify-between",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {tourPackageQueries?.find((query) => query.id === field.value)?.tourPackageQueryName || "Select Tour Package Query Template"}
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search tour package query..." />
-                    <CommandEmpty>No tour package query found.</CommandEmpty>
-                    <CommandGroup>
-                      {tourPackageQueries
-                        ?.filter(tpq => tpq.id !== form.getValues('id')) // Filter out the current query to avoid self-reference
-                        ?.filter(tpq => !form.getValues('locationId') || tpq.locationId === form.getValues('locationId')) // Filter by selected locationId
-                        .map((query) => (
-                          <CommandItem
-                            key={query.id}
-                            value={query.tourPackageQueryName ?? ''}
-                            onSelect={() => {
-                              handleTourPackageQuerySelection(query.id);
-                              setOpenQueryTemplate(false);
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                query.id === field.value ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {query.tourPackageQueryName}
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormDescription>
-                Load initial data from an existing tour package query template
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-3 gap-8">{" "}
           <FormField
             control={control}
             name="associatePartnerId"

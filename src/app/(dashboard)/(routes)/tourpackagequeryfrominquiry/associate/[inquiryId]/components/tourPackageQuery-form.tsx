@@ -222,16 +222,6 @@ interface TourPackageQueryFormProps {
       })[] | null;
     })[] | null;
   })[] | null;
-  tourPackageQueries?: (TourPackageQuery & {
-    images: Images[];
-    flightDetails: FlightDetails[];
-    itineraries: (Itinerary & {
-      itineraryImages: Images[];
-      activities: (Activity & {
-        activityImages: Images[];
-      })[] | null;
-    })[] | null;
-  })[] | null;
   // Add lookup types
   roomTypes?: RoomType[];
   occupancyTypes?: OccupancyType[];
@@ -248,13 +238,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   itinerariesMaster,
   associatePartners,
   tourPackages,
-  tourPackageQueries = [],
 }) => {
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [openTemplate, setOpenTemplate] = useState(false);
-  const [openQueryTemplate, setOpenQueryTemplate] = useState(false);
   const editor = useRef(null);
   // Keep state handlers but remove initialData related code  
   const [useLocationDefaults, setUseLocationDefaults] = useState({
@@ -504,99 +492,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
 
-  const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
-    const selectedTourPackageQuery = tourPackageQueries?.find(tpq => tpq.id === selectedTourPackageQueryId);
-    if (selectedTourPackageQuery) {
-      form.setValue('tourPackageQueryTemplate', selectedTourPackageQueryId);
-      // Set the selected template info
-      form.setValue('selectedTemplateId', selectedTourPackageQueryId);
-      form.setValue('selectedTemplateType', 'TourPackageQuery');
-      form.setValue('tourPackageTemplate', ''); // Clear the package template field
-      // Update form fields with selected tour package query data
-      form.setValue('tourPackageQueryName', selectedTourPackageQuery.tourPackageQueryName || '');
-      form.setValue('tourPackageQueryType', String(selectedTourPackageQuery.tourPackageQueryType || ''));
-      form.setValue('locationId', selectedTourPackageQuery.locationId);
-      //form.setValue('numDaysNight', String(selectedTourPackageQuery.numDaysNight || ''));
-      // form.setValue('customerName', selectedTourPackageQuery.customerName || '');
-      // form.setValue('customerNumber', selectedTourPackageQuery.customerNumber || '');
-      form.setValue('transport', String(selectedTourPackageQuery.transport || ''));
-      form.setValue('pickup_location', String(selectedTourPackageQuery.pickup_location || ''));
-      form.setValue('drop_location', String(selectedTourPackageQuery.drop_location || ''));
-      form.setValue('tour_highlights', String(selectedTourPackageQuery.tour_highlights || ''));
-      form.setValue('totalPrice', String(selectedTourPackageQuery.totalPrice || ''));
-      //form.setValue('numAdults', String(selectedTourPackageQuery.numAdults || ''));
-      //form.setValue('numChild5to12', String(selectedTourPackageQuery.numChild5to12 || ''));
-      //form.setValue('numChild0to5', String(selectedTourPackageQuery.numChild0to5 || ''));
-      form.setValue('remarks', String(selectedTourPackageQuery.remarks || REMARKS_DEFAULT));
-      form.setValue('inclusions', selectedTourPackageQuery.inclusions ? parseJsonField(selectedTourPackageQuery.inclusions) : INCLUSIONS_DEFAULT);
-      form.setValue('exclusions', selectedTourPackageQuery.exclusions ? parseJsonField(selectedTourPackageQuery.exclusions) : EXCLUSIONS_DEFAULT);
-      form.setValue('importantNotes', selectedTourPackageQuery.importantNotes ? parseJsonField(selectedTourPackageQuery.importantNotes) : IMPORTANT_NOTES_DEFAULT);
-      form.setValue('paymentPolicy', selectedTourPackageQuery.paymentPolicy ? parseJsonField(selectedTourPackageQuery.paymentPolicy) : PAYMENT_TERMS_DEFAULT);
-      form.setValue('usefulTip', selectedTourPackageQuery.usefulTip ? parseJsonField(selectedTourPackageQuery.usefulTip) : USEFUL_TIPS_DEFAULT);
-      form.setValue('cancellationPolicy', selectedTourPackageQuery.cancellationPolicy ? parseJsonField(selectedTourPackageQuery.cancellationPolicy) : CANCELLATION_POLICY_DEFAULT);
-      form.setValue('airlineCancellationPolicy', selectedTourPackageQuery.airlineCancellationPolicy ? parseJsonField(selectedTourPackageQuery.airlineCancellationPolicy) : AIRLINE_CANCELLATION_POLICY_DEFAULT);
-      form.setValue('termsconditions', selectedTourPackageQuery.termsconditions ? parseJsonField(selectedTourPackageQuery.termsconditions) : TERMS_AND_CONDITIONS_DEFAULT);
-      form.setValue('disclaimer', String(selectedTourPackageQuery.disclaimer || DISCLAIMER_DEFAULT));
-      form.setValue('associatePartnerId', selectedTourPackageQuery.associatePartnerId || inquiry?.associatePartnerId || '');
-      form.setValue('images', selectedTourPackageQuery.images || []);
-
-      // Copy complex objects like flightDetails and itineraries
-      if (selectedTourPackageQuery.flightDetails && selectedTourPackageQuery.flightDetails.length > 0) {
-        form.setValue('flightDetails', selectedTourPackageQuery.flightDetails.map(flight => ({
-          date: flight.date || '',
-          flightName: flight.flightName || '',
-          flightNumber: flight.flightNumber || '',
-          from: flight.from || '',
-          to: flight.to || '',
-          departureTime: flight.departureTime || '',
-          arrivalTime: flight.arrivalTime || '',
-          flightDuration: flight.flightDuration || ''
-        })));
-      }
-
-      if (selectedTourPackageQuery.itineraries && selectedTourPackageQuery.itineraries.length > 0) {
-        form.setValue('itineraries', selectedTourPackageQuery.itineraries.map(itinerary => ({
-          locationId: itinerary.locationId || form.getValues('locationId') || '', // Use optional default
-          itineraryImages: itinerary.itineraryImages?.map(img => ({ url: img.url })) || [],
-          itineraryTitle: itinerary.itineraryTitle || '',
-          itineraryDescription: itinerary.itineraryDescription || '',
-          dayNumber: itinerary.dayNumber || 0,
-          days: itinerary.days || '',
-          activities: itinerary.activities?.map(activity => ({
-            activityTitle: activity.activityTitle || '',
-            activityDescription: activity.activityDescription || '',
-            activityImages: activity.activityImages?.map(img => ({ url: img.url })) || []
-          })) || [],
-          hotelId: itinerary.hotelId || '', // Use optional default
-          // Map roomAllocations and transportDetails from query template
-          roomAllocations: (itinerary as any).roomAllocations?.map((alloc: any) => ({
-            roomTypeId: alloc.roomTypeId || alloc.roomType || '',
-            occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
-            mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
-            quantity: Number(alloc.quantity) || 1,
-            guestNames: alloc.guestNames || ''
-          })) || [],
-          transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
-            vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
-            transportType: detail.transportType || '',
-            quantity: Number(detail.quantity) || 1,
-            description: detail.description || ''
-          })) || [],
-        })));
-      } else {
-         form.setValue('itineraries', []); // Clear if template has none
-      }
-
-      // Attempt to parse and set pricing section if available
-      try {
-        if (selectedTourPackageQuery.pricingSection) {
-          form.setValue('pricingSection', parsePricingSection(selectedTourPackageQuery.pricingSection));
-        }
-      } catch (error) {
-        console.error("Error parsing pricing section:", error);
-      }
-    }
-  };
   const onSubmit = async (data: TourPackageQueryFormValues) => {
     // --- ADJUST onSubmit TO MATCH SCHEMA ---
     const formattedData = {
@@ -738,13 +633,9 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 loading={loading}
                 associatePartners={associatePartners}
                 tourPackages={tourPackages}
-                tourPackageQueries={tourPackageQueries}
                 openTemplate={openTemplate}
                 setOpenTemplate={setOpenTemplate}
-                openQueryTemplate={openQueryTemplate}
-                setOpenQueryTemplate={setOpenQueryTemplate}
                 handleTourPackageSelection={handleTourPackageSelection}
-                handleTourPackageQuerySelection={handleTourPackageQuerySelection}
                 form={form}
               />
             </TabsContent>

@@ -108,9 +108,9 @@ export const PaymentLedgerClient: React.FC<PaymentLedgerClientProps> = ({
 
     // Add summary metrics
     doc.setFontSize(12);
-    doc.text(`Total Payments: ₹ ${formatPrice(totalPayments, { forPDF: true })}`, 14, 40);
+    doc.text(`Total Payments: ${formatPrice(totalPayments, { forPDF: true })}`, 14, 40);
     if (filteredSupplier || filteredPaymentMode || dateFrom || dateTo) {
-      doc.text(`Filtered Total: ₹ ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
+      doc.text(`Filtered Total: ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
     }
 
     // Add table data
@@ -121,7 +121,7 @@ export const PaymentLedgerClient: React.FC<PaymentLedgerClientProps> = ({
       payment.description,
       payment.reference,
       payment.paymentMode,
-      `₹ ${formatPrice(payment.amount, { forPDF: true })}`
+      formatPrice(payment.amount, { forPDF: true })
     ]);
 
     // Add the table

@@ -102,10 +102,10 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
     }
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);    // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Purchases: Rs. ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
-    doc.text(`Total Returns: Rs. ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
-    doc.text(`Total Payments: Rs. ${formatPrice(totalPayments, { forPDF: true })}`, 14, 64);
-    doc.text(`Current Balance: Rs. ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);// Add date filters if applied
+    doc.text(`Total Purchases: ${formatPrice(totalPurchases, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Returns: ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
+    doc.text(`Total Payments: ${formatPrice(totalPayments, { forPDF: true })}`, 14, 64);
+    doc.text(`Current Balance: ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);// Add date filters if applied
     if (dateFrom || dateTo) {
       let filterText = "Date Filter: ";
       if (dateFrom) filterText += `From ${formatSafeDate(dateFrom, 'MM/dd/yyyy')}`;
@@ -117,9 +117,9 @@ export const SupplierIndividualLedgerClient: React.FC<SupplierIndividualLedgerCl
       formatSafeDate(transaction.date, 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
-      transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      !transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      `Rs. ${formatPrice(transaction.balance, { forPDF: true })}`
+      transaction.isInflow ? formatPrice(transaction.amount, { forPDF: true }) : "-",
+      !transaction.isInflow ? formatPrice(transaction.amount, { forPDF: true }) : "-",
+      formatPrice(transaction.balance, { forPDF: true })
     ]);// Add the transactions table
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Purchase", "Payment", "Balance"]],

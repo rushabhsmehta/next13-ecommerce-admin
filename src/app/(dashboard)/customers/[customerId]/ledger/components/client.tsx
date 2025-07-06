@@ -102,10 +102,10 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
     }
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 38);      // Add summary metrics with properly formatted amounts
     doc.setFontSize(12);
-    doc.text(`Total Sales: Rs. ${formatPrice(totalSales, { forPDF: true })}`, 14, 48);
-    doc.text(`Total Returns: Rs. ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
-    doc.text(`Total Receipts: Rs. ${formatPrice(totalReceipts, { forPDF: true })}`, 14, 64);
-    doc.text(`Current Balance: Rs. ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);
+    doc.text(`Total Sales: ${formatPrice(totalSales, { forPDF: true })}`, 14, 48);
+    doc.text(`Total Returns: ${formatPrice(totalReturns, { forPDF: true })}`, 14, 56);
+    doc.text(`Total Receipts: ${formatPrice(totalReceipts, { forPDF: true })}`, 14, 64);
+    doc.text(`Current Balance: ${formatPrice(currentBalance, { forPDF: true })}`, 14, 72);
       // Add date filters if applied
     if (dateFrom || dateTo) {
       let filterText = "Date Filter: ";
@@ -118,9 +118,9 @@ export const CustomerIndividualLedgerClient: React.FC<CustomerIndividualLedgerCl
       format(new Date(transaction.date), 'MM/dd/yyyy'),
       transaction.type,
       transaction.description,
-      transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      !transaction.isInflow ? `Rs. ${formatPrice(transaction.amount, { forPDF: true })}` : "-",
-      `Rs. ${formatPrice(transaction.balance, { forPDF: true })}`
+      transaction.isInflow ? formatPrice(transaction.amount, { forPDF: true }) : "-",
+      !transaction.isInflow ? formatPrice(transaction.amount, { forPDF: true }) : "-",
+      formatPrice(transaction.balance, { forPDF: true })
     ]);      // Add the transactions table
     autoTable(doc, {
       head: [["Date", "Type", "Description", "Receipt", "Sale", "Balance"]],

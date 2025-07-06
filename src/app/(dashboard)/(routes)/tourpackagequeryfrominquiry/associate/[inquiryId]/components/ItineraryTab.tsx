@@ -690,7 +690,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             </div>
                           )) : (
                             <div className="text-sm text-gray-500 p-4 border rounded-lg">
-                              No activities available. Click "Add Activity" to add one.
+                              No activities available. Click &quot;Add Activity&quot; to add one.
                             </div>
                           )}
 
@@ -702,8 +702,11 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                               disabled={loading}
                               onClick={() => {
                                 const newItineraries = [...value];
+                                const currentActivities = Array.isArray(newItineraries[index].activities) 
+                                  ? newItineraries[index].activities 
+                                  : [];
                                 newItineraries[index].activities = [
-                                  ...newItineraries[index].activities,
+                                  ...currentActivities,
                                   { activityTitle: '', activityDescription: '', activityImages: [] }
                                 ];
                                 onChange(newItineraries);

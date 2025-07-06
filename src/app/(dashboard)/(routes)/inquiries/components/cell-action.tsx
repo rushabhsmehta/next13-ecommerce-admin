@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react"
 import axios from "axios"
-import { Copy, Edit, MoreHorizontal, Trash, PackagePlus } from "lucide-react"
+import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2 } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useParams, useRouter } from "next/navigation"
 
@@ -29,6 +29,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const params = useParams();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [creatingQuery, setCreatingQuery] = useState(false);
   const { isAssociatePartner } = useAssociatePartner();
 
   const onConfirm = async () => {
@@ -49,6 +50,24 @@ export const CellAction: React.FC<CellActionProps> = ({
     navigator.clipboard.writeText(id);
     toast.success('Inquiry ID copied to clipboard.');
   }
+
+  const onCreateQuery = async () => {
+    try {
+      setCreatingQuery(true);
+      toast.loading("Loading create query page...", { id: "create-query-loading" });
+      
+      const queryRoute = isAssociatePartner 
+        ? `/tourpackagequeryfrominquiry/associate/${data.id}`
+        : `/tourpackagequeryfrominquiry/${data.id}`;
+      
+      await router.push(queryRoute);
+    } catch (error) {
+      toast.error("Failed to navigate to create query page");
+    } finally {
+      // Don't set creatingQuery to false here since we're navigating away
+      toast.dismiss("create-query-loading");
+    }
+  };
 
   return (
     <>
@@ -82,14 +101,15 @@ export const CellAction: React.FC<CellActionProps> = ({
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>          <DropdownMenuItem
-            onClick={() => {
-              const queryRoute = isAssociatePartner 
-                ? `/tourpackagequeryfrominquiry/associate/${data.id}`
-                : `/tourpackagequeryfrominquiry/${data.id}`;
-              router.push(queryRoute);
-            }}
+            onClick={onCreateQuery}
+            disabled={creatingQuery}
           >
-            <PackagePlus className="mr-2 h-4 w-4" /> Create Query
+            {creatingQuery ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <PackagePlus className="mr-2 h-4 w-4" />
+            )}
+            {creatingQuery ? "Loading..." : "Create Query"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

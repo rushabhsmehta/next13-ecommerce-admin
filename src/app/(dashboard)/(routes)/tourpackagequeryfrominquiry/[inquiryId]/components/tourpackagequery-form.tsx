@@ -692,40 +692,45 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-8 w-full"> {/* Changed from grid-cols-7 to grid-cols-8 */}
-              <TabsTrigger value="basic" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Basic Info
-              </TabsTrigger>
-              <TabsTrigger value="guests" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Guests
-              </TabsTrigger>
-              <TabsTrigger value="location" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
-              </TabsTrigger>
-              <TabsTrigger value="dates" className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                Dates
-              </TabsTrigger>
-              <TabsTrigger value="itinerary" className="flex items-center gap-2">
-                <ListPlus className="h-4 w-4" />
-                Itinerary
-              </TabsTrigger>
-              <TabsTrigger value="flights" className="flex items-center gap-2">
-                <Plane className="h-4 w-4" />
-                Flights
-              </TabsTrigger>
-              <TabsTrigger value="pricing" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Pricing
-              </TabsTrigger>
-              <TabsTrigger value="policies" className="flex items-center gap-2">
-                <FileCheck className="h-4 w-4" />
-                Policies
-              </TabsTrigger>
-            </TabsList>
+            {/* Mobile-friendly tab list with responsive grid and scroll */}
+            <div className="overflow-x-auto pb-2 mb-2 -mx-4 sm:mx-0">
+              <div className="min-w-full px-4 sm:px-0">
+                <TabsList className="grid min-w-max md:min-w-0 grid-cols-4 md:grid-cols-8 w-full bg-muted/60">
+                  <TabsTrigger value="basic" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <FileText className="h-4 w-4" />
+                    <span className="truncate">Basic</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="guests" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Users className="h-4 w-4" />
+                    <span className="truncate">Guests</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="location" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <MapPin className="h-4 w-4" />
+                    <span className="truncate">Location</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span className="truncate">Dates</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="itinerary" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <ListPlus className="h-4 w-4" />
+                    <span className="truncate">Itinerary</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="flights" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Plane className="h-4 w-4" />
+                    <span className="truncate">Flights</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pricing" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <Tag className="h-4 w-4" />
+                    <span className="truncate">Pricing</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="policies" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                    <FileCheck className="h-4 w-4" />
+                    <span className="truncate">Policies</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
 
             <TabsContent value="basic" className="space-y-4 mt-4">
               {/* Use BasicInfoTab from shared components */}

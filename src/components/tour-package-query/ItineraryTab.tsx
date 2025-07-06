@@ -492,7 +492,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 return (
                                   <div className="mt-4">
                                     <h4 className="text-sm font-medium mb-2">Hotel Images</h4>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                       {hotel.images.map((image, imgIndex) => (
                                         <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
                                           <Image

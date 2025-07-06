@@ -337,7 +337,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           )}
         />
 
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           <FormField
             control={control}
             name="tourPackageQueryNumber"
@@ -423,7 +423,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           />
         </div>
         
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
           <FormField
             control={control}
             name="transport"

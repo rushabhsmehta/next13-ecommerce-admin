@@ -322,27 +322,101 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   // --- ADDED useEffect TO FETCH LOOKUP DATA ---
   useEffect(() => {
     const fetchLookupData = async () => {
-      // Keep setLoading(true) if it was already there, otherwise remove this line
-      // setLoading(true); // This might be for the main form submission, not lookup
-      setLookupLoading(true); // Set lookup loading to true
+      setLookupLoading(true);
+      
+      console.log('=== FETCH LOOKUP DATA STARTED ===');
+      console.log('Current URL:', window.location.href);
+      console.log('Window origin:', window.location.origin);
+      
       try {
-        const [roomTypesRes, occupancyTypesRes, mealPlansRes, vehicleTypesRes] = await Promise.all([
-          axios.get('/api/room-types'),
-          axios.get('/api/occupancy-types'),
-          axios.get('/api/meal-plans'),
-          axios.get('/api/vehicle-types')
-        ]);
+        // Fetch each API endpoint individually with detailed error handling
+        console.log('Fetching room types...');
+        const roomTypesRes = await axios.get('/api/room-types');
+        console.log('Room types response:', {
+          status: roomTypesRes.status,
+          headers: roomTypesRes.headers,
+          dataType: typeof roomTypesRes.data,
+          isArray: Array.isArray(roomTypesRes.data),
+          dataPreview: Array.isArray(roomTypesRes.data) ? roomTypesRes.data.slice(0, 2) : roomTypesRes.data
+        });
+        
+        console.log('Fetching occupancy types...');
+        const occupancyTypesRes = await axios.get('/api/occupancy-types');
+        console.log('Occupancy types response:', {
+          status: occupancyTypesRes.status,
+          dataType: typeof occupancyTypesRes.data,
+          isArray: Array.isArray(occupancyTypesRes.data),
+          dataPreview: Array.isArray(occupancyTypesRes.data) ? occupancyTypesRes.data.slice(0, 2) : occupancyTypesRes.data
+        });
+        
+        console.log('Fetching meal plans...');
+        const mealPlansRes = await axios.get('/api/meal-plans');
+        console.log('Meal plans response:', {
+          status: mealPlansRes.status,
+          dataType: typeof mealPlansRes.data,
+          isArray: Array.isArray(mealPlansRes.data),
+          dataPreview: Array.isArray(mealPlansRes.data) ? mealPlansRes.data.slice(0, 2) : mealPlansRes.data
+        });
+        
+        console.log('Fetching vehicle types...');
+        const vehicleTypesRes = await axios.get('/api/vehicle-types');
+        console.log('Vehicle types response:', {
+          status: vehicleTypesRes.status,
+          dataType: typeof vehicleTypesRes.data,
+          isArray: Array.isArray(vehicleTypesRes.data),
+          dataPreview: Array.isArray(vehicleTypesRes.data) ? vehicleTypesRes.data.slice(0, 2) : vehicleTypesRes.data
+        });
+
+        // Validate data before setting state
+        if (!Array.isArray(roomTypesRes.data)) {
+          console.error('CRITICAL: roomTypes data is not an array:', roomTypesRes.data);
+          throw new Error('Room types data is invalid - expected array but got: ' + typeof roomTypesRes.data);
+        }
+        
+        if (!Array.isArray(occupancyTypesRes.data)) {
+          console.error('CRITICAL: occupancyTypes data is not an array:', occupancyTypesRes.data);
+          throw new Error('Occupancy types data is invalid - expected array but got: ' + typeof occupancyTypesRes.data);
+        }
+        
+        if (!Array.isArray(mealPlansRes.data)) {
+          console.error('CRITICAL: mealPlans data is not an array:', mealPlansRes.data);
+          throw new Error('Meal plans data is invalid - expected array but got: ' + typeof mealPlansRes.data);
+        }
+        
+        if (!Array.isArray(vehicleTypesRes.data)) {
+          console.error('CRITICAL: vehicleTypes data is not an array:', vehicleTypesRes.data);
+          throw new Error('Vehicle types data is invalid - expected array but got: ' + typeof vehicleTypesRes.data);
+        }
+
+        console.log('All API responses are valid arrays, setting state...');
         setRoomTypes(roomTypesRes.data);
         setOccupancyTypes(occupancyTypesRes.data);
         setMealPlans(mealPlansRes.data);
         setVehicleTypes(vehicleTypesRes.data);
-      } catch (error) {
-        console.error("Error fetching lookup data:", error);
-        toast.error("Failed to load configuration data. Please try refreshing.");
+        
+        console.log('=== FETCH LOOKUP DATA COMPLETED SUCCESSFULLY ===');
+      } catch (error: any) {
+        console.error('=== FETCH LOOKUP DATA ERROR ===');
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+        
+        // Set fallback empty arrays to prevent undefined errors
+        console.log('Setting fallback empty arrays...');
+        setRoomTypes([]);
+        setOccupancyTypes([]);
+        setMealPlans([]);
+        setVehicleTypes([]);
+        
+        toast.error("Failed to load configuration data. Using empty defaults. Please check console for details.");
       } finally {
-        setLookupLoading(false); // Set lookup loading to false after fetch/error
-        // Keep setLoading(false) if it was tied to the main form submission
-        // setLoading(false);
+        setLookupLoading(false);
+        console.log('=== FETCH LOOKUP DATA FINISHED ===');
       }
     };
 

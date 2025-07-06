@@ -402,21 +402,23 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             Destination Images
                           </h3>
                           <ImageUpload
-                            value={itinerary.itineraryImages.map(img => img.url)}
+                            value={Array.isArray(itinerary.itineraryImages) ? itinerary.itineraryImages.map(img => img.url) : []}
                             disabled={loading}
                             onChange={(url) => {
                               const newItineraries = [...value];
+                              const currentImages = Array.isArray(itinerary.itineraryImages) ? itinerary.itineraryImages : [];
                               newItineraries[index] = {
                                 ...itinerary,
-                                itineraryImages: [...itinerary.itineraryImages, { url }]
+                                itineraryImages: [...currentImages, { url }]
                               };
                               onChange(newItineraries);
                             }}
                             onRemove={(url) => {
                               const newItineraries = [...value];
+                              const currentImages = Array.isArray(itinerary.itineraryImages) ? itinerary.itineraryImages : [];
                               newItineraries[index] = {
                                 ...itinerary,
-                                itineraryImages: itinerary.itineraryImages.filter(img => img.url !== url)
+                                itineraryImages: currentImages.filter(img => img.url !== url)
                               };
                               onChange(newItineraries);
                             }}
@@ -528,14 +530,23 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Editable</span>
                               )}
                             </h4>
-                            <RoomAllocationComponent
-                              control={control}
-                              itineraryIndex={index}
-                              roomTypes={roomTypes} // Pass down
-                              occupancyTypes={occupancyTypes} // Pass down
-                              mealPlans={mealPlans} // Pass down
-                              loading={isAssociatePartner ? !enableRoomAllocation : loading} // Enable for associate partners when enableRoomAllocation is true
-                            />
+                            {(() => {
+                              // Ensure roomAllocations is always an array
+                              const currentItinerary = form.getValues(`itineraries.${index}`);
+                              if (!Array.isArray(currentItinerary?.roomAllocations)) {
+                                form.setValue(`itineraries.${index}.roomAllocations`, []);
+                              }
+                              return (
+                                <RoomAllocationComponent
+                                  control={control}
+                                  itineraryIndex={index}
+                                  roomTypes={roomTypes} // Pass down
+                                  occupancyTypes={occupancyTypes} // Pass down
+                                  mealPlans={mealPlans} // Pass down
+                                  loading={isAssociatePartner ? !enableRoomAllocation : loading} // Enable for associate partners when enableRoomAllocation is true
+                                />
+                              );
+                            })()}
                           </div>
 
                           {/* Transport Details Section */}
@@ -547,12 +558,21 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Editable</span>
                               )}
                             </h4>
-                            <TransportDetailsComponent
-                              control={control}
-                              itineraryIndex={index}
-                              vehicleTypes={vehicleTypes} // Pass down
-                              loading={isAssociatePartner ? !enableTransport : loading} // Enable for associate partners when enableTransport is true
-                            />
+                            {(() => {
+                              // Ensure transportDetails is always an array
+                              const currentItinerary = form.getValues(`itineraries.${index}`);
+                              if (!Array.isArray(currentItinerary?.transportDetails)) {
+                                form.setValue(`itineraries.${index}.transportDetails`, []);
+                              }
+                              return (
+                                <TransportDetailsComponent
+                                  control={control}
+                                  itineraryIndex={index}
+                                  vehicleTypes={vehicleTypes} // Pass down
+                                  loading={isAssociatePartner ? !enableTransport : loading} // Enable for associate partners when enableTransport is true
+                                />
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -561,7 +581,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             <MapPinIcon className="h-4 w-4 text-primary" />
                             Activities
                           </h3>
-                          {itinerary.activities.map((activity, activityIndex) => (
+                          {Array.isArray(itinerary.activities) ? itinerary.activities.map((activity, activityIndex) => (
                             <div key={activityIndex} className="mb-6 p-4 border border-slate-200 rounded-lg bg-white shadow-sm">
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="text-sm font-medium text-slate-700">Activity {activityIndex + 1}</h4>
@@ -668,7 +688,11 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 </FormItem>
                               </div>
                             </div>
-                          ))}
+                          )) : (
+                            <div className="text-sm text-gray-500 p-4 border rounded-lg">
+                              No activities available. Click "Add Activity" to add one.
+                            </div>
+                          )}
 
                           <div className="flex justify-end mt-2">
                             <Button

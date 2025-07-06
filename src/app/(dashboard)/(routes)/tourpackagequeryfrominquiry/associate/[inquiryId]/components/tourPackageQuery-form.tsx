@@ -461,19 +461,23 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         })) || [],
         hotelId: itinerary.hotelId || '', // Use optional default
         // Map roomAllocations and transportDetails, ensuring types match the new schema
-        roomAllocations: (itinerary as any).roomAllocations?.map((alloc: any) => ({
-          roomTypeId: alloc.roomTypeId || alloc.roomType || '',
-          occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
-          mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
-          quantity: Number(alloc.quantity) || 1,
-          guestNames: alloc.guestNames || ''
-        })) || [],
-        transportDetails: (itinerary as any).transportDetails?.map((detail: any) => ({
-          vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
-          transportType: detail.transportType || '',
-          quantity: Number(detail.quantity) || 1,
-          description: detail.description || ''
-        })) || [],
+        roomAllocations: Array.isArray((itinerary as any).roomAllocations) 
+          ? (itinerary as any).roomAllocations.map((alloc: any) => ({
+              roomTypeId: alloc.roomTypeId || alloc.roomType || '',
+              occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
+              mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
+              quantity: Number(alloc.quantity) || 1,
+              guestNames: alloc.guestNames || ''
+            }))
+          : [],
+        transportDetails: Array.isArray((itinerary as any).transportDetails)
+          ? (itinerary as any).transportDetails.map((detail: any) => ({
+              vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
+              transportType: detail.transportType || '',
+              quantity: Number(detail.quantity) || 1,
+              description: detail.description || ''
+            }))
+          : [],
       })) || [];
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({

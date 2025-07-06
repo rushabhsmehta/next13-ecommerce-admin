@@ -110,40 +110,178 @@ export const ExpensesClient: React.FC<ExpensesClientProps> = ({
   const generatePDF = () => {
     const doc = new jsPDF();
 
-    // Add report title
-    doc.setFontSize(18);
-    doc.text("Expense Report", 14, 22);
-
-    // Add date
+    // Company header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Aagam Holidays", 14, 20);
+    
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.setFont("helvetica", "normal");
+    doc.text("Travel & Tourism Services", 14, 28);
 
-    // Add summary metrics
-    doc.setFontSize(12);
-    doc.text(`Total Expenses: ${formatPrice(totalAmount)}`, 14, 40);
-    if (filteredCategory || filteredStatus || dateFrom || dateTo) {
-      doc.text(`Filtered Total: ${formatPrice(filteredTotal)}`, 14, 48);
+    // Report title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("EXPENSE REPORT", 14, 45);
+
+    // Report metadata
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm a")}`, 14, 55);
+    
+    // Add filter information if any filters are applied
+    let yPosition = 65;
+    if (filteredCategory || filteredStatus || dateFrom || dateTo || searchQuery) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Applied Filters:", 14, yPosition);
+      yPosition += 8;
+      
+      doc.setFont("helvetica", "normal");
+      if (filteredCategory) {
+        doc.text(`• Category: ${filteredCategory}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (filteredStatus) {
+        doc.text(`• Status: ${filteredStatus}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (dateFrom) {
+        doc.text(`• Date From: ${format(dateFrom, "MMM d, yyyy")}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (dateTo) {
+        doc.text(`• Date To: ${format(dateTo, "MMM d, yyyy")}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (searchQuery) {
+        doc.text(`• Search: ${searchQuery}`, 20, yPosition);
+        yPosition += 6;
+      }
+      yPosition += 5;
     }
 
-    // Add table data
+    // Summary section with better formatting
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("SUMMARY", 14, yPosition);
+    yPosition += 10;
+
+    // Summary box background
+    doc.setFillColor(245, 245, 245);
+    doc.rect(14, yPosition - 5, 180, 25, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Expenses (All): ${formatPrice(totalAmount)}`, 20, yPosition + 5);
+    doc.text(`Number of Transactions (All): ${expenses.length}`, 20, yPosition + 12);
+    
+    if (filteredCategory || filteredStatus || dateFrom || dateTo || searchQuery) {
+      doc.setFont("helvetica", "bold");
+      doc.text(`Filtered Total: ${formatPrice(filteredTotal)}`, 110, yPosition + 5);
+      doc.text(`Filtered Transactions: ${filteredExpenses.length}`, 110, yPosition + 12);
+    }
+    
+    yPosition += 35;
+
+    // Category breakdown if we have data
+    if (filteredExpenses.length > 0) {
+      const categoryTotals = filteredExpenses.reduce((acc, expense) => {
+        const category = expense.expenseCategory?.name || "Uncategorized";
+        acc[category] = (acc[category] || 0) + expense.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+      if (Object.keys(categoryTotals).length > 1) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("CATEGORY BREAKDOWN", 14, yPosition);
+        yPosition += 10;
+
+        Object.entries(categoryTotals)
+          .sort(([,a], [,b]) => (b as number) - (a as number))
+          .slice(0, 5) // Top 5 categories
+          .forEach(([category, amount]) => {
+            const categoryAmount = amount as number;
+            const percentage = ((categoryAmount / filteredTotal) * 100).toFixed(1);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`• ${category}: ${formatPrice(categoryAmount)} (${percentage}%)`, 20, yPosition);
+            yPosition += 6;
+          });
+        
+        yPosition += 10;
+      }
+    }
+
+    // Transactions table
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("TRANSACTION DETAILS", 14, yPosition);
+    yPosition += 10;
+
+    // Prepare table data with better formatting
     const tableData = filteredExpenses.map(expense => [
-      format(new Date(expense.expenseDate), "MMM d, yyyy"),
-      expense.expenseCategory?.name || "N/A",
-      expense.description || "No description",
+      format(new Date(expense.expenseDate), "dd/MM/yyyy"),
+      expense.expenseCategory?.name || "Uncategorized",
+      expense.description || "No description provided",
       expense.isAccrued ? "Accrued" : "Paid",
-      `${formatPrice(expense.amount)}`
+      formatPrice(expense.amount)
     ]);
 
-    // Add the table
+    // Enhanced table styling
     autoTable(doc, {
       head: [["Date", "Category", "Description", "Status", "Amount"]],
       body: tableData,
-      startY: filteredCategory || filteredStatus || dateFrom || dateTo ? 55 : 48,
+      startY: yPosition,
+      styles: { 
+        fontSize: 9,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: { 
+        fillColor: [52, 73, 94],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 10
+      },
+      columnStyles: {
+        0: { cellWidth: 25, halign: 'center' }, // Date
+        1: { cellWidth: 35 }, // Category
+        2: { cellWidth: 55 }, // Description
+        3: { cellWidth: 25, halign: 'center' }, // Status
+        4: { cellWidth: 30, halign: 'right' } // Amount
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249]
+      },
+      tableLineColor: [200, 200, 200],
+      tableLineWidth: 0.1,
+      margin: { left: 14, right: 14 }
     });
 
-    // Download the PDF
+    // Footer with totals
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(52, 73, 94);
+    doc.rect(14, finalY - 5, 180, 20, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text(`TOTAL: ${formatPrice(filteredTotal)}`, 150, finalY + 8);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Report generated by Aagam Holidays Management System`, 14, finalY + 25);
+
+    // Download the PDF with descriptive filename
     const today = new Date().toISOString().split('T')[0];
-    doc.save(`expense-report-${today}.pdf`);
+    const categoryText = filteredCategory ? `-${filteredCategory.replace(/\s+/g, '-')}` : '';
+    const filename = `expense-report${categoryText}-${today}.pdf`;
+    doc.save(filename);
   };
 
   // Function to generate and download Excel

@@ -101,39 +101,172 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
   const generatePDF = () => {
     const doc = new jsPDF();
 
-    // Add report title
-    doc.setFontSize(18);
-    doc.text("Expense Ledger Report", 14, 22);
-
-    // Add date
+    // Company header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Aagam Holidays", 14, 20);
+    
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.setFont("helvetica", "normal");
+    doc.text("Travel & Tourism Services", 14, 28);
 
-    // Add summary metrics
-    doc.setFontSize(12);
-    doc.text(`Total Expenses: ₹ ${formatPrice(totalExpenses, { forPDF: true })}`, 14, 40);
+    // Report title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("EXPENSE LEDGER REPORT", 14, 45);
+
+    // Report metadata
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm a")}`, 14, 55);
+
+    // Filter information
+    let yPosition = 65;
     if (filteredCategory || filteredPaymentMode || dateFrom || dateTo) {
-      doc.text(`Filtered Total: ₹ ${formatPrice(filteredTotal, { forPDF: true })}`, 14, 48);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Applied Filters:", 14, yPosition);
+      yPosition += 8;
+      
+      doc.setFont("helvetica", "normal");
+      if (filteredCategory) {
+        doc.text(`• Category: ${filteredCategory}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (filteredPaymentMode) {
+        doc.text(`• Payment Mode: ${filteredPaymentMode}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (dateFrom) {
+        doc.text(`• Date From: ${format(dateFrom, "MMM d, yyyy")}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (dateTo) {
+        doc.text(`• Date To: ${format(dateTo, "MMM d, yyyy")}`, 20, yPosition);
+        yPosition += 6;
+      }
+      yPosition += 5;
     }
 
-    // Add table data
+    // Summary section
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("SUMMARY", 14, yPosition);
+    yPosition += 10;
+
+    // Summary box background
+    doc.setFillColor(245, 245, 245);
+    doc.rect(14, yPosition - 5, 180, 25, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Expenses (All): ${formatPrice(totalExpenses)}`, 20, yPosition + 5);
+    doc.text(`Number of Transactions (All): ${expenses.length}`, 20, yPosition + 12);
+    
+    if (filteredCategory || filteredPaymentMode || dateFrom || dateTo) {
+      doc.setFont("helvetica", "bold");
+      doc.text(`Filtered Total: ${formatPrice(filteredTotal)}`, 110, yPosition + 5);
+      doc.text(`Filtered Transactions: ${filteredExpenses.length}`, 110, yPosition + 12);
+    }
+    
+    yPosition += 35;
+
+    // Category breakdown if we have data
+    if (filteredExpenses.length > 0) {
+      const categoryTotals = filteredExpenses.reduce((acc, expense) => {
+        const category = expense.category;
+        acc[category] = (acc[category] || 0) + expense.amount;
+        return acc;
+      }, {} as Record<string, number>);
+
+      if (Object.keys(categoryTotals).length > 1) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("CATEGORY BREAKDOWN", 14, yPosition);
+        yPosition += 10;
+
+        Object.entries(categoryTotals)
+          .sort(([,a], [,b]) => (b as number) - (a as number))
+          .slice(0, 5) // Top 5 categories
+          .forEach(([category, amount]) => {
+            const categoryAmount = amount as number;
+            const percentage = ((categoryAmount / filteredTotal) * 100).toFixed(1);
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            doc.text(`• ${category}: ${formatPrice(categoryAmount)} (${percentage}%)`, 20, yPosition);
+            yPosition += 6;
+          });
+        
+        yPosition += 10;
+      }
+    }
+
+    // Transactions table
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("EXPENSE TRANSACTION DETAILS", 14, yPosition);
+    yPosition += 10;
+
+    // Prepare table data with better formatting
     const tableData = filteredExpenses.map(expense => [
-      expense.date,
+      format(new Date(expense.date), "dd/MM/yyyy"),
       expense.category,
-      expense.packageName,
-      expense.description,
+      expense.packageName || "General",
+      expense.description || "No description",
       expense.paymentMode,
       expense.account,
-      `₹ ${formatPrice(expense.amount, { forPDF: true })}`
+      formatPrice(expense.amount)
     ]);
 
-    // Add the table
+    // Enhanced table styling
     autoTable(doc, {
       head: [["Date", "Category", "Package", "Description", "Mode", "Account", "Amount"]],
       body: tableData,
-      startY: 55,
-      styles: { fontSize: 10 } // Ensure consistent font size
+      startY: yPosition,
+      styles: { 
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: { 
+        fillColor: [220, 38, 38],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      columnStyles: {
+        0: { cellWidth: 20, halign: 'center' }, // Date
+        1: { cellWidth: 25 }, // Category
+        2: { cellWidth: 25 }, // Package
+        3: { cellWidth: 40 }, // Description
+        4: { cellWidth: 20, halign: 'center' }, // Mode
+        5: { cellWidth: 25 }, // Account
+        6: { cellWidth: 25, halign: 'right' } // Amount
+      },
+      alternateRowStyles: {
+        fillColor: [254, 242, 242]
+      },
+      tableLineColor: [200, 200, 200],
+      tableLineWidth: 0.1,
+      margin: { left: 14, right: 14 }
     });
+
+    // Footer with totals
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(220, 38, 38);
+    doc.rect(14, finalY - 5, 180, 20, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text(`TOTAL EXPENSES: ${formatPrice(filteredTotal)}`, 130, finalY + 8);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Report generated by Aagam Holidays Management System`, 14, finalY + 25);
 
     // Add footer with page numbers
     const pageCount = doc.getNumberOfPages();
@@ -144,7 +277,7 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
       const pageHeight = pageSize.getHeight();
 
       doc.setFontSize(8);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, pageHeight - 10);
+      doc.setTextColor(100, 100, 100);
       doc.text(`Page ${i} of ${pageCount}`, pageWidth - 30, pageHeight - 10);
     }
 

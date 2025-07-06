@@ -88,37 +88,142 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
   const generatePDF = () => {
     const doc = new jsPDF();
 
-    // Add report title
-    doc.setFontSize(18);
-    doc.text("Accrued Expenses Report", 14, 22);
+    // Company header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Aagam Holidays", 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Travel & Tourism Services", 14, 28);
 
-    // Add date
+    // Report title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("ACCRUED EXPENSES REPORT", 14, 45);
+
+    // Report metadata
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm a")}`, 14, 55);
+
+    // Summary section with enhanced formatting
     doc.setFontSize(12);
-    doc.text(`Generated on: ${format(new Date(), "PPP")}`, 14, 30);
+    doc.setFont("helvetica", "bold");
+    doc.text("SUMMARY", 14, 70);
 
-    // Add summary
-    doc.text(`Total Accrued Amount: ${formatPrice(totalAccruedAmount)}`, 14, 38);
-    doc.text(`Total Number of Expenses: ${accruedExpenses.length}`, 14, 46);    // Prepare table data
+    // Summary box background
+    doc.setFillColor(252, 165, 165); // Light red background for accrued expenses
+    doc.rect(14, 75, 180, 35, 'F');
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Accrued Amount: ${formatPrice(totalAccruedAmount)}`, 20, 85);
+    doc.text(`Total Number of Expenses: ${accruedExpenses.length}`, 20, 95);
+    
+    // Add oldest expense info if available
+    if (oldestExpense) {
+      doc.setFont("helvetica", "normal");
+      doc.text(`Oldest Accrued Expense: ${format(new Date(oldestExpense.accruedDate), "MMM d, yyyy")}`, 20, 105);
+      doc.text(`Amount: ${formatPrice(oldestExpense.amount)}`, 120, 105);
+    }
+
+    // Category breakdown
+    let yPosition = 125;
+    if (Object.keys(expensesByCategory).length > 0) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("CATEGORY BREAKDOWN", 14, yPosition);
+      yPosition += 10;
+
+      Object.entries(expensesByCategory)
+        .sort(([,a], [,b]) => (b as any).amount - (a as any).amount)
+        .slice(0, 5)
+        .forEach(([category, data]) => {
+          const categoryData = data as { count: number; amount: number };
+          const percentage = ((categoryData.amount / totalAccruedAmount) * 100).toFixed(1);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.text(`• ${category}: ${categoryData.count} expenses - ${formatPrice(categoryData.amount)} (${percentage}%)`, 20, yPosition);
+          yPosition += 6;
+        });
+      
+      yPosition += 15;
+    }
+
+    // Transactions table
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("ACCRUED EXPENSE DETAILS", 14, yPosition);
+    yPosition += 10;
+
+    // Prepare table data
     const tableData = filteredExpenses.map(expense => [
-      format(new Date(expense.accruedDate), "MMM d, yyyy"),
-      expense.expenseCategory?.name || "N/A",
-      expense.description || "No description",
-      expense.tourPackageQuery?.tourPackageQueryName || "N/A",
+      format(new Date(expense.accruedDate), "dd/MM/yyyy"),
+      expense.expenseCategory?.name || "Uncategorized",
+      expense.description || "No description provided",
+      expense.tourPackageQuery?.tourPackageQueryName || "General",
       formatPrice(expense.amount)
     ]);
 
-    // Add table
+    // Enhanced table styling
     autoTable(doc, {
-      head: [["Accrued Date", "Category", "Description", "Tour", "Amount"]],
+      head: [["Accrued Date", "Category", "Description", "Tour Package", "Amount"]],
       body: tableData,
-      startY: 54,
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [239, 68, 68] },
+      startY: yPosition,
+      styles: { 
+        fontSize: 9,
+        cellPadding: 3,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: { 
+        fillColor: [220, 38, 38], // Red theme for accrued expenses
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 10
+      },
+      columnStyles: {
+        0: { cellWidth: 25, halign: 'center' }, // Date
+        1: { cellWidth: 30 }, // Category
+        2: { cellWidth: 50 }, // Description
+        3: { cellWidth: 45 }, // Tour Package
+        4: { cellWidth: 25, halign: 'right' } // Amount
+      },
+      alternateRowStyles: {
+        fillColor: [254, 242, 242] // Very light red
+      },
+      tableLineColor: [200, 200, 200],
+      tableLineWidth: 0.1,
+      margin: { left: 14, right: 14 }
     });
+
+    // Footer with totals and warning
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Total box
+    doc.setFillColor(220, 38, 38);
+    doc.rect(14, finalY - 5, 180, 20, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text(`TOTAL ACCRUED: ${formatPrice(totalAccruedAmount)}`, 140, finalY + 8);
+    
+    // Warning note
+    doc.setTextColor(220, 38, 38);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("⚠ These expenses are accrued and require payment processing", 14, finalY + 30);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Report generated by Aagam Holidays Management System`, 14, finalY + 40);
 
     // Save the PDF
     const today = new Date().toISOString().split('T')[0];
-    doc.save(`accrued-expenses-${today}.pdf`);
+    doc.save(`accrued-expenses-report-${today}.pdf`);
   };
 
   // Generate Excel report

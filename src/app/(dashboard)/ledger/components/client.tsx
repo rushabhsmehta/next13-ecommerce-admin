@@ -127,27 +127,156 @@ export const ComprehensiveLedgerClient: React.FC<ComprehensiveLedgerClientProps>
   const downloadPDF = () => {
     const doc = new jsPDF();
     
-    doc.text('Complete Financial Ledger', 20, 20);
-    doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, 20, 30);
+    // Company header
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Aagam Holidays", 14, 20);
     
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Travel & Tourism Services", 14, 28);
+
+    // Report title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("COMPREHENSIVE FINANCIAL LEDGER", 14, 45);
+
+    // Report metadata
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated on: ${format(new Date(), "EEEE, MMMM d, yyyy 'at' h:mm a")}`, 14, 55);
+
+    // Filter information
+    let yPosition = 65;
+    if (filteredCategory || filteredPaymentMode || filteredType || dateFrom || dateTo) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Applied Filters:", 14, yPosition);
+      yPosition += 8;
+      
+      doc.setFont("helvetica", "normal");
+      if (filteredCategory) {
+        doc.text(`• Category: ${filteredCategory}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (filteredType) {
+        doc.text(`• Type: ${filteredType}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (filteredPaymentMode) {
+        doc.text(`• Payment Mode: ${filteredPaymentMode}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (dateFrom) {
+        doc.text(`• Date From: ${format(dateFrom, "MMM d, yyyy")}`, 20, yPosition);
+        yPosition += 6;
+      }
+      if (dateTo) {
+        doc.text(`• Date To: ${format(dateTo, "MMM d, yyyy")}`, 20, yPosition);
+        yPosition += 6;
+      }
+      yPosition += 5;
+    }
+
+    // Summary section
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("FINANCIAL SUMMARY", 14, yPosition);
+    yPosition += 10;
+
+    // Summary boxes
+    doc.setFillColor(229, 231, 235);
+    doc.rect(14, yPosition - 5, 180, 30, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Income: ${formatPrice(filteredIncomeTotal)}`, 20, yPosition + 5);
+    doc.text(`Total Expenses: ${formatPrice(filteredExpenseTotal)}`, 20, yPosition + 12);
+    doc.setFont("helvetica", "bold");
+    const netColor = filteredNetBalance >= 0 ? [34, 197, 94] : [239, 68, 68];
+    doc.setTextColor(netColor[0], netColor[1], netColor[2]);
+    doc.text(`Net Balance: ${formatPrice(filteredNetBalance)}`, 20, yPosition + 19);
+    doc.setTextColor(0, 0, 0);
+    
+    doc.setFont("helvetica", "normal");
+    doc.text(`Income Transactions: ${filteredIncomes.length}`, 110, yPosition + 5);
+    doc.text(`Expense Transactions: ${filteredExpenses.length}`, 110, yPosition + 12);
+    doc.text(`Total Transactions: ${filteredTransactions.length}`, 110, yPosition + 19);
+    
+    yPosition += 40;
+
+    // Transactions table
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("TRANSACTION DETAILS", 14, yPosition);
+    yPosition += 10;
+
     const tableData = filteredTransactions.map(transaction => [
-      format(new Date(transaction.date), 'MMM d, yyyy'),
+      format(new Date(transaction.date), 'dd/MM/yyyy'),
       transaction.type.toUpperCase(),
       transaction.category,
-      transaction.packageName || 'N/A',
+      transaction.packageName || 'General',
       transaction.description || 'No description',
       transaction.paymentMode,
       transaction.account,
       formatPrice(transaction.amount)
     ]);
 
+    // Enhanced table styling
     autoTable(doc, {
       head: [['Date', 'Type', 'Category', 'Package', 'Description', 'Mode', 'Account', 'Amount']],
       body: tableData,
-      startY: 40,
+      startY: yPosition,
+      styles: { 
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        halign: 'left'
+      },
+      headStyles: { 
+        fillColor: [52, 73, 94],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      columnStyles: {
+        0: { cellWidth: 20, halign: 'center' }, // Date
+        1: { cellWidth: 15, halign: 'center' }, // Type
+        2: { cellWidth: 25 }, // Category
+        3: { cellWidth: 25 }, // Package
+        4: { cellWidth: 35 }, // Description
+        5: { cellWidth: 20, halign: 'center' }, // Mode
+        6: { cellWidth: 25 }, // Account
+        7: { cellWidth: 25, halign: 'right' } // Amount
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249]
+      },
+      tableLineColor: [200, 200, 200],
+      tableLineWidth: 0.1,
+      margin: { left: 14, right: 14 }
     });
 
-    doc.save('comprehensive-ledger.pdf');
+    // Footer
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(52, 73, 94);
+    doc.rect(14, finalY - 5, 180, 20, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text(`NET BALANCE: ${formatPrice(filteredNetBalance)}`, 130, finalY + 8);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Report generated by Aagam Holidays Management System`, 14, finalY + 25);
+
+    const today = new Date().toISOString().split('T')[0];
+    const categoryText = filteredCategory ? `-${filteredCategory.replace(/\s+/g, '-')}` : '';
+    const filename = `comprehensive-ledger${categoryText}-${today}.pdf`;
+    doc.save(filename);
   };
 
   // Function to generate and download Excel

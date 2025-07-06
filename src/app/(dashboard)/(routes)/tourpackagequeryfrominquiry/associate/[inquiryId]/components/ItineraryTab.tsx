@@ -532,10 +532,31 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             </h4>
                             {(() => {
                               // Ensure roomAllocations is always an array
+                              console.log('=== ItineraryTab Room Allocation Safety Check ===');
+                              console.log('itineraryIndex:', index);
+                              
                               const currentItinerary = form.getValues(`itineraries.${index}`);
+                              console.log('currentItinerary:', currentItinerary);
+                              console.log('currentItinerary.roomAllocations:', currentItinerary?.roomAllocations);
+                              console.log('roomAllocations isArray:', Array.isArray(currentItinerary?.roomAllocations));
+                              
                               if (!Array.isArray(currentItinerary?.roomAllocations)) {
+                                console.warn('FIXING: roomAllocations is not an array, setting to empty array');
+                                console.log('Before fix - roomAllocations value:', currentItinerary?.roomAllocations);
                                 form.setValue(`itineraries.${index}.roomAllocations`, []);
+                                console.log('After fix - roomAllocations set to empty array');
+                              } else {
+                                console.log('roomAllocations is already an array with length:', currentItinerary.roomAllocations.length);
                               }
+                              
+                              console.log('Rendering RoomAllocationComponent with props:');
+                              console.log('- control:', control);
+                              console.log('- itineraryIndex:', index);
+                              console.log('- roomTypes:', roomTypes, 'isArray:', Array.isArray(roomTypes));
+                              console.log('- occupancyTypes:', occupancyTypes, 'isArray:', Array.isArray(occupancyTypes));
+                              console.log('- mealPlans:', mealPlans, 'isArray:', Array.isArray(mealPlans));
+                              console.log('- loading:', isAssociatePartner ? !enableRoomAllocation : loading);
+                              
                               return (
                                 <RoomAllocationComponent
                                   control={control}

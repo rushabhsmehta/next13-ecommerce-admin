@@ -32,19 +32,52 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
   mealPlans,
   loading
 }) => {
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: `itineraries.${itineraryIndex}.roomAllocations`
-  });
+  // Add comprehensive logging
+  console.log('=== RoomAllocationComponent Debug ===');
+  console.log('itineraryIndex:', itineraryIndex);
+  console.log('roomTypes:', roomTypes, 'isArray:', Array.isArray(roomTypes));
+  console.log('occupancyTypes:', occupancyTypes, 'isArray:', Array.isArray(occupancyTypes));
+  console.log('mealPlans:', mealPlans, 'isArray:', Array.isArray(mealPlans));
+  console.log('loading:', loading);
+
+  let fields, append, remove;
+  try {
+    console.log('Attempting useFieldArray with name:', `itineraries.${itineraryIndex}.roomAllocations`);
+    const fieldArray = useFieldArray({
+      control,
+      name: `itineraries.${itineraryIndex}.roomAllocations`
+    });
+    fields = fieldArray.fields;
+    append = fieldArray.append;
+    remove = fieldArray.remove;
+    console.log('useFieldArray successful, fields:', fields, 'isArray:', Array.isArray(fields));
+  } catch (error) {
+    console.error('Error in useFieldArray:', error);
+    console.log('control object:', control);
+    throw error;
+  }
 
   const handleAddRoom = () => {
-    append({
-      roomTypeId: roomTypes.length > 0 ? roomTypes[0].id : '',
-      occupancyTypeId: occupancyTypes.length > 0 ? occupancyTypes[0].id : '',
-      mealPlanId: mealPlans.length > 0 ? mealPlans[0].id : '',
-      quantity: 1,
-      guestNames: ''
-    });
+    console.log('=== handleAddRoom called ===');
+    console.log('roomTypes before append:', roomTypes);
+    console.log('occupancyTypes before append:', occupancyTypes);
+    console.log('mealPlans before append:', mealPlans);
+    
+    try {
+      const newRoom = {
+        roomTypeId: Array.isArray(roomTypes) && roomTypes.length > 0 ? roomTypes[0].id : '',
+        occupancyTypeId: Array.isArray(occupancyTypes) && occupancyTypes.length > 0 ? occupancyTypes[0].id : '',
+        mealPlanId: Array.isArray(mealPlans) && mealPlans.length > 0 ? mealPlans[0].id : '',
+        quantity: 1,
+        guestNames: ''
+      };
+      console.log('Appending room:', newRoom);
+      append(newRoom);
+      console.log('Room appended successfully');
+    } catch (error) {
+      console.error('Error in handleAddRoom:', error);
+      throw error;
+    }
   };
 
   return (
@@ -59,7 +92,28 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
       </div>
 
       <div className="p-4 space-y-4">
-        {fields.map((field, roomIndex) => (
+        {(() => {
+          console.log('=== Render section debug ===');
+          console.log('fields before map:', fields);
+          console.log('fields type:', typeof fields);
+          console.log('fields isArray:', Array.isArray(fields));
+          console.log('fields length:', fields?.length);
+          
+          if (!Array.isArray(fields)) {
+            console.error('CRITICAL: fields is not an array!', fields);
+            return (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-medium">Error: Room allocations data is not properly formatted</p>
+                <p className="text-red-600 text-sm mt-1">Expected array, got: {typeof fields}</p>
+                <pre className="text-xs mt-2 bg-red-100 p-2 rounded">{JSON.stringify(fields, null, 2)}</pre>
+              </div>
+            );
+          }
+
+          try {
+            return fields.map((field, roomIndex) => {
+              console.log(`Rendering room ${roomIndex}:`, field);
+              return (
           <div key={field.id} className="border border-blue-200 rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-blue-100">
               <h4 className="text-sm font-medium text-blue-900 flex items-center gap-2">
@@ -243,7 +297,18 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
               />
             </div>
           </div>
-        ))}
+              );
+            });
+          } catch (error) {
+            console.error('Error in fields.map:', error);
+            return (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800 font-medium">Error rendering room allocations</p>
+                <pre className="text-xs mt-2 bg-red-100 p-2 rounded">{String(error)}</pre>
+              </div>
+            );
+          }
+        })()}
 
         <Button
           type="button"

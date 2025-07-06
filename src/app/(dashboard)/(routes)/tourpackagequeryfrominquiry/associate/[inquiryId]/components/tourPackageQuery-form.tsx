@@ -409,8 +409,14 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
   };
 
   const handleTourPackageSelection = (selectedTourPackageId: string) => {
+    console.log('=== Tour Package Selection Started ===');
+    console.log('selectedTourPackageId:', selectedTourPackageId);
+    
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
+    console.log('Found selectedTourPackage:', selectedTourPackage);
+    
     if (selectedTourPackage) {
+      console.log('Processing tour package itineraries:', selectedTourPackage.itineraries);
       // Add this line to update the tourPackageTemplate field 
       form.setValue('tourPackageTemplate', selectedTourPackageId);
       // Set the selected template info 
@@ -462,14 +468,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         hotelId: itinerary.hotelId || '', // Use optional default
         // Map roomAllocations and transportDetails, ensuring types match the new schema
         roomAllocations: Array.isArray((itinerary as any).roomAllocations) 
-          ? (itinerary as any).roomAllocations.map((alloc: any) => ({
-              roomTypeId: alloc.roomTypeId || alloc.roomType || '',
-              occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
-              mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
-              quantity: Number(alloc.quantity) || 1,
-              guestNames: alloc.guestNames || ''
-            }))
-          : [],
+          ? (itinerary as any).roomAllocations.map((alloc: any) => {
+              console.log('Mapping roomAllocation:', alloc);
+              return {
+                roomTypeId: alloc.roomTypeId || alloc.roomType || '',
+                occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
+                mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
+                quantity: Number(alloc.quantity) || 1,
+                guestNames: alloc.guestNames || ''
+              };
+            })
+          : (() => {
+              console.log('roomAllocations is not an array, setting to empty array. Value was:', (itinerary as any).roomAllocations);
+              return [];
+            })(),
         transportDetails: Array.isArray((itinerary as any).transportDetails)
           ? (itinerary as any).transportDetails.map((detail: any) => ({
               vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
@@ -479,6 +491,22 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             }))
           : [],
       })) || [];
+      
+      console.log('=== Final transformedItineraries ===');
+      console.log('transformedItineraries length:', transformedItineraries.length);
+      transformedItineraries.forEach((itinerary, index) => {
+        console.log(`Itinerary ${index}:`, {
+          title: itinerary.itineraryTitle,
+          roomAllocations: itinerary.roomAllocations,
+          roomAllocationsIsArray: Array.isArray(itinerary.roomAllocations),
+          transportDetails: itinerary.transportDetails,
+          transportDetailsIsArray: Array.isArray(itinerary.transportDetails),
+          activities: itinerary.activities,
+          activitiesIsArray: Array.isArray(itinerary.activities)
+        });
+      });
+      
+      console.log('Setting form itineraries...');
       form.setValue('itineraries', transformedItineraries);
       form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
         date: flight.date || undefined,

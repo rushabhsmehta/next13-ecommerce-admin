@@ -40,7 +40,7 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
   console.log('mealPlans:', mealPlans, 'isArray:', Array.isArray(mealPlans));
   console.log('loading:', loading);
 
-  let fields, append, remove;
+  let fields: any[], append: (value: any) => void, remove: (index: number) => void;
   try {
     console.log('Attempting useFieldArray with name:', `itineraries.${itineraryIndex}.roomAllocations`);
     const fieldArray = useFieldArray({

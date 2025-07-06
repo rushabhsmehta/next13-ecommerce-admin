@@ -190,12 +190,12 @@ export const ComprehensiveLedgerClient: React.FC<ComprehensiveLedgerClientProps>
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Total Income: ${formatPrice(filteredIncomeTotal)}`, 20, yPosition + 5);
-    doc.text(`Total Expenses: ${formatPrice(filteredExpenseTotal)}`, 20, yPosition + 12);
+    doc.text(`Total Income: ${formatPrice(filteredIncomeTotal, { forPDF: true })}`, 20, yPosition + 5);
+    doc.text(`Total Expenses: ${formatPrice(filteredExpenseTotal, { forPDF: true })}`, 20, yPosition + 12);
     doc.setFont("helvetica", "bold");
     const netColor = filteredNetBalance >= 0 ? [34, 197, 94] : [239, 68, 68];
     doc.setTextColor(netColor[0], netColor[1], netColor[2]);
-    doc.text(`Net Balance: ${formatPrice(filteredNetBalance)}`, 20, yPosition + 19);
+    doc.text(`Net Balance: ${formatPrice(filteredNetBalance, { forPDF: true })}`, 20, yPosition + 19);
     doc.setTextColor(0, 0, 0);
     
     doc.setFont("helvetica", "normal");
@@ -219,7 +219,7 @@ export const ComprehensiveLedgerClient: React.FC<ComprehensiveLedgerClientProps>
       transaction.description || 'No description',
       transaction.paymentMode,
       transaction.account,
-      formatPrice(transaction.amount)
+      formatPrice(transaction.amount, { forPDF: true })
     ]);
 
     // Enhanced table styling
@@ -266,7 +266,7 @@ export const ComprehensiveLedgerClient: React.FC<ComprehensiveLedgerClientProps>
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text(`NET BALANCE: ${formatPrice(filteredNetBalance)}`, 130, finalY + 8);
+    doc.text(`NET BALANCE: ${formatPrice(filteredNetBalance, { forPDF: true })}`, 130, finalY + 8);
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8);

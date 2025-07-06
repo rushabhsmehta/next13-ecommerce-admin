@@ -160,12 +160,12 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Total Expenses (All): ${formatPrice(totalExpenses)}`, 20, yPosition + 5);
+    doc.text(`Total Expenses (All): ${formatPrice(totalExpenses, { forPDF: true })}`, 20, yPosition + 5);
     doc.text(`Number of Transactions (All): ${expenses.length}`, 20, yPosition + 12);
     
     if (filteredCategory || filteredPaymentMode || dateFrom || dateTo) {
       doc.setFont("helvetica", "bold");
-      doc.text(`Filtered Total: ${formatPrice(filteredTotal)}`, 110, yPosition + 5);
+      doc.text(`Filtered Total: ${formatPrice(filteredTotal, { forPDF: true })}`, 110, yPosition + 5);
       doc.text(`Filtered Transactions: ${filteredExpenses.length}`, 110, yPosition + 12);
     }
     
@@ -193,7 +193,7 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
             const percentage = ((categoryAmount / filteredTotal) * 100).toFixed(1);
             doc.setFontSize(9);
             doc.setFont("helvetica", "normal");
-            doc.text(`• ${category}: ${formatPrice(categoryAmount)} (${percentage}%)`, 20, yPosition);
+            doc.text(`• ${category}: ${formatPrice(categoryAmount, { forPDF: true })} (${percentage}%)`, 20, yPosition);
             yPosition += 6;
           });
         
@@ -215,7 +215,7 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
       expense.description || "No description",
       expense.paymentMode,
       expense.account,
-      formatPrice(expense.amount)
+      formatPrice(expense.amount, { forPDF: true })
     ]);
 
     // Enhanced table styling
@@ -261,7 +261,7 @@ export const ExpenseLedgerClient: React.FC<ExpenseLedgerClientProps> = ({
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text(`TOTAL EXPENSES: ${formatPrice(filteredTotal)}`, 130, finalY + 8);
+    doc.text(`TOTAL EXPENSES: ${formatPrice(filteredTotal, { forPDF: true })}`, 130, finalY + 8);
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8);

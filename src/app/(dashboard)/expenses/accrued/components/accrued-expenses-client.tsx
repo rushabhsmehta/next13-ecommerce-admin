@@ -118,14 +118,14 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
     
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text(`Total Accrued Amount: ${formatPrice(totalAccruedAmount)}`, 20, 85);
+    doc.text(`Total Accrued Amount: ${formatPrice(totalAccruedAmount, { forPDF: true })}`, 20, 85);
     doc.text(`Total Number of Expenses: ${accruedExpenses.length}`, 20, 95);
     
     // Add oldest expense info if available
     if (oldestExpense) {
       doc.setFont("helvetica", "normal");
       doc.text(`Oldest Accrued Expense: ${format(new Date(oldestExpense.accruedDate), "MMM d, yyyy")}`, 20, 105);
-      doc.text(`Amount: ${formatPrice(oldestExpense.amount)}`, 120, 105);
+      doc.text(`Amount: ${formatPrice(oldestExpense.amount, { forPDF: true })}`, 120, 105);
     }
 
     // Category breakdown
@@ -144,7 +144,7 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
           const percentage = ((categoryData.amount / totalAccruedAmount) * 100).toFixed(1);
           doc.setFontSize(9);
           doc.setFont("helvetica", "normal");
-          doc.text(`• ${category}: ${categoryData.count} expenses - ${formatPrice(categoryData.amount)} (${percentage}%)`, 20, yPosition);
+          doc.text(`• ${category}: ${categoryData.count} expenses - ${formatPrice(categoryData.amount, { forPDF: true })} (${percentage}%)`, 20, yPosition);
           yPosition += 6;
         });
       
@@ -163,7 +163,7 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
       expense.expenseCategory?.name || "Uncategorized",
       expense.description || "No description provided",
       expense.tourPackageQuery?.tourPackageQueryName || "General",
-      formatPrice(expense.amount)
+      formatPrice(expense.amount, { forPDF: true })
     ]);
 
     // Enhanced table styling
@@ -208,7 +208,7 @@ export const AccruedExpensesClient: React.FC<AccruedExpensesClientProps> = ({
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 255, 255);
-    doc.text(`TOTAL ACCRUED: ${formatPrice(totalAccruedAmount)}`, 140, finalY + 8);
+    doc.text(`TOTAL ACCRUED: ${formatPrice(totalAccruedAmount, { forPDF: true })}`, 140, finalY + 8);
     
     // Warning note
     doc.setTextColor(220, 38, 38);

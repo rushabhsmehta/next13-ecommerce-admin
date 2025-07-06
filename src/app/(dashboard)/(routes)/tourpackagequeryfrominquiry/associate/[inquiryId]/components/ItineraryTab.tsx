@@ -62,6 +62,11 @@ interface ItineraryTabProps {
   mealPlans?: MealPlan[];
   vehicleTypes?: VehicleType[];
   // --- END ADDED LOOKUP PROPS ---
+  // --- ADDED ASSOCIATE PARTNER PROPS ---
+  isAssociatePartner?: boolean; // Flag to determine if this is for associate partners
+  enableRoomAllocation?: boolean; // Flag to enable room allocation section
+  enableTransport?: boolean; // Flag to enable transport section
+  // --- END ASSOCIATE PARTNER PROPS ---
 }
 
 const ItineraryTab: React.FC<ItineraryTabProps> = ({
@@ -76,6 +81,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   occupancyTypes = [],
   mealPlans = [],
   vehicleTypes = [],
+  // --- ASSOCIATE PARTNER PROPS ---
+  isAssociatePartner = false,
+  enableRoomAllocation = false,
+  enableTransport = false,
   // --- END DESTRUCTURE ---
 }) => {
   // Create a refs object to store multiple editor references instead of a single ref
@@ -515,6 +524,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
                               <BedIcon className="h-4 w-4 text-primary" />
                               Room Allocations
+                              {isAssociatePartner && enableRoomAllocation && (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Editable</span>
+                              )}
                             </h4>
                             <RoomAllocationComponent
                               control={control}
@@ -522,7 +534,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                               roomTypes={roomTypes} // Pass down
                               occupancyTypes={occupancyTypes} // Pass down
                               mealPlans={mealPlans} // Pass down
-                              loading={loading}
+                              loading={isAssociatePartner ? !enableRoomAllocation : loading} // Enable for associate partners when enableRoomAllocation is true
                             />
                           </div>
 
@@ -531,12 +543,15 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
                               <CarIcon className="h-4 w-4 text-primary" />
                               Transport Details
+                              {isAssociatePartner && enableTransport && (
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Editable</span>
+                              )}
                             </h4>
                             <TransportDetailsComponent
                               control={control}
                               itineraryIndex={index}
                               vehicleTypes={vehicleTypes} // Pass down
-                              loading={loading}
+                              loading={isAssociatePartner ? !enableTransport : loading} // Enable for associate partners when enableTransport is true
                             />
                           </div>
                         </div>

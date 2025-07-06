@@ -60,18 +60,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DevTool } from "@hookform/devtools"
 import { Textarea } from "@/components/ui/textarea";
 // Update imports for shared tab components
-
-import { RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Ensure types are imported
-import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
 import BasicInfoTab from "./BasicInfoTab"
 import DatesTab from "./DatesTab"
-import { TOUR_HIGHLIGHTS_DEFAULT, INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
-import FlightsTab from "./FlightsTab"
+import FlightsTab from "./FlightsTab" 
 import GuestsTab from "./GuestsTab"
 import ItineraryTab from "./ItineraryTab"
 import LocationTab from "./LocationTab"
 import PoliciesTab from "./PoliciesTab"
 import PricingTab from "./PricingTab"
+
+import { RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Ensure types are imported
+import { REMARKS_DEFAULT } from "@/app/(dashboard)/tourPackageQueryFromTourPackage/[tourPackageQueryFromTourPackageId]/components/defaultValues"
+import { TOUR_HIGHLIGHTS_DEFAULT, INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 
 
 // Define the pricing item schema
@@ -586,31 +586,32 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </CardContent>
             </Card>
           )}<Tabs defaultValue="basic" className="w-full">
-            {/* Mobile-friendly tab list with responsive grid and scroll */}
+            {/* Mobile-friendly tab list with responsive grid and scroll - Associate Partner: All tabs visible, but only Basic and Pricing editable */}
             <div className="overflow-x-auto pb-2 mb-2 -mx-4 sm:mx-0">
               <div className="min-w-full px-4 sm:px-0">
-                <TabsList className="grid min-w-max md:min-w-0 grid-cols-4 md:grid-cols-8 w-full bg-muted/60">
+                <TabsList className="grid min-w-max md:min-w-0 grid-cols-8 w-full bg-muted/60">
                   <TabsTrigger value="basic" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
                     <FileText className="h-4 w-4" />
-                    <span className="truncate">Basic</span>
+                    <span className="truncate">Tour Package Selection</span>
                   </TabsTrigger>
-                  <TabsTrigger value="guests" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                  <TabsTrigger value="guests" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
                     <Users className="h-4 w-4" />
                     <span className="truncate">Guests</span>
                   </TabsTrigger>
-                  <TabsTrigger value="location" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                  <TabsTrigger value="location" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
                     <MapPin className="h-4 w-4" />
                     <span className="truncate">Location</span>
                   </TabsTrigger>
-                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
                     <CalendarIcon className="h-4 w-4" />
                     <span className="truncate">Dates</span>
                   </TabsTrigger>
-                  <TabsTrigger value="itinerary" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                  <TabsTrigger value="itinerary" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 cursor-help" title="Room Allocation and Transport sections are editable for Associate Partners">
                     <ListPlus className="h-4 w-4" />
                     <span className="truncate">Itinerary</span>
+                    <span className="text-xs text-green-600">⚬</span>
                   </TabsTrigger>
-                  <TabsTrigger value="flights" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                  <TabsTrigger value="flights" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
                     <Plane className="h-4 w-4" />
                     <span className="truncate">Flights</span>
                   </TabsTrigger>
@@ -618,7 +619,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     <Tag className="h-4 w-4" />
                     <span className="truncate">Pricing</span>
                   </TabsTrigger>
-                  <TabsTrigger value="policies" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
+                  <TabsTrigger value="policies" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
                     <FileCheck className="h-4 w-4" />
                     <span className="truncate">Policies</span>
                   </TabsTrigger>
@@ -636,61 +637,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 openTemplate={openTemplate}
                 setOpenTemplate={setOpenTemplate}
                 handleTourPackageSelection={handleTourPackageSelection}
-                form={form}
-              />
-            </TabsContent>
-
-            {/* Use GuestsTab from shared components */}
-            <TabsContent value="guests" className="space-y-4 mt-4">
-              <GuestsTab
-                control={form.control}
-                loading={loading}
-              />
-            </TabsContent>
-
-            {/* Use LocationTab from shared components */}
-            <TabsContent value="location" className="space-y-4 mt-4">
-              <LocationTab
-                control={form.control}
-                loading={loading}
-                locations={locations}
-                form={form}
-                updateLocationDefaults={handleUseLocationDefaultsChange}
-              />
-            </TabsContent>
-
-            {/* Use DatesTab from shared components */}
-            <TabsContent value="dates" className="space-y-4 mt-4">
-              <DatesTab
-                control={form.control}
-                loading={loading}
-                form={form}
-              />
-            </TabsContent>
-
-            {/* Use ItineraryTab from shared components */}
-            <TabsContent value="itinerary" className="space-y-4 mt-4">
-              <ItineraryTab
-                control={form.control}
-                loading={loading}
-                hotels={hotels} // Correctly typed
-                activitiesMaster={activitiesMaster}
-                itinerariesMaster={itinerariesMaster}
-                form={form}
-                // --- PASS LOOKUP DATA TO ITINERARY TAB ---
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
-                vehicleTypes={vehicleTypes}
-                // --- END PASS LOOKUP DATA ---
-              />
-            </TabsContent>
-
-            {/* Use FlightsTab from shared components */}
-            <TabsContent value="flights" className="space-y-4 mt-4">
-              <FlightsTab
-                control={form.control}
-                loading={loading}
                 form={form}
               />
             </TabsContent>
@@ -713,14 +659,109 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </TabsContent>
 
-            {/* Use PoliciesTab from shared components */}
+            {/* Use GuestsTab from shared components - READ-ONLY for Associate Partners */}
+            <TabsContent value="guests" className="space-y-4 mt-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-amber-700 flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                </p>
+              </div>
+              <GuestsTab
+                control={form.control}
+                loading={true} // Always disabled for associate partners
+              />
+            </TabsContent>
+
+            {/* Use LocationTab from shared components - READ-ONLY for Associate Partners */}
+            <TabsContent value="location" className="space-y-4 mt-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-amber-700 flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                </p>
+              </div>
+              <LocationTab
+                control={form.control}
+                loading={true} // Always disabled for associate partners
+                locations={locations}
+                form={form}
+                updateLocationDefaults={() => {}} // No-op for associate partners
+              />
+            </TabsContent>
+
+            {/* Use DatesTab from shared components - READ-ONLY for Associate Partners */}
+            <TabsContent value="dates" className="space-y-4 mt-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-amber-700 flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                </p>
+              </div>
+              <DatesTab
+                control={form.control}
+                loading={true} // Always disabled for associate partners
+                form={form}
+              />
+            </TabsContent>
+
+            {/* Use ItineraryTab from shared components - PARTIALLY EDITABLE for Associate Partners */}
+            <TabsContent value="itinerary" className="space-y-4 mt-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-700 flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  For Associate Partners: Only Room Allocation and Transport sections are editable. All other fields are read-only.
+                </p>
+              </div>
+              <ItineraryTab
+                control={form.control}
+                loading={true} // Always disabled for associate partners
+                hotels={hotels}
+                activitiesMaster={activitiesMaster}
+                itinerariesMaster={itinerariesMaster}
+                form={form}
+                // --- PASS LOOKUP DATA & STATE TO ITINERARY TAB ---
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
+                // --- ASSOCIATE PARTNER SELECTIVE EDITING ---
+                isAssociatePartner={true}
+                enableRoomAllocation={true}
+                enableTransport={true}
+                // --- END PASS LOOKUP DATA & STATE ---
+              />
+            </TabsContent>
+
+            {/* Use FlightsTab from shared components - READ-ONLY for Associate Partners */}
+            <TabsContent value="flights" className="space-y-4 mt-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-amber-700 flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                </p>
+              </div>
+              <FlightsTab
+                control={form.control}
+                loading={true} // Always disabled for associate partners
+                form={form}
+              />
+            </TabsContent>
+
+            {/* Use PoliciesTab from shared components - READ-ONLY for Associate Partners */}
             <TabsContent value="policies" className="space-y-4 mt-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-amber-700 flex items-center">
+                  <AlertCircle className="mr-2 h-4 w-4" />
+                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                </p>
+              </div>
               <PoliciesTab
                 control={form.control}
-                loading={loading}
+                loading={true} // Always disabled for associate partners
                 form={form}
                 useLocationDefaults={useLocationDefaults}
-                onUseLocationDefaultsChange={handleUseLocationDefaultsChange}
+                onUseLocationDefaultsChange={() => {}} // No-op for associate partners
               />
             </TabsContent>
 

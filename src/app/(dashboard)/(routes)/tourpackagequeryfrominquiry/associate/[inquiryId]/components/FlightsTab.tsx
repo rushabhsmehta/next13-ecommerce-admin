@@ -282,3 +282,5 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
     </Card>
   );
 };
+
+export default FlightsTab;

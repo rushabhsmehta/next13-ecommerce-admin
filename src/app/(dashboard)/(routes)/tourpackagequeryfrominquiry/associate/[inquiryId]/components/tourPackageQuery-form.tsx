@@ -671,7 +671,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       <Separator className="mb-8" />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">          {Object.keys(form.formState.errors).length > 0 && (
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full max-w-full overflow-hidden">          {Object.keys(form.formState.errors).length > 0 && (
             <Card className="border-red-200 bg-red-50 mx-1 sm:mx-0">
               <CardHeader className="p-4 sm:p-6">
                 <CardTitle className="text-red-800 text-xs sm:text-sm font-medium flex items-center gap-2">
@@ -691,13 +691,13 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 </ul>
               </CardContent>
             </Card>
-          )}<Tabs defaultValue="basic" className="w-full">
+          )}<Tabs defaultValue="basic" className="w-full max-w-full overflow-hidden">
             {/* Enhanced mobile-friendly tab list - Associate Partner: Basic, Dates (partial), Itinerary (partial), and Pricing are editable */}
             
             {/* Mobile: Horizontal scroll tabs */}
             <div className="block md:hidden">
               <div className="overflow-x-auto pb-3 mb-4 -mx-4">
-                <div className="flex space-x-1 px-4 min-w-max">
+                <div className="flex space-x-1 px-4 min-w-max w-full max-w-full">
                   <TabsList className="bg-transparent p-0 h-auto space-x-1">
                     <TabsTrigger 
                       value="basic" 
@@ -810,7 +810,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </div>
             </div>
 
-            <TabsContent value="basic" className="space-y-4 mt-4 px-1 md:px-0">
+            <TabsContent value="basic" className="space-y-4 mt-4 px-1 md:px-0 w-full max-w-full overflow-hidden">
               {/* Use BasicInfoTab from shared components */}
               <BasicInfoTab
                 control={form.control}
@@ -925,7 +925,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use FlightsTab from shared components - READ-ONLY for Associate Partners */}
-            <TabsContent value="flights" className="space-y-4 mt-4 px-1 md:px-0">
+            <TabsContent value="flights" className="space-y-4 mt-4 px-1 md:px-0 w-full max-w-full overflow-hidden">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-amber-700 flex items-center">
                   <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />

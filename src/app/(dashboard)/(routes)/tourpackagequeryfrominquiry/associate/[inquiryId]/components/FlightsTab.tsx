@@ -29,14 +29,14 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
   form
 }) => {
   return (
-    <Card className="w-full">
+    <Card className="w-full max-w-full overflow-hidden">
       <CardHeader className="p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
           <PlaneTakeoff className="h-4 w-4 sm:h-5 sm:w-5" />
           Flights
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 overflow-hidden">
         <FormField
           control={control}
           name="flightDetails"
@@ -44,7 +44,10 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
             <FormItem>
               <FormLabel className="text-base sm:text-lg font-semibold mb-4 block">Flight Plan</FormLabel>
               {value.map((flight, index) => (
-                <div key={index} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 border rounded-lg p-4 shadow-sm bg-white">
+                <div key={index} className="w-full max-w-full overflow-hidden">
+                  <div className="space-y-4 mb-6 border rounded-lg p-3 sm:p-4 shadow-sm bg-white">
+                    {/* Mobile-first responsive grid - strict width control */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full max-w-full">
                   {/* Date Input */}
                   <FormItem>
                     <FormLabel className="text-sm font-medium">Date</FormLabel>
@@ -113,7 +116,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                           newFlightDetails[index] = { ...flight, from: e.target.value };
                           onChange(newFlightDetails);
                         }}
-                         className="bg-slate-50"
+                        className="bg-slate-50 min-h-[44px] w-full"
                       />
                     </FormControl>
                   </FormItem>
@@ -131,7 +134,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                           newFlightDetails[index] = { ...flight, to: e.target.value };
                           onChange(newFlightDetails);
                         }}
-                         className="bg-slate-50"
+                        className="bg-slate-50 min-h-[44px] w-full"
                       />
                     </FormControl>
                   </FormItem>
@@ -150,7 +153,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                           newFlightDetails[index] = { ...flight, departureTime: e.target.value };
                           onChange(newFlightDetails);
                         }}
-                         className="bg-slate-50"
+                        className="bg-slate-50 min-h-[44px] w-full"
                       />
                     </FormControl>
                   </FormItem>
@@ -169,7 +172,7 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                           newFlightDetails[index] = { ...flight, arrivalTime: e.target.value };
                           onChange(newFlightDetails);
                         }}
-                         className="bg-slate-50"
+                        className="bg-slate-50 min-h-[44px] w-full"
                       />
                     </FormControl>
                   </FormItem>
@@ -187,59 +190,65 @@ const FlightsTab: React.FC<FlightsTabProps> = ({
                           newFlightDetails[index] = { ...flight, flightDuration: e.target.value };
                           onChange(newFlightDetails);
                         }}
-                         className="bg-slate-50"
+                        className="bg-slate-50 min-h-[44px] w-full"
                       />
                     </FormControl>
-                  </FormItem>                  {/* Remove Button */}
-                  <div className="flex items-end"> {/* Align button to bottom */}
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      disabled={loading}
-                      onClick={() => {
-                        const newFlightDetails = value.filter((_, i: number) => i !== index);
-                        onChange(newFlightDetails);
-                      }}
-                      className="w-full sm:w-auto min-h-[44px]"
-                    >
-                      <Trash className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
-
-                  {/* Flight Images Section */}
-                  <div className="col-span-full mt-4">
-                    <div className="bg-slate-50 p-3 rounded-md">
-                      <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
-                        <ImageIcon className="h-4 w-4 text-primary" />
-                        Flight Images
-                      </h3>
-                      <ImageUpload
-                        value={(flight.images || []).map((img: any) => typeof img === 'string' ? img : img.url)}
+                  </FormItem>
+                    </div>
+                    
+                    {/* Remove Button - Full width on mobile */}
+                    <div className="flex items-center justify-center w-full pt-2 border-t">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
                         disabled={loading}
-                        onChange={(url) => {
-                          const newFlightDetails = [...value];
-                          const currentImages = flight.images || [];
-                          newFlightDetails[index] = {
-                            ...flight,
-                            images: [...currentImages, { url }]
-                          };
+                        onClick={() => {
+                          const newFlightDetails = value.filter((_, i: number) => i !== index);
                           onChange(newFlightDetails);
                         }}
-                        onRemove={(url) => {
-                          const newFlightDetails = [...value];
-                          const currentImages = flight.images || [];
-                          newFlightDetails[index] = {
-                            ...flight,
-                            images: currentImages.filter((img: any) => {
-                              const imgUrl = typeof img === 'string' ? img : img.url;
-                              return imgUrl !== url;
-                            })
-                          };
-                          onChange(newFlightDetails);
-                        }}
-                      />
+                        className="w-full sm:w-auto min-h-[44px]"
+                      >
+                        <Trash className="h-4 w-4 mr-1" />
+                        Remove Flight
+                      </Button>
+                    </div>
+
+                    {/* Flight Images Section - Full width */}
+                    <div className="w-full mt-4">
+                      <div className="bg-slate-50 p-3 rounded-md w-full max-w-full overflow-hidden">
+                        <h3 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
+                          <ImageIcon className="h-4 w-4 text-primary" />
+                          Flight Images
+                        </h3>
+                        <div className="w-full max-w-full overflow-hidden">
+                          <ImageUpload
+                            value={(flight.images || []).map((img: any) => typeof img === 'string' ? img : img.url)}
+                            disabled={loading}
+                            onChange={(url) => {
+                              const newFlightDetails = [...value];
+                              const currentImages = flight.images || [];
+                              newFlightDetails[index] = {
+                                ...flight,
+                                images: [...currentImages, { url }]
+                              };
+                              onChange(newFlightDetails);
+                            }}
+                            onRemove={(url) => {
+                              const newFlightDetails = [...value];
+                              const currentImages = flight.images || [];
+                              newFlightDetails[index] = {
+                                ...flight,
+                                images: currentImages.filter((img: any) => {
+                                  const imgUrl = typeof img === 'string' ? img : img.url;
+                                  return imgUrl !== url;
+                                })
+                              };
+                              onChange(newFlightDetails);
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

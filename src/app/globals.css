@@ -134,3 +134,22 @@ body,
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-specific utility classes for Tour Package Query forms */
+@layer utilities {
+  .mobile-form-container {
+    @apply w-full max-w-full overflow-hidden;
+  }
+  
+  .mobile-form-container * {
+    @apply max-w-full;
+  }
+  
+  .mobile-grid-safe {
+    @apply grid-cols-1 sm:grid-cols-2 w-full max-w-full;
+  }
+  
+  .mobile-input-safe {
+    @apply w-full max-w-full min-h-[44px];
+  }
+}

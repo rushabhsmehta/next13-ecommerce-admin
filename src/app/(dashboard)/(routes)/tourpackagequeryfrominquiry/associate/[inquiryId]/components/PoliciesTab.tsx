@@ -44,35 +44,38 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
   onUseLocationDefaultsChange
 }) => {
   return (
-    <Card>
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b">
-        <CardTitle className="flex items-center gap-2">
-          <FileCheck className="h-5 w-5 text-primary" />
+    <Card className="w-full">
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <FileCheck className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           Policies & Terms
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <Tabs defaultValue="inclusions" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="inclusions" className="flex items-center gap-2">
-              <ListChecks className="h-4 w-4" />
-              Inclusions
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="inclusions" className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
+              <ListChecks className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Inclusions</span>
+              <span className="sm:hidden">Inc.</span>
             </TabsTrigger>
-            <TabsTrigger value="notes" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Notes & Tips
+            <TabsTrigger value="notes" className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Notes & Tips</span>
+              <span className="sm:hidden">Notes</span>
             </TabsTrigger>
-            <TabsTrigger value="cancellation" className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Cancellation
+            <TabsTrigger value="cancellation" className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
+              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Cancellation</span>
+              <span className="sm:hidden">Cancel</span>
             </TabsTrigger>
-            <TabsTrigger value="terms" className="flex items-center gap-2">
-              <ScrollText className="h-4 w-4" />
+            <TabsTrigger value="terms" className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
+              <ScrollText className="h-3 w-3 sm:h-4 sm:w-4" />
               Terms
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="inclusions" className="space-y-6 mt-4">
+          <TabsContent value="inclusions" className="space-y-4 sm:space-y-6 mt-4">
             <PolicyField
               form={form}
               name="inclusions"
@@ -93,7 +96,7 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
             />
           </TabsContent>
 
-          <TabsContent value="notes" className="space-y-6 mt-4">
+          <TabsContent value="notes" className="space-y-4 sm:space-y-6 mt-4">
             <PolicyField
               form={form}
               name="importantNotes"
@@ -114,7 +117,7 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
             />
           </TabsContent>
 
-          <TabsContent value="cancellation" className="space-y-6 mt-4">
+          <TabsContent value="cancellation" className="space-y-4 sm:space-y-6 mt-4">
             <PolicyField
               form={form}
               name="cancellationPolicy"
@@ -144,7 +147,7 @@ const PoliciesTab: React.FC<PoliciesTabProps> = ({
             />
           </TabsContent>
 
-          <TabsContent value="terms" className="space-y-6 mt-4">
+          <TabsContent value="terms" className="space-y-4 sm:space-y-6 mt-4">
             <PolicyField
               form={form}
               name="paymentPolicy"

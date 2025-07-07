@@ -580,18 +580,19 @@ const PricingTab: React.FC<PricingTabProps> = ({
     }
   }, [numberOfRooms, form]);
   return (
-    <Card className="bg-gradient-to-br from-slate-50 to-blue-50 border-slate-200 shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg">
-        <CardTitle className="flex items-center text-xl font-bold">
-          <CreditCard className="mr-3 h-6 w-6" />
-          💰 Pricing Configuration
-          <Sparkles className="ml-2 h-5 w-5 text-yellow-300" />
+    <Card className="w-full bg-gradient-to-br from-slate-50 to-blue-50 border-slate-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg p-4 sm:p-6">
+        <CardTitle className="flex items-center text-lg sm:text-xl font-bold">
+          <CreditCard className="mr-2 sm:mr-3 h-5 w-5 sm:h-6 sm:w-6" />
+          <span className="hidden sm:inline">💰 Pricing Configuration</span>
+          <span className="sm:hidden">💰 Pricing</span>
+          <Sparkles className="ml-2 h-4 w-4 sm:h-5 sm:w-5 text-yellow-300" />
         </CardTitle>
-        <p className="text-blue-100 text-sm mt-1">
+        <p className="text-blue-100 text-xs sm:text-sm mt-1">
           Configure your tour package pricing with advanced calculation methods
         </p>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">        {/* Method Selection */}
+      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">        {/* Method Selection */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <div className="flex items-center mb-4">
             <Settings className="mr-2 h-5 w-5 text-indigo-600" />

@@ -692,49 +692,125 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               </CardContent>
             </Card>
           )}<Tabs defaultValue="basic" className="w-full">
-            {/* Mobile-friendly tab list with responsive grid and scroll - Associate Partner: Basic, Dates (partial), Itinerary (partial), and Pricing are editable */}
-            <div className="overflow-x-auto pb-2 mb-2 -mx-4 sm:mx-0">
-              <div className="min-w-full px-4 sm:px-0">
-                <TabsList className="grid min-w-max md:min-w-0 grid-cols-8 w-full bg-muted/60">
-                  <TabsTrigger value="basic" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
-                    <FileText className="h-4 w-4" />
+            {/* Enhanced mobile-friendly tab list - Associate Partner: Basic, Dates (partial), Itinerary (partial), and Pricing are editable */}
+            
+            {/* Mobile: Horizontal scroll tabs */}
+            <div className="block md:hidden">
+              <div className="overflow-x-auto pb-3 mb-4 -mx-4">
+                <div className="flex space-x-1 px-4 min-w-max">
+                  <TabsList className="bg-transparent p-0 h-auto space-x-1">
+                    <TabsTrigger 
+                      value="basic" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="text-center leading-tight">Tour Package</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="guests" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
+                      title="Read-only for Associate Partners"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span className="text-center leading-tight">Guests</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="location" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
+                      title="Read-only for Associate Partners"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      <span className="text-center leading-tight">Location</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="dates" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
+                      title="Tour Ends On field is editable for Associate Partners"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                      <span className="text-center leading-tight">Dates</span>
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="itinerary" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground relative"
+                      title="Room Allocation and Transport sections are editable for Associate Partners"
+                    >
+                      <ListPlus className="h-4 w-4" />
+                      <span className="text-center leading-tight">Itinerary</span>
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="flights" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
+                      title="Read-only for Associate Partners"
+                    >
+                      <Plane className="h-4 w-4" />
+                      <span className="text-center leading-tight">Flights</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="pricing" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <Tag className="h-4 w-4" />
+                      <span className="text-center leading-tight">Pricing</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="policies" 
+                      className="flex flex-col items-center gap-1 px-3 py-2 min-w-[80px] text-xs rounded-lg border bg-background data-[state=active]:bg-primary data-[state=active]:text-primary-foreground opacity-50"
+                      title="Read-only for Associate Partners"
+                    >
+                      <FileCheck className="h-4 w-4" />
+                      <span className="text-center leading-tight">Policies</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: Grid layout tabs */}
+            <div className="hidden md:block">
+              <div className="overflow-x-auto pb-2 mb-2">
+                <TabsList className="grid grid-cols-8 w-full bg-muted/60 h-auto">
+                  <TabsTrigger value="basic" className="flex items-center gap-2 text-sm py-3 px-2">
+                    <FileText className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Tour Package Selection</span>
                   </TabsTrigger>
-                  <TabsTrigger value="guests" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
-                    <Users className="h-4 w-4" />
+                  <TabsTrigger value="guests" className="flex items-center gap-2 text-sm py-3 px-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
+                    <Users className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Guests</span>
                   </TabsTrigger>
-                  <TabsTrigger value="location" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
-                    <MapPin className="h-4 w-4" />
+                  <TabsTrigger value="location" className="flex items-center gap-2 text-sm py-3 px-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Location</span>
                   </TabsTrigger>
-                  <TabsTrigger value="dates" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 cursor-help" title="Tour Ends On field is editable for Associate Partners">
-                    <CalendarIcon className="h-4 w-4" />
+                  <TabsTrigger value="dates" className="flex items-center gap-2 text-sm py-3 px-2 cursor-help" title="Tour Ends On field is editable for Associate Partners">
+                    <CalendarIcon className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Dates</span>
-                    <span className="text-xs text-blue-600">⚬</span>
+                    <span className="text-xs text-blue-600 flex-shrink-0">⚬</span>
                   </TabsTrigger>
-                  <TabsTrigger value="itinerary" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 cursor-help" title="Room Allocation and Transport sections are editable for Associate Partners">
-                    <ListPlus className="h-4 w-4" />
+                  <TabsTrigger value="itinerary" className="flex items-center gap-2 text-sm py-3 px-2 cursor-help" title="Room Allocation and Transport sections are editable for Associate Partners">
+                    <ListPlus className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Itinerary</span>
-                    <span className="text-xs text-green-600">⚬</span>
+                    <span className="text-xs text-green-600 flex-shrink-0">⚬</span>
                   </TabsTrigger>
-                  <TabsTrigger value="flights" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
-                    <Plane className="h-4 w-4" />
+                  <TabsTrigger value="flights" className="flex items-center gap-2 text-sm py-3 px-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
+                    <Plane className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Flights</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pricing" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2">
-                    <Tag className="h-4 w-4" />
+                  <TabsTrigger value="pricing" className="flex items-center gap-2 text-sm py-3 px-2">
+                    <Tag className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Pricing</span>
                   </TabsTrigger>
-                  <TabsTrigger value="policies" className="flex items-center gap-1 md:gap-2 text-xs sm:text-sm py-1.5 sm:py-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
-                    <FileCheck className="h-4 w-4" />
+                  <TabsTrigger value="policies" className="flex items-center gap-2 text-sm py-3 px-2 opacity-50 cursor-help" title="Read-only for Associate Partners">
+                    <FileCheck className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate">Policies</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
             </div>
 
-            <TabsContent value="basic" className="space-y-4 mt-4">
+            <TabsContent value="basic" className="space-y-4 mt-4 px-1 md:px-0">
               {/* Use BasicInfoTab from shared components */}
               <BasicInfoTab
                 control={form.control}
@@ -751,7 +827,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use PricingTab from shared components */}
-            <TabsContent value="pricing" className="space-y-4 mt-4">              <PricingTab
+            <TabsContent value="pricing" className="space-y-4 mt-4 px-1 md:px-0">
+              <PricingTab
                 control={form.control}
                 loading={loading}
                 form={form}
@@ -769,11 +846,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use GuestsTab from shared components - READ-ONLY for Associate Partners */}
-            <TabsContent value="guests" className="space-y-4 mt-4">
+            <TabsContent value="guests" className="space-y-4 mt-4 px-1 md:px-0">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-amber-700 flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                  <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.</span>
                 </p>
               </div>
               <GuestsTab
@@ -783,11 +860,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use LocationTab from shared components - READ-ONLY for Associate Partners */}
-            <TabsContent value="location" className="space-y-4 mt-4">
+            <TabsContent value="location" className="space-y-4 mt-4 px-1 md:px-0">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-amber-700 flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                  <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.</span>
                 </p>
               </div>
               <LocationTab
@@ -800,11 +877,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use DatesTab from shared components - PARTIALLY EDITABLE for Associate Partners */}
-            <TabsContent value="dates" className="space-y-4 mt-4">
+            <TabsContent value="dates" className="space-y-4 mt-4 px-1 md:px-0">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-blue-700 flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  For Associate Partners: &ldquo;Tour Ends On&rdquo; field is editable. Other date fields are read-only.
+                  <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>For Associate Partners: &ldquo;Tour Ends On&rdquo; field is editable. Other date fields are read-only.</span>
                 </p>
               </div>
               <DatesTab
@@ -820,11 +897,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use ItineraryTab from shared components - PARTIALLY EDITABLE for Associate Partners */}
-            <TabsContent value="itinerary" className="space-y-4 mt-4">
+            <TabsContent value="itinerary" className="space-y-4 mt-4 px-1 md:px-0">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-blue-700 flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  For Associate Partners: Only Room Allocation and Transport sections are editable. All other fields are read-only.
+                  <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>For Associate Partners: Only Room Allocation and Transport sections are editable. All other fields are read-only.</span>
                 </p>
               </div>
               <ItineraryTab
@@ -848,11 +925,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use FlightsTab from shared components - READ-ONLY for Associate Partners */}
-            <TabsContent value="flights" className="space-y-4 mt-4">
+            <TabsContent value="flights" className="space-y-4 mt-4 px-1 md:px-0">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-amber-700 flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                  <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.</span>
                 </p>
               </div>
               <FlightsTab
@@ -863,11 +940,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
             </TabsContent>
 
             {/* Use PoliciesTab from shared components - READ-ONLY for Associate Partners */}
-            <TabsContent value="policies" className="space-y-4 mt-4">
+            <TabsContent value="policies" className="space-y-4 mt-4 px-1 md:px-0">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                 <p className="text-sm text-amber-700 flex items-center">
-                  <AlertCircle className="mr-2 h-4 w-4" />
-                  This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.
+                  <AlertCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span>This section is read-only for Associate Partners. Only basic tour package selection and pricing are editable.</span>
                 </p>
               </div>
               <PoliciesTab
@@ -879,21 +956,27 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               />
             </TabsContent>
 
-          </Tabs>          <div className="flex justify-center sm:justify-end mt-8">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 w-full sm:w-auto bg-primary hover:bg-primary/90"
-              size="lg"
-            >
-              {loading && (
-                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              )}
-              <span className="text-sm sm:text-base">Create Tour Package Query</span>
-            </Button>
+          </Tabs>          
+          {/* Mobile-friendly submit button */}
+          <div className="sticky bottom-0 bg-background border-t p-4 -mx-4 mt-8 md:static md:border-t-0 md:p-0 md:mx-0">
+            <div className="flex justify-center md:justify-end">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 w-full md:w-auto bg-primary hover:bg-primary/90 min-h-[48px] text-base font-medium"
+                size="lg"
+              >
+                {loading && (
+                  <svg className="animate-spin h-4 w-4 mr-2 flex-shrink-0" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                <span className="text-sm sm:text-base">
+                  {loading ? 'Creating...' : 'Create Tour Package Query'}
+                </span>
+              </Button>
+            </div>
           </div>
         </form>
       </Form>

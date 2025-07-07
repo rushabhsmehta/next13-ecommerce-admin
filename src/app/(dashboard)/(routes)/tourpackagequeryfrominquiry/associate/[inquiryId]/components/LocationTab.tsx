@@ -112,20 +112,22 @@ const LocationTab: React.FC<LocationTabProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
+    <Card className="w-full">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
           Location
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
         <FormField
           control={control}
           name="locationId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Location<span className="text-red-500">*</span></FormLabel>
+              <FormLabel className="text-base font-medium">
+                Location<span className="text-red-500">*</span>
+              </FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -133,29 +135,32 @@ const LocationTab: React.FC<LocationTabProps> = ({
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-full justify-between",
+                        "w-full justify-between min-h-[44px] text-left font-normal",
                         !field.value && "text-muted-foreground",
                         form.formState.errors.locationId ? "border-red-500" : ""
                       )}
                       disabled={loading}
                     >
-                      {field.value
-                        ? locations.find((location) => location.id === field.value)?.label
-                        : "Select a location..."}
+                      <span className="truncate">
+                        {field.value
+                          ? locations.find((location) => location.id === field.value)?.label
+                          : "Select a location..."}
+                      </span>
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                   <Command>
-                    <CommandInput placeholder="Search location..." />
+                    <CommandInput placeholder="Search location..." className="h-9" />
                     <CommandEmpty>No location found.</CommandEmpty>
-                    <CommandGroup>
+                    <CommandGroup className="max-h-[200px] overflow-y-auto">
                       {locations.map((location) => (
                         <CommandItem
                           value={location.label}
                           key={location.id}
                           onSelect={() => handleLocationSelection(location.id)}
+                          className="px-3 py-2"
                         >
                           <CheckIcon
                             className={cn(
@@ -163,7 +168,7 @@ const LocationTab: React.FC<LocationTabProps> = ({
                               location.id === field.value ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {location.label}
+                          <span className="truncate">{location.label}</span>
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -177,16 +182,16 @@ const LocationTab: React.FC<LocationTabProps> = ({
           )}
         />
 
-        {/* Add additional location-related fields here if needed */}
+        {/* Transport Details */}
         <FormField
           control={control}
           name="transport"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Transport Details</FormLabel>
+              <FormLabel className="text-base font-medium">Transport Details</FormLabel>
               <FormControl>
                 <input
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="Transport Details"
                   disabled={loading}
                   {...field}
@@ -197,16 +202,17 @@ const LocationTab: React.FC<LocationTabProps> = ({
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Pickup and Drop Locations */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={control}
             name="pickup_location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Pickup Location</FormLabel>
+                <FormLabel className="text-base font-medium">Pickup Location</FormLabel>
                 <FormControl>
                   <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Pickup Location"
                     disabled={loading}
                     {...field}
@@ -222,10 +228,10 @@ const LocationTab: React.FC<LocationTabProps> = ({
             name="drop_location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Drop Location</FormLabel>
+                <FormLabel className="text-base font-medium">Drop Location</FormLabel>
                 <FormControl>
                   <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Drop Location"
                     disabled={loading}
                     {...field}
@@ -235,6 +241,13 @@ const LocationTab: React.FC<LocationTabProps> = ({
               </FormItem>
             )}
           />
+        </div>
+
+        {/* Mobile-friendly info section */}
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 sm:hidden">
+          <p className="text-sm text-blue-700">
+            💡 Location selection affects itinerary details and default settings
+          </p>
         </div>
       </CardContent>
     </Card>

@@ -217,12 +217,12 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                 {value.map((itinerary, index) => (
                   <Accordion key={index} type="single" collapsible className="w-full border rounded-lg shadow-sm hover:shadow-md transition-all">
                     <AccordionItem value={`item-${index}`} className="border-0">
-                      <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-t-lg">
-                        <div className="flex items-center gap-3">
+                      <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-t-lg min-h-[60px]">
+                        <div className="flex items-center gap-3 w-full">
                           <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-bold text-sm">
                             {index + 1}
                           </div>
-                          <div className="font-bold" dangerouslySetInnerHTML={{
+                          <div className="font-bold text-left truncate flex-1" dangerouslySetInnerHTML={{
                             __html: itinerary.itineraryTitle || `Day ${index + 1}`,
                           }}></div>
                         </div>
@@ -235,15 +235,16 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             size="sm"
                             disabled={loading}
                             onClick={() => onChange(value.filter((_: any, i: number) => i !== index))}
-                            className="h-8 px-2"
+                            className="h-8 px-2 min-h-[44px]"
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
-                            Remove Day
+                            <span className="hidden sm:inline">Remove Day</span>
+                            <span className="sm:hidden">Remove</span>
                           </Button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <div className="grid grid-cols-1 gap-4 sm:gap-6">
                         </div>
-                        <div className="flex flex-col gap-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className="flex flex-col gap-4 p-3 sm:p-4 bg-slate-50 rounded-lg border border-slate-100">
                           <h3 className="font-medium text-sm text-slate-500">Itinerary Template</h3>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -252,22 +253,24 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                   variant="outline"
                                   role="combobox"
                                   className={cn(
-                                    "w-full justify-between bg-white shadow-sm",
+                                    "w-full justify-between bg-white shadow-sm min-h-[44px] text-left font-normal",
                                     !itinerary.itineraryTitle && "text-muted-foreground"
                                   )}
                                   disabled={loading}
                                 >
-                                  {itinerary.itineraryTitle
-                                    ? (itinerariesMaster && itinerariesMaster.find(
-                                      (itineraryMaster) => itinerary.itineraryTitle === itineraryMaster.itineraryMasterTitle
-                                    )?.itineraryMasterTitle)
-                                    : "Select an Itinerary Master"}
+                                  <span className="truncate">
+                                    {itinerary.itineraryTitle
+                                      ? (itinerariesMaster && itinerariesMaster.find(
+                                        (itineraryMaster) => itinerary.itineraryTitle === itineraryMaster.itineraryMasterTitle
+                                      )?.itineraryMasterTitle)
+                                      : "Select an Itinerary Master"}
+                                  </span>
                                   <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[240px] p-0 max-h-[240px] overflow-auto">
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 max-h-[240px] overflow-auto">
                               <Command>
                                 <CommandInput
                                   placeholder="Search itinerary master..."
@@ -278,7 +281,8 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                   {itinerariesMaster && itinerariesMaster.map((itineraryMaster) => (
                                     <CommandItem
                                       value={itineraryMaster.itineraryMasterTitle ?? ''}
-                                      key={itineraryMaster.id} onSelect={() => {
+                                      key={itineraryMaster.id} 
+                                      onSelect={() => {
                                         const updatedItineraries = [...value];
                                         updatedItineraries[index] = {
                                           ...itinerary,
@@ -293,8 +297,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                         };
                                         onChange(updatedItineraries); // Update the state with the new itineraries
                                       }}
+                                      className="px-3 py-2"
                                     >
-                                      {itineraryMaster.itineraryMasterTitle}
+                                      <span className="truncate">{itineraryMaster.itineraryMasterTitle}</span>
                                       <CheckIcon
                                         className={cn(
                                           "ml-auto h-4 w-4",
@@ -358,14 +363,14 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             </FormItem>
                           </div>
                         </div>
-                        <div className="grid md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormItem>
-                            <FormLabel>Day</FormLabel>
+                            <FormLabel className="text-base font-medium">Day</FormLabel>
                             <FormControl>
                               <Input
                                 disabled={loading}
                                 type="number"
-                                className="bg-white shadow-sm"
+                                className="bg-white shadow-sm min-h-[44px]"
                                 value={itinerary.dayNumber}
                                 onChange={(e) => {
                                   const dayNumber = Number(e.target.value);
@@ -378,12 +383,12 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                           </FormItem>
 
                           <FormItem>
-                            <FormLabel>Date</FormLabel>
+                            <FormLabel className="text-base font-medium">Date</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="Day"
                                 disabled={loading}
-                                className="bg-white shadow-sm"
+                                className="bg-white shadow-sm min-h-[44px]"
                                 value={itinerary.days}
                                 onChange={(e) => {
                                   const newItineraries = [...value];
@@ -432,7 +437,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                           </h3>
                           <div className="space-y-4">
                             <FormItem className="flex flex-col">
-                              <FormLabel>Hotel</FormLabel>
+                              <FormLabel className="text-base font-medium">Hotel</FormLabel>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <FormControl>
@@ -440,22 +445,24 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                       variant="outline"
                                       role="combobox"
                                       className={cn(
-                                        "w-full justify-between",
+                                        "w-full justify-between min-h-[44px] text-left font-normal",
                                         !itinerary.hotelId && "text-muted-foreground"
                                       )}
                                       disabled={loading}
                                     >
-                                      {itinerary.hotelId
-                                        ? hotels.find(
-                                          (hotel) => hotel.id === itinerary.hotelId
-                                        )?.name
-                                        : "Select a Hotel"}
+                                      <span className="truncate">
+                                        {itinerary.hotelId
+                                          ? hotels.find(
+                                            (hotel) => hotel.id === itinerary.hotelId
+                                          )?.name
+                                          : "Select a Hotel"}
+                                      </span>
                                       <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                   </FormControl>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
+                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 max-h-[10rem] overflow-auto">
                                   <Command>
                                     <CommandInput
                                       placeholder="Search hotel..."
@@ -476,8 +483,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                             };
                                             onChange(newItineraries); // Update the state with the new itineraries
                                           }}
+                                          className="px-3 py-2"
                                         >
-                                          {hotel.name}
+                                          <span className="truncate">{hotel.name}</span>
                                           <CheckIcon
                                             className={cn(
                                               "ml-auto h-4 w-4",
@@ -502,9 +510,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 return (
                                   <div className="mt-4">
                                     <h4 className="text-sm font-medium mb-2">Hotel Images</h4>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                       {hotel.images.map((image, imgIndex) => (
-                                        <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
+                                        <div key={imgIndex} className="relative w-full aspect-square rounded-md overflow-hidden border">
                                           <Image
                                             src={image.url}
                                             alt={`Hotel Image ${imgIndex + 1}`}
@@ -715,7 +723,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                             </div>
                           )}
 
-                          <div className="flex justify-end mt-2">
+                          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-4">
                             <Button
                               type="button"
                               variant="outline"
@@ -732,21 +740,21 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 ];
                                 onChange(newItineraries);
                               }}
+                              className="w-full sm:w-auto min-h-[44px]"
                             >
                               <Plus className="mr-1 h-4 w-4" />
                               Add Activity
                             </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => handleSaveToMasterItinerary(itinerary)}
+                              className="w-full sm:w-auto min-h-[44px]"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Save to Master Itinerary
+                            </Button>
                           </div>
-
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="ml-2"
-                            onClick={() => handleSaveToMasterItinerary(itinerary)}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Save to Master Itinerary
-                          </Button>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -756,7 +764,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                 <Button
                   type="button"
                   size="default"
-                  className="mt-4 bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary border-dashed border-2 border-primary/30"
+                  className="mt-4 w-full sm:w-auto bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary border-dashed border-2 border-primary/30 min-h-[44px]"
                   onClick={() => onChange([...value, {
                     dayNumber: 0,
                     days: '',

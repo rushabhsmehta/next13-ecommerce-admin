@@ -76,10 +76,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Basic Information</CardTitle>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg md:text-xl">Basic Information</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <FormField
           control={control}
           name="tourPackageTemplate"
@@ -97,24 +97,26 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       variant="outline"
                       role="combobox"
                       className={cn(
-                        "w-full justify-between",
+                        "w-full justify-between min-h-[44px] text-left",
                         !field.value && "text-muted-foreground",
                         getFieldDisabled(enableTourPackageSelection) && "opacity-50",
                         enableTourPackageSelection && isAssociatePartner && "border-green-200 bg-green-50"
                       )}
                       disabled={getFieldDisabled(enableTourPackageSelection) || !form.getValues('locationId')}
                     >
-                      {!form.getValues('locationId')
-                        ? "Select a location first"
-                        : field.value && tourPackages?.find(tp => tp.id === field.value)
-                          ? tourPackages.find(tp => tp.id === field.value)?.tourPackageName
-                          : "Select Tour Package Template"
-                      }
+                      <span className="truncate">
+                        {!form.getValues('locationId')
+                          ? "Select a location first"
+                          : field.value && tourPackages?.find(tp => tp.id === field.value)
+                            ? tourPackages.find(tp => tp.id === field.value)?.tourPackageName
+                            : "Select Tour Package Template"
+                        }
+                      </span>
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0">
+                <PopoverContent className="w-[calc(100vw-2rem)] md:w-[400px] p-0">
                   <Command>
                     <CommandInput placeholder="Search tour package..." />
                     <CommandEmpty>No tour package found.</CommandEmpty>
@@ -136,13 +138,13 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                                 tourPackage.id === field.value ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {tourPackage.tourPackageName}
+                            <span className="truncate">{tourPackage.tourPackageName}</span>
                           </CommandItem>
                         ))}
                     </CommandGroup>
                   </Command>
                 </PopoverContent>
-              </Popover>              <FormDescription>
+              </Popover>              <FormDescription className="text-xs md:text-sm">
                 {!form.getValues('locationId')
                   ? "Please select a location first to view available tour packages"
                   : "Select an existing tour package to use as a template"}
@@ -152,7 +154,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           )}
         />
         
-        <div className="grid grid-cols-3 gap-8">{" "}
+        {/* Mobile-friendly responsive grid for Associate Partner section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <FormField
             control={control}
             name="associatePartnerId"
@@ -169,20 +172,22 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                         variant="outline"
                         role="combobox"
                         className={cn(
-                          "w-full justify-between",
+                          "w-full justify-between min-h-[44px] text-left",
                           !field.value && "text-muted-foreground",
                           getFieldDisabled(false) && "opacity-50"
                         )}
                         disabled={getFieldDisabled(false)}
                       >
-                        {field.value
-                          ? associatePartners.find((partner) => partner.id === field.value)?.name
-                          : "Select Associate Partner..."}
+                        <span className="truncate">
+                          {field.value
+                            ? associatePartners.find((partner) => partner.id === field.value)?.name
+                            : "Select Associate Partner..."}
+                        </span>
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0">
+                  <PopoverContent className="w-[calc(100vw-2rem)] md:w-[400px] p-0">
                     <Command>
                       <CommandInput placeholder="Search associate partner..." />
                       <CommandEmpty>No associate partner found.</CommandEmpty>
@@ -201,14 +206,14 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                                 partner.id === field.value ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {partner.name}
+                            <span className="truncate">{partner.name}</span>
                           </CommandItem>
                         ))}
                       </CommandGroup>
                     </Command>
                   </PopoverContent>
                 </Popover>
-                <FormDescription>
+                <FormDescription className="text-xs md:text-sm">
                   Associate partner details will be automatically linked to this query
                 </FormDescription>
                 <FormMessage />
@@ -216,35 +221,31 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             )}
           />
 
+          {/* Mobile-friendly contact details */}
           <div className="space-y-2">
             <div className="text-sm">
+              <p className="text-muted-foreground font-medium mb-1">Mobile Number</p>
               {form.watch("associatePartnerId") ? (
-                <>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-muted-foreground">
-                      Mobile: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber}
-                    </p>
-                  </div>
-                </>
+                <p className="text-sm bg-muted p-2 rounded">
+                  {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.mobileNumber || 'Not provided'}
+                </p>
               ) : (
-                <p className="text-muted-foreground italic">
-                  Select an associate partner to view contact details
+                <p className="text-muted-foreground italic text-sm">
+                  Select an associate partner to view mobile number
                 </p>
               )}
             </div>
           </div>
           <div className="space-y-2">
             <div className="text-sm">
+              <p className="text-muted-foreground font-medium mb-1">Email Address</p>
               {form.watch("associatePartnerId") ? (
-                <>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-muted-foreground">
-                      Email: {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
-                    </p>
-                  </div>
-                </>
+                <p className="text-sm bg-muted p-2 rounded break-all">
+                  {associatePartners.find((partner) => partner.id === form.watch("associatePartnerId"))?.email || 'Not provided'}
+                </p>
               ) : (
-                <p className="text-muted-foreground italic">
+                <p className="text-muted-foreground italic text-sm">
+                  Select an associate partner to view email
                 </p>
               )}
             </div>
@@ -285,24 +286,29 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <Checkbox
                   checked={field.value}
                   disabled={getFieldDisabled(false)}
+                  className="mt-1"
                   // @ts-ignore
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+              <div className="space-y-1 leading-none flex-1">
+                <FormLabel className={cn(
+                  "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+                  isAssociatePartner ? "text-muted-foreground" : ""
+                )}>
                   Confirmed
                   {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
                 </FormLabel>
-                <FormDescription>
-                  Please Select Whether Query is confirmed or not ?
+                <FormDescription className="text-xs md:text-sm">
+                  Please Select Whether Query is confirmed or not?
                 </FormDescription>
               </div>
             </FormItem>
           )}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+        {/* Mobile-friendly responsive grid for form inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <FormField
             control={control}
             name="tourPackageQueryNumber"
@@ -318,7 +324,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     placeholder="Tour Package Query Number"
                     value={field.value}
                     onChange={field.onChange}
-                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}
                   />
                 </FormControl>
                 <FormMessage />
@@ -330,7 +339,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             control={control}
             name="tourPackageQueryName"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="md:col-span-2 lg:col-span-1">
                 <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
                   Tour Package Query Name<span className="text-red-500">*</span>
                   {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
@@ -342,6 +351,7 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     value={field.value}
                     onChange={field.onChange}
                     className={cn(
+                      "min-h-[44px]",
                       form.formState.errors.tourPackageQueryName ? "border-red-500" : "",
                       getFieldDisabled(false) && "opacity-50"
                     )}
@@ -369,8 +379,11 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     value={field.value}
                     onValueChange={field.onChange}
                   >
-                    <SelectTrigger className={cn(getFieldDisabled(false) && "opacity-50")}>
-                      {field.value || 'Select Tour Package Query Type'}
+                    <SelectTrigger className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}>
+                      <SelectValue placeholder="Select Tour Package Query Type" />
                     </SelectTrigger>
                     <SelectContent>
                       {TOUR_PACKAGE_QUERY_TYPE_DEFAULT.map((value) => (
@@ -399,7 +412,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <Input 
                     disabled={getFieldDisabled(false)} 
                     placeholder="Number of Days/Night" 
-                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}
                     {...field} 
                   />
                 </FormControl>
@@ -409,7 +425,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
           />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+        {/* Mobile-friendly responsive grid for transport details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <FormField
             control={control}
             name="transport"
@@ -423,7 +440,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <Input 
                     disabled={getFieldDisabled(false)} 
                     placeholder="Transport" 
-                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}
                     {...field} 
                   />
                 </FormControl>
@@ -445,7 +465,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <Input 
                     disabled={getFieldDisabled(false)} 
                     placeholder="Pickup Location" 
-                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}
                     {...field} 
                   />
                 </FormControl>
@@ -467,7 +490,10 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   <Input 
                     disabled={getFieldDisabled(false)} 
                     placeholder="Drop Location" 
-                    className={cn(getFieldDisabled(false) && "opacity-50")}
+                    className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}
                     {...field} 
                   />
                 </FormControl>
@@ -490,11 +516,14 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 <Input
                   disabled={getFieldDisabled(false)}
                   placeholder="Additional remarks for the tour package"
-                  className={cn(getFieldDisabled(false) && "opacity-50")}
+                  className={cn(
+                    "min-h-[44px]",
+                    getFieldDisabled(false) && "opacity-50"
+                  )}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="text-xs md:text-sm">
                 Add any special notes or requirements for this tour package
               </FormDescription>
               <FormMessage />
@@ -512,16 +541,23 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                 {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
               </FormLabel>
               <FormControl>
-                <JoditEditor
-                  ref={editor}
-                  value={field.value || DISCLAIMER_DEFAULT}
-                  config={{
-                    readonly: getFieldDisabled(false),
-                  }}
-                  onChange={(e) => field.onChange(e)}
-                />
+                <div className={cn(
+                  "border rounded-md",
+                  getFieldDisabled(false) && "opacity-50 bg-muted"
+                )}>
+                  <JoditEditor
+                    ref={editor}
+                    value={field.value || DISCLAIMER_DEFAULT}
+                    config={{
+                      readonly: getFieldDisabled(false),
+                      height: 200,
+                      toolbar: !getFieldDisabled(false),
+                    }}
+                    onChange={(e) => field.onChange(e)}
+                  />
+                </div>
               </FormControl>
-              <FormDescription>
+              <FormDescription className="text-xs md:text-sm">
                 Legal disclaimers and important information for the client
               </FormDescription>
               <FormMessage />

@@ -54,101 +54,109 @@ const DatesTab: React.FC<DatesTabProps> = ({
   };
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
           <CalendarIcon className="h-5 w-5" />
           Tour Dates
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">        <FormField
-          control={control}
-          name="tourStartsFrom"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel className={!enableTourStartsFrom && isAssociatePartner ? "text-muted-foreground" : ""}>
-                Tour Starts From
-                {!enableTourStartsFrom && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
-              </FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                        getFieldDisabled(enableTourStartsFrom) && "opacity-50"
-                      )}
-                      disabled={getFieldDisabled(enableTourStartsFrom)}
-                    >
-                      {field.value ? (
-                        formatLocalDate(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={createDatePickerValue(field.value)}
-                    onSelect={(date) => date && field.onChange(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <CardContent className="space-y-6">        
+        {/* Mobile-friendly responsive grid for date fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={control}
+            name="tourStartsFrom"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className={!enableTourStartsFrom && isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Tour Starts From
+                  {!enableTourStartsFrom && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal min-h-[44px]",
+                          !field.value && "text-muted-foreground",
+                          getFieldDisabled(enableTourStartsFrom) && "opacity-50"
+                        )}
+                        disabled={getFieldDisabled(enableTourStartsFrom)}
+                      >
+                        <span className="truncate">
+                          {field.value ? (
+                            formatLocalDate(field.value, "PPP")
+                          ) : (
+                            "Pick a date"
+                          )}
+                        </span>
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50 flex-shrink-0" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={createDatePickerValue(field.value)}
+                      onSelect={(date) => date && field.onChange(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={control}
-          name="tourEndsOn"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel className={!enableTourEndsOn && isAssociatePartner ? "text-muted-foreground" : ""}>
-                Tour Ends On
-                {!enableTourEndsOn && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
-                {enableTourEndsOn && isAssociatePartner && <span className="text-xs ml-2 text-green-600">(Editable)</span>}
-              </FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground",
-                        getFieldDisabled(enableTourEndsOn) && "opacity-50",
-                        enableTourEndsOn && isAssociatePartner && "border-green-200 bg-green-50"
-                      )}
-                      disabled={getFieldDisabled(enableTourEndsOn)}
-                    >
-                      {field.value ? (
-                        formatLocalDate(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={createDatePickerValue(field.value)}
-                    onSelect={(date) => date && field.onChange(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={control}
+            name="tourEndsOn"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className={!enableTourEndsOn && isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Tour Ends On
+                  {!enableTourEndsOn && isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                  {enableTourEndsOn && isAssociatePartner && <span className="text-xs ml-2 text-green-600">(Editable)</span>}
+                </FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal min-h-[44px]",
+                          !field.value && "text-muted-foreground",
+                          getFieldDisabled(enableTourEndsOn) && "opacity-50",
+                          enableTourEndsOn && isAssociatePartner && "border-green-200 bg-green-50"
+                        )}
+                        disabled={getFieldDisabled(enableTourEndsOn)}
+                      >
+                        <span className="truncate">
+                          {field.value ? (
+                            formatLocalDate(field.value, "PPP")
+                          ) : (
+                            "Pick a date"
+                          )}
+                        </span>
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50 flex-shrink-0" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={createDatePickerValue(field.value)}
+                      onSelect={(date) => date && field.onChange(date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <FormField
@@ -163,7 +171,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                 <FormControl>
                   <input
                     className={cn(
-                      "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                      "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]",
                       getFieldDisabled(enableNumDaysNight) && "opacity-50"
                     )}
                     placeholder="Number of Days/Nights"
@@ -188,7 +196,7 @@ const DatesTab: React.FC<DatesTabProps> = ({
                 <FormControl>
                   <input
                     className={cn(
-                      "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                      "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px]",
                       getFieldDisabled(enablePeriod) && "opacity-50"
                     )}
                     placeholder="Period (e.g. May 2023)"
@@ -210,12 +218,12 @@ const DatesTab: React.FC<DatesTabProps> = ({
             : "text-muted-foreground bg-slate-50 border-slate-100"
         )}>
           {isAssociatePartner ? (
-            <p>
+            <p className="leading-relaxed">
               <strong>Associate Partner:</strong> You can edit the &ldquo;Tour Ends On&rdquo; date to adjust the package duration. 
               Other date fields are set by the tour package template and are read-only.
             </p>
           ) : (
-            <p>
+            <p className="leading-relaxed">
               <strong>Note:</strong> Setting accurate tour dates is important for availability checking and pricing calculations.
               The number of days/nights should match the number of itinerary days created.
             </p>

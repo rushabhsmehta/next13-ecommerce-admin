@@ -1292,9 +1292,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                 {component.description && (
                                   <p className="text-sm text-gray-600">{component.description}</p>
                                 )}                                <p className="text-xs text-gray-500 mt-1">
-                                  Base Price: ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                  <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                  {component.purchasePrice && (
+                                    <span className="ml-3">
+                                      <span className="font-medium text-orange-600">Purchase Price:</span> ₹{parseFloat(component.purchasePrice || '0').toFixed(2)} per person
+                                    </span>
+                                  )}
                                   {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
-                                    <span className="text-blue-600 ml-1">
+                                    <span className="text-blue-600 ml-1 block">
                                       (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
                                     </span>
                                   )}

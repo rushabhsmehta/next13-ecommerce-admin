@@ -80,8 +80,11 @@ const pricingComponentSchema = z.object({
     required_error: "Pricing attribute is required",
   }),
   price: z.coerce.number().min(0, {
-    message: "Price must be at least 0",
+    message: "Sales price must be at least 0",
   }),
+  purchasePrice: z.coerce.number().min(0, {
+    message: "Purchase price must be at least 0",
+  }).optional(),
 });
 
 const pricingFormSchema = z.object({
@@ -259,6 +262,7 @@ export default function TourPackagePricingPage() {
     const formattedPricingComponents = pricingPeriod.pricingComponents.map((comp: any) => ({
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
+      purchasePrice: comp.purchasePrice ? parseFloat(comp.purchasePrice) : 0,
     }));
 
     form.reset({
@@ -297,6 +301,7 @@ export default function TourPackagePricingPage() {
       append({
         pricingAttributeId: pricingAttributes[0].id,
         price: 0,
+        purchasePrice: 0,
       })
     } else {
       toast.error("No pricing attributes available. Please create pricing attributes first.")
@@ -526,7 +531,8 @@ export default function TourPackagePricingPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Pricing Attribute</TableHead>
-                            <TableHead>Price</TableHead>
+                            <TableHead>Sales Price</TableHead>
+                            <TableHead>Purchase Price</TableHead>
                             <TableHead className="w-[100px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -573,6 +579,27 @@ export default function TourPackagePricingPage() {
                                           type="number"
                                           min="0"
                                           step="0.01"
+                                          placeholder="Sales Price"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingComponents.${index}.purchasePrice`}
+                                  render={({ field }) => (
+                                    <FormItem className="space-y-0">
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          placeholder="Purchase Price"
                                           {...field}
                                         />
                                       </FormControl>
@@ -671,7 +698,8 @@ export default function TourPackagePricingPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Component</TableHead>
-                            <TableHead>Price</TableHead>
+                            <TableHead>Sales Price</TableHead>
+                            <TableHead>Purchase Price</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -685,6 +713,12 @@ export default function TourPackagePricingPage() {
                                   style: 'currency',
                                   currency: 'INR' 
                                 }).format(parseFloat(comp.price))}
+                              </TableCell>
+                              <TableCell>
+                                {comp.purchasePrice ? new Intl.NumberFormat('en-IN', { 
+                                  style: 'currency',
+                                  currency: 'INR' 
+                                }).format(parseFloat(comp.purchasePrice)) : '-'}
                               </TableCell>
                             </TableRow>
                           ))}

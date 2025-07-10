@@ -115,7 +115,8 @@ export async function PATCH(
         pricingComponents: pricingComponents?.length > 0 ? {
           create: pricingComponents.map((component: any) => ({
             pricingAttributeId: component.pricingAttributeId,
-            price: parseFloat(component.price || 0)
+            price: parseFloat(component.price || 0),
+            purchasePrice: component.purchasePrice ? parseFloat(component.purchasePrice) : null
           }))
         } : undefined
       },      include: {

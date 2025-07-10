@@ -1293,9 +1293,14 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                 {component.description && (
                                   <p className="text-sm text-gray-600">{component.description}</p>
                                 )}                                <p className="text-xs text-gray-500 mt-1">
-                                  Base Price: ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                  <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                  {component.purchasePrice && (
+                                    <span className="ml-3">
+                                      <span className="font-medium text-orange-600">Purchase Price:</span> ₹{parseFloat(component.purchasePrice || '0').toFixed(2)} per person
+                                    </span>
+                                  )}
                                   {getOccupancyMultiplier(component.pricingAttribute?.name || '') > 1 && (
-                                    <span className="text-blue-600 ml-1">
+                                    <span className="text-blue-600 ml-1 block">
                                       (×{getOccupancyMultiplier(component.pricingAttribute?.name || '')} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
                                     </span>
                                   )}
@@ -1344,7 +1349,8 @@ const PricingTab: React.FC<PricingTabProps> = ({
                                     <span className="sr-only">Increase</span>
                                     <span className="text-sm font-bold">+</span>
                                   </Button>
-                                </div>                                {/* Total Price for this component */}
+                                </div>
+                                {/* Total Price for this component */}
                                 <div className="text-right">
                                   <p className="font-semibold text-gray-900">
                                     ₹{calculateComponentTotalPrice(component, componentRoomQuantities[component.id] || 1).toFixed(2)}
@@ -1361,12 +1367,13 @@ const PricingTab: React.FC<PricingTabProps> = ({
                         </div>
                       ))}
                     </div>
-                      {/* Summary of selected components */}
+                    {/* Summary of selected components */}
                     {selectedPricingComponentIds.length > 0 && (
                       <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
                         <p className="text-sm font-medium text-green-800">
                           Selected: {selectedPricingComponentIds.length} component{selectedPricingComponentIds.length !== 1 ? 's' : ''}
-                        </p>                        <div className="text-sm text-green-700 mt-1 space-y-1">
+                        </p>
+                        <div className="text-sm text-green-700 mt-1 space-y-1">
                           {availablePricingComponents
                             .filter(comp => selectedPricingComponentIds.includes(comp.id))
                             .map(comp => {
@@ -1432,7 +1439,10 @@ const PricingTab: React.FC<PricingTabProps> = ({
                 </div>
               </>
             )}
-          </div>        )}        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
+          </div>
+        )}
+
+        {/* Pricing Section Details (Always visible and editable, only disabled by loading) */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center">
@@ -1557,7 +1567,9 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </div>
             )}
           </div>
-        </div>        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
+        </div>
+
+        {/* Total Price Field (Always visible and editable, only disabled by loading) */}
         <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 shadow-lg">
           <div className="flex items-center mb-3">
             <Target className="mr-2 h-6 w-6 text-orange-600" />
@@ -1592,7 +1604,9 @@ const PricingTab: React.FC<PricingTabProps> = ({
               </FormItem>
             )}
           />
-        </div>        {/* Configuration Summary */}
+        </div>
+
+        {/* Configuration Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Display selected meal plan */}
           {selectedMealPlanId && (

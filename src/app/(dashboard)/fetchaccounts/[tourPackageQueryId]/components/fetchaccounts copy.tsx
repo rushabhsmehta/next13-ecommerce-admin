@@ -208,6 +208,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <ReceiptsSection 
               receiptsData={initialData.receiptDetails || []} 
               customers={customers}
+              suppliers={suppliers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}
               tourPackageId={initialData.id}
@@ -258,6 +259,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <PaymentsSection 
               paymentsData={initialData.paymentDetails || []} 
               suppliers={suppliers}
+              customers={customers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}
               tourPackageId={initialData.id}

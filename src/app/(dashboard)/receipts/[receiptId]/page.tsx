@@ -31,8 +31,9 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
   }
 
   // Get the data we need for the form
-  const [customers, bankAccounts, cashAccounts] = await Promise.all([
+  const [customers, suppliers, bankAccounts, cashAccounts] = await Promise.all([
     prismadb.customer.findMany(),
+    prismadb.supplier.findMany(),
     prismadb.bankAccount.findMany({ where: { isActive: true } }),
     prismadb.cashAccount.findMany({ where: { isActive: true } })
   ]);
@@ -46,6 +47,7 @@ export default async function ReceiptPage({ params }: ReceiptPageProps) {
         <ReceiptForm
           initialData={receipt}
           customers={customers}
+          suppliers={suppliers}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts as any}
         />

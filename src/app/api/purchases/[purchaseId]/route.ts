@@ -27,7 +27,7 @@ export async function GET(
             unitOfMeasure: true
           },
           orderBy: {
-            createdAt: 'asc'
+            orderIndex: 'asc'
           }
         }
       }
@@ -140,6 +140,7 @@ export async function PATCH(
                   taxSlabId: item.taxSlabId ?? null,
                   taxAmount: item.taxAmount != null ? parseFloat(String(item.taxAmount)) : null,
                   totalAmount: item.totalAmount != null ? parseFloat(String(item.totalAmount)) : 0,
+                  orderIndex: i, // Preserve the order based on array index
                 }
               });
             } catch (itemError) {
@@ -170,7 +171,8 @@ export async function PATCH(
               totalAmount: price != null ? parseFloat(String(price)) : 0,
               taxAmount: gstAmount != null ? parseFloat(String(gstAmount)) : null,
               taxSlabId: null,
-              unitOfMeasureId: null
+              unitOfMeasureId: null,
+              orderIndex: 0 // Default item gets index 0
             }
           });
         }
@@ -187,7 +189,7 @@ export async function PATCH(
               unitOfMeasure: true
             },
             orderBy: {
-              createdAt: 'asc'
+              orderIndex: 'asc'
             }
           }
         }

@@ -30,6 +30,7 @@ export interface SaleFormProps extends TransactionFormProps {
 
 export interface PaymentFormProps extends TransactionFormProps {
   suppliers: Supplier[];
+  customers: Customer[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
   confirmedTourPackageQueries?: Array<{
@@ -42,6 +43,7 @@ export interface PaymentFormProps extends TransactionFormProps {
 
 export interface ReceiptFormProps extends TransactionFormProps {
   customers: Customer[];
+  suppliers: Supplier[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
   confirmedTourPackageQueries?: Array<{

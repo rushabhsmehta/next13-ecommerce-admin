@@ -2,16 +2,17 @@
 
 import { PaymentFormWrapper } from "@/components/forms/payment-form-wrapper";
 import { useRouter } from "next/navigation";
-import { BankAccount, CashAccount, Supplier } from "@prisma/client";
+import { BankAccount, CashAccount, Supplier, Customer } from "@prisma/client";
 
 interface PaymentFormProps {
   initialData: any;
   suppliers: Supplier[];
+  customers: Customer[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
 }
 
-export const PaymentForm = ({ initialData, suppliers, bankAccounts, cashAccounts }: PaymentFormProps) => {
+export const PaymentForm = ({ initialData, suppliers, customers, bankAccounts, cashAccounts }: PaymentFormProps) => {
   const router = useRouter();
   
   const onSuccess = () => {
@@ -23,6 +24,7 @@ export const PaymentForm = ({ initialData, suppliers, bankAccounts, cashAccounts
     <PaymentFormWrapper
       initialData={initialData}
       suppliers={suppliers}
+      customers={customers}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}
       onSuccess={onSuccess}

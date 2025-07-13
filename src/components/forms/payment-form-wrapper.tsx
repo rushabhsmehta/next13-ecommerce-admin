@@ -22,6 +22,7 @@ export const PaymentFormWrapper = ({
 }: PaymentFormWrapperProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [suppliers, setSuppliers] = useState(props.suppliers || []);
+  const [customers, setCustomers] = useState(props.customers || []);
   const [bankAccounts, setBankAccounts] = useState(props.bankAccounts || []);
   const [cashAccounts, setCashAccounts] = useState(props.cashAccounts || []);
   const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState([]);
@@ -31,14 +32,16 @@ export const PaymentFormWrapper = ({
     const fetchData = async () => {
       try {
         // Fetch core data if not provided in props
-        if (!props.suppliers || !props.bankAccounts || !props.cashAccounts) {
-          const [suppliersResponse, bankAccountsResponse, cashAccountsResponse] = await Promise.all([
+        if (!props.suppliers || !props.customers || !props.bankAccounts || !props.cashAccounts) {
+          const [suppliersResponse, customersResponse, bankAccountsResponse, cashAccountsResponse] = await Promise.all([
             axios.get('/api/suppliers'),
+            axios.get('/api/customers'),
             axios.get('/api/bank-accounts'),
             axios.get('/api/cash-accounts')
           ]);
           
           setSuppliers(suppliersResponse.data || []);
+          setCustomers(customersResponse.data || []);
           setBankAccounts(bankAccountsResponse.data || []);
           setCashAccounts(cashAccountsResponse.data || []);
         }
@@ -55,7 +58,7 @@ export const PaymentFormWrapper = ({
     };
     
     fetchData();
-  }, [props.suppliers, props.bankAccounts, props.cashAccounts]);
+  }, [props.suppliers, props.customers, props.bankAccounts, props.cashAccounts]);
     if (isLoading) {
     return (
       <div className="flex justify-center items-center h-24">
@@ -71,6 +74,7 @@ export const PaymentFormWrapper = ({
         confirmedTourPackageQueries: confirmedTourPackageQueries
       }}
       suppliers={suppliers}
+      customers={customers}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}
       onSuccess={onSuccess}

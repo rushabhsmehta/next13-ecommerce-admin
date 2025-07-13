@@ -12,6 +12,9 @@ export async function POST(req: Request) {
 
     const body = await req.json();    const { 
       supplierId,
+      customerId,
+      paymentType,
+      saleReturnId,
       tourPackageQueryId,
       paymentDate,
       amount,
@@ -32,13 +35,29 @@ export async function POST(req: Request) {
       return new NextResponse("Valid amount is required", { status: 400 });
     }
 
+    if (!paymentType) {
+      return new NextResponse("Payment type is required", { status: 400 });
+    }
+
+    // Validate recipient based on payment type
+    if (paymentType === "supplier_payment" && !supplierId) {
+      return new NextResponse("Supplier is required for supplier payments", { status: 400 });
+    }
+
+    if (paymentType === "customer_refund" && !customerId) {
+      return new NextResponse("Customer is required for customer refunds", { status: 400 });
+    }
+
     // Ensure either bank or cash account is selected
     if (!bankAccountId && !cashAccountId) {
       return new NextResponse("Either bank or cash account must be selected", { status: 400 });
     }    // Create payment detail
     const paymentDetail = await prismadb.paymentDetail.create({
       data: {
-        supplierId: supplierId || null,
+        supplierId: paymentType === "supplier_payment" ? supplierId : null,
+        customerId: paymentType === "customer_refund" ? customerId : null,
+        paymentType: paymentType || "supplier_payment",
+        saleReturnId: saleReturnId || null,
         tourPackageQueryId: tourPackageQueryId || null,
         paymentDate: dateToUtc(paymentDate)!,
         amount: parseFloat(amount.toString()),
@@ -63,6 +82,9 @@ export async function POST(req: Request) {
     }
 
     // Update account balance
+    // For supplier payments and customer refunds, money goes OUT of the account (decrease balance)
+    const balanceChange = parseFloat(amount.toString());
+    
     if (bankAccountId) {
       const bankAccount = await prismadb.bankAccount.findUnique({
         where: { id: bankAccountId }
@@ -72,7 +94,7 @@ export async function POST(req: Request) {
         await prismadb.bankAccount.update({
           where: { id: bankAccountId },
           data: { 
-            currentBalance: bankAccount.currentBalance - parseFloat(amount.toString())
+            currentBalance: bankAccount.currentBalance - balanceChange
           }
         });
       }
@@ -85,7 +107,7 @@ export async function POST(req: Request) {
         await prismadb.cashAccount.update({
           where: { id: cashAccountId },
           data: { 
-            currentBalance: cashAccount.currentBalance - parseFloat(amount.toString())
+            currentBalance: cashAccount.currentBalance - balanceChange
           }
         });
       }

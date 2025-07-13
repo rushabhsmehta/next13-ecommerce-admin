@@ -22,6 +22,7 @@ export const ReceiptFormWrapper = ({
 }: ReceiptFormWrapperProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [customers, setCustomers] = useState(props.customers || []);
+  const [suppliers, setSuppliers] = useState(props.suppliers || []);
   const [bankAccounts, setBankAccounts] = useState(props.bankAccounts || []);
   const [cashAccounts, setCashAccounts] = useState(props.cashAccounts || []);
   const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState([]);
@@ -31,14 +32,16 @@ export const ReceiptFormWrapper = ({
     const fetchData = async () => {
       try {
         // Fetch core data if not provided in props
-        if (!props.customers || !props.bankAccounts || !props.cashAccounts) {
-          const [customersResponse, bankAccountsResponse, cashAccountsResponse] = await Promise.all([
+        if (!props.customers || !props.suppliers || !props.bankAccounts || !props.cashAccounts) {
+          const [customersResponse, suppliersResponse, bankAccountsResponse, cashAccountsResponse] = await Promise.all([
             axios.get('/api/customers'),
+            axios.get('/api/suppliers'),
             axios.get('/api/bank-accounts'),
             axios.get('/api/cash-accounts')
           ]);
           
           setCustomers(customersResponse.data || []);
+          setSuppliers(suppliersResponse.data || []);
           setBankAccounts(bankAccountsResponse.data || []);
           setCashAccounts(cashAccountsResponse.data || []);
         }
@@ -55,7 +58,7 @@ export const ReceiptFormWrapper = ({
     };
     
     fetchData();
-  }, [props.customers, props.bankAccounts, props.cashAccounts]);
+  }, [props.customers, props.suppliers, props.bankAccounts, props.cashAccounts]);
     if (isLoading) {
     return (
       <div className="flex justify-center items-center h-24">
@@ -71,6 +74,7 @@ export const ReceiptFormWrapper = ({
         confirmedTourPackageQueries: confirmedTourPackageQueries
       }}
       customers={customers}
+      suppliers={suppliers}
       bankAccounts={bankAccounts}
       cashAccounts={cashAccounts}
       onSuccess={onSuccess}

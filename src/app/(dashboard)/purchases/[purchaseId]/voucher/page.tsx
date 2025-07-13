@@ -26,6 +26,9 @@ const PurchaseVoucherPage = async ({ params }: PurchaseVoucherPageProps) => {
         include: {
           unitOfMeasure: true,
           taxSlab: true
+        },
+        orderBy: {
+          orderIndex: 'asc'
         }
       }
     },

@@ -41,8 +41,9 @@ export default async function PaymentPage({ params }: PaymentPageProps) {
   }
 
   // Get the data we need for the form
-  const [suppliers, bankAccounts, cashAccounts] = await Promise.all([
+  const [suppliers, customers, bankAccounts, cashAccounts] = await Promise.all([
     prismadb.supplier.findMany(),
+    prismadb.customer.findMany(),
     prismadb.bankAccount.findMany({ where: { isActive: true } }),
     prismadb.cashAccount.findMany({ where: { isActive: true } })
   ]);
@@ -56,6 +57,7 @@ export default async function PaymentPage({ params }: PaymentPageProps) {
         <PaymentForm
           initialData={payment}
           suppliers={suppliers}
+          customers={customers}
           bankAccounts={bankAccounts}
           cashAccounts={cashAccounts as any}
         />

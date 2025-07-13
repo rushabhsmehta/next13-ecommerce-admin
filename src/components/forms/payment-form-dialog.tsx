@@ -59,9 +59,12 @@ const formSchema = z.object({
   method: z.string().optional(),
   transactionId: z.string().optional(),
   note: z.string().optional(),
-  supplierId: z.string().min(1, {
-    message: "Supplier is required",
+  paymentType: z.string().min(1, {
+    message: "Payment type is required",
   }),
+  supplierId: z.string().optional(),
+  customerId: z.string().optional(),
+  saleReturnId: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
   accountId: z.string().min(1, {
     message: "Account is required",
@@ -70,6 +73,17 @@ const formSchema = z.object({
     message: "Account type is required",
   }),
   images: z.array(z.string()).default([]),
+}).refine((data) => {
+  if (data.paymentType === "supplier_payment" && !data.supplierId) {
+    return false;
+  }
+  if (data.paymentType === "customer_refund" && !data.customerId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please select the appropriate recipient for this payment type",
+  path: ["supplierId", "customerId"]
 });
 
 type PaymentFormValues = z.infer<typeof formSchema>;
@@ -77,6 +91,7 @@ type PaymentFormValues = z.infer<typeof formSchema>;
 export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   initialData,
   suppliers,
+  customers,
   bankAccounts,
   cashAccounts,
   onSuccess,
@@ -86,12 +101,18 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [supplierSearch, setSupplierSearch] = useState("");
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
   const [tourPackageQueryDropdownOpen, setTourPackageQueryDropdownOpen] = useState(false);
   const [tourPackageQuerySearch, setTourPackageQuerySearch] = useState("");
 
   // Add these computed values
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
+  );
+  
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
   // Extract tour package queries from initialData
@@ -103,7 +124,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
     method: "",
     transactionId: "",
     note: "",
+    paymentType: "supplier_payment",
     supplierId: "",
+    customerId: "",
+    saleReturnId: "",
     tourPackageQueryId: paymentData?.tourPackageQueryId || undefined,
     accountId: "",
     accountType: "",
@@ -117,7 +141,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       method: paymentData.method || "",
       transactionId: paymentData.transactionId || "",
       note: paymentData.note || "",
+      paymentType: paymentData.paymentType || "supplier_payment",
       supplierId: paymentData.supplierId || "",
+      customerId: paymentData.customerId || "",
+      saleReturnId: paymentData.saleReturnId || "",
       tourPackageQueryId: paymentData.tourPackageQueryId || undefined,
       accountId: paymentData.bankAccountId || paymentData.cashAccountId || "",
       accountType: paymentData.bankAccountId ? "bank" : "cash",
@@ -357,76 +384,184 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                       <FormMessage />
                     </FormItem>
                   )}
-                />                {/* Supplier Selection */}
+                />
+
+                {/* Payment Type Selection */}
                 <FormField
                   control={form.control}
-                  name="supplierId"
+                  name="paymentType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Supplier</FormLabel>
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
-                        >
-                          {field.value
-                            ? suppliers.find((supplier) => supplier.id === field.value)?.name || "Select supplier"
-                            : "Select supplier"}
-                          <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-
-                        {supplierDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
-                            <div className="p-3">
-                              <Input
-                                placeholder="Search suppliers..."
-                                className="mb-3 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                                value={supplierSearch}
-                                onChange={(e) => setSupplierSearch(e.target.value)}
-                                autoFocus
-                              />
-
-                              <div className="max-h-[200px] overflow-y-auto">
-                                {filteredSuppliers.length === 0 ? (
-                                  <div className="text-center py-3 text-sm text-gray-500">
-                                    No suppliers found
-                                  </div>
-                                ) : (
-                                  filteredSuppliers.map((supplier) => (
-                                    <div
-                                      key={supplier.id}
-                                      className={cn(
-                                        "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-blue-50 transition-colors",
-                                        supplier.id === field.value && "bg-blue-50 text-blue-700"
-                                      )}
-                                      onClick={() => {
-                                        field.onChange(supplier.id);
-                                        setSupplierSearch("");
-                                        setSupplierDropdownOpen(false);
-                                      }}
-                                    >
-                                      <span className="text-sm">{supplier.name}</span>
-                                      {supplier.id === field.value && (
-                                        <Check className="h-4 w-4 text-blue-600" />
-                                      )}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <FormLabel className="text-sm font-medium text-gray-700">Payment Type</FormLabel>
+                      <Select
+                        disabled={loading}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("supplierId", "");
+                          form.setValue("customerId", "");
+                        }}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20">
+                            <SelectValue placeholder="Select payment type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="supplier_payment">Payment to Supplier</SelectItem>
+                          <SelectItem value="customer_refund">Refund to Customer</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Supplier Selection - Only for supplier payments */}
+                {form.watch("paymentType") === "supplier_payment" && (
+                  <FormField
+                    control={form.control}
+                    name="supplierId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Supplier</FormLabel>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
+                          >
+                            {field.value
+                              ? suppliers.find((supplier) => supplier.id === field.value)?.name || "Select supplier"
+                              : "Select supplier"}
+                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+
+                          {supplierDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
+                              <div className="p-3">
+                                <Input
+                                  placeholder="Search suppliers..."
+                                  className="mb-3 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                  value={supplierSearch}
+                                  onChange={(e) => setSupplierSearch(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  {filteredSuppliers.length === 0 ? (
+                                    <div className="text-center py-3 text-sm text-gray-500">
+                                      No suppliers found
+                                    </div>
+                                  ) : (
+                                    filteredSuppliers.map((supplier) => (
+                                      <div
+                                        key={supplier.id}
+                                        className={cn(
+                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-blue-50 transition-colors",
+                                          supplier.id === field.value && "bg-blue-50 text-blue-700"
+                                        )}
+                                        onClick={() => {
+                                          field.onChange(supplier.id);
+                                          setSupplierSearch("");
+                                          setSupplierDropdownOpen(false);
+                                        }}
+                                      >
+                                        <span className="text-sm">{supplier.name}</span>
+                                        {supplier.id === field.value && (
+                                          <Check className="h-4 w-4 text-blue-600" />
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Customer Selection - Only for customer refunds */}
+                {form.watch("paymentType") === "customer_refund" && (
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Customer</FormLabel>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
+                          >
+                            {field.value
+                              ? customers.find((customer) => customer.id === field.value)?.name || "Select customer"
+                              : "Select customer"}
+                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+
+                          {customerDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
+                              <div className="p-3">
+                                <Input
+                                  placeholder="Search customers..."
+                                  className="mb-3 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                                  value={customerSearch}
+                                  onChange={(e) => setCustomerSearch(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  {filteredCustomers.length === 0 ? (
+                                    <div className="text-center py-3 text-sm text-gray-500">
+                                      No customers found
+                                    </div>
+                                  ) : (
+                                    filteredCustomers.map((customer) => (
+                                      <div
+                                        key={customer.id}
+                                        className={cn(
+                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-blue-50 transition-colors",
+                                          customer.id === field.value && "bg-blue-50 text-blue-700"
+                                        )}
+                                        onClick={() => {
+                                          field.onChange(customer.id);
+                                          setCustomerSearch("");
+                                          setCustomerDropdownOpen(false);
+                                        }}
+                                      >
+                                        <span className="text-sm">{customer.name}</span>
+                                        {customer.id === field.value && (
+                                          <Check className="h-4 w-4 text-blue-600" />
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 {/* Account Type */}
                 <FormField
                   control={form.control}

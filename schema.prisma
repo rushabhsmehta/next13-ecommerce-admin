@@ -263,6 +263,7 @@ model PurchaseItem {
   taxSlabId           String?
   taxAmount           Float?
   totalAmount         Float
+  orderIndex          Int                  @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   purchaseDetail      PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id], onDelete: Cascade)
@@ -273,6 +274,7 @@ model PurchaseItem {
   @@index([purchaseDetailId])
   @@index([unitOfMeasureId])
   @@index([taxSlabId])
+  @@index([purchaseDetailId, orderIndex])
 }
 
 model PaymentDetail {
@@ -284,6 +286,9 @@ model PaymentDetail {
   transactionId      String?
   note               String?          @db.Text
   supplierId         String?
+  customerId         String?         // Added: For sale return refunds to customers
+  paymentType        String?         @default("supplier_payment") // Added: "supplier_payment" or "customer_refund"
+  saleReturnId       String?         // Added: Link to sale return for refunds
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   bankAccountId      String?
@@ -291,12 +296,16 @@ model PaymentDetail {
   images             Images[]
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Added: For customer refunds
+  saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull) // Added: Link to sale return
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
 
   @@index([bankAccountId])
   @@index([cashAccountId])
   @@index([supplierId])
+  @@index([customerId])
+  @@index([saleReturnId])
   @@index([tourPackageQueryId])
 }
 
@@ -338,6 +347,7 @@ model SaleItem {
   taxSlabId       String?
   taxAmount       Float?
   totalAmount     Float
+  orderIndex      Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @default(now())
   saleDetail      SaleDetail       @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
@@ -348,6 +358,7 @@ model SaleItem {
   @@index([saleDetailId])
   @@index([unitOfMeasureId])
   @@index([taxSlabId])
+  @@index([saleDetailId, orderIndex])
 }
 
 model ReceiptDetail {
@@ -358,6 +369,9 @@ model ReceiptDetail {
   reference          String?
   note               String?          @db.Text
   customerId         String?
+  supplierId         String?         // Added: For purchase return refunds from suppliers
+  receiptType        String?         @default("customer_receipt") // Added: "customer_receipt" or "supplier_refund"
+  purchaseReturnId   String?         // Added: Link to purchase return for refunds
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   bankAccountId      String?
@@ -365,12 +379,16 @@ model ReceiptDetail {
   images             Images[]
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Added: For supplier refunds
+  purchaseReturn     PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull) // Added: Link to purchase return
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
 
   @@index([bankAccountId])
   @@index([cashAccountId])
   @@index([customerId])
+  @@index([supplierId])
+  @@index([purchaseReturnId])
   @@index([tourPackageQueryId])
 }
 
@@ -691,6 +709,7 @@ model Customer {
   associatePartnerId    String?
   saleDetails           SaleDetail[]
   receiptDetails        ReceiptDetail[]
+  refundPayments        PaymentDetail[]   // Added: Track refund payments to this customer
   associatePartner      AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
 
   @@index([associatePartnerId])
@@ -706,6 +725,7 @@ model Supplier {
   locations       SupplierLocation[]
   purchaseDetails PurchaseDetail[]
   paymentDetails  PaymentDetail[]
+  refundReceipts  ReceiptDetail[]    // Added: Track refund receipts from this supplier
 }
 
 model SupplierLocation {
@@ -962,6 +982,7 @@ model PurchaseReturn {
   updatedAt        DateTime             @updatedAt
   purchaseDetail   PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
   items            PurchaseReturnItem[]
+  receipts         ReceiptDetail[]      // Added: Track receipts from supplier for this return
 
   @@index([purchaseDetailId])
 }
@@ -978,6 +999,7 @@ model PurchaseReturnItem {
   taxAmount        Float?
   taxSlabId        String?
   totalAmount      Float
+  orderIndex       Int            @default(0)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
@@ -989,6 +1011,7 @@ model PurchaseReturnItem {
   @@index([purchaseItemId])
   @@index([unitOfMeasureId])
   @@index([taxSlabId])
+  @@index([purchaseReturnId, orderIndex])
 }
 
 model SaleReturn {
@@ -1004,6 +1027,7 @@ model SaleReturn {
   updatedAt    DateTime         @updatedAt
   saleDetail   SaleDetail       @relation(fields: [saleDetailId], references: [id])
   items        SaleReturnItem[]
+  payments     PaymentDetail[]  // Added: Track payments to customer for this return
 
   @@index([saleDetailId])
 }
@@ -1020,6 +1044,7 @@ model SaleReturnItem {
   taxAmount       Float?
   taxSlabId       String?
   totalAmount     Float
+  orderIndex      Int            @default(0)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   saleReturn      SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
@@ -1031,6 +1056,7 @@ model SaleReturnItem {
   @@index([saleItemId])
   @@index([unitOfMeasureId])
   @@index([taxSlabId])
+  @@index([saleReturnId, orderIndex])
 }
 
 model FlightTicket {

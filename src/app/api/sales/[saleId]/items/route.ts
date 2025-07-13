@@ -96,7 +96,8 @@ export async function PATCH(
       });
 
       // Create new items
-      for (const item of items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         await tx.saleItem.create({
           data: {
             saleDetailId: params.saleId,
@@ -109,7 +110,8 @@ export async function PATCH(
             discountAmount: item.discountAmount ? parseFloat(item.discountAmount) : undefined,
             taxSlabId: item.taxSlabId || undefined,
             taxAmount: item.taxAmount ? parseFloat(item.taxAmount) : undefined,
-            totalAmount: parseFloat(item.totalAmount)
+            totalAmount: parseFloat(item.totalAmount),
+            orderIndex: i, // Preserve the order based on array index
           }
         });
       }
@@ -123,7 +125,7 @@ export async function PATCH(
               taxSlab: true
             },
             orderBy: {
-              createdAt: 'asc'
+              orderIndex: 'asc'
             }
           }
         }

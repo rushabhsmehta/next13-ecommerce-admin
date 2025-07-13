@@ -70,6 +70,7 @@ export async function POST(req: Request) {
             taxSlabId: item.taxSlabId || null,
             taxAmount: item.taxAmount != null ? parseFloat(String(item.taxAmount)) : null,
             totalAmount: item.totalAmount != null ? parseFloat(String(item.totalAmount)) : 0,
+            orderIndex: i, // Preserve the order based on array index
           }
         });
       }
@@ -97,7 +98,8 @@ export async function POST(req: Request) {
           totalAmount: price != null ? parseFloat(String(price)) : 0,
           taxAmount: gstAmount != null ? parseFloat(String(gstAmount)) : null,
           taxSlabId: null,
-          unitOfMeasureId: null
+          unitOfMeasureId: null,
+          orderIndex: 0, // Default item gets index 0
         }
       });
     }
@@ -139,7 +141,7 @@ export async function GET(req: Request) {
             unitOfMeasure: true
           },
           orderBy: {
-            createdAt: 'asc'
+            orderIndex: 'asc'
           }
         }
       },

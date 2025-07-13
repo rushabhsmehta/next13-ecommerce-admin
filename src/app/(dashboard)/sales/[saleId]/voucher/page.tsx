@@ -28,7 +28,7 @@ const SaleVoucherPage = async ({ params }: SaleVoucherPageProps) => {
           taxSlab: true
         },
         orderBy: {
-          createdAt: 'asc'
+          orderIndex: 'asc'
         }
       }
     },

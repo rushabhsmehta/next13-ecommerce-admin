@@ -50,9 +50,12 @@ const formSchema = z.object({
   }),
   reference: z.string().optional(),
   note: z.string().optional(),
-  customerId: z.string().min(1, {
-    message: "Customer is required",
+  receiptType: z.string().min(1, {
+    message: "Receipt type is required",
   }),
+  customerId: z.string().optional(),
+  supplierId: z.string().optional(),
+  purchaseReturnId: z.string().optional(),
   tourPackageQueryId: z.string().optional(),
   accountId: z.string().min(1, {
     message: "Account is required",
@@ -61,6 +64,17 @@ const formSchema = z.object({
     message: "Account type is required",
   }),
   images: z.array(z.string()).default([]),
+}).refine((data) => {
+  if (data.receiptType === "customer_payment" && !data.customerId) {
+    return false;
+  }
+  if (data.receiptType === "supplier_refund" && !data.supplierId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please select the appropriate sender for this receipt type",
+  path: ["customerId", "supplierId"]
 });
 
 type ReceiptFormValues = z.infer<typeof formSchema>;
@@ -68,6 +82,7 @@ type ReceiptFormValues = z.infer<typeof formSchema>;
 export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   initialData,
   customers,
+  suppliers,
   bankAccounts,
   cashAccounts,
   onSuccess,
@@ -77,12 +92,18 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
   const [tourPackageQueryDropdownOpen, setTourPackageQueryDropdownOpen] = useState(false);
   const [tourPackageQuerySearch, setTourPackageQuerySearch] = useState("");
 
   // Add these computed values
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(customerSearch.toLowerCase())
+  );
+  
+  const filteredSuppliers = suppliers.filter(supplier =>
+    supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
   );
   
   // Extract tour package queries from initialData
@@ -93,7 +114,10 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     amount: 0,
     reference: "",
     note: "",
+    receiptType: "customer_payment",
     customerId: "",
+    supplierId: "",
+    purchaseReturnId: "",
     tourPackageQueryId: receiptData?.tourPackageQueryId || undefined,
     accountId: "",
     accountType: "",
@@ -106,7 +130,10 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       amount: receiptData.amount,
       reference: receiptData.reference || "",
       note: receiptData.note || "",
+      receiptType: receiptData.receiptType || "customer_payment",
       customerId: receiptData.customerId || "",
+      supplierId: receiptData.supplierId || "",
+      purchaseReturnId: receiptData.purchaseReturnId || "",
       tourPackageQueryId: receiptData.tourPackageQueryId || undefined,
       accountId: receiptData.bankAccountId || receiptData.cashAccountId || "",
       accountType: receiptData.bankAccountId ? "bank" : "cash",
@@ -350,76 +377,181 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   )}
                 />
 
-                {/* Customer Selection */}
+                {/* Receipt Type Selection */}
                 <FormField
                   control={form.control}
-                  name="customerId"
+                  name="receiptType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Customer</FormLabel>
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
-                        >
-                          {field.value
-                            ? customers.find((customer) => customer.id === field.value)?.name || "Select customer"
-                            : "Select customer"}
-                          <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-
-                        {customerDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
-                            <div className="p-3">
-                              <Input
-                                placeholder="Search customers..."
-                                className="mb-3 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                                value={customerSearch}
-                                onChange={(e) => setCustomerSearch(e.target.value)}
-                                autoFocus
-                              />
-
-                              <div className="max-h-[200px] overflow-y-auto">
-                                {filteredCustomers.length === 0 ? (
-                                  <div className="text-center py-3 text-sm text-gray-500">
-                                    No customers found
-                                  </div>
-                                ) : (
-                                  filteredCustomers.map((customer) => (
-                                    <div
-                                      key={customer.id}
-                                      className={cn(
-                                        "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-green-50 transition-colors",
-                                        customer.id === field.value && "bg-green-50 text-green-700"
-                                      )}
-                                      onClick={() => {
-                                        field.onChange(customer.id);
-                                        setCustomerSearch("");
-                                        setCustomerDropdownOpen(false);
-                                      }}
-                                    >
-                                      <span className="text-sm">{customer.name}</span>
-                                      {customer.id === field.value && (
-                                        <Check className="h-4 w-4 text-green-600" />
-                                      )}
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      <FormLabel className="text-sm font-medium text-gray-700">Receipt Type</FormLabel>
+                      <Select
+                        disabled={loading}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("customerId", "");
+                          form.setValue("supplierId", "");
+                        }}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20">
+                            <SelectValue placeholder="Select receipt type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="customer_payment">Payment from Customer</SelectItem>
+                          <SelectItem value="supplier_refund">Refund from Supplier</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* Customer Selection - Only for customer payments */}
+                {form.watch("receiptType") === "customer_payment" && (
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Customer</FormLabel>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
+                          >
+                            {field.value
+                              ? customers.find((customer) => customer.id === field.value)?.name || "Select customer"
+                              : "Select customer"}
+                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+
+                          {customerDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
+                              <div className="p-3">
+                                <Input
+                                  placeholder="Search customers..."
+                                  className="mb-3 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                                  value={customerSearch}
+                                  onChange={(e) => setCustomerSearch(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  {filteredCustomers.length === 0 ? (
+                                    <div className="text-center py-3 text-sm text-gray-500">
+                                      No customers found
+                                    </div>
+                                  ) : (
+                                    filteredCustomers.map((customer) => (
+                                      <div
+                                        key={customer.id}
+                                        className={cn(
+                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-green-50 transition-colors",
+                                          customer.id === field.value && "bg-green-50 text-green-700"
+                                        )}
+                                        onClick={() => {
+                                          field.onChange(customer.id);
+                                          setCustomerSearch("");
+                                          setCustomerDropdownOpen(false);
+                                        }}
+                                      >
+                                        <span className="text-sm">{customer.name}</span>
+                                        {customer.id === field.value && (
+                                          <Check className="h-4 w-4 text-green-600" />
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Supplier Selection - Only for supplier refunds */}
+                {form.watch("receiptType") === "supplier_refund" && (
+                  <FormField
+                    control={form.control}
+                    name="supplierId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Supplier</FormLabel>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between h-11 px-4 py-2 border-gray-300 hover:border-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/20",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
+                          >
+                            {field.value
+                              ? suppliers.find((supplier) => supplier.id === field.value)?.name || "Select supplier"
+                              : "Select supplier"}
+                            <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+
+                          {supplierDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-lg border border-gray-200 shadow-lg">
+                              <div className="p-3">
+                                <Input
+                                  placeholder="Search suppliers..."
+                                  className="mb-3 border-gray-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                                  value={supplierSearch}
+                                  onChange={(e) => setSupplierSearch(e.target.value)}
+                                  autoFocus
+                                />
+                                <div className="max-h-[200px] overflow-y-auto">
+                                  {filteredSuppliers.length === 0 ? (
+                                    <div className="text-center py-3 text-sm text-gray-500">
+                                      No suppliers found
+                                    </div>
+                                  ) : (
+                                    filteredSuppliers.map((supplier) => (
+                                      <div
+                                        key={supplier.id}
+                                        className={cn(
+                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md hover:bg-green-50 transition-colors",
+                                          supplier.id === field.value && "bg-green-50 text-green-700"
+                                        )}
+                                        onClick={() => {
+                                          field.onChange(supplier.id);
+                                          setSupplierSearch("");
+                                          setSupplierDropdownOpen(false);
+                                        }}
+                                      >
+                                        <span className="text-sm">{supplier.name}</span>
+                                        {supplier.id === field.value && (
+                                          <Check className="h-4 w-4 text-green-600" />
+                                        )}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 {/* Account Type */}
                 <FormField

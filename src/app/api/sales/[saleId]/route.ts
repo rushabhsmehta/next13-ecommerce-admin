@@ -131,7 +131,8 @@ export async function PATCH(
 
             // Create new sale items
             if (items && Array.isArray(items) && items.length > 0) {
-                for (const item of items) {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
                     await prismadb.saleItem.create({
                         data: {
                             saleDetailId: params.saleId,
@@ -143,6 +144,7 @@ export async function PATCH(
                             taxSlabId: item.taxSlabId || null,
                             taxAmount: item.taxAmount ? parseFloat(item.taxAmount.toString()) : null,
                             totalAmount: parseFloat(item.totalAmount.toString()),
+                            orderIndex: i, // Preserve the order based on array index
                         }
                     });
                 }
@@ -159,7 +161,7 @@ export async function PATCH(
                             taxSlab: true
                         },
                         orderBy: {
-                            createdAt: 'asc'
+                            orderIndex: 'asc'
                         }
                     }
                 }

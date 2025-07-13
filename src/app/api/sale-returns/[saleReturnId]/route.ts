@@ -33,7 +33,7 @@ export async function GET(
             saleItem: true
           },
           orderBy: {
-            createdAt: 'asc'
+            orderIndex: 'asc'
           }
         }
       }
@@ -101,7 +101,8 @@ export async function PATCH(
 
       // Create new items
       if (Array.isArray(items) && items.length > 0) {
-        for (const item of items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
           await prismadb.saleReturnItem.create({
             data: {
               saleReturnId: params.saleReturnId,
@@ -114,6 +115,7 @@ export async function PATCH(
               taxSlabId: item.taxSlabId || null,
               taxAmount: item.taxAmount ? parseFloat(String(item.taxAmount)) : null,
               totalAmount: parseFloat(String(item.totalAmount)),
+              orderIndex: i, // Preserve the order based on array index
             }
           });
         }

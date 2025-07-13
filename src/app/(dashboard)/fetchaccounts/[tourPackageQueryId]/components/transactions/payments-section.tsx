@@ -12,7 +12,7 @@ import { PaymentFormWrapper } from "@/components/forms/payment-form-wrapper"; //
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
-import { BankAccount, CashAccount, PaymentDetail, Supplier } from '@prisma/client';
+import { BankAccount, CashAccount, PaymentDetail, Supplier, Customer } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
 
@@ -24,6 +24,7 @@ interface PaymentWithImages extends PaymentDetail {
 interface PaymentsSectionProps {
   paymentsData: PaymentWithImages[];
   suppliers: Supplier[];
+  customers: Customer[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
   tourPackageId: string;
@@ -35,6 +36,7 @@ interface PaymentsSectionProps {
 const PaymentsSection: React.FC<PaymentsSectionProps> = ({
   paymentsData: initialPaymentsData,
   suppliers,
+  customers,
   bankAccounts,
   cashAccounts,
   tourPackageId,
@@ -352,6 +354,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
                 }
               }}
               suppliers={suppliers}
+              customers={customers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}
               onSuccess={() => {

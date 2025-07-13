@@ -26,14 +26,15 @@ export async function GET(
           include: {
             supplier: true
           }
-        },        items: {
+        },
+        items: {
           include: {
             taxSlab: true,
             unitOfMeasure: true,
             purchaseItem: true
           },
           orderBy: {
-            createdAt: 'asc'
+            orderIndex: 'asc'
           }
         }
       }
@@ -80,7 +81,8 @@ export async function PATCH(
     const updatedPurchaseReturn = await prismadb.purchaseReturn.update({
       where: {
         id: params.purchaseReturnId
-      },      data: {
+      },
+      data: {
         returnDate: returnDate ? dateToUtc(returnDate) : undefined,
         returnReason: returnReason || undefined,
         amount: amount !== undefined ? parseFloat(amount.toString()) : undefined,
@@ -101,12 +103,13 @@ export async function PATCH(
 
       // Create new items
       if (Array.isArray(items) && items.length > 0) {
-        for (const item of items) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
           await prismadb.purchaseReturnItem.create({
             data: {
               purchaseReturnId: params.purchaseReturnId,
               purchaseItemId: item.purchaseItemId || null,
-              productName: item.productName,
+              productName: item.productName || "Item",
               description: item.description || null,
               quantity: parseFloat(String(item.quantity)),
               unitOfMeasureId: item.unitOfMeasureId || null,
@@ -114,6 +117,7 @@ export async function PATCH(
               taxSlabId: item.taxSlabId || null,
               taxAmount: item.taxAmount ? parseFloat(String(item.taxAmount)) : null,
               totalAmount: parseFloat(String(item.totalAmount)),
+              orderIndex: i, // Preserve the order based on array index
             }
           });
         }

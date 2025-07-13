@@ -12,7 +12,7 @@ import { ReceiptFormWrapper } from "@/components/forms/receipt-form-wrapper"; //
 import DeleteConfirmation from "./delete-confirmation";
 import { formatPrice } from "@/lib/utils";
 import toast from 'react-hot-toast';
-import { BankAccount, CashAccount, Customer, ReceiptDetail } from '@prisma/client';
+import { BankAccount, CashAccount, Customer, ReceiptDetail, Supplier } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
 
@@ -24,6 +24,7 @@ interface ReceiptWithImages extends ReceiptDetail {
 interface ReceiptsSectionProps {
   receiptsData: ReceiptWithImages[];
   customers: Customer[];
+  suppliers: Supplier[];
   bankAccounts: BankAccount[];
   cashAccounts: CashAccount[];
   tourPackageId: string;
@@ -35,6 +36,7 @@ interface ReceiptsSectionProps {
 const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
   receiptsData: initialReceiptsData,
   customers,
+  suppliers,
   bankAccounts,
   cashAccounts,
   tourPackageId,
@@ -355,6 +357,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                 }
               }}
               customers={customers}
+              suppliers={suppliers}
               bankAccounts={bankAccounts}
               cashAccounts={cashAccounts}
               onSuccess={() => {

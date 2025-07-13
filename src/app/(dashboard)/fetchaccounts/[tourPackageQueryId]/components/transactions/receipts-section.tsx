@@ -19,6 +19,8 @@ import ImageUpload from '@/components/ui/image-upload';
 // Extended the ReceiptDetail to include images relationship
 interface ReceiptWithImages extends ReceiptDetail {
   images?: { url: string }[];
+  customer?: { id: string; name: string; contact?: string } | null;
+  supplier?: { id: string; name: string; contact?: string } | null;
 }
 
 interface ReceiptsSectionProps {
@@ -175,7 +177,7 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
       {receiptsData.length > 0 ? (
         <Card className="shadow-lg rounded-lg border-l-4 border-emerald-500">
           <CardHeader className="py-3 bg-gray-50">            <CardTitle className="text-sm font-medium grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_120px] gap-4">
-              <div>Customer</div>
+              <div>Customer/Supplier</div>
               <div>Date</div>
               <div>Account Type</div>
               <div>Account Name</div>
@@ -195,9 +197,38 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
                   : "-";
               return (                <div key={receipt.id}
                   className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr_120px] gap-4 items-center p-3 border-b last:border-0 hover:bg-gray-50">
-                  <div className="font-medium flex items-center">
-                    <UserIcon className="h-4 w-4 mr-1 text-gray-500" />
-                    {customers.find(c => c.id === receipt.customerId)?.name || 'N/A'}
+                  <div className="font-medium">
+                    <div className="flex items-center">
+                      {receipt.receiptType === "supplier_refund" ? (
+                        <>
+                          <div className="flex items-center">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 mr-2">
+                              Refund
+                            </span>
+                            <UserIcon className="h-4 w-4 mr-1 text-orange-600" />
+                          </div>
+                          <div>
+                            {receipt.supplier
+                              ? `${receipt.supplier.name}${receipt.supplier.contact ? ` - ${receipt.supplier.contact}` : ''}`
+                              : 'N/A'}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 mr-2">
+                              Receipt
+                            </span>
+                            <UserIcon className="h-4 w-4 mr-1 text-emerald-600" />
+                          </div>
+                          <div>
+                            {receipt.customer
+                              ? `${receipt.customer.name}${receipt.customer.contact ? ` - ${receipt.customer.contact}` : ''}`
+                              : 'N/A'}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center">
                     <CalendarIcon className="h-4 w-4 mr-1 text-gray-500" />

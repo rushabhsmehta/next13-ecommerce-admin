@@ -85,12 +85,22 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           transactionId: true,
           note: true,
           supplierId: true,
+          customerId: true,
+          paymentType: true,
           bankAccountId: true,
           cashAccountId: true,
           supplier: {
             select: {
               id: true,
-              name: true
+              name: true,
+              contact: true
+            }
+          },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              contact: true
             }
           },
           images: {
@@ -110,12 +120,22 @@ const TourPackageQueryPage: React.FC<TourPackageQueryPageProps> = async ({
           reference: true,
           note: true,
           customerId: true,
+          supplierId: true,
+          receiptType: true,
           bankAccountId: true,
           cashAccountId: true,
           customer: {
             select: {
               id: true,
-              name: true
+              name: true,
+              contact: true
+            }
+          },
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              contact: true
             }
           },
           images: {

@@ -112,7 +112,8 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   );
   
   const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase())
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (customer.contact && customer.contact.toLowerCase().includes(customerSearch.toLowerCase()))
   );
 
   // Extract tour package queries from initialData
@@ -510,7 +511,13 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                             onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
                           >
                             {field.value
-                              ? customers.find((customer) => customer.id === field.value)?.name || "Select customer"
+                              ? (() => {
+                                  const customer = customers.find((customer) => customer.id === field.value);
+                                  if (customer) {
+                                    return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                  }
+                                  return "Select customer";
+                                })()
                               : "Select customer"}
                             <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -544,7 +551,12 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                                           setCustomerDropdownOpen(false);
                                         }}
                                       >
-                                        <span className="text-sm">{customer.name}</span>
+                                        <div className="flex flex-col">
+                                          <span className="text-sm font-medium">{customer.name}</span>
+                                          {customer.contact && (
+                                            <span className="text-xs text-gray-500">{customer.contact}</span>
+                                          )}
+                                        </div>
                                         {customer.id === field.value && (
                                           <Check className="h-4 w-4 text-blue-600" />
                                         )}

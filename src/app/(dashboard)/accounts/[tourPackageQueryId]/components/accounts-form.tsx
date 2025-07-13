@@ -140,7 +140,7 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
   const description = initialData ? 'Edit a Tour Package Query.' : 'Add a new Tour Package Query';
 
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
-  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [customers, setCustomers] = useState<{ id: string; name: string; contact?: string }[]>([]);
   const [allAccounts, setAllAccounts] = useState<{
     id: string;
     displayName: string;
@@ -818,7 +818,13 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 )}
                               >
                                 {field.value
-                                  ? customers.find((customer) => customer.id === field.value)?.name
+                                  ? (() => {
+                                      const customer = customers.find((customer) => customer.id === field.value);
+                                      if (customer) {
+                                        return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                      }
+                                      return "Select customer...";
+                                    })()
                                   : "Select customer..."}
                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
@@ -843,7 +849,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                         customer.id === field.value ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    {customer.name}
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{customer.name}</span>
+                                      {customer.contact && (
+                                        <span className="text-xs text-gray-500">{customer.contact}</span>
+                                      )}
+                                    </div>
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1244,7 +1255,13 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                 )}
                               >
                                 {field.value
-                                  ? customers.find((customer) => customer.id === field.value)?.name
+                                  ? (() => {
+                                      const customer = customers.find((customer) => customer.id === field.value);
+                                      if (customer) {
+                                        return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                      }
+                                      return "Select customer...";
+                                    })()
                                   : "Select customer..."}
                                 <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
@@ -1269,7 +1286,12 @@ export const TourPackageQueryAccountingForm: React.FC<TourPackageQueryAccounting
                                         customer.id === field.value ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    {customer.name}
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{customer.name}</span>
+                                      {customer.contact && (
+                                        <span className="text-xs text-gray-500">{customer.contact}</span>
+                                      )}
+                                    </div>
                                   </CommandItem>
                                 ))}
                               </CommandGroup>

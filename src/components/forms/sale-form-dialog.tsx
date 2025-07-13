@@ -85,7 +85,8 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
 
   // Add this computed value
   const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase())
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (customer.contact && customer.contact.toLowerCase().includes(customerSearch.toLowerCase()))
   );
 
   const defaultItems = initialData?.items?.length > 0
@@ -411,7 +412,13 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                           onClick={() => setCustomerDropdownOpen(!customerDropdownOpen)}
                         >
                           {field.value
-                            ? customers.find((customer) => customer.id === field.value)?.name || "Select customer"
+                            ? (() => {
+                                const customer = customers.find((customer) => customer.id === field.value);
+                                if (customer) {
+                                  return customer.contact ? `${customer.name} - ${customer.contact}` : customer.name;
+                                }
+                                return "Select customer";
+                              })()
                             : "Select customer"}
                           <Check className="ml-auto h-4 w-4" />
                         </Button>
@@ -445,7 +452,12 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
                                         setCustomerDropdownOpen(false);
                                       }}
                                     >
-                                      <span>{customer.name}</span>
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{customer.name}</span>
+                                        {customer.contact && (
+                                          <span className="text-xs text-gray-500">{customer.contact}</span>
+                                        )}
+                                      </div>
                                       {customer.id === field.value && (
                                         <Check className="h-4 w-4 text-primary" />
                                       )}

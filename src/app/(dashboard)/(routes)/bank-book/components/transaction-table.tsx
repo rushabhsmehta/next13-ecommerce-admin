@@ -36,7 +36,6 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
   // Function to navigate to the appropriate edit page based on transaction type
   const handleEditTransaction = (transaction: Transaction) => {
     const type = transaction.type.toLowerCase();
-    
     if (type.startsWith('income')) {
       router.push(`/incomes/${transaction.id}`);
     } else if (type.startsWith('expense')) {
@@ -45,6 +44,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
       router.push(`/receipts/${transaction.id}`);
     } else if (type === 'payment') {
       router.push(`/payments/${transaction.id}`);
+    } else if (type === 'customer refund') {
+      router.push(`/payments/${transaction.id}`);
+    } else if (type === 'supplier refund') {
+      router.push(`/receipts/${transaction.id}`);
     } else if (type.includes('transfer')) {
       router.push(`/transfers/${transaction.id}`);
     }

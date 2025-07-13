@@ -90,10 +90,20 @@ export function dateToUtc(date: string | Date | null | undefined, timezone?: str
  * For date-only fields, preserves the date components
  */
 export function utcToLocal(utcDate: string | Date | null | undefined, timezone?: string): Date | undefined {
-  if (!utcDate) return undefined;
+  console.log('🔄 utcToLocal function called:');
+  console.log('  - Input utcDate:', utcDate);
+  console.log('  - Input type:', typeof utcDate);
+  
+  if (!utcDate) {
+    console.log('  - Returning undefined (no utcDate)');
+    return undefined;
+  }
   
   try {
     const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate;
+    console.log('  - Parsed/converted date:', date);
+    console.log('  - Date toString():', date.toString());
+    console.log('  - Date toISOString():', date.toISOString());
     
     // For date-only fields stored as UTC, extract the date components
     // and create a local date with the same year/month/day
@@ -101,9 +111,12 @@ export function utcToLocal(utcDate: string | Date | null | undefined, timezone?:
       const year = date.getUTCFullYear();
       const month = date.getUTCMonth();
       const day = date.getUTCDate();
+      console.log('    - Extracted UTC components:', { year, month, day });
       
-      // Create local date with same date components
-      const result = new Date(year, month, day);
+      // Create local date with same date components and fixed time (noon) to avoid DST issues
+      const result = new Date(year, month, day, 12, 0, 0, 0);
+      console.log('    - Created local result:', result);
+      console.log('    - Local result toString():', result.toString());
       return result;
     }
     

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, utcToLocal } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,7 @@ export const SaleFormDialog: React.FC<SaleFormProps> = ({
     customerId: initialData?.customerId || "",
     tourPackageQueryId: initialData?.tourPackageQueryId || "",
     saleDate: initialData?.saleDate
-      ? new Date(initialData.saleDate)
+      ? (utcToLocal(initialData.saleDate) || new Date())
       : new Date(),
     invoiceNumber: initialData?.invoiceNumber || "",
     referenceNumber: initialData?.referenceNumber || "",

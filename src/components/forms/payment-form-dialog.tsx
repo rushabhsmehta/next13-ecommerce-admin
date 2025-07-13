@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, utcToLocal } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 
   if (paymentData && Object.keys(paymentData).length > 1) {
     defaultValues = {
-      paymentDate: paymentData.paymentDate ? new Date(paymentData.paymentDate) : new Date(),
+      paymentDate: paymentData.paymentDate ? (utcToLocal(paymentData.paymentDate) || new Date()) : new Date(),
       amount: paymentData.amount,
       method: paymentData.method || "",
       transactionId: paymentData.transactionId || "",

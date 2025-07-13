@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, utcToLocal } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
 
   if (receiptData && Object.keys(receiptData).length > 1) {
     defaultValues = {
-      receiptDate: receiptData.receiptDate ? new Date(receiptData.receiptDate) : new Date(),
+      receiptDate: receiptData.receiptDate ? (utcToLocal(receiptData.receiptDate) || new Date()) : new Date(),
       amount: receiptData.amount,
       reference: receiptData.reference || "",
       note: receiptData.note || "",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
+import { dateToUtc } from "@/lib/timezone-utils";
 
 export async function GET(
   req: Request,
@@ -20,12 +21,14 @@ export async function GET(
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
 
-    // Parse date parameters
-    const startDate = startDateParam ? new Date(startDateParam) : new Date(0);
-    const endDate = endDateParam ? new Date(endDateParam) : new Date();
+    // Parse date parameters using timezone-safe conversion
+    const startDate = startDateParam ? dateToUtc(startDateParam) || new Date(0) : new Date(0);
+    const endDate = endDateParam ? dateToUtc(endDateParam) || new Date() : new Date();
     
-    // Make sure end date is set to the end of the day
-    endDate.setHours(23, 59, 59, 999);
+    // Make sure end date is set to the end of the day in UTC
+    if (endDate) {
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
 
     // Fetch the bank account to get opening balance
     const bankAccount = await prismadb.bankAccount.findUnique({

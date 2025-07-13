@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
+import { utcToLocal } from '@/lib/timezone-utils';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
@@ -109,7 +110,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                     </Button>
                   </TableCell>
                   <TableCell onClick={() => toggleRow(transaction.id)}>
-                    {format(new Date(transaction.date), 'dd/MM/yyyy')}
+                    {format(utcToLocal(transaction.date) || new Date(transaction.date), 'dd/MM/yyyy')}
                   </TableCell>
                   <TableCell onClick={() => toggleRow(transaction.id)}>
                     {transaction.type}

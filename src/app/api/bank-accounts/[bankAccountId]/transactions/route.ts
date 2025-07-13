@@ -120,6 +120,7 @@ export async function GET(
         },
         include: {
           customer: true,
+          supplier: true,
           tourPackageQuery: true
         },
         orderBy: { receiptDate: 'asc' }
@@ -135,6 +136,7 @@ export async function GET(
         },
         include: {
           supplier: true,
+          customer: true,
           tourPackageQuery: true
         },
         orderBy: { paymentDate: 'asc' }
@@ -207,8 +209,10 @@ export async function GET(
       ...receipts.map(receipt => ({
         id: receipt.id,
         date: receipt.receiptDate,
-        type: 'Receipt',
-        description: `Receipt from ${receipt.customer?.name || 'Customer'}${receipt.tourPackageQuery ? ` for ${receipt.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
+        type: receipt.receiptType === 'supplier_refund' ? 'Supplier Refund' : 'Receipt',
+        description: receipt.receiptType === 'supplier_refund'
+          ? `Refund from Supplier ${receipt.supplier?.name || 'Supplier'}${receipt.tourPackageQuery ? ` for ${receipt.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`
+          : `Receipt from ${receipt.customer?.name || 'Customer'}${receipt.tourPackageQuery ? ` for ${receipt.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
         reference: receipt.reference || '',
         amount: receipt.amount,
         isInflow: true,
@@ -218,8 +222,10 @@ export async function GET(
       ...payments.map(payment => ({
         id: payment.id,
         date: payment.paymentDate,
-        type: 'Payment',
-        description: `Payment to ${payment.supplier?.name || 'Supplier'}${payment.tourPackageQuery ? ` for ${payment.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
+        type: payment.paymentType === 'customer_refund' ? 'Customer Refund' : 'Payment',
+        description: payment.paymentType === 'customer_refund' 
+          ? `Refund to Customer ${payment.customer?.name || 'Customer'}${payment.tourPackageQuery ? ` for ${payment.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`
+          : `Payment to ${payment.supplier?.name || 'Supplier'}${payment.tourPackageQuery ? ` for ${payment.tourPackageQuery.tourPackageQueryName || 'Tour Package'}` : ''}`,
         reference: payment.transactionId || '',
         amount: payment.amount,
         isInflow: false,

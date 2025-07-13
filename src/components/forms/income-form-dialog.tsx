@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, dateToUtc } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -149,9 +149,9 @@ export const IncomeFormDialog: React.FC<IncomeFormProps> = ({
   const onSubmit = async (data: IncomeFormValues) => {
     try {
       setLoading(true);
-      setFormErrors([]);      // Prepare the API data with correct account type field
+      setFormErrors([]);      // Prepare the API data with correct account type field and timezone-safe date conversion
       const apiData = {
-        incomeDate: data.incomeDate,
+        incomeDate: dateToUtc(data.incomeDate) || data.incomeDate,
         amount: data.amount,
         incomeCategoryId: data.incomeCategoryId,
         description: data.description,

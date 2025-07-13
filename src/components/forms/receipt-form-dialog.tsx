@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
-import { createDatePickerValue, formatLocalDate, utcToLocal } from "@/lib/timezone-utils";
+import { createDatePickerValue, formatLocalDate, utcToLocal, dateToUtc } from "@/lib/timezone-utils";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -152,13 +152,15 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       setLoading(true);
       setFormErrors([]);
 
-      // Prepare the API data with correct account type field
+      // Prepare the API data with correct account type field and timezone-safe date conversion
       const apiData: Partial<ReceiptFormValues & {
         bankAccountId: string | null,
         cashAccountId: string | null,
         images: string[]
       }> = {
         ...data,
+        // Convert the local date to UTC for database storage
+        receiptDate: dateToUtc(data.receiptDate) || data.receiptDate,
         bankAccountId: data.accountType === 'bank' ? data.accountId : null,
         cashAccountId: data.accountType === 'cash' ? data.accountId : null,
         images: data.images || []

@@ -45,6 +45,10 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
       router.push(`/receipts/${transaction.id}`);
     } else if (type === 'payment') {
       router.push(`/payments/${transaction.id}`);
+    } else if (type === 'customer refund') {
+      router.push(`/payments/${transaction.id}`);
+    } else if (type === 'supplier refund') {
+      router.push(`/receipts/${transaction.id}`);
     } else if (type.includes('transfer')) {
       router.push(`/transfers/${transaction.id}`);
     }

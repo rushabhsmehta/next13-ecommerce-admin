@@ -49,14 +49,15 @@ export function dateToUtc(date: string | Date | null | undefined, timezone?: str
       console.log('    - Original date:', date.toString());
       console.log('    - toISOString():', date.toISOString());
       
-      // Get the date components in local timezone
+      // Get the date components in local timezone (no getUTC* methods)
       const year = date.getFullYear();
       const month = date.getMonth();
       const day = date.getDate();
       console.log('    - Extracted components:', { year, month, day });
       
-      // Create a UTC date with the same year/month/day (no timezone conversion)
-      const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      // Create a UTC date with the same year/month/day components
+      // Use a fixed time (noon) to avoid any DST issues
+      const utcDate = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
       console.log('    - Created UTC date:', utcDate.toString());
       console.log('    - UTC date ISO:', utcDate.toISOString());
       return utcDate;
@@ -73,8 +74,8 @@ export function dateToUtc(date: string | Date | null | undefined, timezone?: str
     const day = parsedDate.getDate();
     console.log('    - Extracted components:', { year, month, day });
     
-    // Create UTC date with same components
-    const result = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+    // Create UTC date with same components and fixed time (noon)
+    const result = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
     console.log('    - Final UTC result:', result.toString());
     console.log('    - Final UTC ISO:', result.toISOString());
     return result;

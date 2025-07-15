@@ -114,7 +114,7 @@ const NAV_ITEMS = [
     title: "AI Image Management",
     items: [
       { title: "AI Image Generator", url: "/ai-image-generator" },
-      { title: "Analytics Dashboard", url: "/ai-image-analytics" },
+      // { title: "Analytics Dashboard", url: "/ai-image-analytics" }, // Temporarily disabled
       { title: "Campaign Management", url: "/ai-image-campaigns" },
       { title: "A/B Testing", url: "/ai-image-ab-test" },
       { title: "Performance Tracking", url: "/ai-image-performance" },

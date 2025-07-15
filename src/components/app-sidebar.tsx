@@ -64,13 +64,15 @@ const NAV_ITEMS = [
       { title: "Bank Account", url: "/bankaccounts" },
       { title: "Fund Transfers", url: "/transfers" },
     ],
-  },  {
+  },
+  {
     title: "Categories",
     items: [
       { title: "Income Categories", url: "/income-categories" },
       { title: "Expense Categories", url: "/expense-categories" },
     ],
-  },  {
+  },
+  {
     title: "Configuration",
     items: [
       { title: "Meal Plans", url: "/settings/meal-plans" },
@@ -79,16 +81,17 @@ const NAV_ITEMS = [
       { title: "Vehicle Types", url: "/settings/vehicle-types" },
       { title: "Pricing Attributes", url: "/settings/pricing-attributes" },
     ],
-  },  {
+  },
+  {
     title: "Finance",
     items: [
       { title: "Incomes", url: "/incomes" },
       { title: "Expenses", url: "/expenses" },
       { title: "Accrued Expenses", url: "/expenses/accrued" },
-     //  { title: "Sales", url: "/sales" },
+      //  { title: "Sales", url: "/sales" },
       { title: "Sale Returns", url: "/sale-returns" },
-     // { title: "Purchases", url: "/purchases" },
-      { title: "Purchase Returns", url: "/purchase-returns" }, 
+      // { title: "Purchases", url: "/purchases" },
+      { title: "Purchase Returns", url: "/purchase-returns" },
       { title: "Sales Ledger", url: "/sales/ledger" },
       { title: "Purchase Ledger", url: "/purchases/ledger" },
       { title: "Receipt Ledger", url: "/receipts/ledger" },
@@ -110,7 +113,14 @@ const NAV_ITEMS = [
       { title: "Unconfirmed Queries", url: "/reports/unconfirmedQueries" },
       { title: "Associate Performance", url: "/reports/associatePerformance" },
     ],
-  },  {
+  },
+  {
+    title: "Communication",
+    items: [
+      { title: "WhatsApp Business", url: "/whatsapp" },
+    ],
+  },
+  {
     title: "AI Image Management",
     items: [
       { title: "AI Image Generator", url: "/ai-image-generator" },
@@ -144,7 +154,6 @@ const ASSOCIATE_NAV_ITEMS = [
     ],
   },
 ];
-
 
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -209,7 +218,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <div className="flex flex-col">                    <span className="font-medium text-xs">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-xs">
                       {isAssociateDomain && associatePartner?.name ? associatePartner.name : userFullName}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -219,7 +229,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                           Aagam Holidays
                         </>
                       ) : 'Admin Dashboard'}
-                    </span>                  
+                    </span>
                   </div>
                 </div>
               </div>
@@ -287,7 +297,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </Button>
             <ThemeToggle />
           </div>
-          
+
           {/* Copyright footer */}
           <div className="mt-6 text-center">
             <p className="text-xs text-muted-foreground">

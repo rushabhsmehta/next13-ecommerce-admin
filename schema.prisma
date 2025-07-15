@@ -824,7 +824,7 @@ model BankAccount {
   currentBalance    Float           @default(0)
   isActive          Boolean         @default(true)
   createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  updatedAt         DateTime        @default(now())
   paymentDetails    PaymentDetail[]
   receiptDetails    ReceiptDetail[]
   expenseDetails    ExpenseDetail[]
@@ -842,7 +842,7 @@ model CashAccount {
   currentBalance    Float           @default(0)
   isActive          Boolean         @default(true)
   createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  updatedAt         DateTime        @default(now())
   paymentDetails    PaymentDetail[]
   receiptDetails    ReceiptDetail[]
   expenseDetails    ExpenseDetail[]
@@ -880,7 +880,7 @@ model IncomeCategory {
   description String?
   isActive    Boolean        @default(true)
   createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  updatedAt   DateTime       @default(now())
   incomes     IncomeDetail[]
 }
 
@@ -1046,7 +1046,7 @@ model SaleReturnItem {
   totalAmount     Float
   orderIndex      Int            @default(0)
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  updatedAt       DateTime       @default(now())
   saleReturn      SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
   saleItem        SaleItem?      @relation(fields: [saleItemId], references: [id])
   unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
@@ -1134,7 +1134,7 @@ model RoomAllocation {
   quantity          Int              @default(1)
   guestNames        String?
   createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  updatedAt         DateTime         @default(now())
   inquiryId         String?
   itineraryMasterId String?
   mealPlanId        String?
@@ -1332,4 +1332,23 @@ enum SocialMediaPostStatus {
 enum OperationalStaffRole {
   OPERATIONS
   ADMIN
+}
+
+model WhatsAppMessage {
+  id                String    @id @default(uuid())
+  messageId         String    @unique
+  fromNumber        String
+  toNumber          String
+  message           String    @db.Text
+  status            String
+  timestamp         DateTime  @default(now())
+  mediaUrl          String?   @db.Text
+  mediaContentType  String?
+  direction         String    // 'incoming' or 'outgoing'
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([fromNumber])
+  @@index([toNumber])
+  @@index([timestamp])
 }

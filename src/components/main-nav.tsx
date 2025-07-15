@@ -103,6 +103,11 @@ export function MainNav({
       label: 'Income Categories',
       active: pathname === `/income-categories`,
     },
+    {
+      href: `/whatsapp`,
+      label: 'WhatsApp Business',
+      active: pathname === `/whatsapp`,
+    },
   ];
 
   return (

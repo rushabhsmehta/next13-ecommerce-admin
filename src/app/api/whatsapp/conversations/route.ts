@@ -39,8 +39,22 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching from database, falling back to Twilio API:', dbError);
       
       // Fallback to Twilio API
-      const twilioMessages = await getConversationHistory(phoneNumber || undefined);
-      messages = twilioMessages.map(msg => ({
+      if (!phoneNumber) {
+        return NextResponse.json(
+          { success: false, error: 'Phone number is required' },
+          { status: 400 }
+        );
+      }
+      
+      const twilioResult = await getConversationHistory(phoneNumber);
+      if (!twilioResult.success) {
+        return NextResponse.json(
+          { success: false, error: twilioResult.error },
+          { status: 500 }
+        );
+      }
+      
+      messages = twilioResult.messages.map((msg: any) => ({
         ...msg,
         direction: msg.from.includes(process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890') ? 'outgoing' : 'incoming'
       }));

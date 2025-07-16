@@ -496,15 +496,17 @@ export default function WhatsAppChat() {
   const generateTemplatePreview = (template: WhatsAppTemplate, variables: string[]): string => {
     switch(template.name) {
       case 'booking_confirmation':
-        return `*Booking Confirmation*\n\nHello ${variables[0] || 'Customer'}, your booking for ${variables[1] || 'Service'} has been confirmed.\nCheck-in: ${variables[2] || 'Date'}\nReference: ${variables[3] || 'REF123'}\n\n_Aagam Holidays - Your Travel Partner_`;
+        return `*Booking Confirmation*\n\nHello ${variables[0] || 'Valued Customer'}, your booking for ${variables[1] || 'Hotel Service'} has been confirmed.\nCheck-in: ${variables[2] || 'Today'}\nReference: ${variables[3] || 'REF123'}\n\n_Aagam Holidays - Your Travel Partner_`;
       case 'payment_reminder':
-        return `*Payment Reminder*\n\nDear ${variables[0] || 'Customer'}, this is a reminder that your payment of ${variables[1] || 'Amount'} for ${variables[2] || 'Service'} is due on ${variables[3] || 'Date'}.\n\n_Please contact us for any queries_`;
+        return `*Payment Reminder*\n\nHi ${variables[0] || 'Valued Customer'}, your payment of ₹${variables[1] || '50,000'} for booking ${variables[2] || 'BK001'} (Booking ID) is due on ${variables[3] || 'Tomorrow'}.\n\n_Thank you for choosing Aagam Holidays_`;
       case 'welcome_message':
-        return `*Welcome to Aagam Holidays!*\n\nHello ${variables[0] || 'Customer'}, welcome to our travel family! We're excited to help you plan your perfect getaway.\n\n_Feel free to reach out anytime for assistance_`;
+        return `*Welcome to Aagam Holidays! 🌟*\n\nThank you for contacting us! We're here to help you plan your perfect trip. Our travel experts will assist you with the best packages and deals.\n\n_Reply with your travel preferences to get started_`;
+      case 'trip_itinerary':
+        return `*TRIP ITINERARY*\n\nHello ${variables[0] || 'Valued Customer'}, thank you for choosing our services.\n\n_This is an automated message from our business_.\n\n*Your Trip Itinerary*\n\nHi ${variables[0] || 'Valued Customer'}, here's your detailed itinerary for ${variables[1] || 'Our Service'}:\n\n📍 Destination: ${variables[2] || 'Today'}\n📅 Duration: ${variables[3] || 'REF123'} days\n🏨 Hotel: ${variables[4] || 'Premium Hotel'}\n✈️ Flight: ${variables[5] || 'Flight Details'}\n\n_Have questions? Reply to this message!_`;
       case 'trip_update':
         return `*Trip Update*\n\nHi ${variables[0] || 'Customer'}, we have an important update regarding your trip to ${variables[1] || 'Destination'} scheduled for ${variables[2] || 'Date'}. Please check your email for details.\n\n_Aagam Holidays_`;
       default:
-        return `*${template.name.replace(/_/g, ' ').toUpperCase()}*\n\nHello ${variables[0] || 'Customer'}, thank you for choosing our services.\n\n_This is an automated message from our business_`;
+        return `*${template.name.replace(/_/g, ' ').toUpperCase()}*\n\nHello ${variables[0] || 'Valued Customer'}, thank you for choosing our services.\n\n_This is an automated message from our business_`;
     }
   };
 

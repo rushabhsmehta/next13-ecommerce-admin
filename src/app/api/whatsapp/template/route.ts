@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
             messageId: message.messageId,
             fromNumber: process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890',
             toNumber: to,
-            message: templateName,
+            message: message.body || templateName, // Use the rendered message body instead of template name
             status: message.status || 'sent',
             timestamp: new Date(),
             direction: 'outgoing',
@@ -58,106 +58,56 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Sample templates for demo purposes
-    // In production, these would come from Twilio Content Templates API
-    const templates = [
-      {
-        id: '1',
-        name: 'booking_confirmation',
-        category: 'TRANSACTIONAL',
+    const { getAllTemplates, getTemplateVariables, getTemplateBody } = await import('@/lib/twilio-whatsapp');
+    
+    const allTemplates = getAllTemplates();
+    
+    // Convert our template structure to the format expected by the frontend
+    const templates = Object.entries(allTemplates).map(([name, description], index) => {
+      const variables = getTemplateVariables(name);
+      const templateBody = getTemplateBody(name);
+      
+      // Determine category based on template name
+      let category = 'TRANSACTIONAL';
+      if (name.includes('offer') || name.includes('deal') || name.includes('special') || 
+          name.includes('birthday') || name.includes('anniversary') || name.includes('seasonal') ||
+          name.includes('new_destination') || name.includes('photo_sharing') || name.includes('festival')) {
+        category = 'MARKETING';
+      } else if (name.includes('reminder') || name.includes('support') || name.includes('emergency') ||
+                 name.includes('guidelines') || name.includes('contact') || name.includes('currency')) {
+        category = 'UTILITY';
+      }
+
+      return {
+        id: (index + 1).toString(),
+        name: name,
+        category: category,
         language: 'en',
         status: 'APPROVED',
+        description: description,
         components: [
           {
             type: 'HEADER',
-            text: 'Booking Confirmation',
+            text: description.charAt(0).toUpperCase() + description.slice(1),
             format: 'TEXT'
           },
           {
             type: 'BODY',
-            text: 'Hello {{1}}, your booking for {{2}} has been confirmed. Check-in: {{3}}. Reference: {{4}}',
-            parameters: ['Customer Name', 'Service/Hotel', 'Check-in Date', 'Booking Reference']
+            text: templateBody || `Template: ${name}`,
+            parameters: variables
           },
           {
             type: 'FOOTER',
             text: 'Aagam Holidays - Your Travel Partner'
           }
         ]
-      },
-      {
-        id: '2',
-        name: 'payment_reminder',
-        category: 'UTILITY',
-        language: 'en',
-        status: 'APPROVED',
-        components: [
-          {
-            type: 'HEADER',
-            text: 'Payment Reminder',
-            format: 'TEXT'
-          },
-          {
-            type: 'BODY',
-            text: 'Dear {{1}}, this is a reminder that your payment of {{2}} for {{3}} is due on {{4}}. Please contact us for any queries.',
-            parameters: ['Customer Name', 'Amount', 'Service', 'Due Date']
-          },
-          {
-            type: 'FOOTER',
-            text: 'Aagam Holidays'
-          }
-        ]
-      },
-      {
-        id: '3',
-        name: 'welcome_message',
-        category: 'MARKETING',
-        language: 'en',
-        status: 'APPROVED',
-        components: [
-          {
-            type: 'HEADER',
-            text: 'Welcome to Aagam Holidays!',
-            format: 'TEXT'
-          },
-          {
-            type: 'BODY',
-            text: 'Hello {{1}}, welcome to our travel family! We\'re excited to help you plan your perfect getaway. Feel free to reach out anytime for assistance.',
-            parameters: ['Customer Name']
-          },
-          {
-            type: 'FOOTER',
-            text: 'Your trusted travel partner'
-          }
-        ]
-      },
-      {
-        id: '4',
-        name: 'trip_update',
-        category: 'TRANSACTIONAL',
-        language: 'en',
-        status: 'PENDING',
-        components: [
-          {
-            type: 'HEADER',
-            text: 'Trip Update',
-            format: 'TEXT'
-          },
-          {
-            type: 'BODY',
-            text: 'Hi {{1}}, we have an important update regarding your trip to {{2}} scheduled for {{3}}. Please check your email for details.',
-            parameters: ['Customer Name', 'Destination', 'Travel Date']
-          },
-          {
-            type: 'FOOTER',
-            text: 'Aagam Holidays'
-          }
-        ]
-      }
-    ];
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      templates
+      templates,
+      totalCount: templates.length
     }, { status: 200 });
 
   } catch (error) {
@@ -165,6 +115,59 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Failed to fetch templates',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// Add a new endpoint to get template details with actual body
+export async function PUT(request: NextRequest) {
+  try {
+    const { templateName } = await request.json();
+    
+    if (!templateName) {
+      return NextResponse.json(
+        { error: 'Template name is required' },
+        { status: 400 }
+      );
+    }
+
+    const { getTemplateVariables, getTemplateBody, getAllTemplates } = await import('@/lib/twilio-whatsapp');
+    
+    const variables = getTemplateVariables(templateName);
+    const templates = getAllTemplates();
+    const description = templates[templateName];
+    const templateBody = getTemplateBody(templateName);
+    
+    if (!description || !templateBody) {
+      return NextResponse.json(
+        { error: 'Template not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      template: {
+        name: templateName,
+        description: description,
+        body: templateBody,
+        variables: variables,
+        variableCount: variables.length,
+        preview: templateBody.replace(/\{\{(\d+)\}\}/g, (match, idx) => {
+          const i = parseInt(idx, 10) - 1;
+          return variables[i] ? `[${variables[i]}]` : match;
+        })
+      }
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('Error fetching template details:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch template details',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

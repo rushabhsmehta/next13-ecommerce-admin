@@ -14,23 +14,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Send template message via Twilio
-    const message = await sendTemplateMessage(to, templateName, variables);
+    const message = await sendTemplateMessage({ to, template: templateName, variables });
 
     // Save to database
     try {
-      await prismadb.whatsAppMessage.create({
-        data: {
-          messageId: message.id,
-          fromNumber: message.from,
-          toNumber: message.to,
-          message: message.body,
-          status: message.status,
-          timestamp: message.timestamp,
-          direction: 'outgoing',
-          mediaUrl: message.mediaUrl,
-          mediaContentType: message.mediaContentType,
-        },
-      });
+      if (message.success) {
+        await prismadb.whatsAppMessage.create({
+          data: {
+            messageId: message.messageId,
+            fromNumber: process.env.TWILIO_WHATSAPP_NUMBER || '+1234567890',
+            toNumber: to,
+            message: templateName,
+            status: message.status || 'sent',
+            timestamp: new Date(),
+            direction: 'outgoing',
+            mediaUrl: null,
+            mediaContentType: null,
+          },
+        });
+      }
     } catch (dbError) {
       console.error('Error saving template message to database:', dbError);
       // Continue even if database save fails

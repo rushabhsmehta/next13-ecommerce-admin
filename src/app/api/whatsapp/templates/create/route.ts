@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Meta WhatsApp Business API endpoint for creating templates
-const WHATSAPP_BUSINESS_API_URL = `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_BUSINESS_ACCOUNT_ID}/message_templates`;
-
+// Use Twilio Content Templates for WhatsApp template management
 export async function POST(request: NextRequest) {
   try {
     const { name, category, language, components } = await request.json();
@@ -15,96 +13,107 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate environment variables
-    if (!process.env.WHATSAPP_ACCESS_TOKEN || !process.env.WHATSAPP_BUSINESS_ACCOUNT_ID) {
+    // Validate Twilio credentials
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'WhatsApp Business API credentials not configured' 
+          error: 'Twilio credentials not configured',
+          details: {
+            message: 'Missing required Twilio environment variables',
+            required: [
+              'TWILIO_ACCOUNT_SID',
+              'TWILIO_AUTH_TOKEN'
+            ],
+            setup_guide: 'Please configure Twilio credentials in your .env.local file'
+          }
         },
         { status: 500 }
       );
     }
 
-    // Prepare the template data for Meta API
+    // Extract body text from components
+    const bodyComponent = components.find((comp: any) => comp.type === 'BODY');
+    if (!bodyComponent || !bodyComponent.text) {
+      return NextResponse.json(
+        { success: false, error: 'Template body is required' },
+        { status: 400 }
+      );
+    }
+
+    // Extract header and footer
+    const headerComponent = components.find((comp: any) => comp.type === 'HEADER');
+    const footerComponent = components.find((comp: any) => comp.type === 'FOOTER');
+    const buttonsComponent = components.find((comp: any) => comp.type === 'BUTTONS');
+
+    // Build template body with header and footer
+    let fullBody = '';
+    if (headerComponent && headerComponent.text) {
+      fullBody += `*${headerComponent.text}*\n\n`;
+    }
+    fullBody += bodyComponent.text;
+    if (footerComponent && footerComponent.text) {
+      fullBody += `\n\n_${footerComponent.text}_`;
+    }
+
+    // Extract variables from body text
+    const variableMatches = bodyComponent.text.match(/\{\{(\d+)\}\}/g);
+    const variables: Record<string, string> = {};
+    if (variableMatches) {
+      variableMatches.forEach((match: string) => {
+        const varNum = match.replace(/[{}]/g, '');
+        variables[varNum] = `Variable ${varNum}`;
+      });
+    }
+
+    // Prepare template data for Twilio
     const templateData = {
-      name: name.toLowerCase().replace(/[^a-z0-9_]/g, ''),
-      category: category.toUpperCase(),
-      language,
-      components: components.map((component: any) => {
-        const formattedComponent: any = {
-          type: component.type
-        };
-
-        if (component.format) {
-          formattedComponent.format = component.format;
-        }
-
-        if (component.text) {
-          formattedComponent.text = component.text;
-        }
-
-        // Handle examples for variables
-        if (component.type === 'BODY' && component.example) {
-          formattedComponent.example = component.example;
-        }
-
-        // Handle buttons
-        if (component.type === 'BUTTONS' && component.buttons) {
-          formattedComponent.buttons = component.buttons;
-        }
-
-        return formattedComponent;
-      })
+      friendlyName: name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+      language: language,
+      body: fullBody,
+      variables: variables,
+      category: category,
+      templateType: buttonsComponent ? 'quick-reply' : 'text'
     };
 
-    console.log('Submitting template to Meta:', JSON.stringify(templateData, null, 2));
+    console.log('Creating Twilio template:', JSON.stringify(templateData, null, 2));
 
-    // Submit to Meta WhatsApp Business API
-    const response = await fetch(WHATSAPP_BUSINESS_API_URL, {
+    // Create template using Twilio API
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/twilio/templates`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(templateData),
     });
 
-    const responseData = await response.json();
+    const data = await response.json();
 
     if (!response.ok) {
-      console.error('Meta API Error:', responseData);
-      
-      // Handle specific Meta API errors
-      if (responseData.error) {
-        const errorMessage = responseData.error.message || 'Failed to create template';
-        const errorDetails = responseData.error.error_user_msg || '';
-        
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: `${errorMessage}${errorDetails ? ': ' + errorDetails : ''}`,
-            details: responseData.error
-          },
-          { status: response.status }
-        );
-      }
-
+      console.error('Twilio template creation error:', data);
       return NextResponse.json(
-        { success: false, error: 'Failed to submit template to Meta' },
+        { 
+          success: false, 
+          error: data.error || 'Failed to create template',
+          details: data.details || 'Unknown error'
+        },
         { status: response.status }
       );
     }
 
-    // Template submitted successfully
-    console.log('Template submitted successfully:', responseData);
+    // Template created successfully
+    console.log('Template created successfully:', data);
 
     return NextResponse.json({
       success: true,
-      message: 'Template submitted for approval successfully',
-      templateId: responseData.id,
-      status: responseData.status || 'PENDING',
-      data: responseData
+      message: 'Template created successfully with Twilio',
+      templateId: data.template.sid,
+      status: 'APPROVED', // Twilio templates are immediately available
+      data: data.template,
+      whatsappApproval: data.template.whatsappApproval || {
+        note: 'For WhatsApp use, submit for approval in Twilio Console'
+      }
     });
 
   } catch (error) {
@@ -120,24 +129,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get all templates
+// Get all templates using Twilio
 export async function GET(request: NextRequest) {
   try {
-    if (!process.env.WHATSAPP_ACCESS_TOKEN || !process.env.WHATSAPP_BUSINESS_ACCOUNT_ID) {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'WhatsApp Business API credentials not configured' 
+          error: 'Twilio credentials not configured',
+          details: {
+            message: 'Missing required Twilio environment variables',
+            required: [
+              'TWILIO_ACCOUNT_SID',
+              'TWILIO_AUTH_TOKEN'
+            ]
+          }
         },
         { status: 500 }
       );
     }
 
-    // Get templates from Meta API
-    const response = await fetch(WHATSAPP_BUSINESS_API_URL, {
+    // Get templates from Twilio API
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/twilio/templates`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
         'Content-Type': 'application/json',
       },
     });
@@ -145,16 +161,16 @@ export async function GET(request: NextRequest) {
     const responseData = await response.json();
 
     if (!response.ok) {
-      console.error('Meta API Error:', responseData);
+      console.error('Twilio API Error:', responseData);
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch templates from Meta' },
+        { success: false, error: 'Failed to fetch templates from Twilio' },
         { status: response.status }
       );
     }
 
     return NextResponse.json({
       success: true,
-      templates: responseData.data || []
+      templates: responseData.templates || []
     });
 
   } catch (error) {

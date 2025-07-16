@@ -60,6 +60,7 @@ interface WhatsAppTemplate {
     format?: string;
     parameters?: string[];
   }[];
+  variableNames?: string[]; // Store actual variable names like 'first_name', 'booking_id'
 }
 
 export default function WhatsAppChat() {
@@ -74,13 +75,19 @@ export default function WhatsAppChat() {
   const [selectedTemplate, setSelectedTemplate] = useState<WhatsAppTemplate | null>(null);
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<WhatsAppTemplate | null>(null);
-  const [previewVariables, setPreviewVariables] = useState<string[]>([]);
+  const [previewVariables, setPreviewVariables] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const [credentialStatus, setCredentialStatus] = useState<{
+    configured: boolean;
+    twilio: boolean;
+    whatsappApi: boolean;
+    missing: string[];
+  } | null>(null);
   const [createTemplateData, setCreateTemplateData] = useState({
     name: '',
     category: 'TRANSACTIONAL',
@@ -121,10 +128,97 @@ export default function WhatsAppChat() {
   useEffect(() => {
     loadAllConversations();
     loadTemplates();
+    checkCredentialStatus();
   }, []);
 
   const loadTemplates = async () => {
-    // Sample templates - in a real app, these would come from Twilio API
+    try {
+      const response = await fetch('/api/twilio/templates');
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
+      const data = await response.json();
+      
+      // Convert Twilio templates to our format
+      const convertedTemplates: WhatsAppTemplate[] = data.templates?.map((template: any) => {
+        // Extract template body from different content types
+        let bodyText = '';
+        let variableNames: string[] = [];
+        
+        if (template.types?.['twilio/text']?.body) {
+          bodyText = template.types['twilio/text'].body;
+        } else if (template.types?.['twilio/list-picker']?.body) {
+          bodyText = template.types['twilio/list-picker'].body;
+        } else if (template.types?.['twilio/call-to-action']?.body) {
+          bodyText = template.types['twilio/call-to-action'].body;
+        } else if (template.types?.['twilio/quick-reply']?.body) {
+          bodyText = template.types['twilio/quick-reply'].body;
+        }
+        
+        // Extract variable names from template body (like {{first_name}}, {{booking_id}})
+        if (bodyText) {
+          const matches = bodyText.match(/\{\{([^}]+)\}\}/g);
+          if (matches) {
+            variableNames = matches.map(match => match.replace(/[{}]/g, ''));
+          }
+        }
+        
+        return {
+          id: template.sid,
+          name: template.friendlyName,
+          category: 'UTILITY', // Default category since Twilio doesn't provide this
+          language: template.language,
+          status: 'APPROVED', // Assume approved since they're fetched
+          components: [
+            {
+              type: 'BODY',
+              text: bodyText,
+              parameters: variableNames
+            }
+          ],
+          variableNames: variableNames // Store actual variable names
+        };
+      }) || [];
+      
+      setTemplates(convertedTemplates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      // Fallback to sample templates if API fails
+      loadSampleTemplates();
+    }
+  };
+
+  // Check credential status
+  const checkCredentialStatus = async () => {
+    try {
+      const response = await fetch('/api/whatsapp/credentials');
+      if (response.ok) {
+        const data = await response.json();
+        setCredentialStatus({
+          configured: data.status.allConfigured,
+          twilio: data.status.twilioConfigured,
+          whatsappApi: data.status.whatsappApiConfigured,
+          missing: data.status.missing
+        });
+      }
+    } catch (error) {
+      console.error('Error checking credentials:', error);
+    }
+  };
+
+  // Extract parameters from template text for preview
+  const extractParametersFromText = (text: string): string[] => {
+    const matches = text.match(/\{\{(\d+)\}\}/g);
+    if (!matches) return [];
+    
+    const variableNumbers = matches.map(match => parseInt(match.replace(/[{}]/g, '')));
+    const maxVariable = Math.max(...variableNumbers);
+    
+    return Array.from({ length: maxVariable }, (_, i) => `Variable ${i + 1}`);
+  };
+
+  const loadSampleTemplates = () => {
+    // Sample templates - fallback if API fails
     const sampleTemplates: WhatsAppTemplate[] = [
       {
         id: '1',
@@ -372,7 +466,7 @@ export default function WhatsAppChat() {
     }
   };
 
-  const sendTemplateMessage = async (template: WhatsAppTemplate, variables: string[] = []) => {
+  const sendTemplateMessage = async (template: WhatsAppTemplate, variables: string[] | Record<string, string> = []) => {
     const targetNumber = selectedConversation || getFullPhoneNumber();
     if (!targetNumber.trim()) {
       toast.error('Please select a conversation or enter a phone number');
@@ -381,36 +475,52 @@ export default function WhatsAppChat() {
 
     setIsSending(true);
     try {
-      const response = await fetch('/api/whatsapp/template', {
+      // Build content variables object from variables
+      let contentVariables: Record<string, string> = {};
+      
+      if (Array.isArray(variables)) {
+        // Handle numbered variables (legacy support)
+        variables.forEach((value, index) => {
+          contentVariables[(index + 1).toString()] = value;
+        });
+      } else {
+        // Handle named variables
+        contentVariables = variables;
+      }
+
+      const response = await fetch('/api/twilio/send-template', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           to: targetNumber,
-          templateName: template.name,
-          variables: variables
+          contentSid: template.id,
+          contentVariables: Object.keys(contentVariables).length > 0 ? contentVariables : undefined
         }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.ok && data.success) {
         toast.success('Template message sent successfully!');
         
         // Add message to local state
         const sentMessage: WhatsAppMessage = {
-          id: data.data.id,
-          from: data.data.from,
-          to: data.data.to,
-          body: data.data.body,
-          status: data.data.status,
-          timestamp: new Date(data.data.timestamp),
+          id: data.messageId || 'msg_' + Date.now(),
+          from: data.from || 'Business',
+          to: targetNumber,
+          body: generateTemplatePreview(template, variables),
+          status: 'sent',
+          timestamp: new Date(),
           direction: 'outgoing'
         };
         
         setMessages(prev => [...prev, sentMessage]);
         setSelectedTemplate(null);
+        
+        // Load conversation history to get the actual sent message
+        await loadConversationHistory();
       } else {
         toast.error(data.error || 'Failed to send template message');
       }
@@ -568,33 +678,55 @@ export default function WhatsAppChat() {
   };
 
   // Generate template preview content
-  const generateTemplatePreview = (template: WhatsAppTemplate, variables: string[]): string => {
-    switch(template.name) {
-      case 'booking_confirmation':
-        return `*Booking Confirmation*\n\nHello ${variables[0] || 'Valued Customer'}, your booking for ${variables[1] || 'Hotel Service'} has been confirmed.\nCheck-in: ${variables[2] || 'Today'}\nReference: ${variables[3] || 'REF123'}\n\n_Aagam Holidays - Your Travel Partner_`;
-      case 'payment_reminder':
-        return `*Payment Reminder*\n\nHi ${variables[0] || 'Valued Customer'}, your payment of ₹${variables[1] || '50,000'} for booking ${variables[2] || 'BK001'} (Booking ID) is due on ${variables[3] || 'Tomorrow'}.\n\n_Thank you for choosing Aagam Holidays_`;
-      case 'welcome_message':
-        return `*Welcome to Aagam Holidays! 🌟*\n\nThank you for contacting us! We're here to help you plan your perfect trip. Our travel experts will assist you with the best packages and deals.\n\n_Reply with your travel preferences to get started_`;
-      case 'trip_itinerary':
-        return `*TRIP ITINERARY*\n\nHello ${variables[0] || 'Valued Customer'}, thank you for choosing our services.\n\n_This is an automated message from our business_.\n\n*Your Trip Itinerary*\n\nHi ${variables[0] || 'Valued Customer'}, here's your detailed itinerary for ${variables[1] || 'Our Service'}:\n\n📍 Destination: ${variables[2] || 'Today'}\n📅 Duration: ${variables[3] || 'REF123'} days\n🏨 Hotel: ${variables[4] || 'Premium Hotel'}\n✈️ Flight: ${variables[5] || 'Flight Details'}\n\n_Have questions? Reply to this message!_`;
-      case 'trip_update':
-        return `*Trip Update*\n\nHi ${variables[0] || 'Customer'}, we have an important update regarding your trip to ${variables[1] || 'Destination'} scheduled for ${variables[2] || 'Date'}. Please check your email for details.\n\n_Aagam Holidays_`;
-      default:
-        return `*${template.name.replace(/_/g, ' ').toUpperCase()}*\n\nHello ${variables[0] || 'Valued Customer'}, thank you for choosing our services.\n\n_This is an automated message from our business_`;
+  const generateTemplatePreview = (template: WhatsAppTemplate, variables: Record<string, string> | string[]): string => {
+    // For Twilio templates, use the body text directly and replace variables
+    const bodyComponent = template.components.find(comp => comp.type === 'BODY');
+    if (bodyComponent && bodyComponent.text) {
+      let preview = bodyComponent.text;
+      
+      if (Array.isArray(variables)) {
+        // Handle numbered variables like {{1}}, {{2}}, etc.
+        variables.forEach((variable, index) => {
+          const placeholder = `{{${index + 1}}}`;
+          preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), variable || `[Variable ${index + 1}]`);
+        });
+      } else {
+        // Handle named variables like {{first_name}}, {{booking_id}}, etc.
+        Object.entries(variables).forEach(([varName, varValue]) => {
+          const placeholder = `{{${varName}}}`;
+          preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), varValue || `[${varName}]`);
+        });
+      }
+      
+      return preview;
+    }
+    
+    // Fallback for templates without body text
+    if (Array.isArray(variables)) {
+      return `Template: ${template.name}\nVariables: ${variables.join(', ')}`;
+    } else {
+      return `Template: ${template.name}\nVariables: ${Object.entries(variables).map(([k, v]) => `${k}: ${v}`).join(', ')}`;
     }
   };
 
   // Show template preview
-  const showPreview = (template: WhatsAppTemplate, variables: string[]) => {
+  const showPreview = (template: WhatsAppTemplate) => {
     setPreviewTemplate(template);
-    setPreviewVariables(variables);
+    
+    // Initialize variables with empty values
+    const initialVariables: Record<string, string> = {};
+    if (template.variableNames) {
+      template.variableNames.forEach(varName => {
+        initialVariables[varName] = '';
+      });
+    }
+    setPreviewVariables(initialVariables);
     setShowTemplatePreview(true);
   };
 
   // Send template after preview confirmation
   const confirmAndSendTemplate = async () => {
-    if (!previewTemplate || !previewVariables) return;
+    if (!previewTemplate || Object.keys(previewVariables).length === 0) return;
     
     setShowTemplatePreview(false);
     await sendTemplateMessage(previewTemplate, previewVariables);
@@ -602,10 +734,11 @@ export default function WhatsAppChat() {
   };
 
   // Update preview variables
-  const updatePreviewVariable = (index: number, value: string) => {
-    const newVariables = [...previewVariables];
-    newVariables[index] = value;
-    setPreviewVariables(newVariables);
+  const updatePreviewVariable = (varName: string, value: string) => {
+    setPreviewVariables(prev => ({
+      ...prev,
+      [varName]: value
+    }));
   };
 
   // Reset create template form
@@ -726,6 +859,12 @@ export default function WhatsAppChat() {
       validation.errors.forEach(error => toast.error(error));
       return;
     }
+
+    // Check if Twilio credentials are configured for template creation
+    if (credentialStatus && !credentialStatus.twilio) {
+      toast.error('Twilio credentials not configured. Please check your .env.local file.');
+      return;
+    }
     
     try {
       setIsSending(true);
@@ -790,15 +929,15 @@ export default function WhatsAppChat() {
       const data = await response.json();
       
       if (data.success) {
-        toast.success('Template submitted for approval! It may take 24-48 hours for Meta to review.');
+        toast.success('Template created successfully with Twilio! It\'s ready to use immediately.');
         
-        // Add template to local state with PENDING status
+        // Add template to local state with APPROVED status since Twilio templates are immediately available
         const newTemplate: WhatsAppTemplate = {
           id: data.templateId || `temp_${Date.now()}`,
           name: createTemplateData.name,
           category: createTemplateData.category,
           language: createTemplateData.language,
-          status: 'PENDING',
+          status: 'APPROVED', // Twilio templates are immediately available
           components: components.map(comp => ({
             type: comp.type,
             text: comp.text,
@@ -811,11 +950,19 @@ export default function WhatsAppChat() {
         setShowCreateTemplate(false);
         resetCreateTemplateForm();
       } else {
-        toast.error(data.error || 'Failed to submit template for approval');
+        console.error('Template submission error:', data);
+        
+        if (data.details && data.details.setup_guide) {
+          toast.error(`${data.error}. Please configure Twilio credentials in .env.local`);
+        } else if (data.details && data.details.message) {
+          toast.error(`${data.error}: ${data.details.message}`);
+        } else {
+          toast.error(data.error || 'Failed to submit template for approval');
+        }
       }
     } catch (error) {
       console.error('Error submitting template:', error);
-      toast.error('Failed to submit template for approval');
+      toast.error('Failed to submit template. Please check your internet connection and try again.');
     } finally {
       setIsSending(false);
     }
@@ -931,31 +1078,26 @@ export default function WhatsAppChat() {
               </div>
 
               {/* Editable Variables */}
-              {previewVariables.length > 0 && (
+              {Object.keys(previewVariables).length > 0 && (
                 <div className="bg-blue-50 rounded-lg p-3 mb-4">
                   <h4 className="font-medium text-sm text-gray-800 mb-2 flex items-center gap-2">
                     <span>📝</span>
-                    Edit Variables (Optional)
+                    Edit Variables (Required)
                   </h4>
                   <div className="space-y-2">
-                    {previewVariables.map((variable, index) => {
-                      const component = previewTemplate.components.find(c => c.type === 'BODY');
-                      const parameterName = component?.parameters?.[index] || `Variable ${index + 1}`;
-                      
-                      return (
-                        <div key={index} className="flex items-center gap-2">
-                          <label className="text-xs text-gray-600 w-20 truncate">
-                            {parameterName}:
-                          </label>
-                          <Input
-                            value={variable}
-                            onChange={(e) => updatePreviewVariable(index, e.target.value)}
-                            className="text-sm h-8 flex-1"
-                            placeholder={parameterName}
-                          />
-                        </div>
-                      );
-                    })}
+                    {Object.entries(previewVariables).map(([varName, varValue]) => (
+                      <div key={varName} className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600 w-24 truncate">
+                          {varName}:
+                        </label>
+                        <Input
+                          value={varValue}
+                          onChange={(e) => updatePreviewVariable(varName, e.target.value)}
+                          className="text-sm h-8 flex-1"
+                          placeholder={`Enter ${varName}`}
+                        />
+                      </div>
+                    ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
                     💡 Changes will update the preview above automatically
@@ -1017,6 +1159,20 @@ export default function WhatsAppChat() {
               <p className="text-sm text-gray-200 mt-1">
                 Templates must be approved by Meta before they can be used
               </p>
+              
+              {/* Credential Status Warning */}
+              {credentialStatus && !credentialStatus.twilio && (
+                <div className="mt-3 bg-red-600 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="text-sm font-medium">Twilio Configuration Required</span>
+                  </div>
+                  <p className="text-xs mt-1">
+                    Please configure your Twilio credentials in .env.local to create templates. 
+                    You need TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_NUMBER.
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="flex h-[80vh]">
@@ -1771,27 +1927,8 @@ export default function WhatsAppChat() {
                             return;
                           }
                           
-                          // Generate appropriate variables based on template
-                          let variables: string[] = [];
-                          switch(template.name) {
-                            case 'booking_confirmation':
-                              variables = ['John Doe', 'Goa Beach Resort', '2025-08-15', 'AGM123456'];
-                              break;
-                            case 'payment_reminder':
-                              variables = ['John Doe', '₹25,000', 'Goa Package', '2025-07-20'];
-                              break;
-                            case 'welcome_message':
-                              variables = ['John Doe'];
-                              break;
-                            case 'trip_update':
-                              variables = ['John Doe', 'Goa', '2025-08-15'];
-                              break;
-                            default:
-                              variables = ['Valued Customer', 'Our Service', 'Today', 'REF123'];
-                          }
-                          
-                          // Show preview instead of sending directly
-                          showPreview(template, variables);
+                          // Show preview modal for variable input
+                          showPreview(template);
                         }}
                       >
                         Preview & Send

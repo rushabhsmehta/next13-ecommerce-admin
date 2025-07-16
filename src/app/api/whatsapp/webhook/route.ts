@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Validate webhook signature for security
-    if (!validateWebhookSignature(url, params, signature)) {
+    if (!validateWebhookSignature(signature, url, body)) {
       console.error('Invalid webhook signature');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -35,12 +35,12 @@ export async function POST(request: NextRequest) {
     try {
       await prismadb.whatsAppMessage.create({
         data: {
-          messageId: incomingMessage.id,
+          messageId: incomingMessage.messageSid,
           fromNumber: incomingMessage.from,
           toNumber: incomingMessage.to,
           message: incomingMessage.body,
-          status: incomingMessage.status,
-          timestamp: incomingMessage.timestamp,
+          status: 'received',
+          timestamp: new Date(),
           mediaUrl: incomingMessage.mediaUrl,
           mediaContentType: incomingMessage.mediaContentType,
           direction: 'incoming'
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       try {
         await sendWhatsAppMessage({
           to: incomingMessage.from,
-          message: `Hello! Thank you for contacting us. We've received your message: "${incomingMessage.body}". Our team will get back to you soon.`
+          body: `Hello! Thank you for contacting us. We've received your message: "${incomingMessage.body}". Our team will get back to you soon.`
         });
       } catch (replyError) {
         console.error('Error sending auto-reply:', replyError);

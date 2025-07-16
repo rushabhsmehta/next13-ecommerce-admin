@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,15 @@ import {
   Smile,
   Mic,
   FileText,
-  X
+  X,
+  Plus,
+  Save,
+  Eye,
+  Upload,
+  Trash2,
+  Info,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 
 interface WhatsAppMessage {
@@ -71,6 +80,18 @@ export default function WhatsAppChat() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
+  const [createTemplateData, setCreateTemplateData] = useState({
+    name: '',
+    category: 'TRANSACTIONAL',
+    language: 'en',
+    headerType: 'TEXT',
+    headerText: '',
+    bodyText: '',
+    footerText: '',
+    variables: [] as string[],
+    buttons: [] as { type: string; text: string; url?: string }[]
+  });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -200,11 +221,87 @@ export default function WhatsAppChat() {
     setTemplates(sampleTemplates);
   };
 
+  // Get full phone number with country code
+  const getFullPhoneNumber = useCallback(() => {
+    return countryCode + phoneNumber;
+  }, [countryCode, phoneNumber]);
+
+  const loadConversationHistory = useCallback(async () => {
+    const targetNumber = selectedConversation || (phoneNumber ? getFullPhoneNumber() : '');
+    if (!targetNumber) {
+      console.log('No target number available for conversation history');
+      return;
+    }
+    
+    console.log('Loading conversation history for:', targetNumber);
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/whatsapp/conversations?phoneNumber=${encodeURIComponent(targetNumber)}&limit=50`);
+      const data = await response.json();
+      
+      console.log('Conversation history response:', data);
+      
+      if (data.success) {
+        setMessages(data.messages || []);
+        console.log('Loaded messages:', data.messages?.length || 0);
+      } else {
+        console.error('Failed to load conversation history:', data.error);
+        // Don't show error toast for new conversations - just log it
+        if (data.error && !data.error.includes('No messages found')) {
+          toast.error('Failed to load conversation history');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+      toast.error('Failed to load conversation history');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedConversation, phoneNumber, getFullPhoneNumber]);
+
   useEffect(() => {
-    if (selectedConversation || phoneNumber) {
+    console.log('Checking conversation load trigger:', { 
+      selectedConversation, 
+      phoneNumber, 
+      phoneNumberLength: phoneNumber?.length,
+      isValidPhone: phoneNumber && phoneNumber.length >= 10 
+    });
+    
+    if (selectedConversation || (phoneNumber && phoneNumber.length >= 10)) {
+      console.log('Triggering conversation history load');
       loadConversationHistory();
     }
-  }, [selectedConversation, phoneNumber]);
+  }, [selectedConversation, phoneNumber, countryCode, loadConversationHistory]);
+
+  // Auto-select conversation when phone number is entered
+  useEffect(() => {
+    console.log('Auto-select check:', { 
+      phoneNumber, 
+      phoneNumberLength: phoneNumber?.length, 
+      selectedConversation,
+      hasSelection: !!selectedConversation 
+    });
+    
+    if (phoneNumber && phoneNumber.length >= 10) {
+      const fullNumber = getFullPhoneNumber();
+      console.log('Auto-selecting conversation for:', fullNumber);
+      
+      // Always set the selection to ensure conversation loads
+      if (selectedConversation !== fullNumber) {
+        setSelectedConversation(fullNumber);
+      }
+      
+      // Clear previous messages when switching to a new number
+      if (selectedConversation && selectedConversation !== fullNumber) {
+        setMessages([]);
+      }
+    } else if (!phoneNumber || phoneNumber.length === 0) {
+      // Clear selection when phone number is cleared
+      console.log('Clearing conversation selection');
+      setSelectedConversation('');
+      setMessages([]);
+    }
+  }, [phoneNumber, countryCode, selectedConversation, getFullPhoneNumber]);
 
   const loadAllConversations = async () => {
     try {
@@ -223,28 +320,6 @@ export default function WhatsAppChat() {
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
-    }
-  };
-
-  const loadConversationHistory = async () => {
-    const targetNumber = selectedConversation || (phoneNumber ? getFullPhoneNumber() : '');
-    if (!targetNumber) return;
-    
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/whatsapp/conversations?phoneNumber=${encodeURIComponent(targetNumber)}&limit=50`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessages(data.messages);
-      } else {
-        toast.error('Failed to load conversation history');
-      }
-    } catch (error) {
-      console.error('Error loading conversation history:', error);
-      toast.error('Failed to load conversation history');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -533,9 +608,254 @@ export default function WhatsAppChat() {
     setPreviewVariables(newVariables);
   };
 
-  // Get full phone number with country code
-  const getFullPhoneNumber = () => {
-    return countryCode + phoneNumber;
+  // Reset create template form
+  const resetCreateTemplateForm = () => {
+    setCreateTemplateData({
+      name: '',
+      category: 'TRANSACTIONAL',
+      language: 'en',
+      headerType: 'TEXT',
+      headerText: '',
+      bodyText: '',
+      footerText: '',
+      variables: [],
+      buttons: []
+    });
+  };
+
+  // Extract variables from body text
+  const extractVariables = (text: string): string[] => {
+    const matches = text.match(/\{\{(\d+)\}\}/g);
+    if (!matches) return [];
+    
+    const variableNumbers = matches.map(match => parseInt(match.replace(/[{}]/g, '')));
+    const maxVariable = Math.max(...variableNumbers);
+    
+    return Array.from({ length: maxVariable }, (_, i) => `Variable ${i + 1}`);
+  };
+
+  // Update variables when body text changes
+  const updateBodyText = (text: string) => {
+    setCreateTemplateData(prev => ({
+      ...prev,
+      bodyText: text,
+      variables: extractVariables(text)
+    }));
+  };
+
+  // Add button to template
+  const addTemplateButton = () => {
+    if (createTemplateData.buttons.length >= 3) {
+      toast.error('Maximum 3 buttons allowed per template');
+      return;
+    }
+    
+    setCreateTemplateData(prev => ({
+      ...prev,
+      buttons: [...prev.buttons, { type: 'QUICK_REPLY', text: '' }]
+    }));
+  };
+
+  // Remove button from template
+  const removeTemplateButton = (index: number) => {
+    setCreateTemplateData(prev => ({
+      ...prev,
+      buttons: prev.buttons.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Update button data
+  const updateTemplateButton = (index: number, field: string, value: string) => {
+    setCreateTemplateData(prev => ({
+      ...prev,
+      buttons: prev.buttons.map((button, i) => 
+        i === index ? { ...button, [field]: value } : button
+      )
+    }));
+  };
+
+  // Validate template data
+  const validateTemplateData = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    if (!createTemplateData.name.trim()) {
+      errors.push('Template name is required');
+    } else if (!/^[a-z0-9_]+$/.test(createTemplateData.name)) {
+      errors.push('Template name can only contain lowercase letters, numbers, and underscores');
+    }
+    
+    if (!createTemplateData.bodyText.trim()) {
+      errors.push('Body text is required');
+    }
+    
+    if (createTemplateData.bodyText.length > 1024) {
+      errors.push('Body text cannot exceed 1024 characters');
+    }
+    
+    if (createTemplateData.headerText && createTemplateData.headerText.length > 60) {
+      errors.push('Header text cannot exceed 60 characters');
+    }
+    
+    if (createTemplateData.footerText && createTemplateData.footerText.length > 60) {
+      errors.push('Footer text cannot exceed 60 characters');
+    }
+    
+    // Check for duplicate template name
+    if (templates.some(t => t.name === createTemplateData.name)) {
+      errors.push('Template name already exists');
+    }
+    
+    // Validate buttons
+    createTemplateData.buttons.forEach((button, index) => {
+      if (!button.text.trim()) {
+        errors.push(`Button ${index + 1} text is required`);
+      }
+      if (button.type === 'URL' && !button.url) {
+        errors.push(`Button ${index + 1} URL is required`);
+      }
+    });
+    
+    return { isValid: errors.length === 0, errors };
+  };
+
+  // Submit template for approval
+  const submitTemplateForApproval = async () => {
+    const validation = validateTemplateData();
+    
+    if (!validation.isValid) {
+      validation.errors.forEach(error => toast.error(error));
+      return;
+    }
+    
+    try {
+      setIsSending(true);
+      
+      // Prepare template components
+      const components: any[] = [];
+      
+      // Header component
+      if (createTemplateData.headerText) {
+        components.push({
+          type: 'HEADER',
+          format: createTemplateData.headerType,
+          text: createTemplateData.headerText
+        });
+      }
+      
+      // Body component (required)
+      components.push({
+        type: 'BODY',
+        text: createTemplateData.bodyText,
+        ...(createTemplateData.variables.length > 0 && {
+          example: {
+            body_text: [createTemplateData.variables.map((_, i) => `Sample ${i + 1}`)]
+          }
+        })
+      });
+      
+      // Footer component
+      if (createTemplateData.footerText) {
+        components.push({
+          type: 'FOOTER',
+          text: createTemplateData.footerText
+        });
+      }
+      
+      // Buttons component
+      if (createTemplateData.buttons.length > 0) {
+        components.push({
+          type: 'BUTTONS',
+          buttons: createTemplateData.buttons.map(button => ({
+            type: button.type,
+            text: button.text,
+            ...(button.url && { url: button.url })
+          }))
+        });
+      }
+      
+      // Submit to Meta API (via your backend)
+      const response = await fetch('/api/whatsapp/templates/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: createTemplateData.name,
+          category: createTemplateData.category,
+          language: createTemplateData.language,
+          components: components
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Template submitted for approval! It may take 24-48 hours for Meta to review.');
+        
+        // Add template to local state with PENDING status
+        const newTemplate: WhatsAppTemplate = {
+          id: data.templateId || `temp_${Date.now()}`,
+          name: createTemplateData.name,
+          category: createTemplateData.category,
+          language: createTemplateData.language,
+          status: 'PENDING',
+          components: components.map(comp => ({
+            type: comp.type,
+            text: comp.text,
+            format: comp.format,
+            parameters: createTemplateData.variables
+          }))
+        };
+        
+        setTemplates(prev => [...prev, newTemplate]);
+        setShowCreateTemplate(false);
+        resetCreateTemplateForm();
+      } else {
+        toast.error(data.error || 'Failed to submit template for approval');
+      }
+    } catch (error) {
+      console.error('Error submitting template:', error);
+      toast.error('Failed to submit template for approval');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Generate template preview for creation
+  const generateCreateTemplatePreview = (): string => {
+    let preview = '';
+    
+    if (createTemplateData.headerText) {
+      preview += `*${createTemplateData.headerText}*\n\n`;
+    }
+    
+    let bodyWithVariables = createTemplateData.bodyText;
+    createTemplateData.variables.forEach((variable, index) => {
+      bodyWithVariables = bodyWithVariables.replace(
+        new RegExp(`\\{\\{${index + 1}\\}\\}`, 'g'),
+        `[${variable}]`
+      );
+    });
+    preview += bodyWithVariables;
+    
+    if (createTemplateData.footerText) {
+      preview += `\n\n_${createTemplateData.footerText}_`;
+    }
+    
+    if (createTemplateData.buttons.length > 0) {
+      preview += '\n\n';
+      createTemplateData.buttons.forEach((button, index) => {
+        preview += `🔘 ${button.text}`;
+        if (button.type === 'URL' && button.url) {
+          preview += ` (${button.url})`;
+        }
+        if (index < createTemplateData.buttons.length - 1) {
+          preview += '\n';
+        }
+      });
+    }
+    
+    return preview;
   };
 
   // Get country info for display
@@ -675,6 +995,461 @@ export default function WhatsAppChat() {
         </div>
       )}
 
+      {/* Create Template Modal */}
+      {showCreateTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[95vh] overflow-y-auto">
+            <div className="bg-[#075e54] text-white px-6 py-4 rounded-t-lg sticky top-0">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-lg">Create WhatsApp Template</h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowCreateTemplate(false);
+                    resetCreateTemplateForm();
+                  }}
+                  className="p-1 h-auto hover:bg-[#064e46] text-white"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-200 mt-1">
+                Templates must be approved by Meta before they can be used
+              </p>
+            </div>
+            
+            <div className="flex h-[80vh]">
+              {/* Form Section */}
+              <div className="w-1/2 p-6 border-r border-gray-200 overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Template Info Section */}
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-4 h-4 text-blue-600" />
+                      <h4 className="font-medium text-blue-900">Template Guidelines</h4>
+                    </div>
+                    <ul className="text-xs text-blue-800 space-y-1">
+                      <li>• Templates must be pre-approved by Meta</li>
+                      <li>• Review process takes 24-48 hours</li>
+                      <li>• Use variables (&#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;) for dynamic content</li>
+                      <li>• Follow WhatsApp Business policies</li>
+                      <li>• Maximum 1024 characters for body text</li>
+                    </ul>
+                  </div>
+
+                  {/* Basic Information */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Basic Information</h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Template Name *
+                      </label>
+                      <Input
+                        value={createTemplateData.name}
+                        onChange={(e) => {
+                          const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                          setCreateTemplateData(prev => ({ ...prev, name: value }));
+                        }}
+                        placeholder="e.g., booking_confirmation"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Only lowercase letters, numbers, and underscores allowed
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Category *
+                        </label>
+                        <Select 
+                          value={createTemplateData.category} 
+                          onValueChange={(value) => setCreateTemplateData(prev => ({ ...prev, category: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="TRANSACTIONAL">Transactional</SelectItem>
+                            <SelectItem value="MARKETING">Marketing</SelectItem>
+                            <SelectItem value="UTILITY">Utility</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Language *
+                        </label>
+                        <Select 
+                          value={createTemplateData.language} 
+                          onValueChange={(value) => setCreateTemplateData(prev => ({ ...prev, language: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="hi">Hindi</SelectItem>
+                            <SelectItem value="es">Spanish</SelectItem>
+                            <SelectItem value="fr">French</SelectItem>
+                            <SelectItem value="ar">Arabic</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Header Section */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Header (Optional)</h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Header Type
+                      </label>
+                      <Select 
+                        value={createTemplateData.headerType} 
+                        onValueChange={(value) => setCreateTemplateData(prev => ({ ...prev, headerType: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="TEXT">Text</SelectItem>
+                          <SelectItem value="IMAGE">Image</SelectItem>
+                          <SelectItem value="VIDEO">Video</SelectItem>
+                          <SelectItem value="DOCUMENT">Document</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {createTemplateData.headerType === 'TEXT' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Header Text
+                        </label>
+                        <Input
+                          value={createTemplateData.headerText}
+                          onChange={(e) => setCreateTemplateData(prev => ({ ...prev, headerText: e.target.value }))}
+                          placeholder="e.g., Booking Confirmation"
+                          maxLength={60}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          {createTemplateData.headerText.length}/60 characters
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Body Section */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Body Text *</h4>
+                    
+                    <div>
+                      <Textarea
+                        value={createTemplateData.bodyText}
+                        onChange={(e) => updateBodyText(e.target.value)}
+                        placeholder="Hello {{1}}, your booking for {{2}} has been confirmed..."
+                        rows={6}
+                        maxLength={1024}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {createTemplateData.bodyText.length}/1024 characters
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        💡 Use &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;, etc. for dynamic variables
+                      </p>
+                    </div>
+
+                    {/* Variables Preview */}
+                    {createTemplateData.variables.length > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <h5 className="font-medium text-sm text-gray-800 mb-2">
+                          Detected Variables ({createTemplateData.variables.length})
+                        </h5>
+                        <div className="space-y-2">
+                          {createTemplateData.variables.map((variable, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-600 w-16">&#123;&#123;{index + 1}&#125;&#125;:</span>
+                              <Input
+                                value={variable}
+                                onChange={(e) => {
+                                  const newVariables = [...createTemplateData.variables];
+                                  newVariables[index] = e.target.value;
+                                  setCreateTemplateData(prev => ({ ...prev, variables: newVariables }));
+                                }}
+                                placeholder={`Variable ${index + 1} name`}
+                                className="text-sm h-8 flex-1"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Section */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Footer (Optional)</h4>
+                    
+                    <div>
+                      <Input
+                        value={createTemplateData.footerText}
+                        onChange={(e) => setCreateTemplateData(prev => ({ ...prev, footerText: e.target.value }))}
+                        placeholder="e.g., Aagam Holidays - Your Travel Partner"
+                        maxLength={60}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {createTemplateData.footerText.length}/60 characters
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Buttons Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900">Buttons (Optional)</h4>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={addTemplateButton}
+                        disabled={createTemplateData.buttons.length >= 3}
+                        className="text-xs"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Button
+                      </Button>
+                    </div>
+
+                    {createTemplateData.buttons.map((button, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Button {index + 1}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeTemplateButton(index)}
+                            className="text-red-600 hover:text-red-800 p-1 h-auto"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Button Type
+                            </label>
+                            <Select 
+                              value={button.type} 
+                              onValueChange={(value) => updateTemplateButton(index, 'type', value)}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="QUICK_REPLY">Quick Reply</SelectItem>
+                                <SelectItem value="URL">URL</SelectItem>
+                                <SelectItem value="PHONE_NUMBER">Phone</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Button Text
+                            </label>
+                            <Input
+                              value={button.text}
+                              onChange={(e) => updateTemplateButton(index, 'text', e.target.value)}
+                              placeholder="Button text"
+                              className="h-8 text-sm"
+                              maxLength={20}
+                            />
+                          </div>
+                        </div>
+
+                        {button.type === 'URL' && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              URL
+                            </label>
+                            <Input
+                              value={button.url || ''}
+                              onChange={(e) => updateTemplateButton(index, 'url', e.target.value)}
+                              placeholder="https://example.com"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {createTemplateData.buttons.length >= 3 && (
+                      <p className="text-xs text-orange-600">
+                        Maximum 3 buttons allowed per template
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Submission Section */}
+                  <div className="bg-yellow-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                      <h5 className="font-medium text-yellow-900">Approval Process</h5>
+                    </div>
+                    <div className="text-xs text-yellow-800 space-y-1">
+                      <p>1. Template will be submitted to Meta for review</p>
+                      <p>2. Review typically takes 24-48 hours</p>
+                      <p>3. You&apos;ll receive approval/rejection notification</p>
+                      <p>4. Only approved templates can send messages</p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateTemplate(false);
+                        resetCreateTemplateForm();
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={submitTemplateForApproval}
+                      disabled={isSending || !createTemplateData.name || !createTemplateData.bodyText}
+                      className="flex-1 bg-[#075e54] hover:bg-[#064e46]"
+                    >
+                      {isSending ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Submitting...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Upload className="w-4 h-4" />
+                          Submit for Approval
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview Section */}
+              <div className="w-1/2 p-6 bg-gray-50">
+                <div className="sticky top-6">
+                  <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Live Preview
+                  </h4>
+                  
+                  {/* WhatsApp Message Preview */}
+                  <div className="bg-[#e5ddd5] p-4 rounded-lg">
+                    <div className="flex justify-end">
+                      <div
+                        className="max-w-[85%] px-3 py-2 rounded-lg bg-[#dcf8c6] relative"
+                        style={{ borderRadius: '18px 18px 4px 18px' }}
+                      >
+                        {/* Message tail */}
+                        <div className="absolute top-0 right-[-8px] w-0 h-0 border-l-[8px] border-l-[#dcf8c6] border-t-[8px] border-t-transparent" />
+                        
+                        <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                          {generateCreateTemplatePreview() || "Start typing to see preview..."}
+                        </div>
+                        
+                        <div className="flex items-center justify-end mt-1 text-xs text-gray-600 gap-1">
+                          <span>Preview</span>
+                          <CheckCircle className="w-3 h-3 text-blue-500" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Template Status Info */}
+                  <div className="mt-4 bg-white rounded-lg p-3 border">
+                    <h5 className="font-medium text-sm text-gray-800 mb-2">Template Status</h5>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Name:</span>
+                        <span className="font-mono bg-gray-100 px-1 rounded">
+                          {createTemplateData.name || 'template_name'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Category:</span>
+                        <span className="text-gray-800">{createTemplateData.category}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Language:</span>
+                        <span className="text-gray-800">{createTemplateData.language}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Variables:</span>
+                        <span className="text-gray-800">{createTemplateData.variables.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Buttons:</span>
+                        <span className="text-gray-800">{createTemplateData.buttons.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                          DRAFT
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Validation Status */}
+                  <div className="mt-4">
+                    {(() => {
+                      const validation = validateTemplateData();
+                      return (
+                        <div className={`p-3 rounded-lg border ${
+                          validation.isValid 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-red-50 border-red-200'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            {validation.isValid ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-medium text-green-800">Ready to Submit</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-4 h-4 text-red-600" />
+                                <span className="text-sm font-medium text-red-800">Validation Issues</span>
+                              </>
+                            )}
+                          </div>
+                          {!validation.isValid && (
+                            <ul className="text-xs text-red-700 space-y-1">
+                              {validation.errors.map((error, index) => (
+                                <li key={index}>• {error}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main WhatsApp Interface */}
       <div className="flex h-screen bg-gray-100">
         {/* WhatsApp Layout */}
@@ -768,6 +1543,24 @@ export default function WhatsAppChat() {
                   }}
                   maxLength={15}
                 />
+                
+                {/* Start Chat Button */}
+                {phoneNumber.length >= 10 && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const fullNumber = getFullPhoneNumber();
+                      setSelectedConversation(fullNumber);
+                      // Add to conversations list if not already present
+                      if (!conversations.includes(fullNumber)) {
+                        setConversations(prev => [fullNumber, ...prev]);
+                      }
+                    }}
+                    className="px-3 h-8 text-xs bg-[#075e54] hover:bg-[#064e46] text-white"
+                  >
+                    Start Chat
+                  </Button>
+                )}
               </div>
               
               {/* Preview of full number and validation */}
@@ -778,11 +1571,19 @@ export default function WhatsAppChat() {
                     <code className="bg-gray-100 px-1 rounded text-green-600 font-mono">
                       {getFullPhoneNumber()}
                     </code>
+                    {phoneNumber.length >= 10 && (
+                      <span className="text-green-600 ml-1">✓ Ready</span>
+                    )}
                   </div>
-                  {phoneNumber.length < 10 && (
+                  {phoneNumber.length < 10 ? (
                     <div className="text-xs text-orange-600 flex items-center gap-1">
                       <span>⚠️</span>
-                      <span>Phone number should be at least 10 digits</span>
+                      <span>Need {10 - phoneNumber.length} more digits (minimum 10)</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-green-600 flex items-center gap-1">
+                      <span>✅</span>
+                      <span>Ready to start conversation • Press Enter or click &quot;Start Chat&quot;</span>
                     </div>
                   )}
                 </div>
@@ -858,17 +1659,47 @@ export default function WhatsAppChat() {
               <div className="absolute top-[73px] right-0 w-80 h-[calc(100%-73px)] bg-white border-l border-gray-200 z-10 flex flex-col shadow-lg">
                 <div className="bg-[#075e54] text-white px-4 py-3 flex items-center justify-between">
                   <h3 className="font-medium">Message Templates</h3>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowTemplates(false)}
-                    className="p-1 h-auto hover:bg-[#064e46] text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowCreateTemplate(true)}
+                      className="p-1 h-auto hover:bg-[#064e46] text-white"
+                      title="Create New Template"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowTemplates(false)}
+                      className="p-1 h-auto hover:bg-[#064e46] text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                  {/* Create Template CTA */}
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Plus className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Create Custom Template</span>
+                    </div>
+                    <p className="text-xs text-blue-800 mb-3">
+                      Design your own WhatsApp message templates with custom variables and buttons
+                    </p>
+                    <Button 
+                      size="sm" 
+                      className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setShowCreateTemplate(true)}
+                    >
+                      Create New Template
+                    </Button>
+                  </div>
+
+                  {/* Templates List */}
                   {templates.map((template) => (
                     <div key={template.id} className="bg-gray-50 rounded-lg p-3 border hover:bg-gray-100 transition-colors">
                       <div className="flex items-start justify-between mb-2">
@@ -877,15 +1708,35 @@ export default function WhatsAppChat() {
                             {template.name.replace(/_/g, ' ').toUpperCase()}
                           </h4>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            <span className={`px-2 py-0.5 text-xs rounded-full flex items-center gap-1 ${
                               template.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
                               template.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                               'bg-red-100 text-red-800'
                             }`}>
+                              {template.status === 'APPROVED' && <CheckCircle2 className="w-3 h-3" />}
+                              {template.status === 'PENDING' && <Clock className="w-3 h-3" />}
+                              {template.status === 'REJECTED' && <XCircle className="w-3 h-3" />}
                               {template.status}
                             </span>
                             <span className="text-xs text-gray-500">{template.category}</span>
                           </div>
+                          
+                          {/* Approval Status Info */}
+                          {template.status === 'PENDING' && (
+                            <div className="mt-2 text-xs text-yellow-700 bg-yellow-50 rounded px-2 py-1">
+                              ⏳ Under review by Meta (24-48 hours)
+                            </div>
+                          )}
+                          {template.status === 'REJECTED' && (
+                            <div className="mt-2 text-xs text-red-700 bg-red-50 rounded px-2 py-1">
+                              ❌ Rejected - Review guidelines and resubmit
+                            </div>
+                          )}
+                          {template.status === 'APPROVED' && (
+                            <div className="mt-2 text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                              ✅ Ready to use
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -947,6 +1798,50 @@ export default function WhatsAppChat() {
                       </Button>
                     </div>
                   ))}
+                  
+                  {/* Template Guidelines */}
+                  <div className="bg-gray-50 rounded-lg p-3 border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm font-medium text-gray-800">Template Guidelines</span>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <p>• Templates require Meta approval before use</p>
+                      <p>• Review process: 24-48 hours</p>
+                      <p>• Follow WhatsApp Business Policy</p>
+                      <p>• Use variables (&#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;) for dynamic content</p>
+                      <p>• Maximum 3 buttons per template</p>
+                      <p>• Transactional templates have higher approval rates</p>
+                    </div>
+                  </div>
+
+                  {/* Template Status Legend */}
+                  <div className="bg-white rounded-lg p-3 border">
+                    <h4 className="text-sm font-medium text-gray-800 mb-2">Status Legend</h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          APPROVED
+                        </span>
+                        <span className="text-gray-600">Ready to send messages</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          PENDING
+                        </span>
+                        <span className="text-gray-600">Under Meta review</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" />
+                          REJECTED
+                        </span>
+                        <span className="text-gray-600">Needs modification</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1014,9 +1909,11 @@ export default function WhatsAppChat() {
                           
                           {message.mediaUrl && (
                             <div className="mb-2">
-                              <img 
+                              <Image 
                                 src={message.mediaUrl} 
                                 alt="Shared media"
+                                width={300}
+                                height={200}
                                 className="max-w-full h-auto rounded-lg"
                               />
                             </div>
@@ -1049,9 +1946,11 @@ export default function WhatsAppChat() {
             {imagePreview && (
               <div className="bg-white border-t px-4 py-3">
                 <div className="relative inline-block">
-                  <img 
+                  <Image 
                     src={imagePreview} 
                     alt="Preview"
+                    width={128}
+                    height={128}
                     className="max-w-32 h-auto rounded-lg border"
                   />
                   <Button
@@ -1097,16 +1996,28 @@ export default function WhatsAppChat() {
 
                   {/* Templates Button */}
                   <div className="flex flex-col gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setShowTemplates(!showTemplates)}
-                      className={`w-10 h-10 rounded-full p-0 text-gray-600 hover:bg-gray-200 ${
-                        showTemplates ? 'bg-gray-200' : ''
-                      }`}
-                    >
-                      <FileText className="w-5 h-5" />
-                    </Button>
+                    <div className="relative">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowTemplates(!showTemplates)}
+                        className={`w-10 h-10 rounded-full p-0 text-gray-600 hover:bg-gray-200 ${
+                          showTemplates ? 'bg-gray-200' : ''
+                        }`}
+                      >
+                        <FileText className="w-5 h-5" />
+                      </Button>
+                      {/* Create Template Quick Access */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowCreateTemplate(true)}
+                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 bg-[#075e54] text-white hover:bg-[#064e46]"
+                        title="Create New Template"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Message Input */}
@@ -1154,7 +2065,7 @@ export default function WhatsAppChat() {
 
             {/* Tips */}
             <div className="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t">
-              <p>💡 Select country code (default: India +91) • Enter phone number • Press 📄 for templates • Press Enter to send</p>
+              <p>💡 Enter 10+ digit phone number • Press Enter or &quot;Start Chat&quot; • Use 📄 for templates • Press Enter to send messages</p>
             </div>
           </div>
         </div>

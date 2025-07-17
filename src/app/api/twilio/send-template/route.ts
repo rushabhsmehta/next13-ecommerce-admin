@@ -46,12 +46,22 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
+ 
     // Prepare message data
+    const whatsappFromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+    const whatsappToNumber = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
+    
+    console.log('Environment Debug:', {
+      originalTo: to,
+      envWhatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER,
+      whatsappFromNumber,
+      whatsappToNumber
+    });
+    
     const messageData: any = {
       contentSid: contentSid,
-      from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-      to: `whatsapp:${to}`,
+      from: whatsappFromNumber, // Already includes 'whatsapp:' prefix from env
+      to: whatsappToNumber,
     };
 
     // Add content variables if provided
@@ -98,8 +108,8 @@ export async function POST(request: NextRequest) {
       await prismadb.whatsAppMessage.create({
         data: {
           messageId: message.sid,
-          fromNumber: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}` || '',
-          toNumber: `whatsapp:${to}`,
+          fromNumber: process.env.TWILIO_WHATSAPP_NUMBER || '',
+          toNumber: whatsappToNumber,
           message: message.body || `[Template: ${contentSid}]`,
           status: message.status,
           timestamp: new Date(),

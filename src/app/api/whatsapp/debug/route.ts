@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
       twilioAccountSid: !!process.env.TWILIO_ACCOUNT_SID,
       twilioAuthToken: !!process.env.TWILIO_AUTH_TOKEN,
       twilioWhatsappNumber: !!process.env.TWILIO_WHATSAPP_NUMBER,
-      actualWhatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER
+      actualWhatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER,
+      hasCorrectFormat: process.env.TWILIO_WHATSAPP_NUMBER?.startsWith('whatsapp:') || false
     };
 
     // Get recent messages to check delivery status
@@ -103,6 +104,13 @@ function generateRecommendations(recentMessages: any[], credentials: any): strin
 
   if (!credentials.twilioWhatsappNumber) {
     recommendations.push('❌ Twilio WhatsApp number is missing. Set TWILIO_WHATSAPP_NUMBER in environment variables.');
+  } else {
+    // Check WhatsApp number format
+    const whatsappNumber = credentials.actualWhatsappNumber;
+    if (whatsappNumber && !whatsappNumber.startsWith('whatsapp:')) {
+      recommendations.push('❌ Invalid WhatsApp number format! Use "whatsapp:+[country_code][number]" format (e.g., "whatsapp:+919898744701").');
+      recommendations.push('🔧 Current format: ' + whatsappNumber + ' → Should be: whatsapp:' + whatsappNumber);
+    }
   }
 
   // Check recent message failures
@@ -118,7 +126,11 @@ function generateRecommendations(recentMessages: any[], credentials: any): strin
     }, {} as Record<string, number>);
 
     Object.entries(commonErrors).forEach(([code, count]) => {
-      recommendations.push(`🔍 Error ${code} occurred ${count} times. Check Twilio documentation for this error code.`);
+      if (code === '21212') {
+        recommendations.push(`🔍 Error ${code}: Invalid 'From' Number - This is usually caused by incorrect WhatsApp number format. Make sure to use "whatsapp:+[number]" format.`);
+      } else {
+        recommendations.push(`🔍 Error ${code} occurred ${count} times. Check Twilio documentation for this error code.`);
+      }
     });
   }
 

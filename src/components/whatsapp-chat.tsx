@@ -125,99 +125,8 @@ export default function WhatsAppChat() {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    loadAllConversations();
-    loadTemplates();
-    checkCredentialStatus();
-  }, []);
-
-  const loadTemplates = async () => {
-    try {
-      const response = await fetch('/api/twilio/templates');
-      if (!response.ok) {
-        throw new Error('Failed to fetch templates');
-      }
-      const data = await response.json();
-      
-      // Convert Twilio templates to our format
-      const convertedTemplates: WhatsAppTemplate[] = data.templates?.map((template: any) => {
-        // Extract template body from different content types
-        let bodyText = '';
-        let variableNames: string[] = [];
-        
-        if (template.types?.['twilio/text']?.body) {
-          bodyText = template.types['twilio/text'].body;
-        } else if (template.types?.['twilio/list-picker']?.body) {
-          bodyText = template.types['twilio/list-picker'].body;
-        } else if (template.types?.['twilio/call-to-action']?.body) {
-          bodyText = template.types['twilio/call-to-action'].body;
-        } else if (template.types?.['twilio/quick-reply']?.body) {
-          bodyText = template.types['twilio/quick-reply'].body;
-        }
-        
-        // Extract variable names from template body (like {{first_name}}, {{booking_id}})
-        if (bodyText) {
-          const matches = bodyText.match(/\{\{([^}]+)\}\}/g);
-          if (matches) {
-            variableNames = matches.map(match => match.replace(/[{}]/g, ''));
-          }
-        }
-        
-        return {
-          id: template.sid,
-          name: template.friendlyName,
-          category: 'UTILITY', // Default category since Twilio doesn't provide this
-          language: template.language,
-          status: 'APPROVED', // Assume approved since they're fetched
-          components: [
-            {
-              type: 'BODY',
-              text: bodyText,
-              parameters: variableNames
-            }
-          ],
-          variableNames: variableNames // Store actual variable names
-        };
-      }) || [];
-      
-      setTemplates(convertedTemplates);
-    } catch (error) {
-      console.error('Error loading templates:', error);
-      // Fallback to sample templates if API fails
-      loadSampleTemplates();
-    }
-  };
-
-  // Check credential status
-  const checkCredentialStatus = async () => {
-    try {
-      const response = await fetch('/api/whatsapp/credentials');
-      if (response.ok) {
-        const data = await response.json();
-        setCredentialStatus({
-          configured: data.status.allConfigured,
-          twilio: data.status.twilioConfigured,
-          whatsappApi: data.status.whatsappApiConfigured,
-          missing: data.status.missing
-        });
-      }
-    } catch (error) {
-      console.error('Error checking credentials:', error);
-    }
-  };
-
-  // Extract parameters from template text for preview
-  const extractParametersFromText = (text: string): string[] => {
-    const matches = text.match(/\{\{(\d+)\}\}/g);
-    if (!matches) return [];
-    
-    const variableNumbers = matches.map(match => parseInt(match.replace(/[{}]/g, '')));
-    const maxVariable = Math.max(...variableNumbers);
-    
-    return Array.from({ length: maxVariable }, (_, i) => `Variable ${i + 1}`);
-  };
-
-  const loadSampleTemplates = () => {
+  // Load sample templates (fallback)
+  const loadSampleTemplates = useCallback(() => {
     // Sample templates - fallback if API fails
     const sampleTemplates: WhatsAppTemplate[] = [
       {
@@ -313,6 +222,100 @@ export default function WhatsAppChat() {
       }
     ];
     setTemplates(sampleTemplates);
+  }, []);
+
+  // Load templates from API
+  const loadTemplates = useCallback(async () => {
+    try {
+      const response = await fetch('/api/twilio/templates');
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
+      const data = await response.json();
+      
+      // Convert Twilio templates to our format
+      const convertedTemplates: WhatsAppTemplate[] = data.templates?.map((template: any) => {
+        // Extract template body from different content types
+        let bodyText = '';
+        let variableNames: string[] = [];
+        
+        if (template.types?.['twilio/text']?.body) {
+          bodyText = template.types['twilio/text'].body;
+        } else if (template.types?.['twilio/list-picker']?.body) {
+          bodyText = template.types['twilio/list-picker'].body;
+        } else if (template.types?.['twilio/call-to-action']?.body) {
+          bodyText = template.types['twilio/call-to-action'].body;
+        } else if (template.types?.['twilio/quick-reply']?.body) {
+          bodyText = template.types['twilio/quick-reply'].body;
+        }
+        
+        // Extract variable names from template body (like {{first_name}}, {{booking_id}})
+        if (bodyText) {
+          const matches = bodyText.match(/\{\{([^}]+)\}\}/g);
+          if (matches) {
+            variableNames = matches.map(match => match.replace(/[{}]/g, ''));
+          }
+        }
+        
+        return {
+          id: template.sid,
+          name: template.friendlyName,
+          category: 'UTILITY', // Default category since Twilio doesn't provide this
+          language: template.language,
+          status: 'APPROVED', // Assume approved since they're fetched
+          components: [
+            {
+              type: 'BODY',
+              text: bodyText,
+              parameters: variableNames
+            }
+          ],
+          variableNames: variableNames // Store actual variable names
+        };
+      }) || [];
+      
+      setTemplates(convertedTemplates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      // Fallback to sample templates if API fails
+      loadSampleTemplates();
+    }
+  }, [loadSampleTemplates]);
+
+  // Initialize data on component mount
+  useEffect(() => {
+    loadAllConversations();
+    loadTemplates();
+    checkCredentialStatus();
+  }, [loadTemplates]);
+
+  // Check credential status
+  const checkCredentialStatus = async () => {
+    try {
+      const response = await fetch('/api/whatsapp/credentials');
+      if (response.ok) {
+        const data = await response.json();
+        setCredentialStatus({
+          configured: data.status.allConfigured,
+          twilio: data.status.twilioConfigured,
+          whatsappApi: data.status.whatsappApiConfigured,
+          missing: data.status.missing
+        });
+      }
+    } catch (error) {
+      console.error('Error checking credentials:', error);
+    }
+  };
+
+  // Extract parameters from template text for preview
+  const extractParametersFromText = (text: string): string[] => {
+    const matches = text.match(/\{\{(\d+)\}\}/g);
+    if (!matches) return [];
+    
+    const variableNumbers = matches.map(match => parseInt(match.replace(/[{}]/g, '')));
+    const maxVariable = Math.max(...variableNumbers);
+    
+    return Array.from({ length: maxVariable }, (_, i) => `Variable ${i + 1}`);
   };
 
   // Get full phone number with country code

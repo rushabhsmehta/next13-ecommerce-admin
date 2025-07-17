@@ -875,6 +875,9 @@ export default function WhatsAppChat() {
       if (button.type === 'URL' && !button.url) {
         errors.push(`Button ${index + 1} URL is required`);
       }
+      if (button.type === 'PHONE_NUMBER' && !button.url) {
+        errors.push(`Button ${index + 1} phone number is required`);
+      }
     });
     
     return { isValid: errors.length === 0, errors };
@@ -1198,8 +1201,14 @@ export default function WhatsAppChat() {
                 </Button>
               </div>
               <p className="text-sm text-gray-200 mt-1">
-                Templates must be approved by Meta before they can be used
+                Create reusable message templates - approved by Meta for bulk messaging
               </p>
+              <div className="mt-2 bg-blue-900 bg-opacity-50 rounded px-3 py-2">
+                <p className="text-xs text-blue-100">
+                  💡 <strong>Note:</strong> To send messages to specific contacts, use the phone number field in the main chat area (left sidebar). 
+                  Templates are for creating reusable message formats.
+                </p>
+              </div>
               
               {/* Credential Status Warning */}
               {credentialStatus && !credentialStatus.twilio && (
@@ -1484,6 +1493,23 @@ export default function WhatsAppChat() {
                             />
                           </div>
                         )}
+
+                        {button.type === 'PHONE_NUMBER' && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Phone Number
+                            </label>
+                            <Input
+                              value={button.url || ''}
+                              onChange={(e) => updateTemplateButton(index, 'url', e.target.value)}
+                              placeholder="+919876543210"
+                              className="h-8 text-sm"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Include country code (e.g., +91 for India)
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ))}
 
@@ -1691,10 +1717,13 @@ export default function WhatsAppChat() {
             </div>
 
             {/* New Chat Input */}
-            <div className="p-3 border-b bg-gray-50">
+            <div className="p-3 border-b bg-gradient-to-r from-green-50 to-blue-50">
               <div className="flex items-center gap-2 mb-2">
-                <Phone className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">New Chat</span>
+                <Phone className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-gray-800">Start New Chat</span>
+                <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                  Enter phone number here
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 {/* Country Code Selector */}
@@ -1722,7 +1751,7 @@ export default function WhatsAppChat() {
                 
                 {/* Phone Number Input */}
                 <Input
-                  placeholder="Enter phone number"
+                  placeholder="Enter 10+ digit phone number"
                   value={phoneNumber}
                   onChange={(e) => {
                     // Only allow numbers and limit length based on country
@@ -1732,7 +1761,7 @@ export default function WhatsAppChat() {
                       setPhoneNumber(value);
                     }
                   }}
-                  className="flex-1 text-sm"
+                  className="flex-1 text-sm border-green-200 focus:border-green-400"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && phoneNumber.trim().length >= 10) {
                       setSelectedConversation(getFullPhoneNumber());
@@ -1758,6 +1787,11 @@ export default function WhatsAppChat() {
                     Start Chat
                   </Button>
                 )}
+              </div>
+              
+              {/* Helpful tip */}
+              <div className="mt-2 text-xs text-gray-600">
+                💡 Enter the recipient&apos;s phone number here to start chatting or send templates
               </div>
               
               {/* Preview of full number and validation */}

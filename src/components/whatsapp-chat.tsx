@@ -240,6 +240,8 @@ export default function WhatsAppChat() {
       
       // Convert Twilio templates to our format
       const convertedTemplates: WhatsAppTemplate[] = data.templates?.map((template: any) => {
+        console.log('Processing template:', template); // Debug log
+        
         // Extract template body from different content types
         let bodyText = '';
         let variableNames: string[] = [];
@@ -262,11 +264,15 @@ export default function WhatsAppChat() {
           }
         }
         
+        // Ensure template has a valid name
+        const templateName = template.friendlyName || template.sid || `template_${Date.now()}`;
+        console.log('Template name resolved to:', templateName); // Debug log
+        
         return {
-          id: template.sid,
-          name: template.friendlyName || template.sid || 'Unknown Template',
+          id: template.sid || `temp_${Date.now()}`,
+          name: templateName,
           category: 'UTILITY', // Default category since Twilio doesn't provide this
-          language: template.language,
+          language: template.language || 'en',
           status: 'APPROVED', // Assume approved since they're fetched
           components: [
             {
@@ -277,7 +283,7 @@ export default function WhatsAppChat() {
           ],
           variableNames: variableNames // Store actual variable names
         };
-      }) || [];
+      }).filter((template: any) => template && template.name) || []; // Filter out any invalid templates
       
       setTemplates(convertedTemplates);
     } catch (error) {
@@ -1936,7 +1942,7 @@ export default function WhatsAppChat() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <h4 className="font-medium text-sm text-gray-900">
-                            {template.name.replace(/_/g, ' ').toUpperCase()}
+                            {template.name && typeof template.name === 'string' ? template.name.replace(/_/g, ' ').toUpperCase() : 'UNKNOWN TEMPLATE'}
                           </h4>
                           <div className="flex items-center gap-2 mt-1">
                             <span className={`px-2 py-0.5 text-xs rounded-full flex items-center gap-1 ${

@@ -100,6 +100,9 @@ export default function WhatsAppChat() {
     buttons: [] as { type: string; text: string; url?: string }[]
   });
   
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [debugData, setDebugData] = useState<any>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,6 +132,25 @@ export default function WhatsAppChat() {
   const getFullPhoneNumber = useCallback(() => {
     return countryCode + phoneNumber;
   }, [countryCode, phoneNumber]);
+
+  // Load WhatsApp debug information
+  const loadDebugInfo = async () => {
+    try {
+      setDebugData(null);
+      const response = await fetch('/api/whatsapp/debug');
+      const data = await response.json();
+      
+      if (data.success) {
+        setDebugData(data.debug);
+        setShowDebugInfo(true);
+      } else {
+        toast.error(`Failed to load debug info: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error loading debug info:', error);
+      toast.error('Failed to load debug information');
+    }
+  };
 
   // Load sample templates (fallback)
   const loadSampleTemplates = useCallback(() => {
@@ -2247,6 +2269,19 @@ export default function WhatsAppChat() {
                     </div>
                   </div>
 
+                  {/* Debug Button */}
+                  <div className="flex flex-col gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={loadDebugInfo}
+                      className="w-10 h-10 rounded-full p-0 text-gray-600 hover:bg-gray-200"
+                      title="WhatsApp Debug Info"
+                    >
+                      <Info className="w-5 h-5" />
+                    </Button>
+                  </div>
+
                   {/* Message Input */}
                   <div className="flex-1 bg-white rounded-full px-4 py-2 flex items-center gap-2 shadow-sm">
                     <Textarea
@@ -2297,6 +2332,184 @@ export default function WhatsAppChat() {
           </div>
         </div>
       </div>
+
+      {/* Debug Info Modal */}
+      {showDebugInfo && debugData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+            <div className="bg-[#075e54] text-white px-6 py-4 rounded-t-lg sticky top-0">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-lg">WhatsApp Debug Information</h3>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowDebugInfo(false)}
+                  className="text-white hover:bg-white/20 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Credentials Check */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  Environment Configuration
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex justify-between">
+                    <span>Twilio Account SID:</span>
+                    <span className={debugData.credentials.twilioAccountSid ? 'text-green-600' : 'text-red-600'}>
+                      {debugData.credentials.twilioAccountSid ? '✓ Configured' : '✗ Missing'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Twilio Auth Token:</span>
+                    <span className={debugData.credentials.twilioAuthToken ? 'text-green-600' : 'text-red-600'}>
+                      {debugData.credentials.twilioAuthToken ? '✓ Configured' : '✗ Missing'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>WhatsApp Number:</span>
+                    <span className={debugData.credentials.twilioWhatsappNumber ? 'text-green-600' : 'text-red-600'}>
+                      {debugData.credentials.twilioWhatsappNumber ? '✓ Configured' : '✗ Missing'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Actual Number:</span>
+                    <span className="font-mono text-xs">
+                      {debugData.credentials.actualWhatsappNumber || 'Not set'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Messages */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-blue-600" />
+                  Recent Messages ({debugData.recentMessages.length})
+                </h4>
+                {debugData.recentMessages.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {debugData.recentMessages.map((msg: any, index: number) => (
+                      <div key={index} className="bg-white rounded p-3 text-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-mono text-xs text-gray-500">{msg.sid}</span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            msg.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            msg.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                            msg.status === 'failed' ? 'bg-red-100 text-red-800' :
+                            msg.status === 'queued' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {msg.status}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><strong>To:</strong> {msg.to}</div>
+                          <div><strong>From:</strong> {msg.from}</div>
+                          <div><strong>Direction:</strong> {msg.direction}</div>
+                          <div><strong>Created:</strong> {new Date(msg.dateCreated).toLocaleString()}</div>
+                          {msg.errorCode && (
+                            <div className="col-span-2 text-red-600">
+                              <strong>Error {msg.errorCode}:</strong> {msg.errorMessage}
+                            </div>
+                          )}
+                          {msg.price && (
+                            <div><strong>Price:</strong> {msg.price} {msg.priceUnit}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No recent messages found</p>
+                )}
+              </div>
+
+              {/* Content Templates */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-purple-600" />
+                  Content Templates ({debugData.contentTemplates.length})
+                </h4>
+                {debugData.contentTemplates.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {debugData.contentTemplates.map((template: any, index: number) => (
+                      <div key={index} className="bg-white rounded p-3 text-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-semibold">{template.friendlyName}</span>
+                          <span className="text-xs text-gray-500">{template.language}</span>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          <div><strong>SID:</strong> {template.sid}</div>
+                          <div><strong>Types:</strong> {template.types.join(', ')}</div>
+                          <div><strong>Created:</strong> {new Date(template.dateCreated).toLocaleString()}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No content templates found</p>
+                )}
+              </div>
+
+              {/* Sender Status */}
+              {debugData.senderStatus && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-green-600" />
+                    Sender Phone Number Status
+                  </h4>
+                  <div className="bg-white rounded p-3 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><strong>Number:</strong> {debugData.senderStatus.phoneNumber}</div>
+                      <div><strong>Status:</strong> {debugData.senderStatus.status}</div>
+                      <div className="col-span-2">
+                        <strong>Capabilities:</strong> {JSON.stringify(debugData.senderStatus.capabilities)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  Recommendations
+                </h4>
+                <div className="space-y-2">
+                  {debugData.recommendations.map((rec: string, index: number) => (
+                    <div key={index} className="text-sm">{rec}</div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={loadDebugInfo}
+                  className="flex-1 bg-[#075e54] hover:bg-[#064e46]"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Debug Info
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDebugInfo(false)}
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

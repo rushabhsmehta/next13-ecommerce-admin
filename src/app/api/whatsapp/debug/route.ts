@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from 'next/server';
+import twilio from 'twilio';
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+export async function GET(request: NextRequest) {
+  try {
+    // Check if Twilio credentials are configured
+    const credentialsCheck = {
+      twilioAccountSid: !!process.env.TWILIO_ACCOUNT_SID,
+      twilioAuthToken: !!process.env.TWILIO_AUTH_TOKEN,
+      twilioWhatsappNumber: !!process.env.TWILIO_WHATSAPP_NUMBER,
+      actualWhatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER
+    };
+
+    // Get recent messages to check delivery status
+    let recentMessages: any[] = [];
+    try {
+      const messages = await client.messages.list({ limit: 10 });
+      recentMessages = messages.map(message => ({
+        sid: message.sid,
+        status: message.status,
+        to: message.to,
+        from: message.from,
+        direction: message.direction,
+        errorCode: message.errorCode,
+        errorMessage: message.errorMessage,
+        dateCreated: message.dateCreated,
+        dateSent: message.dateSent,
+        dateUpdated: message.dateUpdated,
+        price: message.price,
+        priceUnit: message.priceUnit
+      }));
+    } catch (messageError) {
+      console.error('Error fetching recent messages:', messageError);
+    }
+
+    // Check WhatsApp sender status
+    let senderStatus = null;
+    try {
+      if (process.env.TWILIO_WHATSAPP_NUMBER) {
+        const phoneNumbers = await client.incomingPhoneNumbers.list();
+        const whatsappNumber = phoneNumbers.find(num => 
+          num.phoneNumber === process.env.TWILIO_WHATSAPP_NUMBER
+        );
+        
+        if (whatsappNumber) {
+          senderStatus = {
+            phoneNumber: whatsappNumber.phoneNumber,
+            status: whatsappNumber.status,
+            capabilities: whatsappNumber.capabilities
+          };
+        }
+      }
+    } catch (senderError) {
+      console.error('Error checking sender status:', senderError);
+    }
+
+    // Check content templates
+    let contentTemplates: any[] = [];
+    try {
+      const templates = await client.content.v1.contents.list({ limit: 10 });
+      contentTemplates = templates.map(template => ({
+        sid: template.sid,
+        friendlyName: template.friendlyName,
+        language: template.language,
+        types: Object.keys(template.types || {}),
+        dateCreated: template.dateCreated,
+        dateUpdated: template.dateUpdated
+      }));
+    } catch (templateError) {
+      console.error('Error fetching templates:', templateError);
+    }
+
+    return NextResponse.json({
+      success: true,
+      debug: {
+        credentials: credentialsCheck,
+        recentMessages,
+        senderStatus,
+        contentTemplates,
+        recommendations: generateRecommendations(recentMessages, credentialsCheck)
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Error in WhatsApp debug:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to get debug information',
+      details: error?.message || 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+function generateRecommendations(recentMessages: any[], credentials: any): string[] {
+  const recommendations = [];
+
+  // Check credentials
+  if (!credentials.twilioAccountSid || !credentials.twilioAuthToken) {
+    recommendations.push('❌ Twilio credentials are missing. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables.');
+  }
+
+  if (!credentials.twilioWhatsappNumber) {
+    recommendations.push('❌ Twilio WhatsApp number is missing. Set TWILIO_WHATSAPP_NUMBER in environment variables.');
+  }
+
+  // Check recent message failures
+  const failedMessages = recentMessages.filter(msg => msg.status === 'failed');
+  if (failedMessages.length > 0) {
+    recommendations.push(`⚠️ ${failedMessages.length} recent messages failed. Check error codes in the debug info.`);
+    
+    const commonErrors = failedMessages.reduce((acc, msg) => {
+      if (msg.errorCode) {
+        acc[msg.errorCode] = (acc[msg.errorCode] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    Object.entries(commonErrors).forEach(([code, count]) => {
+      recommendations.push(`🔍 Error ${code} occurred ${count} times. Check Twilio documentation for this error code.`);
+    });
+  }
+
+  // Check message status patterns
+  const undeliveredMessages = recentMessages.filter(msg => 
+    msg.status === 'sent' || msg.status === 'queued'
+  );
+  if (undeliveredMessages.length > 5) {
+    recommendations.push('⚠️ Many messages are stuck in "sent" or "queued" status. This may indicate delivery issues.');
+  }
+
+  // General recommendations
+  if (recommendations.length === 0) {
+    recommendations.push('✅ Configuration looks good. If messages still aren\'t being delivered:');
+    recommendations.push('1. Ensure the recipient has WhatsApp installed and the number is correct');
+    recommendations.push('2. Check if the template is approved for WhatsApp Business');
+    recommendations.push('3. Verify the sender phone number is properly configured in Twilio');
+    recommendations.push('4. Check Twilio logs for detailed error information');
+  }
+
+  return recommendations;
+}

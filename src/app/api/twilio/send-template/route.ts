@@ -15,10 +15,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate phone number format (should include country code)
+    const phoneRegex = /^\+\d{10,15}$/;
+    if (!phoneRegex.test(to)) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid phone number format', 
+          details: 'Phone number must include country code (e.g., +1234567890)',
+          received: to
+        },
+        { status: 400 }
+      );
+    }
+
     // Validate Twilio credentials
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       return NextResponse.json(
         { error: 'Twilio credentials not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Validate WhatsApp sender number
+    if (!process.env.TWILIO_WHATSAPP_NUMBER) {
+      return NextResponse.json(
+        { 
+          error: 'Twilio WhatsApp number not configured', 
+          details: 'Please set TWILIO_WHATSAPP_NUMBER in your environment variables'
+        },
         { status: 500 }
       );
     }
@@ -39,6 +63,35 @@ export async function POST(request: NextRequest) {
 
     // Send message using Twilio
     const message = await client.messages.create(messageData);
+
+    console.log('Twilio Response:', {
+      sid: message.sid,
+      status: message.status,
+      errorCode: message.errorCode,
+      errorMessage: message.errorMessage,
+      to: message.to,
+      from: message.from,
+      price: message.price,
+      priceUnit: message.priceUnit,
+      dateCreated: message.dateCreated
+    });
+
+    // Check if message failed
+    if (message.status === 'failed' || message.errorCode) {
+      console.error('Twilio message failed:', {
+        errorCode: message.errorCode,
+        errorMessage: message.errorMessage,
+        status: message.status
+      });
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Message failed to send',
+        details: message.errorMessage || 'Unknown Twilio error',
+        twilioErrorCode: message.errorCode,
+        status: message.status
+      }, { status: 400 });
+    }
 
     // Save to database
     try {

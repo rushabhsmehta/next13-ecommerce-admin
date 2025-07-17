@@ -33,7 +33,8 @@ import {
   Trash2,
   Info,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Copy
 } from 'lucide-react';
 
 interface WhatsAppMessage {
@@ -61,6 +62,20 @@ interface WhatsAppTemplate {
     parameters?: string[];
   }[];
   variableNames?: string[]; // Store actual variable names like 'first_name', 'booking_id'
+  
+  // Twilio Content API properties
+  sid?: string; // Twilio template SID
+  friendlyName?: string; // Twilio friendly name
+  types?: {
+    [key: string]: {
+      body?: string;
+      actions?: any[];
+    };
+  }; // Twilio template types
+  variables?: Record<string, any>; // Twilio template variables
+  url?: string; // Twilio template URL
+  dateCreated?: string; // Twilio creation date
+  dateUpdated?: string; // Twilio update date
 }
 
 export default function WhatsAppChat() {
@@ -260,22 +275,43 @@ export default function WhatsAppChat() {
       }
       const data = await response.json();
       
+      console.log('=== TEMPLATE LOADING DEBUG ===');
+      console.log('API Response:', data);
+      console.log('Templates count:', data.templates?.length || 0);
+      
       // Convert Twilio templates to our format
-      const convertedTemplates: WhatsAppTemplate[] = data.templates?.map((template: any) => {
-        console.log('Processing template:', template); // Debug log
+      const convertedTemplates: WhatsAppTemplate[] = data.templates?.map((template: any, index: number) => {
+        console.log(`\n--- Template ${index + 1} ---`);
+        console.log('Raw template object:', template);
+        console.log('SID:', template.sid);
+        console.log('Friendly Name:', template.friendlyName);
+        console.log('Language:', template.language);
+        console.log('Types:', template.types);
+        console.log('Variables:', template.variables);
         
         // Extract template body from different content types
         let bodyText = '';
         let variableNames: string[] = [];
         
-        if (template.types?.['twilio/text']?.body) {
-          bodyText = template.types['twilio/text'].body;
-        } else if (template.types?.['twilio/list-picker']?.body) {
-          bodyText = template.types['twilio/list-picker'].body;
-        } else if (template.types?.['twilio/call-to-action']?.body) {
-          bodyText = template.types['twilio/call-to-action'].body;
-        } else if (template.types?.['twilio/quick-reply']?.body) {
-          bodyText = template.types['twilio/quick-reply'].body;
+        // Try to get body text from all Twilio template types
+        const typeKeys = Object.keys(template.types || {});
+        for (const typeKey of typeKeys) {
+          const typeData = template.types[typeKey];
+          if (typeData && typeData.body) {
+            bodyText = typeData.body;
+            console.log(`Found ${typeKey} body:`, bodyText);
+            break;
+          }
+        }
+        
+        // If no body found but there are template types, log them for debugging
+        if (!bodyText && typeKeys.length > 0) {
+          console.log('No body found in template types:', typeKeys);
+          console.log('Type data:', template.types);
+          
+          // For templates without body text, create a generic one based on template name
+          bodyText = `This is a ${template.friendlyName?.replace(/_/g, ' ')} template.`;
+          console.log('Created fallback body:', bodyText);
         }
         
         // Extract variable names from template body (like {{first_name}}, {{booking_id}})
@@ -283,14 +319,37 @@ export default function WhatsAppChat() {
           const matches = bodyText.match(/\{\{([^}]+)\}\}/g);
           if (matches) {
             variableNames = matches.map(match => match.replace(/[{}]/g, ''));
+            console.log('Extracted variables from body:', variableNames);
+          }
+        }
+        
+        // Also check the template's variables object for additional variables
+        if (template.variables && typeof template.variables === 'object') {
+          const templateVarNames = Object.keys(template.variables);
+          console.log('Variables from template.variables object:', templateVarNames);
+          
+          // Merge variables from body and template.variables, avoiding duplicates
+          templateVarNames.forEach(varName => {
+            if (!variableNames.includes(varName)) {
+              variableNames.push(varName);
+            }
+          });
+          
+          console.log('Final merged variables:', variableNames);
+          
+          // If we have variables but no body with placeholders, create a generic body with placeholders
+          if (variableNames.length > 0 && bodyText && !bodyText.match(/\{\{([^}]+)\}\}/g)) {
+            const varPlaceholders = variableNames.map(varName => `{{${varName}}}`).join(', ');
+            bodyText = `${bodyText} Variables: ${varPlaceholders}`;
+            console.log('Enhanced body with variables:', bodyText);
           }
         }
         
         // Ensure template has a valid name
         const templateName = template.friendlyName || template.sid || `template_${Date.now()}`;
-        console.log('Template name resolved to:', templateName); // Debug log
+        console.log('Template name resolved to:', templateName);
         
-        return {
+        const convertedTemplate = {
           id: template.sid || `temp_${Date.now()}`,
           name: templateName,
           category: 'UTILITY', // Default category since Twilio doesn't provide this
@@ -303,9 +362,30 @@ export default function WhatsAppChat() {
               parameters: variableNames
             }
           ],
-          variableNames: variableNames // Store actual variable names
+          variableNames: variableNames, // Store actual variable names
+          
+          // Preserve Twilio properties for better handling
+          sid: template.sid,
+          friendlyName: template.friendlyName,
+          types: template.types,
+          variables: variableNames.length > 0 ? 
+            // Create a proper variables object from variableNames
+            variableNames.reduce((acc, varName) => {
+              acc[varName] = template.variables?.[varName] || ''; // Use existing value or empty string
+              return acc;
+            }, {} as Record<string, any>) :
+            {}, // Empty object if no variables
+          url: template.url,
+          dateCreated: template.dateCreated,
+          dateUpdated: template.dateUpdated
         };
+        
+        console.log('Converted template:', convertedTemplate);
+        return convertedTemplate;
       }).filter((template: any) => template && template.name) || []; // Filter out any invalid templates
+      
+      console.log('Final converted templates:', convertedTemplates);
+      console.log('=== END TEMPLATE DEBUG ===\n');
       
       setTemplates(convertedTemplates);
     } catch (error) {
@@ -527,7 +607,7 @@ export default function WhatsAppChat() {
         },
         body: JSON.stringify({
           to: targetNumber,
-          contentSid: template.id,
+          contentSid: template.sid || template.id, // Use Twilio SID if available, fallback to ID
           contentVariables: Object.keys(contentVariables).length > 0 ? contentVariables : undefined
         }),
       });
@@ -711,7 +791,51 @@ export default function WhatsAppChat() {
 
   // Generate template preview content
   const generateTemplatePreview = (template: WhatsAppTemplate, variables: Record<string, string> | string[]): string => {
-    // For Twilio templates, use the body text directly and replace variables
+    // Handle Twilio Content API templates (from /api/twilio/templates)
+    if (template.types && typeof template.types === 'object') {
+      // Get the text content from Twilio template types
+      const textType = template.types['twilio/text'];
+      const quickReplyType = template.types['twilio/quick-reply'];
+      
+      let bodyText = '';
+      if (textType && textType.body) {
+        bodyText = textType.body;
+      } else if (quickReplyType && quickReplyType.body) {
+        bodyText = quickReplyType.body;
+      }
+      
+      if (bodyText) {
+        let preview = bodyText;
+        
+        if (Array.isArray(variables)) {
+          // Handle numbered variables like {{1}}, {{2}}, etc.
+          variables.forEach((variable, index) => {
+            const placeholder = `{{${index + 1}}}`;
+            const replacement = variable && variable.trim() !== '' ? variable : `[Variable ${index + 1}]`;
+            preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacement);
+          });
+        } else {
+          // Handle named variables from template.variables object or manual input
+          Object.entries(variables).forEach(([varName, varValue]) => {
+            // Try different variable formats
+            const placeholders = [
+              `{{${varName}}}`,           // {{variable_name}}
+              `{{${varName.toLowerCase()}}}`, // {{variable_name}} (lowercase)
+              `{{${varName.toUpperCase()}}}`, // {{VARIABLE_NAME}} (uppercase)
+            ];
+            
+            placeholders.forEach(placeholder => {
+              const replacement = varValue && varValue.trim() !== '' ? varValue : `[${varName}]`;
+              preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacement);
+            });
+          });
+        }
+        
+        return preview;
+      }
+    }
+    
+    // Handle local/sample templates (legacy format)
     const bodyComponent = template.components?.find(comp => comp.type === 'BODY');
     if (bodyComponent && bodyComponent.text) {
       let preview = bodyComponent.text;
@@ -735,7 +859,7 @@ export default function WhatsAppChat() {
       return preview;
     }
     
-    // Fallback: if no body component found, return the template name formatted nicely
+    // Fallback: if no body content found, return the template name formatted nicely
     return template.name && typeof template.name === 'string' ? template.name.replace(/_/g, ' ') : 'Template Preview Not Available';
   };
 
@@ -746,35 +870,100 @@ export default function WhatsAppChat() {
     // Initialize variables with empty values
     const initialVariables: Record<string, string> = {};
     
-    // Try to get variables from the template components first
-    const bodyComponent = template.components?.find(comp => comp.type === 'BODY');
-    if (bodyComponent && bodyComponent.parameters) {
-      bodyComponent.parameters.forEach(param => {
-        initialVariables[param] = '';
-      });
-    } else if (template.variableNames) {
-      // Fallback to stored variable names
-      template.variableNames.forEach(varName => {
-        initialVariables[varName] = '';
-      });
-    } else if (bodyComponent && bodyComponent.text) {
-      // Extract variables from template text as last resort
-      const matches = bodyComponent.text.match(/\{\{([^}]+)\}\}/g);
-      if (matches) {
-        matches.forEach(match => {
-          const varName = match.replace(/[{}]/g, '');
+    // For Twilio Content API templates
+    if (template.types && typeof template.types === 'object') {
+      let bodyText = '';
+      
+      // Get body text from different template types
+      const textType = template.types['twilio/text'];
+      const quickReplyType = template.types['twilio/quick-reply'];
+      
+      if (textType && textType.body) {
+        bodyText = textType.body;
+      } else if (quickReplyType && quickReplyType.body) {
+        bodyText = quickReplyType.body;
+      }
+      
+      // Extract variables from template body text
+      if (bodyText) {
+        const variableMatches = bodyText.match(/\{\{([^}]+)\}\}/g);
+        if (variableMatches) {
+          variableMatches.forEach(match => {
+            const varName = match.replace(/[{}]/g, '');
+            // Convert numbered variables to descriptive names
+            if (/^\d+$/.test(varName)) {
+              const varIndex = parseInt(varName);
+              const descriptiveName = getDescriptiveVariableName(varIndex, template.name || '');
+              initialVariables[descriptiveName] = '';
+            } else {
+              initialVariables[varName] = '';
+            }
+          });
+        }
+      }
+      
+      // Also check if template has predefined variables object
+      if (template.variables && typeof template.variables === 'object') {
+        Object.keys(template.variables).forEach(varName => {
+          if (!initialVariables[varName]) {
+            initialVariables[varName] = '';
+          }
+        });
+      }
+    } else {
+      // For local/sample templates (legacy format)
+      const bodyComponent = template.components?.find(comp => comp.type === 'BODY');
+      if (bodyComponent && bodyComponent.parameters) {
+        bodyComponent.parameters.forEach(param => {
+          initialVariables[param] = '';
+        });
+      } else if (template.variableNames) {
+        // Fallback to stored variable names
+        template.variableNames.forEach(varName => {
           initialVariables[varName] = '';
         });
+      } else if (bodyComponent && bodyComponent.text) {
+        // Extract variables from template text as last resort
+        const matches = bodyComponent.text.match(/\{\{([^}]+)\}\}/g);
+        if (matches) {
+          matches.forEach(match => {
+            const varName = match.replace(/[{}]/g, '');
+            initialVariables[varName] = '';
+          });
+        }
       }
     }
     
+    console.log('Template preview variables extracted:', initialVariables);
     setPreviewVariables(initialVariables);
     setShowTemplatePreview(true);
+  };
+  
+  // Helper function to convert numbered variables to descriptive names
+  const getDescriptiveVariableName = (index: number, templateName: string): string => {
+    const commonVariableNames: Record<string, string[]> = {
+      'booking': ['customer_name', 'hotel_name', 'check_in_date', 'booking_reference', 'amount'],
+      'payment': ['customer_name', 'amount', 'booking_id', 'due_date', 'payment_link'],
+      'confirmation': ['customer_name', 'service', 'date', 'reference_number', 'details'],
+      'reminder': ['customer_name', 'event', 'date', 'time', 'location'],
+      'welcome': ['customer_name', 'company_name', 'service', 'contact_info'],
+      'default': ['customer_name', 'service', 'date', 'reference', 'amount']
+    };
+    
+    const templateKey = Object.keys(commonVariableNames).find(key => 
+      templateName.toLowerCase().includes(key)
+    ) || 'default';
+    
+    const variableNames = commonVariableNames[templateKey];
+    return variableNames[index - 1] || `variable_${index}`;
   };
 
   // Send template after preview confirmation
   const confirmAndSendTemplate = async () => {
-    if (!previewTemplate || Object.keys(previewVariables).length === 0) return;
+    if (!previewTemplate) {
+      toast.error('No template selected');
+      return;
+    }
     
     setShowTemplatePreview(false);
     await sendTemplateMessage(previewTemplate, previewVariables);
@@ -783,10 +972,16 @@ export default function WhatsAppChat() {
 
   // Check if all required variables are filled
   const areAllVariablesFilled = () => {
-    if (!previewTemplate || Object.keys(previewVariables).length === 0) {
+    if (!previewTemplate) {
+      return false; // No template selected
+    }
+    
+    // If template has no variables, it's ready to send
+    if (Object.keys(previewVariables).length === 0) {
       return true; // No variables needed
     }
     
+    // Check if all variables are filled
     return Object.values(previewVariables).every(value => value.trim() !== '');
   };
 
@@ -1138,7 +1333,7 @@ export default function WhatsAppChat() {
               </div>
 
               {/* Editable Variables */}
-              {Object.keys(previewVariables).length > 0 && (
+              {Object.keys(previewVariables).length > 0 ? (
                 <div className="bg-blue-50 rounded-lg p-3 mb-4">
                   <h4 className="font-medium text-sm text-gray-800 mb-2 flex items-center gap-2">
                     <span>📝</span>
@@ -1161,6 +1356,18 @@ export default function WhatsAppChat() {
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
                     💡 Changes will update the preview above automatically
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-green-50 rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <span>✅</span>
+                    <span className="text-sm font-medium">
+                      This template is ready to send - no variables required
+                    </span>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">
+                    This is a static template with pre-defined content and interactive buttons.
                   </p>
                 </div>
               )}
@@ -1922,6 +2129,80 @@ export default function WhatsAppChat() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      onClick={() => {
+                        console.log('=== CURRENT TEMPLATES DEBUG ===');
+                        console.log('Templates array:', templates);
+                        templates.forEach((template, index) => {
+                          console.log(`\n--- Template ${index + 1} ---`);
+                          console.log('Template object:', template);
+                          console.log('Name:', template.name);
+                          console.log('SID:', template.sid);
+                          console.log('Types:', template.types);
+                          console.log('Variables:', template.variables);
+                          console.log('Components:', template.components);
+                        });
+                        console.log('=== END TEMPLATES DEBUG ===');
+                        toast.success('Template debug info logged to console (F12)');
+                      }}
+                      className="p-1 h-auto hover:bg-[#064e46] text-white"
+                      title="Debug Template Structure"
+                    >
+                      <Info className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        // Generate comprehensive debug information
+                        const debugInfo = {
+                          timestamp: new Date().toISOString(),
+                          templatesCount: templates.length,
+                          templatesWithoutVariables: templates.filter(t => !t.variables || t.variables.length === 0).length,
+                          templatesWithVariables: templates.filter(t => t.variables && t.variables.length > 0).length,
+                          templates: templates.map((template, index) => ({
+                            index: index + 1,
+                            id: template.id,
+                            name: template.name,
+                            sid: template.sid,
+                            friendlyName: template.friendlyName,
+                            category: template.category,
+                            language: template.language,
+                            status: template.status,
+                            hasVariables: !!(template.variables && Object.keys(template.variables).length > 0),
+                            variablesCount: template.variables ? Object.keys(template.variables).length : 0,
+                            variables: template.variables,
+                            variableNames: template.variableNames,
+                            types: template.types,
+                            components: template.components,
+                            url: template.url,
+                            dateCreated: template.dateCreated,
+                            dateUpdated: template.dateUpdated
+                          }))
+                        };
+
+                        // Convert to formatted JSON string
+                        const debugText = JSON.stringify(debugInfo, null, 2);
+                        
+                        // Copy to clipboard
+                        navigator.clipboard.writeText(debugText).then(() => {
+                          toast.success('All template debug info copied to clipboard!');
+                        }).catch((err) => {
+                          console.error('Failed to copy to clipboard:', err);
+                          // Fallback: log to console
+                          console.log('=== FULL TEMPLATE DEBUG INFO ===');
+                          console.log(debugText);
+                          console.log('=== END FULL DEBUG INFO ===');
+                          toast.error('Failed to copy. Check console for debug info.');
+                        });
+                      }}
+                      className="p-1 h-auto hover:bg-[#064e46] text-white"
+                      title="Copy All Debug Info"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={() => setShowCreateTemplate(true)}
                       className="p-1 h-auto hover:bg-[#064e46] text-white"
                       title="Create New Template"
@@ -1959,6 +2240,86 @@ export default function WhatsAppChat() {
                   </div>
 
                   {/* Templates List */}
+                  {/* Debug Section */}
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium text-yellow-800">
+                        Debug Info: Templates ({templates.length} total, {templates.filter(t => !t.variables || Object.keys(t.variables).length === 0).length} without variables)
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // Generate comprehensive debug information
+                          const debugInfo = {
+                            timestamp: new Date().toISOString(),
+                            templatesCount: templates.length,
+                            templatesWithoutVariables: templates.filter(t => !t.variables || Object.keys(t.variables).length === 0).length,
+                            templatesWithVariables: templates.filter(t => t.variables && Object.keys(t.variables).length > 0).length,
+                            problemTemplates: templates.filter(t => !t.variables || Object.keys(t.variables).length === 0).map(t => ({
+                              name: t.name,
+                              sid: t.sid,
+                              issue: !t.variables ? 'No variables property' : 'Empty variables object',
+                              types: t.types,
+                              components: t.components
+                            })),
+                            allTemplates: templates.map((template, index) => ({
+                              index: index + 1,
+                              id: template.id,
+                              name: template.name,
+                              sid: template.sid,
+                              friendlyName: template.friendlyName,
+                              category: template.category,
+                              language: template.language,
+                              status: template.status,
+                              hasVariables: !!(template.variables && Object.keys(template.variables).length > 0),
+                              variablesCount: template.variables ? Object.keys(template.variables).length : 0,
+                              variables: template.variables,
+                              variableNames: template.variableNames,
+                              types: template.types,
+                              components: template.components,
+                              url: template.url,
+                              dateCreated: template.dateCreated,
+                              dateUpdated: template.dateUpdated
+                            }))
+                          };
+
+                          // Convert to formatted JSON string
+                          const debugText = JSON.stringify(debugInfo, null, 2);
+                          
+                          // Copy to clipboard
+                          navigator.clipboard.writeText(debugText).then(() => {
+                            toast.success('Complete debug info copied to clipboard!');
+                          }).catch((err) => {
+                            console.error('Failed to copy to clipboard:', err);
+                            // Fallback: log to console
+                            console.log('=== COMPLETE TEMPLATE DEBUG INFO ===');
+                            console.log(debugText);
+                            console.log('=== END COMPLETE DEBUG INFO ===');
+                            toast.error('Failed to copy. Check console for debug info.');
+                          });
+                        }}
+                        className="h-7 text-xs px-2 border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy All Logs
+                      </Button>
+                    </div>
+                    <div className="text-xs text-yellow-700 space-y-1">
+                      {templates.filter(t => !t.variables || Object.keys(t.variables).length === 0).map(template => (
+                        <div key={template.sid || template.id} className="flex justify-between">
+                          <span className="truncate flex-1 mr-2">{template.name}</span>
+                          <span className="text-yellow-600 text-nowrap">
+                            {!template.variables ? 'No variables property' : 'Empty variables object'}
+                          </span>
+                        </div>
+                      ))}
+                      {templates.filter(t => !t.variables || Object.keys(t.variables).length === 0).length === 0 && (
+                        <div className="text-green-700">All templates have variables!</div>
+                      )}
+                    </div>
+                  </div>
+
                   {templates.map((template) => (
                     <div key={template.id} className="bg-gray-50 rounded-lg p-3 border hover:bg-gray-100 transition-colors">
                       <div className="flex items-start justify-between mb-2">
@@ -1978,6 +2339,18 @@ export default function WhatsAppChat() {
                               {template.status}
                             </span>
                             <span className="text-xs text-gray-500">{template.category}</span>
+                            {/* Variables indicator */}
+                            {template.variables && Object.keys(template.variables).length > 0 ? (
+                              <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full flex items-center gap-1">
+                                <span>📝</span>
+                                {Object.keys(template.variables).length} vars
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full flex items-center gap-1">
+                                <span>❌</span>
+                                No vars
+                              </span>
+                            )}
                           </div>
                           
                           {/* Approval Status Info */}
@@ -2000,31 +2373,56 @@ export default function WhatsAppChat() {
                       </div>
 
                       <div className="space-y-1 mb-3">
-                        {template.components?.map((component, index) => (
-                          <div key={index} className="text-xs">
-                            {component.type === 'HEADER' && (
-                              <div className="font-medium text-gray-900">{component.text}</div>
-                            )}
-                            {component.type === 'BODY' && (
+                        {/* Display Twilio template content */}
+                        {template.types && typeof template.types === 'object' ? (
+                          // Twilio Content API template
+                          <div className="text-xs">
+                            {(template.types['twilio/text']?.body || 
+                              template.types['twilio/quick-reply']?.body ||
+                              template.types['twilio/list-picker']?.body ||
+                              template.types['twilio/call-to-action']?.body) && (
                               <div className="text-gray-700 leading-relaxed">
-                                {component.text ? (
-                                  component.text.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+                                {(template.types['twilio/text']?.body || 
+                                  template.types['twilio/quick-reply']?.body ||
+                                  template.types['twilio/list-picker']?.body ||
+                                  template.types['twilio/call-to-action']?.body)
+                                  ?.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
                                     return `[${varName}]`;
-                                  })
-                                ) : (
-                                  <span className="italic text-gray-500">
-                                    Template content: {template.name && typeof template.name === 'string' ? template.name.replace(/_/g, ' ') : 'Unknown Template'}
-                                  </span>
-                                )}
+                                  })}
                               </div>
                             )}
-                            {component.type === 'FOOTER' && (
-                              <div className="text-xs text-gray-500 mt-1">{component.text}</div>
-                            )}
                           </div>
-                        )) || (
+                        ) : (
+                          // Legacy template format
+                          template.components?.map((component, index) => (
+                            <div key={index} className="text-xs">
+                              {component.type === 'HEADER' && (
+                                <div className="font-medium text-gray-900">{component.text}</div>
+                              )}
+                              {component.type === 'BODY' && (
+                                <div className="text-gray-700 leading-relaxed">
+                                  {component.text ? (
+                                    component.text.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+                                      return `[${varName}]`;
+                                    })
+                                  ) : (
+                                    <span className="italic text-gray-500">
+                                      Template content: {template.name && typeof template.name === 'string' ? template.name.replace(/_/g, ' ') : 'Unknown Template'}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {component.type === 'FOOTER' && (
+                                <div className="text-xs text-gray-500 mt-1">{component.text}</div>
+                              )}
+                            </div>
+                          ))
+                        )}
+                        
+                        {/* Show no content message if neither format has content */}
+                        {!template.types && !template.components?.length && (
                           <div className="text-xs text-gray-500 italic">
-                            No template components available
+                            No template content available
                           </div>
                         )}
                       </div>

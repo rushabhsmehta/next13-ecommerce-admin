@@ -264,7 +264,7 @@ export default function WhatsAppChat() {
         
         return {
           id: template.sid,
-          name: template.friendlyName,
+          name: template.friendlyName || template.sid || 'Unknown Template',
           category: 'UTILITY', // Default category since Twilio doesn't provide this
           language: template.language,
           status: 'APPROVED', // Assume approved since they're fetched
@@ -684,7 +684,7 @@ export default function WhatsAppChat() {
   // Generate template preview content
   const generateTemplatePreview = (template: WhatsAppTemplate, variables: Record<string, string> | string[]): string => {
     // For Twilio templates, use the body text directly and replace variables
-    const bodyComponent = template.components.find(comp => comp.type === 'BODY');
+    const bodyComponent = template.components?.find(comp => comp.type === 'BODY');
     if (bodyComponent && bodyComponent.text) {
       let preview = bodyComponent.text;
       
@@ -708,7 +708,7 @@ export default function WhatsAppChat() {
     }
     
     // Fallback: if no body component found, return the template name formatted nicely
-    return template.name ? template.name.replace(/_/g, ' ') : 'Template Preview Not Available';
+    return template.name && typeof template.name === 'string' ? template.name.replace(/_/g, ' ') : 'Template Preview Not Available';
   };
 
   // Show template preview
@@ -863,7 +863,7 @@ export default function WhatsAppChat() {
     }
     
     // Check for duplicate template name
-    if (templates.some(t => t.name === createTemplateData.name)) {
+    if (templates.some(t => t.name && t.name === createTemplateData.name)) {
       errors.push('Template name already exists');
     }
     
@@ -1094,7 +1094,7 @@ export default function WhatsAppChat() {
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="w-4 h-4 text-gray-600" />
                   <span className="font-medium text-sm">
-                    {previewTemplate.name.replace(/_/g, ' ').toUpperCase()}
+                    {previewTemplate.name && typeof previewTemplate.name === 'string' ? previewTemplate.name.replace(/_/g, ' ').toUpperCase() : 'UNKNOWN TEMPLATE'}
                   </span>
                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                     previewTemplate.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
@@ -1972,7 +1972,7 @@ export default function WhatsAppChat() {
                       </div>
 
                       <div className="space-y-1 mb-3">
-                        {template.components.map((component, index) => (
+                        {template.components?.map((component, index) => (
                           <div key={index} className="text-xs">
                             {component.type === 'HEADER' && (
                               <div className="font-medium text-gray-900">{component.text}</div>
@@ -1985,7 +1985,7 @@ export default function WhatsAppChat() {
                                   })
                                 ) : (
                                   <span className="italic text-gray-500">
-                                    Template content: {template.name.replace(/_/g, ' ')}
+                                    Template content: {template.name && typeof template.name === 'string' ? template.name.replace(/_/g, ' ') : 'Unknown Template'}
                                   </span>
                                 )}
                               </div>
@@ -1994,7 +1994,11 @@ export default function WhatsAppChat() {
                               <div className="text-xs text-gray-500 mt-1">{component.text}</div>
                             )}
                           </div>
-                        ))}
+                        )) || (
+                          <div className="text-xs text-gray-500 italic">
+                            No template components available
+                          </div>
+                        )}
                       </div>
 
                       <Button 

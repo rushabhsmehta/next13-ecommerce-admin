@@ -125,6 +125,11 @@ export default function WhatsAppChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Get full phone number with country code
+  const getFullPhoneNumber = useCallback(() => {
+    return countryCode + phoneNumber;
+  }, [countryCode, phoneNumber]);
+
   // Load sample templates (fallback)
   const loadSampleTemplates = useCallback(() => {
     // Sample templates - fallback if API fails
@@ -282,15 +287,8 @@ export default function WhatsAppChat() {
     }
   }, [loadSampleTemplates]);
 
-  // Initialize data on component mount
-  useEffect(() => {
-    loadAllConversations();
-    loadTemplates();
-    checkCredentialStatus();
-  }, [loadTemplates]);
-
   // Check credential status
-  const checkCredentialStatus = async () => {
+  const checkCredentialStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/whatsapp/credentials');
       if (response.ok) {
@@ -305,7 +303,35 @@ export default function WhatsAppChat() {
     } catch (error) {
       console.error('Error checking credentials:', error);
     }
-  };
+  }, []);
+
+  // Load all conversations
+  const loadAllConversations = useCallback(async () => {
+    try {
+      // This would ideally be a separate API endpoint that returns unique phone numbers
+      const response = await fetch('/api/whatsapp/conversations');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Extract unique phone numbers from all messages
+        const uniqueNumbers = new Set<string>();
+        data.messages.forEach((msg: WhatsAppMessage) => {
+          if (msg.from.includes('+')) uniqueNumbers.add(msg.from);
+          if (msg.to.includes('+')) uniqueNumbers.add(msg.to);
+        });
+        setConversations(Array.from(uniqueNumbers));
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  }, []);
+
+  // Initialize data on component mount
+  useEffect(() => {
+    loadAllConversations();
+    loadTemplates();
+    checkCredentialStatus();
+  }, [loadAllConversations, loadTemplates, checkCredentialStatus]);
 
   // Extract parameters from template text for preview
   const extractParametersFromText = (text: string): string[] => {
@@ -317,11 +343,6 @@ export default function WhatsAppChat() {
     
     return Array.from({ length: maxVariable }, (_, i) => `Variable ${i + 1}`);
   };
-
-  // Get full phone number with country code
-  const getFullPhoneNumber = useCallback(() => {
-    return countryCode + phoneNumber;
-  }, [countryCode, phoneNumber]);
 
   const loadConversationHistory = useCallback(async () => {
     const targetNumber = selectedConversation || (phoneNumber ? getFullPhoneNumber() : '');
@@ -399,26 +420,6 @@ export default function WhatsAppChat() {
       setMessages([]);
     }
   }, [phoneNumber, countryCode, selectedConversation, getFullPhoneNumber]);
-
-  const loadAllConversations = async () => {
-    try {
-      // This would ideally be a separate API endpoint that returns unique phone numbers
-      const response = await fetch('/api/whatsapp/conversations');
-      const data = await response.json();
-      
-      if (data.success) {
-        // Extract unique phone numbers from all messages
-        const uniqueNumbers = new Set<string>();
-        data.messages.forEach((msg: WhatsAppMessage) => {
-          if (msg.from.includes('+')) uniqueNumbers.add(msg.from);
-          if (msg.to.includes('+')) uniqueNumbers.add(msg.to);
-        });
-        setConversations(Array.from(uniqueNumbers));
-      }
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    }
-  };
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

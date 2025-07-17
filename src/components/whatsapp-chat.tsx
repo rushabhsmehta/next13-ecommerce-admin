@@ -692,25 +692,23 @@ export default function WhatsAppChat() {
         // Handle numbered variables like {{1}}, {{2}}, etc.
         variables.forEach((variable, index) => {
           const placeholder = `{{${index + 1}}}`;
-          preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), variable || `[Variable ${index + 1}]`);
+          const replacement = variable && variable.trim() !== '' ? variable : `[Variable ${index + 1}]`;
+          preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacement);
         });
       } else {
         // Handle named variables like {{first_name}}, {{booking_id}}, etc.
         Object.entries(variables).forEach(([varName, varValue]) => {
           const placeholder = `{{${varName}}}`;
-          preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), varValue || `[${varName}]`);
+          const replacement = varValue && varValue.trim() !== '' ? varValue : `[${varName}]`;
+          preview = preview.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), replacement);
         });
       }
       
       return preview;
     }
     
-    // Fallback for templates without body text
-    if (Array.isArray(variables)) {
-      return `Template: ${template.name}\nVariables: ${variables.join(', ')}`;
-    } else {
-      return `Template: ${template.name}\nVariables: ${Object.entries(variables).map(([k, v]) => `${k}: ${v}`).join(', ')}`;
-    }
+    // Fallback: if no body component found, return the template name formatted nicely
+    return template.name ? template.name.replace(/_/g, ' ') : 'Template Preview Not Available';
   };
 
   // Show template preview
@@ -719,11 +717,29 @@ export default function WhatsAppChat() {
     
     // Initialize variables with empty values
     const initialVariables: Record<string, string> = {};
-    if (template.variableNames) {
+    
+    // Try to get variables from the template components first
+    const bodyComponent = template.components?.find(comp => comp.type === 'BODY');
+    if (bodyComponent && bodyComponent.parameters) {
+      bodyComponent.parameters.forEach(param => {
+        initialVariables[param] = '';
+      });
+    } else if (template.variableNames) {
+      // Fallback to stored variable names
       template.variableNames.forEach(varName => {
         initialVariables[varName] = '';
       });
+    } else if (bodyComponent && bodyComponent.text) {
+      // Extract variables from template text as last resort
+      const matches = bodyComponent.text.match(/\{\{([^}]+)\}\}/g);
+      if (matches) {
+        matches.forEach(match => {
+          const varName = match.replace(/[{}]/g, '');
+          initialVariables[varName] = '';
+        });
+      }
     }
+    
     setPreviewVariables(initialVariables);
     setShowTemplatePreview(true);
   };
@@ -735,6 +751,15 @@ export default function WhatsAppChat() {
     setShowTemplatePreview(false);
     await sendTemplateMessage(previewTemplate, previewVariables);
     setShowTemplates(false);
+  };
+
+  // Check if all required variables are filled
+  const areAllVariablesFilled = () => {
+    if (!previewTemplate || Object.keys(previewVariables).length === 0) {
+      return true; // No variables needed
+    }
+    
+    return Object.values(previewVariables).every(value => value.trim() !== '');
   };
 
   // Update preview variables
@@ -1109,6 +1134,18 @@ export default function WhatsAppChat() {
                 </div>
               )}
 
+              {/* Warning for missing variables */}
+              {Object.keys(previewVariables).length > 0 && !areAllVariablesFilled() && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <span>⚠️</span>
+                    <span className="text-sm font-medium">
+                      Please fill in all variables before sending
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex gap-3">
                 <Button
@@ -1120,8 +1157,8 @@ export default function WhatsAppChat() {
                 </Button>
                 <Button
                   onClick={confirmAndSendTemplate}
-                  disabled={isSending}
-                  className="flex-1 bg-[#075e54] hover:bg-[#064e46]"
+                  disabled={isSending || !areAllVariablesFilled()}
+                  className="flex-1 bg-[#075e54] hover:bg-[#064e46] disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {isSending ? (
                     <div className="flex items-center gap-2">
@@ -1908,10 +1945,15 @@ export default function WhatsAppChat() {
                             )}
                             {component.type === 'BODY' && (
                               <div className="text-gray-700 leading-relaxed">
-                                {component.text?.replace(/\{\{(\d+)\}\}/g, (match, num) => {
-                                  const param = component.parameters?.[parseInt(num) - 1];
-                                  return param ? `[${param}]` : match;
-                                }).substring(0, 80)}...
+                                {component.text ? (
+                                  component.text.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+                                    return `[${varName}]`;
+                                  })
+                                ) : (
+                                  <span className="italic text-gray-500">
+                                    Template content: {template.name.replace(/_/g, ' ')}
+                                  </span>
+                                )}
                               </div>
                             )}
                             {component.type === 'FOOTER' && (

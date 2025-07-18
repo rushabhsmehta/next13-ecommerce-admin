@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
+import prisma from '@/lib/prismadb';
 
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
@@ -73,14 +74,44 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching templates:', templateError);
     }
 
+    // Check database messages
+    let databaseMessages: any[] = [];
+    try {
+      databaseMessages = await (prisma as any).whatsAppMessage.findMany({
+        orderBy: { timestamp: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          messageId: true,
+          messageSid: true,
+          fromNumber: true,
+          toNumber: true,
+          message: true,
+          status: true,
+          direction: true,
+          timestamp: true,
+          contentSid: true,
+          templateName: true
+        }
+      });
+    } catch (dbError) {
+      console.error('Error fetching database messages:', dbError);
+    }
+
     return NextResponse.json({
       success: true,
       debug: {
         credentials: credentialsCheck,
         recentMessages,
+        databaseMessages,
         senderStatus,
         contentTemplates,
-        recommendations: generateRecommendations(recentMessages, credentialsCheck)
+        webhookUrls: {
+          whatsappWebhook: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/whatsapp/webhook`,
+          twilioWebhook: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/twilio/webhook`,
+          note: 'Configure these URLs in your Twilio Console for webhook notifications'
+        },
+        recommendations: generateRecommendations(recentMessages, credentialsCheck, databaseMessages)
       }
     });
 
@@ -94,7 +125,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateRecommendations(recentMessages: any[], credentials: any): string[] {
+function generateRecommendations(recentMessages: any[], credentials: any, databaseMessages: any[]): string[] {
   const recommendations = [];
 
   // Check credentials
@@ -140,6 +171,24 @@ function generateRecommendations(recentMessages: any[], credentials: any): strin
   );
   if (undeliveredMessages.length > 5) {
     recommendations.push('⚠️ Many messages are stuck in "sent" or "queued" status. This may indicate delivery issues.');
+  }
+
+  // Check database message recording
+  if (databaseMessages.length === 0) {
+    recommendations.push('❌ No messages found in database. Messages are not being recorded properly.');
+    recommendations.push('🔧 Check if send-template route is saving messages to database.');
+  } else {
+    const outgoingMessages = databaseMessages.filter(msg => msg.direction === 'outgoing');
+    const incomingMessages = databaseMessages.filter(msg => msg.direction === 'incoming');
+    
+    if (outgoingMessages.length === 0) {
+      recommendations.push('⚠️ No outgoing messages recorded in database.');
+    }
+    
+    if (incomingMessages.length === 0) {
+      recommendations.push('⚠️ No incoming messages recorded in database. Check webhook configuration.');
+      recommendations.push('🔧 Webhook URLs should be configured in Twilio Console.');
+    }
   }
 
   // General recommendations

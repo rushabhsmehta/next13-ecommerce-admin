@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prismadb from '@/lib/prismadb';
+import prisma from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        await prismadb.whatsAppMessage.updateMany({
+        await (prisma as any).whatsAppMessage.updateMany({
           where: {
-            messageId: messageStatus.MessageSid
+            messageSid: messageStatus.MessageSid // Use messageSid instead of messageId
           },
           data: updateData
         });

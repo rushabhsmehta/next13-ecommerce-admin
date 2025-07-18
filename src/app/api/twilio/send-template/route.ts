@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import twilio from 'twilio';
-import prismadb from '@/lib/prismadb';
+import prisma from '@/lib/prismadb';
 
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
@@ -105,9 +105,10 @@ export async function POST(request: NextRequest) {
 
     // Save to database
     try {
-      await prismadb.whatsAppMessage.create({
+      await (prisma as any).whatsAppMessage.create({
         data: {
           messageId: message.sid,
+          messageSid: message.sid, // Add this field
           fromNumber: process.env.TWILIO_WHATSAPP_NUMBER || '',
           toNumber: whatsappToNumber,
           message: message.body || `[Template: ${contentSid}]`,
@@ -116,10 +117,14 @@ export async function POST(request: NextRequest) {
           direction: 'outgoing',
           mediaUrl: null,
           mediaContentType: null,
+          contentSid: contentSid, // Link to template
+          contentVars: contentVariables ? JSON.parse(JSON.stringify(contentVariables)) : null,
         },
       });
+      
+      console.log('✅ Message saved to database successfully');
     } catch (dbError) {
-      console.error('Error saving message to database:', dbError);
+      console.error('❌ Error saving message to database:', dbError);
       // Continue even if database save fails
     }
 

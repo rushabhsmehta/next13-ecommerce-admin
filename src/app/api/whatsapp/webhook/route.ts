@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseIncomingMessage, validateWebhookSignature } from '@/lib/twilio-whatsapp';
-import prismadb from '@/lib/prismadb';
+import prisma from '@/lib/prismadb';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,9 +35,10 @@ export async function POST(request: NextRequest) {
 
     // Store the message in database (you'll need to create this table)
     try {
-      await prismadb.whatsAppMessage.create({
+      await (prisma as any).whatsAppMessage.create({
         data: {
           messageId: incomingMessage.messageSid,
+          messageSid: incomingMessage.messageSid, // Add this field
           fromNumber: incomingMessage.from,
           toNumber: incomingMessage.to,
           message: incomingMessage.body,
@@ -48,8 +49,10 @@ export async function POST(request: NextRequest) {
           direction: 'incoming'
         }
       });
+      
+      console.log('✅ Incoming message saved to database successfully');
     } catch (dbError) {
-      console.error('Error saving message to database:', dbError);
+      console.error('❌ Error saving incoming message to database:', dbError);
       // Continue processing even if DB save fails
     }
 

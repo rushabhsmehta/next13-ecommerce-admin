@@ -6,6 +6,8 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Debug endpoint called');
+    
     // Check if Twilio credentials are configured
     const credentialsCheck = {
       twilioAccountSid: !!process.env.TWILIO_ACCOUNT_SID,

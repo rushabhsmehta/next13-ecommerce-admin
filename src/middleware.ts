@@ -12,6 +12,11 @@ export default authMiddleware({
     // "/login",
     // Only make specific API routes public that don't need authentication
     "/api/auth/:path*",
+    // WhatsApp and Twilio API routes need to be public for webhooks
+    "/api/whatsapp(.*)",
+    "/api/twilio(.*)",
+    "/api/debug-whatsapp",
+    "/api/public-debug",
   ],
   
   async beforeAuth(req) {

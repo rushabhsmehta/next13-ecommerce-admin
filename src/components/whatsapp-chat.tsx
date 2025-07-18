@@ -793,15 +793,15 @@ export default function WhatsAppChat() {
   const generateTemplatePreview = (template: WhatsAppTemplate, variables: Record<string, string> | string[]): string => {
     // Handle Twilio Content API templates (from /api/twilio/templates)
     if (template.types && typeof template.types === 'object') {
-      // Get the text content from Twilio template types
-      const textType = template.types['twilio/text'];
-      const quickReplyType = template.types['twilio/quick-reply'];
-      
+      // Get the text content from any available Twilio template type
       let bodyText = '';
-      if (textType && textType.body) {
-        bodyText = textType.body;
-      } else if (quickReplyType && quickReplyType.body) {
-        bodyText = quickReplyType.body;
+      const typeKeys = Object.keys(template.types);
+      for (const typeKey of typeKeys) {
+        const typeData = template.types[typeKey];
+        if (typeData && typeData.body) {
+          bodyText = typeData.body;
+          break;
+        }
       }
       
       if (bodyText) {
@@ -874,14 +874,15 @@ export default function WhatsAppChat() {
     if (template.types && typeof template.types === 'object') {
       let bodyText = '';
       
-      // Get body text from different template types
-      const textType = template.types['twilio/text'];
-      const quickReplyType = template.types['twilio/quick-reply'];
-      
-      if (textType && textType.body) {
-        bodyText = textType.body;
-      } else if (quickReplyType && quickReplyType.body) {
-        bodyText = quickReplyType.body;
+      // Get body text from all available template types (similar to loadTemplates logic)
+      const typeKeys = Object.keys(template.types);
+      for (const typeKey of typeKeys) {
+        const typeData = template.types[typeKey];
+        if (typeData && typeData.body) {
+          bodyText = typeData.body;
+          console.log(`Found ${typeKey} body in preview:`, bodyText);
+          break;
+        }
       }
       
       // Extract variables from template body text
@@ -899,6 +900,7 @@ export default function WhatsAppChat() {
               initialVariables[varName] = '';
             }
           });
+          console.log('Variables extracted from body in preview:', Object.keys(initialVariables));
         }
       }
       
@@ -909,6 +911,7 @@ export default function WhatsAppChat() {
             initialVariables[varName] = '';
           }
         });
+        console.log('Variables merged from template.variables in preview:', Object.keys(initialVariables));
       }
     } else {
       // For local/sample templates (legacy format)

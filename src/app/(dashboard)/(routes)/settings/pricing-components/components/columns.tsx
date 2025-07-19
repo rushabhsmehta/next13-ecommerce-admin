@@ -10,9 +10,9 @@ export type PricingComponentColumn = {
   id: string;
   pricingAttributeId: string;
   attributeName: string;
-  attributeDescription: string;
   price: string;
   purchasePrice: string;
+  description: string;
   createdAt: string;
 };
 
@@ -81,10 +81,10 @@ export const columns: ColumnDef<PricingComponentColumn>[] = [
     }
   },
   {
-    accessorKey: "attributeDescription",
+    accessorKey: "description",
     header: "Description",
     cell: ({ row }) => {
-      const description = row.getValue("attributeDescription") as string;
+      const description = row.getValue("description") as string;
       return (
         <div className="max-w-[200px] truncate" title={description}>
           {description || "-"}

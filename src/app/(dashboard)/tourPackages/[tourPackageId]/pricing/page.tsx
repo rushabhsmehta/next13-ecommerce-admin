@@ -85,6 +85,7 @@ const pricingComponentSchema = z.object({
   purchasePrice: z.coerce.number().min(0, {
     message: "Purchase price must be at least 0",
   }).optional(),
+  description: z.string().optional(),
 });
 
 const pricingFormSchema = z.object({
@@ -263,6 +264,7 @@ export default function TourPackagePricingPage() {
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
       purchasePrice: comp.purchasePrice ? parseFloat(comp.purchasePrice) : 0,
+      description: comp.description || "",
     }));
 
     form.reset({
@@ -302,6 +304,7 @@ export default function TourPackagePricingPage() {
         pricingAttributeId: pricingAttributes[0].id,
         price: 0,
         purchasePrice: 0,
+        description: "",
       })
     } else {
       toast.error("No pricing attributes available. Please create pricing attributes first.")
@@ -596,15 +599,21 @@ export default function TourPackagePricingPage() {
                                 />
                               </TableCell>
                               <TableCell>
-                                {(() => {
-                                  const selectedAttributeId = form.watch(`pricingComponents.${index}.pricingAttributeId`);
-                                  const selectedAttribute = pricingAttributes.find(attr => attr.id === selectedAttributeId);
-                                  return (
-                                    <div className="text-sm text-gray-600 max-w-[200px] truncate" title={selectedAttribute?.description || ""}>
-                                      {selectedAttribute?.description || "-"}
-                                    </div>
-                                  );
-                                })()}
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingComponents.${index}.description`}
+                                  render={({ field }) => (
+                                    <FormItem className="space-y-0">
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Enter description..."
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
                               </TableCell>
                               <TableCell>
                                 <Button
@@ -720,8 +729,8 @@ export default function TourPackagePricingPage() {
                                 }).format(parseFloat(comp.purchasePrice)) : '-'}
                               </TableCell>
                               <TableCell>
-                                <div className="text-sm text-gray-600 max-w-[200px] truncate" title={comp.pricingAttribute?.description || ""}>
-                                  {comp.pricingAttribute?.description || "-"}
+                                <div className="text-sm text-gray-600 max-w-[200px] truncate" title={comp.description || ""}>
+                                  {comp.description || "-"}
                                 </div>
                               </TableCell>
                             </TableRow>

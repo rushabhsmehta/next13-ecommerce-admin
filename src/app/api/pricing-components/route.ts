@@ -33,7 +33,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
       const body = await req.json();
-    const { pricingAttributeId, price, purchasePrice, tourPackagePricingId } = body;
+    const { pricingAttributeId, price, purchasePrice, description, tourPackagePricingId } = body;
 
     if (!pricingAttributeId) {
       return new NextResponse("Pricing attribute is required", { status: 400 });
@@ -60,6 +60,7 @@ export async function POST(
         pricingAttributeId,
         price: price,
         purchasePrice: purchasePrice || null,
+        description: description || null,
         tourPackagePricingId: tourPackagePricingId || null,
       },
       include: {

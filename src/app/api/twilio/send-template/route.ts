@@ -1,5 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendWhatsAppMessage } from '@/lib/twilio-whatsapp';
+import { sendWhatsApp    console.log('🔧 Building message options...');
+    
+    // Clean phone number formatting - remove any existing whatsapp: prefix
+    const cleanTo = to.replace(/^whatsapp:/, '');
+    console.log('📱 Cleaned target number:', cleanTo);
+    
+    // Ensure proper E.164 format
+    const formattedTo = cleanTo.startsWith('+') ? cleanTo : `+${cleanTo}`;
+    console.log('📱 Formatted target number:', formattedTo);
+    
+    // Prepare message options based on guide's recommendations
+    const messageOptions: any = {
+      to: formattedTo  // Send clean number to helper, let helper handle whatsapp: prefix
+    };e } from '@/lib/twilio-whatsapp';
 import prisma from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {

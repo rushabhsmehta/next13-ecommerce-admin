@@ -142,16 +142,30 @@ export async function sendWhatsAppMessage(options: SendMessageOptions) {
   
   try {
     const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
-    console.log('📞 From number:', fromNumber);
+    console.log('📞 Raw from number from env:', fromNumber);
     
     if (!fromNumber) {
       console.error('❌ TWILIO_WHATSAPP_NUMBER not configured');
       throw new Error('TWILIO_WHATSAPP_NUMBER not configured');
     }
 
+    // Clean and format numbers properly
+    const cleanFromNumber = fromNumber.replace(/^whatsapp:/, '');
+    const cleanToNumber = options.to.replace(/^whatsapp:/, '');
+    
+    console.log('📞 Cleaned from number:', cleanFromNumber);
+    console.log('📞 Cleaned to number:', cleanToNumber);
+    
+    // Ensure proper whatsapp: prefix for Twilio API
+    const twilioFromNumber = cleanFromNumber.startsWith('+') ? `whatsapp:${cleanFromNumber}` : `whatsapp:+${cleanFromNumber}`;
+    const twilioToNumber = cleanToNumber.startsWith('+') ? `whatsapp:${cleanToNumber}` : `whatsapp:+${cleanToNumber}`;
+    
+    console.log('📞 Final Twilio from number:', twilioFromNumber);
+    console.log('📞 Final Twilio to number:', twilioToNumber);
+
     const messageOptions: any = {
-      from: fromNumber,
-      to: options.to
+      from: twilioFromNumber,
+      to: twilioToNumber
     };
     
     console.log('🎯 Initial message options:', messageOptions);

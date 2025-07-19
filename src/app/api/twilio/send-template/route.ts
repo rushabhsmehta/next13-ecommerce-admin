@@ -1,18 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendWhatsApp    console.log('🔧 Building message options...');
-    
-    // Clean phone number formatting - remove any existing whatsapp: prefix
-    const cleanTo = to.replace(/^whatsapp:/, '');
-    console.log('📱 Cleaned target number:', cleanTo);
-    
-    // Ensure proper E.164 format
-    const formattedTo = cleanTo.startsWith('+') ? cleanTo : `+${cleanTo}`;
-    console.log('📱 Formatted target number:', formattedTo);
-    
-    // Prepare message options based on guide's recommendations
-    const messageOptions: any = {
-      to: formattedTo  // Send clean number to helper, let helper handle whatsapp: prefix
-    };e } from '@/lib/twilio-whatsapp';
+import { sendWhatsAppMessage } from '@/lib/twilio-whatsapp';
 import prisma from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {
@@ -29,7 +16,7 @@ export async function POST(request: NextRequest) {
     
     const { to, contentSid, contentVariables, templateName, body, mediaUrl } = requestBody;
 
-    console.log('� Parsed request data:');
+    console.log('📝 Parsed request data:');
     console.log('  - to:', to, `(type: ${typeof to})`);
     console.log('  - contentSid:', contentSid, `(type: ${typeof contentSid})`);
     console.log('  - contentVariables:', contentVariables, `(type: ${typeof contentVariables})`);
@@ -90,11 +77,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('� Building message options...');
+    console.log('🔧 Building message options...');
+    
+    // Clean phone number formatting - remove any existing whatsapp: prefix
+    const cleanTo = to.replace(/^whatsapp:/, '');
+    console.log('📱 Cleaned target number:', cleanTo);
+    
+    // Ensure proper E.164 format
+    const formattedTo = cleanTo.startsWith('+') ? cleanTo : `+${cleanTo}`;
+    console.log('📱 Formatted target number:', formattedTo);
     
     // Prepare message options based on guide's recommendations
     const messageOptions: any = {
-      to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
+      to: formattedTo  // Send clean number to helper, let helper handle whatsapp: prefix
     };
     
     console.log('🎯 Initial message options:', messageOptions);

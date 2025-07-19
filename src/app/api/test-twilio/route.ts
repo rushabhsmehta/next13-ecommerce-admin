@@ -45,7 +45,7 @@ export async function GET() {
       accountStatus: account.status,
       phoneNumbersCount: phoneNumbers.length,
       configuredNumber: twilioNumber,
-      recommendations: []
+      recommendations: [] as string[]
     };
     
     if (phoneNumbers.length === 0) {

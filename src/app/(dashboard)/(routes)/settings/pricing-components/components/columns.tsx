@@ -32,18 +32,6 @@ export const columns: ColumnDef<PricingComponentColumn>[] = [
     },
   },
   {
-    accessorKey: "attributeDescription",
-    header: "Description",
-    cell: ({ row }) => {
-      const description = row.getValue("attributeDescription") as string;
-      return (
-        <div className="max-w-[200px] truncate" title={description}>
-          {description || "-"}
-        </div>
-      );
-    }
-  },
-  {
     accessorKey: "price",
     header: ({ column }) => {
       return (
@@ -90,6 +78,18 @@ export const columns: ColumnDef<PricingComponentColumn>[] = [
       }).format(amount);
 
       return <div className="font-medium">{formatted}</div>
+    }
+  },
+  {
+    accessorKey: "attributeDescription",
+    header: "Description",
+    cell: ({ row }) => {
+      const description = row.getValue("attributeDescription") as string;
+      return (
+        <div className="max-w-[200px] truncate" title={description}>
+          {description || "-"}
+        </div>
+      );
     }
   },
   {

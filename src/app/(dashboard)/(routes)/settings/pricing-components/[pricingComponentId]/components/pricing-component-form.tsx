@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Heading } from "@/components/ui/heading";
 import { AlertModal } from "@/components/modals/alert-modal";
@@ -32,7 +33,8 @@ import {
 
 const formSchema = z.object({
   pricingAttributeId: z.string().min(1, { message: "Pricing attribute is required." }),
-  price: z.coerce.number().min(0, { message: "Price must be a non-negative number." })
+  price: z.coerce.number().min(0, { message: "Sales price must be a non-negative number." }),
+  purchasePrice: z.coerce.number().min(0, { message: "Purchase price must be a non-negative number." }).optional()
 });
 
 type PricingComponentFormValues = z.infer<typeof formSchema>;
@@ -71,10 +73,12 @@ export const PricingComponentForm: React.FC<PricingComponentFormProps> = ({
 
   const defaultValues = initialData ? {
     ...initialData,
-    price: parseFloat(initialData.price)
+    price: parseFloat(initialData.price),
+    purchasePrice: initialData.purchasePrice ? parseFloat(initialData.purchasePrice) : 0
   } : {
     pricingAttributeId: '',
     price: 0,
+    purchasePrice: 0
   };
 
   const form = useForm<PricingComponentFormValues>({
@@ -164,7 +168,12 @@ export const PricingComponentForm: React.FC<PricingComponentFormProps> = ({
                     <SelectContent>
                       {pricingAttributes.map((attribute) => (
                         <SelectItem key={attribute.id} value={attribute.id}>
-                          {attribute.name}
+                          <div className="flex flex-col">
+                            <span className="font-medium">{attribute.name}</span>
+                            {attribute.description && (
+                              <span className="text-sm text-gray-500">{attribute.description}</span>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -178,9 +187,22 @@ export const PricingComponentForm: React.FC<PricingComponentFormProps> = ({
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price</FormLabel>
+                  <FormLabel>Sales Price</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" disabled={loading} {...field} />
+                    <Input type="number" step="0.01" disabled={loading} {...field} placeholder="0.00" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="purchasePrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purchase Price</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" disabled={loading} {...field} placeholder="0.00" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

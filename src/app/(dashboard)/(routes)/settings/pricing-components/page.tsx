@@ -19,7 +19,9 @@ const PricingComponentsPage = async () => {
     id: item.id,
     pricingAttributeId: item.pricingAttributeId,
     attributeName: item.pricingAttribute?.name || "Unknown",
+    attributeDescription: item.pricingAttribute?.description || "",
     price: item.price.toString(),
+    purchasePrice: item.purchasePrice?.toString() || "0",
     createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 

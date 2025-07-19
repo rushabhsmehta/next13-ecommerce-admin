@@ -10,7 +10,9 @@ export type PricingComponentColumn = {
   id: string;
   pricingAttributeId: string;
   attributeName: string;
+  attributeDescription: string;
   price: string;
+  purchasePrice: string;
   createdAt: string;
 };
 
@@ -30,6 +32,18 @@ export const columns: ColumnDef<PricingComponentColumn>[] = [
     },
   },
   {
+    accessorKey: "attributeDescription",
+    header: "Description",
+    cell: ({ row }) => {
+      const description = row.getValue("attributeDescription") as string;
+      return (
+        <div className="max-w-[200px] truncate" title={description}>
+          {description || "-"}
+        </div>
+      );
+    }
+  },
+  {
     accessorKey: "price",
     header: ({ column }) => {
       return (
@@ -37,13 +51,39 @@ export const columns: ColumnDef<PricingComponentColumn>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Price
+          Sales Price
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("price"));
+      const formatted = new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR"
+      }).format(amount);
+
+      return <div className="font-medium">{formatted}</div>
+    }
+  },
+  {
+    accessorKey: "purchasePrice",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Purchase Price
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => {
+      const amount = parseFloat(row.getValue("purchasePrice"));
+      if (isNaN(amount) || amount === 0) {
+        return <div className="text-gray-400">-</div>;
+      }
       const formatted = new Intl.NumberFormat("en-IN", {
         style: "currency",
         currency: "INR"

@@ -494,6 +494,7 @@ model TourPackage {
 model PricingAttribute {
   id                String             @id @default(uuid())
   name              String             @unique
+  description       String?            @db.Text // Description field for each pricing attribute
   sortOrder         Int                @default(0)
   isActive          Boolean            @default(true)
   isDefault         Boolean            @default(false)

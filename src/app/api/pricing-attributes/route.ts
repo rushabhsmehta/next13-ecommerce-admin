@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { userId } = auth();
     const body = await req.json();
 
-    const { name, sortOrder, isActive, isDefault } = body;
+    const { name, description, sortOrder, isActive, isDefault } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     const pricingAttribute = await prismadb.pricingAttribute.create({
       data: {
         name,
+        description: description || null,
         sortOrder: sortOrder || 0,
         isActive: isActive !== undefined ? isActive : true,
         isDefault: isDefault || false

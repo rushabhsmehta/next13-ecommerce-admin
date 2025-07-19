@@ -579,8 +579,17 @@ export default function WhatsAppChat() {
   };
 
   const sendTemplateMessage = async (template: WhatsAppTemplate, variables: string[] | Record<string, string> = []) => {
+    console.log('🚀 === TEMPLATE SEND START ===');
+    console.log('📋 Template object:', template);
+    console.log('📝 Variables received:', variables);
+    console.log('📞 Selected conversation:', selectedConversation);
+    console.log('📱 Phone number state:', { countryCode, phoneNumber });
+    
     const targetNumber = selectedConversation || getFullPhoneNumber();
+    console.log('🎯 Target number resolved:', targetNumber);
+    
     if (!targetNumber.trim()) {
+      console.error('❌ No target number available');
       toast.error('Please select a conversation or enter a phone number');
       return;
     }
@@ -589,32 +598,64 @@ export default function WhatsAppChat() {
     try {
       // Build content variables object from variables
       let contentVariables: Record<string, string> = {};
+      console.log('🔄 Processing variables...');
       
       if (Array.isArray(variables)) {
+        console.log('📊 Variables are array format:', variables);
         // Handle numbered variables (legacy support)
         variables.forEach((value, index) => {
-          contentVariables[(index + 1).toString()] = value;
+          console.log(`Variable ${index + 1}: "${value}" (${typeof value})`);
+          if (value && value.trim() !== '') {
+            contentVariables[(index + 1).toString()] = value;
+            console.log(`✅ Added variable ${index + 1}: "${value}"`);
+          } else {
+            console.log(`❌ Skipped empty variable ${index + 1}: "${value}"`);
+          }
         });
       } else {
-        // Handle named variables
-        contentVariables = variables;
+        console.log('📊 Variables are object format:', variables);
+        // Handle named variables - filter out empty values
+        Object.keys(variables).forEach(key => {
+          const value = variables[key];
+          console.log(`Variable "${key}": "${value}" (${typeof value})`);
+          if (value && value.trim() !== '') {
+            contentVariables[key] = value;
+            console.log(`✅ Added variable "${key}": "${value}"`);
+          } else {
+            console.log(`❌ Skipped empty variable "${key}": "${value}"`);
+          }
+        });
       }
+
+      console.log('📤 Final content variables to send:', contentVariables);
+      console.log('📊 Content variables count:', Object.keys(contentVariables).length);
+
+      const requestPayload = {
+        to: targetNumber,
+        contentSid: template.sid || template.id, // Use Twilio SID if available, fallback to ID
+        contentVariables: Object.keys(contentVariables).length > 0 ? contentVariables : undefined
+      };
+      
+      console.log('📡 Request payload being sent to API:', requestPayload);
+      console.log('🌐 Making API call to /api/twilio/send-template');
 
       const response = await fetch('/api/twilio/send-template', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          to: targetNumber,
-          contentSid: template.sid || template.id, // Use Twilio SID if available, fallback to ID
-          contentVariables: Object.keys(contentVariables).length > 0 ? contentVariables : undefined
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
+      console.log('📥 API Response status:', response.status);
+      console.log('📥 API Response status text:', response.statusText);
+      console.log('📥 API Response headers:', Object.fromEntries(response.headers.entries()));
+
       const data = await response.json();
+      console.log('📋 API Response data:', data);
 
       if (response.ok && data.success) {
+        console.log('✅ Template message sent successfully!');
         toast.success('Template message sent successfully!');
         
         // Add message to local state
@@ -628,18 +669,24 @@ export default function WhatsAppChat() {
           direction: 'outgoing'
         };
         
+        console.log('💾 Adding message to local state:', sentMessage);
         setMessages(prev => [...prev, sentMessage]);
         setSelectedTemplate(null);
         
         // Load conversation history to get the actual sent message
+        console.log('🔄 Reloading conversation history...');
         await loadConversationHistory();
       } else {
+        console.error('❌ Template message send failed');
+        console.error('Error details:', data);
         toast.error(data.error || 'Failed to send template message');
       }
     } catch (error) {
-      console.error('Error sending template message:', error);
+      console.error('💥 Exception occurred during template send:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       toast.error('Failed to send template message');
     } finally {
+      console.log('🏁 === TEMPLATE SEND END ===');
       setIsSending(false);
     }
   };

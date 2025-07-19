@@ -137,9 +137,15 @@ export function validateWebhookSignature(
  * Send WhatsApp message via Twilio
  */
 export async function sendWhatsAppMessage(options: SendMessageOptions) {
+  console.log('🚀 === TWILIO HELPER START ===');
+  console.log('📋 Input options:', options);
+  
   try {
     const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
+    console.log('📞 From number:', fromNumber);
+    
     if (!fromNumber) {
+      console.error('❌ TWILIO_WHATSAPP_NUMBER not configured');
       throw new Error('TWILIO_WHATSAPP_NUMBER not configured');
     }
 
@@ -147,31 +153,67 @@ export async function sendWhatsAppMessage(options: SendMessageOptions) {
       from: fromNumber,
       to: options.to
     };
+    
+    console.log('🎯 Initial message options:', messageOptions);
 
     // Handle template messages vs regular messages
-    if (options.contentSid && options.contentVars) {
+    if (options.contentSid) {
+      console.log('📄 Processing template message');
+      console.log('  - contentSid:', options.contentSid);
+      console.log('  - contentVars:', options.contentVars);
+      
       messageOptions.contentSid = options.contentSid;
-      messageOptions.contentVariables = JSON.stringify(options.contentVars);
+      // Only add contentVariables if they exist and are not empty
+      if (options.contentVars && Object.keys(options.contentVars).length > 0) {
+        const jsonString = JSON.stringify(options.contentVars);
+        messageOptions.contentVariables = jsonString;
+        console.log('✅ Added contentVariables JSON:', jsonString);
+      } else {
+        console.log('⚠️ No contentVars provided or empty object');
+      }
     } else if (options.templateSid) {
+      console.log('📄 Processing legacy template with templateSid');
       messageOptions.messagingServiceSid = options.templateSid;
       if (options.body) {
         messageOptions.body = options.body;
+        console.log('✅ Added body:', options.body);
       }
     } else {
+      console.log('📝 Processing regular message');
       // Regular message
       if (options.body) {
         messageOptions.body = options.body;
+        console.log('✅ Added body:', options.body);
       }
       if (options.mediaUrl) {
         messageOptions.mediaUrl = [options.mediaUrl];
+        console.log('✅ Added media URL:', options.mediaUrl);
       }
     }
 
-    console.log('Sending WhatsApp message with options:', messageOptions);
+    console.log('📤 Final Twilio message options:', {
+      from: messageOptions.from,
+      to: messageOptions.to,
+      hasContentSid: !!messageOptions.contentSid,
+      contentVariables: messageOptions.contentVariables ? 'Present' : 'None',
+      hasBody: !!messageOptions.body,
+      hasMediaUrl: !!messageOptions.mediaUrl,
+      hasMessagingServiceSid: !!messageOptions.messagingServiceSid
+    });
     
+    console.log('🌐 Making Twilio API call...');
     const message = await client.messages.create(messageOptions);
     
-    console.log('✅ WhatsApp message sent successfully:', message.sid);
+    console.log('✅ Twilio API response received:');
+    console.log('  - SID:', message.sid);
+    console.log('  - Status:', message.status);
+    console.log('  - To:', message.to);
+    console.log('  - From:', message.from);
+    console.log('  - Body:', message.body);
+    console.log('  - Date Created:', message.dateCreated);
+    console.log('  - Price:', message.price);
+    console.log('  - Price Unit:', message.priceUnit);
+    console.log('🏁 === TWILIO HELPER SUCCESS ===');
     return {
       success: true,
       messageId: message.sid,
@@ -185,7 +227,41 @@ export async function sendWhatsAppMessage(options: SendMessageOptions) {
       priceUnit: message.priceUnit
     };
   } catch (error) {
-    console.error('❌ Error sending WhatsApp message:', error);
+    console.error('💥 === TWILIO HELPER ERROR ===');
+    console.error('Error type:', typeof error);
+    console.error('Error constructor:', error?.constructor?.name);
+    console.error('Full error object:', error);
+    
+    // Enhanced error logging for Twilio errors
+    if (error && typeof error === 'object' && 'status' in error) {
+      console.error('🔥 Twilio API Error Details:');
+      console.error('  - Status:', (error as any).status);
+      console.error('  - Code:', (error as any).code);
+      console.error('  - Message:', (error as any).message);
+      console.error('  - More Info:', (error as any).moreInfo);
+      console.error('  - Details:', (error as any).details);
+    }
+    
+    if (error instanceof Error) {
+      console.error('📋 Standard Error Details:');
+      console.error('  - Message:', error.message);
+      console.error('  - Stack:', error.stack);
+    }
+    
+    // Check for specific Twilio error patterns
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('21211')) {
+      console.error('🚫 Twilio Error 21211: Invalid To number detected');
+    } else if (errorMessage.includes('21408')) {
+      console.error('🚫 Twilio Error 21408: Permission denied for sending to number');
+    } else if (errorMessage.includes('21606')) {
+      console.error('🚫 Twilio Error 21606: From number not authorized for WhatsApp');
+    } else if (errorMessage.includes('content')) {
+      console.error('📄 Content-related error detected');
+    }
+    
+    console.error('🏁 === TWILIO HELPER ERROR END ===');
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

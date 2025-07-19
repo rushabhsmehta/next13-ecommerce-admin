@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import twilio from 'twilio';
+import { sendWhatsAppMessage } from '@/lib/twilio-whatsapp';
 import prisma from '@/lib/prismadb';
-
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 export async function POST(request: NextRequest) {
   try {
-    const { to, contentSid, contentVariables } = await request.json();
+    const { to, contentSid, contentVariables, templateName, body, mediaUrl } = await request.json();
 
-    if (!to || !contentSid) {
+    if (!to) {
       return NextResponse.json(
-        { error: 'Recipient phone number and content SID are required' },
+        { error: 'Recipient phone number is required' },
         { status: 400 }
       );
     }
@@ -46,112 +44,102 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
- 
-    // Prepare message data
-    const whatsappFromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
-    const whatsappToNumber = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-    
-    console.log('Environment Debug:', {
-      originalTo: to,
-      envWhatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER,
-      whatsappFromNumber,
-      whatsappToNumber
+
+    console.log('📤 Sending WhatsApp message:', { 
+      to, 
+      hasContentSid: !!contentSid, 
+      hasBody: !!body,
+      hasMedia: !!mediaUrl,
+      templateName 
     });
-    
-    const messageData: any = {
-      contentSid: contentSid,
-      from: whatsappFromNumber, // Already includes 'whatsapp:' prefix from env
-      to: whatsappToNumber,
+
+    // Prepare message options based on guide's recommendations
+    const messageOptions: any = {
+      to: to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
     };
 
-    // Add content variables if provided
-    if (contentVariables && Object.keys(contentVariables).length > 0) {
-      messageData.contentVariables = JSON.stringify(contentVariables);
+    // Handle different message types as per guide
+    if (contentSid) {
+      // Template message with Content SID (recommended approach)
+      messageOptions.contentSid = contentSid;
+      if (contentVariables) {
+        messageOptions.contentVars = contentVariables;
+      }
+    } else if (body) {
+      // Regular text message (must be within 24-hour window)
+      messageOptions.body = body;
+      if (mediaUrl) {
+        messageOptions.mediaUrl = mediaUrl;
+      }
+    } else {
+      return NextResponse.json(
+        { error: 'Either contentSid or body must be provided' },
+        { status: 400 }
+      );
     }
 
-    console.log('Sending Twilio Content Template:', JSON.stringify(messageData, null, 2));
+    // Send the message using our helper function
+    const sentMessage = await sendWhatsAppMessage(messageOptions);
 
-    // Send message using Twilio
-    const message = await client.messages.create(messageData);
-
-    console.log('Twilio Response:', {
-      sid: message.sid,
-      status: message.status,
-      errorCode: message.errorCode,
-      errorMessage: message.errorMessage,
-      to: message.to,
-      from: message.from,
-      price: message.price,
-      priceUnit: message.priceUnit,
-      dateCreated: message.dateCreated
-    });
-
-    // Check if message failed
-    if (message.status === 'failed' || message.errorCode) {
-      console.error('Twilio message failed:', {
-        errorCode: message.errorCode,
-        errorMessage: message.errorMessage,
-        status: message.status
-      });
-      
+    // Check if message sending failed
+    if (!sentMessage.success) {
       return NextResponse.json({
         success: false,
-        error: 'Message failed to send',
-        details: message.errorMessage || 'Unknown Twilio error',
-        twilioErrorCode: message.errorCode,
-        status: message.status
-      }, { status: 400 });
+        error: 'Failed to send WhatsApp message',
+        details: sentMessage.error
+      }, { status: 500 });
     }
 
-    // Save to database
+    // Save outgoing message to database following guide's recommendations
     try {
       await (prisma as any).whatsAppMessage.create({
         data: {
-          messageId: message.sid,
-          messageSid: message.sid, // Add this field
+          messageId: sentMessage.messageId,
+          messageSid: sentMessage.messageId,
           fromNumber: process.env.TWILIO_WHATSAPP_NUMBER || '',
-          toNumber: whatsappToNumber,
-          message: message.body || `[Template: ${contentSid}]`,
-          status: message.status,
+          toNumber: messageOptions.to,
+          message: (sentMessage as any).body || `[Template: ${templateName || contentSid}]`,
+          status: sentMessage.status,
           timestamp: new Date(),
           direction: 'outgoing',
-          mediaUrl: null,
+          mediaUrl: mediaUrl || null,
           mediaContentType: null,
-          contentSid: contentSid, // Link to template
-          contentVars: contentVariables ? JSON.parse(JSON.stringify(contentVariables)) : null,
+          contentSid: contentSid,
+          templateName: templateName,
+          contentVars: contentVariables || null,
         },
       });
       
-      console.log('✅ Message saved to database successfully');
+      console.log('✅ Outgoing message saved to database');
     } catch (dbError) {
       console.error('❌ Error saving message to database:', dbError);
-      // Continue even if database save fails
+      // Don't fail the API call if database save fails
     }
 
+    // Return success response
     return NextResponse.json({
       success: true,
-      message: 'Template message sent successfully',
-      twilioResponse: {
-        sid: message.sid,
-        status: message.status,
-        to: message.to,
-        from: message.from,
-        body: message.body,
-        dateCreated: message.dateCreated,
-        price: message.price,
-        priceUnit: message.priceUnit
+      message: 'WhatsApp message sent successfully',
+      data: {
+        sid: sentMessage.messageId,
+        status: sentMessage.status,
+        to: (sentMessage as any).to,
+        from: (sentMessage as any).from,
+        dateCreated: (sentMessage as any).dateCreated,
+        price: (sentMessage as any).price,
+        priceUnit: (sentMessage as any).priceUnit,
+        contentSid: contentSid,
+        templateName: templateName
       }
-    }, { status: 200 });
+    });
 
-  } catch (error: any) {
-    console.error('Error sending Twilio template message:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to send template message',
-        details: error?.message || 'Unknown error',
-        twilioError: error?.code || null
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('❌ Error sending WhatsApp message:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to send WhatsApp message',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

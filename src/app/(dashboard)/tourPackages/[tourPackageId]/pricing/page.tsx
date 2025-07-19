@@ -492,20 +492,6 @@ export default function TourPackagePricingPage() {
                     )}
                   />
                 </div>
-                  {/* Description */}
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 
                 {/* Pricing Components Section */}
                 <div className="space-y-4">
@@ -533,6 +519,7 @@ export default function TourPackagePricingPage() {
                             <TableHead>Pricing Attribute</TableHead>
                             <TableHead>Sales Price</TableHead>
                             <TableHead>Purchase Price</TableHead>
+                            <TableHead>Description</TableHead>
                             <TableHead className="w-[100px]">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -607,6 +594,17 @@ export default function TourPackagePricingPage() {
                                     </FormItem>
                                   )}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const selectedAttributeId = form.watch(`pricingComponents.${index}.pricingAttributeId`);
+                                  const selectedAttribute = pricingAttributes.find(attr => attr.id === selectedAttributeId);
+                                  return (
+                                    <div className="text-sm text-gray-600 max-w-[200px] truncate" title={selectedAttribute?.description || ""}>
+                                      {selectedAttribute?.description || "-"}
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell>
                                 <Button
@@ -700,6 +698,7 @@ export default function TourPackagePricingPage() {
                             <TableHead>Component</TableHead>
                             <TableHead>Sales Price</TableHead>
                             <TableHead>Purchase Price</TableHead>
+                            <TableHead>Description</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -719,6 +718,11 @@ export default function TourPackagePricingPage() {
                                   style: 'currency',
                                   currency: 'INR' 
                                 }).format(parseFloat(comp.purchasePrice)) : '-'}
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm text-gray-600 max-w-[200px] truncate" title={comp.pricingAttribute?.description || ""}>
+                                  {comp.pricingAttribute?.description || "-"}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}

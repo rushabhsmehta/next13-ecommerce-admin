@@ -163,6 +163,12 @@ export async function sendWhatsAppMessage(options: SendMessageOptions) {
       console.log('  - contentVars:', options.contentVars);
       
       messageOptions.contentSid = options.contentSid;
+      
+      // CRITICAL: Twilio Content API requires a fallback body text even when using contentSid
+      // This is required to prevent "A text message body or media urls must be specified" error
+      messageOptions.body = options.body || 'Template message'; // Fallback text
+      console.log('✅ Added required fallback body for template:', messageOptions.body);
+      
       // Only add contentVariables if they exist and are not empty
       if (options.contentVars && Object.keys(options.contentVars).length > 0) {
         const jsonString = JSON.stringify(options.contentVars);

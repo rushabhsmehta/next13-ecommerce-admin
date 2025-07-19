@@ -92,6 +92,11 @@ export async function POST(request: NextRequest) {
       // Template message with Content SID (recommended approach)
       messageOptions.contentSid = contentSid;
       
+      // CRITICAL: Add fallback body for Twilio Content API requirement
+      // Even when using contentSid, Twilio requires a fallback body text
+      messageOptions.body = body || templateName || 'Template message';
+      console.log('✅ Added required fallback body:', messageOptions.body);
+      
       // Clean up content variables - remove empty string values
       if (contentVariables && typeof contentVariables === 'object') {
         console.log('🧹 Cleaning content variables...');

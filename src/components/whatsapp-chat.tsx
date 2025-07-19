@@ -78,6 +78,30 @@ interface WhatsAppTemplate {
   dateUpdated?: string; // Twilio update date
 }
 
+// Helper function to extract template body text from different template formats
+function extractTemplateBody(template: WhatsAppTemplate): string | null {
+  // For Twilio Content API templates
+  if (template.types && typeof template.types === 'object') {
+    const typeKeys = Object.keys(template.types);
+    for (const typeKey of typeKeys) {
+      const typeData = template.types[typeKey];
+      if (typeData && typeData.body) {
+        return typeData.body;
+      }
+    }
+  }
+  
+  // For legacy template format
+  if (template.components && template.components.length > 0) {
+    const bodyComponent = template.components.find(comp => comp.type === 'BODY');
+    if (bodyComponent && bodyComponent.text) {
+      return bodyComponent.text;
+    }
+  }
+  
+  return null;
+}
+
 export default function WhatsAppChat() {
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [conversations, setConversations] = useState<string[]>([]);
@@ -633,7 +657,9 @@ export default function WhatsAppChat() {
       const requestPayload = {
         to: targetNumber,
         contentSid: template.sid || template.id, // Use Twilio SID if available, fallback to ID
-        contentVariables: Object.keys(contentVariables).length > 0 ? contentVariables : undefined
+        contentVariables: Object.keys(contentVariables).length > 0 ? contentVariables : undefined,
+        templateName: template.name, // Include template name for reference
+        body: extractTemplateBody(template) || `Template: ${template.name}` // CRITICAL: Fallback body required by Twilio
       };
       
       console.log('📡 Request payload being sent to API:', requestPayload);

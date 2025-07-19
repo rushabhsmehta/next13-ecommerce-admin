@@ -12,7 +12,7 @@ const TourPackageQueryDisplayPage = async () => {
       location: true,
     },
     orderBy: {
-      updatedAt: 'desc'
+      createdAt: 'asc'
     }
   });
 

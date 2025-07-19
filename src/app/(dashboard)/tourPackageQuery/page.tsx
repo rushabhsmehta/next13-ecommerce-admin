@@ -33,7 +33,7 @@ const tourPackageQueryPage = async ({
       //   }
     },
     orderBy: {
-      updatedAt: 'desc'
+      createdAt: 'asc'
     }
   });
 

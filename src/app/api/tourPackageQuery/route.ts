@@ -362,7 +362,7 @@ export async function GET(
                 },
             },
             orderBy: {
-                createdAt: 'desc',
+                createdAt: 'asc',
             }
         });
 

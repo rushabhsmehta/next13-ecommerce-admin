@@ -11,11 +11,21 @@ const tourPackagesPage = async ({
 
 }) => {
   const tourPackages = await prismadb.tourPackage.findMany({
-
-    include: {
-      location: true,
-      //  hotel : true,
-
+    select: {
+      id: true,
+      tourPackageName: true,
+      tourPackageType: true,
+      tourCategory: true,
+      isFeatured: true,
+      isArchived: true,
+      price: true,
+      createdAt: true,
+      updatedAt: true,
+      location: {
+        select: {
+          label: true
+        }
+      }
     },
     orderBy: {
       updatedAt: 'desc'
@@ -29,6 +39,7 @@ const tourPackagesPage = async ({
     id: item.id,
     tourPackageName: item.tourPackageName ?? '',
     tourPackageType: item.tourPackageType ?? '',
+    tourCategory: item.tourCategory ?? 'Domestic',
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     price: item.price ?? '',

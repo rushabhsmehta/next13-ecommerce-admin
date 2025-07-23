@@ -84,7 +84,7 @@ import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Upda
 import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
 import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
-import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION } from "@/components/tour-package-query/defaultValues";
+import { INCLUSIONS_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, USEFUL_TIPS_DEFAULT, CANCELLATION_POLICY_DEFAULT, AIRLINE_CANCELLATION_POLICY_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, DISCLAIMER_DEFAULT, DEFAULT_PRICING_SECTION, TOUR_CATEGORY_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 // Define the pricing item schema
 const pricingItemSchema = z.object({
@@ -158,6 +158,7 @@ const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
+  tourCategory: z.string().default("Domestic").optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -386,6 +387,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
   const transformInitialData = (data: any) => {
     return {
       ...data,
+      tourCategory: data.tourCategory ?? 'Domestic', // Add tour category with default
       itineraries: data.itineraries.map((itinerary: any) => ({
         ...itinerary,
         roomAllocations: itinerary.roomAllocations?.map((allocation: any) => ({
@@ -432,6 +434,7 @@ export const TourPackageQueryCreateCopyForm: React.FC<TourPackageQueryCreateCopy
       tourPackageQueryName: '',
       associatePartnerId: '',
       tourPackageQueryType: '',
+      tourCategory: 'Domestic',
       customerName: '',
       customerNumber: '',
       numDaysNight: '',

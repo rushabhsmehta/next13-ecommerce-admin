@@ -139,3 +139,5 @@ export const TOUR_PACKAGE_QUERY_TYPE_DEFAULT =
     "Premium",
     "Premium Plus",
   ]
+
+export const TOUR_CATEGORY_DEFAULT = ["Domestic", "International"];

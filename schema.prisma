@@ -186,6 +186,7 @@ model TourPackageQuery {
   remarks                          String?           @db.Text
   tour_highlights                  String?           @db.Text
   tourPackageQueryType             String?
+  tourCategory                     String?           @default("Domestic") // "Domestic" or "International"
   disclaimer                       String?           @db.Text
   inquiryId                        String?
   associatePartnerId               String?
@@ -471,6 +472,7 @@ model TourPackage {
   tour_highlights                  String?              @db.Text
   slug                             String?
   tourPackageType                  String?
+  tourCategory                     String?              @default("Domestic") // "Domestic" or "International"
   pricingSection                   Json?
   airlineCancellationPolicy        Json?
   cancellationPolicy               Json?

@@ -33,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_PACKAGE_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT, PRICE_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -96,6 +96,7 @@ const pricingItemSchema = z.object({
 const formSchema = z.object({
   tourPackageName: z.string().optional(),
   tourPackageType: z.string().optional(),
+  tourCategory: z.string().default("Domestic").optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -289,6 +290,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       assignedToEmail: data.assignedToEmail ?? '',
       customerNumber: data.customerNumber ?? '',
       tour_highlights: data.tour_highlights ?? TOUR_HIGHLIGHTS_DEFAULT,
+      tourCategory: data.tourCategory ?? 'Domestic', // Add default for tour category
       slug: data.slug ?? '',
       flightDetails: data.flightDetails.map((flightDetail: any) => ({
         date: flightDetail.date ?? '',
@@ -337,6 +339,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
     tourPackageName: '',
     tourPackageType: '',
+    tourCategory: 'Domestic',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
@@ -761,6 +764,34 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="tourCategory"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tour Category</FormLabel>
+                          <FormControl>
+                            <Select
+                              disabled={loading || readOnly}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                {field.value || 'Select Tour Category'}
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TOUR_CATEGORY_DEFAULT.map((value) => (
+                                  <SelectItem key={value} value={value}>
+                                    {value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <FormField
                       control={form.control}
@@ -769,7 +800,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                         <FormItem>
                           <FormLabel>Number of Days/Night</FormLabel>
                           <FormControl>
-                            <Input disabled={loading} placeholder="Number of Days/Night" {...field} />
+                            <Input disabled={loading || readOnly} placeholder="Number of Days/Night" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

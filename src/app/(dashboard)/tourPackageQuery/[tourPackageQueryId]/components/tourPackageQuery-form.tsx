@@ -169,6 +169,7 @@ const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1, "Tour Package Query Name is required"),
   tourPackageQueryType: z.string().optional(),
+  tourCategory: z.string().default("Domestic").optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -445,6 +446,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageQueryName: '',
       associatePartnerId: '',
       tourPackageQueryType: '',
+      tourCategory: 'Domestic',
       customerName: '',
       customerNumber: '',
       numDaysNight: '',
@@ -559,6 +561,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
+      form.setValue('tourCategory', selectedTourPackage.tourCategory || 'Domestic');
       form.setValue('locationId', selectedTourPackage.locationId);
       form.setValue('numDaysNight', selectedTourPackage.numDaysNight || '');
       form.setValue('transport', selectedTourPackage.transport || '');
@@ -619,6 +622,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       // Copy values from the selected template
       form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
+      form.setValue('tourCategory', selectedTourPackageQuery.tourCategory || 'Domestic');
       form.setValue('locationId', selectedTourPackageQuery.locationId);
       form.setValue('numDaysNight', selectedTourPackageQuery.numDaysNight || '');
       form.setValue('transport', selectedTourPackageQuery.transport || '');

@@ -36,7 +36,7 @@ import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
-import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues";
+import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT } from "./defaultValues";
 
 interface BasicInfoProps {
   control: Control<TourPackageQueryFormValues>;
@@ -387,6 +387,41 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {TOUR_PACKAGE_QUERY_TYPE_DEFAULT.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="tourCategory"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className={isAssociatePartner ? "text-muted-foreground" : ""}>
+                  Tour Category
+                  {isAssociatePartner && <span className="text-xs ml-2">(Read-only)</span>}
+                </FormLabel>
+                <FormControl>
+                  <Select
+                    disabled={getFieldDisabled(false)}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger className={cn(
+                      "min-h-[44px]",
+                      getFieldDisabled(false) && "opacity-50"
+                    )}>
+                      <SelectValue placeholder="Select Tour Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TOUR_CATEGORY_DEFAULT.map((value) => (
                         <SelectItem key={value} value={value}>
                           {value}
                         </SelectItem>

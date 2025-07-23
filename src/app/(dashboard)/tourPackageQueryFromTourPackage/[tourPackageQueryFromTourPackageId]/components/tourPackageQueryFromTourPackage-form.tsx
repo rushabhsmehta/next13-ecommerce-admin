@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ImageUpload from "@/components/ui/image-upload"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, DISCLAIMER_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, PRICE_DEFAULT, TOTAL_PRICE_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT, USEFUL_TIPS_DEFAULT, DEFAULT_PRICING_SECTION } from "./defaultValues"
 import JoditEditor from "jodit-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -106,6 +106,7 @@ const formSchema = z.object({
   tourPackageQueryNumber: z.string().optional(),
   tourPackageQueryName: z.string().min(1),
   tourPackageQueryType: z.string().optional(),
+  tourCategory: z.string().default("Domestic").optional(),
   customerName: z.string().optional(),
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
@@ -275,6 +276,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     return {
       ...data,
       tourPackageQueryType: data.tourPackageType ?? '', // Fallback to empty string if null
+      tourCategory: data.tourCategory ?? 'Domestic', // Add tour category with default
       assignedTo: data.assignedTo ?? '', // Fallback to empty string if null
       assignedToMobileNumber: data.assignedToMobileNumber ?? '',
       assignedToEmail: data.assignedToEmail ?? '',
@@ -345,6 +347,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     tourPackageQueryNumber: getCurrentDateTimeString(), // Set the current date and time
     tourPackageQueryName: '',
     tourPackageQueryType: '',
+    tourCategory: 'Domestic',
     customerName: '',
     customerNumber: '',
     numDaysNight: '',
@@ -766,6 +769,38 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="tourCategory"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tour Category</FormLabel>
+                          <FormControl>
+                            <Select
+                              disabled={loading}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                {field.value || 'Select Tour Category'}
+                              </SelectTrigger>
+                              <SelectContent>
+                                {TOUR_CATEGORY_DEFAULT.map((value) => (
+                                  <SelectItem key={value} value={value}>
+                                    {value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+
+                  </div>
+                  <div className="grid grid-cols-3 gap-8">
 
                     <FormField
                       control={form.control}
@@ -780,10 +815,6 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         </FormItem>
                       )}
                     />
-
-
-                  </div>
-                  <div className="grid grid-cols-3 gap-8">
 
                     <FormField
                       control={form.control}

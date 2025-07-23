@@ -36,7 +36,7 @@ import ImageUpload from "@/components/ui/image-upload";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
-import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT } from "./defaultValues";
+import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT } from "./defaultValues";
 
 interface BasicInfoProps {
   control: Control<TourPackageQueryFormValues>;
@@ -396,6 +396,35 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {TOUR_PACKAGE_QUERY_TYPE_DEFAULT.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
+            name="tourCategory"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tour Category</FormLabel>
+                <FormControl>
+                  <Select
+                    disabled={loading}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger>
+                      {field.value || 'Select Tour Category'}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TOUR_CATEGORY_DEFAULT.map((value) => (
                         <SelectItem key={value} value={value}>
                           {value}
                         </SelectItem>

@@ -7,6 +7,7 @@ import { TourPackageQuery } from '@prisma/client';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import Link from "next/link";
+import { formatLocalDate } from "@/lib/timezone-utils";
 
 import {
   DropdownMenu,
@@ -119,6 +120,9 @@ export const QueryLink = ({ query, url }: QueryLinkProps) => {
             {queryName}
           </span>
           {queryType && <span className="text-xs text-gray-600">{queryType}</span>}
+          <span className="text-xs text-blue-500 mt-0.5">
+            Updated: {formatLocalDate(query.updatedAt, 'dd MMM yyyy HH:mm')}
+          </span>
         </Link>
         {isConfirmed && (
           <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">

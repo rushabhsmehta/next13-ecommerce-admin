@@ -196,6 +196,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       associatePartner: item.associatePartner?.name || 'Direct',
       status: item.status,
       journeyDate: item.journeyDate ? formatLocalDate(item.journeyDate, 'dd MMM yyyy') : 'No date',
+      createdAt: formatLocalDate(item.createdAt, 'dd MMM yyyy HH:mm'),
       assignedToStaffId: item.assignedToStaffId || null,
       assignedStaffName: item.assignedStaff?.name || null,
       assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,

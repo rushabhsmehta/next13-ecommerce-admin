@@ -19,17 +19,22 @@ const tourPackagesPage = async ({
       isFeatured: true,
       isArchived: true,
       price: true,
+      numDaysNight: true,
       createdAt: true,
       updatedAt: true,
       location: {
         select: {
+          id: true,
           label: true
         }
       }
     },
-    orderBy: {
-      updatedAt: 'desc'
-    }
+    orderBy: [
+      { location: { label: 'asc' } },
+      { updatedAt: 'desc' },
+      { tourCategory: 'asc' },
+      { numDaysNight: 'asc' }
+    ]
   });
 
   // Check if current user is an associate (for read-only mode)
@@ -43,10 +48,44 @@ const tourPackagesPage = async ({
     isFeatured: item.isFeatured,
     isArchived: item.isArchived,
     price: item.price ?? '',
-    location: item.location.label,    //  hotel: item.hotel.name,
+    location: item.location.label,
+    duration: item.numDaysNight ?? 'Not specified',
     createdAt: formatLocalDate(item.createdAt, 'MMMM d, yyyy'),
     updatedAt: formatLocalDate(item.updatedAt, 'MMMM d, yyyy'),
   }));
+
+  // Group tour packages by Location → Category → Duration
+  const groupedTourPackages = tourPackages.reduce((acc, tourPackage) => {
+    const location = tourPackage.location.label;
+    const category = tourPackage.tourCategory || 'Domestic';
+    const duration = tourPackage.numDaysNight || 'Not specified';
+
+    if (!acc[location]) {
+      acc[location] = {};
+    }
+    if (!acc[location][category]) {
+      acc[location][category] = {};
+    }
+    if (!acc[location][category][duration]) {
+      acc[location][category][duration] = [];
+    }
+
+    acc[location][category][duration].push({
+      id: tourPackage.id,
+      tourPackageName: tourPackage.tourPackageName ?? '',
+      tourPackageType: tourPackage.tourPackageType ?? '',
+      tourCategory: tourPackage.tourCategory ?? 'Domestic',
+      isFeatured: tourPackage.isFeatured,
+      isArchived: tourPackage.isArchived,
+      price: tourPackage.price ?? '',
+      location: tourPackage.location.label,
+      duration: tourPackage.numDaysNight ?? 'Not specified',
+      createdAt: formatLocalDate(tourPackage.createdAt, 'MMMM d, yyyy'),
+      updatedAt: formatLocalDate(tourPackage.updatedAt, 'MMMM d, yyyy'),
+    });
+
+    return acc;
+  }, {} as Record<string, Record<string, Record<string, TourPackageColumn[]>>>);
 
   return (
     <>
@@ -54,7 +93,11 @@ const tourPackagesPage = async ({
       
       <div className="flex-col">
         <div className="flex-1 space-y-4 p-8 pt-6">
-          <TourPackagesClient data={formattedtourPackages} readOnly={isAssociate} />
+          <TourPackagesClient 
+            data={formattedtourPackages} 
+            groupedData={groupedTourPackages}
+            readOnly={isAssociate} 
+          />
         </div>
       </div>
       

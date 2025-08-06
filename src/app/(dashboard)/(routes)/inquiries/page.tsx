@@ -172,7 +172,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       }
     },
     orderBy: {
-      createdAt: 'desc'
+      updatedAt: 'desc'
     }
   });
   const formattedInquiries: InquiryColumn[] = inquiries.map((item) => {

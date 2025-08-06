@@ -364,7 +364,7 @@ export async function GET(
                 },
             },
             orderBy: {
-                createdAt: 'asc',
+                updatedAt: 'desc',
             }
         });
 

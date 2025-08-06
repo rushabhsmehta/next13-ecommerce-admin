@@ -55,7 +55,7 @@ export async function GET(req: Request) {
         }
       },
       orderBy: {
-        assignedStaffAt: 'desc'
+        updatedAt: 'desc'
       }
     });
 

@@ -15,6 +15,7 @@ const statusOptions = [
   { value: "HOT_QUERY", label: "Hot Query" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "CANCELLED", label: "Cancelled" },
+  { value: "QUERY_SENT", label: "Query Sent" },
 ];
 
 export const StatusFilter = () => {
@@ -44,6 +45,8 @@ export const StatusFilter = () => {
         return "bg-orange-50 text-orange-700 border border-orange-200";
       case "PENDING":
         return "bg-yellow-50 text-yellow-700 border border-yellow-200";
+      case "QUERY_SENT":
+        return "bg-blue-50 text-blue-700 border border-blue-200";
       default:
         return "bg-gray-100 text-gray-800 border border-gray-200";
     }

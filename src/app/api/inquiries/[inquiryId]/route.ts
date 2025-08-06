@@ -4,7 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { dateToUtc } from "@/lib/timezone-utils";
 import { createAuditLog } from "@/lib/utils/audit-logger";
 
-const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY"];
+const validStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"];
 
 export async function GET(
   req: Request,

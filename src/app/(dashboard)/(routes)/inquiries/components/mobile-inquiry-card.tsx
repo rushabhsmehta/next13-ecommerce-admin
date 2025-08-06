@@ -21,6 +21,7 @@ const statusOptions = [
   { value: "HOT_QUERY", label: "Hot Query" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "CANCELLED", label: "Cancelled" },
+  { value: "QUERY_SENT", label: "Query Sent" },
 ];
 
 const getStatusColor = (status: string) => {
@@ -31,6 +32,8 @@ const getStatusColor = (status: string) => {
       return "bg-red-100 text-red-800 hover:bg-red-200";
     case "HOT_QUERY":
       return "bg-orange-100 text-orange-800 hover:bg-orange-200";
+    case "QUERY_SENT":
+      return "bg-blue-100 text-blue-800 hover:bg-blue-200";
     default:
       return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
   }
@@ -174,7 +177,8 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                 <Badge className={`${getStatusColor(inquiry.status)}`}>
                   {inquiry.status === "PENDING" ? "Pending" : 
                    inquiry.status === "HOT_QUERY" ? "Hot Query" :
-                   inquiry.status === "CONFIRMED" ? "Confirmed" : "Cancelled"}
+                   inquiry.status === "CONFIRMED" ? "Confirmed" :
+                   inquiry.status === "QUERY_SENT" ? "Query Sent" : "Cancelled"}
                 </Badge>
               </div>
               
@@ -326,6 +330,8 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                       className={
                         status.value === "CONFIRMED" ? "text-green-600" :
                         status.value === "CANCELLED" ? "text-red-600" :
+                        status.value === "HOT_QUERY" ? "text-orange-600" :
+                        status.value === "QUERY_SENT" ? "text-blue-600" :
                         "text-yellow-600"
                       }
                     >

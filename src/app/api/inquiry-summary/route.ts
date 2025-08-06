@@ -91,6 +91,9 @@ export async function GET(req: Request) {
         case 'CANCELLED':
           associate.cancelledInquiries += 1;
           break;
+        case 'QUERY_SENT':
+          associate.contactedInquiries += 1;
+          break;
         case 'contacted': // Keeping this lowercase since it might still exist in legacy data
           associate.contactedInquiries += 1;
           break;

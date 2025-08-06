@@ -70,7 +70,7 @@ const transportDetailSchema = z.object({
 });
 
 const formSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY"]),
+  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "HOT_QUERY", "QUERY_SENT"]),
   customerName: z.string().min(1),
   customerMobileNumber: z.string().min(1),
   locationId: z.string().min(1, "Please select a location"),
@@ -154,7 +154,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
   const action = initialData ? "Save changes" : "Create";  const form = useForm<InquiryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
-      status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY",
+      status: initialData.status as "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT",
       customerName: initialData.customerName,
       customerMobileNumber: initialData.customerMobileNumber,
       locationId: initialData.locationId,
@@ -780,7 +780,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY") => field.onChange(value)} value={field.value} defaultValue={field.value}>
+                  <FormLabel>Status</FormLabel>                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT") => field.onChange(value)} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue defaultValue={field.value} placeholder="Select status" />
@@ -791,6 +791,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                       <SelectItem value="HOT_QUERY">Hot Query</SelectItem>
                       <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                       <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                      <SelectItem value="QUERY_SENT">Query Sent</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

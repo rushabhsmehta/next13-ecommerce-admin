@@ -499,7 +499,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {/* Hotel, Room Allocation and Transport Details Day-wise */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.length > 0 && (
         <Card className="mb-6 break-inside-avoid bg-white shadow-sm rounded-lg overflow-hidden">
-          <div className="bg-gray-50 text-gray-800 p-6 border-b">
+          <div className="bg-gray-50 text-gray-800 p-4 border-b">
             <CardTitle className="text-4xl font-semibold text-center flex items-center justify-center gap-3">
               <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
@@ -509,30 +509,36 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               </span>
             </CardTitle>
           </div>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 bg-white">
+                <colgroup>
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '26%' }} />
+                  <col style={{ width: '40%' }} />
+                  <col style={{ width: '20%' }} />
+                </colgroup>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-5 text-left text-base md:text-lg font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">📅</span>
                         <span>Day</span>
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-5 text-left text-base md:text-lg font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">🏨</span>
                         <span>Hotel Details</span>
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-5 text-left text-base md:text-lg font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">🛏️</span>
                         <span>Room Allocation</span>
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-5 text-left text-base md:text-lg font-semibold text-gray-700 uppercase tracking-wider">
+                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">🚗</span>
                         <span>Transport Details</span>
@@ -544,30 +550,37 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   {initialData.itineraries.map((itinerary, index) => (
                     <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}>
                       {/* Day Column */}
-                      <td className="px-6 py-6 whitespace-nowrap border-r border-gray-100 align-top">
-                        <div className="flex items-center">
-                          <div className="bg-gray-200 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center text-base md:text-lg font-semibold mr-3">
+                      <td className="px-4 py-4 whitespace-nowrap border-r border-gray-100 align-top">
+                        <div className="flex items-start gap-3">
+                          <div className="bg-gray-200 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
                             {itinerary.dayNumber}
                           </div>
-                          <div>
-                            <div className="text-lg md:text-xl font-semibold text-gray-900">Day {itinerary.dayNumber}: {itinerary.days}</div>
-                            <div className="text-base text-gray-600" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '') || '' }} />
+                          <div className="min-w-0">
+                            <div className="text-lg md:text-xl font-semibold text-gray-900 truncate">
+                              Day {itinerary.dayNumber}: {itinerary.days}
+                              {(() => {
+                                const t = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
+                                return t ? (
+                                  <span className="font-normal text-gray-700" dangerouslySetInnerHTML={{ __html: ` — ${t}` }} />
+                                ) : null;
+                              })()}
+                            </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Hotel Details Column */}
-                      <td className="px-6 py-6 border-r border-gray-100 align-top">
+                      <td className="px-4 py-4 border-r border-gray-100 align-top">
                         {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) ? (
                           <div>
-                            <div className="text-lg font-semibold text-gray-900 mb-1">
+                            <div className="text-lg font-semibold text-gray-900 mb-0.5">
                               {hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}
                             </div>
                             {(() => {
                               const hotel = hotels.find(h => h.id === itinerary.hotelId);
                               const locationLabel = hotel?.locationId ? locations.find(l => l.id === hotel.locationId)?.label : undefined;
                               return locationLabel ? (
-                                <div className="text-base text-gray-600 flex items-center">
+                                <div className="text-sm text-gray-600 flex items-center">
                                   <span className="mr-1">📍</span>
                                   {locationLabel}
                                 </div>
@@ -580,24 +593,25 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       </td>
 
                       {/* Room Allocation Column */}
-                      <td className="px-6 py-6 border-r border-gray-100 align-top">
+                      <td className="px-4 py-4 border-r border-gray-100 align-top">
                         {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? (
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
                               <div key={roomIndex} className="text-base">
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded text-base">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
                                     {typeof room.roomType === 'object' ? room.roomType?.name : room.roomType || 'Standard'}
                                   </span>
-                                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded text-base">
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
                                     {typeof room.occupancyType === 'object' ? room.occupancyType?.name : room.occupancyType || 'Double'}
                                   </span>
-                                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded text-base">
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
                                     {typeof room.mealPlan === 'object' ? room.mealPlan?.name : room.mealPlan || 'CP'}
                                   </span>
-                                </div>
-                                <div className="text-base text-gray-600">
-                                  Rooms: {room.quantity || '1'} {room.guestNames && `| Guests: ${room.guestNames}`}
+                                  <span className="text-gray-600 text-sm">• Rooms: {room.quantity || '1'}</span>
+                                  {room.guestNames && (
+                                    <span className="text-gray-600 text-sm">• Guests: {room.guestNames}</span>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -608,24 +622,22 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                       </td>
 
                       {/* Transport Details Column */}
-                      <td className="px-6 py-6 align-top">
+                      <td className="px-4 py-4 align-top">
                         {itinerary.transportDetails && itinerary.transportDetails.length > 0 ? (
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
                               <div key={transportIndex} className="text-base">
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded text-base">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
                                     {transport.vehicleType?.name || 'Car'}
                                   </span>
-                                  <span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded text-base">
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
                                     Qty: {transport.quantity || '1'}
                                   </span>
+                                  {transport.description && (
+                                    <span className="text-gray-600 text-sm">• {transport.description}</span>
+                                  )}
                                 </div>
-                                {transport.description && (
-                                  <div className="text-base text-gray-600">
-                                    {transport.description}
-                                  </div>
-                                )}
                               </div>
                             ))}
                           </div>
@@ -638,7 +650,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                 </tbody>
               </table>
             </div>
-            <div className="bg-gray-50 px-6 py-4 border-t mt-4">
+            <div className="bg-gray-50 px-4 py-2 border-t mt-4">
               <p className="text-base text-gray-600 italic">* This summary provides day-wise overview of accommodation and transport arrangements.</p>
             </div>
           </CardContent>

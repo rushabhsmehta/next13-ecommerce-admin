@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react"
 import axios from "axios"
-import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2 } from "lucide-react"
+import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2, MessageCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useParams, useRouter } from "next/navigation"
 
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { useAssociatePartner } from "@/hooks/use-associate-partner"
+import { WhatsAppSupplierButton } from "@/components/whatsapp-supplier-button"
 
 import { InquiryColumn } from "./columns"
 
@@ -30,6 +31,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [creatingQuery, setCreatingQuery] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
   const { isAssociatePartner } = useAssociatePartner();
 
   const onConfirm = async () => {
@@ -69,6 +71,10 @@ export const CellAction: React.FC<CellActionProps> = ({
     }
   };
 
+  const onWhatsAppSupplier = () => {
+    setWhatsappOpen(true);
+  };
+
   return (
     <>
       <AlertModal
@@ -77,6 +83,26 @@ export const CellAction: React.FC<CellActionProps> = ({
         onConfirm={onConfirm}
         loading={loading}
       />
+      
+      {/* WhatsApp Supplier Component */}
+      <WhatsAppSupplierButton
+        inquiryData={{
+          id: data.id,
+          customerName: data.customerName,
+          customerMobileNumber: data.customerMobileNumber,
+          location: data.location,
+          journeyDate: data.journeyDate,
+          numAdults: 0, // Basic data from list view
+          numChildren5to11: 0,
+          numChildrenBelow5: 0,
+          remarks: null,
+          associatePartner: data.associatePartner,
+        }}
+        isOpen={whatsappOpen}
+        onOpenChange={setWhatsappOpen}
+        hideButton={true}
+      />
+      
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -95,6 +121,11 @@ export const CellAction: React.FC<CellActionProps> = ({
             onClick={() => router.push(`/inquiries/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onWhatsAppSupplier}
+          >
+            <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp Message
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setOpen(true)}

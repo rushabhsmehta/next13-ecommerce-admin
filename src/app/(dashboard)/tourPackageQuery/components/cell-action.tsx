@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, Hotel } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -105,6 +105,12 @@ export const CellAction: React.FC<CellActionProps> = ({
             onClick={() => router.push(`/tourPackageQuery/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
+          </DropdownMenuItem>
+
+          <DropdownMenuItem
+            onClick={() => router.push(`/tourPackageQueryHotelUpdate/${data.id}`)}
+          >
+            <Hotel className="mr-2 h-4 w-4" /> Update Hotel Details
           </DropdownMenuItem>
 
           <DropdownMenuItem

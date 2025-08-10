@@ -4,12 +4,6 @@ import prismadb from '@/lib/prismadb';
 
 export async function GET() {
   try {
-    const { userId } = auth();
-
-    if (!userId) {
-      return new NextResponse("Unauthenticated", { status: 403 });
-    }
-
     const occupancyTypes = await prismadb.occupancyType.findMany({
       where: {
         isActive: true

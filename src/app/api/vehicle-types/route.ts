@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 
 export async function GET() {
@@ -21,8 +22,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const { userId } = auth();
     const body = await req.json();
     const { name, description } = body;
+    
+    if (!userId) {
+      return new NextResponse("Unauthenticated", { status: 403 });
+    }
     
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });

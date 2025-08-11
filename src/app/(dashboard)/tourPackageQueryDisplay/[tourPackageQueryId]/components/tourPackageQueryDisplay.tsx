@@ -511,11 +511,11 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </div>
           <CardContent className="p-4">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 bg-white">
+              <table className="min-w-full table-fixed divide-y divide-gray-200 bg-white">
                 <colgroup>
-                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '20%' }} />
                   <col style={{ width: '25%' }} />
-                  <col style={{ width: '45%' }} />
+                  <col style={{ width: '25%' }} />
                   <col style={{ width: '20%' }} />
                 </colgroup>
                 <thead className="bg-gray-50">
@@ -550,13 +550,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   {initialData.itineraries.map((itinerary, index) => (
                     <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}>
                       {/* Day Column */}
-                      <td className="px-4 py-4 whitespace-nowrap border-r border-gray-100 align-top">
+                      <td className="px-4 py-4 border-r border-gray-100 align-top whitespace-normal break-words">
                         <div className="flex items-start gap-3">
-                          <div className="bg-gray-200 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold">
+                          <div className="bg-gray-200 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold flex-shrink-0">
                             {itinerary.dayNumber}
                           </div>
-                          <div className="min-w-0">
-                            <div className="text-lg md:text-xl font-semibold text-gray-900 truncate">
+                          <div className="min-w-0 flex-1 max-w-full">
+                            <div className="text-lg md:text-xl font-semibold text-gray-900 whitespace-normal break-words">
                               Day {itinerary.dayNumber}: {itinerary.days}
                               {(() => {
                                 const t = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');

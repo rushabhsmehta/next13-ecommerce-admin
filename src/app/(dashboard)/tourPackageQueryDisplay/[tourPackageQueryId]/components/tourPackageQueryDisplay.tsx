@@ -513,9 +513,9 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 bg-white">
                 <colgroup>
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '26%' }} />
-                  <col style={{ width: '40%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '45%' }} />
                   <col style={{ width: '20%' }} />
                 </colgroup>
                 <thead className="bg-gray-50">

@@ -15,6 +15,13 @@ import { Input } from "@/components/ui/input";
 
 import { TourPackageColumn, columns, createColumns } from "./columns";
 import { DataTableMultiple } from "@/components/ui/data-tableMultiple";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TourPackagesClientProps {
   data: TourPackageColumn[];
@@ -35,6 +42,8 @@ export const TourPackagesClient: React.FC<TourPackagesClientProps> = ({
   const [selectedDuration, setSelectedDuration] = useState<string>('');
   const [locationSearch, setLocationSearch] = useState<string>('');
   const [tableData, setTableData] = useState<TourPackageColumn[]>(data);
+  const [locationFilter, setLocationFilter] = useState<string>("");
+  const [tableSearch, setTableSearch] = useState<string>("");
 
   // Listen for tour package updates to refresh data
   useEffect(() => {
@@ -103,6 +112,12 @@ export const TourPackagesClient: React.FC<TourPackagesClientProps> = ({
     setSelectedCategory(category);
     setSelectedDuration('');
   };
+
+  // Unique locations for filter (table view)
+  const locationOptions = Array.from(new Set(data.map(p => p.location))).sort((a, b) => a.localeCompare(b));
+
+  // Apply table view location filter
+  const filteredTableData = locationFilter ? tableData.filter(p => p.location === locationFilter) : tableData;
 
   return (
     <> 
@@ -309,7 +324,35 @@ export const TourPackagesClient: React.FC<TourPackagesClientProps> = ({
 
         </div>
       ) : (
-        <DataTableMultiple searchKeys={["tourPackageName", "location"]} columns={dynamicColumns} data={tableData} />
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Select
+              value={locationFilter}
+              onValueChange={(v) => setLocationFilter(v)}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Filter by location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Locations</SelectItem>
+                {locationOptions.map(loc => (
+                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {locationFilter && (
+              <Button variant="outline" onClick={() => setLocationFilter("")}>Reset Location</Button>
+            )}
+          </div>
+          <DataTableMultiple 
+            searchKeys={["tourPackageName", "location"]} 
+            columns={dynamicColumns} 
+            data={filteredTableData}
+            searchValue={tableSearch}
+            onSearchChange={setTableSearch}
+            searchPlaceholder="Search tour packages..."
+          />
+        </div>
       )}
 
     </>

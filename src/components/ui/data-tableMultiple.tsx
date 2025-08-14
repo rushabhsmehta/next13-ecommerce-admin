@@ -29,15 +29,28 @@ interface DataTableMultipleProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[],
   searchKeys: string[];
+  searchValue?: string; // optional controlled search value
+  onSearchChange?: (value: string) => void; // callback when search changes
+  searchPlaceholder?: string;
 }
 
 export function DataTableMultiple<TData, TValue>({
   columns,
   data,
   searchKeys,
-  
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Search",
 }: DataTableMultipleProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [uncontrolledFilter, setUncontrolledFilter] = useState("");
+  const globalFilter = searchValue !== undefined ? searchValue : uncontrolledFilter;
+  const setGlobalFilter = (val: string) => {
+    if (searchValue !== undefined) {
+      onSearchChange?.(val);
+    } else {
+      setUncontrolledFilter(val);
+    }
+  };
   const [sorting, setSorting] = React.useState<SortingState>([])
 
 
@@ -71,7 +84,7 @@ export function DataTableMultiple<TData, TValue>({
     <div>
       <div className="flex items-center py-4">
         <Input
-          placeholder="Search"
+          placeholder={searchPlaceholder}
           value={globalFilter}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"

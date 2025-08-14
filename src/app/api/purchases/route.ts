@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 import { dateToUtc } from '@/lib/timezone-utils';
+import { computeBaseAmount, getFinancialYear, getQuarter, pickApplicableRate, calcTdsAmount } from '@/lib/tds';
 
 export async function POST(req: Request) {
   try {
@@ -25,7 +26,11 @@ export async function POST(req: Request) {
       gstPercentage,
       description, 
       status,
-      items 
+      items,
+      // TDS optional inputs
+      tdsMasterId,
+      tdsOverrideRate,
+      tdsType // 'INCOME_TAX' | 'GST'
     } = body;
 
     // Validate required fields
@@ -39,9 +44,11 @@ export async function POST(req: Request) {
 
     if (price === undefined || price === null) {
       return new NextResponse("Price is required", { status: 400 });
-    }    // Create purchase detail - REMOVED connect syntax
-    const purchaseDetail = await prismadb.purchaseDetail.create({
-      data: {
+    }
+
+    // Create purchase detail - REMOVED connect syntax
+    const purchaseDetail = await (prismadb as any).purchaseDetail.create({
+      data: ({
         supplierId,
         tourPackageQueryId: tourPackageQueryId || null,
         purchaseDate: dateToUtc(purchaseDate)!,
@@ -55,13 +62,18 @@ export async function POST(req: Request) {
         gstPercentage: gstPercentage ? parseFloat(gstPercentage.toString()) : null,
         description: description || null,
         status: status || "pending",
-      }
-    });// Create purchase items
+        // TDS placeholders if provided
+        tdsMasterId: tdsMasterId || null,
+      } as any)
+    });
+
+    // Create purchase items
     if (items && Array.isArray(items) && items.length > 0) {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        await prismadb.purchaseItem.create({
-          data: {            purchaseDetailId: purchaseDetail.id,
+        await (prismadb as any).purchaseItem.create({
+          data: {
+            purchaseDetailId: purchaseDetail.id,
             productName: item.productName || "Item",
             description: item.description || null,
             quantity: item.quantity != null ? parseFloat(String(item.quantity)) : 1,
@@ -74,12 +86,11 @@ export async function POST(req: Request) {
           }
         });
       }
-    }// If no items were provided but price > 0, create a default item
-    else if (price > 0) {
-      // Get tour package query name if available
+    } else if (price > 0) {
+      // Default single item
       let productName = "Purchase";
       if (tourPackageQueryId) {
-        const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+        const tourPackageQuery = await (prismadb as any).tourPackageQuery.findUnique({
           where: { id: tourPackageQueryId },
           select: { tourPackageQueryName: true }
         });
@@ -87,10 +98,9 @@ export async function POST(req: Request) {
           productName = tourPackageQuery.tourPackageQueryName;
         }
       }
-      
-      // Create a single item representing the total purchase amount
-      await prismadb.purchaseItem.create({
-        data: {          purchaseDetailId: purchaseDetail.id,
+      await (prismadb as any).purchaseItem.create({
+        data: {
+          purchaseDetailId: purchaseDetail.id,
           productName: description || productName,
           description: description || `${productName} dated ${new Date(purchaseDate).toLocaleDateString()}`,
           quantity: 1,
@@ -99,9 +109,69 @@ export async function POST(req: Request) {
           taxAmount: gstAmount != null ? parseFloat(String(gstAmount)) : null,
           taxSlabId: null,
           unitOfMeasureId: null,
-          orderIndex: 0, // Default item gets index 0
+          orderIndex: 0,
         }
       });
+    }
+
+    // Optional: create a TDS transaction if TDS inputs provided
+    try {
+      if (tdsMasterId || tdsType) {
+        const supplier: any = await (prismadb as any).supplier.findUnique({ where: { id: supplierId } });
+        const master = tdsMasterId ? await (prismadb as any).tDSMaster?.findUnique?.({ where: { id: tdsMasterId } }) : null;
+
+        const resolvedType = (tdsType as any) || (master?.isGstTds ? 'GST' : 'INCOME_TAX');
+        const base = computeBaseAmount(Number(price), Number(gstAmount), resolvedType);
+        const rate = pickApplicableRate({
+          tdsType: resolvedType as any,
+          overrideRate: tdsOverrideRate,
+          supplierHasPan: !!supplier?.panNumber,
+          supplierLowerRate: supplier?.lowerTdsRate ?? null,
+          supplierLowerValidFrom: supplier?.lowerValidFrom ?? null,
+          supplierLowerValidTo: supplier?.lowerValidTo ?? null,
+          tdsMaster: master ? {
+            rateWithPan: master.rateWithPan ?? null,
+            rateWithoutPan: master.rateWithoutPan ?? null,
+            rateIndividual: master.rateIndividual ?? null,
+            rateCompany: master.rateCompany ?? null,
+            isIncomeTaxTds: master.isIncomeTaxTds,
+            isGstTds: master.isGstTds,
+          } : null,
+          onDate: new Date(purchaseDate),
+        });
+
+        if (rate != null && base > 0) {
+          const tdsAmount = calcTdsAmount(base, rate);
+          await (prismadb as any).tDSTransaction?.create?.({
+            data: {
+              tdsType: resolvedType,
+              sectionId: tdsMasterId || null,
+              baseAmount: base,
+              appliedRate: rate,
+              tdsAmount,
+              financialYear: getFinancialYear(new Date(purchaseDate)),
+              quarter: getQuarter(new Date(purchaseDate)),
+              status: 'pending',
+              pan: supplier?.panNumber || null,
+              notes: description || null,
+              supplierId: supplierId,
+              purchaseDetailId: purchaseDetail.id,
+            }
+          });
+
+          // Update purchase with computed TDS summary
+          await (prismadb as any).purchaseDetail.update({
+            where: { id: purchaseDetail.id },
+            data: ({
+              tdsAmount,
+              netPayable: Number(((price || 0) + (gstAmount || 0) - tdsAmount).toFixed(2)),
+            } as any)
+          });
+        }
+      }
+    } catch (tdsError) {
+      console.warn('[PURCHASES_POST][TDS]', tdsError);
+      // Non-blocking: do not fail main purchase creation
     }
 
     return NextResponse.json(purchaseDetail);
@@ -132,10 +202,11 @@ export async function GET(req: Request) {
       query.supplierId = supplierId;
     }
 
-    const purchases = await prismadb.purchaseDetail.findMany({
+    const purchases = await (prismadb as any).purchaseDetail.findMany({
       where: query,
       include: {
-        supplier: true,        items: {
+        supplier: true,
+        items: {
           include: {
             taxSlab: true,
             unitOfMeasure: true

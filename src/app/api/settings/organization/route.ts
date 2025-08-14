@@ -24,7 +24,12 @@ export async function POST(
       logoUrl,
       defaultCurrency,
       invoicePrefix,
-      billPrefix
+      billPrefix,
+      // TDS additions
+      tanNumber,
+      tdsDeductorType,
+      tdsSignatoryName,
+      tdsSignatoryTitle,
     } = body;
 
     if (!userId) {
@@ -35,24 +40,32 @@ export async function POST(
       return new NextResponse("Name is required", { status: 400 });
     }
 
+    const data: any = {
+      name,
+      address,
+      city,
+      state,
+      pincode,
+      country,
+      phone,
+      email,
+      website,
+      gstNumber,
+      panNumber,
+      logoUrl,
+      defaultCurrency,
+      invoicePrefix,
+      billPrefix,
+    };
+
+    // Include TDS fields if provided
+    if (tanNumber !== undefined) data.tanNumber = tanNumber;
+    if (tdsDeductorType !== undefined) data.tdsDeductorType = tdsDeductorType;
+    if (tdsSignatoryName !== undefined) data.tdsSignatoryName = tdsSignatoryName;
+    if (tdsSignatoryTitle !== undefined) data.tdsSignatoryTitle = tdsSignatoryTitle;
+
     const organization = await prismadb.organization.create({
-      data: {
-        name,
-        address,
-        city,
-        state,
-        pincode,
-        country,
-        phone,
-        email,
-        website,
-        gstNumber,
-        panNumber,
-        logoUrl,
-        defaultCurrency,
-        invoicePrefix,
-        billPrefix,
-      }
+      data,
     });
   
     return NextResponse.json(organization);

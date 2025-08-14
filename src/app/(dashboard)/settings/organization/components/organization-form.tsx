@@ -42,6 +42,11 @@ const formSchema = z.object({
   defaultCurrency: z.string().optional(),
   invoicePrefix: z.string().optional(),
   billPrefix: z.string().optional(),
+  // TDS
+  tanNumber: z.string().optional(),
+  tdsDeductorType: z.string().optional(),
+  tdsSignatoryName: z.string().optional(),
+  tdsSignatoryTitle: z.string().optional(),
 });
 
 type OrganizationFormValues = z.infer<typeof formSchema>;
@@ -73,6 +78,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     defaultCurrency: initialData.defaultCurrency || "₹",
     invoicePrefix: initialData.invoicePrefix || "INV-",
     billPrefix: initialData.billPrefix || "BILL-",
+    // TDS
+    tanNumber: initialData.tanNumber || "",
+    tdsDeductorType: initialData.tdsDeductorType || "",
+    tdsSignatoryName: initialData.tdsSignatoryName || "",
+    tdsSignatoryTitle: initialData.tdsSignatoryTitle || "",
   } : {
     name: "",
     address: "",
@@ -89,6 +99,11 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
     defaultCurrency: "₹",
     invoicePrefix: "INV-",
     billPrefix: "BILL-",
+    // TDS
+    tanNumber: "",
+    tdsDeductorType: "",
+    tdsSignatoryName: "",
+    tdsSignatoryTitle: "",
   };
 
   const form = useForm<OrganizationFormValues>({
@@ -372,6 +387,79 @@ export const OrganizationForm: React.FC<OrganizationFormProps> = ({
                     </FormItem>
                   )}
                 />
+                {/* TDS fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="tanNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>TAN Number</FormLabel>
+                        <FormControl>
+                          <Input 
+                            disabled={loading} 
+                            placeholder="TAN Number" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tdsDeductorType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>TDS Deductor Type</FormLabel>
+                        <FormControl>
+                          <Input 
+                            disabled={loading} 
+                            placeholder="e.g., Company, Individual, Govt" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="tdsSignatoryName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>TDS Signatory Name</FormLabel>
+                        <FormControl>
+                          <Input 
+                            disabled={loading} 
+                            placeholder="Signatory Name" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tdsSignatoryTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>TDS Signatory Title</FormLabel>
+                        <FormControl>
+                          <Input 
+                            disabled={loading} 
+                            placeholder="e.g., Director, Proprietor" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>

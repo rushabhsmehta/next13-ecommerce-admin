@@ -1,9 +1,9 @@
 "use client";
 
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { format } from "date-fns";
@@ -73,6 +73,9 @@ const formSchema = z.object({
     message: "Account type is required",
   }),
   images: z.array(z.string()).default([]),
+  tdsMasterId: z.string().optional(),
+  tdsOverrideRate: z.number().optional(),
+  linkTdsTransactionId: z.string().optional(),
 }).refine((data) => {
   if (data.paymentType === "supplier_payment" && !data.supplierId) {
     return false;
@@ -95,8 +98,12 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   bankAccounts,
   cashAccounts,
   onSuccess,
-  submitButtonText = "Create"
+  submitButtonText = "Create",
+  confirmedTourPackageQueries: confirmedTourPackageQueriesProp
 }) => {
+  const paymentData = initialData || {};
+  const confirmedTourPackageQueries = confirmedTourPackageQueriesProp || initialData?.confirmedTourPackageQueries || [];
+
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -105,20 +112,15 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
   const [tourPackageQueryDropdownOpen, setTourPackageQueryDropdownOpen] = useState(false);
   const [tourPackageQuerySearch, setTourPackageQuerySearch] = useState("");
+  const [tdsSections, setTdsSections] = useState<any[]>([]);
+  const [tdsEnabled, setTdsEnabled] = useState(false);
+  const [linkableTds, setLinkableTds] = useState<any[]>([]);
 
-  // Add these computed values
-  const filteredSuppliers = suppliers.filter(supplier =>
-    supplier.name.toLowerCase().includes(supplierSearch.toLowerCase())
-  );
-  
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    (customer.contact && customer.contact.toLowerCase().includes(customerSearch.toLowerCase()))
-  );
+  // Derived filtered lists (case-insensitive search)
+  const filteredSuppliers = suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()) || (c as any).contact?.toLowerCase().includes(customerSearch.toLowerCase() || ''));
 
-  // Extract tour package queries from initialData
-  const { confirmedTourPackageQueries = [], ...paymentData } = initialData;
-
+  // Establish form BEFORE any effects that reference it
   let defaultValues: Partial<PaymentFormValues> = {
     paymentDate: new Date(),
     amount: 0,
@@ -148,8 +150,11 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       saleReturnId: paymentData.saleReturnId || "",
       tourPackageQueryId: paymentData.tourPackageQueryId || undefined,
       accountId: paymentData.bankAccountId || paymentData.cashAccountId || "",
-      accountType: paymentData.bankAccountId ? "bank" : "cash",
+      accountType: paymentData.bankAccountId ? "bank" : (paymentData.cashAccountId ? "cash" : ""),
       images: paymentData.images?.map((image: any) => image.url) || [],
+      tdsMasterId: paymentData.tdsMasterId || undefined,
+      tdsOverrideRate: paymentData.tdsOverrideRate || undefined,
+      linkTdsTransactionId: paymentData.linkTdsTransactionId || undefined,
     };
   }
 
@@ -157,6 +162,38 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
+  // Use useWatch to avoid accessing form before init in effect deps
+  const paymentType = useWatch({ control: form.control, name: 'paymentType' });
+  const supplierId = useWatch({ control: form.control, name: 'supplierId' });
+  const accountTypeWatch = useWatch({ control: form.control, name: 'accountType' });
+
+  // Fetch TDS sections from the server
+  const tdsSectionsFetcher = async () => {
+    try {
+      const res = await fetch('/api/settings/tds-sections');
+      if(!res.ok) return [];
+      return await res.json();
+    } catch { return []; }
+  };
+
+  // Load TDS sections on mount
+  useEffect(()=>{ (async()=>{ try{ const data = await tdsSectionsFetcher(); setTdsSections(data||[]);}catch{} })(); },[]);
+
+  // Load linkable TDS transactions when supplier/payment type changes
+  useEffect(()=>{ 
+    if(paymentType==='supplier_payment' && supplierId) { 
+      (async()=>{ 
+        try{ 
+          const r = await fetch(`/api/tds/transactions?status=pending&supplierId=${supplierId}`); 
+          if(r.ok){ setLinkableTds(await r.json()); } else { setLinkableTds([]);} 
+        }catch{ setLinkableTds([]);} 
+      })();
+    } else {
+      setLinkableTds([]);
+    }
+  }, [paymentType, supplierId]);
+
   const onSubmit = async (data: PaymentFormValues) => {
     try {
       setLoading(true);
@@ -177,6 +214,10 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
       };
       delete apiData.accountId;
       delete apiData.accountType;
+
+      (apiData as any).tdsMasterId = form.getValues('tdsMasterId')||null;
+      (apiData as any).tdsOverrideRate = form.getValues('tdsOverrideRate')? Number(form.getValues('tdsOverrideRate')): null;
+      (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId')||null;
 
       if (paymentData && paymentData.id) {
         await axios.patch(`/api/payments/${paymentData.id}`, apiData);
@@ -422,7 +463,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                 />
 
                 {/* Supplier Selection - Only for supplier payments */}
-                {form.watch("paymentType") === "supplier_payment" && (
+                {paymentType === "supplier_payment" && (
                   <FormField
                     control={form.control}
                     name="supplierId"
@@ -494,7 +535,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                 )}
 
                 {/* Customer Selection - Only for customer refunds */}
-                {form.watch("paymentType") === "customer_refund" && (
+                {paymentType === "customer_refund" && (
                   <FormField
                     control={form.control}
                     name="customerId"
@@ -615,7 +656,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-gray-700">Account</FormLabel>
                       <Select
-                        disabled={loading || !form.watch("accountType")}
+                        disabled={loading || !accountTypeWatch}
                         onValueChange={field.onChange}
                         value={field.value}
                         defaultValue={field.value}
@@ -626,7 +667,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {form.watch("accountType") === "bank"
+                          {accountTypeWatch === "bank"
                             ? bankAccounts.map((account) => (
                               <SelectItem key={account.id} value={account.id}>
                                 {account.accountName}
@@ -737,6 +778,70 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+
+          {/* TDS Section - New Card */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200 px-8 py-4">
+              <CardTitle className="text-md font-semibold text-gray-800 flex items-center">TDS (Optional)</CardTitle>
+            </CardHeader>
+            <CardContent className="px-8 py-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={tdsEnabled}
+                    onChange={e => setTdsEnabled(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  Apply / Link TDS
+                </label>
+              </div>
+              {tdsEnabled && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">TDS Section</label>
+                    <select
+                      className="mt-1 w-full border rounded h-10 px-2"
+                      {...form.register('tdsMasterId')}
+                      defaultValue=""
+                    >
+                      <option value="">Select</option>
+                      {tdsSections.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.sectionCode} {s.isGstTds ? '(GST)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Override Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 1.00"
+                      className="mt-1 w-full border rounded h-10 px-2"
+                      {...form.register('tdsOverrideRate')}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Link Existing Pending TDS</label>
+                    <select
+                      className="mt-1 w-full border rounded h-10 px-2"
+                      {...form.register('linkTdsTransactionId')}
+                      defaultValue=""
+                    >
+                      <option value="">None</option>
+                      {linkableTds.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.id} {t.tdsAmount}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -246,9 +246,19 @@ model PurchaseDetail {
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   items              PurchaseItem[]
   purchaseReturns    PurchaseReturn[]
+  // TDS additions
+  tdsMasterId        String?
+  tdsAmount          Float?
+  netPayable         Float?
+  tdsChallanId       String?
+  tdsMaster          TDSMaster?       @relation(fields: [tdsMasterId], references: [id])
+  tdsChallan         TDSChallan?      @relation(fields: [tdsChallanId], references: [id])
+  tdsTransactions    TDSTransaction[]
 
   @@index([supplierId])
   @@index([tourPackageQueryId])
+  @@index([tdsMasterId])
+  @@index([tdsChallanId])
 }
 
 model PurchaseItem {
@@ -301,6 +311,11 @@ model PaymentDetail {
   saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull) // Added: Link to sale return
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
+  // TDS additions
+  tdsDeductedAmount  Float?
+  tdsCertificateNo   String?
+  tdsTransactionId   String? @unique
+  tdsTransaction     TDSTransaction?  @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
 
   @@index([bankAccountId])
   @@index([cashAccountId])
@@ -308,6 +323,7 @@ model PaymentDetail {
   @@index([customerId])
   @@index([saleReturnId])
   @@index([tourPackageQueryId])
+  @@index([tdsTransactionId])
 }
 
 model SaleDetail {
@@ -400,7 +416,7 @@ model ExpenseDetail {
   amount             Float
   description        String?           @db.Text
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   bankAccountId      String?
   cashAccountId      String?
   expenseCategoryId  String?
@@ -412,12 +428,22 @@ model ExpenseDetail {
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   bankAccount        BankAccount?      @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?      @relation(fields: [cashAccountId], references: [id])
+  // TDS additions
+  tdsMasterId        String?
+  tdsAmount          Float?
+  netPayable         Float?
+  tdsChallanId       String?
+  tdsMaster          TDSMaster?        @relation(fields: [tdsMasterId], references: [id])
+  tdsChallan         TDSChallan?       @relation(fields: [tdsChallanId], references: [id])
+  tdsTransactions    TDSTransaction[]
 
   @@index([bankAccountId])
   @@index([cashAccountId])
   @@index([expenseCategoryId])
   @@index([tourPackageQueryId])
   @@index([isAccrued])
+  @@index([tdsMasterId])
+  @@index([tdsChallanId])
 }
 
 model FlightDetails {
@@ -715,6 +741,10 @@ model Customer {
   receiptDetails        ReceiptDetail[]
   refundPayments        PaymentDetail[]   // Added: Track refund payments to this customer
   associatePartner      AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  // TDS additions
+  tanNumber             String?
+  isTdsDeductor         Boolean           @default(false)
+  tdsTransactions       TDSTransaction[]
 
   @@index([associatePartnerId])
 }
@@ -730,6 +760,19 @@ model Supplier {
   purchaseDetails PurchaseDetail[]
   paymentDetails  PaymentDetail[]
   refundReceipts  ReceiptDetail[]    // Added: Track refund receipts from this supplier
+  // TDS additions
+  panNumber       String?
+  tdsApplicable   Boolean            @default(false)
+  defaultTdsId    String?
+  lowerTdsCertNo  String?
+  lowerTdsRate    Float?
+  lowerValidFrom  DateTime?
+  lowerValidTo    DateTime?
+  msmeStatus      String?
+  defaultTds      TDSMaster?         @relation(fields: [defaultTdsId], references: [id])
+  tdsTransactions TDSTransaction[]
+
+  @@index([defaultTdsId])
 }
 
 model SupplierLocation {
@@ -943,6 +986,38 @@ model Organization {
   nextBillNumber    Int      @default(1)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  // TDS additions
+  tanNumber         String?
+  tdsDeductorType   String?
+  tdsSignatoryName  String?
+  tdsSignatoryTitle String?
+  members           OrganizationMember[]
+}
+
+// Organization members (mapped to Clerk users) for role-based authorization
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  FINANCE
+  OPERATIONS
+  VIEWER
+}
+
+model OrganizationMember {
+  id             String            @id @default(uuid())
+  organizationId String
+  userId         String            // Clerk user id
+  email          String?
+  role           OrganizationRole  @default(VIEWER)
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([role])
 }
 
 model UnitOfMeasure {
@@ -1005,7 +1080,7 @@ model PurchaseReturnItem {
   totalAmount      Float
   orderIndex       Int            @default(0)
   createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  updatedAt        DateTime       @default(now())
   purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
   purchaseItem     PurchaseItem?  @relation(fields: [purchaseItemId], references: [id])
   unitOfMeasure    UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
@@ -1028,7 +1103,7 @@ model SaleReturn {
   reference    String?
   status       String           @default("pending")
   createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  updatedAt    DateTime         @default(now())
   saleDetail   SaleDetail       @relation(fields: [saleDetailId], references: [id])
   items        SaleReturnItem[]
   payments     PaymentDetail[]  // Added: Track payments to customer for this return
@@ -1098,7 +1173,7 @@ model Passenger {
   gender         String?
   flightTicketId String
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  updatedAt      DateTime     @default(now())
   flightTicket   FlightTicket @relation(fields: [flightTicketId], references: [id], onDelete: Cascade)
 
   @@index([flightTicketId])
@@ -1381,7 +1456,7 @@ model WhatsAppMessage {
   messageSid        String?   // Twilio Message SID (SM...)
   
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  updatedAt         DateTime  @default(now())
   
   // Relations
   template          WhatsAppTemplate? @relation("TemplateToMessages", fields: [contentSid], references: [contentSid])
@@ -1391,4 +1466,112 @@ model WhatsAppMessage {
   @@index([timestamp])
   @@index([contentSid])
   @@index([messageSid])
+}
+
+// New TDS models
+model TDSMaster {
+  id                 String           @id @default(uuid())
+  sectionCode        String
+  description        String?
+  thresholdAmount    Float?
+  rateIndividual     Float?
+  rateCompany        Float?
+  rateWithPan        Float?
+  rateWithoutPan     Float?
+  effectiveFrom      DateTime
+  effectiveTo        DateTime?
+  isIncomeTaxTds     Boolean          @default(true)
+  isGstTds           Boolean          @default(false)
+  surchargeApplicable Boolean         @default(false)
+  cessApplicable     Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now())
+  // Relations
+  supplierDefaults   Supplier[]
+  purchaseDetails    PurchaseDetail[]
+  expenseDetails     ExpenseDetail[]
+  tdsTransactions    TDSTransaction[]
+
+  @@index([sectionCode])
+  @@index([isIncomeTaxTds, isGstTds])
+  @@index([effectiveFrom])
+}
+
+model TDSChallan {
+  id               String           @id @default(uuid())
+  bsrCode          String?
+  challanSerialNo  String?
+  depositDate      DateTime?
+  paymentMode      String?
+  bankName         String?
+  amount           Float?           // Total deposited amount
+  notes            String?          @db.Text
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now())
+  updatedBy        String?          // Clerk user id of last modifier (add migration)
+  deletedAt        DateTime?        // Soft delete timestamp
+  // Relations
+  purchaseDetails  PurchaseDetail[]
+  expenseDetails   ExpenseDetail[]
+  tdsTransactions  TDSTransaction[]
+
+  @@index([bsrCode])
+  @@index([depositDate])
+  @@index([deletedAt])
+}
+
+model TDSTransaction {
+  id                 String      @id @default(uuid())
+  tdsType            String      @default("INCOME_TAX") // INCOME_TAX or GST
+  sectionId          String?
+  baseAmount         Float
+  appliedRate        Float
+  tdsAmount          Float
+  financialYear      String?
+  quarter            String?
+  status             String      @default("pending") // pending, deposited, certified
+  certificateNumber  String?
+  pan                String?
+  tan                String?
+  notes              String?     @db.Text
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @default(now())
+  // Relations
+  section            TDSMaster?  @relation(fields: [sectionId], references: [id])
+  challanId          String?
+  challan            TDSChallan? @relation(fields: [challanId], references: [id])
+  supplierId         String?
+  supplier           Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  customerId         String?
+  customer           Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  organizationId     String?
+  purchaseDetailId   String?
+  paymentDetailId    String?
+  expenseDetailId    String?
+  purchaseDetail     PurchaseDetail? @relation(fields: [purchaseDetailId], references: [id], onDelete: SetNull)
+  paymentDetail      PaymentDetail?
+  expenseDetail      ExpenseDetail?  @relation(fields: [expenseDetailId], references: [id], onDelete: SetNull)
+
+  @@index([sectionId])
+  @@index([supplierId])
+  @@index([customerId])
+  @@index([purchaseDetailId])
+  @@index([paymentDetailId])
+  @@index([expenseDetailId])
+  @@index([challanId])
+  @@index([status])
+}
+
+model TDSReturn {
+  id                String        @id @default(uuid())
+  returnType        String        // 24Q, 26Q, 27Q, 27EQ, GSTR7
+  financialYear     String
+  quarter           String
+  acknowledgmentNo  String?
+  filedDate         DateTime?
+  isRevised         Boolean       @default(false)
+  revisionNumber    Int?          @default(0)
+  notes             String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @default(now())
 }

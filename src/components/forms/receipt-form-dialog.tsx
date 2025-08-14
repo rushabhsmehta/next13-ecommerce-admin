@@ -1,7 +1,7 @@
 "use client";
 
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import axios from "axios";
@@ -79,6 +79,14 @@ const formSchema = z.object({
 
 type ReceiptFormValues = z.infer<typeof formSchema>;
 
+const tdsSectionsFetcher = async () => {
+  try {
+    const r = await fetch('/api/settings/tds-sections');
+    if(r.ok) return r.json();
+  } catch {}
+  return [];
+};
+
 export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   initialData,
   customers,
@@ -97,7 +105,15 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   const [tourPackageQueryDropdownOpen, setTourPackageQueryDropdownOpen] = useState(false);
   const [tourPackageQuerySearch, setTourPackageQuerySearch] = useState("");
 
-  // Add these computed values
+  // TDS state
+  const [tdsSections, setTdsSections] = useState<any[]>([]);
+  const [tdsEnabled, setTdsEnabled] = useState(false);
+  const [linkableTds, setLinkableTds] = useState<any[]>([]);
+
+  // Fetch TDS sections on mount
+  useEffect(()=>{ (async()=>{ setTdsSections(await tdsSectionsFetcher()); })(); },[]);
+
+  // Filtered customers and suppliers
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
     (customer.contact && customer.contact.toLowerCase().includes(customerSearch.toLowerCase()))
@@ -147,6 +163,18 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     defaultValues,
   });
 
+  // Fetch linkable TDS transactions when customer or receipt type changes
+  useEffect(() => {
+    if(form.watch('receiptType')==='customer_payment' && form.watch('customerId')) {
+      (async()=>{
+        try{
+          const r = await fetch(`/api/tds/transactions?status=pending&customerId=${form.watch('customerId')}`);
+          if(r.ok) setLinkableTds(await r.json());
+        }catch{}
+      })();
+    }
+  }, [form.watch('customerId'), form.watch('receiptType')]);
+
   const onSubmit = async (data: ReceiptFormValues) => {
     try {
       setLoading(true);
@@ -167,6 +195,11 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       };
       delete apiData.accountId;
       delete apiData.accountType;
+
+      // Add TDS fields to apiData
+      (apiData as any).tdsMasterId = form.getValues('tdsMasterId')||null;
+      (apiData as any).tdsOverrideRate = form.getValues('tdsOverrideRate')? Number(form.getValues('tdsOverrideRate')): null;
+      (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId')||null;
 
       if (receiptData && receiptData.id) {
         await axios.patch(`/api/receipts/${receiptData.id}`, apiData);
@@ -709,6 +742,66 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
                   </FormItem>
                 )}
               />
+            </CardContent>
+          </Card>
+
+          {/* TDS Optional Fields Card */}
+          <Card className="shadow-md border-0 bg-white">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200 px-8 py-4">
+              <CardTitle className="text-md font-semibold text-gray-800">TDS (Optional)</CardTitle>
+            </CardHeader>
+            <CardContent className="px-8 py-6 space-y-4">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={tdsEnabled}
+                  onChange={e=>setTdsEnabled(e.target.checked)}
+                />
+                Apply / Link TDS
+              </label>
+              {tdsEnabled && (
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">TDS Section</label>
+                    <select
+                      className="mt-1 w-full border rounded h-10 px-2"
+                      {...form.register('tdsMasterId')}
+                      defaultValue=""
+                    >
+                      <option value="">Select</option>
+                      {tdsSections.map(s=> 
+                        <option key={s.id} value={s.id}>
+                          {s.sectionCode}{s.isGstTds? ' (GST)':''}
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Override Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="mt-1 w-full border rounded h-10 px-2"
+                      {...form.register('tdsOverrideRate')}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Link Pending TDS</label>
+                    <select
+                      className="mt-1 w-full border rounded h-10 px-2"
+                      {...form.register('linkTdsTransactionId')}
+                      defaultValue=""
+                    >
+                      <option value="">None</option>
+                      {linkableTds.map(t=>
+                        <option key={t.id} value={t.id}>
+                          {t.id} {t.tdsAmount}
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

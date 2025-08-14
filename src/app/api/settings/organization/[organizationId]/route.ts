@@ -47,7 +47,12 @@ export async function PATCH(
       logoUrl,
       defaultCurrency,
       invoicePrefix,
-      billPrefix
+      billPrefix,
+      // TDS additions
+      tanNumber,
+      tdsDeductorType,
+      tdsSignatoryName,
+      tdsSignatoryTitle,
     } = body;
 
     if (!userId) {
@@ -62,27 +67,34 @@ export async function PATCH(
       return new NextResponse("Organization ID is required", { status: 400 });
     }
 
+    const data: any = {
+      name,
+      address,
+      city,
+      state,
+      pincode,
+      country,
+      phone,
+      email,
+      website,
+      gstNumber,
+      panNumber,
+      logoUrl,
+      defaultCurrency,
+      invoicePrefix,
+      billPrefix,
+    };
+
+    if (tanNumber !== undefined) data.tanNumber = tanNumber;
+    if (tdsDeductorType !== undefined) data.tdsDeductorType = tdsDeductorType;
+    if (tdsSignatoryName !== undefined) data.tdsSignatoryName = tdsSignatoryName;
+    if (tdsSignatoryTitle !== undefined) data.tdsSignatoryTitle = tdsSignatoryTitle;
+
     const organization = await prismadb.organization.update({
       where: {
         id: params.organizationId,
       },
-      data: {
-        name,
-        address,
-        city,
-        state,
-        pincode,
-        country,
-        phone,
-        email,
-        website,
-        gstNumber,
-        panNumber,
-        logoUrl,
-        defaultCurrency,
-        invoicePrefix,
-        billPrefix,
-      }
+      data,
     });
   
     return NextResponse.json(organization);

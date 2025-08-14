@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DateRange } from 'react-day-picker';
@@ -14,7 +14,7 @@ export default function TdsReportsClient(){
   const [summary, setSummary] = useState<SummaryRow[]>([]);
   const [range, setRange] = useState<DateRange | undefined>({ from: addDays(new Date(), -30), to: new Date() });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!range?.from || !range?.to) return;
     setLoading(true);
     try {
@@ -24,9 +24,9 @@ export default function TdsReportsClient(){
       const data = await res.json();
       setSummary(data.rows || []);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
-  };
+  }, [range?.from, range?.to]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const exportCsv = () => {
     const csv = ['tdsType,totalBase,totalTds,count'];

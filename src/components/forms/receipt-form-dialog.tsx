@@ -64,6 +64,16 @@ const formSchema = z.object({
     message: "Account type is required",
   }),
   images: z.array(z.string()).default([]),
+  // --- TDS optional fields ---
+  tdsMasterId: z.string().optional().nullable(),
+  tdsOverrideRate: z
+    .union([
+      z.coerce.number().min(0, { message: "Must be >= 0" }).max(100, { message: "Must be <= 100" }),
+      z.literal("")
+    ])
+    .optional()
+    .nullable(),
+  linkTdsTransactionId: z.string().optional().nullable(),
 }).refine((data) => {
   if (data.receiptType === "customer_payment" && !data.customerId) {
     return false;
@@ -139,6 +149,9 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     accountId: "",
     accountType: "",
     images: [],
+    tdsMasterId: undefined,
+    tdsOverrideRate: undefined,
+    linkTdsTransactionId: undefined,
   };
 
   if (receiptData && Object.keys(receiptData).length > 1) {
@@ -155,6 +168,9 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       accountId: receiptData.bankAccountId || receiptData.cashAccountId || "",
       accountType: receiptData.bankAccountId ? "bank" : "cash",
       images: receiptData.images?.map((image: any) => image.url) || [],
+      tdsMasterId: (receiptData as any).tdsMasterId || undefined,
+      tdsOverrideRate: (receiptData as any).tdsOverrideRate || undefined,
+      linkTdsTransactionId: undefined,
     };
   }
 
@@ -163,17 +179,30 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     defaultValues,
   });
 
-  // Fetch linkable TDS transactions when customer or receipt type changes
+  // Fetch linkable TDS transactions when customer/payment context changes
   useEffect(() => {
-    if(form.watch('receiptType')==='customer_payment' && form.watch('customerId')) {
+    const receiptType = form.watch('receiptType');
+    const customerId = form.watch('customerId');
+    if(receiptType==='customer_payment' && customerId) {
       (async()=>{
         try{
-          const r = await fetch(`/api/tds/transactions?status=pending&customerId=${form.watch('customerId')}`);
+          const r = await fetch(`/api/tds/transactions?status=pending&customerId=${customerId}`);
           if(r.ok) setLinkableTds(await r.json());
-        }catch{}
+        }catch{/* silent */}
       })();
+    } else {
+      setLinkableTds([]);
     }
   }, [form.watch('customerId'), form.watch('receiptType')]);
+
+  // Clear TDS fields if TDS disabled
+  useEffect(()=>{
+    if(!tdsEnabled){
+      form.setValue('tdsMasterId', undefined as any);
+      form.setValue('tdsOverrideRate', undefined as any);
+      form.setValue('linkTdsTransactionId', undefined as any);
+    }
+  },[tdsEnabled, form]);
 
   const onSubmit = async (data: ReceiptFormValues) => {
     try {
@@ -197,9 +226,16 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
       delete apiData.accountType;
 
       // Add TDS fields to apiData
-      (apiData as any).tdsMasterId = form.getValues('tdsMasterId')||null;
-      (apiData as any).tdsOverrideRate = form.getValues('tdsOverrideRate')? Number(form.getValues('tdsOverrideRate')): null;
-      (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId')||null;
+      if(tdsEnabled){
+        (apiData as any).tdsMasterId = form.getValues('tdsMasterId') || null;
+        const override = form.getValues('tdsOverrideRate');
+        (apiData as any).tdsOverrideRate = (override===undefined || override==="") ? null : Number(override);
+        (apiData as any).linkTdsTransactionId = form.getValues('linkTdsTransactionId') || null;
+      } else {
+        (apiData as any).tdsMasterId = null;
+        (apiData as any).tdsOverrideRate = null;
+        (apiData as any).linkTdsTransactionId = null;
+      }
 
       if (receiptData && receiptData.id) {
         await axios.patch(`/api/receipts/${receiptData.id}`, apiData);

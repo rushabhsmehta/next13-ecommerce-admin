@@ -18,7 +18,8 @@ export async function GET(
       },
       include: {
         images: true,
-        location : true
+        location: true,
+        destination: true
       }
     });
   
@@ -73,7 +74,7 @@ export async function PATCH(
 
     const body = await req.json();
     
-    const { name, images, locationId, link } = body; // Added link to destructuring
+    const { name, images, locationId, destinationId, link } = body;
     
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -101,7 +102,8 @@ export async function PATCH(
       data: {
         name,
         locationId,
-        link, // Added link to update data
+        destinationId,
+        link,
         images: {
           deleteMany: {},
         },

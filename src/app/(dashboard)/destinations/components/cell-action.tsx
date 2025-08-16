@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Copy, Edit, MoreHorizontal, Trash, Car, MapPin } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 
@@ -12,19 +12,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AlertModal } from "@/components/modals/alert-modal";
 
-import { LocationColumn } from "./columns";
+import { DestinationColumn } from "./columns";
 
 interface CellActionProps {
-  data: LocationColumn;
+  data: DestinationColumn;
 }
 
-export const CellAction: React.FC<CellActionProps> = ({
-  data,
-}) => {
+export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
   const params = useParams();
   const [open, setOpen] = useState(false);
@@ -33,21 +31,21 @@ export const CellAction: React.FC<CellActionProps> = ({
   const onConfirm = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/locations/${data.id}`);
-      toast.success('Location deleted.');
+      await axios.delete(`/api/destinations/${data.id}`);
+      toast.success("Destination deleted.");
       router.refresh();
     } catch (error) {
-      toast.error('Make sure you removed all categories using this location first.');
+      toast.error("Something went wrong");
     } finally {
-      setOpen(false);
       setLoading(false);
+      setOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
-    toast.success('Location ID copied to clipboard.');
-  }
+    toast.success("Destination ID copied to clipboard.");
+  };
 
   return (
     <>
@@ -66,34 +64,22 @@ export const CellAction: React.FC<CellActionProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem
-            onClick={() => onCopy(data.id)}
-          >
-            <Copy className="mr-2 h-4 w-4" /> Copy Id
+          <DropdownMenuItem onClick={() => onCopy(data.id)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copy ID
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push(`/locations/${data.id}`)}
+            onClick={() => router.push(`/destinations/${data.id}`)}
           >
-            <Edit className="mr-2 h-4 w-4" /> Update
+            <Edit className="mr-2 h-4 w-4" />
+            Update
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/destinations?locationId=${data.id}`)}
-          >
-            <MapPin className="mr-2 h-4 w-4" /> Manage Destinations
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/transport-pricing?locationId=${data.id}`)}
-          >
-            <Car className="mr-2 h-4 w-4" /> Manage Transport Pricing
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setOpen(true)}
-          >
-            <Trash className="mr-2 h-4 w-4" /> Delete
+          <DropdownMenuItem onClick={() => setOpen(true)}>
+            <Trash className="mr-2 h-4 w-4" />
+            Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>
   );
 };
-

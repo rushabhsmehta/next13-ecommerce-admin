@@ -35,24 +35,44 @@ model Location {
   tourPackageQuery          TourPackageQuery[] @relation("LocationTotourPackageQuery")
   inquiries                 Inquiry[]          @relation("LocationToInquiry")
   suppliers                 SupplierLocation[]
+  tourDestinations          TourDestination[]
 
   @@index([id])
+}
+
+model TourDestination {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  imageUrl    String?
+  locationId  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  location    Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  hotels      Hotel[]
+
+  @@index([locationId])
+  @@index([name])
 }
 
 model Hotel {
   id                String            @id @default(uuid())
   locationId        String
+  destinationId     String?
   name              String
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   link              String?           @db.Text
   images            Images[]
   location          Location          @relation(fields: [locationId], references: [id])
+  destination       TourDestination?  @relation(fields: [destinationId], references: [id])
   itineraries       Itinerary[]       @relation("ItineraryToHotel")
   itinerariesMaster ItineraryMaster[] @relation("ItineraryMasterToHotel")
   seasonalPricing   HotelPricing[]
 
   @@index([locationId])
+  @@index([destinationId])
 }
 
 model MealPlan {

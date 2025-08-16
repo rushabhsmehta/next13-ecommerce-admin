@@ -47,6 +47,7 @@ const NAV_ITEMS = [
     title: "Master Data",
     items: [
       { title: "Locations", url: "/locations" },
+      { title: "Destinations", url: "/destinations" },
       { title: "Hotels", url: "/hotels" },
       { title: "Itineraries", url: "/itinerariesMaster" },
       { title: "Activities", url: "/activitiesMaster" },

@@ -11,7 +11,7 @@ export async function POST(
 
     const body = await req.json();
 
-    const { name, images, locationId, link } = body; // Added link to destructuring
+    const { name, images, locationId, destinationId, link } = body; // Added destinationId
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 403 });
@@ -33,6 +33,7 @@ export async function POST(
       data: {
         name,
         locationId,
+        destinationId: destinationId || null, // Added destinationId
         link, // Added link to create data
         images: {
           createMany: {
@@ -61,6 +62,7 @@ export async function GET(
       include: {
         images: true,
         location: true,
+        destination: true, // Include destination relationship
         //  hotel: true,
         // itineraries: true,  // Include itineraries here     
     },

@@ -24,6 +24,11 @@ export function MainNav({
       active: pathname === `/locations`,
     },
     {
+      href: `/destinations`,
+      label: 'Destinations',
+      active: pathname === `/destinations`,
+    },
+    {
       href: `/tour-packages-query`,
       label: 'Tour Packages Queries',
       active: pathname === `/tour-packages-query`,

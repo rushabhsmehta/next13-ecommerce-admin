@@ -12,7 +12,7 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import Image from "next/image";
 import { useState } from "react";
-import { Car, Check, Hotel as HotelIcon, Plus, Trash, Users, ChevronsUpDown } from "lucide-react";
+import { Car, Check, Hotel as HotelIcon, Plus, Trash, Users, ChevronsUpDown, BedDouble, LayoutGrid, List, Sparkles, Building2, Copy } from "lucide-react";
 
 interface HotelsTabProps {
   control: Control<any>;
@@ -36,9 +36,26 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   vehicleTypes,
 }) => {
   const itineraries = useWatch({ control, name: "itineraries" }) as any[] || [];
-  const daysMissingHotel = itineraries.reduce((acc, it, idx) => !it?.hotelId ? acc + 1 : acc, 0);
+  // Derived stats
+  const totalRooms = itineraries.reduce((sum, it: any) => sum + (Array.isArray(it.roomAllocations) ? it.roomAllocations.length : 0), 0);
+  const totalVehicles = itineraries.reduce((sum, it: any) => sum + (Array.isArray(it.transportDetails) ? it.transportDetails.length : 0), 0);
+  const assignedHotels = itineraries.reduce((sum, it: any) => sum + (it.hotelId ? 1 : 0), 0);
+  const daysMissingHotel = itineraries.reduce((acc, it: any) => !it?.hotelId ? acc + 1 : acc, 0);
   const [openHotelIndex, setOpenHotelIndex] = useState<number | null>(null);
+  const [expandAll, setExpandAll] = useState(false);
+  const allAccordionValues = itineraries.map((_: any, i: number) => `day-${i}`);
 
+  // Accent color classes (explicit list so Tailwind doesn't purge)
+  const accentBarClasses = [
+    'before:bg-primary/80',
+    'before:bg-emerald-500/80',
+    'before:bg-sky-500/80',
+    'before:bg-violet-500/80',
+    'before:bg-amber-500/80',
+    'before:bg-rose-500/80',
+  ];
+
+  // Helpers (restored after refactor)
   const addRoomAllocation = (dayIdx: number) => {
     const current = form.getValues(`itineraries.${dayIdx}.roomAllocations`) || [];
     form.setValue(`itineraries.${dayIdx}.roomAllocations`, [...current, { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1 }]);
@@ -57,35 +74,64 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {itineraries.length > 1 && (
-        <div className="flex justify-end">
+    <div className="space-y-5">
+      {/* Overview */}
+      <Card className="shadow-sm border border-slate-200/70 bg-gradient-to-r from-white to-slate-50">
+        <CardHeader className="pb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" /> Hotels, Rooms & Transport
+            </CardTitle>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Centralized allocation management
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Days: {itineraries.length}</Badge>
+            <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Hotels: {assignedHotels}/{itineraries.length}</Badge>
+            <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Rooms: {totalRooms}</Badge>
+            <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Vehicles: {totalVehicles}</Badge>
+            {daysMissingHotel > 0 && (
+              <Badge variant="destructive" className="animate-pulse text-xs">Unassigned: {daysMissingHotel}</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-2 flex flex-wrap gap-3">
+          {itineraries.length > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs flex items-center gap-1 border-primary/40 hover:bg-primary/10"
+              onClick={() => {
+                if (itineraries.length <= 1) return;
+                const firstDay = itineraries[0];
+                const roomAllocations = firstDay.roomAllocations || [];
+                const transportDetails = firstDay.transportDetails || [];
+                const updated = itineraries.map((it: any, idx: number) => idx === 0 ? it : ({
+                  ...it,
+                  roomAllocations: JSON.parse(JSON.stringify(roomAllocations)),
+                  transportDetails: JSON.parse(JSON.stringify(transportDetails))
+                }));
+                form.setValue('itineraries', updated);
+                alert('Room allocations and transport details copied to all days');
+              }}
+            >
+              <Copy className="h-3.5 w-3.5" /> Copy First Day Allocations
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="shadow-sm border-primary hover:bg-primary/10 transition-all flex items-center gap-2"
-            onClick={() => {
-              if (itineraries.length <= 1) return;
-              const firstDay = itineraries[0];
-              const roomAllocations = firstDay.roomAllocations || [];
-              const transportDetails = firstDay.transportDetails || [];
-              const updated = itineraries.map((it, idx) => idx === 0 ? it : ({
-                ...it,
-                roomAllocations: JSON.parse(JSON.stringify(roomAllocations)),
-                transportDetails: JSON.parse(JSON.stringify(transportDetails))
-              }));
-              form.setValue('itineraries', updated);
-              alert('Room allocations and transport details copied to all days');
-            }}
+            className="h-8 px-3 text-xs flex items-center gap-1"
+            onClick={() => setExpandAll(e => !e)}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0-2 2v8a2 2 0 002 2z" />
-            </svg>
-            Apply First Day Room Allocations & Transport
+            {expandAll ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+            {expandAll ? 'Collapse All' : 'Expand All'}
           </Button>
-        </div>
-      )}
+        </CardContent>
+      </Card>
       {itineraries.length === 0 && (
         <Card className="border-dashed border-2">
           <CardHeader>
@@ -103,39 +149,42 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
           </CardHeader>
         </Card>
       )}
-      <Accordion type="multiple" className="space-y-4">
+      <Accordion type="multiple" value={expandAll ? allAccordionValues : undefined} className="space-y-4">
         {itineraries.map((it, index) => {
           const rooms = (it.roomAllocations || []) as any[];
             const transports = (it.transportDetails || []) as any[];
+          const accent = accentBarClasses[index % accentBarClasses.length];
           return (
-            <AccordionItem key={index} value={`day-${index}`} className="border rounded-md">
-              <AccordionTrigger className="px-4">
-                <div className="flex flex-col items-start gap-1 w-full text-left">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={it.hotelId ? "outline" : "destructive"} className={!it.hotelId ? 'animate-pulse' : ''}>
-                      Day {it.dayNumber || index + 1}{!it.hotelId && ' • No Hotel'}
-                    </Badge>
-                    <span className="font-medium text-sm line-clamp-1" dangerouslySetInnerHTML={{ __html: it.itineraryTitle || '' }} />
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {it.hotelId && (
-                      <Badge variant="secondary" className="flex items-center gap-1"><HotelIcon className="h-3 w-3" />{hotels.find(h=>h.id===it.hotelId)?.name || 'Hotel'}</Badge>
-                    )}
-                    {rooms.length > 0 && (
-                      <Badge variant="outline" className="flex items-center gap-1"><Users className="h-3 w-3" />{rooms.length} rooms</Badge>
-                    )}
-                    {transports.length > 0 && (
-                      <Badge variant="outline" className="flex items-center gap-1"><Car className="h-3 w-3" />{transports.length} transports</Badge>
-                    )}
+            <AccordionItem
+              key={index}
+              value={`day-${index}`}
+              className={`relative border rounded-md overflow-hidden transition shadow-sm pl-0 ${!it.hotelId ? 'border-rose-200 bg-rose-50/40' : 'bg-white hover:shadow-md'} before:absolute before:inset-y-0 before:left-0 before:w-1 ${accent}`}
+            >
+              <AccordionTrigger className="px-4 py-3 data-[state=open]:bg-gradient-to-r data-[state=open]:from-primary/5 data-[state=open]:to-primary/10">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 w-full text-left">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold border ${it.hotelId ? 'bg-primary text-white border-primary' : 'bg-white text-slate-600 border-slate-300'}`}>{(it.dayNumber || index + 1)}</div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate" dangerouslySetInnerHTML={{ __html: it.itineraryTitle || `Day ${index+1}` }} />
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {it.hotelId ? (
+                          <Badge className="h-5 px-1.5 flex items-center gap-1 bg-gradient-to-r from-primary/90 to-primary text-white"><HotelIcon className="h-3 w-3" /> {hotels.find(h=>h.id===it.hotelId)?.name || 'Hotel'}</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="h-5 px-1.5 animate-pulse bg-rose-500 text-white">Hotel?</Badge>
+                        )}
+                        {rooms.length > 0 && <Badge className="h-5 px-1.5 flex items-center gap-1 bg-emerald-100 text-emerald-700 border border-emerald-200"><BedDouble className="h-3 w-3" />{rooms.length}</Badge>}
+                        {transports.length > 0 && <Badge className="h-5 px-1.5 flex items-center gap-1 bg-sky-100 text-sky-700 border border-sky-200"><Car className="h-3 w-3" />{transports.length}</Badge>}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="space-y-6 px-4 pb-6">
+              <AccordionContent className="space-y-6 px-4 pb-6 pt-4 bg-gradient-to-b from-white to-slate-50/60 border-t">
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2"><HotelIcon className="h-4 w-4" />Hotel</CardTitle>
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-t-md">
+                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><HotelIcon className="h-4 w-4 text-primary" />Hotel</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-4">
                     <FormField
                       control={control as any}
                       name={`itineraries.${index}.hotelId` as any}
@@ -144,11 +193,11 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         const open = openHotelIndex === index;
                         return (
                           <FormItem>
-                            <FormLabel className="text-xs">Select Hotel</FormLabel>
+                            <FormLabel className="text-[11px] font-medium uppercase tracking-wide text-slate-600">Select Hotel</FormLabel>
                             <Popover open={open} onOpenChange={(o)=> setOpenHotelIndex(o? index : null)}>
                               <PopoverTrigger asChild>
-                                <Button type="button" variant="outline" size="sm" className="w-full justify-between">
-                                  <span className="truncate text-xs">{selectedHotel ? selectedHotel.name : 'Choose hotel'}</span>
+                                <Button type="button" variant="outline" size="sm" className="w-full justify-between bg-white hover:bg-primary/5 transition">
+                                  <span className="truncate text-xs font-medium">{selectedHotel ? selectedHotel.name : 'Choose hotel'}</span>
                                   <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
                                 </Button>
                               </PopoverTrigger>
@@ -177,23 +226,38 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         )
                       }}
                     />
+                    {(() => {
+                      const selected = hotels.find(h => h.id === it.hotelId);
+                      if (!selected) return null;
+                      const imgs = selected.images?.slice(0,4) || [];
+                      if (!imgs.length) return null;
+                      return (
+                        <div className="grid grid-cols-4 gap-2 mt-2">
+                          {imgs.map((img, idx) => (
+                            <div key={idx} className="relative h-16 w-full rounded-md overflow-hidden border bg-slate-100">
+                              <Image src={img.url} alt={selected.name} fill className="object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2"><Users className="h-4 w-4" />Room Allocations</CardTitle>
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent rounded-t-md">
+                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Users className="h-4 w-4 text-emerald-600" />Room Allocations</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {rooms.map((room, rIndex) => (
-                      <Card key={rIndex} className="border-muted/40">
-                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between">
-                          <CardTitle className="text-xs">Room {rIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" disabled={loading} onClick={()=> removeRoomAllocation(index, rIndex)}>
+                      <Card key={rIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
+                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                          <CardTitle className="text-xs font-medium flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-primary" />Room {rIndex + 1}</CardTitle>
+                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={loading} onClick={()=> removeRoomAllocation(index, rIndex)}>
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </CardHeader>
-                        <CardContent className="pt-0 grid gap-3 md:grid-cols-5">
+                        <CardContent className="pt-3 grid gap-3 md:grid-cols-5">
                           <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
                             render={({ field }) => (
                               <FormItem>
@@ -244,26 +308,26 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         </CardContent>
                       </Card>
                     ))}
-                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addRoomAllocation(index)} className="w-full">
-                      <Plus className="h-4 w-4 mr-1" /> Add Room Allocation
+                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
+                      <Plus className="h-4 w-4 mr-1" /> Add Room
                     </Button>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2"><Car className="h-4 w-4" />Transport Details</CardTitle>
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-sky-100 via-sky-50 to-transparent rounded-t-md">
+                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Car className="h-4 w-4 text-sky-600" />Transport Details</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {transports.map((tr, tIndex) => (
-                      <Card key={tIndex} className="border-muted/40">
-                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between">
-                          <CardTitle className="text-xs">Vehicle {tIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" disabled={loading} onClick={()=> removeTransportDetail(index, tIndex)}>
+                      <Card key={tIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
+                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                          <CardTitle className="text-xs font-medium flex items-center gap-1"><Car className="h-3.5 w-3.5 text-sky-600" />Vehicle {tIndex + 1}</CardTitle>
+                          <Button type="button" variant="ghost" size="icon" disabled={loading} className="hover:text-red-600" onClick={()=> removeTransportDetail(index, tIndex)}>
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </CardHeader>
-                        <CardContent className="pt-0 grid gap-3 md:grid-cols-3">
+                        <CardContent className="pt-3 grid gap-3 md:grid-cols-3">
                           <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.vehicleTypeId` as any}
                             render={({ field }) => (
                               <FormItem>
@@ -290,8 +354,8 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         </CardContent>
                       </Card>
                     ))}
-                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addTransportDetail(index)} className="w-full">
-                      <Plus className="h-4 w-4 mr-1" /> Add Transport Detail
+                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
+                      <Plus className="h-4 w-4 mr-1" /> Add Vehicle
                     </Button>
                   </CardContent>
                 </Card>

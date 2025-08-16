@@ -1,9 +1,10 @@
 'use client'
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
+import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon, Building2Icon, BedIcon, CarIcon, MapPinIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner, RoomAllocation, TransportDetail } from "@prisma/client";
+import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, AssociatePartner, RoomAllocation, TransportDetail, TourDestination } from "@prisma/client";
 import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
 import { formatLocalDate } from '@/lib/timezone-utils';
@@ -28,6 +29,8 @@ interface TourPackageQueryDisplayProps {
   locations: Location[];
   hotels: (Hotel & {
     images: Images[];
+    location: Location;
+    destination: TourDestination | null;
   })[];
   selectedOption?: string;
   associatePartners: AssociatePartner[];
@@ -112,7 +115,8 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
 
   // Determine the icon based on the title
   const getIcon = () => {
-    switch (title) {      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
+    switch (title) {
+      case "Inclusions": return <CheckCircleIcon className="h-7 w-7" />;
       case "Exclusions": return <XCircleIcon className="h-7 w-7" />;
       case "Important Notes": return <InfoIcon className="h-7 w-7" />;
       case "Payment Policy": return <CreditCardIcon className="h-7 w-7" />;
@@ -245,8 +249,8 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Tour Package Details */}
       <Card className="break-inside-avoid border shadow-lg rounded-lg">        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <h2 className="text-2xl font-bold">Tour Information</h2>
-        </CardHeader>
+        <h2 className="text-2xl font-bold">Tour Information</h2>
+      </CardHeader>
 
         <CardContent className="p-6">
           <div className="grid gap-6 md:grid-cols-1 text-gray-700">
@@ -395,52 +399,52 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
  */}      {/* Enhanced Pricing Options Table */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
         <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-4 border-b border-orange-200">
-            <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
-            <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
-          </div>
+          <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
+          <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
+        </div>
           <div className="overflow-x-auto">            <table className="min-w-full divide-y divide-gray-200 bg-white">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg">📋</span>
-                      <span>Item Name</span>
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">📋</span>
+                    <span>Item Name</span>
+                  </div>
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">💵</span>
+                    <span>Price (Base)</span>
+                  </div>
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">📊</span>
+                    <span>Calculation & Total</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {parsePricingSection(initialData.pricingSection).map((item, index) => (
+                <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-orange-50 transition-colors duration-200`}>
+                  <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                    <div className="text-lg font-semibold text-gray-900">{item.name}</div>
+                  </td>
+                  <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
+                    <div className="text-lg font-bold text-green-600">
+                      {item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}
                     </div>
-                  </th>
-                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg">💵</span>
-                      <span>Price (Base)</span>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className="text-base text-gray-700 leading-relaxed">
+                      {item.description || '-'}
                     </div>
-                  </th>
-                  <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg">📊</span>
-                      <span>Calculation & Total</span>
-                    </div>
-                  </th>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {parsePricingSection(initialData.pricingSection).map((item, index) => (
-                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-orange-50 transition-colors duration-200`}>
-                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
-                      <div className="text-lg font-semibold text-gray-900">{item.name}</div>
-                    </td>
-                    <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
-                      <div className="text-lg font-bold text-green-600">
-                        {item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="text-base text-gray-700 leading-relaxed">
-                        {item.description || '-'}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
           </div>          <div className="bg-gradient-to-r from-orange-50 to-pink-50 px-6 py-3 border-t border-orange-200">
             <p className="text-sm text-orange-600 italic font-medium">* All prices are in INR and subject to availability at the time of confirmation.</p>
           </div>
@@ -451,19 +455,19 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
         <div className="mt-6">
           <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">            <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-5">
-              <h3 className="text-2xl font-bold text-white flex items-center">
-                <span className="mr-3 text-3xl">🎯</span>
-                Total Package Price
-              </h3>
-            </div>
+            <h3 className="text-2xl font-bold text-white flex items-center">
+              <span className="mr-3 text-3xl">🎯</span>
+              Total Package Price
+            </h3>
+          </div>
             <CardContent className="p-8">
               <div className="text-center">
                 <div className="text-5xl font-bold text-gray-900 mb-4">
                   <span className="text-orange-600">₹ </span>
-                  <span dangerouslySetInnerHTML={{ 
-                    __html: initialData.totalPrice ? 
-                      parseFloat(initialData.totalPrice.replace(/[^\d.-]/g, '')).toLocaleString('en-IN') : 
-                      initialData.totalPrice 
+                  <span dangerouslySetInnerHTML={{
+                    __html: initialData.totalPrice ?
+                      parseFloat(initialData.totalPrice.replace(/[^\d.-]/g, '')).toLocaleString('en-IN') :
+                      initialData.totalPrice
                   }} />
                 </div>
                 <div className="text-lg text-gray-600 bg-orange-50 px-6 py-3 rounded-full inline-block">
@@ -498,160 +502,106 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Hotel, Room Allocation and Transport Details Day-wise */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.length > 0 && (
-        <Card className="mb-6 break-inside-avoid bg-white shadow-sm rounded-lg overflow-hidden">
-          <div className="bg-gray-50 text-gray-800 p-4 border-b">
-            <CardTitle className="text-4xl font-semibold text-center flex items-center justify-center gap-3">
-              <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-              </svg>
-              <span className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
+        <Card className="mb-8 break-inside-avoid bg-white shadow-xl rounded-xl overflow-hidden border-2 border-gray-100">
+          {/* Enhanced Header */}
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-8 border-b">
+            <CardTitle className="text-3xl font-bold text-center flex items-center justify-center gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-white/20 rounded-full backdrop-blur-sm">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span>
                 Hotel, Room Allocation & Transport Details
               </span>
             </CardTitle>
+            <p className="text-center text-blue-100 mt-2 text-lg">Comprehensive day-wise accommodation and transport overview</p>
           </div>
-          <CardContent className="p-4">
+
+          <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full table-fixed divide-y divide-gray-200 bg-white">
+              <table className="min-w-full bg-white">
                 <colgroup>
-                  <col style={{ width: '20%' }} />
-                  <col style={{ width: '25%' }} />
-                  <col style={{ width: '25%' }} />
-                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '40%' }} />
+                  <col style={{ width: '60%' }} />
                 </colgroup>
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">📅</span>
-                        <span>Day</span>
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🏨</span>
-                        <span>Hotel Details</span>
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🛏️</span>
-                        <span>Room Allocation</span>
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-base font-semibold text-gray-700 uppercase tracking-wider">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">🚗</span>
-                        <span>Transport Details</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {initialData.itineraries.map((itinerary, index) => (
-                    <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}>
-                      {/* Day Column */}
-                      <td className="px-4 py-4 border-r border-gray-100 align-top whitespace-normal break-words">
-                        <div className="flex items-start gap-3">
-                          <div className="bg-gray-200 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+
+                {/* table header intentionally removed to reduce visual clutter */}
+
+                <tbody className="bg-white">
+                  {initialData.itineraries.map((itinerary) => (
+                    <tr key={itinerary.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-6 align-top">
+                        <div className="flex items-start gap-4">
+                          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg">
                             {itinerary.dayNumber}
                           </div>
-                          <div className="min-w-0 flex-1 max-w-full">
-                            <div className="text-lg md:text-xl font-semibold text-gray-900 whitespace-normal break-words">
+                          <div>
+                            <div className="text-xl font-bold text-gray-900">
                               Day {itinerary.dayNumber}: {itinerary.days}
-                              {(() => {
-                                const t = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
-                                return t ? (
-                                  <span className="font-normal text-gray-700" dangerouslySetInnerHTML={{ __html: ` — ${t}` }} />
-                                ) : null;
-                              })()}
                             </div>
+                            {(() => {
+                              const t = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
+                              return t ? <div className="text-base text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: t }} /> : null;
+                            })()}
                           </div>
                         </div>
                       </td>
-
-                      {/* Hotel Details Column */}
-                      <td className="px-4 py-4 border-r border-gray-100 align-top">
-                        {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) ? (
-                          <div>
-                            <div className="text-lg font-semibold text-gray-900 mb-0.5">
-                              {hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}
-                            </div>
-                            {(() => {
-                              const hotel = hotels.find(h => h.id === itinerary.hotelId);
-                              const locationLabel = hotel?.locationId ? locations.find(l => l.id === hotel.locationId)?.label : undefined;
-                              return locationLabel ? (
-                                <div className="text-sm text-gray-600 flex items-center">
-                                  <span className="mr-1">📍</span>
-                                  {locationLabel}
-                                </div>
-                              ) : null;
-                            })()}
-                          </div>
-                        ) : (
-                          <div className="text-lg text-gray-500 italic">No hotel assigned</div>
-                        )}
-                      </td>
-
-                      {/* Room Allocation Column */}
-                      <td className="px-4 py-4 border-r border-gray-100 align-top">
-                        {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? (
-                          <div className="space-y-1">
-                            {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
-                              <div key={roomIndex} className="text-base">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
-                                    {typeof room.roomType === 'object' ? room.roomType?.name : room.roomType || 'Standard'}
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
-                                    {typeof room.occupancyType === 'object' ? room.occupancyType?.name : room.occupancyType || 'Double'}
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
-                                    {typeof room.mealPlan === 'object' ? room.mealPlan?.name : room.mealPlan || 'CP'}
-                                  </span>
-                                  <span className="text-gray-600 text-sm">• Rooms: {room.quantity || '1'}</span>
-                                  {room.guestNames && (
-                                    <span className="text-gray-600 text-sm">• Guests: {room.guestNames}</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-lg text-gray-500 italic">No room details</div>
-                        )}
-                      </td>
-
-                      {/* Transport Details Column */}
-                      <td className="px-4 py-4 align-top">
-                        {itinerary.transportDetails && itinerary.transportDetails.length > 0 ? (
-                          <div className="space-y-1">
-                            {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
-                              <div key={transportIndex} className="text-base">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
-                                    {transport.vehicleType?.name || 'Car'}
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-800 rounded text-sm">
-                                    Qty: {transport.quantity || '1'}
-                                  </span>
-                                  {transport.description && (
-                                    <span className="text-gray-600 text-sm">• {transport.description}</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-lg text-gray-500 italic">No transport details</div>
-                        )}
+                      
+                      <td className="px-6 py-6 align-top">
+                        <div className="bg-white ring-1 ring-gray-200 rounded-lg p-4 shadow-sm text-sm">
+                          <table className="table-auto w-full text-left">
+                            <thead>
+                              <tr>
+                                <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
+                                <th className="px-2 py-1 text-gray-900 font-semibold">Meal Plan</th>
+                                <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {itinerary.roomAllocations?.map((room: any, idx: number) => (
+                                <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                                  <td className="px-2 py-1 whitespace-nowrap">
+                                    <span>{typeof room.roomType === 'object' ? room.roomType.name : room.roomType || 'Standard'}</span>
+                                  </td>
+                                  <td className="px-2 py-1 whitespace-nowrap">
+                                    <span>{typeof room.mealPlan === 'object' ? room.mealPlan.name : room.mealPlan || 'CP'}</span>
+                                  </td>
+                                  <td className="px-2 py-1 text-center whitespace-nowrap">
+                                    <span className="font-medium">{room.quantity || 1}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                              {itinerary.transportDetails?.map((t: any, i: number) => (
+                                <tr key={i} className="border-t-2 border-blue-100 bg-blue-50 hover:bg-blue-100">
+                                  <td colSpan={2} className="px-2 py-1 whitespace-nowrap flex items-center space-x-1">
+                                    <CarIcon className="w-4 h-4 text-blue-700" />
+                                    <span className="font-semibold text-blue-800">{t.vehicleType?.name || 'Car'}</span>
+                                  </td>
+                                  <td className="px-2 py-1 text-center whitespace-nowrap">
+                                    <span className="font-medium text-blue-800">{t.quantity || 1}</span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="bg-gray-50 px-4 py-2 border-t mt-4">
-              <p className="text-base text-gray-600 italic">* This summary provides day-wise overview of accommodation and transport arrangements.</p>
+
+            {/* Enhanced Footer */}
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <p className="text-sm text-gray-600 font-medium">
+                  This summary provides a comprehensive day-wise overview of accommodation and transport arrangements
+                </p>
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -659,285 +609,285 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Itineraries */}
       {
-        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (          <Card key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
-            {index === 0 &&
-              <Card className="border rounded-lg shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
-                <CardTitle className="text-5xl font-bold">Itinerary</CardTitle>
-              </Card>}
-            <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 rounded-t-lg">
-              {/* Day and Title grouped */}
+        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (<Card key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
+          {index === 0 &&
+            <Card className="border rounded-lg shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
+              <CardTitle className="text-5xl font-bold">Itinerary</CardTitle>
+            </Card>}
+          <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 rounded-t-lg">
+            {/* Day and Title grouped */}
 
 
-              <div>
-                <CardTitle className="text-2xl font-bold"
-                  dangerouslySetInnerHTML={{
-                    __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
-                  }} />
+            <div>
+              <CardTitle className="text-2xl font-bold"
+                dangerouslySetInnerHTML={{
+                  __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                }} />
+            </div>
+          </div>
+
+          {/* Fixed Size Image Section */}
+          <div className="flex justify-center items-center break-inside-avoid">
+            {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+              <div key={imageIndex} className="w-full h-[500px]">
+                <Image
+                  src={image.url}
+                  alt={`Itinerary Image ${imageIndex + 1}`}
+                  width={1200}
+                  height={500}
+                  className="object-cover w-full h-full"
+                />
               </div>
-            </div>
+            ))}
+          </div>            {/* Description Section */}
+          <div className="flex-grow p-8">
+            <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
+          </div>
 
-            {/* Fixed Size Image Section */}
-            <div className="flex justify-center items-center break-inside-avoid">
-              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-                <div key={imageIndex} className="w-full h-[500px]">
-                  <Image
-                    src={image.url}
-                    alt={`Itinerary Image ${imageIndex + 1}`}
-                    width={1200}
-                    height={500}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              ))}
-            </div>            {/* Description Section */}
-            <div className="flex-grow p-8">
-              <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
-            </div>
-
-            <CardContent className="p-8">
-              {/* Hotel Section */}
-              {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-                <Card className="my-4">                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
-                    Hotel Details
-                  </CardHeader>
-                  <div className="p-6">                    {/* Hotel Images */}
-                    {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
-                      <div className="flex items-start mb-4">
+          <CardContent className="p-8">
+            {/* Hotel Section */}
+            {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
+              <Card className="my-4">                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
+                Hotel Details
+              </CardHeader>
+                <div className="p-6">                    {/* Hotel Images */}
+                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
+                    <div className="flex items-start mb-4">
+                      <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        <div className="w-[250px] h-[250px]">
+                          <Image
+                            src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
+                            alt="Hotel Image"
+                            className="rounded-lg object-cover w-full h-full"
+                            width={250}
+                            height={250}
+                          />
+                        </div>
+                      </Link>                        {/* Hotel Text Content */}
+                      <div className="ml-4">
+                        <div className="text-2xl font-bold">Hotel Name:</div>
                         <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                          <div className="w-[250px] h-[250px]">
-                            <Image
-                              src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
-                              alt="Hotel Image"
-                              className="rounded-lg object-cover w-full h-full"
-                              width={250}
-                              height={250}
-                            />
+                          <p className="text-2xl mb-3">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                        </Link>
+
+                        {/* Room Allocations Section */}
+                        {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
+                          <div className="mt-6">
+                            <div className="text-2xl font-bold border-b pb-3 mb-4">Room Details:</div>
+                            <div className="space-y-4">
+                              {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
+                                <div key={roomIndex} className="bg-gray-50 rounded-lg p-4 border">
+                                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                                    <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
+                                      Occupancy Type #{roomIndex + 1}
+                                    </span>                                      <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
+                                      {room.roomType?.name || 'Standard'}
+                                    </span>
+                                    <span className="px-3 py-2 bg-green-100 text-green-800 rounded text-lg">
+                                      {room.occupancyType?.name || 'Double'}
+                                    </span>
+                                    <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded text-lg">
+                                      {room.mealPlan?.name || 'CP (Breakfast Only)'}
+                                    </span>
+                                  </div>
+                                  <p className="text-lg text-gray-600">
+                                    <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
+                                    {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </Link>                        {/* Hotel Text Content */}
-                        <div className="ml-4">
-                          <div className="text-2xl font-bold">Hotel Name:</div>
-                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                            <p className="text-2xl mb-3">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                          </Link>
+                        )}
 
-                          {/* Room Allocations Section */}
-                          {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
-                            <div className="mt-6">
-                              <div className="text-2xl font-bold border-b pb-3 mb-4">Room Details:</div>
-                              <div className="space-y-4">
-                                {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
-                                  <div key={roomIndex} className="bg-gray-50 rounded-lg p-4 border">
-                                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                                      <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
-                                        Occupancy Type #{roomIndex + 1}
-                                      </span>                                      <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
-                                        {room.roomType?.name || 'Standard'}
-                                      </span>
-                                      <span className="px-3 py-2 bg-green-100 text-green-800 rounded text-lg">
-                                        {room.occupancyType?.name || 'Double'}
-                                      </span>
-                                      <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded text-lg">
-                                        {room.mealPlan?.name || 'CP (Breakfast Only)'}
-                                      </span>
-                                    </div>
-                                    <p className="text-lg text-gray-600">
-                                      <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
-                                      {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                        {/* Fallback to old structure if roomAllocations is not available */}
+                        {!itinerary.roomAllocations?.length && (
+                          <>
+                            {itinerary.numberofRooms && (
+                              <>
+                                <div className="text-2xl font-bold">Number of Rooms/Occupancy:</div>
+                                <p className="text-2xl mb-3">{itinerary.numberofRooms}</p>
+                              </>
+                            )}
 
-                          {/* Fallback to old structure if roomAllocations is not available */}
-                          {!itinerary.roomAllocations?.length && (
-                            <>
-                              {itinerary.numberofRooms && (
-                                <>
-                                  <div className="text-2xl font-bold">Number of Rooms/Occupancy:</div>
-                                  <p className="text-2xl mb-3">{itinerary.numberofRooms}</p>
-                                </>
-                              )}
+                            {itinerary.roomCategory && (
+                              <>
+                                <div className="text-2xl font-bold">Room Category:</div>
+                                <p className="text-2xl mb-3">{itinerary.roomCategory}</p>
+                              </>
+                            )}
 
-                              {itinerary.roomCategory && (
-                                <>
-                                  <div className="text-2xl font-bold">Room Category:</div>
-                                  <p className="text-2xl mb-3">{itinerary.roomCategory}</p>
-                                </>
-                              )}
-
-                              {itinerary.mealsIncluded && (
-                                <>
-                                  <div className="text-2xl font-bold">Meal Plan:</div>
-                                  <p className="text-2xl mb-3">{itinerary.mealsIncluded}</p>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
+                            {itinerary.mealsIncluded && (
+                              <>
+                                <div className="text-2xl font-bold">Meal Plan:</div>
+                                <p className="text-2xl mb-3">{itinerary.mealsIncluded}</p>
+                              </>
+                            )}
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <div>
-                        <div className="grid grid-cols-3 gap-4">
-                          {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                            <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                              <div className="w-[250px] h-[250px]">
-                                <Image
-                                  src={image.url}
-                                  alt={`Hotel Image ${imgIndex + 1}`}
-                                  className="rounded-lg object-cover w-full h-full"
-                                  width={250}
-                                  height={250}
-                                />
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-xl font-bold">Hotel Name:</div>
-                          <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                            <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                          </Link>
-
-                          {/* Room Allocations Section */}
-                          {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
-                            <div className="mt-4">
-                              <div className="text-xl font-bold border-b pb-2 mb-3">Room Details:</div>
-                              <div className="space-y-3">
-                                {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
-                                  <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
-                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
-                                        Occupancy Type #{roomIndex + 1}
-                                      </span>                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                        {typeof room.roomType === 'object' ? room.roomType?.name : room.roomType || 'Standard'}
-                                      </span>
-                                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-                                        {typeof room.occupancyType === 'object' ? room.occupancyType?.name : room.occupancyType || 'Double'}
-                                      </span>
-                                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                                        {typeof room.mealPlan === 'object' ? room.mealPlan?.name : room.mealPlan || 'CP (Breakfast Only)'}
-                                      </span>
-                                    </div>
-                                    <p className="text-sm text-gray-600">
-                                      <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
-                                      {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="grid grid-cols-3 gap-4">
+                        {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
+                          <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            <div className="w-[250px] h-[250px]">
+                              <Image
+                                src={image.url}
+                                alt={`Hotel Image ${imgIndex + 1}`}
+                                className="rounded-lg object-cover w-full h-full"
+                                width={250}
+                                height={250}
+                              />
                             </div>
-                          )}
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-xl font-bold">Hotel Name:</div>
+                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
+                        </Link>
 
-                          {/* Fallback to old structure if roomAllocations is not available */}
-                          {!itinerary.roomAllocations?.length && (
-                            <>
-                              {itinerary.numberofRooms && (
-                                <>
-                                  <div className="text-xl font-bold">Number of Rooms/Occupancy:</div>
-                                  <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                                </>
-                              )}
+                        {/* Room Allocations Section */}
+                        {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
+                          <div className="mt-4">
+                            <div className="text-xl font-bold border-b pb-2 mb-3">Room Details:</div>
+                            <div className="space-y-3">
+                              {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
+                                <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
+                                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
+                                      Occupancy Type #{roomIndex + 1}
+                                    </span>                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                                      {typeof room.roomType === 'object' ? room.roomType?.name : room.roomType || 'Standard'}
+                                    </span>
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                                      {typeof room.occupancyType === 'object' ? room.occupancyType?.name : room.occupancyType || 'Double'}
+                                    </span>
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                                      {typeof room.mealPlan === 'object' ? room.mealPlan?.name : room.mealPlan || 'CP (Breakfast Only)'}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-gray-600">
+                                    <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
+                                    {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
-                              {itinerary.roomCategory && (
-                                <>
-                                  <div className="text-xl font-bold">Room Category:</div>
-                                  <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                                </>
-                              )}
+                        {/* Fallback to old structure if roomAllocations is not available */}
+                        {!itinerary.roomAllocations?.length && (
+                          <>
+                            {itinerary.numberofRooms && (
+                              <>
+                                <div className="text-xl font-bold">Number of Rooms/Occupancy:</div>
+                                <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
+                              </>
+                            )}
 
-                              {itinerary.mealsIncluded && (
-                                <>
-                                  <div className="text-xl font-bold">Meal Plan:</div>
-                                  <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>)}                    {/* Transport Details Section */}
-                    {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
-                      <div className="mt-8">
-                        <div className="text-2xl font-bold border-b pb-3 mb-4">Transport Details:</div>
-                        <div className="space-y-4">
-                          {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
-                            <div key={transportIndex} className="bg-gray-50 rounded-lg p-4 border">
-                              <div className="flex flex-wrap items-center gap-3 mb-2">                                <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
-                                  Transport #{transportIndex + 1}
-                                </span>
-                                <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
-                                  {transport.vehicleType?.name || 'Car'}
-                                </span>
-                                {/* <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
+                            {itinerary.roomCategory && (
+                              <>
+                                <div className="text-xl font-bold">Room Category:</div>
+                                <p className="text-xl mb-2">{itinerary.roomCategory}</p>
+                              </>
+                            )}
+
+                            {itinerary.mealsIncluded && (
+                              <>
+                                <div className="text-xl font-bold">Meal Plan:</div>
+                                <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>)}                    {/* Transport Details Section */}
+                  {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
+                    <div className="mt-8">
+                      <div className="text-2xl font-bold border-b pb-3 mb-4">Transport Details:</div>
+                      <div className="space-y-4">
+                        {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
+                          <div key={transportIndex} className="bg-gray-50 rounded-lg p-4 border">
+                            <div className="flex flex-wrap items-center gap-3 mb-2">                                <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
+                              Transport #{transportIndex + 1}
+                            </span>
+                              <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
+                                {transport.vehicleType?.name || 'Car'}
+                              </span>
+                              {/* <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
                                   {transport.transportType || 'Per Day'}
                                 </span> */}
-                              </div>
-                              <p className="text-lg text-gray-600">
-                                <span className="font-medium">Number of Vehicles:</span> {transport.quantity || '1'}
-                                {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
-                              </p>
                             </div>
-                          ))}
-                        </div>
+                            <p className="text-lg text-gray-600">
+                              <span className="font-medium">Number of Vehicles:</span> {transport.quantity || '1'}
+                              {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                </Card>
-              )}              {/* Activities Section */}
-              {itinerary.activities && itinerary.activities.length > 0 && (
-                <Card className="my-6">
-                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
-                    Activities
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid gap-6">
-                      {itinerary.activities.map((activity, activityIndex) => (
-                        <div key={activityIndex} className="mb-6">
-                          {activity.activityImages && activity.activityImages.length === 1 ? (
-                            <div className="flex items-start mb-6 w-full">
-                              <div className="w-[250px] h-[250px] flex-shrink-0">
-                                <Image
-                                  src={activity.activityImages[0].url}
-                                  alt={`Activity Image ${activityIndex + 1}`}
-                                  className="rounded-lg object-cover w-full h-full"
-                                  width={250}
-                                  height={250}
-                                />
-                              </div>
-                              <div className="ml-6 w-full">
-                                <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                                <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
-                              </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}              {/* Activities Section */}
+            {itinerary.activities && itinerary.activities.length > 0 && (
+              <Card className="my-6">
+                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
+                  Activities
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid gap-6">
+                    {itinerary.activities.map((activity, activityIndex) => (
+                      <div key={activityIndex} className="mb-6">
+                        {activity.activityImages && activity.activityImages.length === 1 ? (
+                          <div className="flex items-start mb-6 w-full">
+                            <div className="w-[250px] h-[250px] flex-shrink-0">
+                              <Image
+                                src={activity.activityImages[0].url}
+                                alt={`Activity Image ${activityIndex + 1}`}
+                                className="rounded-lg object-cover w-full h-full"
+                                width={250}
+                                height={250}
+                              />
                             </div>
-                          ) : (
-                            <div className="w-full">
-                              <div className="flex justify-start items-center mb-6 gap-6">
-                                {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
-                                  <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
-                                    <Image
-                                      src={image.url}
-                                      alt={`Activity Image ${actImgIndex + 1}`}
-                                      className="rounded-lg object-cover w-full h-full"
-                                      width={250}
-                                      height={250}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="ml-6 w-full">
                               <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
                               <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                          </div>
+                        ) : (
+                          <div className="w-full">
+                            <div className="flex justify-start items-center mb-6 gap-6">
+                              {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
+                                <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
+                                  <Image
+                                    src={image.url}
+                                    alt={`Activity Image ${actImgIndex + 1}`}
+                                    className="rounded-lg object-cover w-full h-full"
+                                    width={250}
+                                    height={250}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                            <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
         ))
       }      {

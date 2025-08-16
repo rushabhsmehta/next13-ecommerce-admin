@@ -67,9 +67,10 @@ const tourPackageQueryPage = async ({
   });
 
   const hotels = await prismadb.hotel.findMany({
-    
     include: {
       images: true,
+      location: true,
+      destination: true,
     }
   });
 

@@ -8,6 +8,7 @@ export type HotelColumn = {
   id: string
   name: string;
   locationLabel: string;
+  destinationName: string;
   createdAt: string;
 }
 
@@ -20,6 +21,15 @@ export const columns: ColumnDef<HotelColumn>[] = [
     accessorKey: "location",
     header: "Location",
     cell: ({ row }) => row.original.locationLabel,
+  },
+  {
+    accessorKey: "destination",
+    header: "Destination",
+    cell: ({ row }) => (
+      <span className={row.original.destinationName === "No destination" ? "text-muted-foreground italic" : ""}>
+        {row.original.destinationName}
+      </span>
+    ),
   },
   {
     accessorKey: "createdAt",

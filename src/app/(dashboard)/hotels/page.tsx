@@ -11,9 +11,9 @@ const HotelsPage = async ({
 
 }) => {
   const hotels = await prismadb.hotel.findMany({
-
     include: {
       location: true,
+      destination: true,
     },
     orderBy: {
       createdAt: 'desc'
@@ -24,6 +24,7 @@ const HotelsPage = async ({
     id: item.id,
     name: item.name,
     locationLabel: item.location.label,
+    destinationName: item.destination?.name || "No destination",
     createdAt: format(item.createdAt, 'MMMM d, yyyy'),
   }));
 

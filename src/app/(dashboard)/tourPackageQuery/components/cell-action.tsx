@@ -107,11 +107,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
 
-          <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageQueryHotelUpdate/${data.id}`)}
-          >
-            <Hotel className="mr-2 h-4 w-4" /> Update Hotel Details
-          </DropdownMenuItem>
+          {/* Hotel details editing now integrated inside main edit form (Hotels tab) */}
 
           <DropdownMenuItem
             onClick={() => router.push(`/tourPackageFromTourPackageQuery/${data.id}`)}

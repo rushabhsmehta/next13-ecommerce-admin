@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
-import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon, GripVertical } from "lucide-react";
+import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, MapPinIcon, Check as CheckIcon, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
@@ -36,9 +36,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { RoomAllocationComponent, TransportDetailsComponent } from "@/components/forms/pricing-components";
+// Removed RoomAllocationComponent & TransportDetailsComponent (moved to Hotels tab)
 import ImageUpload from "@/components/ui/image-upload";
-import Image from 'next/image';
+// Removed hotel image preview (now managed in Hotels tab)
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -47,9 +47,7 @@ import { CSS } from "@dnd-kit/utilities";
 interface ItineraryTabProps {
   control: Control<TourPackageQueryFormValues | TourPackageQueryCreateCopyFormValues>;
   loading: boolean;
-  hotels: (Hotel & {
-    images: Images[];
-  })[];
+  hotels: (Hotel & { images: Images[]; })[]; // kept prop for backwards compatibility (not used now)
   activitiesMaster?: (ActivityMaster & {
     activityMasterImages: Images[];
   })[] | null;
@@ -61,14 +59,14 @@ interface ItineraryTabProps {
   })[] | null;
   form: any; // Consider using a more specific type or a union type if form methods differ
   // --- ADDED LOOKUP PROPS ---
-  roomTypes?: RoomType[];
-  occupancyTypes?: OccupancyType[];
-  mealPlans?: MealPlan[];
-  vehicleTypes?: VehicleType[];
+  roomTypes?: RoomType[]; // no longer used here
+  occupancyTypes?: OccupancyType[]; // no longer used here
+  mealPlans?: MealPlan[]; // no longer used here
+  vehicleTypes?: VehicleType[]; // no longer used here
   // --- END ADDED LOOKUP PROPS ---
 }
 
-const ItineraryTab: React.FC<ItineraryTabProps> = ({
+function ItineraryTab({
   control,
   loading,
   hotels,
@@ -81,7 +79,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   mealPlans = [],
   vehicleTypes = [],
   // --- END DESTRUCTURE ---
-}) => {
+}: ItineraryTabProps) {
   // Create a refs object to store multiple editor references instead of a single ref
   const editorsRef = useRef<{[key: string]: any}>({});
   // Handle saving to master itinerary
@@ -111,31 +109,24 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
       // Send to existing API endpoint
       const response = await fetch('/api/itinerariesMaster', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(masterItineraryData),
       });
 
-      // Parse the response
       const data = await response.json();
-
-      // Show success message
       alert('Saved to Master Itinerary successfully!');
       console.log('Saved to master itinerary:', data);
     } catch (error: any) {
       console.error('Error saving to master itinerary:', error);
       alert(`Failed to save to Master Itinerary: ${error.message}`);
     } finally {
-      // Reset loading state
       form.setValue('loading', false);
     }
   };
 
-  // Handle activity selection
+  // Activity selection helper (restored after refactor)
   const handleActivitySelection = (selectedActivityId: string, itineraryIndex: number, activityIndex: number) => {
     const selectedActivityMaster = activitiesMaster?.find(activity => activity.id === selectedActivityId);
-
     if (selectedActivityMaster) {
       const updatedItineraries = [...form.getValues('itineraries')];
       updatedItineraries[itineraryIndex].activities[activityIndex] = {
@@ -148,12 +139,6 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
     }
   };
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor)
-  );
-
   // Sortable wrapper to attach drag listeners to a handle and item container
   const SortableWrapper: React.FC<{ id: string; children: (opts: { attributes: any; listeners: any; isDragging: boolean; setNodeRef: (node: HTMLElement | null) => void; style: React.CSSProperties; }) => React.ReactNode; }> = ({ id, children }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -164,6 +149,12 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
     };
     return <div ref={setNodeRef} style={style}>{children({ attributes, listeners, isDragging, setNodeRef, style })}</div>;
   };
+
+  // DnD sensors (restored)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
 
   // Normalizers to ensure fields are strings/arrays and not null
   const normalizeActivity = (activity: any) => ({
@@ -221,49 +212,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
             <ListPlus className="h-5 w-5 text-primary" />
             Itinerary Details
           </CardTitle>
-          <FormField
-            control={control}
-            name="itineraries"
-            render={({ field: { value = [] } }) => (
-              <>
-                {value.length > 1 ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shadow-sm border-primary hover:bg-primary/10 transition-all flex items-center gap-2"
-                    onClick={() => {
-                      const itineraries = [...value];
-                      if (itineraries.length <= 1) return;
-
-                      const firstDay = itineraries[0];
-                      // Get specifically roomAllocations and transportDetails arrays
-                      const roomAllocations = firstDay.roomAllocations || [];
-                      const transportDetails = firstDay.transportDetails || [];
-
-                      const updatedItineraries = itineraries.map((itinerary, idx) => {
-                        if (idx === 0) return itinerary;
-                        return {
-                          ...itinerary,
-                          // Copy only roomAllocations and transportDetails from the first day
-                          roomAllocations: JSON.parse(JSON.stringify(roomAllocations)),
-                          transportDetails: JSON.parse(JSON.stringify(transportDetails))
-                        };
-                      });
-
-                      form.setValue('itineraries', updatedItineraries);
-                      alert('Room allocations and transport details copied to all days');
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Apply First Day Room Allocations & Transport
-                  </Button>
-                ) : null}
-              </>
-            )}
-          />
+          {/* Copy first day allocations button removed (moved to Hotels tab) */}
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
@@ -498,132 +447,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                 />
                               </div>
 
-                              <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                                <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-slate-700">
-                                  <BuildingIcon className="h-4 w-4 text-primary" />
-                                  Accommodation
-                                </h3>
-                                <div className="space-y-4">
-                                  <FormItem className="flex flex-col">
-                                    <FormLabel>Hotel</FormLabel>
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <FormControl>
-                                          <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            className={cn(
-                                              "w-full justify-between",
-                                              !itinerary.hotelId && "text-muted-foreground"
-                                            )}
-                                            disabled={loading}
-                                          >
-                                            {itinerary.hotelId
-                                              ? hotels.find(
-                                                (hotel) => hotel.id === itinerary.hotelId
-                                              )?.name
-                                              : "Select a Hotel"}
-                                            <ChevronUp className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                          </Button>
-                                        </FormControl>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-[200px] p-0 max-h-[10rem] overflow-auto">
-                                        <Command>
-                                          <CommandInput
-                                            placeholder="Search hotel..."
-                                            className="h-9"
-                                          />
-                                          <CommandEmpty>No hotel found.</CommandEmpty>
-                                          <CommandGroup>
-                                            {[...hotels.filter(hotel => hotel.locationId === itinerary.locationId || hotel.id === 'cdd32e64-4fc4-4784-9f46-507611eb0168')
-                                            ].map((hotel) => (
-                                              <CommandItem
-                                                value={hotel.name}
-                                                key={hotel.id}
-                                                onSelect={() => {
-                                                  const newItineraries = [...value];
-                                                  newItineraries[index] = {
-                                                    ...itinerary,
-                                                    hotelId: hotel.id
-                                                  };
-                                                  onChange(newItineraries); // Update the state with the new itineraries
-                                                }}
-                                              >
-                                                {hotel.name}
-                                                <CheckIcon
-                                                  className={cn(
-                                                    "ml-auto h-4 w-4",
-                                                    hotel.id === itinerary.hotelId
-                                                      ? "opacity-100"
-                                                      : "opacity-0"
-                                                  )}
-                                                />
-                                              </CommandItem>
-                                            ))}
-                                          </CommandGroup>
-                                        </Command>
-                                      </PopoverContent>
-                                    </Popover>
-                                    <FormMessage />
-                                  </FormItem>
-
-                                  {/* Display selected hotel images */}
-                                  {(() => {
-                                    const hotel = itinerary.hotelId ? hotels.find(h => h.id === itinerary.hotelId) : undefined;
-                                    if (hotel && hotel.images && hotel.images.length > 0) {
-                                      return (
-                                        <div className="mt-4">
-                                          <h4 className="text-sm font-medium mb-2">Hotel Images</h4>
-                                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            {hotel.images.map((image, imgIndex) => (
-                                              <div key={imgIndex} className="relative w-[120px] h-[120px] rounded-md overflow-hidden border">
-                                                <Image
-                                                  src={image.url}
-                                                  alt={`Hotel Image ${imgIndex + 1}`}
-                                                  fill
-                                                  className="object-cover"
-                                                />
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-
-                                {/* Room Allocation Section */}
-                                <div className="mt-4 border-t border-slate-100 pt-4">
-                                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
-                                    <BedIcon className="h-4 w-4 text-primary" />
-                                    Room Allocations
-                                  </h4>
-                                  <RoomAllocationComponent
-                                    control={control}
-                                    itineraryIndex={index}
-                                    roomTypes={roomTypes} // Pass down
-                                    occupancyTypes={occupancyTypes} // Pass down
-                                    mealPlans={mealPlans} // Pass down
-                                    loading={loading}
-                                  />
-                                </div>
-
-                                {/* Transport Details Section */}
-                                <div className="mt-4 border-t border-slate-100 pt-4">
-                                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-700">
-                                    <CarIcon className="h-4 w-4 text-primary" />
-                                    Transport Details
-                                  </h4>
-                                  <TransportDetailsComponent
-                                    control={control}
-                                    itineraryIndex={index}
-                                    vehicleTypes={vehicleTypes} // Pass down
-                                    loading={loading}
-                                  />
-                                </div>
-                              </div>
+                              {/* Accommodation selection removed; now managed fully in Hotels tab */}
 
                               <div className="md:col-span-2">
                                 <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-slate-700">
@@ -810,6 +634,6 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
       </CardContent>
     </Card>
   );
-};
+}
 
 export default ItineraryTab;

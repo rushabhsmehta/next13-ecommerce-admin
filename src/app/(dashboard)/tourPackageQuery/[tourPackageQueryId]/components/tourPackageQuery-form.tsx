@@ -84,6 +84,7 @@ import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Upda
 import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
 import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
+import HotelsTab from '@/components/tour-package-query/HotelsTab';
 import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 
@@ -939,7 +940,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-8 w-full"> {/* Changed from grid-cols-7 to grid-cols-8 */}
+            <TabsList className="grid grid-cols-9 w-full"> {/* Added Hotels tab so cols -> 9 */}
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -959,6 +960,22 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
               <TabsTrigger value="itinerary" className="flex items-center gap-2">
                 <ListPlus className="h-4 w-4" />
                 Itinerary
+              </TabsTrigger>
+              <TabsTrigger value="hotels" className="flex items-center gap-2 relative">
+                <BuildingIcon className="h-4 w-4" />
+                Hotels
+                {/* Inline indicator */}
+                {(() => {
+                  try {
+                    const its: any[] = form.watch('itineraries') || [];
+                    const missing = its.reduce((a, it) => !it?.hotelId ? a + 1 : a, 0);
+                    return missing > 0 ? (
+                      <span className="ml-1 bg-red-600 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium">
+                        {missing}
+                      </span>
+                    ) : null;
+                  } catch { return null; }
+                })()}
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
@@ -1020,6 +1037,18 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 itinerariesMaster={itinerariesMaster}
                 form={form}
                 // Pass lookup data down to ItineraryTab
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
+              />
+            </TabsContent>
+            <TabsContent value="hotels" className="space-y-4 mt-4">
+              <HotelsTab
+                control={form.control}
+                form={form}
+                loading={loading}
+                hotels={hotels}
                 roomTypes={roomTypes}
                 occupancyTypes={occupancyTypes}
                 mealPlans={mealPlans}

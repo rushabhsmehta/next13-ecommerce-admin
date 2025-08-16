@@ -126,7 +126,6 @@ export const KITCHEN_GROUP_POLICY_DEFAULT = [
   "In emergency/unforeseen cases, kitchen services may be paused or altered."
 ];
 
-export const TOUR_HIGHLIGHTS_DEFAULT = "";
 export const TOTAL_PRICE_DEFAULT = "";
 export const TOUR_PACKAGE_TYPE_DEFAULT = ["Standard", "Deluxe", "Premium", "Luxury", "Super Luxury"];
 export const TOUR_CATEGORY_DEFAULT = ["Domestic", "International"];

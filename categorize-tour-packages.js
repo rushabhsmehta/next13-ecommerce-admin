@@ -246,11 +246,11 @@ function categorizeTourPackage(tourPackage) {
   // Get all text fields to analyze
   const locationLabel = tourPackage.location?.label?.toLowerCase() || '';
   const tourPackageName = tourPackage.tourPackageName?.toLowerCase() || '';
-  const highlights = tourPackage.tour_highlights?.toLowerCase() || '';
+  const highlights = '';
   const customerName = tourPackage.customerName?.toLowerCase() || '';
   
   // Combine all text for analysis
-  const allText = `${locationLabel} ${tourPackageName} ${highlights} ${customerName}`.toLowerCase();
+  const allText = `${locationLabel} ${tourPackageName} ${customerName}`.toLowerCase();
   
   console.log(`🔍 Analyzing: "${tourPackage.tourPackageName}" (Location: ${tourPackage.location?.label})`);
   console.log(`   Text to analyze: "${allText.substring(0, 100)}..."`);

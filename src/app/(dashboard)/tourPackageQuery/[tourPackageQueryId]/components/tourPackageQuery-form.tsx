@@ -84,7 +84,7 @@ import ItineraryTab from '@/components/tour-package-query/ItineraryTab'; // Upda
 import LocationTab from '@/components/tour-package-query/LocationTab'; // Updated path
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
 import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
-import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, TOUR_HIGHLIGHTS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
+import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 
 // Define the pricing item schema
@@ -174,7 +174,6 @@ const formSchema = z.object({
   customerNumber: z.string().optional(),
   numDaysNight: z.string().optional(),
   period: z.string().optional(),
-  tour_highlights: z.string().optional(),
   tourStartsFrom: z.date().optional(),
   tourEndsOn: z.date().optional(),
   transport: z.string().optional().nullable().transform(val => val || ''),
@@ -451,7 +450,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       customerNumber: '',
       numDaysNight: '',
       period: '',
-      tour_highlights: TOUR_HIGHLIGHTS_DEFAULT,
       tourStartsFrom: '',
       tourEndsOn: '',
       transport: '',
@@ -567,7 +565,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', selectedTourPackage.transport || '');
       form.setValue('pickup_location', selectedTourPackage.pickup_location || '');
       form.setValue('drop_location', selectedTourPackage.drop_location || '');
-      form.setValue('tour_highlights', selectedTourPackage.tour_highlights || '');
+  // tour_highlights removed
       form.setValue('totalPrice', selectedTourPackage.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackage.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackage.exclusions) || EXCLUSIONS_DEFAULT);
@@ -628,7 +626,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('transport', selectedTourPackageQuery.transport || '');
       form.setValue('pickup_location', selectedTourPackageQuery.pickup_location || '');
       form.setValue('drop_location', selectedTourPackageQuery.drop_location || '');
-      form.setValue('tour_highlights', selectedTourPackageQuery.tour_highlights || '');
+  // tour_highlights removed
       form.setValue('totalPrice', selectedTourPackageQuery.totalPrice || '');
       form.setValue('inclusions', parseJsonField(selectedTourPackageQuery.inclusions) || INCLUSIONS_DEFAULT);
       form.setValue('exclusions', parseJsonField(selectedTourPackageQuery.exclusions) || EXCLUSIONS_DEFAULT);

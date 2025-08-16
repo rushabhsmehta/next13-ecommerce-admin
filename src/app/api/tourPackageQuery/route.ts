@@ -140,7 +140,6 @@ export async function POST(
             numDaysNight,
             locationId,
             period,
-            tour_highlights,
             selectedTemplateId,
             selectedTemplateType,
             tourPackageTemplateName,
@@ -228,7 +227,6 @@ export async function POST(
                 numDaysNight,
                 locationId,
                 period,
-                tour_highlights,
                 // Add the new template fields to the data object
                 selectedTemplateId,
                 selectedTemplateType,

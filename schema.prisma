@@ -184,7 +184,6 @@ model TourPackageQuery {
   tourEndsOn                       DateTime?
   tourStartsFrom                   DateTime?
   remarks                          String?           @db.Text
-  tour_highlights                  String?           @db.Text
   tourPackageQueryType             String?
   tourCategory                     String?           @default("Domestic") // "Domestic" or "International"
   disclaimer                       String?           @db.Text
@@ -495,7 +494,6 @@ model TourPackage {
   customerNumber                   String?
   drop_location                    String?
   pickup_location                  String?
-  tour_highlights                  String?              @db.Text
   slug                             String?
   tourPackageType                  String?
   tourCategory                     String?              @default("Domestic") // "Domestic" or "International"

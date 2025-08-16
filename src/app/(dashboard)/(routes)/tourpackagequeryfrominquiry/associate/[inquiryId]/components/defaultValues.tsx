@@ -136,54 +136,6 @@ export const DISCLAIMER_DEFAULT =
   "-> The rates quoted are valid for 7 days only";
 
 
-export const TOUR_HIGHLIGHTS_DEFAULT = `
-    <html>
-      <body>
-        <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; background-color: #f9f9f9;">
-          <caption style="margin-bottom: 10px; font-size: 24px; font-weight: bold; color: #333;">Tour Highlights</caption>
-          <thead>
-            <tr style="background: linear-gradient(to right, #FF4500, #FFA500); color: white; text-transform: uppercase; font-size: 14px; letter-spacing: 1px;">
-              <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Experience</th>
-              <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd;">Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Doodhpathri</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Explore scenic meadows and enjoy leisure time in the serene landscape. (If time permits)</td>
-            </tr>
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Shikara Ride on Dal Lake</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Experience a peaceful 1-hour ride on the iconic Dal Lake (included).</td>
-            </tr>
-            <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Zero Point (Sonmarg)</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Optional visit by union vehicle (approx. ₹5500 per cab at your own cost).</td>
-            </tr>
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Thajiwas Glacier</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Optional horse ride to explore this stunning glacier near Sonmarg.</td>
-            </tr>
-            <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Gulmarg Gondola</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Optional ride to Phase 1/2 (book online at extra cost).</td>
-            </tr>
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Betaab Valley, Aru Valley, Chandanwari</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Included visit to these scenic valleys near Pahalgam (union vehicle included).</td>
-            </tr>
-            <tr style="background-color: #f2f2f2;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Mughal Gardens</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Visit Shalimar Bagh and Nishat Bagh, famous for their Mughal architecture.</td>
-            </tr>
-            <tr style="background-color: #f9f9f9;">
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;"><strong>Shankaracharya Temple</strong></td>
-              <td style="padding: 12px 15px; font-size: 18px; color: #555; border-bottom: 1px solid #ddd;">Enjoy panoramic views of Srinagar from this ancient temple.</td>
-            </tr>
-          </tbody>
-        </table>
-      </body>
-    </html>`;
 
 
 export const TOTAL_PRICE_DEFAULT = `

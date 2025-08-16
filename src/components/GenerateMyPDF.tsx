@@ -554,14 +554,7 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
           </View>
         )}
 
-        {data.tour_highlights && (
-          <View style={styles.card} >
-            <View style={styles.cardContainer}>
-              <Text style={styles.cardTitle}>Tour Highlights</Text>
-              <Text style={styles.cardText}>{parseHTMLContent(data.tour_highlights)} </Text>
-            </View>
-          </View>
-        )}
+  {/* Tour highlights removed */}
 
         {/* Flight Details */}
         {data.flightDetails.length > 0 && (

@@ -153,3 +153,22 @@ body,
     @apply w-full max-w-full min-h-[44px];
   }
 }
+
+/* Gradient text print handling */
+@media print {
+  /* Attempt to force printing of background gradients */
+  .bg-clip-text {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Fallback: apply solid brand color if browser strips background */
+  .print-gradient-fallback {
+    background: none !important;
+    color: #dc2626 !important; /* Tailwind red-600 */
+    -webkit-text-fill-color: #dc2626 !important;
+  }
+  /* Page break helpers */
+  .page-break-before { page-break-before: always; break-before: page; }
+  .page-break-after  { page-break-after: always; break-after: page; }
+  .avoid-break-inside { page-break-inside: avoid; break-inside: avoid; }
+}

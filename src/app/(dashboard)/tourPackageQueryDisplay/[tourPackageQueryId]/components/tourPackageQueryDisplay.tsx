@@ -48,7 +48,7 @@ type CompanyInfo = {
   };
 };
 
-// Define the company data using the CompanyInfo type
+// Company info constant
 const companyInfo: CompanyInfo = {
   Empty: { logo: '', name: '', address: '', phone: '', email: '', website: '' },
   AH: {
@@ -56,16 +56,15 @@ const companyInfo: CompanyInfo = {
     name: 'Aagam Holidays',
     address: 'B - 1203, PNTC, Times of India Press Road, Satellite, Ahmedabad - 380015, Gujarat, India',
     phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
+    email: 'info@aagamholidays.com',
     website: 'https://aagamholidays.com',
   },
-  // Define KH and MT with their respective details
   KH: {
     logo: '/kobawala.png',
     name: 'Kobawala Holidays',
     address: 'Kobawala holidays, 25 Sarthak Shri Ganesh, K-Raheja road, Koba, Gandhinagar-382007',
     phone: '+91-99040 35277',
-    email: 'kobawala.holiday@gmail.com', // Add the missing fields
+    email: 'kobawala.holiday@gmail.com',
     website: 'http://kobawalaholidays.com'
   },
   MT: {
@@ -73,25 +72,53 @@ const companyInfo: CompanyInfo = {
     name: 'Mahavir Tour and Travels',
     address: 'Mahavir Travels, Ahmedabad',
     phone: '+91-97244 44701',
-    email: 'info@aagamholidays.com', // Add the missing fields
+    email: 'info@aagamholidays.com',
     website: 'https://mahavirtravels.com',
   },
 };
+
+// ...existing code...
 
 // Add this helper function to parse policy fields from the database
 const parsePolicyField = (field: any): string[] => {
   if (!field) return [];
   try {
     if (typeof field === 'string') {
-      return JSON.parse(field);
-    } else if (Array.isArray(field)) {
-      return field.map(item => String(item));
-    } else {
-      return [String(field)];
+      // Try JSON, else treat as plain text (split by newline or bullet markers)
+      try {
+        const parsed = JSON.parse(field);
+        if (Array.isArray(parsed)) return parsed.map(i => typeof i === 'string' ? i : extractText(i));
+      } catch {
+        // Not JSON; split heuristically
+        return field.split(/\n|•|-|\u2022/).map(s => s.trim()).filter(Boolean);
+      }
+      return [field];
     }
-  } catch (e) {
+    if (Array.isArray(field)) {
+      return field.flatMap(item => {
+        if (item == null) return [];
+        if (typeof item === 'string') return [item];
+        if (typeof item === 'object') return [extractText(item)];
+        return [String(item)];
+      }).filter(Boolean);
+    }
+    if (typeof field === 'object') {
+      // If object with keys -> values that are strings or arrays
+      const vals = Object.values(field);
+      return vals.flatMap(v => parsePolicyField(v));
+    }
     return [String(field)];
+  } catch {
+    return [];
   }
+};
+
+const extractText = (obj: any): string => {
+  if (!obj) return '';
+  for (const k of ['text','value','description','label','name']) {
+    if (obj[k]) return String(obj[k]);
+  }
+  return String(obj);
 };
 
 // Add this helper function to parse pricing section from JSON
@@ -188,14 +215,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   if (!initialData) return <div>No data available</div>;
 
   return (
-    <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
-      <Card className="break-inside-avoid font-bold">
-        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
-          <CardTitle className="flex items-center justify-between text-xl font-bold">
-            <span>{initialData.tourPackageQueryName}</span>
+  <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
+  <Card className="break-inside-avoid font-bold avoid-break-inside">
+        <CardHeader className="bg-gray-50 rounded-t-lg flex justify-between items-center p-6">
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 text-transparent bg-clip-text print-gradient-fallback">
+            {initialData.tourPackageQueryName}
           </CardTitle>
-          <CardTitle className="flex items-center justify-between text-xl font-bold">
-            <span>{initialData.tourPackageQueryType + " Package"} </span>
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-red-500 to-orange-500 text-transparent bg-clip-text print-gradient-fallback">
+            {initialData.tourPackageQueryType + " Package"}
           </CardTitle>
         </CardHeader>
 
@@ -247,97 +274,34 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
       </Card>
 
 
-      {/* Tour Package Details */}
-      <Card className="break-inside-avoid border shadow-lg rounded-lg">        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-        <h2 className="text-2xl font-bold">Tour Information</h2>
-      </CardHeader>
-
-        <CardContent className="p-6">
-          <div className="grid gap-6 md:grid-cols-1 text-gray-700">
-            <div className="mb-4">
-              <div className="font-semibold text-2xl">
-                Location:
-                <span className="ml-2 text-2xl text-gray-900">
-                  {locations.find(location => location.id === initialData.locationId)?.label}
-                </span>
-              </div>
-            </div>
-
+      {/* Tour Package Details (Condensed) */}
+  <Card className="break-inside-avoid border border-orange-200 shadow-md rounded-xl avoid-break-inside">
+        <CardHeader className="px-5 py-4 bg-gray-50 border-b border-orange-100">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback">Tour Information</h2>
+        </CardHeader>
+        <CardContent className="px-5 py-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 text-sm leading-snug">
+            <div><span className="font-semibold text-gray-600">Location:</span> <span className="font-medium text-gray-900">{locations.find(l => l.id === initialData.locationId)?.label}</span></div>
             {initialData.numDaysNight && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Duration:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numDaysNight}</span>
-                </div>
-              </div>
+              <div><span className="font-semibold text-gray-600">Duration:</span> <span className="font-medium text-gray-900">{initialData.numDaysNight}</span></div>
             )}
-
-            <div className="flex mb-4">
-              {initialData.tourStartsFrom && (
-                <div className="font-semibold text-2xl">
-                  Period:
-                  <span className="ml-2 text-2xl text-gray-900">{formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
-                </div>
-              )}
-              {initialData.tourEndsOn && (
-                <div className="ml-4 font-semibold text-2xl">
-                  To:
-                  <span className="ml-2 text-2xl text-gray-900">{formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
-                </div>
-              )}
-            </div>
-
+            {(initialData.tourStartsFrom || initialData.tourEndsOn) && (
+              <div className="col-span-full lg:col-span-1"><span className="font-semibold text-gray-600">Period:</span> <span className="font-medium text-gray-900">{initialData.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom,'dd-MM-yyyy') : ''}{initialData.tourStartsFrom && initialData.tourEndsOn && ' → '}{initialData.tourEndsOn ? formatLocalDate(initialData.tourEndsOn,'dd-MM-yyyy') : ''}</span></div>
+            )}
             {initialData.transport && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Transport:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.transport}</span>
-                </div>
-              </div>
+              <div><span className="font-semibold text-gray-600">Transport:</span> <span className="font-medium text-gray-900">{initialData.transport}</span></div>
             )}
-
             {initialData.pickup_location && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Pickup:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.pickup_location}</span>
-                </div>
-              </div>
+              <div><span className="font-semibold text-gray-600">Pickup:</span> <span className="font-medium text-gray-900">{initialData.pickup_location}</span></div>
             )}
-
             {initialData.drop_location && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Drop:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.drop_location}</span>
-                </div>
-              </div>
+              <div><span className="font-semibold text-gray-600">Drop:</span> <span className="font-medium text-gray-900">{initialData.drop_location}</span></div>
             )}
-
-            {initialData.numAdults && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Adults:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numAdults}</span>
-                </div>
-              </div>
-            )}
-
-            {initialData.numChild5to12 && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Children (5 - 12 Years):
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild5to12}</span>
-                </div>
-              </div>
-            )}
-
-            {initialData.numChild0to5 && (
-              <div className="mb-4">
-                <div className="font-semibold text-2xl">
-                  Children (0 - 5 Years):
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild0to5}</span>
-                </div>
+            {(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) && (
+              <div className="col-span-full lg:col-span-2 flex flex-wrap gap-x-8 gap-y-1">
+                {initialData.numAdults && <span><span className="font-semibold text-gray-600">Adults:</span> <span className="font-medium text-gray-900">{initialData.numAdults}</span></span>}
+                {initialData.numChild5to12 && <span><span className="font-semibold text-gray-600">Children 5-12:</span> <span className="font-medium text-gray-900">{initialData.numChild5to12}</span></span>}
+                {initialData.numChild0to5 && <span><span className="font-semibold text-gray-600">Children 0-5:</span> <span className="font-medium text-gray-900">{initialData.numChild0to5}</span></span>}
               </div>
             )}
           </div>
@@ -398,68 +362,46 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )}
  */}      {/* Enhanced Pricing Options Table */}
       {initialData.pricingSection && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && parsePricingSection(initialData.pricingSection).length > 0 && (
-        <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-lg">          <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-4 border-b border-orange-200">
-          <h3 className="text-2xl font-bold text-white">💰 Pricing Options</h3>
-          <p className="text-base text-orange-100 mt-1">Detailed breakdown of tour package pricing</p>
-        </div>
-          <div className="overflow-x-auto">            <table className="min-w-full divide-y divide-gray-200 bg-white">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-              <tr>
-                <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">📋</span>
-                    <span>Item Name</span>
-                  </div>
-                </th>
-                <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider border-r border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">💵</span>
-                    <span>Price (Base)</span>
-                  </div>
-                </th>
-                <th scope="col" className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">📊</span>
-                    <span>Calculation & Total</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {parsePricingSection(initialData.pricingSection).map((item, index) => (
-                <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-orange-50 transition-colors duration-200`}>
-                  <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
-                    <div className="text-lg font-semibold text-gray-900">{item.name}</div>
-                  </td>
-                  <td className="px-6 py-5 whitespace-nowrap border-r border-gray-100">
-                    <div className="text-lg font-bold text-green-600">
-                      {item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="text-base text-gray-700 leading-relaxed">
-                      {item.description || '-'}
-                    </div>
-                  </td>
+        <div className="mt-4 border border-orange-200 rounded-lg overflow-hidden shadow-sm">
+          <div className="bg-gray-50 px-4 py-3 border-b border-orange-100 flex items-center justify-between">
+            <h3 className="text-xl font-semibold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback flex items-center gap-2"><span className="text-base">💰</span>Pricing Options</h3>
+            <span className="text-xs text-gray-500">INR</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm bg-white">
+              <thead className="bg-gray-50 text-[11px] uppercase text-gray-600">
+                <tr className="divide-x divide-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold w-1/4">Item</th>
+                  <th className="px-3 py-2 text-left font-semibold w-1/6">Base</th>
+                  <th className="px-3 py-2 text-left font-semibold">Notes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>          <div className="bg-gradient-to-r from-orange-50 to-pink-50 px-6 py-3 border-t border-orange-200">
-            <p className="text-sm text-orange-600 italic font-medium">* All prices are in INR and subject to availability at the time of confirmation.</p>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {parsePricingSection(initialData.pricingSection).map((item, index) => (
+                  <tr key={index} className="hover:bg-orange-50/60">
+                    <td className="px-3 py-2 font-medium text-gray-900 truncate max-w-[200px]">{item.name}</td>
+                    <td className="px-3 py-2 text-green-600 font-semibold whitespace-nowrap">{item.price ? `₹ ${parseFloat(item.price).toLocaleString('en-IN')}` : '-'}</td>
+                    <td className="px-3 py-2 text-gray-700 leading-snug">{item.description || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-2 bg-orange-50 border-t border-orange-100">
+            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes.</p>
           </div>
         </div>
       )}
-
       {/* Enhanced Total Price Display */}
       {initialData.totalPrice && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.totalPrice !== ' ' && (
-        <div className="mt-6">
-          <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">            <div className="bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 px-6 py-5">
-            <h3 className="text-2xl font-bold text-white flex items-center">
-              <span className="mr-3 text-3xl">🎯</span>
-              Total Package Price
-            </h3>
-          </div>
+  <div className="mt-6 page-break-before avoid-break-inside">
+          <Card className="border-2 border-orange-200 rounded-lg shadow-xl overflow-hidden">
+            <div className="bg-gray-50 px-6 py-5">
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 text-transparent bg-clip-text print-gradient-fallback flex items-center">
+                <span className="mr-3 text-3xl">🎯</span>
+                Total Package Price
+              </h3>
+            </div>
             <CardContent className="p-8">
               <div className="text-center">
                 <div className="text-5xl font-bold text-gray-900 mb-4">
@@ -499,23 +441,20 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
         )} */}
 
 
-
       {/* Hotel, Room Allocation and Transport Details Day-wise */}
       {selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.length > 0 && (
-        <Card className="mb-8 break-inside-avoid bg-white shadow-xl rounded-xl overflow-hidden border-2 border-gray-100">
+  <Card className="mb-8 break-inside-avoid bg-white shadow-xl rounded-xl overflow-hidden border-2 border-gray-100 avoid-break-inside page-break-before">
           {/* Enhanced Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-8 border-b">
-            <CardTitle className="text-3xl font-bold text-center flex items-center justify-center gap-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-white/20 rounded-full backdrop-blur-sm">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                </svg>
-              </div>
+          <div className="bg-gray-50 p-8 border-b">
+            <CardTitle className="text-4xl font-bold text-center flex items-center justify-center gap-4 bg-gradient-to-r from-red-500 to-orange-500 text-transparent bg-clip-text print-gradient-fallback">
+              <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+              </svg>
               <span>
                 Hotel, Room Allocation & Transport Details
               </span>
             </CardTitle>
-            <p className="text-center text-blue-100 mt-2 text-lg">Comprehensive day-wise accommodation and transport overview</p>
+            <p className="text-center text-gray-500 mt-2 text-lg">Comprehensive day-wise accommodation and transport overview</p>
           </div>
 
           <CardContent className="p-0">
@@ -533,7 +472,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                     <tr key={itinerary.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-6 align-top">
                         <div className="flex items-start gap-4">
-                          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg">
+                          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl font-bold text-lg">
                             {itinerary.dayNumber}
                           </div>
                           <div>
@@ -554,6 +493,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                             <thead>
                               <tr>
                                 <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
+                                <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
                                 <th className="px-2 py-1 text-gray-900 font-semibold">Meal Plan</th>
                                 <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
                               </tr>
@@ -562,10 +502,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                               {itinerary.roomAllocations?.map((room: any, idx: number) => (
                                 <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                                   <td className="px-2 py-1 whitespace-nowrap">
-                                    <span>{typeof room.roomType === 'object' ? room.roomType.name : room.roomType || 'Standard'}</span>
+                                    <span>{room?.roomType?.name || room.roomType || 'Standard'}</span>
                                   </td>
                                   <td className="px-2 py-1 whitespace-nowrap">
-                                    <span>{typeof room.mealPlan === 'object' ? room.mealPlan.name : room.mealPlan || 'CP'}</span>
+                                    <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
+                                  </td>
+                                  <td className="px-2 py-1 whitespace-nowrap">
+                                    <span>{room?.mealPlan?.name || room.mealPlan || 'CP'}</span>
                                   </td>
                                   <td className="px-2 py-1 text-center whitespace-nowrap">
                                     <span className="font-medium">{room.quantity || 1}</span>
@@ -573,13 +516,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                 </tr>
                               ))}
                               {itinerary.transportDetails?.map((t: any, i: number) => (
-                                <tr key={i} className="border-t-2 border-blue-100 bg-blue-50 hover:bg-blue-100">
-                                  <td colSpan={2} className="px-2 py-1 whitespace-nowrap flex items-center space-x-1">
-                                    <CarIcon className="w-4 h-4 text-blue-700" />
-                                    <span className="font-semibold text-blue-800">{t.vehicleType?.name || 'Car'}</span>
+                                <tr key={i} className="border-t-2 border-orange-100 bg-orange-50 hover:bg-orange-100">
+                                  <td className="px-2 py-1 whitespace-nowrap flex items-center space-x-1">
+                                    <CarIcon className="w-4 h-4 text-orange-700" />
+                                    <span className="font-semibold text-orange-800">{t.vehicleType?.name || 'Car'}</span>
                                   </td>
+                                  <td className="px-2 py-1 whitespace-nowrap text-center text-gray-500">—</td>
+                                  <td className="px-2 py-1 whitespace-nowrap text-gray-600 italic">Transport</td>
                                   <td className="px-2 py-1 text-center whitespace-nowrap">
-                                    <span className="font-medium text-blue-800">{t.quantity || 1}</span>
+                                    <span className="font-medium text-orange-800">{t.quantity || 1}</span>
                                   </td>
                                 </tr>
                               ))}
@@ -594,13 +539,13 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
 
             {/* Enhanced Footer */}
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-t border-gray-200">
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-t border-gray-200">
               <div className="flex items-center justify-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                 <p className="text-sm text-gray-600 font-medium">
                   This summary provides a comprehensive day-wise overview of accommodation and transport arrangements
                 </p>
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
               </div>
             </div>
           </CardContent>
@@ -609,293 +554,98 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
       {/* Itineraries */}
       {
-        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (<Card key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden">
-          {index === 0 &&
-            <Card className="border rounded-lg shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center break-before-always">
-              <CardTitle className="text-5xl font-bold">Itinerary</CardTitle>
-            </Card>}
-          <div className="flex items-center justify-between bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 rounded-t-lg">
-            {/* Day and Title grouped */}
-
-
-            <div>
-              <CardTitle className="text-2xl font-bold"
-                dangerouslySetInnerHTML={{
-                  __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
-                }} />
-            </div>
-          </div>
-
-          {/* Fixed Size Image Section */}
-          <div className="flex justify-center items-center break-inside-avoid">
-            {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
-              <div key={imageIndex} className="w-full h-[500px]">
-                <Image
-                  src={image.url}
-                  alt={`Itinerary Image ${imageIndex + 1}`}
-                  width={1200}
-                  height={500}
-                  className="object-cover w-full h-full"
-                />
+        selectedOption !== 'SupplierA' && initialData.itineraries && initialData.itineraries.map((itinerary, index) => (
+          <Card key={index} className="mb-6 break-inside-avoid bg-white shadow-lg rounded-lg overflow-hidden avoid-break-inside page-break-before">
+            {index === 0 &&
+              <Card className="border rounded-lg shadow-lg p-6 bg-gray-50 text-center break-before-always">
+                <CardTitle className="text-5xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-transparent bg-clip-text print-gradient-fallback">Itinerary</CardTitle>
+              </Card>}
+            <div className="flex items-center justify-between bg-gray-50 p-6 rounded-t-lg">
+              {/* Day and Title grouped */}
+              <div>
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-transparent bg-clip-text print-gradient-fallback"
+                  dangerouslySetInnerHTML={{
+                    __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '')}` || '',
+                  }} />
               </div>
-            ))}
-          </div>            {/* Description Section */}
-          <div className="flex-grow p-8">
-            <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
-          </div>
-
-          <CardContent className="p-8">
-            {/* Hotel Section */}
-            {itinerary.hotelId && hotels.find(hotel => hotel.id === itinerary.hotelId) && (
-              <Card className="my-4">                  <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
-                Hotel Details
-              </CardHeader>
-                <div className="p-6">                    {/* Hotel Images */}
-                  {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.length === 1 ? (
-                    <div className="flex items-start mb-4">
-                      <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        <div className="w-[250px] h-[250px]">
-                          <Image
-                            src={hotels.find(hotel => hotel.id === itinerary.hotelId)?.images[0].url || ''}
-                            alt="Hotel Image"
-                            className="rounded-lg object-cover w-full h-full"
-                            width={250}
-                            height={250}
-                          />
-                        </div>
-                      </Link>                        {/* Hotel Text Content */}
-                      <div className="ml-4">
-                        <div className="text-2xl font-bold">Hotel Name:</div>
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                          <p className="text-2xl mb-3">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                        </Link>
-
-                        {/* Room Allocations Section */}
-                        {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
-                          <div className="mt-6">
-                            <div className="text-2xl font-bold border-b pb-3 mb-4">Room Details:</div>
-                            <div className="space-y-4">
-                              {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
-                                <div key={roomIndex} className="bg-gray-50 rounded-lg p-4 border">
-                                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                                    <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
-                                      Occupancy Type #{roomIndex + 1}
-                                    </span>                                      <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
-                                      {room.roomType?.name || 'Standard'}
-                                    </span>
-                                    <span className="px-3 py-2 bg-green-100 text-green-800 rounded text-lg">
-                                      {room.occupancyType?.name || 'Double'}
-                                    </span>
-                                    <span className="px-3 py-2 bg-purple-100 text-purple-800 rounded text-lg">
-                                      {room.mealPlan?.name || 'CP (Breakfast Only)'}
-                                    </span>
-                                  </div>
-                                  <p className="text-lg text-gray-600">
-                                    <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
-                                    {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Fallback to old structure if roomAllocations is not available */}
-                        {!itinerary.roomAllocations?.length && (
-                          <>
-                            {itinerary.numberofRooms && (
-                              <>
-                                <div className="text-2xl font-bold">Number of Rooms/Occupancy:</div>
-                                <p className="text-2xl mb-3">{itinerary.numberofRooms}</p>
-                              </>
-                            )}
-
-                            {itinerary.roomCategory && (
-                              <>
-                                <div className="text-2xl font-bold">Room Category:</div>
-                                <p className="text-2xl mb-3">{itinerary.roomCategory}</p>
-                              </>
-                            )}
-
-                            {itinerary.mealsIncluded && (
-                              <>
-                                <div className="text-2xl font-bold">Meal Plan:</div>
-                                <p className="text-2xl mb-3">{itinerary.mealsIncluded}</p>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="grid grid-cols-3 gap-4">
-                        {hotels.find(hotel => hotel.id === itinerary.hotelId)?.images.map((image, imgIndex) => (
-                          <Link key={imgIndex} href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                            <div className="w-[250px] h-[250px]">
-                              <Image
-                                src={image.url}
-                                alt={`Hotel Image ${imgIndex + 1}`}
-                                className="rounded-lg object-cover w-full h-full"
-                                width={250}
-                                height={250}
-                              />
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-xl font-bold">Hotel Name:</div>
-                        <Link href={hotels.find(hotel => hotel.id === itinerary.hotelId)?.link || ''} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                          <p className="text-xl mb-2">{hotels.find(hotel => hotel.id === itinerary.hotelId)?.name}</p>
-                        </Link>
-
-                        {/* Room Allocations Section */}
-                        {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 && (
-                          <div className="mt-4">
-                            <div className="text-xl font-bold border-b pb-2 mb-3">Room Details:</div>
-                            <div className="space-y-3">
-                              {itinerary.roomAllocations.map((room: any, roomIndex: number) => (
-                                <div key={roomIndex} className="bg-gray-50 rounded-lg p-3 border">
-                                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                                    <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded font-medium">
-                                      Occupancy Type #{roomIndex + 1}
-                                    </span>                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                                      {typeof room.roomType === 'object' ? room.roomType?.name : room.roomType || 'Standard'}
-                                    </span>
-                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-                                      {typeof room.occupancyType === 'object' ? room.occupancyType?.name : room.occupancyType || 'Double'}
-                                    </span>
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                                      {typeof room.mealPlan === 'object' ? room.mealPlan?.name : room.mealPlan || 'CP (Breakfast Only)'}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-600">
-                                    <span className="font-medium">Number of Rooms/Occupancy :</span> {room.quantity || '1'}
-                                    {room.guestNames ? <span className="ml-3 font-medium">Guests:</span> : ''} {room.guestNames || ''}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Fallback to old structure if roomAllocations is not available */}
-                        {!itinerary.roomAllocations?.length && (
-                          <>
-                            {itinerary.numberofRooms && (
-                              <>
-                                <div className="text-xl font-bold">Number of Rooms/Occupancy:</div>
-                                <p className="text-xl mb-2">{itinerary.numberofRooms}</p>
-                              </>
-                            )}
-
-                            {itinerary.roomCategory && (
-                              <>
-                                <div className="text-xl font-bold">Room Category:</div>
-                                <p className="text-xl mb-2">{itinerary.roomCategory}</p>
-                              </>
-                            )}
-
-                            {itinerary.mealsIncluded && (
-                              <>
-                                <div className="text-xl font-bold">Meal Plan:</div>
-                                <p className="text-xl mb-2">{itinerary.mealsIncluded}</p>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>)}                    {/* Transport Details Section */}
-                  {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
-                    <div className="mt-8">
-                      <div className="text-2xl font-bold border-b pb-3 mb-4">Transport Details:</div>
-                      <div className="space-y-4">
-                        {itinerary.transportDetails.map((transport: any, transportIndex: number) => (
-                          <div key={transportIndex} className="bg-gray-50 rounded-lg p-4 border">
-                            <div className="flex flex-wrap items-center gap-3 mb-2">                                <span className="px-3 py-2 bg-orange-100 text-orange-800 rounded font-medium text-lg">
-                              Transport #{transportIndex + 1}
-                            </span>
-                              <span className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-lg">
-                                {transport.vehicleType?.name || 'Car'}
-                              </span>
-                              {/* <span className="px-2 py-1 bg-green-100 text-green-800 rounded">
-                                  {transport.transportType || 'Per Day'}
-                                </span> */}
-                            </div>
-                            <p className="text-lg text-gray-600">
-                              <span className="font-medium">Number of Vehicles:</span> {transport.quantity || '1'}
-                              {transport.description ? <span className="ml-3 font-medium">Details:</span> : ''} {transport.description || ''}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            </div>
+            {/* Fixed Size Image Section */}
+            <div className="flex justify-center items-center break-inside-avoid">
+              {itinerary.itineraryImages && itinerary.itineraryImages.length > 0 && itinerary.itineraryImages.map((image, imageIndex) => (
+                <div key={imageIndex} className="w-full h-[500px]">
+                  <Image
+                    src={image.url}
+                    alt={`Itinerary Image ${imageIndex + 1}`}
+                    width={1200}
+                    height={500}
+                    className="object-cover w-full h-full"
+                  />
                 </div>
-              </Card>
-            )}              {/* Activities Section */}
-            {itinerary.activities && itinerary.activities.length > 0 && (
-              <Card className="my-6">
-                <CardHeader className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white p-6 text-2xl font-bold text-center rounded-t-lg">
-                  Activities
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid gap-6">
-                    {itinerary.activities.map((activity, activityIndex) => (
-                      <div key={activityIndex} className="mb-6">
-                        {activity.activityImages && activity.activityImages.length === 1 ? (
-                          <div className="flex items-start mb-6 w-full">
-                            <div className="w-[250px] h-[250px] flex-shrink-0">
-                              <Image
-                                src={activity.activityImages[0].url}
-                                alt={`Activity Image ${activityIndex + 1}`}
-                                className="rounded-lg object-cover w-full h-full"
-                                width={250}
-                                height={250}
-                              />
+              ))}
+            </div>
+            {/* Description Section */}
+            <div className="flex-grow p-8">
+              <div className="text-2xl text-justify mb-6" dangerouslySetInnerHTML={{ __html: itinerary.itineraryDescription || '' }}></div>
+            </div>
+
+            <CardContent className="p-8">
+              {/* Activities Section */}
+              {itinerary.activities && itinerary.activities.length > 0 && (
+                <Card className="my-6">
+                  <CardHeader className="bg-gray-50 p-6 text-3xl font-bold text-center rounded-t-lg">
+                    <span className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-transparent bg-clip-text print-gradient-fallback">
+                      Activities
+                    </span>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid gap-6">
+                      {itinerary.activities.map((activity, activityIndex) => (
+                        <div key={activityIndex} className="mb-6">
+                          {activity.activityImages && activity.activityImages.length === 1 ? (
+                            <div className="flex items-start mb-6 w-full">
+                              <div className="w-[250px] h-[250px] flex-shrink-0">
+                                <Image
+                                  src={activity.activityImages[0].url}
+                                  alt={`Activity Image ${activityIndex + 1}`}
+                                  className="rounded-lg object-cover w-full h-full"
+                                  width={250}
+                                  height={250}
+                                />
+                              </div>
+                              <div className="ml-6 w-full">
+                                <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
+                                <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
+                              </div>
                             </div>
-                            <div className="ml-6 w-full">
+                          ) : (
+                            <div className="w-full">
+                              <div className="flex justify-start items-center mb-6 gap-6">
+                                {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
+                                  <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
+                                    <Image
+                                      src={image.url}
+                                      alt={`Activity Image ${actImgIndex + 1}`}
+                                      className="rounded-lg object-cover w-full h-full"
+                                      width={250}
+                                      height={250}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
                               <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
                               <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="w-full">
-                            <div className="flex justify-start items-center mb-6 gap-6">
-                              {activity.activityImages && activity.activityImages.map((image, actImgIndex) => (
-                                <div key={actImgIndex} className="w-[250px] h-[250px] flex-shrink-0">
-                                  <Image
-                                    src={image.url}
-                                    alt={`Activity Image ${actImgIndex + 1}`}
-                                    className="rounded-lg object-cover w-full h-full"
-                                    width={250}
-                                    height={250}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-3xl font-bold mb-3" dangerouslySetInnerHTML={{ __html: activity.activityTitle || '' }}></div>
-                            <p className="text-2xl text-justify" dangerouslySetInnerHTML={{ __html: activity.activityDescription || '' }}></p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-          </CardContent>
-        </Card>
-
-        ))
-      }      {
-        selectedOption === 'SupplierA' && initialData.itineraries && (
-          <Card className="break-inside-avoid border rounded-lg shadow-lg p-6 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 text-white text-center">
-            <CardTitle className="text-5xl font-bold">Itinerary</CardTitle>
+            </CardContent>
           </Card>
-        )
+        ))
       }
 
       <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
@@ -914,62 +664,98 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </div>
           </div>
         ))}
-      </Card>
-      {/* Replace individual policy sections with a single organized section */}
-      <Card className="break-before-all border rounded-lg shadow-lg overflow-hidden mb-8">
-        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-8 text-center">
-          <CardTitle className="text-5xl font-bold">Policies & Terms</CardTitle>
-        </CardHeader>
-        <CardContent className="p-8 space-y-8">
-          <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
-          <PolicySection title="Exclusions" items={parsePolicyField(initialData.exclusions)} />
-          <PolicySection title="Important Notes" items={parsePolicyField(initialData.importantNotes)} />
-          <PolicySection title="Payment Policy" items={parsePolicyField(initialData.paymentPolicy)} />
-          <PolicySection title="Kitchen Group Policy" items={parsePolicyField(initialData.kitchenGroupPolicy)} />
-          <PolicySection title="Useful Tips" items={parsePolicyField(initialData.usefulTip)} />
-          <PolicySection title="Cancellation Policy" items={parsePolicyField(initialData.cancellationPolicy)} />
-          <PolicySection title="Airline Cancellation Policy" items={parsePolicyField(initialData.airlineCancellationPolicy)} />
-          <PolicySection title="Terms and Conditions" items={parsePolicyField(initialData.termsconditions)} />
-        </CardContent>
-      </Card>      {
-        selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+      </Card>  
+        
 
-          <Card className="border-b break-inside-avoid m-4">
-            <CardDescription className="flex justify-between items-center px-6 py-4">
-              <div className="inline-block relative w-48 h-48">
-                <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
-              </div>
-              <ul className='font-bold text-lg space-y-2'>
-                <li>{currentCompany.address}</li>
-                <li>Phone: {currentCompany.phone}</li>
-                <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
-                <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
-
-              </ul>
-            </CardDescription>
-          </Card >
-        )
-      }
-
-      {
-        (selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
-          <Card className="border-b break-inside-avoid m-4">
-            <CardDescription className="flex justify-between items-center px-6 py-4">
-              <div className="inline-block relative w-48 h-48">
-                <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
-              </div>
-              <ul className="font-bold text-lg space-y-2">
-                <li>{companyInfo.AH.address}</li>
-                <li>Phone: {companyInfo.AH.phone}</li>
-                <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
-                <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
-              </ul>
-            </CardDescription>
-          </Card>
-        )
-      }
-
+    
       {/* Footer Section with Company Details */}
+
+      {/* Policies & Terms Section (moved to bottom with fallbacks) */}
+      {(() => {
+        const loc = locations.find(l => l.id === initialData.locationId) as any;
+        const withFallback = (primary: any, fallback: any) => {
+          const primaryParsed = parsePolicyField(primary);
+            if (primaryParsed.length > 0) return primaryParsed;
+          return parsePolicyField(fallback);
+        };
+        const sections = [
+          { key: 'inclusions', title: 'Inclusions', data: withFallback(initialData.inclusions, loc?.inclusions) },
+          { key: 'exclusions', title: 'Exclusions', data: withFallback(initialData.exclusions, loc?.exclusions) },
+          { key: 'importantNotes', title: 'Important Notes', data: withFallback(initialData.importantNotes, loc?.importantNotes) },
+          { key: 'paymentPolicy', title: 'Payment Policy', data: withFallback(initialData.paymentPolicy, loc?.paymentPolicy) },
+          { key: 'cancellationPolicy', title: 'Cancellation Policy', data: withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy) },
+          { key: 'airlineCancellationPolicy', title: 'Airline Cancellation Policy', data: withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy) },
+          { key: 'kitchenGroupPolicy', title: 'Kitchen Group Policy', data: withFallback(initialData.kitchenGroupPolicy, loc?.kitchenGroupPolicy) },
+          { key: 'usefulTip', title: 'Useful Tips', data: withFallback(initialData.usefulTip, loc?.usefulTip) },
+          { key: 'termsconditions', title: 'Terms and Conditions', data: withFallback(initialData.termsconditions, loc?.termsconditions) },
+        ];
+        const filtered = sections.filter(s => s.data.length > 0);
+        if (filtered.length === 0) return null;
+        return (
+          <Card className="break-inside-avoid border border-orange-200 shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
+            <CardHeader className="p-6 bg-gray-50 border-b border-orange-100">
+              <h2 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback">Policies & Terms</h2>
+              <p className="text-sm text-gray-500 mt-1">Comprehensive overview of inclusions, exclusions and important travel policies</p>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-2 gap-6 p-6">
+                {filtered.map(section => (
+                  <div key={section.key} className="group rounded-xl border border-orange-100 hover:border-orange-300 transition-colors bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md">
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-orange-100 bg-gradient-to-r from-orange-50 via-rose-50 to-pink-50">
+                      <span className="text-lg font-semibold bg-gradient-to-r from-orange-500 to-red-500 text-transparent bg-clip-text print-gradient-fallback">{section.title}</span>
+                    </div>
+                    <ul className="list-disc pl-6 pr-4 py-4 space-y-2 text-sm leading-relaxed text-gray-700">
+                      {section.data.map((item, idx) => (
+                        <li key={idx} className="marker:text-orange-400">
+                          <span dangerouslySetInnerHTML={{ __html: item }} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div className="px-6 py-4 bg-gradient-to-r from-orange-50 via-red-50 to-pink-50 border-t border-orange-200">
+                <p className="text-xs text-orange-700 font-medium text-center">Policies are subject to change based on supplier terms & prevailing conditions at the time of booking.</p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      {/* Company Details moved to very end */}
+      {selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && (
+  <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
+          <CardDescription className="flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
+            <div className="inline-block relative w-40 h-40 md:w-48 md:h-48">
+              <Image src={currentCompany.logo} alt={`${currentCompany.name} Logo`} fill className="object-contain" />
+            </div>
+            <ul className='font-semibold text-base md:text-lg space-y-2 text-center md:text-left'>
+              <li className="bg-gradient-to-r from-orange-500 to-red-500 text-transparent bg-clip-text print-gradient-fallback font-bold text-lg">{currentCompany.name}</li>
+              <li>{currentCompany.address}</li>
+              <li>Phone: {currentCompany.phone}</li>
+              <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
+              <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
+            </ul>
+          </CardDescription>
+        </Card>
+      )}
+
+      {(selectedOption === 'SupplierA' || selectedOption === 'SupplierB') && (
+  <Card className="mt-8 border border-orange-200 break-inside-avoid shadow-md rounded-xl overflow-hidden avoid-break-inside page-break-before">
+          <CardDescription className="flex flex-col md:flex-row justify-between items-center px-6 py-6 gap-6 bg-gray-50">
+            <div className="inline-block relative w-40 h-40 md:w-48 md:h-48">
+              <Image src={companyInfo.AH.logo} alt={`${companyInfo.AH.name} Logo`} fill className="object-contain" />
+            </div>
+            <ul className="font-semibold text-base md:text-lg space-y-2 text-center md:text-left">
+              <li className="bg-gradient-to-r from-orange-500 to-red-500 text-transparent bg-clip-text print-gradient-fallback font-bold text-lg">{companyInfo.AH.name}</li>
+              <li>{companyInfo.AH.address}</li>
+              <li>Phone: {companyInfo.AH.phone}</li>
+              <li>Email: <Link href={`mailto:${companyInfo.AH.email}`} className="text-blue-600 underline">{companyInfo.AH.email}</Link></li>
+              <li>Website: <Link href={companyInfo.AH.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{companyInfo.AH.website}</Link></li>
+            </ul>
+          </CardDescription>
+        </Card>
+      )}
 
 
     </div >

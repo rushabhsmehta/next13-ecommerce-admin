@@ -369,10 +369,15 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm bg-white">
+              <colgroup>
+                <col style={{ width: '55%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '25%' }} />
+              </colgroup>
               <thead className="bg-gray-50 text-[11px] uppercase text-gray-600">
                 <tr className="divide-x divide-gray-200">
-                  <th className="px-3 py-2 text-left font-semibold w-1/4">Item</th>
-                  <th className="px-3 py-2 text-left font-semibold w-1/6">Base</th>
+                  <th className="px-3 py-2 text-left font-semibold">Item</th>
+                  <th className="px-3 py-2 text-left font-semibold text-center">Base</th>
                   <th className="px-3 py-2 text-left font-semibold">Notes</th>
                 </tr>
               </thead>
@@ -469,70 +474,120 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 
                 <tbody className="bg-white">
                   {initialData.itineraries.map((itinerary) => (
-                    <tr key={itinerary.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-6 align-top">
-                        <div className="flex items-start gap-4">
-                          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl font-bold text-lg">
-                            {itinerary.dayNumber}
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold text-gray-900">
-                              Day {itinerary.dayNumber}: {itinerary.days}
+                    <React.Fragment key={itinerary.id}>
+                      {/* Header row: Day and title spanning full width */}
+                      <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-6 align-top" colSpan={2}>
+                          <div className="flex items-start gap-4">
+                            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl font-bold text-lg">
+                              {itinerary.dayNumber}
                             </div>
-                            {(() => {
-                              const t = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
-                              return t ? <div className="text-base text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: t }} /> : null;
-                            })()}
+                            <div>
+                              <div className="text-xl font-bold text-gray-900">
+                                Day {itinerary.dayNumber}: {itinerary.days}
+                              </div>
+                              {(() => {
+                                const t = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
+                                return t ? <div className="text-base text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: t }} /> : null;
+                              })()}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      
-                      <td className="px-6 py-6 align-top">
-                        <div className="bg-white ring-1 ring-gray-200 rounded-lg p-4 shadow-sm text-sm">
-                          <table className="table-auto w-full text-left">
-                            <thead>
-                              <tr>
-                                <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
-                                <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
-                                <th className="px-2 py-1 text-gray-900 font-semibold">Meal Plan</th>
-                                <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {itinerary.roomAllocations?.map((room: any, idx: number) => (
-                                <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                                  <td className="px-2 py-1 whitespace-nowrap">
-                                    <span>{room?.roomType?.name || room.roomType || 'Standard'}</span>
-                                  </td>
-                                  <td className="px-2 py-1 whitespace-nowrap">
-                                    <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
-                                  </td>
-                                  <td className="px-2 py-1 whitespace-nowrap">
-                                    <span>{room?.mealPlan?.name || room.mealPlan || 'CP'}</span>
-                                  </td>
-                                  <td className="px-2 py-1 text-center whitespace-nowrap">
-                                    <span className="font-medium">{room.quantity || 1}</span>
-                                  </td>
-                                </tr>
-                              ))}
-                              {itinerary.transportDetails?.map((t: any, i: number) => (
-                                <tr key={i} className="border-t-2 border-orange-100 bg-orange-50 hover:bg-orange-100">
-                                  <td className="px-2 py-1 whitespace-nowrap flex items-center space-x-1">
-                                    <CarIcon className="w-4 h-4 text-orange-700" />
-                                    <span className="font-semibold text-orange-800">{t.vehicleType?.name || 'Car'}</span>
-                                  </td>
-                                  <td className="px-2 py-1 whitespace-nowrap text-center text-gray-500">—</td>
-                                  <td className="px-2 py-1 whitespace-nowrap text-gray-600 italic">Transport</td>
-                                  <td className="px-2 py-1 text-center whitespace-nowrap">
-                                    <span className="font-medium text-orange-800">{t.quantity || 1}</span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                      </tr>
+
+                      {/* Details row: table below header, full width */}
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 pb-6 pt-0" colSpan={2}>
+                          <div className="bg-white ring-1 ring-gray-200 rounded-lg p-4 shadow-sm text-sm">
+                              {itinerary.hotelId && hotels.find(h => h.id === itinerary.hotelId) && (
+                                <div className="md:flex md:items-start md:gap-6 mb-2">
+                                  {/* Left: hotel image only */}
+                                  <div className="md:w-48 w-36 flex-shrink-0">
+                                    <div className="w-36 h-24 md:w-48 md:h-32 relative rounded overflow-hidden bg-gray-100">
+                                      <Image
+                                        src={hotels.find(h => h.id === itinerary.hotelId)?.images?.[0]?.url || '/placeholder-hotel.png'}
+                                        alt={hotels.find(h => h.id === itinerary.hotelId)?.name || 'Hotel'}
+                                        fill
+                                        className="object-cover"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Right: hotel name above allocations table */}
+                                  <div className="flex-1">
+                                    <div className="mb-2">
+                                      <div>
+                                        <Link href={hotels.find(h => h.id === itinerary.hotelId)?.link || '#'} target="_blank" rel="noopener noreferrer" className="text-lg md:text-xl font-semibold text-gray-900 underline">
+                                          {hotels.find(h => h.id === itinerary.hotelId)?.name}
+                                        </Link>
+                                        <div className="text-sm text-gray-600">{hotels.find(h => h.id === itinerary.hotelId)?.destination?.name || ''}</div>
+                                      </div>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                      <table className="table-auto w-full text-left">
+                                        <thead>
+                                          <tr>
+                                            <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
+                                            <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
+                                            <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {itinerary.roomAllocations?.map((room: any, idx: number) => (
+                                            <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                                              <td className="px-2 py-1 whitespace-nowrap">
+                                                <span>{room?.roomType?.name || room.roomType || 'Standard'}</span>
+                                              </td>
+                                              <td className="px-2 py-1 whitespace-nowrap">
+                                                <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
+                                              </td>
+                                              <td className="px-2 py-1 text-center whitespace-nowrap">
+                                                <span className="font-medium">{room.quantity || 1}</span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+
+                                    {/* Unique Meal Plan display (below table) */}
+                                    {(() => {
+                                      const plans = Array.from(new Set((itinerary.roomAllocations || []).map((r: any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
+                                      if (plans.length === 0) return null;
+                                      return (
+                                        <div className="mt-3 text-sm text-gray-700 italic">
+                                          <span className="font-semibold">Meal Plan:</span> {plans.join(' / ')}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Transport details separate block (full width below) */}
+                              {itinerary.transportDetails && itinerary.transportDetails.length > 0 && (
+                                <div className="mt-3 border-t pt-3">
+                                  <h4 className="text-sm font-semibold text-orange-700 mb-2">Transport Details</h4>
+                                  <div className="space-y-2">
+                                    {itinerary.transportDetails.map((t: any, i: number) => (
+                                      <div key={i} className="flex items-center justify-between bg-orange-50 p-2 rounded gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <CarIcon className="w-5 h-5 text-orange-700" />
+                                          <div>
+                                            <div className="font-semibold text-orange-800">{t.vehicleType?.name || 'Vehicle'}</div>
+                                            {t.capacity && <div className="text-xs text-gray-600">Capacity: {t.capacity}</div>}
+                                          </div>
+                                        </div>
+                                        <div className="text-sm font-medium text-orange-800">Qty: {t.quantity || 1}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

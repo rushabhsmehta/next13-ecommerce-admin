@@ -29,7 +29,8 @@ export async function POST(req: Request) {
       numChildren5to11,
       numChildrenBelow5,
       status,
-      journeyDate,
+  journeyDate,
+  nextFollowUpDate,
       remarks,
       roomAllocations,
       transportDetails
@@ -81,7 +82,9 @@ export async function POST(req: Request) {
         numChildren5to11,
         numChildrenBelow5,
         status,
-        journeyDate: dateToUtc(journeyDate),
+  journeyDate: dateToUtc(journeyDate),
+  // @ts-ignore prisma client may need regeneration
+  nextFollowUpDate: nextFollowUpDate ? dateToUtc(nextFollowUpDate) : null,
         remarks: remarks || null,
         roomAllocations: roomAllocations ? {
           create: roomAllocations.map((allocation: any) => ({
@@ -127,8 +130,8 @@ export async function POST(req: Request) {
     // Create a notification for the new inquiry
     try {
       const journeyDateFormatted = formatLocalDate(journeyDate, 'dd MMM yyyy');
-      const locationName = inquiry.location?.label || 'Unknown location';
-      const associateName = inquiry.associatePartner?.name || 'Direct inquiry';
+  const locationName = (inquiry as any).location?.label || 'Unknown location';
+  const associateName = (inquiry as any).associatePartner?.name || 'Direct inquiry';
       
       await prismadb.notification.create({
         data: {
@@ -141,7 +144,8 @@ export async function POST(req: Request) {
             customerMobileNumber,
             locationId,
             locationName,
-            journeyDate
+            journeyDate,
+            nextFollowUpDate
           }
         }
       });
@@ -158,9 +162,10 @@ export async function POST(req: Request) {
       after: inquiry,
       userRole,
       metadata: {
-        locationName: inquiry.location?.label,
-        associatePartnerName: inquiry.associatePartner?.name,
-        journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd')
+  locationName: (inquiry as any).location?.label,
+  associatePartnerName: (inquiry as any).associatePartner?.name,
+  journeyDate: formatLocalDate(journeyDate, 'yyyy-MM-dd'),
+  nextFollowUpDate: nextFollowUpDate ? formatLocalDate(nextFollowUpDate, 'yyyy-MM-dd') : null
       }
     });
   
@@ -174,7 +179,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { userId } = auth();
-    const url = new URL(req.url);
+  const url = new URL(req.url);
 
     // Extract query parameters
     const associateId = url.searchParams.get('associateId') || undefined;

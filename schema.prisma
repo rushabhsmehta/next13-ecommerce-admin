@@ -850,6 +850,8 @@ model Inquiry {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   journeyDate          DateTime?          @db.Date
+  // New: next follow-up date for scheduling future contact
+  nextFollowUpDate     DateTime?          @db.Date
   assignedStaffAt      DateTime?
   assignedToStaffId    String?
   location             Location           @relation("LocationToInquiry", fields: [locationId], references: [id])

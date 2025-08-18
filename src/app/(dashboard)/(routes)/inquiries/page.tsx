@@ -201,11 +201,13 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       assignedStaffName: item.assignedStaff?.name || null,
       assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
       tourPackageQueries: item.tourPackageQueries || 'Not specified',
+  // @ts-ignore
+  nextFollowUpDate: item.nextFollowUpDate ? formatLocalDate(item.nextFollowUpDate, 'dd MMM yyyy') : null,
+  // actionHistory removed from table view
       actionHistory: item.actions?.map(action => ({
-        status: action.actionType,
+        type: action.actionType,
         remarks: action.remarks,
-        timestamp: formatLocalDate(action.actionDate, 'dd MMM yyyy HH:mm'),
-        type: action.actionType
+        timestamp: formatLocalDate(action.actionDate, 'dd MMM yyyy HH:mm')
       })) || []
     };
   });

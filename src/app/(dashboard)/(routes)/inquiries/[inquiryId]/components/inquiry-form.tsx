@@ -80,6 +80,7 @@ const formSchema = z.object({
   numChildren5to11: z.number().min(0),
   numChildrenBelow5: z.number().min(0),
   remarks: z.string().nullable(),
+  nextFollowUpDate: z.date().nullable(),
   actions: z.array(z.object({
     actionType: z.string().min(1),
     remarks: z.string().min(1),
@@ -167,6 +168,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildren5to11: initialData.numChildren5to11,
       numChildrenBelow5: initialData.numChildrenBelow5,
       remarks: initialData.remarks,
+  // @ts-ignore - field added recently
+  nextFollowUpDate: initialData?.nextFollowUpDate ? new Date(initialData.nextFollowUpDate as any) : null,
       actions: actions.map(action => ({
         actionType: action.actionType,
         remarks: action.remarks,
@@ -183,6 +186,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       numChildren5to11: 0,
       numChildrenBelow5: 0,
       remarks: '',
+  nextFollowUpDate: null,
       actions: [],
       journeyDate: null,
     }
@@ -356,7 +360,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       // Prepare the data - ensure all required fields are properly formatted
       const formattedData = {
         ...data,
-        journeyDate: normalizedJourneyDate,
+  journeyDate: normalizedJourneyDate,
+  nextFollowUpDate: data.nextFollowUpDate ? normalizeApiDate(data.nextFollowUpDate) : null,
         roomAllocations: data.roomAllocations?.map(allocation => ({
           ...allocation,
           quantity: Number(allocation.quantity),
@@ -835,6 +840,54 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   Add Action
                 </Button>
               </div>
+
+              {/* Next Follow Up Date placed with Actions for context */}
+              <FormField
+                control={form.control}
+                name="nextFollowUpDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                      <div className="flex-1">
+                        <FormLabel>Next Follow Up Date (Optional)</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full md:w-[220px] justify-start pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                                type="button"
+                              >
+                                {field.value ? formatLocalDate(field.value, "PPP") : "Pick a date"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value || undefined}
+                              onSelect={(date) => field.onChange(date || null)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </div>
+                      <div className="flex gap-2 mt-2 md:mt-7 flex-wrap">
+                        <Button type="button" variant="secondary" size="sm" onClick={() => field.onChange(new Date())}>Today</Button>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => { const d=new Date(); d.setDate(d.getDate()+2); field.onChange(d); }}>+2d</Button>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => { const d=new Date(); d.setDate(d.getDate()+7); field.onChange(d); }}>+1w</Button>
+                        {field.value && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => field.onChange(null)}>Clear</Button>
+                        )}
+                      </div>
+                    </div>
+                  </FormItem>
+                )}
+              />
 
               {form.watch("actions")?.map((_, index) => (
                 <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 border rounded-md p-4">

@@ -68,6 +68,65 @@ export async function PATCH(
     const body = await req.json();
     
     console.log('[INQUIRY_PATCH] Received request body:', JSON.stringify(body, null, 2));
+
+    // Support lightweight partial update when only nextFollowUpDate is being patched
+    const isNextFollowUpOnly = (
+      Object.prototype.hasOwnProperty.call(body, 'nextFollowUpDate') &&
+      !Object.prototype.hasOwnProperty.call(body, 'customerName') &&
+      !Object.prototype.hasOwnProperty.call(body, 'status') &&
+      !Object.prototype.hasOwnProperty.call(body, 'journeyDate') &&
+      !Object.prototype.hasOwnProperty.call(body, 'locationId') &&
+      !Object.prototype.hasOwnProperty.call(body, 'associatePartnerId') &&
+      !Object.prototype.hasOwnProperty.call(body, 'roomAllocations') &&
+      !Object.prototype.hasOwnProperty.call(body, 'transportDetails')
+    );
+
+    if (isNextFollowUpOnly) {
+      try {
+        if (!userId) {
+          return new NextResponse("Unauthenticated", { status: 403 });
+        }
+        if (!params.inquiryId) {
+          return new NextResponse("Inquiry id is required", { status: 400 });
+        }
+
+        const originalInquiry = await prismadb.inquiry.findUnique({
+          where: { id: params.inquiryId }
+        });
+        if (!originalInquiry) {
+          return new NextResponse("Inquiry not found", { status: 404 });
+        }
+
+        const processedNextFollowUpDate = dateToUtc(body.nextFollowUpDate);
+
+        const inquiry = await prismadb.inquiry.update({
+          where: { id: params.inquiryId },
+          // @ts-ignore prisma client needs regeneration for new field in some environments
+          data: { nextFollowUpDate: processedNextFollowUpDate }
+        });
+
+        await createAuditLog({
+          entityId: params.inquiryId,
+          entityType: "Inquiry",
+          action: "UPDATE",
+          before: originalInquiry,
+          after: inquiry,
+          userRole: "ADMIN", // Lightweight path; detailed role resolution not critical here
+          metadata: {
+            // @ts-ignore
+            nextFollowUpDateBefore: (originalInquiry as any).nextFollowUpDate,
+            // @ts-ignore
+            nextFollowUpDateAfter: (inquiry as any).nextFollowUpDate,
+            lightweight: true
+          }
+        });
+
+        return NextResponse.json(inquiry);
+      } catch (err) {
+        console.error('[INQUIRY_PATCH][LIGHTWEIGHT_NEXT_FOLLOW_UP]', err);
+        return new NextResponse("Internal error", { status: 500 });
+      }
+    }
     
     // Add comprehensive logging for journeyDate processing
     console.log('🔍 SERVER-SIDE JOURNEY DATE PROCESSING:');
@@ -99,6 +158,7 @@ export async function PATCH(
       numChildrenBelow5,
       status,
       journeyDate,
+      nextFollowUpDate,
       remarks
     } = body;
 
@@ -161,7 +221,8 @@ export async function PATCH(
     console.log('4. Before dateToUtc processing:');
     console.log('   - journeyDate value:', journeyDate);
     
-    const processedJourneyDate = dateToUtc(journeyDate);
+  const processedJourneyDate = dateToUtc(journeyDate);
+  const processedNextFollowUpDate = dateToUtc(nextFollowUpDate);
     console.log('5. After dateToUtc processing:');
     console.log('   - processedJourneyDate:', processedJourneyDate);
     if (processedJourneyDate) {
@@ -172,7 +233,7 @@ export async function PATCH(
       console.log('   - processedJourneyDate getFullYear():', processedJourneyDate.getFullYear());
     }
 
-    const updatedData = {
+    const updatedData: any = {
       customerName,
       customerMobileNumber,
       locationId,
@@ -183,6 +244,8 @@ export async function PATCH(
       numChildrenBelow5,
       status,
       journeyDate: processedJourneyDate,
+      // @ts-ignore prisma client needs regeneration
+      nextFollowUpDate: processedNextFollowUpDate,
       remarks: remarks || null
     };
     
@@ -303,6 +366,10 @@ export async function PATCH(
         isStatusChanged: originalInquiry.status !== inquiry.status,
         statusChangedFrom: originalInquiry.status,
         statusChangedTo: inquiry.status,
+        // @ts-ignore
+        nextFollowUpDateBefore: (originalInquiry as any).nextFollowUpDate,
+        // @ts-ignore
+        nextFollowUpDateAfter: (inquiry as any).nextFollowUpDate
       }
     });
 

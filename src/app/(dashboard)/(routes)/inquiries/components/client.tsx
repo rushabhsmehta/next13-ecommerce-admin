@@ -52,6 +52,19 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   // Add this fallback state to ensure consistent behavior
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Keep a local copy of rows so we can update optimistically without refresh
+  const [rows, setRows] = useState<InquiryColumn[]>(data);
+
+  // Listen for updates from row-level components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ id: string; nextFollowUpDate: string | null }>;
+      const payload = ce.detail;
+      setRows(prev => prev.map(r => r.id === payload.id ? { ...r, nextFollowUpDate: payload.nextFollowUpDate } : r));
+    };
+    window.addEventListener('inquiry:nextFollowUpUpdated', handler as EventListener);
+    return () => window.removeEventListener('inquiry:nextFollowUpUpdated', handler as EventListener);
+  }, []);
   
   // Use both the hook and a direct check for extra reliability
   useEffect(() => {
@@ -101,12 +114,12 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
 
   // Filter data based on search query for mobile view
   const filteredData = searchQuery 
-    ? data.filter(item => 
+    ? rows.filter(item => 
         item.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.customerMobileNumber.includes(searchQuery) ||
         item.location.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : data;
+    : rows;
 
   // Filter component for mobile view
   const FiltersContent = () => (

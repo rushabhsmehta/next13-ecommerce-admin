@@ -18,6 +18,8 @@ import { toast } from "react-hot-toast"
 import { TourPackageQuery } from "@prisma/client"
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment"
 import { format } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
   { value: "HOT_QUERY", label: "Hot Query" },
@@ -101,63 +103,6 @@ const StatusCell = ({ row }: { row: any }) => {
   );
 };
 
-const renderActionHistory = ({ row }: { row: any }) => {
-  const history = row.original.actionHistory;
-  if (!history || history.length === 0) return "No actions";
-
-  // Show only the latest 2 actions
-  const latestActions = [...history]
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 2);
-
-  const getActionTypeColor = (type: string) => {
-    switch (type.toUpperCase()) {
-      case 'CALL':
-        return 'border-green-500 bg-green-50';
-      case 'MESSAGE':
-        return 'border-blue-500 bg-blue-50';
-      case 'EMAIL':
-        return 'border-yellow-500 bg-yellow-50';
-      default:
-        return 'border-gray-500 bg-gray-50';
-    }
-  };
-
-  const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-  return (
-    <div className="space-y-2 max-w-[160px]">
-      {latestActions.map((action: any, index: number) => (
-        <div 
-          key={index} 
-          className={`
-            text-xs rounded-md p-1.5 border-l-2
-            ${getActionTypeColor(action.type)}
-          `}
-        >
-          <div className="flex items-center justify-between gap-1">
-            <span className="font-medium text-xs">{action.type}</span>
-            <span className="text-muted-foreground text-xs">
-              {formatDate(action.timestamp)}
-            </span>
-          </div>
-          {action.remarks && (
-            <div className="text-muted-foreground mt-0.5 truncate text-xs">
-              {action.remarks}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export type InquiryColumn = {
   id: string
   customerName: string
@@ -171,12 +116,7 @@ export type InquiryColumn = {
   assignedStaffName: string | null
   assignedStaffAt: string | null
   tourPackageQueries: TourPackageQuery[]
-  actionHistory: {
-    status: string
-    remarks: string
-    timestamp: string
-    type: string
-  }[]
+  nextFollowUpDate?: string | null
 }
 
 export const columns: ColumnDef<InquiryColumn>[] = [
@@ -293,10 +233,109 @@ export const columns: ColumnDef<InquiryColumn>[] = [
     header: "Journey Date",
   },  
   {
-    accessorKey: "actionHistory",
-    header: "Recent Actions",
-    cell: renderActionHistory,
-    size: 160,  // Set a fixed width for this column
+    accessorKey: "nextFollowUpDate",
+    header: "Next Follow Up",
+    cell: ({ row }) => {
+      const router = useRouter();
+      const inquiry = row.original;
+  const [updating, setUpdating] = useState(false);
+  // Store raw ISO separately to avoid parsing issues; derive display on render
+  const [isoValue, setIsoValue] = useState<string | null>(inquiry.nextFollowUpDate || null);
+  const [open, setOpen] = useState(false);
+      const recentActions = (inquiry as any).actionHistory?.slice(0,3) || [];
+
+      const saveDate = async (iso: string | null) => {
+        try {
+          setUpdating(true);
+          await axios.patch(`/api/inquiries/${inquiry.id}`, { nextFollowUpDate: iso });
+          toast.success('Follow-up updated');
+          setIsoValue(iso);
+          // Optimistically update the underlying row data so filters/exports see it
+          const display = iso ? format(new Date(iso), 'dd MMM yyyy') : null;
+          (row.original as any).nextFollowUpDate = display;
+          // Notify parent/client that a row changed so it can update its state immediately
+          try {
+            window.dispatchEvent(new CustomEvent('inquiry:nextFollowUpUpdated', { detail: { id: inquiry.id, nextFollowUpDate: display } }));
+          } catch (err) {
+            // ignore if window isn't available in some test envs
+          }
+          // Avoid forcing a full refresh; parent will pick up the event and update
+        } catch (e) {
+          toast.error('Update failed');
+        } finally {
+          setUpdating(false);
+        }
+      };
+
+      const displayValue = isoValue ? format(new Date(isoValue), 'dd MMM yyyy') : null;
+
+      return (
+        <div className="flex flex-col gap-1 min-w-[170px]">
+          <div className="text-xs font-medium">
+            {displayValue || <span className="text-muted-foreground">Not set</span>}
+          </div>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={updating}
+                  className="text-[10px] px-2 py-1 rounded border bg-white hover:bg-slate-50"
+                >
+                  {displayValue ? 'Change' : 'Set'}
+                </button>
+                {displayValue && (
+                  <button
+                    type="button"
+                    onClick={() => saveDate(null)}
+                    disabled={updating}
+                    className="text-[10px] px-2 py-1 rounded border bg-white hover:bg-slate-50"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[480px] md:w-[520px] p-0">
+              <div className="flex flex-col md:flex-row">
+                <div className="p-3 md:border-r md:w-[55%]">
+                  <Calendar
+                    mode="single"
+                    selected={isoValue ? new Date(isoValue) : undefined}
+                    onSelect={(d: Date | undefined) => {
+                      if (!d) return;
+                      const normalized = new Date(d);
+                      normalized.setHours(0,0,0,0);
+                      saveDate(normalized.toISOString());
+                      setOpen(false);
+                    }}
+                    disabled={() => false}
+                    initialFocus
+                  />
+                </div>
+                <div className="p-3 md:w-[45%] max-h-[300px] flex flex-col gap-2">
+                  <div className="text-xs font-semibold tracking-wide">Recent Actions</div>
+                  <div className="space-y-1 overflow-y-auto pr-1 text-xs">
+                    {recentActions.length === 0 && (
+                      <div className="text-[11px] text-muted-foreground">No actions</div>
+                    )}
+                    {recentActions.map((a: any, i: number) => (
+                      <div key={i} className="rounded border bg-slate-50 p-2">
+                        <div className="flex justify-between mb-0.5">
+                          <span className="font-medium uppercase text-[10px] tracking-wide">{a.type}</span>
+                          <span className="text-[10px] text-muted-foreground">{a.timestamp}</span>
+                        </div>
+                        {a.remarks && <div className="text-[10px] leading-snug line-clamp-3">{a.remarks}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      );
+    }
   },
   {
     accessorKey: "tourPackageQueries",

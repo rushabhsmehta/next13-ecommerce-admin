@@ -75,6 +75,7 @@ export const CellAction: React.FC<CellActionProps> = ({
     setWhatsappOpen(true);
   };
 
+
   return (
     <>
       <AlertModal

@@ -84,7 +84,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     const totalTravelers = data.numAdults + data.numChildren5to11 + data.numChildrenBelow5;
     // Always format journey date to DD/MM/YYYY (supplier friendly); use UTC parts to avoid timezone shift
     const formatDateDDMMYYYY = (value: string | Date | null): string => {
-      if (!value) return "To be confirmed";
+      if (!value) return "To be confirmehd";
       try {
         const d = new Date(value);
         if (isNaN(d.getTime())) return "To be confirmed";

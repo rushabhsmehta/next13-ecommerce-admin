@@ -82,11 +82,22 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   // Generate message with specific inquiry data
   const generateMessageWithData = (data: typeof inquiryData) => {
     const totalTravelers = data.numAdults + data.numChildren5to11 + data.numChildrenBelow5;
-    const journeyDateFormatted = data.journeyDate 
-      ? (typeof data.journeyDate === 'string' 
-          ? data.journeyDate  // Already formatted in list view
-          : new Date(data.journeyDate).toLocaleDateString('en-GB'))
-      : "To be confirmed";
+    // Always format journey date to DD/MM/YYYY (supplier friendly); use UTC parts to avoid timezone shift
+    const formatDateDDMMYYYY = (value: string | Date | null): string => {
+      if (!value) return "To be confirmed";
+      try {
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return "To be confirmed";
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        return `${day}/${month}/${year}`;
+      } catch {
+        return "To be confirmed";
+      }
+    };
+
+    const journeyDateFormatted = formatDateDDMMYYYY(data.journeyDate as any);
 
     // Create message based on available data
     let message = `Hello,

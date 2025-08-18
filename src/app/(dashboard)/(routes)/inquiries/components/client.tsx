@@ -283,10 +283,10 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           <div className="block md:hidden">
             <MobileInquiryCard data={filteredData} isAssociateUser={isAssociateUser} />
           </div>          <div className="hidden md:block">
-            <InquiriesDataTable
-              columns={columns}
-              data={data}
-            />
+              <InquiriesDataTable
+                columns={columns}
+                data={filteredData}
+              />
           </div>
         </>
       )}

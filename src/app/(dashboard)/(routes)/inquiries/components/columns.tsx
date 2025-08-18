@@ -20,6 +20,7 @@ import { CompactStaffAssignment } from "@/components/compact-staff-assignment"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+
 const statusOptions = [
   { value: "PENDING", label: "Pending" },
   { value: "HOT_QUERY", label: "Hot Query" },
@@ -39,24 +40,16 @@ const StatusCell = ({ row }: { row: any }) => {
       await axios.patch(`/api/inquiries/${row.original.id}/status`, {
         status: newStatus
       });
-      // Update the local state immediately
       setCurrentStatus(newStatus);
       toast.success("Status updated");
-        // Update the original data in the row to ensure filtering works
       row.original.status = newStatus;
-      
-      // Optional: refresh the page data to ensure other components are updated
-      // This is more expensive but ensures full consistency
-      setTimeout(() => {
-        router.refresh();
-      }, 1000); // Delay refresh slightly to let UI update first
+      setTimeout(() => router.refresh(), 1000);
     } catch (error) {
       toast.error("Failed to update status");
     } finally {
       setLoading(false);
     }
   };
-  // Helper function to get status styling
   const getStatusStyles = (status: string) => {
     switch(status) {
       case "CONFIRMED":
@@ -70,13 +63,16 @@ const StatusCell = ({ row }: { row: any }) => {
       default:
         return "bg-yellow-50 text-yellow-700 border border-yellow-200";
     }
-  };  return (
+  };
+
+  return (
     <div className="flex items-center">
       <Select
         value={currentStatus}
         onValueChange={onStatusChange}
         disabled={loading}
-      >        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-[130px] hover:bg-transparent focus:ring-0">          
+      >
+        <SelectTrigger className="p-0 h-auto border-0 bg-transparent shadow-none w-[130px] hover:bg-transparent focus:ring-0">
           <div className={`px-2.5 py-1 rounded-md text-xs font-medium ${getStatusStyles(currentStatus)} flex items-center w-full justify-center`}>
             <span>{statusOptions.find(s => s.value === currentStatus)?.label || "Unknown Status"}</span>
           </div>
@@ -103,6 +99,102 @@ const StatusCell = ({ row }: { row: any }) => {
   );
 };
 
+const NextFollowUpCell = ({ row }: { row: any }) => {
+  const router = useRouter();
+  const inquiry = row.original;
+  const [updating, setUpdating] = useState(false);
+  const [isoValue, setIsoValue] = useState<string | null>(inquiry.nextFollowUpDate || null);
+  const [open, setOpen] = useState(false);
+  const recentActions = (inquiry as any).actionHistory?.slice(0,3) || [];
+
+  const saveDate = async (iso: string | null) => {
+    try {
+      setUpdating(true);
+      await axios.patch(`/api/inquiries/${inquiry.id}`, { nextFollowUpDate: iso });
+      toast.success('Follow-up updated');
+      setIsoValue(iso);
+      const display = iso ? format(new Date(iso), 'dd MMM yyyy') : null;
+      (row.original as any).nextFollowUpDate = display;
+      try {
+        window.dispatchEvent(new CustomEvent('inquiry:nextFollowUpUpdated', { detail: { id: inquiry.id, nextFollowUpDate: display } }));
+      } catch (err) {}
+    } catch (e) {
+      toast.error('Update failed');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const displayValue = isoValue ? format(new Date(isoValue), 'dd MMM yyyy') : null;
+
+  return (
+    <div className="flex flex-col gap-1 min-w-[170px]">
+      <div className="text-xs font-medium">
+        {displayValue || <span className="text-muted-foreground">Not set</span>}
+      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={updating}
+              className="text-[10px] px-2 py-1 rounded border bg-white hover:bg-slate-50"
+            >
+              {displayValue ? 'Change' : 'Set'}
+            </button>
+            {displayValue && (
+              <button
+                type="button"
+                onClick={() => saveDate(null)}
+                disabled={updating}
+                className="text-[10px] px-2 py-1 rounded border bg-white hover:bg-slate-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[480px] md:w-[520px] p-0">
+          <div className="flex flex-col md:flex-row">
+            <div className="p-3 md:border-r md:w-[55%]">
+              <Calendar
+                mode="single"
+                selected={isoValue ? new Date(isoValue) : undefined}
+                onSelect={(d: Date | undefined) => {
+                  if (!d) return;
+                  const normalized = new Date(d);
+                  normalized.setHours(0,0,0,0);
+                  saveDate(normalized.toISOString());
+                  setOpen(false);
+                }}
+                disabled={() => false}
+                initialFocus
+              />
+            </div>
+            <div className="p-3 md:w-[45%] max-h-[300px] flex flex-col gap-2">
+              <div className="text-xs font-semibold tracking-wide">Recent Actions</div>
+              <div className="space-y-1 overflow-y-auto pr-1 text-xs">
+                {recentActions.length === 0 && (
+                  <div className="text-[11px] text-muted-foreground">No actions</div>
+                )}
+                {recentActions.map((a: any, i: number) => (
+                  <div key={i} className="rounded border bg-slate-50 p-2">
+                    <div className="flex justify-between mb-0.5">
+                      <span className="font-medium uppercase text-[10px] tracking-wide">{a.type}</span>
+                      <span className="text-[10px] text-muted-foreground">{a.timestamp}</span>
+                    </div>
+                    {a.remarks && <div className="text-[10px] leading-snug line-clamp-3">{a.remarks}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
 export type InquiryColumn = {
   id: string
   customerName: string
@@ -117,6 +209,7 @@ export type InquiryColumn = {
   assignedStaffAt: string | null
   tourPackageQueries: TourPackageQuery[]
   nextFollowUpDate?: string | null
+  actionHistory?: Array<{ type: string; timestamp: string; remarks?: string }>
 }
 
 export const columns: ColumnDef<InquiryColumn>[] = [
@@ -235,107 +328,7 @@ export const columns: ColumnDef<InquiryColumn>[] = [
   {
     accessorKey: "nextFollowUpDate",
     header: "Next Follow Up",
-    cell: ({ row }) => {
-      const router = useRouter();
-      const inquiry = row.original;
-  const [updating, setUpdating] = useState(false);
-  // Store raw ISO separately to avoid parsing issues; derive display on render
-  const [isoValue, setIsoValue] = useState<string | null>(inquiry.nextFollowUpDate || null);
-  const [open, setOpen] = useState(false);
-      const recentActions = (inquiry as any).actionHistory?.slice(0,3) || [];
-
-      const saveDate = async (iso: string | null) => {
-        try {
-          setUpdating(true);
-          await axios.patch(`/api/inquiries/${inquiry.id}`, { nextFollowUpDate: iso });
-          toast.success('Follow-up updated');
-          setIsoValue(iso);
-          // Optimistically update the underlying row data so filters/exports see it
-          const display = iso ? format(new Date(iso), 'dd MMM yyyy') : null;
-          (row.original as any).nextFollowUpDate = display;
-          // Notify parent/client that a row changed so it can update its state immediately
-          try {
-            window.dispatchEvent(new CustomEvent('inquiry:nextFollowUpUpdated', { detail: { id: inquiry.id, nextFollowUpDate: display } }));
-          } catch (err) {
-            // ignore if window isn't available in some test envs
-          }
-          // Avoid forcing a full refresh; parent will pick up the event and update
-        } catch (e) {
-          toast.error('Update failed');
-        } finally {
-          setUpdating(false);
-        }
-      };
-
-      const displayValue = isoValue ? format(new Date(isoValue), 'dd MMM yyyy') : null;
-
-      return (
-        <div className="flex flex-col gap-1 min-w-[170px]">
-          <div className="text-xs font-medium">
-            {displayValue || <span className="text-muted-foreground">Not set</span>}
-          </div>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  disabled={updating}
-                  className="text-[10px] px-2 py-1 rounded border bg-white hover:bg-slate-50"
-                >
-                  {displayValue ? 'Change' : 'Set'}
-                </button>
-                {displayValue && (
-                  <button
-                    type="button"
-                    onClick={() => saveDate(null)}
-                    disabled={updating}
-                    className="text-[10px] px-2 py-1 rounded border bg-white hover:bg-slate-50"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-[480px] md:w-[520px] p-0">
-              <div className="flex flex-col md:flex-row">
-                <div className="p-3 md:border-r md:w-[55%]">
-                  <Calendar
-                    mode="single"
-                    selected={isoValue ? new Date(isoValue) : undefined}
-                    onSelect={(d: Date | undefined) => {
-                      if (!d) return;
-                      const normalized = new Date(d);
-                      normalized.setHours(0,0,0,0);
-                      saveDate(normalized.toISOString());
-                      setOpen(false);
-                    }}
-                    disabled={() => false}
-                    initialFocus
-                  />
-                </div>
-                <div className="p-3 md:w-[45%] max-h-[300px] flex flex-col gap-2">
-                  <div className="text-xs font-semibold tracking-wide">Recent Actions</div>
-                  <div className="space-y-1 overflow-y-auto pr-1 text-xs">
-                    {recentActions.length === 0 && (
-                      <div className="text-[11px] text-muted-foreground">No actions</div>
-                    )}
-                    {recentActions.map((a: any, i: number) => (
-                      <div key={i} className="rounded border bg-slate-50 p-2">
-                        <div className="flex justify-between mb-0.5">
-                          <span className="font-medium uppercase text-[10px] tracking-wide">{a.type}</span>
-                          <span className="text-[10px] text-muted-foreground">{a.timestamp}</span>
-                        </div>
-                        {a.remarks && <div className="text-[10px] leading-snug line-clamp-3">{a.remarks}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      );
-    }
+    cell: ({ row }) => <NextFollowUpCell row={row} />,
   },
   {
     accessorKey: "tourPackageQueries",

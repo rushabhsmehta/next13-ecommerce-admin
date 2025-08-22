@@ -109,7 +109,8 @@ const roomAllocationSchema = z.object({
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
   ]).optional(),
-  guestNames: z.string().optional()
+  // Accept nulls from API or forms; coerce undefined/null when writing to DB elsewhere
+  guestNames: z.string().optional().nullable()
 });
 
 const transportDetailsSchema = z.object({
@@ -119,13 +120,14 @@ const transportDetailsSchema = z.object({
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
   ]).optional(),
-  description: z.string().optional()
+  // Allow nulls here as some saved records may have null description
+  description: z.string().optional().nullable()
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
-  itineraryDescription: z.string().optional(),
+  itineraryDescription: z.string().nullable().optional(),
   dayNumber: z.coerce.number().optional(),
   days: z.string().optional(),
   activities: z.array(activitySchema),

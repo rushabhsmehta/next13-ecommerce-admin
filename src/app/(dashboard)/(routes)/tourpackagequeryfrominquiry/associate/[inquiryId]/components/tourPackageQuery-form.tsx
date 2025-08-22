@@ -90,7 +90,7 @@ const roomAllocationSchema = z.object({
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
   ]).optional(),
-  guestNames: z.string().optional()
+  guestNames: z.string().nullable().optional()
 });
 
 const transportDetailsSchema = z.object({
@@ -100,13 +100,13 @@ const transportDetailsSchema = z.object({
     z.string().transform(val => parseInt(val) || 1), // Transform string to number
     z.number()
   ]).optional(),
-  description: z.string().optional()
+  description: z.string().nullable().optional()
 });
 
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
-  itineraryDescription: z.string().optional(),
+  itineraryDescription: z.string().nullable().optional(),
   dayNumber: z.coerce.number().optional(),
   days: z.string().optional(),
   activities: z.array(activitySchema),

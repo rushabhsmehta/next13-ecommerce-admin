@@ -195,27 +195,30 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                 </div>
               </div>
                 <div className="flex items-center text-sm mt-2">
-                  <Calendar className="w-3 h-3 mr-1 text-yellow-600" />
-                  <span>
-                    {(() => {
-                      const display = (inquiry as any).nextFollowUpDate;
-                      const iso = (inquiry as any).nextFollowUpDateIso;
-                      if (display) return display;
-                      if (iso) {
-                        try {
-                          const d = parseISO(iso);
-                          return format(d, 'dd MMM yyyy');
-                        } catch (e) {
+                  <Calendar className="w-3 h-3 mr-2 text-yellow-600" />
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">Next Follow-up</span>
+                    <span className="font-medium">
+                      {(() => {
+                        const display = (inquiry as any).nextFollowUpDate;
+                        const iso = (inquiry as any).nextFollowUpDateIso;
+                        if (display) return display;
+                        if (iso) {
                           try {
-                            return new Date(iso).toLocaleDateString();
-                          } catch {
-                            return 'Not set';
+                            const d = parseISO(iso);
+                            return format(d, 'dd MMM yyyy');
+                          } catch (e) {
+                            try {
+                              return new Date(iso).toLocaleDateString();
+                            } catch {
+                              return 'Not set';
+                            }
                           }
                         }
-                      }
-                      return <span className="text-muted-foreground">Not set</span>;
-                    })()}
-                  </span>
+                        return 'Not set';
+                      })()}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
                 <Badge variant="outline" className="mr-2">

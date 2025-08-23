@@ -655,10 +655,10 @@ export default function TourPackagePricingPage() {
         </Card>
       )}
       
-      {/* List of existing pricing periods */}
+      {/* List of existing pricing periods (table layout) */}
       <div>
         <h2 className="text-xl font-bold mb-4">Pricing Periods</h2>
-        
+
         {pricingPeriods.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center p-6">
@@ -667,88 +667,84 @@ export default function TourPackagePricingPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {pricingPeriods.map((period) => (
-              <Card key={period.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>                      <CardTitle className="text-lg">
-                        {formatLocalDate(utcToLocal(period.startDate) || new Date(), 'MMM dd, yyyy')} to {formatLocalDate(utcToLocal(period.endDate) || new Date(), 'MMM dd, yyyy')}
-                      </CardTitle>
-                      <CardDescription>
-                        <span className="font-medium">Number of Rooms:</span> {period.numberOfRooms || 1} | 
-                        <span className="font-medium"> Meal Plan:</span> {period.mealPlan?.name || 'Not specified'}
-                      </CardDescription>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(period)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" /> Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(period.id)}
-                      >
-                        <Trash className="h-4 w-4 mr-1" /> Delete
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>                <CardContent>
-                  <div className="space-y-2">
-                    <div>
-                      <h4 className="font-medium mb-1">Pricing Components:</h4>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Component</TableHead>
-                            <TableHead>Sales Price</TableHead>
-                            <TableHead>Purchase Price</TableHead>
-                            <TableHead>Description</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {period.pricingComponents.map((comp: any) => (
-                            <TableRow key={comp.id}>
-                              <TableCell>
-                                {comp.pricingAttribute?.name || "Unknown Component"}
-                              </TableCell>
-                              <TableCell>
-                                {new Intl.NumberFormat('en-IN', { 
-                                  style: 'currency',
-                                  currency: 'INR' 
-                                }).format(parseFloat(comp.price))}
-                              </TableCell>
-                              <TableCell>
-                                {comp.purchasePrice ? new Intl.NumberFormat('en-IN', { 
-                                  style: 'currency',
-                                  currency: 'INR' 
-                                }).format(parseFloat(comp.purchasePrice)) : '-'}
-                              </TableCell>
-                              <TableCell>
-                                <div className="text-sm text-gray-600 max-w-[200px] truncate" title={comp.description || ""}>
-                                  {comp.description || "-"}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    {period.description && (
-                      <div>
-                        <h4 className="font-medium">Notes:</h4>
-                        <p className="text-muted-foreground">{period.description}</p>
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Period</TableHead>
+                  <TableHead>Rooms</TableHead>
+                  <TableHead>Meal Plan</TableHead>
+                  <TableHead>Components</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pricingPeriods.map((period) => (
+                  <TableRow key={period.id}>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {formatLocalDate(utcToLocal(period.startDate) || new Date(), 'MMM dd, yyyy')} to {formatLocalDate(utcToLocal(period.endDate) || new Date(), 'MMM dd, yyyy')}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    </TableCell>
+                    <TableCell>
+                      {period.numberOfRooms || 1}
+                    </TableCell>
+                    <TableCell>
+                      {period.mealPlan?.name || 'Not specified'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[700px]">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Component</TableHead>
+                              <TableHead>Sales Price</TableHead>
+                              <TableHead>Purchase Price</TableHead>
+                              <TableHead>Description</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {period.pricingComponents.map((comp: any) => (
+                              <TableRow key={comp.id}>
+                                <TableCell>{comp.pricingAttribute?.name || 'Unknown Component'}</TableCell>
+                                <TableCell>
+                                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.price))}
+                                </TableCell>
+                                <TableCell>
+                                  {comp.purchasePrice ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.purchasePrice)) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-600 max-w-[300px] truncate" title={comp.description || ''}>
+                                    {comp.description || '-'}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {period.description && (
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            <strong>Notes:</strong> {period.description}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(period)}>
+                          <Edit className="h-4 w-4 mr-1" /> Edit
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(period.id)}>
+                          <Trash className="h-4 w-4 mr-1" /> Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/sheet";
 import { MobileInquiryCard } from "./mobile-inquiry-card";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
@@ -49,6 +50,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobileHook = useIsMobile();
+  const [isPending, startTransition] = useTransition();
   // Add this fallback state to ensure consistent behavior
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,6 +67,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     window.addEventListener('inquiry:nextFollowUpUpdated', handler as EventListener);
     return () => window.removeEventListener('inquiry:nextFollowUpUpdated', handler as EventListener);
   }, []);
+
+  // Sync local rows when server-provided data changes (e.g., after filter/navigation)
+  useEffect(() => {
+    setRows(data);
+  }, [data]);
   
   // Use both the hook and a direct check for extra reliability
   useEffect(() => {
@@ -93,12 +100,26 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     } else {
       params.delete('associateId');
     }
-    router.push(`/inquiries?${params.toString()}`);
+    router.replace(`/inquiries?${params.toString()}`);
   };
 
   const handleAddNewClick = () => {
     // Open the link in a new tab
     window.open(`/inquiries/new`, '_blank');
+  };
+
+  // Follow-ups only toggle
+  const followUpsOnly = searchParams.get('followUpsOnly') === '1';
+  const onToggleFollowUpsOnly = (checked: boolean) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) {
+      params.set('followUpsOnly', '1');
+    } else {
+      params.delete('followUpsOnly');
+    }
+    startTransition(() => {
+      router.replace(`/inquiries?${params.toString()}`);
+    });
   };
 
   // Download handlers
@@ -126,6 +147,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     <div className="flex flex-col space-y-4 py-4">
       <PeriodFilter />
       <StatusFilter />
+      <div className="flex items-center space-x-2">
+  <Checkbox id="followups-only" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
+        <label htmlFor="followups-only" className="text-sm">Follow-ups only</label>
+  {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
+      </div>
       
       {!isAssociateUser && (
         <Select
@@ -174,6 +200,12 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             </SheetContent>
           </Sheet>
           
+          <div className="flex items-center ml-2">
+            <Checkbox id="followups-only-mobile" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
+            <label htmlFor="followups-only-mobile" className="text-sm ml-2">Follow-ups only</label>
+            {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
+          </div>
+
           <div className="flex flex-wrap gap-2 mt-2">
             <Button onClick={handleAddNewClick} size="sm" className="flex-1">
               <Plus className="mr-2 h-4 w-4" /> New
@@ -203,6 +235,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         <div className="hidden md:flex items-center gap-x-2">
           <PeriodFilter />
           <StatusFilter />
+          {/* Follow-ups only pill moved next to the search input; remove redundant desktop checkbox */}
           
           {!isAssociateUser && (
             <Select
@@ -283,10 +316,13 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           <div className="block md:hidden">
             <MobileInquiryCard data={filteredData} isAssociateUser={isAssociateUser} />
           </div>          <div className="hidden md:block">
-              <InquiriesDataTable
-                columns={columns}
-                data={filteredData}
-              />
+                <InquiriesDataTable
+                  columns={columns}
+                  data={filteredData}
+                  followUpsOnly={followUpsOnly}
+                  onToggleFollowUpsOnly={onToggleFollowUpsOnly}
+                  isPending={isPending}
+                />
           </div>
         </>
       )}

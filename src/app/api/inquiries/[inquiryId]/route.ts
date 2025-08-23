@@ -97,7 +97,10 @@ export async function PATCH(
           return new NextResponse("Inquiry not found", { status: 404 });
         }
 
-        const processedNextFollowUpDate = dateToUtc(body.nextFollowUpDate);
+        // Allow clearing the follow-up date when client sends null explicitly
+        const processedNextFollowUpDate = (body.nextFollowUpDate === null)
+          ? null
+          : dateToUtc(body.nextFollowUpDate);
 
         const inquiry = await prismadb.inquiry.update({
           where: { id: params.inquiryId },
@@ -222,7 +225,10 @@ export async function PATCH(
     console.log('   - journeyDate value:', journeyDate);
     
   const processedJourneyDate = dateToUtc(journeyDate);
-  const processedNextFollowUpDate = dateToUtc(nextFollowUpDate);
+  // Preserve explicit null to clear the date; undefined means "no change" in some contexts
+  const processedNextFollowUpDate = (nextFollowUpDate === null)
+    ? null
+    : dateToUtc(nextFollowUpDate);
     console.log('5. After dateToUtc processing:');
     console.log('   - processedJourneyDate:', processedJourneyDate);
     if (processedJourneyDate) {

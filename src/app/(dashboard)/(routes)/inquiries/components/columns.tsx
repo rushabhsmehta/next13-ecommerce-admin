@@ -103,7 +103,8 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
   const router = useRouter();
   const inquiry = row.original;
   const [updating, setUpdating] = useState(false);
-  const [isoValue, setIsoValue] = useState<string | null>(inquiry.nextFollowUpDate || null);
+  // Keep the raw ISO value separate from the display value to avoid parsing/formatting drift
+  const [isoValue, setIsoValue] = useState<string | null>(inquiry.nextFollowUpDateIso || null);
   const [open, setOpen] = useState(false);
   const recentActions = (inquiry as any).actionHistory?.slice(0,3) || [];
 
@@ -113,8 +114,21 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
       await axios.patch(`/api/inquiries/${inquiry.id}`, { nextFollowUpDate: iso });
       toast.success('Follow-up updated');
       setIsoValue(iso);
-      const display = iso ? format(new Date(iso), 'dd MMM yyyy') : null;
+      let display: string | null = null;
+      if (iso) {
+        const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(iso);
+        if (m) {
+          const y = parseInt(m[1], 10);
+          const mo = parseInt(m[2], 10) - 1;
+          const dnum = parseInt(m[3], 10);
+          display = format(new Date(y, mo, dnum), 'dd MMM yyyy');
+        } else {
+          display = format(new Date(iso), 'dd MMM yyyy');
+        }
+      }
+      // Update row cache: keep both display string and ISO for subsequent renders
       (row.original as any).nextFollowUpDate = display;
+      (row.original as any).nextFollowUpDateIso = iso;
       try {
         window.dispatchEvent(new CustomEvent('inquiry:nextFollowUpUpdated', { detail: { id: inquiry.id, nextFollowUpDate: display } }));
       } catch (err) {}
@@ -125,7 +139,17 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
     }
   };
 
-  const displayValue = isoValue ? format(new Date(isoValue), 'dd MMM yyyy') : null;
+  // Prefer already formatted display string from server; fallback to ISO-derived formatting
+  const displayValue = (row.original as any).nextFollowUpDate || (isoValue ? (() => {
+    const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(isoValue);
+    if (m) {
+      const y = parseInt(m[1], 10);
+      const mo = parseInt(m[2], 10) - 1;
+      const dnum = parseInt(m[3], 10);
+      return format(new Date(y, mo, dnum), 'dd MMM yyyy');
+    }
+    return format(new Date(isoValue), 'dd MMM yyyy');
+  })() : null);
 
   return (
     <div className="flex flex-col gap-1 min-w-[170px]">
@@ -157,14 +181,23 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
         <PopoverContent align="start" className="w-[480px] md:w-[520px] p-0">
           <div className="flex flex-col md:flex-row">
             <div className="p-3 md:border-r md:w-[55%]">
-              <Calendar
+        <Calendar
                 mode="single"
-                selected={isoValue ? new Date(isoValue) : undefined}
+                selected={isoValue ? (() => {
+                  const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(isoValue);
+                  if (m) {
+                    const y = parseInt(m[1], 10);
+                    const mo = parseInt(m[2], 10) - 1;
+                    const dnum = parseInt(m[3], 10);
+                    return new Date(y, mo, dnum);
+                  }
+                  return new Date(isoValue);
+                })() : undefined}
                 onSelect={(d: Date | undefined) => {
                   if (!d) return;
-                  const normalized = new Date(d);
-                  normalized.setHours(0,0,0,0);
-                  saveDate(normalized.toISOString());
+                  // Send date-only string to server to avoid timezone-related shifts
+                  const apiDateOnly = format(d, 'yyyy-MM-dd');
+                  saveDate(apiDateOnly);
                   setOpen(false);
                 }}
                 disabled={() => false}
@@ -209,6 +242,8 @@ export type InquiryColumn = {
   assignedStaffAt: string | null
   tourPackageQueries: TourPackageQuery[]
   nextFollowUpDate?: string | null
+  // Raw ISO value for precise updates/sorting
+  nextFollowUpDateIso?: string | null
   actionHistory?: Array<{ type: string; timestamp: string; remarks?: string }>
 }
 

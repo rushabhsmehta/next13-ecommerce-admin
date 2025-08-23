@@ -187,6 +187,7 @@ export async function GET(req: Request) {
     const period = url.searchParams.get('period') || undefined;
     const startDate = url.searchParams.get('startDate') || undefined;
     const endDate = url.searchParams.get('endDate') || undefined;
+  const followUpsOnly = url.searchParams.get('followUpsOnly') === '1';
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -256,12 +257,18 @@ export async function GET(req: Request) {
     }
 
     // Build the where clause
-    const where = {
+    const where: any = {
       ...(associateId && { associatePartnerId: associateId }),
       ...(status && status !== 'ALL' && { status }),
       ...dateFilter
     };    const inquiries = await prismadb.inquiry.findMany({
-      where,
+      where: followUpsOnly ? {
+        ...where,
+        // Next follow-up date must be present
+        nextFollowUpDate: { not: null },
+        // Exclude cancelled and confirmed inquiries
+        status: { notIn: ['CANCELLED', 'CONFIRMED'] }
+      } : where,
       include: {
         location: true,
         associatePartner: true,
@@ -284,9 +291,7 @@ export async function GET(req: Request) {
           }
         }
       },
-      orderBy: {
-        updatedAt: 'desc'
-      }
+  orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' }
     });
 
     return NextResponse.json(inquiries);

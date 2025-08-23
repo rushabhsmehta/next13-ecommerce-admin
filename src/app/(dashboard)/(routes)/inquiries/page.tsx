@@ -14,6 +14,7 @@ interface InquiriesPageProps {
     period?: string;
     startDate?: string;
     endDate?: string;
+  followUpsOnly?: string;
   }
 }
 
@@ -149,7 +150,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   }
 
   // Build the where clause based on search params
-  const where = {
+  const where: any = {
     ...(associateId && {
       associatePartnerId: associateId
     }),
@@ -158,6 +159,16 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     }),
     ...dateFilter  // Add the date filter to the where clause
   };
+  // Apply follow-ups-only filter: include records with a nextFollowUpDate set and exclude CANCELLED/CONFIRMED
+  const followUpsOnly = searchParams.followUpsOnly === '1';
+  if (followUpsOnly) {
+    where.nextFollowUpDate = {
+      not: null
+    };
+    where.status = {
+      notIn: ['CANCELLED', 'CONFIRMED']
+    };
+  }
   const inquiries = await prismadb.inquiry.findMany({
     where,
     include: {
@@ -171,9 +182,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
         }
       }
     },
-    orderBy: {
-      updatedAt: 'desc'
-    }
+    orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' }
   });
   const formattedInquiries: InquiryColumn[] = inquiries.map((item) => {
     console.log('📋 INQUIRY LIST PAGE - FORMATTING JOURNEY DATE:');
@@ -200,9 +209,12 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
       assignedToStaffId: item.assignedToStaffId || null,
       assignedStaffName: item.assignedStaff?.name || null,
       assignedStaffAt: item.assignedStaffAt ? formatLocalDate(item.assignedStaffAt, 'dd MMM yyyy HH:mm') : null,
-      tourPackageQueries: item.tourPackageQueries || 'Not specified',
+  tourPackageQueries: item.tourPackageQueries || 'Not specified',
   // @ts-ignore
   nextFollowUpDate: item.nextFollowUpDate ? formatLocalDate(item.nextFollowUpDate, 'dd MMM yyyy') : null,
+  // Also keep raw ISO for client-side updates
+  // @ts-ignore
+  nextFollowUpDateIso: item.nextFollowUpDate ? new Date(item.nextFollowUpDate).toISOString() : null,
   // actionHistory removed from table view
       actionHistory: item.actions?.map(action => ({
         type: action.actionType,

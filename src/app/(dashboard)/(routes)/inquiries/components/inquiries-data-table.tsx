@@ -48,7 +48,7 @@ export const InquiriesDataTable = ({
         />
         {/* Prominent pill beside the search input for desktop */}
         {typeof onToggleFollowUpsOnly === 'function' && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 ml-2">
             <div className="px-3 py-1 rounded-full border bg-white flex items-center gap-2">
               <Checkbox id="followups-pill" checked={!!followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
               <label htmlFor="followups-pill" className="text-sm">Follow-ups only</label>

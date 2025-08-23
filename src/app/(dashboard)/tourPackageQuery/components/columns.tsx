@@ -5,8 +5,9 @@ import { ColumnDef } from "@tanstack/react-table"
 import { CellAction } from "./cell-action"
 
 import { format, parseISO } from 'date-fns';
-import { ArrowUpDown, MoreHorizontal } from "lucide-react"
+import { ArrowUpDown, MoreHorizontal, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 
 export type TourPackageQueryColumn = {
@@ -41,6 +42,29 @@ export const columns: ColumnDef<TourPackageQueryColumn>[] = [
   {
     accessorKey: "tourPackageQueryName",
     header: "Tour Package Query Name",
+    cell: ({ row }) => {
+      const { id, tourPackageQueryName } = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/tourPackageQuery/${id}`}
+            className="text-blue-600 hover:underline"
+            title="Open update page"
+          >
+            {tourPackageQueryName}
+          </Link>
+          <Link
+            href={`/tourPackageQueryDisplay/${id}?search=AH`}
+            target="_blank"
+            aria-label="Open Tour Package Display (AH)"
+            title="Open Tour Package Display (AH)"
+            className="text-gray-500 hover:text-red-600"
+          >
+            <FileText className="h-4 w-4" />
+          </Link>
+        </div>
+      );
+    }
   },
   {
     accessorKey: "assignedTo",

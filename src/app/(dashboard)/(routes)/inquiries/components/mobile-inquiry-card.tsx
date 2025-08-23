@@ -6,6 +6,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Phone, Calendar, MapPin, MessageCircle, UserRound } from "lucide-react";
+import { parseISO, format } from 'date-fns';
 import { CellAction } from "./cell-action";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -193,6 +194,29 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({
                   <span>{inquiry.journeyDate}</span>
                 </div>
               </div>
+                <div className="flex items-center text-sm mt-2">
+                  <Calendar className="w-3 h-3 mr-1 text-yellow-600" />
+                  <span>
+                    {(() => {
+                      const display = (inquiry as any).nextFollowUpDate;
+                      const iso = (inquiry as any).nextFollowUpDateIso;
+                      if (display) return display;
+                      if (iso) {
+                        try {
+                          const d = parseISO(iso);
+                          return format(d, 'dd MMM yyyy');
+                        } catch (e) {
+                          try {
+                            return new Date(iso).toLocaleDateString();
+                          } catch {
+                            return 'Not set';
+                          }
+                        }
+                      }
+                      return <span className="text-muted-foreground">Not set</span>;
+                    })()}
+                  </span>
+                </div>
                 <div className="flex flex-wrap items-center justify-between mt-3 gap-2">
                 <Badge variant="outline" className="mr-2">
                   {inquiry.associatePartner}

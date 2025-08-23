@@ -11,6 +11,8 @@ import {
   Itinerary,
   TourPackageQuery,
   AssociatePartner,
+  RoomAllocation,
+  TransportDetail,
 } from "@prisma/client";
 import { format } from "date-fns";
 
@@ -23,6 +25,8 @@ interface TourPackageQueryPDFGeneratorProps {
       activities: (Activity & {
         activityImages: Images[];
       })[];
+  roomAllocations?: RoomAllocation[];
+  transportDetails?: TransportDetail[];
     })[];
     flightDetails: (FlightDetails & {
       images: Images[];
@@ -97,7 +101,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const containerStyle =
     "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto;";
   const cardStyle =
-    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden;";
+    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;";
   const headerStyle =
     "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center;";
   const contentStyle =
@@ -125,13 +129,52 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   };
 
+  // Policy parsing helpers aligned with display component
+  const extractText = (obj: any): string => {
+    if (!obj) return '';
+    for (const k of ['text','value','description','label','name']) {
+      if (obj[k]) return String(obj[k]);
+    }
+    return String(obj);
+  };
+
+  const parsePolicyField = (field: any): string[] => {
+    if (!field) return [];
+    try {
+      if (typeof field === 'string') {
+        try {
+          const parsed = JSON.parse(field);
+          if (Array.isArray(parsed)) return parsed.map(i => typeof i === 'string' ? i : extractText(i));
+        } catch {
+          return field.split(/\n|•|-|\u2022/).map(s => s.trim()).filter(Boolean);
+        }
+        return [field];
+      }
+      if (Array.isArray(field)) {
+        return field.flatMap(item => {
+          if (item == null) return [];
+          if (typeof item === 'string') return [item];
+          if (typeof item === 'object') return [extractText(item)];
+          return [String(item)];
+        }).filter(Boolean);
+      }
+      if (typeof field === 'object') {
+        const vals = Object.values(field);
+        return vals.flatMap(v => parsePolicyField(v));
+      }
+      return [String(field)];
+    } catch {
+      return [];
+    }
+  };
+
   // --- Build HTML content ---
   const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
 
     // 1. Header Section (Tour Name, Type and Images)
     const headerSection = `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}">
           <h1 style="font-size: 28px; margin: 0;">${initialData.tourPackageQueryName}</h1>
           <h2 style="font-size: 24px; margin: 0;">${initialData.tourPackageQueryType} Package</h2>
@@ -172,7 +215,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     // 3. Tour Information Section
     const tourInfoSection = `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}">
           <h2 style="${sectionTitleStyle}">Tour Information</h2>
         </div>
@@ -256,63 +299,34 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
     `;
 
-    // 4. Tour Pricing Section (if applicable)
-    const pricingSection =
-      selectedOption !== "Empty" &&
-        selectedOption !== "SupplierA" &&
-        selectedOption !== "SupplierB"
-        ? `
-      <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Tour Pricing</h2>
-        </div>
-        ${initialData.price && initialData.price.trim() !== ""
-          ? `
-          <div style="padding: 16px;">
-            <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
-              ${initialData.price}
-            </div>
-          </div>
-          `
-          : ""
-        }
-        <div style="padding: 16px; background: #ffffff;">
-          ${initialData.pricePerAdult !== ""
-          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
-                   <span style="color: #1a202c;">Price per Adult:</span> ${initialData.pricePerAdult}
-                 </div>`
-          : ""
-        }
-          ${initialData.pricePerChildOrExtraBed !== ""
-          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
-                   <span style="color: #1a202c;">Price for Triple Occupancy:</span> ${initialData.pricePerChildOrExtraBed}
-                 </div>`
-          : ""
-        }
-          ${initialData.pricePerChild5to12YearsNoBed !== ""
-          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
-                   <span style="color: #1a202c;">Price per Child (5-12 Years - No bed):</span> ${initialData.pricePerChild5to12YearsNoBed}
-                 </div>`
-          : ""
-        }
-          ${initialData.pricePerChildwithSeatBelow5Years !== ""
-          ? `<div style="margin-bottom: 12px; font-weight: bold; background: #f7fafc; padding: 12px; border-radius: 8px;">
-                   <span style="color: #1a202c;">Price per Child with Seat (Below 5 Years):</span> ${initialData.pricePerChildwithSeatBelow5Years}
-                 </div>`
-          : ""
-        }
-        </div>
-      </div>
-      `
-        : "";
+  // Legacy Tour Pricing section removed to match display page.
+  const pricingSection = "";
 
     // 5. Total Price Section
+    const formatINR = (val: string) => {
+      try {
+        const n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
+        if (isNaN(n)) return String(val);
+        return n.toLocaleString('en-IN');
+      } catch { return String(val); }
+    };
+
     const totalPriceSection =
       initialData.totalPrice && initialData.totalPrice.trim() !== ""
         ? `
-      <div style="${cardStyle}; padding: 16px;">
-        <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
-          Total Price: ${initialData.totalPrice}
+      <div style="${cardStyle}; border: 2px solid #fed7aa; border-radius: 12px; overflow: hidden;">
+        <div style="background: #fafafa; padding: 20px;">
+          <h3 style="font-size: 28px; font-weight: 800; background: linear-gradient(to right, #fb923c, #f87171, #f472b6); -webkit-background-clip: text; color: transparent; margin: 0;">
+            🎯 Total Package Price
+          </h3>
+        </div>
+        <div style="padding: 24px; text-align: center;">
+          <div style="font-size: 48px; font-weight: 800; color: #111827; margin-bottom: 12px;">
+            <span style="color:#ea580c;">₹ </span>${formatINR(initialData.totalPrice)}
+          </div>
+          <div style="font-size: 16px; color: #374151; background: #fff7ed; padding: 10px 16px; border-radius: 999px; display: inline-block;">
+            <span style="font-weight: 600;">Final Tour Package Cost</span>
+          </div>
         </div>
       </div>
     `
@@ -328,44 +342,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `
         : "";
 
-    const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
-      ? `
-          <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
-            <!-- Section Header -->
-            <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
-              Tour Highlights
-            </h2>
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
-              <thead>
-                <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
-                  <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #ddd;">
-                    Day
-                  </th>
-                  <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                ${initialData.itineraries
-        .map(
-          (itinerary) => `
-                  <tr style="border: 1px solid #ddd; background: #fff; color: #333;">
-                    <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
-                      Day ${itinerary.dayNumber}: ${itinerary.days}
-                    </td>
-                    <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
-                      ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
-                    </td>
-                  </tr>
-                `
-        )
-        .join("")}
-              </tbody>
-            </table>
-          </div>
-        `
-      : "";
+  // Remove Tour Highlights section to match display
+  const highlightsSection = "";
 
 
 
@@ -386,59 +364,85 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     //     : "";
 
     // 8. Flight Details Section (if applicable)
-    const flightSection =
-      initialData.flightDetails &&
-        initialData.flightDetails.length > 0 &&
-        selectedOption !== "SupplierA" &&
-        selectedOption !== "SupplierB"
-        ? `
-      <div style="${cardStyle}">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Flight Details</h2>
-        </div>        ${initialData.flightDetails
-          .map(
-            (flight) => `
-          <div style="padding: 16px; background: #f7fafc; border-bottom: 1px solid #ddd;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">              <span style="font-weight: bold; font-size: 20px; color: #4a5568;">${flight.date}</span>
-              <div style="font-size: 20px; color: #4a5568;">
-                <span style="font-weight: bold;">${flight.flightName}</span>${flight.flightNumber ? ` | ${flight.flightNumber}` : ''}
+  // Flight details not shown on display page; omit to match.
+  const flightSection = "";
+
+    // 9. Hotel, Room Allocation & Transport Summary (matches display order)
+    const hotelSummarySection = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0)
+      ? `
+      <div style="${cardStyle}; page-break-before: always;">
+        <div style="background: #f9fafb; padding: 24px; border-bottom: 1px solid #fbd3bd;">
+          <h2 style="font-size: 32px; font-weight: 800; text-align: center; background: linear-gradient(to right, #ef4444, #f97316); -webkit-background-clip: text; color: transparent; margin: 0;">
+            Hotel, Room Allocation & Transport Details
+          </h2>
+          <p style="text-align:center; color:#6b7280; margin: 8px 0 0; font-size: 16px;">Comprehensive day-wise accommodation and transport overview</p>
+        </div>
+        <div style="padding: 0;">
+          ${initialData.itineraries.map((it) => `
+            <div style="border-bottom: 1px solid #f3f4f6; padding: 16px 20px;">
+              <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom: 8px;">
+                <div style="width:48px; height:48px; background: linear-gradient(to right, #ef4444, #f97316); color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:700;">
+                  ${it.dayNumber}
+                </div>
+                <div>
+                  <div style="font-size:18px; font-weight:700; color:#111827;">Day ${it.dayNumber}: ${it.days}</div>
+                  ${(() => { const t = it.itineraryTitle ? String(it.itineraryTitle) : ''; const cleaned = t.replace(/^<p>/i, '').replace(/<\/p>$/i, ''); return it.itineraryTitle ? '<div style="font-size:14px; color:#374151;">' + cleaned + '</div>' : ''; })()}
+                </div>
               </div>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; color: #4a5568; margin-bottom: 12px;">
-              <div>
-                <div style="font-weight: bold; font-size: 14px;">${flight.from}</div>
-                <div style="font-size: 14px; margin-top: 4px;">${flight.departureTime || '--:--'}</div>
-              </div>              <div style="text-align: center; font-size: 14px; color: #718096;">
-                <div>${flight.flightDuration}</div>
-                <hr style="border-top: 2px solid #cbd5e0; margin: 4px 0;" />
-              </div>
-              <div>
-                <div style="font-weight: bold; font-size: 14px;">${flight.to}</div>
-                <div style="font-size: 14px; margin-top: 4px;">${flight.arrivalTime || '--:--'}</div>
-              </div>
-            </div>            ${flight.images && flight.images.length > 0 ? `
-              <div style="border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px;">
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                  ${flight.images.map((image, index) => `
-                    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; background: white;">                      <img src="${image.url}" alt="Flight ${flight.flightName || ''} ${flight.flightNumber || ''} - Image ${index + 1}" 
-                           style="width: 100%; max-width: 700px; height: auto; max-height: 140px; object-fit: contain; border-radius: 4px;" />
+              ${(it.hotelId && hotels.find(h => h.id === it.hotelId)) ? `
+                <div style=\"display:flex; gap:16px; align-items:flex-start;\">
+                  <div style=\"width:192px; height:128px; background:#f3f4f6; border-radius:8px; overflow:hidden; flex-shrink:0;\">
+                    <img src=\"${hotels.find(h => h.id === it.hotelId)?.images?.[0]?.url || ''}\" alt=\"Hotel\" style=\"width:100%; height:100%; object-fit:cover;\" />
+                  </div>
+                  <div style=\"flex:1;\">
+                    <div style=\"margin-bottom:8px;\">
+                      <a href=\"${hotels.find(h => h.id === it.hotelId)?.link || '#'}\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"font-size:18px; font-weight:600; color:#111827; text-decoration:underline;\">${hotels.find(h => h.id === it.hotelId)?.name || ''}</a>
+                    </div>
+                    ${(it.roomAllocations && it.roomAllocations.length>0) ? `
+                      <table style=\"width:100%; border-collapse:collapse;\">
+                        <thead>
+                          <tr>
+                            <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Room Type</th>
+                            <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Occupancy</th>
+                            <th style=\"padding:6px; text-align:center; color:#111827; border-bottom:1px solid #e5e7eb;\">Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${it.roomAllocations.map((room:any) => `
+                            <tr>
+                              <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">${room?.roomType?.name || room.roomType || 'Standard'}</td>
+                              <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</td>
+                              <td style=\"padding:6px; text-align:center; border-top:1px solid #f3f4f6;\">${room.quantity || 1}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                      ${(() => {
+                        const plans = Array.from(new Set((it.roomAllocations || []).map((r:any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
+                        return plans.length ? `<div style=\\\"margin-top:8px; font-size:14px; color:#374151; font-style:italic;\\\"><span style=\\\"font-weight:600;\\\">Meal Plan:</span> ${plans.join(' / ')}</div>` : '';
+                      })()}
+                    ` : ''}
+                  </div>
+                </div>
+              ` : ''}
+              ${(it.transportDetails && it.transportDetails.length>0) ? `
+                <div style=\"margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;\">
+                  <div style=\"font-size:14px; font-weight:600; color:#9a3412; margin-bottom:8px;\">Transport Details</div>
+                  ${it.transportDetails.map((t:any) => `
+                    <div style=\"display:flex; align-items:center; justify-content:space-between; background:#fff7ed; padding:8px; border-radius:8px; margin-bottom:8px;\">
+                      <div style=\"font-weight:600; color:#7c2d12;\">${t?.vehicleType?.name || 'Vehicle'}</div>
+                      <div style=\"font-size:14px; color:#7c2d12;\">${'Qty: ' + (t.quantity || 1) + (t.capacity ? ' | Capacity: ' + t.capacity : '')}</div>
                     </div>
                   `).join('')}
                 </div>
-              </div>
-              
-            ` : ''}
-          </div>
-        `
-          )
-          .join("")}
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
       </div>
-    `
-        : "";
+      ` : "";
 
-    // Example snippet inside your buildHtmlContent() function:
-
-    // 9. Itineraries Section
+    // 10. Itineraries Section (content-only, no hotel/room/transport inside)
     let itinerariesSection = "";
 
     if (
@@ -446,7 +450,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       initialData.itineraries &&
       initialData.itineraries.length > 0
     ) {
-      // Render the Itinerary header once.
+  // Render the Itinerary header once.
       itinerariesSection += `
     <div style="${cardStyle} page-break-before: always">
       <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center;">
@@ -511,95 +515,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   `
               )
               .join("")
-            : ""
-          }
-   <!-- Hotel Details Section -->
-${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
-            ? `
-    <div style="${cardStyle}">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
-        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Hotel Details</h2>
-      </div>
-      <div style="padding: 16px;">
-        ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
-              ? `
-              <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-                <div style="width: 250px; height: 250px;">
-                  <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                    <img src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url}" 
-                         alt="Hotel Image" 
-                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                  </a>
-                </div>
-                <div>
-                  <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
-                  <div style="font-size: 16px; margin-bottom: 8px;">
-                    <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                      ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
-                    </a>
-                  </div>
-                  ${itinerary.numberofRooms
-                ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
-                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
-                : ""
-              }
-                  ${itinerary.roomCategory
-                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
-                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
-                : ""
-              }
-                  ${itinerary.mealsIncluded
-                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
-                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
-                : ""
-              }
-                </div>
-              </div>
-            `
-              : `
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
-                ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
-                .map(
-                  (img) => `
-                      <div style="width: 250px; height: 250px;">
-                        <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                          <img src="${img.url}" alt="Hotel Image" 
-                               style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                        </a>
-                      </div>
-                    `
-                )
-                .join("")
-              }
-              </div>
-              <div>
-                <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
-                <div style="font-size: 16px; margin-bottom: 8px;">
-                  <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                    ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
-                  </a>
-                </div>
-                ${itinerary.numberofRooms
-                ? `<div style="font-weight: bold; font-size: 16px;">Number of Rooms:</div>
-                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.numberofRooms}</div>`
-                : ""
-              }
-                ${itinerary.roomCategory
-                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
-                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
-                : ""
-              }
-                ${itinerary.mealsIncluded
-                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
-                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
-                : ""
-              }
-              </div>
-            `
-            }
-      </div>
-    </div>
-  `
             : ""
           }
        <!-- Activities Section -->
@@ -681,7 +596,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
   `;
     }
 
-    // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
+  // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
     const renderPolicyContent = (policyData: any): string => {
       if (!policyData) return "";
       
@@ -723,98 +638,130 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
       }
     };
 
-    const inclusionsSection = initialData.inclusions
+    const loc = locations.find(l => l.id === initialData.locationId) as any;
+    const withFallback = (primary: any, fallback: any) => {
+  const primaryParsed = parsePolicyField(primary);
+  if (primaryParsed.length > 0) return primaryParsed;
+  return parsePolicyField(fallback);
+    };
+
+    const inclusionsArr = withFallback(initialData.inclusions, loc?.inclusions);
+    const exclusionsArr = withFallback(initialData.exclusions, loc?.exclusions);
+    const importantArr = withFallback(initialData.importantNotes, loc?.importantNotes);
+    const paymentArr = withFallback(initialData.paymentPolicy, loc?.paymentPolicy);
+  const kitchenArr = withFallback(initialData.kitchenGroupPolicy, loc?.kitchenGroupPolicy);
+  const usefulTipsArr = withFallback((initialData as any).usefulTip, loc?.usefulTip);
+    const termsArr = withFallback(initialData.termsconditions, loc?.termsconditions);
+    const cancelArr = withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy);
+    const airlineCancelArr = withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy);
+
+    const renderBulletList = (items: string[]) => items.map(i => `<div style="margin-bottom: 8px;">• ${i}</div>`).join('');
+
+    const inclusionsSection = inclusionsArr.length
       ? `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.inclusions)}
+      ${renderBulletList(inclusionsArr)}
         </div>
       </div>
       `
       : "";
-    const exclusionsSection = initialData.exclusions
+    const exclusionsSection = exclusionsArr.length
       ? `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.exclusions)}
+      ${renderBulletList(exclusionsArr)}
         </div>
       </div>
       `
       : "";
-    const importantNotesSection = initialData.importantNotes
+    const importantNotesSection = importantArr.length
       ? `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.importantNotes)}
+      ${renderBulletList(importantArr)}
         </div>
       </div>
       `
       : "";
-    const paymentPolicySection = initialData.paymentPolicy
+    const paymentPolicySection = paymentArr.length
       ? `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.paymentPolicy)}
+      ${renderBulletList(paymentArr)}
         </div>
       </div>
       `
       : "";
-    const kitchenGroupPolicySection = initialData.kitchenGroupPolicy
+    const kitchenGroupPolicySection = kitchenArr.length
       ? `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Kitchen Group Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.kitchenGroupPolicy)}
+      ${renderBulletList(kitchenArr)}
         </div>
       </div>
       `
       : "";
-    const termsConditionsSection = initialData.termsconditions
+    const termsConditionsSection = termsArr.length
       ? `
-      <div style="${cardStyle}">
+  <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.termsconditions)}
+      ${renderBulletList(termsArr)}
         </div>
       </div>
       `
       : "";
-    const cancellationPolicySection = initialData.cancellationPolicy
+    const cancellationPolicySection = cancelArr.length
       ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.cancellationPolicy)}
+      ${renderBulletList(cancelArr)}
         </div>
       </div>
       `
       : "";
-    const airlineCancellationSection = initialData.airlineCancellationPolicy
+    const airlineCancellationSection = airlineCancelArr.length
       ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.airlineCancellationPolicy)}
+      ${renderBulletList(airlineCancelArr)}
+        </div>
+      </div>
+      `
+      : "";
+
+    const usefulTipsSection = usefulTipsArr.length
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Useful Tips</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+      ${renderBulletList(usefulTipsArr)}
         </div>
       </div>
       `
@@ -826,35 +773,42 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
    selectedOption !== "SupplierA" &&
    selectedOption !== "SupplierB"
      ? `
-     <div style="${cardStyle}; page-break-inside: avoid; margin-top: 20px;">
-       <div style="${headerStyle}">
-         <h2 style="${sectionTitleStyle}">Detailed Pricing Options</h2>
+  <div style="${cardStyle}; page-break-inside: avoid; page-break-before: always; margin-top: 20px; border: 1px solid #fed7aa;">
+       <div style="background: #f9fafb; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between;">
+         <h2 style="${sectionTitleStyle}; background: linear-gradient(to right, #fb923c, #ef4444, #f472b6); -webkit-background-clip: text; color: transparent; margin: 0; display:flex; align-items:center; gap:6px;">💰 Pricing Options</h2>
+         <span style="font-size: 12px; color:#6b7280;">INR</span>
        </div>
-       <div style="padding: 16px;">
-         <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb;">
-           <thead>
-             <tr style="background-color: #f2f2f2;">
-               <th style="width: 30%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Type</th>
-               <th style="width: 30%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Price</th>
-               <th style="width: 40%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Description</th>
+       <div style="padding: 0;">
+         <table style="width: 100%; border-collapse: collapse;">
+           <colgroup>
+             <col style="width:55%" />
+             <col style="width:20%" />
+             <col style="width:25%" />
+           </colgroup>
+           <thead style="background:#f9fafb; font-size:11px; color:#4b5563; text-transform:uppercase;">
+             <tr>
+               <th style="padding: 8px; text-align: left; border-bottom:1px solid #f3f4f6;">Item</th>
+               <th style="padding: 8px; text-align: center; border-bottom:1px solid #f3f4f6;">Base</th>
+               <th style="padding: 8px; text-align: left; border-bottom:1px solid #f3f4f6;">Notes</th>
              </tr>
            </thead>
            <tbody>
              ${parsePricingSection(initialData.pricingSection).map((item, index) => `
-               <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-                 <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.name || ''}</td>
-                 <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.price || '-'}</td>
-                 <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.description || '-'}</td>
+               <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#fff7ed'};">
+                 <td style="padding: 10px; font-size: 14px; color:#111827;">${item.name || ''}</td>
+                 <td style="padding: 10px; font-size: 14px; color:#16a34a; font-weight:700; text-align:center;">${item.price ? `₹ ${formatINR(item.price)}` : '-'}</td>
+                 <td style="padding: 10px; font-size: 14px; color:#374151;">${item.description || '-'}</td>
                </tr>
              `).join('')}
            </tbody>
          </table>
+         <div style="padding: 8px 12px; background:#fff7ed; border-top:1px solid #fbd3bd; font-size:11px; color:#c2410c; font-style:italic;">* Subject to availability & taxes.</div>
        </div>
      </div>
      `
      : '';
     // 11. Footer / Company Details
-    let companySection = "";
+  let companySection = "";
     if (
       selectedOption !== "Empty" &&
       selectedOption !== "SupplierA" &&
@@ -866,6 +820,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
       </div>
       <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+      <div style="font-size:18px; background: linear-gradient(to right, #fb923c, #ef4444); -webkit-background-clip: text; color: transparent;">${currentCompany.name || ''}</div>
         <div>${currentCompany.address}</div>
         <div>Phone: ${currentCompany.phone}</div>
         <div>Email: <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">${currentCompany.email}</a></div>
@@ -880,6 +835,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
       </div>
       <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+      <div style="font-size:18px; background: linear-gradient(to right, #fb923c, #ef4444); -webkit-background-clip: text; color: transparent;">${companyInfo.AH.name}</div>
         <div>${companyInfo.AH.address}</div>
         <div>Phone: ${companyInfo.AH.phone}</div>
         <div>Email: <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.email}</a></div>
@@ -895,11 +851,10 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${headerSection}
         ${customerSection}
         ${tourInfoSection}
-        ${dynamicPricingSection}  <!-- Add this line to include the new section -->
+  ${dynamicPricingSection}
         ${totalPriceSection}
         ${remarksSection}
-        ${highlightsSection}
-        ${flightSection}
+  ${hotelSummarySection}
         ${itinerariesSection}
         ${inclusionsSection}
         ${exclusionsSection}
@@ -909,6 +864,7 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
         ${termsConditionsSection}
         ${cancellationPolicySection}
         ${airlineCancellationSection}
+  ${usefulTipsSection}
         ${companySection}    </div>
     `;    return fullHtml;
   }, [initialData, currentCompany, locations, hotels, selectedOption]);

@@ -28,10 +28,12 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success("ID copied to clipboard.");
+  setMenuOpen(false);
   };
 
   const onDelete = async () => {
@@ -45,6 +47,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     } finally {
       setLoading(false);
       setOpen(false);
+  setMenuOpen(false);
     }
   };
   return (
@@ -55,7 +58,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         onConfirm={onDelete}
         loading={loading}
       />
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -68,26 +71,26 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Copy className="mr-2 h-4 w-4" />
             Copy ID
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`/sales/${data.id}`)}>
+          <DropdownMenuItem onClick={() => { setMenuOpen(false); router.push(`/sales/${data.id}`) }}>
             <Edit className="mr-2 h-4 w-4" />
             Edit Details
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`/sales/${data.id}/items`)}>
+          <DropdownMenuItem onClick={() => { setMenuOpen(false); router.push(`/sales/${data.id}/items`) }}>
             <ShoppingBasket className="mr-2 h-4 w-4" />
             {data.hasItems ? "Edit Items" : "Add Items"}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`/sales/${data.id}/voucher`)}>
+          <DropdownMenuItem onClick={() => { setMenuOpen(false); router.push(`/sales/${data.id}/voucher`) }}>
             <FileText className="mr-2 h-4 w-4" />
             View Voucher
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => router.push(`/sale-returns/new?saleId=${data.id}`)}
+            onClick={() => { setMenuOpen(false); router.push(`/sale-returns/new?saleId=${data.id}`) }}
             disabled={!data.hasItems}
           >
             <FileText className="mr-2 h-4 w-4" />
             Create Return
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuItem onClick={() => { setMenuOpen(false); setOpen(true); }}>
             <Trash className="mr-2 h-4 w-4" />
             Delete
           </DropdownMenuItem>

@@ -50,6 +50,7 @@ interface TransactionsTableProps {
 export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) => {
   const router = useRouter();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  const [menuOpenByRow, setMenuOpenByRow] = useState<Record<string, boolean>>({});
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => ({
@@ -131,7 +132,7 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                       {formatPrice(transaction.balance)}
                     </TableCell>
                     <TableCell>
-                    <DropdownMenu>
+        <DropdownMenu open={menuOpenByRow[transaction.id] || false} onOpenChange={(open) => setMenuOpenByRow(prev => ({ ...prev, [transaction.id]: open }))}>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Open menu</span>
@@ -140,19 +141,19 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({ data }) =>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem 
-                          onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}`)}
+          onClick={() => { setMenuOpenByRow(prev => ({ ...prev, [transaction.id]: false })); router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}`); }}
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}/voucher`)}
+          onClick={() => { setMenuOpenByRow(prev => ({ ...prev, [transaction.id]: false })); router.push(`/${transaction.type.toLowerCase()}s/${transaction.id}/voucher`); }}
                         >
                           <FileText className="mr-2 h-4 w-4" />
                           Generate Voucher
                         </DropdownMenuItem>
                       </DropdownMenuContent>
-                    </DropdownMenu>
+        </DropdownMenu>
                   </TableCell>                </TableRow>
                   
                   {/* Expandable Row for Item Details */}

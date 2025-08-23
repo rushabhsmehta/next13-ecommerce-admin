@@ -29,6 +29,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
 
@@ -43,12 +44,14 @@ export const CellAction: React.FC<CellActionProps> = ({
     } finally {
       setLoading(false);
       setOpen(false);
+  setMenuOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Tour Package ID copied to clipboard.');
+  setMenuOpen(false);
   }
 
   return (
@@ -59,7 +62,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         onConfirm={onConfirm}
         loading={loading}
       />
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -77,13 +80,19 @@ export const CellAction: React.FC<CellActionProps> = ({
           {!readOnly && (
             <>
               <DropdownMenuItem
-                onClick={() => router.push(`/tourPackageQueryFromTourPackage/${data.id}`)}
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push(`/tourPackageQueryFromTourPackage/${data.id}`)
+                }}
               >
                 <Edit className="mr-2 h-4 w-4" /> Create New Query
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onClick={() => router.push(`/tourPackageCreateCopy/${data.id}`)}
+                onClick={() => {
+                  setMenuOpen(false);
+                  router.push(`/tourPackageCreateCopy/${data.id}`)
+                }}
               >
                 <Edit className="mr-2 h-4 w-4" /> Copy and Create New
               </DropdownMenuItem>
@@ -91,34 +100,49 @@ export const CellAction: React.FC<CellActionProps> = ({
           )}
 
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackages/${data.id}`)}
+            onClick={() => {
+              setMenuOpen(false);
+              router.push(`/tourPackages/${data.id}`)
+            }}
           >
             <Edit className="mr-2 h-4 w-4" /> {readOnly ? 'View' : 'Update'}
           </DropdownMenuItem>
 
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackagePDFGenerator/${data.id}`)}
+            onClick={() => {
+              setMenuOpen(false);
+              router.push(`/tourPackagePDFGenerator/${data.id}`)
+            }}
           >
             <Edit className="mr-2 h-4 w-4" /> Download PDF
           </DropdownMenuItem>
           
           {!readOnly && (
             <DropdownMenuItem
-              onClick={() => router.push(`/tourPackages/${data.id}/pricing`)}
+              onClick={() => {
+                setMenuOpen(false);
+                router.push(`/tourPackages/${data.id}/pricing`)
+              }}
             >
               <Edit className="mr-2 h-4 w-4" /> Manage Seasonal Pricing
             </DropdownMenuItem>
           )}
 
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageDisplay/${data.id}`)}
+            onClick={() => {
+              setMenuOpen(false);
+              router.push(`/tourPackageDisplay/${data.id}`)
+            }}
           >
             <Edit className="mr-2 h-4 w-4" /> Generate PDF
           </DropdownMenuItem>
 
           {!readOnly && (
             <DropdownMenuItem
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setMenuOpen(false);
+                setOpen(true);
+              }}
             >
               <Trash className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>

@@ -34,6 +34,7 @@ export const CellAction: React.FC<CellActionProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const router = useRouter();
   const params = useParams();
@@ -49,26 +50,28 @@ export const CellAction: React.FC<CellActionProps> = ({
     } finally {
       setLoading(false);
       setOpen(false);
+  setMenuOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Tour Package ID copied to clipboard.');
+  setMenuOpen(false);
   }
 
   const handleOptionConfirm = (selectedOption: string) => {
-
+    setMenuOpen(false);
     window.open(`/tourPackageQueryDisplay/${data.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmPDF = (selectedOption: string) => {
-
+    setMenuOpen(false);
     window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {
-
+    setMenuOpen(false);
     window.open(`/tourPackageQueryVoucherDisplay/${data.id}?search=${selectedOption}`,"_blank");
   }
 
@@ -82,7 +85,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         loading={loading}
       />
 
-      <DropdownMenu>
+  <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -97,12 +100,12 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageQueryCreateCopy/${data.id}`)}
+    onClick={() => { setMenuOpen(false); router.push(`/tourPackageQueryCreateCopy/${data.id}`) }}
           >
             <Edit className="mr-2 h-4 w-4" /> Copy and Create New
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageQuery/${data.id}`)}
+    onClick={() => { setMenuOpen(false); router.push(`/tourPackageQuery/${data.id}`) }}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
@@ -110,7 +113,7 @@ export const CellAction: React.FC<CellActionProps> = ({
           {/* Hotel details editing now integrated inside main edit form (Hotels tab) */}
 
           <DropdownMenuItem
-            onClick={() => router.push(`/tourPackageFromTourPackageQuery/${data.id}`)}
+            onClick={() => { setMenuOpen(false); router.push(`/tourPackageFromTourPackageQuery/${data.id}`) }}
           >
             <Edit className="mr-2 h-4 w-4" /> Create Tour Package
           </DropdownMenuItem>
@@ -199,7 +202,7 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuSub>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={() => setOpen(true)}
+            onClick={() => { setMenuOpen(false); setOpen(true); }}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>

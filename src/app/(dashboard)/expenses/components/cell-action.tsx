@@ -27,6 +27,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const onDelete = async () => {
     try {
@@ -39,6 +40,7 @@ export const CellAction: React.FC<CellActionProps> = ({
     } finally {
       setLoading(false);
       setOpen(false);
+  setMenuOpen(false);
     }
   };
 
@@ -50,7 +52,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         onConfirm={onDelete}
         loading={loading}
       />
-      <DropdownMenu>
+  <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -60,17 +62,17 @@ export const CellAction: React.FC<CellActionProps> = ({
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem
-            onClick={() => router.push(`/expenses/${data.id}`)}
+    onClick={() => { setMenuOpen(false); router.push(`/expenses/${data.id}`) }}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setOpen(true)}
+    onClick={() => { setMenuOpen(false); setOpen(true); }}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+  </DropdownMenu>
     </>
   );
 };

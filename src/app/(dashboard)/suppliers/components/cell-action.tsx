@@ -27,6 +27,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const params = useParams();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const onConfirm = async () => {
     try {
@@ -39,12 +40,14 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     } finally {
       setOpen(false);
       setLoading(false);
+  setMenuOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Supplier ID copied to clipboard.');
+  setMenuOpen(false);
   };
 
   return (
@@ -55,7 +58,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         onConfirm={onConfirm}
         loading={loading}
       />
-      <DropdownMenu>
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -64,20 +67,20 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => onCopy(data.id)}>
+      <DropdownMenuItem onClick={() => onCopy(data.id)}>
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`/suppliers/${data.id}`)}>
+      <DropdownMenuItem onClick={() => { setMenuOpen(false); router.push(`/suppliers/${data.id}`) }}>
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push(`/suppliers/${data.id}/ledger`)}>
+      <DropdownMenuItem onClick={() => { setMenuOpen(false); router.push(`/suppliers/${data.id}/ledger`) }}>
             <BookText className="mr-2 h-4 w-4" /> View Ledger
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+      <DropdownMenuItem onClick={() => { setMenuOpen(false); setOpen(true); }}>
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+    </DropdownMenu>
     </>
   );
 };

@@ -32,6 +32,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const [loading, setLoading] = useState(false);
   const [creatingQuery, setCreatingQuery] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { isAssociatePartner } = useAssociatePartner();
 
   const onConfirm = async () => {
@@ -45,16 +46,19 @@ export const CellAction: React.FC<CellActionProps> = ({
     } finally {
       setLoading(false);
       setOpen(false);
+  setMenuOpen(false);
     }
   };
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
     toast.success('Inquiry ID copied to clipboard.');
+  setMenuOpen(false);
   }
 
   const onCreateQuery = async () => {
     try {
+      setMenuOpen(false);
       setCreatingQuery(true);
       toast.loading("Loading create query page...", { id: "create-query-loading" });
       
@@ -72,6 +76,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   };
 
   const onWhatsAppSupplier = () => {
+    setMenuOpen(false);
     setWhatsappOpen(true);
   };
 
@@ -104,7 +109,7 @@ export const CellAction: React.FC<CellActionProps> = ({
         hideButton={true}
       />
       
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
@@ -119,7 +124,10 @@ export const CellAction: React.FC<CellActionProps> = ({
             <Copy className="mr-2 h-4 w-4" /> Copy Id
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => router.push(`/inquiries/${data.id}`)}
+            onClick={() => {
+              setMenuOpen(false);
+              router.push(`/inquiries/${data.id}`)
+            }}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
           </DropdownMenuItem>
@@ -129,7 +137,10 @@ export const CellAction: React.FC<CellActionProps> = ({
             <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp Message
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setMenuOpen(false);
+              setOpen(true);
+            }}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
           </DropdownMenuItem>          <DropdownMenuItem

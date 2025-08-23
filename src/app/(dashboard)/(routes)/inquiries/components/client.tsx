@@ -29,7 +29,9 @@ import {
 } from "@/components/ui/sheet";
 import { MobileInquiryCard } from "./mobile-inquiry-card";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useMemo } from "react";
+import { parseISO, isSameDay } from 'date-fns';
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface InquiriesClientProps {
@@ -142,6 +144,24 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
       )
     : rows;
 
+  // Follow-up counters
+  const totalFollowUps = useMemo(() => {
+    return rows.filter(r => r.nextFollowUpDateIso && r.nextFollowUpDateIso !== null && r.status !== 'CANCELLED' && r.status !== 'CONFIRMED').length;
+  }, [rows]);
+
+  const todayFollowUps = useMemo(() => {
+    const today = new Date();
+    return rows.filter(r => {
+      if (!r.nextFollowUpDateIso) return false;
+      try {
+        const d = parseISO(r.nextFollowUpDateIso as string);
+        return isSameDay(d, today) && r.status !== 'CANCELLED' && r.status !== 'CONFIRMED';
+      } catch (e) {
+        return false;
+      }
+    }).length;
+  }, [rows]);
+
   // Filter component for mobile view
   const FiltersContent = () => (
     <div className="flex flex-col space-y-4 py-4">
@@ -178,7 +198,13 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     <>
       {/* Use both CSS-based and JS-based responsive designs for better reliability */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" className="mb-4 md:mb-0" />
+        <div className="flex items-center gap-3">
+          <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" className="mb-4 md:mb-0" />
+          <div className="flex items-center gap-2">
+            <Badge className="bg-blue-50 text-blue-700">Follow-ups: {totalFollowUps}</Badge>
+            <Badge className="bg-green-50 text-green-700">Today: {todayFollowUps}</Badge>
+          </div>
+        </div>
         
         {/* Mobile controls - visible by default on small screens via CSS, hidden on larger screens */}
         <div className="flex flex-wrap items-center gap-2 md:hidden">

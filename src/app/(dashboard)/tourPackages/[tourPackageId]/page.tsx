@@ -24,6 +24,8 @@ const tourPackagePage = async ({
       itineraries: {
         include: {
           itineraryImages: true,
+          roomAllocations: true,
+          transportDetails: true,
           activities:
           {
             include:
@@ -51,7 +53,9 @@ const tourPackagePage = async ({
   });
 
   const hotels = await prismadb.hotel.findMany({
-
+    include: {
+      images: true,
+    }
   });
 
   const activitiesMaster = await prismadb.activityMaster.findMany({

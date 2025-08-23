@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useFieldArray, useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
-import { Activity, Images, ItineraryMaster } from "@prisma/client"
+import { Activity, Images, ItineraryMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"
 import { Location, Hotel, TourPackage, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import JoditEditor from "jodit-react";
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, MapPin, Calendar as CalendarIcon, ListPlus, Plane, Tag, FileCheck } from "lucide-react"
+import { FileText, Users, MapPin, Calendar as CalendarIcon, ListPlus, Plane, Tag, FileCheck, Building2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -42,6 +42,7 @@ import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
 import { DevTool } from "@hookform/devtools"
+import HotelsTab from '@/components/tour-package-query/HotelsTab'
 
 // This will be overridden in the component
 const defaultEditorConfig = {
@@ -53,6 +54,27 @@ const activitySchema = z.object({
   activityTitle: z.string().optional(),
   activityDescription: z.string().optional(),
   activityImages: z.object({ url: z.string() }).array(),
+});
+
+const roomAllocationSchema = z.object({
+  roomTypeId: z.string().optional(),
+  occupancyTypeId: z.string().optional(),
+  mealPlanId: z.string().optional(),
+  quantity: z.union([
+    z.string().transform(val => parseInt(val) || 1),
+    z.number()
+  ]).optional(),
+  guestNames: z.string().optional().nullable()
+});
+
+const transportDetailsSchema = z.object({
+  vehicleTypeId: z.string().optional(),
+  transportType: z.string().optional(),
+  quantity: z.union([
+    z.string().transform(val => parseInt(val) || 1),
+    z.number()
+  ]).optional(),
+  description: z.string().optional().nullable()
 });
 
 const itinerarySchema = z.object({
@@ -67,7 +89,9 @@ const itinerarySchema = z.object({
   numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
-
+  // Centralized allocations
+  roomAllocations: z.array(roomAllocationSchema).optional().default([]),
+  transportDetails: z.array(transportDetailsSchema).optional().default([]),
   // hotel : z.string(),
 });
 
@@ -142,7 +166,7 @@ interface TourPackageFormProps {
     flightDetails: FlightDetails[];
   } | null;
   locations: Location[];
-  hotels: Hotel[];
+  hotels: (Hotel & { images: Images[] })[];
   activitiesMaster: (ActivityMaster & {
     activityMasterImages: Images[];
   })[] | null;
@@ -238,6 +262,12 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
+  // Lookup data for Hotels tab
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [occupancyTypes, setOccupancyTypes] = useState<OccupancyType[]>([]);
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [lookupLoading, setLookupLoading] = useState(true);
 
   const editor = useRef(null)
 
@@ -313,6 +343,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
+        roomAllocations: (itinerary as any).roomAllocations || [],
+        transportDetails: (itinerary as any).transportDetails || [],
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
@@ -386,6 +418,31 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
+
+  // Fetch lookup data required for Hotels tab
+  useEffect(() => {
+    const fetchLookupData = async () => {
+      setLookupLoading(true);
+      try {
+        const [roomTypesRes, occupancyTypesRes, mealPlansRes, vehicleTypesRes] = await Promise.all([
+          axios.get('/api/room-types'),
+          axios.get('/api/occupancy-types'),
+          axios.get('/api/meal-plans'),
+          axios.get('/api/vehicle-types')
+        ]);
+        setRoomTypes(roomTypesRes.data);
+        setOccupancyTypes(occupancyTypesRes.data);
+        setMealPlans(mealPlansRes.data);
+        setVehicleTypes(vehicleTypesRes.data);
+      } catch (error) {
+        console.error('Error fetching lookup data:', error);
+        toast.error('Failed to load configuration data');
+      } finally {
+        setLookupLoading(false);
+      }
+    };
+    fetchLookupData();
+  }, []);
 
   const {
     fields: pricingFields,
@@ -620,7 +677,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-8 w-full"> {/* Changed from grid-cols-7 to grid-cols-8 */}
+            <TabsList className="grid grid-cols-9 w-full"> {/* Added Hotels tab so cols -> 9 */}
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -640,6 +697,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               <TabsTrigger value="itinerary" className="flex items-center gap-2">
                 <ListPlus className="h-4 w-4" />
                 Itinerary
+              </TabsTrigger>
+              <TabsTrigger value="hotels" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Hotels
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
@@ -1496,7 +1557,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                               hotelId: '',
                               numberofRooms: '',
                               roomCategory: '',
-                              locationId: form.getValues('locationId') || ''
+                              locationId: form.getValues('locationId') || '',
+                              roomAllocations: [],
+                              transportDetails: []
                             }])}
                           >
                             <Plus className="h-4 w-4 mr-2" />
@@ -1508,6 +1571,24 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="hotels" className="space-y-4 mt-4">
+              {/* Reuse existing HotelsTab for centralized hotel/room/transport allocations */}
+              {/**
+               * Note: We pass loading || readOnly to disable edits in view-only mode.
+               */}
+              {/* @ts-ignore - HotelsTab is typed for queries but is form-agnostic */}
+              <HotelsTab
+                control={form.control as any}
+                form={form as any}
+                loading={loading || readOnly || lookupLoading}
+                hotels={hotels as any}
+                roomTypes={roomTypes}
+                occupancyTypes={occupancyTypes}
+                mealPlans={mealPlans}
+                vehicleTypes={vehicleTypes}
+              />
             </TabsContent>
 
             <TabsContent value="flights" className="space-y-4 mt-4">

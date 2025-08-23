@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface InquiriesClientProps {
   data: InquiryColumn[];
   associates: { id: string; name: string }[];
+  operationalStaffs?: { id: string; name: string }[];
   organization: any;
   isAssociateUser?: boolean;
   accessError?: string;
@@ -45,6 +46,7 @@ interface InquiriesClientProps {
 export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   data,
   associates,
+  operationalStaffs,
   organization,
   isAssociateUser = false,
   accessError
@@ -53,6 +55,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const searchParams = useSearchParams();
   const isMobileHook = useIsMobile();
   const [isPending, startTransition] = useTransition();
+  // Persist filters in local state to avoid flicker when updating URL
+  const [localAssociateId, setLocalAssociateId] = useState<string>(searchParams.get('associateId') || '');
+  const [localAssignedStaffId, setLocalAssignedStaffId] = useState<string>(searchParams.get('assignedStaffId') || '');
+  const [localStatus, setLocalStatus] = useState<string>(searchParams.get('status') || '');
+  const [localPeriod, setLocalPeriod] = useState<string>(searchParams.get('period') || '');
   // Add this fallback state to ensure consistent behavior
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,13 +103,13 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const isMobileView = isMobile || isMobileHook;
 
   const onAssociateChange = (associateId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (associateId) {
-      params.set('associateId', associateId);
-    } else {
-      params.delete('associateId');
-    }
-    router.replace(`/inquiries?${params.toString()}`);
+    // update local state immediately to prevent flicker
+    setLocalAssociateId(associateId || '');
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (associateId) params.set('associateId', associateId); else params.delete('associateId');
+      router.replace(`/inquiries?${params.toString()}`);
+    });
   };
 
   const handleAddNewClick = () => {
@@ -122,6 +129,47 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     startTransition(() => {
       router.replace(`/inquiries?${params.toString()}`);
     });
+  };
+
+  const onAssignedStaffChange = (staffId: string) => {
+    setLocalAssignedStaffId(staffId || '');
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (staffId) params.set('assignedStaffId', staffId); else params.delete('assignedStaffId');
+      router.replace(`/inquiries?${params.toString()}`);
+    });
+  };
+
+  const onStatusChangeLocal = (status: string) => {
+    setLocalStatus(status || '');
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (status && status !== 'ALL') params.set('status', status); else params.delete('status');
+      router.replace(`/inquiries?${params.toString()}`);
+    });
+  };
+
+  const onPeriodChangeLocal = (period: string) => {
+    setLocalPeriod(period || '');
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (period && period !== 'ALL') params.set('period', period); else {
+        params.delete('period');
+        params.delete('startDate');
+        params.delete('endDate');
+      }
+      router.replace(`/inquiries?${params.toString()}`);
+    });
+  };
+
+  const clearAllFilters = () => {
+    // Reset local state and URL params
+    setLocalAssociateId('');
+    setLocalAssignedStaffId('');
+    setLocalStatus('');
+    setLocalPeriod('');
+    const params = new URLSearchParams();
+    startTransition(() => router.replace(`/inquiries?${params.toString()}`));
   };
 
   // Download handlers
@@ -167,6 +215,23 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     <div className="flex flex-col space-y-4 py-4">
       <PeriodFilter />
       <StatusFilter />
+      {/* Assigned staff filter for mobile pane */}
+      {!isAssociateUser && operationalStaffs && (
+        <Select
+          value={localAssignedStaffId}
+          onValueChange={(v) => onAssignedStaffChange(v)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Assigned Staff" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Staff</SelectItem>
+            {operationalStaffs.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <div className="flex items-center space-x-2">
   <Checkbox id="followups-only" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
         <label htmlFor="followups-only" className="text-sm">Follow-ups only</label>
@@ -175,7 +240,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
       
       {!isAssociateUser && (
         <Select
-          value={searchParams.get('associateId') || ''}
+          value={localAssociateId}
           onValueChange={onAssociateChange}
         >
           <SelectTrigger className="w-full">
@@ -222,7 +287,10 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
                   Apply filters to narrow down your results
                 </SheetDescription>
               </SheetHeader>
-              <FiltersContent />
+                <FiltersContent />
+                <div className="flex justify-end items-center space-x-2 mt-4">
+                  <Button variant="ghost" onClick={clearAllFilters}>Clear</Button>
+                </div>
             </SheetContent>
           </Sheet>
           
@@ -265,7 +333,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           
           {!isAssociateUser && (
             <Select
-              value={searchParams.get('associateId') || ''}
+              value={localAssociateId}
               onValueChange={onAssociateChange}
             >
               <SelectTrigger className="w-[200px]">
@@ -281,6 +349,24 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
               </SelectContent>
             </Select>
           )}
+
+          {!isAssociateUser && operationalStaffs && (
+            <Select
+              value={localAssignedStaffId}
+              onValueChange={(v) => onAssignedStaffChange(v)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Assigned Staff" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Staff</SelectItem>
+                {operationalStaffs.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="ghost" className="ml-2" onClick={clearAllFilters}>Clear</Button>
           
           <Button 
             variant="outline"

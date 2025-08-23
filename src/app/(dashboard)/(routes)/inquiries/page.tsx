@@ -11,6 +11,7 @@ interface InquiriesPageProps {
   searchParams: {
     associateId?: string;
     status?: string;
+  assignedStaffId?: string;
     period?: string;
     startDate?: string;
     endDate?: string;
@@ -42,6 +43,13 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   });
 
   const associates = await prismadb.associatePartner.findMany({
+    orderBy: {
+      name: 'asc'
+    }
+  });
+
+  const operationalStaffs = await prismadb.operationalStaff.findMany({
+    where: { isActive: true },
     orderBy: {
       name: 'asc'
     }
@@ -154,6 +162,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     ...(associateId && {
       associatePartnerId: associateId
     }),
+    ...(searchParams.assignedStaffId && {
+      assignedToStaffId: searchParams.assignedStaffId
+    }),
     ...(searchParams.status && searchParams.status !== 'ALL' && {
       status: searchParams.status
     }),
@@ -231,6 +242,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
           data={formattedInquiries}
           associates={associates}
           organization={organization}
+          operationalStaffs={operationalStaffs}
           isAssociateUser={isAssociateUser}
         />
       </div>

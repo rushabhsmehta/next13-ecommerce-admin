@@ -82,15 +82,24 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   // Generate message with specific inquiry data
   const generateMessageWithData = (data: typeof inquiryData) => {
     const totalTravelers = data.numAdults + data.numChildren5to11 + data.numChildrenBelow5;
-    // Always format journey date to DD/MM/YYYY (supplier friendly); use UTC parts to avoid timezone shift
+    // Format journey date to DD/MM/YYYY (supplier friendly)
+    // Avoid timezone shifts by:
+    // - Using UTC parts when value is an ISO string (e.g. 2025-06-20T00:00:00.000Z)
+    // - Using local parts when it's a plain date string like "20 Jun 2025" or Date instance
     const formatDateDDMMYYYY = (value: string | Date | null): string => {
-      if (!value) return "To be confirmehd";
+      if (!value) return "To be confirmed";
       try {
-        const d = new Date(value);
+        // Normalize to Date
+        const d = value instanceof Date ? value : new Date(value);
         if (isNaN(d.getTime())) return "To be confirmed";
-        const day = String(d.getUTCDate()).padStart(2, '0');
-        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const year = d.getUTCFullYear();
+
+        // If the original value is an ISO-like string, prefer UTC parts to preserve the intended date
+        const str = typeof value === 'string' ? value : '';
+        const looksIso = /T\d{2}:\d{2}:\d{2}/.test(str) || /Z$/.test(str) || /\d{4}-\d{2}-\d{2}/.test(str);
+
+        const day = String(looksIso ? d.getUTCDate() : d.getDate()).padStart(2, '0');
+        const month = String((looksIso ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
+        const year = looksIso ? d.getUTCFullYear() : d.getFullYear();
         return `${day}/${month}/${year}`;
       } catch {
         return "To be confirmed";
@@ -174,7 +183,7 @@ From: +919724444701`;
             (!inquiryData.remarks || inquiryData.remarks === null)
           );
           
-          if (hasLimitedData) {
+      if (hasLimitedData) {
             // Fetch complete inquiry data from API
             console.log('Fetching complete inquiry data for ID:', inquiryData.id);
             const response = await fetch(`/api/inquiries/${inquiryData.id}`);
@@ -185,6 +194,9 @@ From: +919724444701`;
               // Generate message with complete data
               const completeInquiryData = {
                 ...inquiryData,
+        // Prefer authoritative values from server to avoid format/timezone drift
+        journeyDate: fullInquiry?.journeyDate ?? inquiryData.journeyDate,
+        location: fullInquiry?.location?.label ?? inquiryData.location,
                 numAdults: fullInquiry.numAdults || 0,
                 numChildren5to11: fullInquiry.numChildren5to11 || 0,
                 numChildrenBelow5: fullInquiry.numChildrenBelow5 || 0,

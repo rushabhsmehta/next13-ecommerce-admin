@@ -19,6 +19,7 @@ import { TourPackageQuery } from "@prisma/client"
 import { CompactStaffAssignment } from "@/components/compact-staff-assignment"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
+import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 
 const statusOptions = [
@@ -103,6 +104,9 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
   const router = useRouter();
   const inquiry = row.original;
   const [updating, setUpdating] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [actionType, setActionType] = useState<string>("CALL");
+  const [remarks, setRemarks] = useState<string>("");
   // Keep the raw ISO value separate from the display value to avoid parsing/formatting drift
   const [isoValue, setIsoValue] = useState<string | null>(inquiry.nextFollowUpDateIso || null);
   const [open, setOpen] = useState(false);
@@ -178,7 +182,7 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
             )}
           </div>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[480px] md:w-[520px] p-0">
+        <PopoverContent align="start" className="w-[520px] md:w-[560px] p-0">
           <div className="flex flex-col md:flex-row">
             <div className="p-3 md:border-r md:w-[55%]">
         <Calendar
@@ -204,7 +208,7 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
                 initialFocus
               />
             </div>
-            <div className="p-3 md:w-[45%] max-h-[300px] flex flex-col gap-2">
+            <div className="p-3 md:w-[45%] max-h-[360px] flex flex-col gap-2">
               <div className="text-xs font-semibold tracking-wide">Recent Actions</div>
               <div className="space-y-1 overflow-y-auto pr-1 text-xs">
                 {recentActions.length === 0 && (
@@ -219,6 +223,56 @@ const NextFollowUpCell = ({ row }: { row: any }) => {
                     {a.remarks && <div className="text-[10px] leading-snug line-clamp-3">{a.remarks}</div>}
                   </div>
                 ))}
+              </div>
+              <div className="mt-2 border-t pt-2">
+                <div className="text-[11px] font-semibold mb-1">Add Action</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Select value={actionType} onValueChange={setActionType}>
+                    <SelectTrigger className="h-7 text-xs w-[140px]"><SelectValue placeholder="Type"/></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CALL">Call</SelectItem>
+                      <SelectItem value="MESSAGE">Message</SelectItem>
+                      <SelectItem value="EMAIL">Email</SelectItem>
+                      <SelectItem value="NOTE">Note</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    className={`text-[10px] px-2 py-1 rounded ${actionType==='CALL'?'bg-green-50 text-green-700':actionType==='MESSAGE'?'bg-blue-50 text-blue-700':actionType==='EMAIL'?'bg-yellow-50 text-yellow-700':'bg-slate-50 text-slate-700'}`}
+                    onClick={() => setActionType('CALL')}
+                  >CALL</button>
+                  <button type="button" className="text-[10px] px-2 py-1 rounded bg-blue-50 text-blue-700" onClick={() => setActionType('MESSAGE')}>MSG</button>
+                  <button type="button" className="text-[10px] px-2 py-1 rounded bg-yellow-50 text-yellow-700" onClick={() => setActionType('EMAIL')}>EMAIL</button>
+                </div>
+                <Textarea
+                  placeholder="Remarks"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  className="text-xs h-16"
+                />
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={adding || !remarks.trim()}
+                    onClick={async () => {
+                      try {
+                        setAdding(true);
+                        const payload = { actionType, remarks: remarks.trim(), actionDate: new Date().toISOString() };
+                        await axios.post(`/api/inquiries/${inquiry.id}/actions`, payload);
+                        toast.success('Action added');
+                        // Update local recent list optimistically
+                        const newItem = { type: actionType, remarks: remarks.trim(), timestamp: format(new Date(), 'dd MMM yyyy HH:mm') };
+                        (row.original as any).actionHistory = [newItem, ...((row.original as any).actionHistory || [])].slice(0, 5);
+                        setRemarks("");
+                      } catch (e) {
+                        toast.error('Failed to add action');
+                      } finally {
+                        setAdding(false);
+                      }
+                    }}
+                    className="text-[11px] px-3 py-1 rounded border bg-white hover:bg-slate-50"
+                  >{adding ? 'Adding…' : 'Add'}</button>
+                </div>
               </div>
             </div>
           </div>

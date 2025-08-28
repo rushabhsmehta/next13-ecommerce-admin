@@ -22,7 +22,8 @@ export async function DELETE(
     }
 
     // Verify that the action belongs to the specified inquiry
-    const action = await prismadb.inquiryAction.findUnique({
+    // Use findFirst with both conditions; findUnique only accepts unique constraints
+    const action = await prismadb.inquiryAction.findFirst({
       where: { 
         id: params.actionId,
         inquiryId: params.inquiryId
@@ -33,15 +34,16 @@ export async function DELETE(
       return new NextResponse("Action not found or does not belong to this inquiry", { status: 404 });
     }
 
-    // Delete the action
-    const deletedAction = await prismadb.inquiryAction.delete({
+    // Delete the action (guard by both id and inquiryId)
+    const deleted = await prismadb.inquiryAction.deleteMany({
       where: {
-        id: params.actionId
+        id: params.actionId,
+        inquiryId: params.inquiryId
       }
     });
 
-    console.log(`[INQUIRY_ACTION_DELETE] Successfully deleted action: ${params.actionId}`);
-    return NextResponse.json(deletedAction);
+    console.log(`[INQUIRY_ACTION_DELETE] Deleted count: ${deleted.count} for action: ${params.actionId}`);
+    return NextResponse.json({ deletedCount: deleted.count, id: params.actionId });
   } catch (error) {
     console.error('[INQUIRY_ACTION_DELETE]', error);
     return new NextResponse("Internal error", { status: 500 });

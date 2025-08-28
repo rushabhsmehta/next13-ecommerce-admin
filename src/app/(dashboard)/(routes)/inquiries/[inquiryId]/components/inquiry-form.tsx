@@ -439,18 +439,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
     }
   };
 
-  const onAddAction = () => {
-    const currentActions = form.getValues("actions") || [];
-    form.setValue("actions", [
-      ...currentActions,
-      { actionType: "", remarks: "", actionDate: new Date() }
-    ]);
-  };
-
-  const onRemoveAction = (index: number) => {
-    const currentActions = form.getValues("actions");
-    form.setValue("actions", currentActions.filter((_, i) => i !== index));
-  };
+  // Actions are now managed exclusively via the Action History section below.
 
   return (
     <>
@@ -477,7 +466,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
           {/* Changed from grid-cols-3 to a responsive grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">            <FormField
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <FormField
               control={form.control}
               name="associatePartnerId"
               render={({ field }) => (
@@ -624,7 +614,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   <FormMessage />
                 </FormItem>
               )}
-            />            <FormField
+            />
+            <FormField
               control={form.control}
               name="journeyDate"
               render={({ field }) => (
@@ -786,7 +777,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT") => field.onChange(value)} value={field.value} defaultValue={field.value}>
+                  <FormLabel>Status</FormLabel>
+                  <Select disabled={loading} onValueChange={(value: "PENDING" | "CONFIRMED" | "CANCELLED" | "HOT_QUERY" | "QUERY_SENT") => field.onChange(value)} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue defaultValue={field.value} placeholder="Select status" />
@@ -806,7 +798,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
             />
 
             {/* Remarks field spans full width on all screen sizes */}
-            <FormField              control={form.control}
+            <FormField
+              control={form.control}
               name="remarks"
               render={({ field }) => (
                 <FormItem className="col-span-1 md:col-span-2 lg:col-span-3">
@@ -825,23 +818,12 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                 </FormItem>
               )}
             />
-
-            {/* Add Actions Section - spans full width */}
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Actions</h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onAddAction}
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Action
-                </Button>
-              </div>
-
-              {/* Next Follow Up Date placed with Actions for context */}
+            {/* Follow Up - manage actions via Action History below */}
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-3">
+              <h3 className="text-lg font-medium">Follow Up</h3>
+              <p className="text-xs text-muted-foreground -mt-2">
+                To add or remove action entries, use the Action History section below. Saving the inquiry only updates core fields and follow-up date.
+              </p>
               <FormField
                 control={form.control}
                 name="nextFollowUpDate"
@@ -888,99 +870,8 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({
                   </FormItem>
                 )}
               />
-
-              {form.watch("actions")?.map((_, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 border rounded-md p-4">
-                  <FormField
-                    control={form.control}
-                    name={`actions.${index}.actionType`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="md:sr-only">Action Type</FormLabel>
-                        <Select
-                          disabled={loading}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select action type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="CALL">Call</SelectItem>
-                            <SelectItem value="MESSAGE">Message</SelectItem>
-                            <SelectItem value="EMAIL">Email</SelectItem>
-                            <SelectItem value="MEETING">Meeting</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`actions.${index}.actionDate`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="md:sr-only">Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button variant="outline" className="w-full justify-start">
-                                {field.value ? format(field.value, "PPP") : "Pick a date"}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(date) => date && field.onChange(date)}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`actions.${index}.remarks`}
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-1">
-                        <FormLabel className="md:sr-only">Remarks</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            disabled={loading}
-                            placeholder="Enter remarks"
-                            {...field}
-                            className="min-h-[60px]"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => onRemoveAction(index)}
-                      className="ml-auto"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>          </div>
+            </div>
+          </div>
 
           {/* Room Allocation Section */}
           <div className="space-y-4">

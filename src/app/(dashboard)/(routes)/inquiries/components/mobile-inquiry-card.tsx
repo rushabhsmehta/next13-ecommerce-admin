@@ -57,6 +57,9 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAs
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const { user } = useUser();
   const { associatePartner } = useAssociatePartner();
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [actionTypeMap, setActionTypeMap] = useState<Record<string, string>>({});
+  const [remarksMap, setRemarksMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // nothing heavy here; kept for parity with older behavior
@@ -247,6 +250,53 @@ export const MobileInquiryCard: React.FC<MobileInquiryCardProps> = ({ data, isAs
                         </div>
                       ))}</div>
                     ) : <div className="text-sm text-gray-500">No actions recorded</div>}
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Select
+                          defaultValue={actionTypeMap[inquiry.id] || 'CALL'}
+                          onValueChange={(v) => setActionTypeMap(m => ({ ...m, [inquiry.id]: v }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Type"/></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CALL">Call</SelectItem>
+                            <SelectItem value="MESSAGE">Message</SelectItem>
+                            <SelectItem value="EMAIL">Email</SelectItem>
+                            <SelectItem value="NOTE">Note</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <textarea
+                        className="w-full border rounded p-2 text-xs h-16"
+                        placeholder="Remarks"
+                        value={remarksMap[inquiry.id] || ''}
+                        onChange={(e) => setRemarksMap(m => ({ ...m, [inquiry.id]: e.target.value }))}
+                      />
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={addingId === inquiry.id || !(remarksMap[inquiry.id] || '').trim()}
+                          onClick={async () => {
+                            try {
+                              setAddingId(inquiry.id);
+                              const type = actionTypeMap[inquiry.id] || 'CALL';
+                              const remarks = (remarksMap[inquiry.id] || '').trim();
+                              await axios.post(`/api/inquiries/${inquiry.id}/actions`, { actionType: type, remarks, actionDate: new Date().toISOString() });
+                              toast.success('Action added');
+                              // optimistic update
+                              const newAction = { type, remarks, timestamp: new Date().toISOString() } as any;
+                              // @ts-ignore
+                              inquiry.actionHistory = [newAction, ...(inquiry.actionHistory || [])].slice(0, 5);
+                              setRemarksMap(m => ({ ...m, [inquiry.id]: '' }));
+                            } catch {
+                              toast.error('Failed to add action');
+                            } finally {
+                              setAddingId(null);
+                            }
+                          }}
+                        >{addingId === inquiry.id ? 'Adding…' : 'Add'}</Button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mb-3">

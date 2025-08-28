@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs';
 import { dateToUtc } from '@/lib/timezone-utils';
 
 import prismadb from '@/lib/prismadb';
+import { createAuditLog } from "@/lib/utils/audit-logger";
 
 
 async function createItineraryAndActivities(itinerary: {
@@ -315,6 +316,25 @@ export async function POST(
             },
         });
 
+        // Attempt to create an audit log capturing who prepared the query
+        try {
+            await createAuditLog({
+                entityId: newTourPackageQuery.id,
+                entityType: "TourPackageQuery",
+                action: "CREATE",
+                before: null,
+                after: {
+                    tourPackageQueryNumber,
+                    tourPackageQueryName,
+                    tourPackageQueryType,
+                    locationId,
+                    associatePartnerId,
+                },
+                userRole: "ADMIN",
+            });
+        } catch (e) {
+            console.error("[TOURPACKAGE_QUERY_AUDIT_CREATE]", e);
+        }
 
         return NextResponse.json(createdTourPackageQuery);
     } catch (error) {

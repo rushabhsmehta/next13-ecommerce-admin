@@ -2,6 +2,7 @@ import prismadb from "@/lib/prismadb";
 
 import { TourPackageQueryDisplay } from "./components/tourPackageQueryDisplay";
 import Navbar from "@/components/navbar";
+import Link from "next/link";
 
 const tourPackageQueryPage = async ({
   params
@@ -76,6 +77,16 @@ const tourPackageQueryPage = async ({
 
   const associatePartners = await prismadb.associatePartner.findMany();
 
+  // Find latest CREATE audit log entry for this entity (prepared by)
+  const preparedByLog = await prismadb.auditLog.findFirst({
+    where: {
+      entityId: params.tourPackageQueryId,
+      entityType: "TourPackageQuery",
+      action: "CREATE",
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
   return (
     <>
     
@@ -90,6 +101,19 @@ const tourPackageQueryPage = async ({
       </div>
  */} 
       <div className="flex-1 space-y-4 p-8 pt-6">
+        {preparedByLog && (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">Prepared by: <span className="font-semibold">{preparedByLog.userName}</span> <span className="ml-2">({preparedByLog.userEmail})</span></div>
+            {tourPackageQuery && (
+              <Link
+                href={`/tourPackageQueryPDFGenerator/${tourPackageQuery.id}`}
+                className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-orange-500 text-white hover:bg-orange-600"
+              >
+                Download PDF
+              </Link>
+            )}
+          </div>
+        )}
         <TourPackageQueryDisplay
           initialData={tourPackageQuery}
           locations={locations}

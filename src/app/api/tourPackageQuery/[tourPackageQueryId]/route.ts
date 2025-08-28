@@ -5,6 +5,7 @@ import { dateToUtc } from '@/lib/timezone-utils';
 import prismadb from "@/lib/prismadb";
 import { string } from "zod";
 import { Activity } from "@prisma/client";
+import { createAuditLog } from "@/lib/utils/audit-logger";
 
 
 
@@ -68,15 +69,37 @@ export async function DELETE(
       return new NextResponse("Tour Package Query Id is required", { status: 400 });
     }
 
-
-
-
+    // Fetch the record before deletion for audit logging
+    const original = await prismadb.tourPackageQuery.findUnique({
+      where: { id: params.tourPackageQueryId },
+      include: {
+        associatePartner: true,
+        location: true,
+      }
+    });
 
     const tourPackageQuery = await prismadb.tourPackageQuery.delete({
       where: {
         id: params.tourPackageQueryId
       },
     });
+
+    // Log audit entry for deletion (best-effort)
+    try {
+      await createAuditLog({
+        entityId: params.tourPackageQueryId,
+        entityType: "TourPackageQuery",
+        action: "DELETE",
+        before: original,
+        userRole: "ADMIN",
+        metadata: {
+          tourPackageQueryNumber: original?.tourPackageQueryNumber,
+          tourPackageQueryName: original?.tourPackageQueryName,
+        }
+      });
+    } catch (e) {
+      console.error('[TOURPACKAGE_QUERY_AUDIT_DELETE]', e);
+    }
 
     return NextResponse.json(tourPackageQuery);
   } catch (error) {
@@ -562,6 +585,12 @@ export async function PATCH(
       }
     }
 
+    // Capture original for audit logging
+    const originalTourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+      where: { id: params.tourPackageQueryId },
+      include: { associatePartner: true, location: true }
+    });
+
     // Use transaction with fallback strategy for itinerary operations
     try {
       await prismadb.$transaction(async (tx) => {
@@ -711,7 +740,7 @@ export async function PATCH(
       }
     }
 
-    const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
+  const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
       where: { id: params.tourPackageQueryId },
       include: {
         associatePartner: true,
@@ -752,6 +781,24 @@ export async function PATCH(
         },
       }
     });
+
+    // Log audit entry for update (best-effort)
+    try {
+      await createAuditLog({
+        entityId: params.tourPackageQueryId,
+        entityType: "TourPackageQuery",
+        action: "UPDATE",
+        before: originalTourPackageQuery,
+        after: tourPackageQuery,
+        userRole: "ADMIN",
+        metadata: {
+          tourPackageQueryNumber: tourPackageQuery?.tourPackageQueryNumber,
+          tourPackageQueryName: tourPackageQuery?.tourPackageQueryName,
+        }
+      });
+    } catch (e) {
+      console.error('[TOURPACKAGE_QUERY_AUDIT_UPDATE]', e);
+    }
 
     return NextResponse.json(tourPackageQuery);
   } catch (error: any) {

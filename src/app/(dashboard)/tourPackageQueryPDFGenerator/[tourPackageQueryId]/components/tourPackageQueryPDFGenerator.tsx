@@ -92,6 +92,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const searchParams = useSearchParams();
   const selectedOption = searchParams.get("search") || "Empty";
   const [loading, setLoading] = useState(false);
+  const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);
 
   // Determine the company info based on the selected option.
   const currentCompany =
@@ -210,6 +211,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           `
         : ""
       }
+      ${preparedBy ? `<div style="margin-top:8px; font-size: 14px; color: #6b7280;"><span style="font-weight:600;">Prepared by:</span> ${preparedBy.name} (${preparedBy.email})</div>` : ''}
       </div>
     `;
 
@@ -909,6 +911,17 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     useEffect(() => {
     if (initialData) {
+        // Fetch latest CREATE audit log for prepared by
+        (async () => {
+          try {
+            const res = await fetch(`/api/audit-logs?entityId=${initialData.id}&entityType=TourPackageQuery&action=CREATE&limit=1`);
+            if (res.ok) {
+              const data = await res.json();
+              const log = data.auditLogs?.[0];
+              if (log) setPreparedBy({ name: log.userName, email: log.userEmail });
+            }
+          } catch {}
+        })();
       generatePDF();
     }
   }, [initialData, generatePDF]);

@@ -3,6 +3,7 @@ import prismadb from "@/lib/prismadb";
 
 import Navbar from "@/components/navbar";
 import TourPackageQueryPDFGenerator from "./components/tourPackageQueryPDFGenerator";
+import Link from "next/link";
 
 const tourPackageQueryPage = async ({
   params
@@ -73,6 +74,16 @@ const tourPackageQueryPage = async ({
 
   const associatePartners = await prismadb.associatePartner.findMany();
 
+  // Prepared by (latest CREATE audit log)
+  const preparedByLog = await prismadb.auditLog.findFirst({
+    where: {
+      entityId: params.tourPackageQueryId,
+      entityType: "TourPackageQuery",
+      action: "CREATE",
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
   return (
     <>
     
@@ -87,6 +98,9 @@ const tourPackageQueryPage = async ({
       </div>
  */}
       <div className="flex-1 space-y-4 p-8 pt-6">
+        {preparedByLog && (
+          <div className="text-sm text-gray-600">Prepared by: <span className="font-semibold">{preparedByLog.userName}</span> <span className="ml-2">({preparedByLog.userEmail})</span></div>
+        )}
         <TourPackageQueryPDFGenerator
           initialData={tourPackageQuery}
           locations={locations}

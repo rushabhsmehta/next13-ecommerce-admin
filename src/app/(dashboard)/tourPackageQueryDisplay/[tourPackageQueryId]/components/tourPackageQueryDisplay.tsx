@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import { format, parseISO } from 'date-fns';
 import { formatLocalDate } from '@/lib/timezone-utils';
 import { Separator } from '@radix-ui/react-separator';
+import { useEffect, useState } from 'react';
 
 interface TourPackageQueryDisplayProps {
   initialData: TourPackageQuery & {
@@ -211,6 +212,22 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
+  const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);
+  useEffect(() => {
+    if (initialData?.id) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/audit-logs?entityId=${initialData.id}&entityType=TourPackageQuery&action=CREATE&limit=1`);
+          if (res.ok) {
+            const data = await res.json();
+            const log = data.auditLogs?.[0];
+            if (log) setPreparedBy({ name: log.userName, email: log.userEmail });
+          }
+        } catch {}
+      })();
+    }
+  }, [initialData?.id]);
+
 
   if (!initialData) return <div>No data available</div>;
 
@@ -243,6 +260,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             <CardDescription className="text-2xl font-bold mb-4">
               {initialData.tourPackageQueryNumber}
             </CardDescription>
+            <div className="flex items-center justify-between mb-2">
+              {preparedBy && (
+                <div className="text-sm text-gray-600">Prepared by: <span className="font-semibold">{preparedBy.name}</span> <span className="ml-2">({preparedBy.email})</span></div>
+              )}
+              <Link href={`/tourPackageQueryPDFGenerator/${initialData.id}`} className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-orange-500 text-white hover:bg-orange-600">Download PDF</Link>
+            </div>
 
             {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
               <CardDescription className="text-lg">

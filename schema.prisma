@@ -1321,60 +1321,7 @@ enum OperationalStaffRole {
   ADMIN
 }
 
-model WhatsAppTemplate {
-  id           String   @id @default(uuid())
-  contentSid   String   @unique // Twilio Content SID (HX...)
-  name         String   @unique // WhatsApp template name (lowercase, underscores)
-  friendlyName String?  // Optional Twilio friendly name
-  category     String   // Template category (UTILITY, MARKETING, AUTHENTICATION)
-  language     String   // Language code (e.g. "en")
-  bodyText     String   @db.Text // Template body text with placeholders
-  placeholders Json     @default("{}") // Placeholder definitions
-  sampleValues Json     @default("[]") // Sample values for placeholders
-  status       String   @default("pending") // Approval status (pending, approved, rejected)
-  rejectionReason String? @db.Text // Reason for rejection if applicable
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  // Relations
-  messages     WhatsAppMessage[] @relation("TemplateToMessages")
-  
-  @@index([contentSid])
-  @@index([name])
-  @@index([status])
-  @@index([category])
-}
 
-model WhatsAppMessage {
-  id                String    @id @default(uuid())
-  messageId         String    @unique
-  fromNumber        String
-  toNumber          String
-  message           String    @db.Text
-  status            String
-  timestamp         DateTime  @default(now())
-  mediaUrl          String?   @db.Text
-  mediaContentType  String?
-  direction         String    // 'incoming' or 'outgoing'
-  
-  // Template-related fields
-  contentSid        String?   // If template was used, store Content SID
-  templateName      String?   // Template name used (for readability)
-  contentVars       Json?     // JSON of variables substituted
-  messageSid        String?   // Twilio Message SID (SM...)
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @default(now())
-  
-  // Relations
-  template          WhatsAppTemplate? @relation("TemplateToMessages", fields: [contentSid], references: [contentSid])
-
-  @@index([fromNumber])
-  @@index([toNumber])
-  @@index([timestamp])
-  @@index([contentSid])
-  @@index([messageSid])
-}
 
 // New TDS models
 model TDSMaster {

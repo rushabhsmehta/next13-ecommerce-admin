@@ -1,285 +1,180 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { MessageCircle, Phone, Send, Users } from "lucide-react";
+import { MessageCircle, Send } from "lucide-react";
 import { toast } from "react-hot-toast";
 
+// Types for inquiry data
+interface InquiryData {
+  id: string;
+  customerName: string;
+  customerMobileNumber: string;
+  location: string;
+  journeyDate: string | null;
+  numAdults: number;
+  numChildren5to11: number;
+  numChildrenBelow5: number;
+  remarks: string | null;
+  associatePartner: string | null;
+}
+
 interface WhatsAppSupplierButtonProps {
-  inquiryData: {
-    id: string;
-    customerName: string;
-    customerMobileNumber: string;
-    location: string;
-    journeyDate: string | null;
-    numAdults: number;
-    numChildren5to11: number;
-    numChildrenBelow5: number;
-    remarks: string | null;
-    associatePartner?: string | null;
-  };
-  className?: string;
-  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
-  size?: "default" | "sm" | "lg" | "icon";
-  // Optional props for external control
+  inquiryData: InquiryData;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   hideButton?: boolean;
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
-interface Supplier {
-  id: string;
-  name: string;
-  contact: string;
-  email: string;
-}
+// Default message template
+const DEFAULT_MESSAGE_TEMPLATE = `Hi,
+
+I have a travel inquiry for your review:
+
+Customer: {{customerName}}
+Contact: {{customerMobileNumber}}
+Destination: {{location}}
+Journey Date: {{journeyDate}}
+Travelers: {{numAdults}} Adults, {{numChildren5to11}} Children (5-11), {{numChildrenBelow5}} Children (Below 5)
+Associate Partner: {{associatePartner}}
+
+Remarks: {{remarks}}
+
+Please share your best rates and availability.
+
+Thanks!`;
 
 export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   inquiryData,
-  className,
+  isOpen = false,
+  onOpenChange,
+  hideButton = false,
   variant = "outline",
-  size = "default",
-  isOpen: externalOpen,
-  onOpenChange: externalOnOpenChange,
-  hideButton = false
+  size = "sm"
 }) => {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [supplierPhone, setSupplierPhone] = useState("");
-  const [customMessage, setCustomMessage] = useState("");
+  const [open, setOpen] = useState(isOpen);
+  const [supplierPhone, setSupplierPhone] = useState('');
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("");
-  const [inputMethod, setInputMethod] = useState<"supplier" | "manual">("supplier");
 
-  // Use external open state if provided, otherwise use internal state
-  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
-  const setIsOpen = externalOnOpenChange || setInternalOpen;
-
-  // Generate default message with inquiry details
-  const generateDefaultMessage = () => {
-    return generateMessageWithData(inquiryData);
-  };
-
-  // Generate message with specific inquiry data
-  const generateMessageWithData = (data: typeof inquiryData) => {
-    const totalTravelers = data.numAdults + data.numChildren5to11 + data.numChildrenBelow5;
-    // Format journey date to DD/MM/YYYY (supplier friendly)
-    // Avoid timezone shifts by:
-    // - Using UTC parts when value is an ISO string (e.g. 2025-06-20T00:00:00.000Z)
-    // - Using local parts when it's a plain date string like "20 Jun 2025" or Date instance
-    const formatDateDDMMYYYY = (value: string | Date | null): string => {
-      if (!value) return "To be confirmed";
-      try {
-        // Normalize to Date
-        const d = value instanceof Date ? value : new Date(value);
-        if (isNaN(d.getTime())) return "To be confirmed";
-
-        // If the original value is an ISO-like string, prefer UTC parts to preserve the intended date
-        const str = typeof value === 'string' ? value : '';
-        const looksIso = /T\d{2}:\d{2}:\d{2}/.test(str) || /Z$/.test(str) || /\d{4}-\d{2}-\d{2}/.test(str);
-
-        const day = String(looksIso ? d.getUTCDate() : d.getDate()).padStart(2, '0');
-        const month = String((looksIso ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
-        const year = looksIso ? d.getUTCFullYear() : d.getFullYear();
-        return `${day}/${month}/${year}`;
-      } catch {
-        return "To be confirmed";
-      }
-    };
-
-    const journeyDateFormatted = formatDateDDMMYYYY(data.journeyDate as any);
-
-    // Create message based on available data
-    let message = `Hello,
-
-I'm writing from Aagam Holidays regarding a travel inquiry:
-
-📍 Destination: ${data.location}
-🗓️ Travel Date: ${journeyDateFormatted}`;
-
-    // Add traveler details if available (non-zero values)
-    if (totalTravelers > 0) {
-      message += `
-
-👨‍👩‍👧‍👦 Group Details:
-• Adults: ${data.numAdults}
-• Children (5-11): ${data.numChildren5to11}
-• Children (Below 5): ${data.numChildrenBelow5}
-• Total Travelers: ${totalTravelers}`;
-    }
-
-    // Add remarks if available
-    if (data.remarks && data.remarks.trim()) {
-      message += `
-
-📝 Special Requirements:
-${data.remarks}`;
-    }
-
-    message += `
-
-Please provide your best rates and availability for the above requirements.
-
-Reference ID: ${data.id}
-
-Thank you for your time and assistance.
-
-Best regards,
-Aagam Holidays Team
-From: +919724444701`;
-
-    return message;
-  };
-
-  // Fetch suppliers when component opens
+  // Update open state when prop changes
   useEffect(() => {
-    const fetchSuppliers = async () => {
-      try {
-        const response = await fetch('/api/suppliers');
-        if (response.ok) {
-          const data = await response.json();
-          setSuppliers(data);
-        }
-      } catch (error) {
-        console.error('Error fetching suppliers:', error);
-      }
-    };
-
-    if (isOpen) {
-      fetchSuppliers();
-    }
+    setOpen(isOpen);
   }, [isOpen]);
 
-  // Generate default message when dialog opens
+  // Handle open state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+  };
+
+  // Populate message template with inquiry data
   useEffect(() => {
-    const fetchFullInquiryAndGenerateMessage = async () => {
-      try {
-        if (isOpen && !customMessage.trim()) {
-          // Check if this looks like limited data from list view
-          // (all traveler counts are 0 and either no remarks or remarks is null)
-          const hasLimitedData = (
-            inquiryData.numAdults === 0 && 
-            inquiryData.numChildren5to11 === 0 && 
-            inquiryData.numChildrenBelow5 === 0 && 
-            (!inquiryData.remarks || inquiryData.remarks === null)
-          );
-          
-      if (hasLimitedData) {
-            // Fetch complete inquiry data from API
-            console.log('Fetching complete inquiry data for ID:', inquiryData.id);
-            const response = await fetch(`/api/inquiries/${inquiryData.id}`);
-            if (response.ok) {
-              const fullInquiry = await response.json();
-              console.log('Fetched complete inquiry:', fullInquiry);
-              
-              // Generate message with complete data
-              const completeInquiryData = {
-                ...inquiryData,
-        // Prefer authoritative values from server to avoid format/timezone drift
-        journeyDate: fullInquiry?.journeyDate ?? inquiryData.journeyDate,
-        location: fullInquiry?.location?.label ?? inquiryData.location,
-                numAdults: fullInquiry.numAdults || 0,
-                numChildren5to11: fullInquiry.numChildren5to11 || 0,
-                numChildrenBelow5: fullInquiry.numChildrenBelow5 || 0,
-                remarks: fullInquiry.remarks || null,
-              };
-              setCustomMessage(generateMessageWithData(completeInquiryData));
-            } else {
-              console.error('Failed to fetch complete inquiry data');
-              // Fallback to basic data if fetch fails
-              setCustomMessage(generateDefaultMessage());
-            }
-          } else {
-            // Use existing complete data (from inquiry form)
-            console.log('Using existing complete data');
-            setCustomMessage(generateDefaultMessage());
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching inquiry data:', error);
-        // Fallback to basic data
-        if (isOpen && !customMessage.trim()) {
-          setCustomMessage(generateDefaultMessage());
-        }
-      }
-    };
+    if (open && inquiryData) {
+      let populatedMessage = DEFAULT_MESSAGE_TEMPLATE;
+      
+      // Replace placeholders with actual data
+      populatedMessage = populatedMessage
+        .replace('{{customerName}}', inquiryData.customerName || 'N/A')
+        .replace('{{customerMobileNumber}}', inquiryData.customerMobileNumber || 'N/A')
+        .replace('{{location}}', inquiryData.location || 'N/A')
+        .replace('{{journeyDate}}', inquiryData.journeyDate ? new Date(inquiryData.journeyDate).toLocaleDateString() : 'Not specified')
+        .replace('{{numAdults}}', inquiryData.numAdults?.toString() || '0')
+        .replace('{{numChildren5to11}}', inquiryData.numChildren5to11?.toString() || '0')
+        .replace('{{numChildrenBelow5}}', inquiryData.numChildrenBelow5?.toString() || '0')
+        .replace('{{associatePartner}}', inquiryData.associatePartner || 'Direct')
+        .replace('{{remarks}}', inquiryData.remarks || 'None');
 
-    fetchFullInquiryAndGenerateMessage();
-  }, [isOpen, generateDefaultMessage]);
-
-  const handleOpen = () => {
-    if (externalOnOpenChange) {
-      externalOnOpenChange(true);
-    } else {
-      setInternalOpen(true);
+      setMessage(populatedMessage);
     }
+  }, [open, inquiryData]);
+
+  // Format phone number for WhatsApp (remove any non-digits and ensure it starts with country code)
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    // Remove all non-digit characters
+    const digitsOnly = phone.replace(/\D/g, '');
+    
+    // If it starts with 91 (India) and has 12 digits total, use as is
+    if (digitsOnly.startsWith('91') && digitsOnly.length === 12) {
+      return digitsOnly;
+    }
+    
+    // If it's 10 digits and doesn't start with 91, assume it's Indian number
+    if (digitsOnly.length === 10) {
+      return '91' + digitsOnly;
+    }
+    
+    // If it starts with 0, remove the 0 and add 91
+    if (digitsOnly.startsWith('0') && digitsOnly.length === 11) {
+      return '91' + digitsOnly.substring(1);
+    }
+    
+    // Return as is if it's already properly formatted
+    return digitsOnly;
   };
 
-  const handleSupplierSelect = (supplierId: string) => {
-    setSelectedSupplier(supplierId);
-    const supplier = suppliers.find(s => s.id === supplierId);
-    if (supplier && supplier.contact) {
-      setSupplierPhone(supplier.contact);
-    }
+  // Validate phone number
+  const isValidPhone = (phone: string): boolean => {
+    const formatted = formatPhoneForWhatsApp(phone);
+    return formatted.length >= 10 && formatted.length <= 15;
   };
 
-  const handleInputMethodChange = (method: "supplier" | "manual") => {
-    setInputMethod(method);
-    if (method === "manual") {
-      setSelectedSupplier("");
-      setSupplierPhone("");
-    }
+  // Reset form
+  const resetForm = () => {
+    setSupplierPhone('');
+    setMessage('');
   };
 
-  const handleSendWhatsApp = () => {
-    // Get phone number from either supplier selection or manual input
-    const phoneToUse = inputMethod === "supplier" 
-      ? (suppliers.find(s => s.id === selectedSupplier)?.contact || "")
-      : supplierPhone;
-
-    if (!phoneToUse.trim()) {
-      toast.error("Please select a supplier or enter phone number");
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!supplierPhone.trim()) {
+      toast.error("Please enter supplier phone number");
       return;
     }
 
-    if (!customMessage.trim()) {
-      toast.error("Message cannot be empty");
+    if (!isValidPhone(supplierPhone)) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    if (!message.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
+    handleSendWhatsApp();
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!supplierPhone || !message) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Clean phone number (remove spaces, dashes, etc.)
-      const cleanPhone = phoneToUse.replace(/\D/g, '');
+      // Format phone number for WhatsApp
+      const formattedPhone = formatPhoneForWhatsApp(supplierPhone);
       
-      // Ensure phone number starts with country code
-      let formattedPhone = cleanPhone;
-      if (!formattedPhone.startsWith('91') && formattedPhone.length === 10) {
-        formattedPhone = '91' + formattedPhone;
+      if (!isValidPhone(formattedPhone)) {
+        toast.error("Invalid phone number format");
+        setIsLoading(false);
+        return;
       }
 
-      // Encode the message for URL
-      const encodedMessage = encodeURIComponent(customMessage);
+      // Encode message for URL
+      const encodedMessage = encodeURIComponent(message);
       
       // Create WhatsApp URL
       const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
@@ -288,185 +183,88 @@ From: +919724444701`;
       window.open(whatsappUrl, '_blank');
       
       toast.success("WhatsApp opened with message");
-      setIsOpen(false);
-      setSupplierPhone("");
-      setCustomMessage("");
-      setSelectedSupplier("");
-      setInputMethod("supplier");
+      
+      // Reset form and close dialog
+      resetForm();
+      handleOpenChange(false);
+      
     } catch (error) {
-      console.error("Error opening WhatsApp:", error);
+      console.error('Error opening WhatsApp:', error);
       toast.error("Failed to open WhatsApp");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatPhoneNumber = (value: string) => {
-    // Remove all non-numeric characters
-    const cleaned = value.replace(/\D/g, '');
-    
-    // Format as +91 XXXXX XXXXX
-    if (cleaned.length <= 2) {
-      return cleaned;
-    } else if (cleaned.length <= 7) {
-      return `${cleaned.slice(0, 2)} ${cleaned.slice(2)}`;
-    } else {
-      return `${cleaned.slice(0, 2)} ${cleaned.slice(2, 7)} ${cleaned.slice(7, 12)}`;
-    }
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setSupplierPhone(formatted);
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+  const DialogComponent = (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       {!hideButton && (
         <DialogTrigger asChild>
-          <Button 
-            variant={variant} 
-            size={size} 
-            className={className}
-            onClick={handleOpen}
-          >
+          <Button variant={variant} size={size}>
             <MessageCircle className="h-4 w-4 mr-2" />
             WhatsApp Supplier
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            Send WhatsApp Message to Supplier
-          </DialogTitle>
-          <DialogDescription>
-            Send inquiry details to a supplier via WhatsApp. Review and customize the message before sending.
-          </DialogDescription>
+          <DialogTitle>Send to Supplier via WhatsApp</DialogTitle>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          {/* Input Method Selection */}
-          <div className="grid gap-2">
-            <Label>Select Supplier Method</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={inputMethod === "supplier" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleInputMethodChange("supplier")}
-                className="flex items-center gap-1"
-              >
-                <Users className="h-4 w-4" />
-                From Suppliers List
-              </Button>
-              <Button
-                type="button"
-                variant={inputMethod === "manual" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleInputMethodChange("manual")}
-                className="flex items-center gap-1"
-              >
-                <Phone className="h-4 w-4" />
-                Manual Entry
-              </Button>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="supplier-phone">Supplier Phone Number</Label>
+            <Input
+              id="supplier-phone"
+              placeholder="Enter supplier WhatsApp number"
+              value={supplierPhone}
+              onChange={(e) => setSupplierPhone(e.target.value)}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter with country code (e.g., +91 for India)
+            </p>
           </div>
 
-          {/* Supplier Selection */}
-          {inputMethod === "supplier" && (
-            <div className="grid gap-2">
-              <Label htmlFor="supplier">Select Supplier</Label>
-              <Select value={selectedSupplier} onValueChange={handleSupplierSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a supplier..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.length > 0 ? (
-                    suppliers.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{supplier.name}</span>
-                          <span className="text-sm text-muted-foreground">{supplier.contact}</span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-suppliers" disabled>
-                      No suppliers found
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {selectedSupplier && (
-                <p className="text-xs text-muted-foreground">
-                  Selected: {suppliers.find(s => s.id === selectedSupplier)?.name} - {suppliers.find(s => s.id === selectedSupplier)?.contact}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Manual Phone Input */}
-          {inputMethod === "manual" && (
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Supplier Phone Number</Label>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  +
-                </div>
-                <Input
-                  id="phone"
-                  placeholder="91 XXXXX XXXXX"
-                  value={supplierPhone}
-                  onChange={handlePhoneChange}
-                  className="flex-1"
-                  maxLength={15}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Enter phone number with country code (e.g., 91 98765 43210)
-              </p>
-            </div>
-          )}
-          
-          <div className="grid gap-2">
+          <div className="space-y-2">
             <Label htmlFor="message">Message</Label>
             <Textarea
               id="message"
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              placeholder="Your message to the supplier..."
-              className="min-h-[300px] font-mono text-sm"
+              placeholder="Message to send to supplier"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={12}
+              required
             />
-            <p className="text-xs text-muted-foreground">
-              Review and customize the message as needed. The inquiry details are pre-filled.
-            </p>
           </div>
-        </div>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsOpen(false)}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSendWhatsApp}
-            disabled={isLoading || 
-              (inputMethod === "supplier" && !selectedSupplier) ||
-              (inputMethod === "manual" && !supplierPhone.trim()) ||
-              !customMessage.trim()
-            }
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {isLoading ? "Opening..." : "Send via WhatsApp"}
-          </Button>
-        </DialogFooter>
+
+          <div className="flex justify-end space-x-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => handleOpenChange(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send via WhatsApp
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
+
+  return DialogComponent;
 };

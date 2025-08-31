@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
       recentMessages,
       dbMessages,
       webhookUrls: {
-        whatsappWebhook: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/whatsapp/webhook`,
-        twilioWebhook: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/twilio/webhook`,
+        whatsappWebhook: `https://admin.aagamholidays.com/api/whatsapp/webhook`,
+        twilioWebhook: `https://admin.aagamholidays.com/api/twilio/webhook`,
       },
       timestamp: new Date().toISOString()
     };

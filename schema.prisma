@@ -121,7 +121,7 @@ model RoomType {
   description       String?
   isActive          Boolean           @default(true)
   createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  updatedAt         DateTime          @default(now())
   hotelPricings     HotelPricing[]
   roomAllocations   RoomAllocation[]
   itineraries       Itinerary[]
@@ -136,7 +136,7 @@ model OccupancyType {
   rank              Int               @default(0)
   isActive          Boolean           @default(true)
   createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  updatedAt         DateTime          @default(now())
   hotelPricings     HotelPricing[]
   roomAllocations   RoomAllocation[]
   itineraries       Itinerary[]
@@ -149,7 +149,7 @@ model VehicleType {
   description       String?
   isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  updatedAt         DateTime           @default(now())
   transportPricings TransportPricing[]
   transportDetails  TransportDetail[]
 }
@@ -162,7 +162,7 @@ model HotelPricing {
   price           Float
   isActive        Boolean        @default(true)
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  updatedAt       DateTime       @default(now())
   mealPlanId      String?
   occupancyTypeId String?
   roomTypeId      String?
@@ -188,7 +188,7 @@ model TransportPricing {
   description   String?
   isActive      Boolean      @default(true)
   createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  updatedAt     DateTime     @default(now())
   vehicleTypeId String?
   location      Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
   vehicleType   VehicleType? @relation(fields: [vehicleTypeId], references: [id])
@@ -378,7 +378,7 @@ model SaleDetail {
   salePrice          Float
   description        String?          @db.Text
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  updatedAt          DateTime         @default(now())
   dueDate            DateTime?
   gstAmount          Float?
   gstPercentage      Float?
@@ -434,7 +434,7 @@ model ReceiptDetail {
   receiptType        String?         @default("customer_receipt") // Added: "customer_receipt" or "supplier_refund"
   purchaseReturnId   String?         // Added: Link to purchase return for refunds
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  updatedAt          DateTime         @default(now())
   bankAccountId      String?
   cashAccountId      String?
   images             Images[]
@@ -503,7 +503,7 @@ model FlightDetails {
   tourPackageQueryId String?
   tourPackageId      String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   images             Images[]
   tourPackage        TourPackage?      @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
@@ -602,7 +602,7 @@ model TourPackagePricing {
   isActive                 Boolean                 @default(true)
   description              String?                 @db.Text
   createdAt                DateTime                @default(now())
-  updatedAt                DateTime                @updatedAt
+  updatedAt                DateTime                @default(now())
   mealPlanId               String
   locationSeasonalPeriodId String?
   tourPackage              TourPackage             @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
@@ -623,7 +623,7 @@ model Activity {
   activityTitle       String?          @db.Text
   activityDescription String?          @db.Text
   createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  updatedAt           DateTime         @default(now())
   itineraryId         String?
   itineraryMasterId   String?
   location            Location         @relation(fields: [locationId], references: [id])
@@ -642,7 +642,7 @@ model ActivityMaster {
   activityMasterTitle       String?    @db.Text
   activityMasterDescription String?    @db.Text
   createdAt                 DateTime   @default(now())
-  updatedAt                 DateTime   @updatedAt
+  updatedAt                 DateTime   @default(now())
   itineraryId               String?
   location                  Location   @relation(fields: [locationId], references: [id])
   activityMasterImages      Images[]
@@ -663,7 +663,7 @@ model Itinerary {
   hotelId              String?
   mealsIncluded        String?
   createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  updatedAt            DateTime          @default(now())
   dayNumber            Int?
   roomCategory         String?
   numberofRooms        String?
@@ -702,7 +702,7 @@ model ItineraryMaster {
   hotelId                    String?
   mealsIncluded              String?
   createdAt                  DateTime          @default(now())
-  updatedAt                  DateTime          @updatedAt
+  updatedAt                  DateTime          @default(now())
   dayNumber                  Int?
   roomCategory               String?
   numberofRooms              String?
@@ -735,7 +735,7 @@ model Images {
   tourPackageQueryId  String?
   url                 String
   createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  updatedAt           DateTime          @default(now())
   hotelId             String?
   itinerariesId       String?
   activitiesId        String?
@@ -781,7 +781,7 @@ model Customer {
   birthdate             DateTime?         @db.Date
   marriageAnniversary   DateTime?         @db.Date
   createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  updatedAt             DateTime          @default(now())
   associatePartnerId    String?
   saleDetails           SaleDetail[]
   receiptDetails        ReceiptDetail[]
@@ -842,7 +842,7 @@ model AssociatePartner {
   email              String?
   isActive           Boolean            @default(true)
   createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  updatedAt          DateTime           @default(now())
   gmail              String?
   inquiries          Inquiry[]
   customers          Customer[]
@@ -857,7 +857,7 @@ model OperationalStaff {
   role              OperationalStaffRole @default(OPERATIONS)
   isActive          Boolean              @default(true)
   createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  updatedAt         DateTime             @default(now())
   assignedInquiries Inquiry[]            @relation("AssignedOperationalStaffToInquiry")
 
   @@index([email])
@@ -876,7 +876,7 @@ model Inquiry {
   remarks              String?            @db.Text
   status               String             @default("pending")
   createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  updatedAt            DateTime           @default(now())
   journeyDate          DateTime?          @db.Date
   // New: next follow-up date for scheduling future contact
   nextFollowUpDate     DateTime?          @db.Date
@@ -1000,7 +1000,7 @@ model Transfer {
   toBankAccountId   String?
   toCashAccountId   String?
   createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  updatedAt         DateTime     @default(now())
   fromBankAccount   BankAccount? @relation("FromBankAccount", fields: [fromBankAccountId], references: [id])
   fromCashAccount   CashAccount? @relation("FromCashAccount", fields: [fromCashAccountId], references: [id])
   toBankAccount     BankAccount? @relation("ToBankAccount", fields: [toBankAccountId], references: [id])
@@ -1059,7 +1059,7 @@ model OrganizationMember {
   role           OrganizationRole  @default(VIEWER)
   isActive       Boolean           @default(true)
   createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  updatedAt      DateTime          @default(now())
   organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
@@ -1106,7 +1106,7 @@ model PurchaseReturn {
   reference        String?
   status           String               @default("pending")
   createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  updatedAt        DateTime             @default(now())
   purchaseDetail   PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
   items            PurchaseReturnItem[]
   receipts         ReceiptDetail[]      // Added: Track receipts from supplier for this return
@@ -1205,7 +1205,7 @@ model FlightTicket {
   totalAmount        Float?
   tourPackageQueryId String?
   createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt          DateTime          @default(now())
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: SetNull)
   passengers         Passenger[]
 
@@ -1291,6 +1291,38 @@ model Notification {
   data      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+}
+
+model WhatsAppMessage {
+  id            String   @id @default(uuid())
+  to            String?  // Recipient phone number (with country code)
+  from          String?  // Sender WhatsApp number
+  message       String?  @db.Text
+  messageSid    String?  // Twilio message SID
+  status        String   @default("pending") // pending, sent, delivered, failed
+  direction     String   @default("outbound") // inbound or outbound
+  errorCode     String?
+  errorMessage  String?  @db.Text
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+
+  @@index([to])
+  @@index([status])
+  @@index([direction])
+  @@index([createdAt])
+}
+
+model WhatsAppTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  body      String   @db.Text
+  variables Json?    // Array of variable names as JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
 }
 
 model AuditLog {

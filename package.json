@@ -8,7 +8,8 @@
         "start": "next start",
         "lint": "next lint",
         "postinstall": "prisma generate",
-        "update-accommodation-policies": "node update-accommodation-policies.js"
+        "update-accommodation-policies": "node update-accommodation-policies.js",
+        "seed-whatsapp-templates": "node seed-whatsapp-templates.js"
     },
     "dependencies": {
         "@clerk/nextjs": "^4.31.8",

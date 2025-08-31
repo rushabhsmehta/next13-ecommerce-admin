@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { useState } from "react";
-import { Copy, Edit, MoreHorizontal, Trash, Car, MapPin } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, Car, MapPin, Calendar } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 
@@ -75,6 +75,11 @@ export const CellAction: React.FC<CellActionProps> = ({
             onClick={() => router.push(`/locations/${data.id}`)}
           >
             <Edit className="mr-2 h-4 w-4" /> Update
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push(`/locations/${data.id}/seasonal-periods`)}
+          >
+            <Calendar className="mr-2 h-4 w-4" /> Manage Seasonal Periods
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => router.push(`/destinations?locationId=${data.id}`)}

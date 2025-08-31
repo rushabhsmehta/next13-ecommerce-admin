@@ -22,6 +22,7 @@ export async function GET(
       },
       include: {
         mealPlan: true,
+        locationSeasonalPeriod: true,
         pricingComponents: {
           include: {
             pricingAttribute: true
@@ -69,6 +70,7 @@ export async function PATCH(
       endDate, 
       mealPlanId,
       numberOfRooms,
+      locationSeasonalPeriodId,
       isActive,
       description,
       pricingComponents
@@ -109,6 +111,7 @@ export async function PATCH(
         endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
+        locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         isActive: isActive !== undefined ? isActive : true,
         description: description || null,
         // Create new pricing components if provided
@@ -121,6 +124,8 @@ export async function PATCH(
           }))
         } : undefined
       },      include: {
+        mealPlan: true,
+        locationSeasonalPeriod: true,
         pricingComponents: {
           include: {
             pricingAttribute: true

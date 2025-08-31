@@ -38,7 +38,9 @@ export async function GET(
         isActive: true,
         ...dateFilter
       },      include: {
-        mealPlan: true,        pricingComponents: {
+        mealPlan: true,        
+        locationSeasonalPeriod: true,
+        pricingComponents: {
           include: {
             pricingAttribute: true
           },
@@ -80,6 +82,7 @@ export async function POST(
       endDate, 
       mealPlanId, 
       numberOfRooms,
+      locationSeasonalPeriodId,
       description,
       pricingComponents
     } = body;
@@ -111,6 +114,7 @@ export async function POST(
         endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
+        locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         description: description || null,
         isActive: true,
         // Add pricing components if provided
@@ -123,6 +127,8 @@ export async function POST(
           }))
         } : undefined
       },      include: {
+        mealPlan: true,
+        locationSeasonalPeriod: true,
         pricingComponents: {
           include: {
             pricingAttribute: true

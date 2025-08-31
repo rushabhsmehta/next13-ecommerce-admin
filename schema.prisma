@@ -9,13 +9,13 @@ datasource db {
 }
 
 model Location {
-  id                        String             @id @default(uuid())
+  id                        String                    @id @default(uuid())
   label                     String
   imageUrl                  String
-  createdAt                 DateTime           @default(now())
-  updatedAt                 DateTime           @updatedAt
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
   slug                      String?
-  tags                      String?            @db.Text
+  tags                      String?                   @db.Text
   airlineCancellationPolicy Json?
   cancellationPolicy        Json?
   exclusions                Json?
@@ -31,11 +31,12 @@ model Location {
   itineraries               Itinerary[]
   itinerariesMaster         ItineraryMaster[]
   transportPricings         TransportPricing[]
-  tourPackages              TourPackage[]      @relation("LocationTotourPackage")
-  tourPackageQuery          TourPackageQuery[] @relation("LocationTotourPackageQuery")
-  inquiries                 Inquiry[]          @relation("LocationToInquiry")
+  tourPackages              TourPackage[]             @relation("LocationTotourPackage")
+  tourPackageQuery          TourPackageQuery[]        @relation("LocationTotourPackageQuery")
+  inquiries                 Inquiry[]                 @relation("LocationToInquiry")
   suppliers                 SupplierLocation[]
   tourDestinations          TourDestination[]
+  seasonalPeriods           LocationSeasonalPeriod[]
 
   @@index([id])
 }
@@ -54,6 +55,30 @@ model TourDestination {
 
   @@index([locationId])
   @@index([name])
+}
+
+model LocationSeasonalPeriod {
+  id                  String               @id @default(uuid())
+  locationId          String
+  seasonType          String               // "OFF_SEASON" | "PEAK_SEASON" | "SHOULDER_SEASON"
+  name                String               // "Winter Off Season", "Summer Peak Season"
+  startMonth          Int                  // 1-12 (January = 1)
+  startDay            Int                  // 1-31
+  endMonth            Int                  // 1-12 (December = 12)
+  endDay              Int                  // 1-31
+  description         String?              @db.Text
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  
+  location            Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  tourPackagePricings TourPackagePricing[]
+  
+  @@index([locationId])
+  @@index([seasonType])
+  @@index([startMonth, startDay])
+  @@index([endMonth, endDay])
+  @@index([isActive])
 }
 
 model Hotel {
@@ -569,24 +594,27 @@ model PricingComponent {
 }
 
 model TourPackagePricing {
-  id                String             @id @default(uuid())
-  tourPackageId     String
-  startDate         DateTime
-  endDate           DateTime
-  numberOfRooms     Int                @default(1)
-  isActive          Boolean            @default(true)
-  description       String?            @db.Text
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  mealPlanId        String
-  tourPackage       TourPackage        @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  mealPlan          MealPlan           @relation(fields: [mealPlanId], references: [id])
-  pricingComponents PricingComponent[]
+  id                       String                  @id @default(uuid())
+  tourPackageId            String
+  startDate                DateTime
+  endDate                  DateTime
+  numberOfRooms            Int                     @default(1)
+  isActive                 Boolean                 @default(true)
+  description              String?                 @db.Text
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  mealPlanId               String
+  locationSeasonalPeriodId String?
+  tourPackage              TourPackage             @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  mealPlan                 MealPlan                @relation(fields: [mealPlanId], references: [id])
+  locationSeasonalPeriod   LocationSeasonalPeriod? @relation(fields: [locationSeasonalPeriodId], references: [id])
+  pricingComponents        PricingComponent[]
 
   @@index([tourPackageId])
   @@index([mealPlanId])
   @@index([startDate, endDate])
   @@index([numberOfRooms])
+  @@index([locationSeasonalPeriodId])
 }
 
 model Activity {

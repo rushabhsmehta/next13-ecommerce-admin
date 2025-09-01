@@ -6,8 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Send } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MessageCircle, Send, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { cn } from "@/lib/utils";
+
+// Types for supplier data
+interface Supplier {
+  id: string;
+  name: string;
+  contact: string;
+  email?: string;
+}
 
 // Types for inquiry data
 interface InquiryData {
@@ -16,10 +27,10 @@ interface InquiryData {
   customerMobileNumber: string;
   location: string;
   journeyDate: string | null;
-  numAdults: number;
-  numChildren5to11: number;
-  numChildrenBelow5: number;
-  remarks: string | null;
+  numAdults?: number; // Optional because list view doesn't have this
+  numChildren5to11?: number; // Optional because list view doesn't have this
+  numChildrenBelow5?: number; // Optional because list view doesn't have this
+  remarks?: string | null; // Optional because list view doesn't have this
   associatePartner: string | null;
 }
 
@@ -32,23 +43,23 @@ interface WhatsAppSupplierButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
 }
 
-// Default message template
-const DEFAULT_MESSAGE_TEMPLATE = `Hi,
+// Default message template (customer name/number intentionally omitted for privacy)
+const DEFAULT_MESSAGE_TEMPLATE = `🌟 *New Travel Inquiry* 🌟
 
-I have a travel inquiry for your review:
+📍 *Destination:* {{location}}
 
-Customer: {{customerName}}
-Contact: {{customerMobileNumber}}
-Destination: {{location}}
-Journey Date: {{journeyDate}}
-Travelers: {{numAdults}} Adults, {{numChildren5to11}} Children (5-11), {{numChildrenBelow5}} Children (Below 5)
-Associate Partner: {{associatePartner}}
+📅 *Journey Date:* {{journeyDate}}
 
-Remarks: {{remarks}}
+👥 *Travelers:* {{travelers}}
+
+💬 *Special Requirements:*
+{{remarks}}
 
 Please share your best rates and availability.
+Looking forward to your response! 🙏
 
-Thanks!`;
+Best regards,
+Aagam Holidays Team`;
 
 export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   inquiryData,
@@ -60,8 +71,14 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
 }) => {
   const [open, setOpen] = useState(isOpen);
   const [supplierPhone, setSupplierPhone] = useState('');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<Supplier[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingSuppliers, setIsFetchingSuppliers] = useState(false);
+  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
 
   // Update open state when prop changes
   useEffect(() => {
@@ -74,28 +91,167 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     if (onOpenChange) {
       onOpenChange(newOpen);
     }
+    
+    // Reset form when dialog closes
+    if (!newOpen) {
+      setSelectedSupplier('');
+      setSupplierPhone('');
+      setSupplierDropdownOpen(false);
+      setSearchTerm('');
+    }
   };
 
-  // Populate message template with inquiry data
+  // Fetch suppliers from API
+  const fetchSuppliers = async () => {
+    try {
+      setIsFetchingSuppliers(true);
+      const response = await fetch('/api/suppliers');
+      if (response.ok) {
+        const suppliersData = await response.json();
+        const validSuppliers = suppliersData.filter((supplier: Supplier) => supplier.contact);
+        setSuppliers(validSuppliers);
+        setFilteredSuppliers(validSuppliers);
+      } else {
+        console.error('Failed to fetch suppliers');
+        toast.error('Failed to load suppliers');
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      toast.error('Failed to load suppliers');
+    } finally {
+      setIsFetchingSuppliers(false);
+    }
+  };
+
+  // Filter suppliers based on search term
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredSuppliers(suppliers);
+    } else {
+      const filtered = suppliers.filter(supplier =>
+        supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        supplier.contact.includes(searchTerm)
+      );
+      setFilteredSuppliers(filtered);
+    }
+  }, [searchTerm, suppliers]);
+
+  // Fetch suppliers when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchSuppliers();
+    }
+  }, [open]);
+
+  // Handle supplier selection
+  const handleSupplierSelect = (supplierId: string) => {
+    console.log('🔍 Supplier selected:', supplierId);
+    setSelectedSupplier(supplierId);
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (supplier) {
+      console.log('🔍 Setting phone to:', supplier.contact);
+      setSupplierPhone(supplier.contact);
+    }
+    setSupplierDropdownOpen(false);
+  };
+
+  // Handle clear selection
+  const handleClearSelection = () => {
+    console.log('🔍 Clearing supplier selection');
+    setSelectedSupplier('');
+    setSupplierPhone('');
+    setSearchTerm('');
+    setSupplierDropdownOpen(false);
+  };
+
+  // Fetch and populate message template with complete inquiry data
   useEffect(() => {
     if (open && inquiryData) {
-      let populatedMessage = DEFAULT_MESSAGE_TEMPLATE;
+      console.log('🔍 WhatsApp Dialog Debug - InquiryData:', inquiryData);
       
-      // Replace placeholders with actual data
-      populatedMessage = populatedMessage
-        .replace('{{customerName}}', inquiryData.customerName || 'N/A')
-        .replace('{{customerMobileNumber}}', inquiryData.customerMobileNumber || 'N/A')
-        .replace('{{location}}', inquiryData.location || 'N/A')
-        .replace('{{journeyDate}}', inquiryData.journeyDate ? new Date(inquiryData.journeyDate).toLocaleDateString() : 'Not specified')
-        .replace('{{numAdults}}', inquiryData.numAdults?.toString() || '0')
-        .replace('{{numChildren5to11}}', inquiryData.numChildren5to11?.toString() || '0')
-        .replace('{{numChildrenBelow5}}', inquiryData.numChildrenBelow5?.toString() || '0')
-        .replace('{{associatePartner}}', inquiryData.associatePartner || 'Direct')
-        .replace('{{remarks}}', inquiryData.remarks || 'None');
-
-      setMessage(populatedMessage);
+      // If we have complete data, use it directly
+      if (inquiryData.numAdults !== undefined && inquiryData.numAdults !== 0) {
+        populateMessageFromData(inquiryData);
+      } else {
+        // Fetch complete inquiry data from API
+        fetchCompleteInquiryData(inquiryData.id);
+      }
     }
   }, [open, inquiryData]);
+
+  const fetchCompleteInquiryData = async (inquiryId: string) => {
+    try {
+      setIsLoading(true);
+      console.log('🔍 Fetching complete inquiry data for ID:', inquiryId);
+      const response = await fetch(`/api/inquiries/${inquiryId}`);
+      if (response.ok) {
+        const completeData = await response.json();
+        console.log('🔍 Complete inquiry data received:', completeData);
+        populateMessageFromData(completeData);
+      } else {
+        console.error('Failed to fetch inquiry data');
+        populateMessageFromData(inquiryData); // Fallback to basic data
+      }
+    } catch (error) {
+      console.error('Error fetching inquiry data:', error);
+      populateMessageFromData(inquiryData); // Fallback to basic data
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const populateMessageFromData = (data: any) => {
+    // Build a clean travelers string, skipping zero counts and handling plurals
+    const parts: string[] = [];
+    const adults = Number(data.numAdults || 0);
+    const kids511 = Number(data.numChildren5to11 || 0);
+    const kidsBelow5 = Number(data.numChildrenBelow5 || 0);
+
+    console.log('🔍 Traveler counts:', { adults, kids511, kidsBelow5 });
+
+    if (adults > 0) parts.push(`${adults} Adult${adults === 1 ? '' : 's'}`);
+    if (kids511 > 0) parts.push(`${kids511} Child${kids511 === 1 ? '' : 'ren'} (5-11)`);
+    if (kidsBelow5 > 0) parts.push(`${kidsBelow5} Child${kidsBelow5 === 1 ? '' : 'ren'} (Below 5)`);
+
+    const travelers = parts.length > 0 ? parts.join(', ') : 'Not specified';
+
+    // Format date as dd/mm/yyyy
+    let formattedDate = 'Not specified';
+    if (data.journeyDate) {
+      const date = new Date(data.journeyDate);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      formattedDate = `${day}/${month}/${year}`;
+    }
+
+    // Extract location name - handle both string and object formats
+    let locationName = 'Not specified';
+    if (data.location) {
+      if (typeof data.location === 'string') {
+        locationName = data.location;
+      } else if (data.location.label) {
+        locationName = data.location.label;
+      } else if (data.location.name) {
+        locationName = data.location.name;
+      } else {
+        // Fallback: try to stringify and extract meaningful info
+        locationName = String(data.location);
+      }
+    }
+
+    // Normalize remarks: ensure non-empty string
+    const remarks = (data.remarks && String(data.remarks).trim()) ? String(data.remarks).trim() : 'None specified';
+
+    console.log('🔍 Final message data:', { location: data.location, locationName, formattedDate, travelers, remarks });
+
+    const populatedMessage = DEFAULT_MESSAGE_TEMPLATE
+      .replace('{{location}}', locationName)
+      .replace('{{journeyDate}}', formattedDate)
+      .replace('{{travelers}}', travelers)
+      .replace('{{remarks}}', remarks);
+    setMessage(populatedMessage);
+  };
 
   // Format phone number for WhatsApp (remove any non-digits and ensure it starts with country code)
   const formatPhoneForWhatsApp = (phone: string): string => {
@@ -212,13 +368,102 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Supplier Dropdown with Search */}
+          <div className="space-y-2">
+            <Label htmlFor="supplier-select">Select Supplier</Label>
+            <Popover open={supplierDropdownOpen} onOpenChange={setSupplierDropdownOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={supplierDropdownOpen}
+                  className="w-full justify-between h-auto min-h-[40px]"
+                  disabled={isFetchingSuppliers}
+                >
+                  {selectedSupplier ? (
+                    (() => {
+                      const supplier = suppliers.find(s => s.id === selectedSupplier);
+                      return supplier ? (
+                        <div className="flex flex-col items-start text-left">
+                          <span className="font-medium">{supplier.name}</span>
+                          <span className="text-xs text-muted-foreground">{supplier.contact}</span>
+                        </div>
+                      ) : "Select supplier...";
+                    })()
+                  ) : isFetchingSuppliers ? (
+                    "Loading suppliers..."
+                  ) : (
+                    "Choose a supplier or enter manually below"
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0">
+                <div className="flex flex-col">
+                  {/* Search Input */}
+                  <div className="flex items-center border-b px-3">
+                    <Input
+                      placeholder="Search suppliers..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="border-0 focus-visible:ring-0 h-10"
+                    />
+                  </div>
+                  
+                  {/* Suppliers List */}
+                  <div className="max-h-[200px] overflow-y-auto">
+                    {selectedSupplier && (
+                      <div
+                        className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b text-muted-foreground"
+                        onClick={handleClearSelection}
+                      >
+                        Clear selection
+                      </div>
+                    )}
+                    
+                    {filteredSuppliers.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        {searchTerm ? 'No suppliers found.' : 'No suppliers available.'}
+                      </div>
+                    ) : (
+                      filteredSuppliers.map((supplier) => (
+                        <div
+                          key={supplier.id}
+                          className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
+                          onClick={() => handleSupplierSelect(supplier.id)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedSupplier === supplier.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{supplier.name}</span>
+                            <span className="text-xs text-muted-foreground">{supplier.contact}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="supplier-phone">Supplier Phone Number</Label>
             <Input
               id="supplier-phone"
               placeholder="Enter supplier WhatsApp number"
               value={supplierPhone}
-              onChange={(e) => setSupplierPhone(e.target.value)}
+              onChange={(e) => {
+                setSupplierPhone(e.target.value);
+                // Clear selection if manually typing
+                if (selectedSupplier) {
+                  setSelectedSupplier('');
+                }
+              }}
               required
             />
             <p className="text-xs text-muted-foreground">
@@ -230,11 +475,12 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
             <Label htmlFor="message">Message</Label>
             <Textarea
               id="message"
-              placeholder="Message to send to supplier"
-              value={message}
+              placeholder={isLoading ? "Loading inquiry data..." : "Message to send to supplier"}
+              value={isLoading ? "Loading complete inquiry data..." : message}
               onChange={(e) => setMessage(e.target.value)}
               rows={12}
               required
+              disabled={isLoading}
             />
           </div>
 

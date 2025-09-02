@@ -7,12 +7,13 @@ import { FormField, FormItem, FormLabel, FormMessage, FormControl } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import Image from "next/image";
 import { useState } from "react";
-import { Car, Check, Hotel as HotelIcon, Plus, Trash, Users, ChevronsUpDown, BedDouble, LayoutGrid, List, Sparkles, Building2, Copy } from "lucide-react";
+import { Car, Check, Hotel as HotelIcon, Plus, Trash, Users, ChevronsUpDown, BedDouble, LayoutGrid, List, Sparkles, Building2, Copy, Receipt } from "lucide-react";
 
 interface HotelsTabProps {
   control: Control<any>;
@@ -58,7 +59,15 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   // Helpers (restored after refactor)
   const addRoomAllocation = (dayIdx: number) => {
     const current = form.getValues(`itineraries.${dayIdx}.roomAllocations`) || [];
-    form.setValue(`itineraries.${dayIdx}.roomAllocations`, [...current, { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1 }]);
+    form.setValue(`itineraries.${dayIdx}.roomAllocations`, [...current, { 
+      roomTypeId: '', 
+      occupancyTypeId: '', 
+      mealPlanId: '', 
+      quantity: 1, 
+      voucherNumber: '', 
+      customRoomType: '', 
+      useCustomRoomType: false 
+    }]);
   };
   const removeRoomAllocation = (dayIdx: number, idx: number) => {
     const current = form.getValues(`itineraries.${dayIdx}.roomAllocations`) || [];
@@ -257,49 +266,120 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </CardHeader>
-                        <CardContent className="pt-3 grid gap-3 md:grid-cols-5">
-                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
+                        <CardContent className="pt-3 space-y-3">
+                          {/* Custom Room Type Toggle */}
+                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType` as any}
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
-                                <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
-                                  <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
-                                  <SelectContent>{roomTypes.map(rt=> <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.occupancyTypeId` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide">Occupancy</FormLabel>
-                                <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
-                                  <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger></FormControl>
-                                  <SelectContent>{occupancyTypes.map(o=> <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
-                                <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
-                                  <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
-                                  <SelectContent>{mealPlans.map(mp=> <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.quantity` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
                                 <FormControl>
-                                  <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                  <Checkbox
+                                    checked={field.value || false}
+                                    onCheckedChange={field.onChange}
+                                    disabled={loading}
+                                  />
+                                </FormControl>
+                                <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">
+                                  Custom Room Type
+                                </FormLabel>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          {/* Main Fields Grid */}
+                          <div className="grid gap-3 md:grid-cols-4">
+                            {/* Room Type - Conditional */}
+                            {(() => {
+                              const useCustom = form.watch(`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType`);
+                              if (useCustom) {
+                                return (
+                                  <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.customRoomType` as any}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-[10px] uppercase tracking-wide">Custom Room Type</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="Enter room type" 
+                                            className="h-8 text-xs" 
+                                            {...field} 
+                                            disabled={loading}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                );
+                              } else {
+                                return (
+                                  <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
+                                        <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                          <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
+                                          <SelectContent>{roomTypes.map(rt=> <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                );
+                              }
+                            })()}
+                            
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.occupancyTypeId` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Occupancy</FormLabel>
+                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger></FormControl>
+                                    <SelectContent>{occupancyTypes.map(o=> <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
+                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
+                                    <SelectContent>{mealPlans.map(mp=> <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.quantity` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          
+                          {/* Voucher Number Field */}
+                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.voucherNumber` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-[10px] uppercase tracking-wide flex items-center gap-1">
+                                  <Receipt className="h-3 w-3" />
+                                  Hotel Voucher Number
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    placeholder="Enter hotel booking voucher number" 
+                                    className="h-8 text-xs" 
+                                    {...field} 
+                                    disabled={loading}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

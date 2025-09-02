@@ -274,7 +274,17 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 <FormControl>
                                   <Checkbox
                                     checked={field.value || false}
-                                    onCheckedChange={field.onChange}
+                                    onCheckedChange={(checked) => {
+                                      field.onChange(checked);
+                                      // Clear the opposite field when toggling
+                                      if (checked) {
+                                        // Switching to custom - clear roomTypeId
+                                        form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId`, "");
+                                      } else {
+                                        // Switching to dropdown - clear customRoomType
+                                        form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.customRoomType`, "");
+                                      }
+                                    }}
                                     disabled={loading}
                                   />
                                 </FormControl>

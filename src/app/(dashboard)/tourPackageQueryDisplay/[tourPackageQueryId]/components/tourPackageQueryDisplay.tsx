@@ -553,19 +553,26 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                             <th className="px-2 py-1 text-gray-900 font-semibold">Room Type</th>
                                             <th className="px-2 py-1 text-gray-900 font-semibold">Occupancy</th>
                                             <th className="px-2 py-1 text-gray-900 font-semibold text-center">Qty</th>
+                                            <th className="px-2 py-1 text-gray-900 font-semibold">Voucher No.</th>
                                           </tr>
                                         </thead>
                                         <tbody>
                                           {itinerary.roomAllocations?.map((room: any, idx: number) => (
                                             <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                                               <td className="px-2 py-1 whitespace-nowrap">
-                                                <span>{room?.roomType?.name || room.roomType || 'Standard'}</span>
+                                                <div>
+                                                  <span>{room.useCustomRoomType ? room.customRoomType : (room?.roomType?.name || room.roomType || 'Standard')}</span>
+                                                  {room.useCustomRoomType && <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1 rounded">Custom</span>}
+                                                </div>
                                               </td>
                                               <td className="px-2 py-1 whitespace-nowrap">
                                                 <span>{room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</span>
                                               </td>
                                               <td className="px-2 py-1 text-center whitespace-nowrap">
                                                 <span className="font-medium">{room.quantity || 1}</span>
+                                              </td>
+                                              <td className="px-2 py-1 whitespace-nowrap">
+                                                <span className="text-sm text-gray-600">{room.voucherNumber || '-'}</span>
                                               </td>
                                             </tr>
                                           ))}

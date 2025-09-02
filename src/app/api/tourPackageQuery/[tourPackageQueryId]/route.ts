@@ -185,7 +185,9 @@ async function createItineraryAndActivities(itinerary: {
           occupancyTypeId: roomAllocation.occupancyTypeId,
           mealPlanId: roomAllocation.mealPlanId,
           quantity: roomAllocation.quantity || 1,
-          guestNames: roomAllocation.guestNames || ""
+          guestNames: roomAllocation.guestNames || "",
+          voucherNumber: roomAllocation.voucherNumber || "",
+          customRoomType: roomAllocation.customRoomType || ""
         }
       });
     }));
@@ -297,7 +299,9 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
               occupancyTypeId: roomAllocation.occupancyTypeId,
               mealPlanId: roomAllocation.mealPlanId,
               quantity: roomAllocation.quantity || 1,
-              guestNames: roomAllocation.guestNames || ""
+              guestNames: roomAllocation.guestNames || "",
+              voucherNumber: roomAllocation.voucherNumber || "",
+              customRoomType: roomAllocation.customRoomType || ""
             }
           });
         }

@@ -407,14 +407,19 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                             <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Room Type</th>
                             <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Occupancy</th>
                             <th style=\"padding:6px; text-align:center; color:#111827; border-bottom:1px solid #e5e7eb;\">Qty</th>
+                            <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Voucher No.</th>
                           </tr>
                         </thead>
                         <tbody>
                           ${it.roomAllocations.map((room:any) => `
                             <tr>
-                              <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">${room?.roomType?.name || room.roomType || 'Standard'}</td>
+                              <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">
+                                ${room.useCustomRoomType ? room.customRoomType : (room?.roomType?.name || room.roomType || 'Standard')}
+                                ${room.useCustomRoomType ? '<span style=\"margin-left:4px; font-size:10px; background:#dbeafe; color:#1d4ed8; padding:1px 4px; border-radius:2px;\">Custom</span>' : ''}
+                              </td>
                               <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</td>
                               <td style=\"padding:6px; text-align:center; border-top:1px solid #f3f4f6;\">${room.quantity || 1}</td>
+                              <td style=\"padding:6px; border-top:1px solid #f3f4f6; font-size:12px; color:#6b7280;\">${room.voucherNumber || '-'}</td>
                             </tr>
                           `).join('')}
                         </tbody>

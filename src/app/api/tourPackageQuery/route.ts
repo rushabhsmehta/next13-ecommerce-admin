@@ -90,6 +90,8 @@ async function createItineraryAndActivities(itinerary: {
                             mealPlanId: roomAllocation.mealPlanId,
                             quantity: roomAllocation.quantity || 1,
                             guestNames: roomAllocation.guestNames || "",
+                            voucherNumber: roomAllocation.voucherNumber || "",
+                            customRoomType: roomAllocation.customRoomType || "",
                         }
                     });
                 } catch (roomError) {

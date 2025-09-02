@@ -1266,6 +1266,8 @@ model RoomAllocation {
   itineraryMasterId String?
   mealPlanId        String?
   notes             String?          @db.Text
+  voucherNumber     String?          // Hotel booking voucher number
+  customRoomType    String?          // Manual room type entry
   occupancyTypeId   String
   roomTypeId        String
   itinerary         Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)

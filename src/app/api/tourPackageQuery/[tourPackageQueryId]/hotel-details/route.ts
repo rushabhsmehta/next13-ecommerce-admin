@@ -63,6 +63,8 @@ export async function PATCH(
                 quantity: roomAllocation.quantity || 1,
                 guestNames: roomAllocation.guestNames || null,
                 notes: roomAllocation.notes || null,
+                voucherNumber: roomAllocation.voucherNumber || null,
+                customRoomType: roomAllocation.customRoomType || null,
               },
             });
           }

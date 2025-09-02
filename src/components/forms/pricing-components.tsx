@@ -2,8 +2,9 @@ import React from 'react';
 import { Control, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Minus, Trash, Home, Car } from "lucide-react";
+import { Plus, Minus, Trash, Home, Car, Receipt } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   RoomAllocation,
   TransportDetail,
@@ -69,7 +70,10 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
         occupancyTypeId: Array.isArray(occupancyTypes) && occupancyTypes.length > 0 ? occupancyTypes[0].id : '',
         mealPlanId: Array.isArray(mealPlans) && mealPlans.length > 0 ? mealPlans[0].id : '',
         quantity: 1,
-        guestNames: ''
+        guestNames: '',
+        voucherNumber: '',
+        customRoomType: '',
+        useCustomRoomType: false
       };
       console.log('Appending room:', newRoom);
       append(newRoom);
@@ -133,32 +137,73 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Room Type */}
+              {/* Room Type Selection Toggle */}
               <FormField
                 control={control}
-                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.roomTypeId`}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.useCustomRoomType`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-medium text-gray-700">Room Type</FormLabel>
-                    <Select
-                      disabled={loading}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      defaultValue={field.value}
-                    >
+                    <FormLabel className="text-xs font-medium text-gray-700">Room Type Mode</FormLabel>
+                    <div className="flex items-center space-x-2 h-11">
+                      <Checkbox
+                        id={`useCustomRoomType-${roomIndex}`}
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={loading}
+                      />
+                      <label
+                        htmlFor={`useCustomRoomType-${roomIndex}`}
+                        className="text-sm font-medium text-gray-700 cursor-pointer"
+                      >
+                        Custom Room Type
+                      </label>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Room Type - Dropdown or Manual Entry */}
+              <FormField
+                control={control}
+                name={fields[roomIndex]?.useCustomRoomType ? 
+                  `itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.customRoomType` :
+                  `itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.roomTypeId`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700">
+                      Room Type {fields[roomIndex]?.useCustomRoomType ? '(Custom)' : '(Dropdown)'}
+                    </FormLabel>
+                    {fields[roomIndex]?.useCustomRoomType ? (
                       <FormControl>
-                        <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
-                          <SelectValue placeholder="Select room type" />
-                        </SelectTrigger>
+                        <Input
+                          disabled={loading}
+                          placeholder="Enter custom room type"
+                          {...field}
+                          className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {roomTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    ) : (
+                      <Select
+                        disabled={loading}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200">
+                            <SelectValue placeholder="Select room type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {roomTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -225,7 +270,10 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                   </FormItem>
                 )}
               />
+            </div>
 
+            {/* Second row with Quantity and Voucher Number */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               {/* Quantity */}
               <FormField
                 control={control}
@@ -266,6 +314,32 @@ export const RoomAllocationComponent: React.FC<RoomAllocationComponentProps> = (
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Voucher Number */}
+              <FormField
+                control={control}
+                name={`itineraries.${itineraryIndex}.roomAllocations.${roomIndex}.voucherNumber`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                      <Receipt className="h-3 w-3" />
+                      Voucher Number
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={loading}
+                        placeholder="Enter hotel voucher number"
+                        {...field}
+                        className="h-11 border-blue-200 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs text-gray-500">
+                      Hotel booking voucher/confirmation number
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

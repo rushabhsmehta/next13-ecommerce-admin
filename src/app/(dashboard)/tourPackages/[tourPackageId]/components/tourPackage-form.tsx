@@ -64,7 +64,11 @@ const roomAllocationSchema = z.object({
     z.string().transform(val => parseInt(val) || 1),
     z.number()
   ]).optional(),
-  guestNames: z.string().optional().nullable()
+  guestNames: z.string().optional().nullable(),
+  // New fields for enhanced room allocation
+  voucherNumber: z.string().optional(),
+  customRoomType: z.string().optional(),
+  useCustomRoomType: z.boolean().optional().default(false)
 });
 
 const transportDetailsSchema = z.object({

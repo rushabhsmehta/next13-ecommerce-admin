@@ -110,7 +110,11 @@ const roomAllocationSchema = z.object({
     z.number()
   ]).optional(),
   // Accept nulls from API or forms; coerce undefined/null when writing to DB elsewhere
-  guestNames: z.string().optional().nullable()
+  guestNames: z.string().optional().nullable(),
+  // New fields for enhanced room allocation
+  voucherNumber: z.string().optional(),
+  customRoomType: z.string().optional(),
+  useCustomRoomType: z.boolean().optional().default(false)
 });
 
 const transportDetailsSchema = z.object({

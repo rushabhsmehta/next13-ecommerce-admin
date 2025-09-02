@@ -56,6 +56,10 @@ const roomAllocationSchema = z.object({
   quantity: z.number().min(1, "At least one room is required"),
   guestNames: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  // New fields for enhanced room allocation
+  voucherNumber: z.string().optional(),
+  customRoomType: z.string().optional(),
+  useCustomRoomType: z.boolean().optional().default(false),
 });
 
 const transportDetailSchema = z.object({

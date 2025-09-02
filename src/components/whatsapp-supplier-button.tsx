@@ -6,7 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MessageCircle, Send, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -112,11 +119,9 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
         setSuppliers(validSuppliers);
         setFilteredSuppliers(validSuppliers);
       } else {
-        console.error('Failed to fetch suppliers');
         toast.error('Failed to load suppliers');
       }
     } catch (error) {
-      console.error('Error fetching suppliers:', error);
       toast.error('Failed to load suppliers');
     } finally {
       setIsFetchingSuppliers(false);
@@ -144,20 +149,20 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   }, [open]);
 
   // Handle supplier selection
-  const handleSupplierSelect = (supplierId: string) => {
-    console.log('🔍 Supplier selected:', supplierId);
-    setSelectedSupplier(supplierId);
-    const supplier = suppliers.find(s => s.id === supplierId);
+  const handleSupplierSelect = (value: string) => {
+    const supplier = suppliers.find(s => s.id === value);
     if (supplier) {
-      console.log('🔍 Setting phone to:', supplier.contact);
+      setSelectedSupplier(supplier.id);
       setSupplierPhone(supplier.contact);
+    } else {
+      setSelectedSupplier('');
+      setSupplierPhone('');
     }
     setSupplierDropdownOpen(false);
   };
 
   // Handle clear selection
   const handleClearSelection = () => {
-    console.log('🔍 Clearing supplier selection');
     setSelectedSupplier('');
     setSupplierPhone('');
     setSearchTerm('');
@@ -167,7 +172,6 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   // Fetch and populate message template with complete inquiry data
   useEffect(() => {
     if (open && inquiryData) {
-      console.log('🔍 WhatsApp Dialog Debug - InquiryData:', inquiryData);
       
       // If we have complete data, use it directly
       if (inquiryData.numAdults !== undefined && inquiryData.numAdults !== 0) {
@@ -182,18 +186,14 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   const fetchCompleteInquiryData = async (inquiryId: string) => {
     try {
       setIsLoading(true);
-      console.log('🔍 Fetching complete inquiry data for ID:', inquiryId);
       const response = await fetch(`/api/inquiries/${inquiryId}`);
       if (response.ok) {
         const completeData = await response.json();
-        console.log('🔍 Complete inquiry data received:', completeData);
         populateMessageFromData(completeData);
       } else {
-        console.error('Failed to fetch inquiry data');
         populateMessageFromData(inquiryData); // Fallback to basic data
       }
     } catch (error) {
-      console.error('Error fetching inquiry data:', error);
       populateMessageFromData(inquiryData); // Fallback to basic data
     } finally {
       setIsLoading(false);
@@ -207,7 +207,6 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     const kids511 = Number(data.numChildren5to11 || 0);
     const kidsBelow5 = Number(data.numChildrenBelow5 || 0);
 
-    console.log('🔍 Traveler counts:', { adults, kids511, kidsBelow5 });
 
     if (adults > 0) parts.push(`${adults} Adult${adults === 1 ? '' : 's'}`);
     if (kids511 > 0) parts.push(`${kids511} Child${kids511 === 1 ? '' : 'ren'} (5-11)`);
@@ -242,8 +241,6 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
 
     // Normalize remarks: ensure non-empty string
     const remarks = (data.remarks && String(data.remarks).trim()) ? String(data.remarks).trim() : 'None specified';
-
-    console.log('🔍 Final message data:', { location: data.location, locationName, formattedDate, travelers, remarks });
 
     const populatedMessage = DEFAULT_MESSAGE_TEMPLATE
       .replace('{{location}}', locationName)
@@ -345,7 +342,6 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
       handleOpenChange(false);
       
     } catch (error) {
-      console.error('Error opening WhatsApp:', error);
       toast.error("Failed to open WhatsApp");
     } finally {
       setIsLoading(false);
@@ -371,7 +367,11 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
           {/* Supplier Dropdown with Search */}
           <div className="space-y-2">
             <Label htmlFor="supplier-select">Select Supplier</Label>
-            <Popover open={supplierDropdownOpen} onOpenChange={setSupplierDropdownOpen}>
+            <Popover 
+              open={supplierDropdownOpen} 
+              onOpenChange={setSupplierDropdownOpen}
+              modal={true}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -398,39 +398,29 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0">
-                <div className="flex flex-col">
-                  {/* Search Input */}
-                  <div className="flex items-center border-b px-3">
-                    <Input
-                      placeholder="Search suppliers..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="border-0 focus-visible:ring-0 h-10"
-                    />
-                  </div>
-                  
-                  {/* Suppliers List */}
-                  <div className="max-h-[200px] overflow-y-auto">
-                    {selectedSupplier && (
-                      <div
-                        className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 border-b text-muted-foreground"
-                        onClick={handleClearSelection}
-                      >
-                        Clear selection
-                      </div>
-                    )}
-                    
-                    {filteredSuppliers.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                        {searchTerm ? 'No suppliers found.' : 'No suppliers available.'}
-                      </div>
-                    ) : (
-                      filteredSuppliers.map((supplier) => (
-                        <div
+              <PopoverContent 
+                className="w-[400px] p-0" 
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
+                <Command>
+                  <CommandInput
+                    placeholder="Search suppliers..."
+                    value={searchTerm}
+                    onValueChange={setSearchTerm}
+                  />
+                  <CommandList>
+                    <CommandEmpty>{searchTerm ? 'No suppliers found.' : 'No suppliers available.'}</CommandEmpty>
+                    <CommandGroup>
+                      {selectedSupplier && (
+                        <CommandItem onSelect={handleClearSelection} className="text-muted-foreground cursor-pointer">
+                          Clear selection
+                        </CommandItem>
+                      )}
+                      {filteredSuppliers.map((supplier) => (
+                        <CommandItem
                           key={supplier.id}
-                          className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-gray-100"
-                          onClick={() => handleSupplierSelect(supplier.id)}
+                          value={supplier.id}
+                          onSelect={() => handleSupplierSelect(supplier.id)}
                         >
                           <Check
                             className={cn(
@@ -442,11 +432,11 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                             <span className="font-medium">{supplier.name}</span>
                             <span className="text-xs text-muted-foreground">{supplier.contact}</span>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
               </PopoverContent>
             </Popover>
           </div>

@@ -493,6 +493,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues
   });
+
   // This useFieldArray is now handled in the PricingTab component
   // Removing unused code
 

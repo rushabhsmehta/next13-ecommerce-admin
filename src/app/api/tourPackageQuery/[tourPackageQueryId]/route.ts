@@ -172,8 +172,8 @@ async function createItineraryAndActivities(itinerary: {
     await Promise.all(itinerary.roomAllocations.map((roomAllocation: any) => {
       console.log("Creating room allocation with data:", roomAllocation);
 
-      // Skip invalid room allocations
-      if (!roomAllocation.roomTypeId || !roomAllocation.occupancyTypeId) {
+      // Skip invalid room allocations - require occupancyTypeId and either roomTypeId OR customRoomType
+      if (!roomAllocation.occupancyTypeId || (!roomAllocation.roomTypeId && !roomAllocation.customRoomType)) {
         console.log("WARNING: Missing required IDs for room allocation, skipping");
         return Promise.resolve();
       }
@@ -181,7 +181,7 @@ async function createItineraryAndActivities(itinerary: {
       return prismadb.roomAllocation.create({
         data: {
           itineraryId: createdItinerary.id,
-          roomTypeId: roomAllocation.roomTypeId,
+          roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea", // Use Custom room type if no roomTypeId
           occupancyTypeId: roomAllocation.occupancyTypeId,
           mealPlanId: roomAllocation.mealPlanId,
           quantity: roomAllocation.quantity || 1,
@@ -288,14 +288,14 @@ async function createItineraryAndActivitiesInTransaction(itinerary: {
     // Step 4: Create room allocations if they exist
     if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
       const validRoomAllocations = itinerary.roomAllocations.filter((ra: any) => 
-        ra.roomTypeId && ra.occupancyTypeId
+        ra.occupancyTypeId && (ra.roomTypeId || ra.customRoomType)
       );
         if (validRoomAllocations.length > 0) {
         for (const roomAllocation of validRoomAllocations) {
           await tx.roomAllocation.create({
             data: {
               itineraryId: createdItinerary.id,
-              roomTypeId: roomAllocation.roomTypeId,
+              roomTypeId: roomAllocation.roomTypeId || "4ae23712-19f7-4035-9db9-4d0df85d64ea", // Use Custom room type if no roomTypeId
               occupancyTypeId: roomAllocation.occupancyTypeId,
               mealPlanId: roomAllocation.mealPlanId,
               quantity: roomAllocation.quantity || 1,

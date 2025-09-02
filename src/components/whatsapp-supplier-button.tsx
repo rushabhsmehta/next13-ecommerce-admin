@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,6 +86,7 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingSuppliers, setIsFetchingSuppliers] = useState(false);
   const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Update open state when prop changes
   useEffect(() => {
@@ -361,6 +362,9 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Send to Supplier via WhatsApp</DialogTitle>
+          <DialogDescription className="sr-only">
+            Select a supplier, compose a message, and send it via WhatsApp.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -398,12 +402,16 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent 
-                className="w-[400px] p-0" 
-                onOpenAutoFocus={(e) => e.preventDefault()}
+              <PopoverContent
+                className="w-[400px] p-0"
+                onOpenAutoFocus={(e) => {
+                  e.preventDefault();
+                  searchInputRef.current?.focus();
+                }}
               >
                 <Command>
                   <CommandInput
+                    ref={searchInputRef}
                     placeholder="Search suppliers..."
                     value={searchTerm}
                     onValueChange={setSearchTerm}

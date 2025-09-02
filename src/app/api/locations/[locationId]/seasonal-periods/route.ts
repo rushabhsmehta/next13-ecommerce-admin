@@ -94,7 +94,7 @@ export async function POST(
     }
 
     // Check if location exists
-    const location = await prisma.location.findUnique({
+    const location = await prismadb.location.findUnique({
       where: { id: locationId }
     })
 
@@ -103,7 +103,7 @@ export async function POST(
     }
 
     // Check for overlapping periods
-    const existingPeriods = await prisma.locationSeasonalPeriod.findMany({
+    const existingPeriods = await prismadb.locationSeasonalPeriod.findMany({
       where: {
         locationId,
         isActive: true,

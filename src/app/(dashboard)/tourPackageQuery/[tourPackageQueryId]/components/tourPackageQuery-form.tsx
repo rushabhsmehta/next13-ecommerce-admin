@@ -112,8 +112,9 @@ const roomAllocationSchema = z.object({
   // Accept nulls from API or forms; coerce undefined/null when writing to DB elsewhere
   guestNames: z.string().optional().nullable(),
   // New fields for enhanced room allocation
-  voucherNumber: z.string().optional(),
-  customRoomType: z.string().optional(),
+  // Accept nulls from API/forms (some saved records contain null) as well as undefined
+  voucherNumber: z.string().optional().nullable(),
+  customRoomType: z.string().optional().nullable(),
   useCustomRoomType: z.boolean().optional().default(false)
 });
 
@@ -207,7 +208,8 @@ const formSchema = z.object({
   termsconditions: z.array(z.string()),
   disclaimer: z.string().optional().nullable().transform(val => val || ''),
   images: z.object({ url: z.string() }).array(),
-  itineraries: z.array(itinerarySchema),
+  // Accept missing/null itineraries from API/forms and default to empty array
+  itineraries: z.array(itinerarySchema).optional().default([]),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema

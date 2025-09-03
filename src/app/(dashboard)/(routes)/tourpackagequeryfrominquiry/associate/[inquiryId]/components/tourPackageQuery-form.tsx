@@ -92,8 +92,8 @@ const roomAllocationSchema = z.object({
   ]).optional(),
   guestNames: z.string().nullable().optional(),
   // New fields for enhanced room allocation
-  voucherNumber: z.string().optional(),
-  customRoomType: z.string().optional(),
+  voucherNumber: z.string().optional().nullable(),
+  customRoomType: z.string().optional().nullable(),
   useCustomRoomType: z.boolean().optional().default(false)
 });
 

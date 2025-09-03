@@ -127,7 +127,7 @@ const formSchema = z.object({
   termsconditions: z.array(z.string()),
   // disclaimer: z.string().optional(),
   images: z.object({ url: z.string() }).array(),
-  itineraries: z.array(itinerarySchema),
+  itineraries: z.array(itinerarySchema).optional().default([]),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   assignedTo: z.string().optional(),

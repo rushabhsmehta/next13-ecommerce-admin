@@ -524,6 +524,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                           <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                             Quantity
                           </th>
+                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                            Voucher No.
+                          </th>
                         
                         </tr>
                       </thead>
@@ -531,7 +534,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                         {itinerary.roomAllocations.map((room, roomIdx) => (
                           <tr key={roomIdx} className={roomIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
-                              {room.roomType?.name || '-'}
+                              <div>
+                                <span>{(room as any).useCustomRoomType ? (room as any).customRoomType : (room.roomType?.name || '-')}</span>
+                                {(room as any).useCustomRoomType && <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1 rounded">Custom</span>}
+                              </div>
                             </td>
                             <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
                               {room.occupancyType?.name || '-'}
@@ -541,6 +547,9 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                             </td>
                             <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
                               {(room as any).quantity || '-'}
+                            </td>
+                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-600">
+                              {(room as any).voucherNumber || '-'}
                             </td>                           
                           </tr>
                         ))}

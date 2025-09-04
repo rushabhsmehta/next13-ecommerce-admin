@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
+import type { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
 import { table } from 'console';
 import { format, parseISO } from 'date-fns';
@@ -16,13 +16,14 @@ interface TourPackageQueryVoucherDisplayProps {
       itineraryImages: Images[];
       activities: (Activity & {
         activityImages: Images[];
-      })[];    roomAllocations?: (RoomAllocation & {
-        roomType: RoomType;
-        occupancyType: OccupancyType;
-        mealPlan: MealPlan | null;
       })[];
-      transportDetails?: (TransportDetail & {
-        vehicleType: VehicleType;
+      roomAllocations: (RoomAllocation & {
+        roomType: RoomType | null;
+        occupancyType: OccupancyType | null;
+        mealPlan: MealPlan | null;
+        quantity?: number | null;
+        voucherNumber?: string | null;
+        customRoomType?: string | null;
       })[];
     })[];
     flightDetails: FlightDetails[];
@@ -31,8 +32,7 @@ interface TourPackageQueryVoucherDisplayProps {
   hotels: (Hotel & {
     images: Images[];
   })[];
-  selectedOption?: string; // Add this line to accept the selected option
-
+  selectedOption?: string;
 };
 
 // Define a type for the company information
@@ -465,7 +465,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
             <CardTitle className="text-2xl font-bold">Flight Details</CardTitle>
           </CardHeader>
-          {initialData.flightDetails.map((flight, index) => (
+          {initialData.flightDetails.map((flight: FlightDetails, index: number) => (
             <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
               <div className="flex items-center justify-between border-b pb-2 mb-2">
                 <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
@@ -499,7 +499,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
             <h2 className="text-2xl font-bold">Accomodation Details</h2>
           </CardHeader>
           <CardContent>
-            {initialData.itineraries.map((itinerary, itineraryIdx) => {
+            {initialData.itineraries.map((itinerary: Itinerary & { roomAllocations: (RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; })[] }, itineraryIdx: number) => {
               const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
               
               return (
@@ -531,12 +531,16 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {itinerary.roomAllocations.map((room, roomIdx) => (
+                        {itinerary.roomAllocations.map((room: RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; }, roomIdx: number) => (
                           <tr key={roomIdx} className={roomIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
                               <div>
-                                <span>{(room as any).useCustomRoomType ? (room as any).customRoomType : (room.roomType?.name || '-')}</span>
-                                {(room as any).useCustomRoomType && <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1 rounded">Custom</span>}
+                                {(() => {
+                                  const customText = typeof (room as any)?.customRoomType === 'string' ? ((room as any).customRoomType as string).trim() : '';
+                                  const isCustom = customText.length > 0;
+                                  const label = isCustom ? customText : (room.roomType?.name || '-');
+                                  return (<span>{label}</span>);
+                                })()}
                               </div>
                             </td>
                             <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">

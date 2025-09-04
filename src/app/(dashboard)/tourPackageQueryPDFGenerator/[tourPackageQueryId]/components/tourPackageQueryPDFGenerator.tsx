@@ -411,11 +411,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                           </tr>
                         </thead>
                         <tbody>
-                          ${it.roomAllocations.map((room:any) => `
+          ${it.roomAllocations.map((room:any) => `
                             <tr>
                               <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">
-                                ${room.useCustomRoomType ? room.customRoomType : (room?.roomType?.name || room.roomType || 'Standard')}
-                                ${room.useCustomRoomType ? '<span style=\"margin-left:4px; font-size:10px; background:#dbeafe; color:#1d4ed8; padding:1px 4px; border-radius:2px;\">Custom</span>' : ''}
+            ${(() => { const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : ''; const isCustom = customText.length > 0; const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard'); return label; })()}
                               </td>
                               <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</td>
                               <td style=\"padding:6px; text-align:center; border-top:1px solid #f3f4f6;\">${room.quantity || 1}</td>

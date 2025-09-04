@@ -561,8 +561,12 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                                             <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                                               <td className="px-2 py-1 whitespace-nowrap">
                                                 <div>
-                                                  <span>{room.useCustomRoomType ? room.customRoomType : (room?.roomType?.name || room.roomType || 'Standard')}</span>
-                                                  {room.useCustomRoomType && <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1 rounded">Custom</span>}
+                                                  {(() => {
+                                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                                    const isCustom = customText.length > 0;
+                                                    const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard');
+                                                    return (<span>{label}</span>);
+                                                  })()}
                                                 </div>
                                               </td>
                                               <td className="px-2 py-1 whitespace-nowrap">

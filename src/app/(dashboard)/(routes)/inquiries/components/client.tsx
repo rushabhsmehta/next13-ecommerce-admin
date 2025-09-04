@@ -280,17 +280,79 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
 
   return (
     <>
-      {/* Use both CSS-based and JS-based responsive designs for better reliability */}
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div className="flex items-center gap-3">
-          <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" className="mb-4 md:mb-0" />
-          <div className="flex items-center gap-2">
-            <Badge className="bg-blue-50 text-blue-700">Follow-ups: {totalFollowUps}</Badge>
-            <Badge className="bg-green-50 text-green-700">Today: {todayFollowUps}</Badge>
+      <div className="flex flex-col space-y-4">
+        {/* Main heading and Action Buttons */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" />
+            <div className="flex items-center gap-2">
+              <Badge className="bg-blue-50 text-blue-700">Follow-ups: {totalFollowUps}</Badge>
+              <Badge className="bg-green-50 text-green-700">Today: {todayFollowUps}</Badge>
+            </div>
+          </div>
+          {/* Desktop Action Buttons */}
+          <div className="hidden md:flex items-center gap-x-2">
+            <Button variant="outline" onClick={handleExcelDownload} className="flex items-center gap-x-2">
+              <FileSpreadsheet className="h-4 w-4" /> Excel
+            </Button>
+            <Button variant="outline" onClick={handlePdfDownload} className="flex items-center gap-x-2">
+              <FileIcon className="h-4 w-4" /> PDF
+            </Button>
+            <Button onClick={handleAddNewClick}>
+              <Plus className="mr-2 h-4 w-4" /> Add New
+            </Button>
           </div>
         </div>
-        
-        {/* Mobile controls - visible by default on small screens via CSS, hidden on larger screens */}
+
+        {/* Desktop Filters */}
+        <div className="hidden md:flex items-center gap-x-2">
+          <PeriodFilter />
+          <StatusFilter />
+          {!isAssociateUser && (
+            <Select value={localAssociateId} onValueChange={onAssociateChange}>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select Associate" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Associates</SelectItem>
+                {associates.map((associate) => (
+                  <SelectItem key={associate.id} value={associate.id}>{associate.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {!isAssociateUser && operationalStaffs && (
+            <Select value={localAssignedStaffId} onValueChange={(v) => onAssignedStaffChange(v)}>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Assigned Staff" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Staff</SelectItem>
+                {operationalStaffs.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="ghost" onClick={clearAllFilters} className="ml-auto">Clear</Button>
+        </div>
+
+        {/* Desktop Search and Toggles */}
+        <div className="hidden md:flex items-center gap-2">
+          <Input
+            placeholder="Search name, phone, location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-[340px]"
+          />
+          <div className="px-3 py-1 rounded-full border bg-white flex items-center gap-2">
+            <Checkbox id="followups-pill-desktop" checked={followUpsOnly} onCheckedChange={(v: any) => onToggleFollowUpsOnly(!!v)} />
+            <label htmlFor="followups-pill-desktop" className="text-sm">Follow-ups only</label>
+          </div>
+          <div className="px-3 py-1 rounded-full border bg-white flex items-center gap-2">
+            <Checkbox id="no-tpq-pill-desktop" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
+            <label htmlFor="no-tpq-pill-desktop" className="text-sm">No Tour Package Query</label>
+          </div>
+          {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
+        </div>
+
+        {/* Mobile controls */}
         <div className="flex flex-wrap items-center gap-2 md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -323,7 +385,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             <label htmlFor="no-tpq-mobile" className="text-sm ml-2">No Tour Package Query</label>
             {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
           </div>
-
           <div className="flex flex-wrap gap-2 mt-2">
             <Button onClick={handleAddNewClick} size="sm" className="flex-1">
               <Plus className="mr-2 h-4 w-4" /> New
@@ -348,80 +409,9 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             </Button>
           </div>
         </div>
-        
-        {/* Desktop controls - hidden by default on small screens via CSS, visible on larger screens */}
-        <div className="hidden md:flex items-center gap-x-2">
-          <PeriodFilter />
-          <StatusFilter />
-          {/* Follow-ups only pill moved next to the search input; remove redundant desktop checkbox */}
-          
-          {!isAssociateUser && (
-            <Select
-              value={localAssociateId}
-              onValueChange={onAssociateChange}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select Associate" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Associates</SelectItem>
-                {associates.map((associate) => (
-                  <SelectItem key={associate.id} value={associate.id}>
-                    {associate.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <div className="flex items-center ml-2">
-            <Checkbox id="no-tpq-desktop" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
-            <label htmlFor="no-tpq-desktop" className="text-sm ml-2">No Tour Package Query</label>
-            {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
-          </div>
-
-          {!isAssociateUser && operationalStaffs && (
-            <Select
-              value={localAssignedStaffId}
-              onValueChange={(v) => onAssignedStaffChange(v)}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Assigned Staff" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Staff</SelectItem>
-                {operationalStaffs.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Button variant="ghost" className="ml-2" onClick={clearAllFilters}>Clear</Button>
-          
-          <Button 
-            variant="outline"
-            onClick={handleExcelDownload}
-            className="flex items-center gap-x-2"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Excel
-          </Button>
-          
-          <Button 
-            variant="outline"
-            onClick={handlePdfDownload}
-            className="flex items-center gap-x-2"
-          >
-            <FileIcon className="h-4 w-4" />
-            PDF
-          </Button>
-          
-          <Button onClick={handleAddNewClick}>
-            <Plus className="mr-2 h-4 w-4" /> Add New
-          </Button>
-        </div>
       </div>
-      
-      <Separator className="my-4" />
+      <Separator />
+      <DataTable searchKey="name" columns={columns} data={filteredData} />
       
       {/* Access Error Alert */}
       {accessError && (
@@ -456,14 +446,12 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           {/* For content display, still use JS-based detection as a fallback */}
           <div className="block md:hidden">
             <MobileInquiryCard data={filteredData} isAssociateUser={isAssociateUser} />
-          </div>          <div className="hidden md:block">
-                <InquiriesDataTable
-                  columns={columns}
-                  data={filteredData}
-                  followUpsOnly={followUpsOnly}
-                  onToggleFollowUpsOnly={onToggleFollowUpsOnly}
-                  isPending={isPending}
-                />
+          </div>
+          <div className="hidden md:block">
+            <InquiriesDataTable
+              columns={columns}
+              data={filteredData}
+            />
           </div>
         </>
       )}

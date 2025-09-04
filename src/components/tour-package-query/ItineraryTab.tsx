@@ -7,6 +7,8 @@ import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignL
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
+import { addDays, isValid } from "date-fns";
+import { formatLocalDate } from '@/lib/timezone-utils';
 
 // Import necessary UI components
 import {
@@ -191,6 +193,25 @@ function ItineraryTab({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-fill itinerary date strings when tourStartsFrom is set and days are empty
+  useEffect(() => {
+    try {
+      const start = form.getValues('tourStartsFrom');
+      const items = form.getValues('itineraries') || [];
+      if (!start || !Array.isArray(items) || items.length === 0) return;
+      const startDate = new Date(start);
+      if (!isValid(startDate)) return;
+      const needsFill = items.some((it: any) => !it?.days);
+      if (!needsFill) return;
+      const updated = items.map((it: any, i: number) => ({
+        ...it,
+        days: it?.days || formatLocalDate(addDays(startDate, i), 'dd-MM-yyyy')
+      }));
+      form.setValue('itineraries', updated, { shouldDirty: true, shouldValidate: false });
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch?.('tourStartsFrom')]);
+
   // Handle drag end to reorder itineraries and renumber dayNumber
   const handleDragEnd = (event: any, itineraries: any[], onChange: (val: any) => void) => {
     const { active, over } = event;
@@ -212,7 +233,30 @@ function ItineraryTab({
             <ListPlus className="h-5 w-5 text-primary" />
             Itinerary Details
           </CardTitle>
-          {/* Copy first day allocations button removed (moved to Hotels tab) */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                try {
+                  const start = form.getValues('tourStartsFrom');
+                  const items = form.getValues('itineraries') || [];
+                  if (!start || !items.length) return;
+                  const startDate = new Date(start);
+                  if (!isValid(startDate)) return;
+                  const updated = items.map((it: any, i: number) => ({
+                    ...it,
+                    days: formatLocalDate(addDays(startDate, i), 'dd-MM-yyyy')
+                  }));
+                  form.setValue('itineraries', updated, { shouldDirty: true, shouldValidate: false });
+                } catch {}
+              }}
+              className="h-8"
+            >
+              Auto-fill dates
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-6 space-y-6">

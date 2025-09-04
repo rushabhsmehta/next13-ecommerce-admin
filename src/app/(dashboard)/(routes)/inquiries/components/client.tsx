@@ -131,6 +131,20 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     });
   };
 
+  // No Tour Package Query toggle
+  const noTourPackageQuery = searchParams.get('noTourPackageQuery') === '1';
+  const onToggleNoTPQ = (checked: boolean) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) {
+      params.set('noTourPackageQuery', '1');
+    } else {
+      params.delete('noTourPackageQuery');
+    }
+    startTransition(() => {
+      router.replace(`/inquiries?${params.toString()}`);
+    });
+  };
+
   const onAssignedStaffChange = (staffId: string) => {
     setLocalAssignedStaffId(staffId || '');
     startTransition(() => {
@@ -237,6 +251,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         <label htmlFor="followups-only" className="text-sm">Follow-ups only</label>
   {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
       </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox id="no-tpq" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
+        <label htmlFor="no-tpq" className="text-sm">No Tour Package Query</label>
+        {isPending && <span className="text-xs text-muted-foreground">Updating…</span>}
+      </div>
       
       {!isAssociateUser && (
         <Select
@@ -299,6 +318,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             <label htmlFor="followups-only-mobile" className="text-sm ml-2">Follow-ups only</label>
             {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
           </div>
+          <div className="flex items-center ml-2">
+            <Checkbox id="no-tpq-mobile" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
+            <label htmlFor="no-tpq-mobile" className="text-sm ml-2">No Tour Package Query</label>
+            {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
+          </div>
 
           <div className="flex flex-wrap gap-2 mt-2">
             <Button onClick={handleAddNewClick} size="sm" className="flex-1">
@@ -349,6 +373,11 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
               </SelectContent>
             </Select>
           )}
+          <div className="flex items-center ml-2">
+            <Checkbox id="no-tpq-desktop" checked={noTourPackageQuery} onCheckedChange={(v: any) => onToggleNoTPQ(!!v)} />
+            <label htmlFor="no-tpq-desktop" className="text-sm ml-2">No Tour Package Query</label>
+            {isPending && <span className="text-xs text-muted-foreground ml-2">Updating…</span>}
+          </div>
 
           {!isAssociateUser && operationalStaffs && (
             <Select

@@ -184,11 +184,11 @@ export async function GET(req: Request) {
     // Extract query parameters
     const associateId = url.searchParams.get('associateId') || undefined;
     const status = url.searchParams.get('status') || undefined;
-    const period = url.searchParams.get('period') || undefined;
-    const startDate = url.searchParams.get('startDate') || undefined;
-    const endDate = url.searchParams.get('endDate') || undefined;
+  const period = url.searchParams.get('period') || undefined;
+  const startDate = url.searchParams.get('startDate') || undefined;
+  const endDate = url.searchParams.get('endDate') || undefined;
   const followUpsOnly = url.searchParams.get('followUpsOnly') === '1';
-
+  const noTourPackageQuery = url.searchParams.get('noTourPackageQuery') === '1';
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
     }
@@ -231,7 +231,8 @@ export async function GET(req: Request) {
               lte: endOfMonth(lastMonth)
             }
           };
-          break;        case 'CUSTOM':
+          break;
+        case 'CUSTOM':
           if (startDate && endDate) {
             try {
               const parsedStartDate = dateToUtc(startDate);
@@ -261,7 +262,12 @@ export async function GET(req: Request) {
       ...(associateId && { associatePartnerId: associateId }),
       ...(status && status !== 'ALL' && { status }),
       ...dateFilter
-    };    const inquiries = await prismadb.inquiry.findMany({
+    };
+    if (noTourPackageQuery) {
+      where.tourPackageQueries = { none: {} };
+    }
+
+    const inquiries = await prismadb.inquiry.findMany({
       where: followUpsOnly ? {
         ...where,
         // Next follow-up date must be present

@@ -16,6 +16,7 @@ interface InquiriesPageProps {
     startDate?: string;
     endDate?: string;
   followUpsOnly?: string;
+  noTourPackageQuery?: string;
   }
 }
 
@@ -179,6 +180,11 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     where.status = {
       notIn: ['CANCELLED', 'CONFIRMED']
     };
+  }
+  // Apply "no tour package query" filter: only inquiries with zero associated tourPackageQueries
+  const noTourPackageQuery = searchParams.noTourPackageQuery === '1';
+  if (noTourPackageQuery) {
+    where.tourPackageQueries = { none: {} };
   }
   const inquiries = await prismadb.inquiry.findMany({
     where,

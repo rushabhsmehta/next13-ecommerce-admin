@@ -94,6 +94,7 @@ const pricingComponentSchema = z.object({
   purchasePrice: z.coerce.number().min(0, {
     message: "Purchase price must be at least 0",
   }).optional(),
+  transportation: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -378,6 +379,7 @@ export default function TourPackagePricingPage() {
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
       purchasePrice: comp.purchasePrice ? parseFloat(comp.purchasePrice) : 0,
+  transportation: comp.transportation || "",
       description: comp.description || "",
     }));
 
@@ -429,6 +431,7 @@ export default function TourPackagePricingPage() {
         pricingAttributeId: pricingAttributes[0].id,
         price: 0,
         purchasePrice: 0,
+  transportation: "",
         description: "",
       })
     } else {
@@ -858,6 +861,7 @@ export default function TourPackagePricingPage() {
                             <TableHead>Pricing Attribute</TableHead>
                             <TableHead>Sales Price</TableHead>
                             <TableHead>Purchase Price</TableHead>
+                            <TableHead>Transportation</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="w-[100px]">Actions</TableHead>
                           </TableRow>
@@ -926,6 +930,23 @@ export default function TourPackagePricingPage() {
                                           min="0"
                                           step="0.01"
                                           placeholder="Purchase Price"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <FormField
+                                  control={form.control}
+                                  name={`pricingComponents.${index}.transportation`}
+                                  render={({ field }) => (
+                                    <FormItem className="space-y-0">
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Transportation"
                                           {...field}
                                         />
                                       </FormControl>
@@ -1040,6 +1061,7 @@ export default function TourPackagePricingPage() {
                               <TableHead>Component</TableHead>
                               <TableHead>Sales Price</TableHead>
                               <TableHead>Purchase Price</TableHead>
+                              <TableHead>Transportation</TableHead>
                               <TableHead>Description</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1052,6 +1074,11 @@ export default function TourPackagePricingPage() {
                                 </TableCell>
                                 <TableCell>
                                   {comp.purchasePrice ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.purchasePrice)) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm text-gray-700 max-w-[200px] truncate" title={comp.transportation || ''}>
+                                    {comp.transportation || '-'}
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm text-gray-600 max-w-[300px] truncate" title={comp.description || ''}>

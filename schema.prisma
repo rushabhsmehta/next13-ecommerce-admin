@@ -581,6 +581,7 @@ model PricingComponent {
   id                   String              @id @default(uuid())
   price                Decimal             @db.Decimal(10, 2) // Sales Price
   purchasePrice        Decimal?            @db.Decimal(10, 2) // Purchase Price
+  transportation       String?             @db.Text // Transportation details (e.g., Per person / Vehicle type)
   description          String?             @db.Text // Individual description for this component
   tourPackagePricingId String?
   createdAt            DateTime            @default(now())

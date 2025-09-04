@@ -123,6 +123,7 @@ export async function POST(
             pricingAttributeId: component.pricingAttributeId,
             price: parseFloat(component.price || 0),
             purchasePrice: component.purchasePrice ? parseFloat(component.purchasePrice) : null,
+            transportation: component.transportation || null,
             description: component.description || null
           }))
         } : undefined

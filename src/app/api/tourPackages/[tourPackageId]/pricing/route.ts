@@ -84,7 +84,8 @@ export async function POST(
       numberOfRooms,
       locationSeasonalPeriodId,
       description,
-      pricingComponents
+      pricingComponents,
+      isGroupPricing
     } = body;
 
     if (!startDate || !endDate) {
@@ -116,6 +117,7 @@ export async function POST(
         numberOfRooms,
         locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         description: description || null,
+        isGroupPricing: isGroupPricing || false,
         isActive: true,
         // Add pricing components if provided
         pricingComponents: pricingComponents?.length > 0 ? {

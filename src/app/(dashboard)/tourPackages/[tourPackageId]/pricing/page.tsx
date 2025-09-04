@@ -117,6 +117,7 @@ const pricingFormSchema = z.object({
   locationSeasonalPeriodId: z.string().optional(),
   pricingComponents: z.array(pricingComponentSchema),
   description: z.string().optional(),
+  isGroupPricing: z.boolean().default(false),
 }).refine(
   (values) => {
     // Simple check that end date is after start date
@@ -157,6 +158,7 @@ export default function TourPackagePricingPage() {
       locationSeasonalPeriodId: "",
       description: "",
       pricingComponents: [],
+      isGroupPricing: false,
     }
   })
   
@@ -391,6 +393,7 @@ export default function TourPackagePricingPage() {
       locationSeasonalPeriodId: pricingPeriod.locationSeasonalPeriodId || "",
       description: pricingPeriod.description || "",
       pricingComponents: formattedPricingComponents,
+      isGroupPricing: pricingPeriod.isGroupPricing || false,
     })
 
     // Set selected seasonal period if available
@@ -424,6 +427,25 @@ export default function TourPackagePricingPage() {
     }
   }
 
+  const handleToggleGroupPricing = async (period: any) => {
+    try {
+      setLoading(true);
+      const newIsGroupPricing = !period.isGroupPricing;
+      await axios.patch(`/api/tourPackages/${tourPackageId}/pricing/${period.id}`, {
+        isGroupPricing: newIsGroupPricing,
+      });
+      toast.success(`Pricing period updated.`);
+      // Refresh pricing periods to reflect the change
+      const response = await axios.get(`/api/tourPackages/${tourPackageId}/pricing`);
+      setPricingPeriods(response.data);
+    } catch (error) {
+      toast.error("Failed to update pricing period.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddComponent = () => {
     // Only add if there are pricing attributes available
     if (pricingAttributes.length > 0) {
@@ -431,7 +453,7 @@ export default function TourPackagePricingPage() {
         pricingAttributeId: pricingAttributes[0].id,
         price: 0,
         purchasePrice: 0,
-  transportation: "",
+        transportation: "",
         description: "",
       })
     } else {
@@ -453,7 +475,8 @@ export default function TourPackagePricingPage() {
           description={`Manage pricing for ${tourPackage?.tourPackageName || 'this tour package'}`}
         />
         
-        {!showForm && (          <Button onClick={() => {
+        {!showForm && (
+          <Button onClick={() => {
             setIsEditMode(false)
             setEditId(null)
             setSelectedSeasonalPeriods([])
@@ -466,9 +489,9 @@ export default function TourPackagePricingPage() {
               locationSeasonalPeriodId: "",
               description: "",
               pricingComponents: [],
+              isGroupPricing: false,
             })
-            setShowForm(true
-            )
+            setShowForm(true)
           }}>
             <Plus className="mr-2 h-4 w-4" />
             Add Pricing Period
@@ -482,7 +505,8 @@ export default function TourPackagePricingPage() {
       {showForm && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>{isEditMode ? "Edit Pricing Period" : "Add New Pricing Period"}</CardTitle>            <CardDescription>
+            <CardTitle>{isEditMode ? "Edit Pricing Period" : "Add New Pricing Period"}</CardTitle>
+            <CardDescription>
               Define pricing for a specific date range based on number of rooms and meal plan
             </CardDescription>
           </CardHeader>
@@ -835,6 +859,30 @@ export default function TourPackagePricingPage() {
                   />
                 </div>
                 
+                {/* isGroupPricing Checkbox */}
+                <FormField
+                  control={form.control}
+                  name="isGroupPricing"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => field.onChange(checked === true)}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Group Pricing
+                        </FormLabel>
+                        <FormDescription>
+                          Mark this pricing as applicable for group bookings.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
                 {/* Pricing Components Section */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -1045,6 +1093,9 @@ export default function TourPackagePricingPage() {
                         <div className="font-medium">
                           {formatLocalDate(utcToLocal(period.startDate) || new Date(), 'MMM dd, yyyy')} to {formatLocalDate(utcToLocal(period.endDate) || new Date(), 'MMM dd, yyyy')}
                         </div>
+                        {period.isGroupPricing && (
+                          <Badge variant="secondary" className="mt-1">Group Pricing</Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -1100,6 +1151,15 @@ export default function TourPackagePricingPage() {
                       <div className="flex space-x-2">
                         <Button variant="outline" size="sm" onClick={() => handleEdit(period)}>
                           <Edit className="h-4 w-4 mr-1" /> Edit
+                        </Button>
+                        <Button
+                          variant={period.isGroupPricing ? "secondary" : "outline"}
+                          size="sm"
+                          onClick={() => handleToggleGroupPricing(period)}
+                          disabled={loading}
+                        >
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          {period.isGroupPricing ? "Unmark Group" : "Mark Group"}
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => handleDelete(period.id)}>
                           <Trash className="h-4 w-4 mr-1" /> Delete

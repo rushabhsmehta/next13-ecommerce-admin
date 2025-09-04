@@ -50,7 +50,7 @@ export async function GET(
 // PATCH to update a specific pricing record
 export async function PATCH(
   req: Request,
-  { params }: { params: { tourPackageId: string; pricingId: string } }
+  { params }: { params: { tourPackageId: string; pricingId:string } }
 ) {
   try {
     const { userId } = auth();
@@ -64,7 +64,9 @@ export async function PATCH(
 
     if (!params.pricingId) {
       return new NextResponse("Pricing ID is required", { status: 400 });
-    }    const body = await req.json();
+    }
+
+    const body = await req.json();
     const { 
       startDate, 
       endDate, 
@@ -73,8 +75,25 @@ export async function PATCH(
       locationSeasonalPeriodId,
       isActive,
       description,
-      pricingComponents
-    } = body;    if (!startDate || !endDate) {
+      pricingComponents,
+      isGroupPricing
+    } = body;
+
+    // Handle partial update for isGroupPricing toggle
+    if (typeof isGroupPricing === 'boolean' && Object.keys(body).length === 1) {
+      const updatedPricing = await prismadb.tourPackagePricing.update({
+        where: {
+          id: params.pricingId,
+          tourPackageId: params.tourPackageId,
+        },
+        data: {
+          isGroupPricing: isGroupPricing,
+        },
+      });
+      return NextResponse.json(updatedPricing);
+    }
+
+    if (!startDate || !endDate) {
       return new NextResponse("Start date and end date are required", { status: 400 });
     }
 
@@ -95,18 +114,23 @@ export async function PATCH(
 
     if (!tourPackage) {
       return new NextResponse("Tour Package not found", { status: 404 });
-    }    // First, delete existing pricing components if we're updating them
+    }
+
+    // First, delete existing pricing components if we're updating them
     if (pricingComponents) {
       await prismadb.pricingComponent.deleteMany({
         where: {
           tourPackagePricingId: params.pricingId
         }
       });
-    }      // Update the pricing record
+    }
+
+    // Update the pricing record
     const updatedPricing = await prismadb.tourPackagePricing.update({
       where: {
         id: params.pricingId
-      },      data: {
+      },
+      data: {
         startDate: dateToUtc(startDate)!,
         endDate: dateToUtc(endDate)!,
         mealPlanId,
@@ -114,6 +138,7 @@ export async function PATCH(
         locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         isActive: isActive !== undefined ? isActive : true,
         description: description || null,
+        isGroupPricing: isGroupPricing || false,
         // Create new pricing components if provided
         pricingComponents: pricingComponents?.length > 0 ? {
           create: pricingComponents.map((component: any) => ({
@@ -124,7 +149,8 @@ export async function PATCH(
             description: component.description || null
           }))
         } : undefined
-      },      include: {
+      },
+      include: {
         mealPlan: true,
         locationSeasonalPeriod: true,
         pricingComponents: {

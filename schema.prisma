@@ -605,6 +605,7 @@ model TourPackagePricing {
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @default(now())
   mealPlanId               String
+  isGroupPricing           Boolean                 @default(false)
   locationSeasonalPeriodId String?
   tourPackage              TourPackage             @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   mealPlan                 MealPlan                @relation(fields: [mealPlanId], references: [id])

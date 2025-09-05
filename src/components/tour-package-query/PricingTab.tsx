@@ -384,12 +384,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
       const roomQuantity = componentRoomQuantities[comp.id] || 1;
       const occupancyMultiplier = getOccupancyMultiplier(componentName);
       const totalComponentPrice = calculateComponentTotalPrice(comp, roomQuantity);
-      const transportationNote = comp.transportation ? ` | Transportation: ${comp.transportation}` : '';
       
       finalPricingComponents.push({
         name: componentName,
         price: basePrice.toString(), // Store base price per person, not total
-        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}${transportationNote}`
+        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy${roomQuantity > 1 ? ` × ${roomQuantity} rooms` : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
       });
       
       totalPrice += totalComponentPrice;
@@ -477,12 +476,11 @@ const PricingTab: React.FC<PricingTabProps> = ({
           const basePrice = parseFloat(comp.price || '0');
           const occupancyMultiplier = getOccupancyMultiplier(componentName);
           const totalComponentPrice = basePrice * occupancyMultiplier * numberOfRooms;
-          const transportationNote = comp.transportation ? ` | Transportation: ${comp.transportation}` : '';
           
           finalPricingComponents.push({
             name: componentName,
             price: basePrice.toString(), // Store base price per person, not total
-            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''} = Rs. ${totalComponentPrice.toFixed(2)}${transportationNote}`
+            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${numberOfRooms} room${numberOfRooms > 1 ? 's' : ''} = Rs. ${totalComponentPrice.toFixed(2)}`
           });
           
           totalPrice += totalComponentPrice;

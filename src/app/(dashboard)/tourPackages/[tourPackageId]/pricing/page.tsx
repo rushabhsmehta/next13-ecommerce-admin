@@ -94,7 +94,6 @@ const pricingComponentSchema = z.object({
   purchasePrice: z.coerce.number().min(0, {
     message: "Purchase price must be at least 0",
   }).optional(),
-  transportation: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -114,6 +113,7 @@ const pricingFormSchema = z.object({
   }).min(1, {
     message: "Number of rooms must be at least 1",
   }),
+  vehicleTypeId: z.string().optional(),
   locationSeasonalPeriodId: z.string().optional(),
   pricingComponents: z.array(pricingComponentSchema),
   description: z.string().optional(),
@@ -145,6 +145,7 @@ export default function TourPackagePricingPage() {
     // Configuration items
   const [mealPlans, setMealPlans] = useState<any[]>([])
   const [pricingAttributes, setPricingAttributes] = useState<any[]>([])
+  const [vehicleTypes, setVehicleTypes] = useState<any[]>([])
   const [seasonalPeriods, setSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [selectedSeasonalPeriods, setSelectedSeasonalPeriods] = useState<SeasonalPeriod[]>([])
   const [selectedSeasonType, setSelectedSeasonType] = useState<string | null>(null)
@@ -155,6 +156,7 @@ export default function TourPackagePricingPage() {
       endDate: new Date(),
       mealPlanId: "",
       numberOfRooms: 1,
+      vehicleTypeId: "",
       locationSeasonalPeriodId: "",
       description: "",
       pricingComponents: [],
@@ -225,13 +227,23 @@ export default function TourPackagePricingPage() {
         console.error(error)
       }
     }
-      const fetchPricingAttributes = async () => {
+    const fetchPricingAttributes = async () => {
       try {
         // Only fetch active pricing attributes
         const response = await axios.get('/api/pricing-attributes?isActive=true')
         setPricingAttributes(response.data)
       } catch (error) {
         toast.error("Failed to fetch pricing attributes")
+        console.error(error)
+      }
+    }
+
+    const fetchVehicleTypes = async () => {
+      try {
+        const response = await axios.get('/api/vehicle-types?isActive=true')
+        setVehicleTypes(response.data)
+      } catch (error) {
+        toast.error("Failed to fetch vehicle types")
         console.error(error)
       } finally {
         setLoading(false)
@@ -241,6 +253,7 @@ export default function TourPackagePricingPage() {
     fetchPricingPeriods()
     fetchMealPlans()
     fetchPricingAttributes()
+    fetchVehicleTypes()
   }, [tourPackageId])
 
   const onSubmit = async (data: PricingFormValues) => {
@@ -381,7 +394,6 @@ export default function TourPackagePricingPage() {
       pricingAttributeId: comp.pricingAttributeId,
       price: parseFloat(comp.price),
       purchasePrice: comp.purchasePrice ? parseFloat(comp.purchasePrice) : 0,
-  transportation: comp.transportation || "",
       description: comp.description || "",
     }));
 
@@ -390,6 +402,7 @@ export default function TourPackagePricingPage() {
       endDate: createDatePickerValue(utcToLocal(pricingPeriod.endDate)),
       mealPlanId: pricingPeriod.mealPlanId || "",
       numberOfRooms: pricingPeriod.numberOfRooms || 1,
+      vehicleTypeId: pricingPeriod.vehicleTypeId || "",
       locationSeasonalPeriodId: pricingPeriod.locationSeasonalPeriodId || "",
       description: pricingPeriod.description || "",
       pricingComponents: formattedPricingComponents,
@@ -453,7 +466,6 @@ export default function TourPackagePricingPage() {
         pricingAttributeId: pricingAttributes[0].id,
         price: 0,
         purchasePrice: 0,
-        transportation: "",
         description: "",
       })
     } else {
@@ -486,6 +498,7 @@ export default function TourPackagePricingPage() {
               endDate: new Date(),
               mealPlanId: "",
               numberOfRooms: 1,
+              vehicleTypeId: "",
               locationSeasonalPeriodId: "",
               description: "",
               pricingComponents: [],
@@ -857,6 +870,36 @@ export default function TourPackagePricingPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Transportation */}
+                  <FormField
+                    control={form.control}
+                    name="vehicleTypeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Transportation</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select transportation type..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">No Transportation</SelectItem>
+                            {vehicleTypes.map((vehicleType) => (
+                              <SelectItem key={vehicleType.id} value={vehicleType.id}>
+                                {vehicleType.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select the transportation type for this pricing period
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 
                 {/* isGroupPricing Checkbox */}
@@ -909,7 +952,6 @@ export default function TourPackagePricingPage() {
                             <TableHead>Pricing Attribute</TableHead>
                             <TableHead>Purchase Price</TableHead>
                             <TableHead>Sales Price</TableHead>
-                            <TableHead>Transportation</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="w-[100px]">Actions</TableHead>
                           </TableRow>
@@ -978,23 +1020,6 @@ export default function TourPackagePricingPage() {
                                           min="0"
                                           step="0.01"
                                           placeholder="Sales Price"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <FormField
-                                  control={form.control}
-                                  name={`pricingComponents.${index}.transportation`}
-                                  render={({ field }) => (
-                                    <FormItem className="space-y-0">
-                                      <FormControl>
-                                        <Input
-                                          placeholder="Transportation"
                                           {...field}
                                         />
                                       </FormControl>
@@ -1105,14 +1130,22 @@ export default function TourPackagePricingPage() {
                       {period.mealPlan?.name || 'Not specified'}
                     </TableCell>
                     <TableCell>
-                      <div className="max-w-[700px]">
+                      <div className="max-w-[700px] space-y-3">
+                        {/* Transportation */}
+                        {period.vehicleType && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="text-sm font-medium text-blue-800 mb-1">Transportation:</div>
+                            <div className="text-sm text-blue-700">{period.vehicleType.name}</div>
+                          </div>
+                        )}
+                        
+                        {/* Pricing Components */}
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Component</TableHead>
                               <TableHead>Purchase Price</TableHead>
                               <TableHead>Sales Price</TableHead>
-                              <TableHead>Transportation</TableHead>
                               <TableHead>Description</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1125,11 +1158,6 @@ export default function TourPackagePricingPage() {
                                 </TableCell>
                                 <TableCell>
                                   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.price))}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="text-sm text-gray-700 max-w-[200px] truncate" title={comp.transportation || ''}>
-                                    {comp.transportation || '-'}
-                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm text-gray-600 max-w-[300px] truncate" title={comp.description || ''}>

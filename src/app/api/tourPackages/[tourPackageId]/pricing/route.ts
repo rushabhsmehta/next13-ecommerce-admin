@@ -40,6 +40,7 @@ export async function GET(
       },      include: {
         mealPlan: true,        
         locationSeasonalPeriod: true,
+        vehicleType: true,
         pricingComponents: {
           include: {
             pricingAttribute: true
@@ -82,6 +83,7 @@ export async function POST(
       endDate, 
       mealPlanId, 
       numberOfRooms,
+      vehicleTypeId,
       locationSeasonalPeriodId,
       description,
       pricingComponents,
@@ -115,6 +117,7 @@ export async function POST(
         endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
+        vehicleTypeId: vehicleTypeId || null,
         locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         description: description || null,
         isGroupPricing: isGroupPricing || false,
@@ -125,12 +128,12 @@ export async function POST(
             pricingAttributeId: component.pricingAttributeId,
             price: parseFloat(component.price || 0),
             purchasePrice: component.purchasePrice ? parseFloat(component.purchasePrice) : null,
-            transportation: component.transportation || null,
             description: component.description || null
           }))
         } : undefined
       },      include: {
         mealPlan: true,
+        vehicleType: true,
         locationSeasonalPeriod: true,
         pricingComponents: {
           include: {

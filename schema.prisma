@@ -9,13 +9,13 @@ datasource db {
 }
 
 model Location {
-  id                        String                    @id @default(uuid())
+  id                        String                   @id @default(uuid())
   label                     String
   imageUrl                  String
-  createdAt                 DateTime                  @default(now())
-  updatedAt                 DateTime                  @updatedAt
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
   slug                      String?
-  tags                      String?                   @db.Text
+  tags                      String?                  @db.Text
   airlineCancellationPolicy Json?
   cancellationPolicy        Json?
   exclusions                Json?
@@ -31,9 +31,9 @@ model Location {
   itineraries               Itinerary[]
   itinerariesMaster         ItineraryMaster[]
   transportPricings         TransportPricing[]
-  tourPackages              TourPackage[]             @relation("LocationTotourPackage")
-  tourPackageQuery          TourPackageQuery[]        @relation("LocationTotourPackageQuery")
-  inquiries                 Inquiry[]                 @relation("LocationToInquiry")
+  tourPackages              TourPackage[]            @relation("LocationTotourPackage")
+  tourPackageQuery          TourPackageQuery[]       @relation("LocationTotourPackageQuery")
+  inquiries                 Inquiry[]                @relation("LocationToInquiry")
   suppliers                 SupplierLocation[]
   tourDestinations          TourDestination[]
   seasonalPeriods           LocationSeasonalPeriod[]
@@ -60,20 +60,19 @@ model TourDestination {
 model LocationSeasonalPeriod {
   id                  String               @id @default(uuid())
   locationId          String
-  seasonType          String               // "OFF_SEASON" | "PEAK_SEASON" | "SHOULDER_SEASON"
-  name                String               // "Winter Off Season", "Summer Peak Season"
-  startMonth          Int                  // 1-12 (January = 1)
-  startDay            Int                  // 1-31
-  endMonth            Int                  // 1-12 (December = 12)
-  endDay              Int                  // 1-31
+  seasonType          String
+  name                String
+  startMonth          Int
+  startDay            Int
+  endMonth            Int
+  endDay              Int
   description         String?              @db.Text
   isActive            Boolean              @default(true)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
-  
   location            Location             @relation(fields: [locationId], references: [id], onDelete: Cascade)
   tourPackagePricings TourPackagePricing[]
-  
+
   @@index([locationId])
   @@index([seasonType])
   @@index([startMonth, startDay])
@@ -84,11 +83,11 @@ model LocationSeasonalPeriod {
 model Hotel {
   id                String            @id @default(uuid())
   locationId        String
-  destinationId     String?
   name              String
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   link              String?           @db.Text
+  destinationId     String?
   images            Images[]
   location          Location          @relation(fields: [locationId], references: [id])
   destination       TourDestination?  @relation(fields: [destinationId], references: [id])
@@ -133,10 +132,10 @@ model OccupancyType {
   name              String            @unique
   description       String?
   maxPersons        Int
-  rank              Int               @default(0)
   isActive          Boolean           @default(true)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @default(now())
+  rank              Int               @default(0)
   hotelPricings     HotelPricing[]
   roomAllocations   RoomAllocation[]
   itineraries       Itinerary[]
@@ -144,14 +143,15 @@ model OccupancyType {
 }
 
 model VehicleType {
-  id                String             @id @default(uuid())
-  name              String             @unique
-  description       String?
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @default(now())
-  transportPricings TransportPricing[]
-  transportDetails  TransportDetail[]
+  id                   String                 @id @default(uuid())
+  name                 String                 @unique
+  description          String?
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @default(now())
+  transportPricings    TransportPricing[]
+  transportDetails     TransportDetail[]
+  tourPackagePricings  TourPackagePricing[]
 }
 
 model HotelPricing {
@@ -230,7 +230,6 @@ model TourPackageQuery {
   tourStartsFrom                   DateTime?
   remarks                          String?           @db.Text
   tourPackageQueryType             String?
-  tourCategory                     String?           @default("Domestic") // "Domestic" or "International"
   disclaimer                       String?           @db.Text
   inquiryId                        String?
   associatePartnerId               String?
@@ -249,6 +248,7 @@ model TourPackageQuery {
   paymentPolicy                    Json?
   termsconditions                  Json?
   usefulTip                        Json?
+  tourCategory                     String?           @default("Domestic")
   location                         Location          @relation("LocationTotourPackageQuery", fields: [locationId], references: [id])
   flightDetails                    FlightDetails[]
   itineraries                      Itinerary[]
@@ -286,15 +286,14 @@ model PurchaseDetail {
   referenceNumber    String?
   stateOfSupply      String?
   status             String?          @default("pending")
+  netPayable         Float?
+  tdsAmount          Float?
+  tdsChallanId       String?
+  tdsMasterId        String?
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   items              PurchaseItem[]
   purchaseReturns    PurchaseReturn[]
-  // TDS additions
-  tdsMasterId        String?
-  tdsAmount          Float?
-  netPayable         Float?
-  tdsChallanId       String?
   tdsMaster          TDSMaster?       @relation(fields: [tdsMasterId], references: [id])
   tdsChallan         TDSChallan?      @relation(fields: [tdsChallanId], references: [id])
   tdsTransactions    TDSTransaction[]
@@ -318,9 +317,9 @@ model PurchaseItem {
   taxSlabId           String?
   taxAmount           Float?
   totalAmount         Float
-  orderIndex          Int                  @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  orderIndex          Int                  @default(0)
   purchaseDetail      PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id], onDelete: Cascade)
   unitOfMeasure       UnitOfMeasure?       @relation(fields: [unitOfMeasureId], references: [id], onDelete: SetNull)
   taxSlab             TaxSlab?             @relation(fields: [taxSlabId], references: [id], onDelete: SetNull)
@@ -341,24 +340,23 @@ model PaymentDetail {
   transactionId      String?
   note               String?          @db.Text
   supplierId         String?
-  customerId         String?         // Added: For sale return refunds to customers
-  paymentType        String?         @default("supplier_payment") // Added: "supplier_payment" or "customer_refund"
-  saleReturnId       String?         // Added: Link to sale return for refunds
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   bankAccountId      String?
   cashAccountId      String?
+  customerId         String?
+  paymentType        String?          @default("supplier_payment")
+  saleReturnId       String?
+  tdsCertificateNo   String?
+  tdsDeductedAmount  Float?
+  tdsTransactionId   String?          @unique
   images             Images[]
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull) // Added: For customer refunds
-  saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull) // Added: Link to sale return
+  customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  saleReturn         SaleReturn?      @relation(fields: [saleReturnId], references: [id], onDelete: SetNull)
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
-  // TDS additions
-  tdsDeductedAmount  Float?
-  tdsCertificateNo   String?
-  tdsTransactionId   String? @unique
   tdsTransaction     TDSTransaction?  @relation(fields: [tdsTransactionId], references: [id], onDelete: SetNull)
 
   @@index([bankAccountId])
@@ -408,9 +406,9 @@ model SaleItem {
   taxSlabId       String?
   taxAmount       Float?
   totalAmount     Float
-  orderIndex      Int              @default(0)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @default(now())
+  orderIndex      Int              @default(0)
   saleDetail      SaleDetail       @relation(fields: [saleDetailId], references: [id], onDelete: Cascade)
   unitOfMeasure   UnitOfMeasure?   @relation(fields: [unitOfMeasureId], references: [id], onDelete: SetNull)
   taxSlab         TaxSlab?         @relation(fields: [taxSlabId], references: [id], onDelete: SetNull)
@@ -430,18 +428,18 @@ model ReceiptDetail {
   reference          String?
   note               String?          @db.Text
   customerId         String?
-  supplierId         String?         // Added: For purchase return refunds from suppliers
-  receiptType        String?         @default("customer_receipt") // Added: "customer_receipt" or "supplier_refund"
-  purchaseReturnId   String?         // Added: Link to purchase return for refunds
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now())
   bankAccountId      String?
   cashAccountId      String?
+  purchaseReturnId   String?
+  receiptType        String?          @default("customer_receipt")
+  supplierId         String?
   images             Images[]
   tourPackageQuery   TourPackageQuery @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull) // Added: For supplier refunds
-  purchaseReturn     PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull) // Added: Link to purchase return
+  supplier           Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  purchaseReturn     PurchaseReturn?  @relation(fields: [purchaseReturnId], references: [id], onDelete: SetNull)
   bankAccount        BankAccount?     @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?     @relation(fields: [cashAccountId], references: [id])
 
@@ -464,19 +462,18 @@ model ExpenseDetail {
   bankAccountId      String?
   cashAccountId      String?
   expenseCategoryId  String?
-  isAccrued          Boolean           @default(false)
   accruedDate        DateTime?
+  isAccrued          Boolean           @default(false)
   paidDate           DateTime?
+  netPayable         Float?
+  tdsAmount          Float?
+  tdsChallanId       String?
+  tdsMasterId        String?
   expenseCategory    ExpenseCategory?  @relation(fields: [expenseCategoryId], references: [id])
   images             Images[]
   tourPackageQuery   TourPackageQuery? @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   bankAccount        BankAccount?      @relation(fields: [bankAccountId], references: [id])
   cashAccount        CashAccount?      @relation(fields: [cashAccountId], references: [id])
-  // TDS additions
-  tdsMasterId        String?
-  tdsAmount          Float?
-  netPayable         Float?
-  tdsChallanId       String?
   tdsMaster          TDSMaster?        @relation(fields: [tdsMasterId], references: [id])
   tdsChallan         TDSChallan?       @relation(fields: [tdsChallanId], references: [id])
   tdsTransactions    TDSTransaction[]
@@ -541,7 +538,6 @@ model TourPackage {
   pickup_location                  String?
   slug                             String?
   tourPackageType                  String?
-  tourCategory                     String?              @default("Domestic") // "Domestic" or "International"
   pricingSection                   Json?
   airlineCancellationPolicy        Json?
   cancellationPolicy               Json?
@@ -552,6 +548,7 @@ model TourPackage {
   paymentPolicy                    Json?
   termsconditions                  Json?
   usefulTip                        Json?
+  tourCategory                     String?              @default("Domestic")
   location                         Location             @relation("LocationTotourPackage", fields: [locationId], references: [id])
   flightDetails                    FlightDetails[]
   itineraries                      Itinerary[]
@@ -565,12 +562,12 @@ model TourPackage {
 model PricingAttribute {
   id                String             @id @default(uuid())
   name              String             @unique
-  description       String?            @db.Text // Description field for each pricing attribute
   sortOrder         Int                @default(0)
   isActive          Boolean            @default(true)
   isDefault         Boolean            @default(false)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  description       String?            @db.Text
   pricingComponents PricingComponent[]
 
   @@index([name])
@@ -579,14 +576,13 @@ model PricingAttribute {
 
 model PricingComponent {
   id                   String              @id @default(uuid())
-  price                Decimal             @db.Decimal(10, 2) // Sales Price
-  purchasePrice        Decimal?            @db.Decimal(10, 2) // Purchase Price
-  transportation       String?             @db.Text // Transportation details (e.g., Per person / Vehicle type)
-  description          String?             @db.Text // Individual description for this component
+  price                Decimal             @db.Decimal(10, 2)
   tourPackagePricingId String?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   pricingAttributeId   String
+  purchasePrice        Decimal?            @db.Decimal(10, 2)
+  description          String?             @db.Text
   pricingAttribute     PricingAttribute    @relation(fields: [pricingAttributeId], references: [id])
   tourPackagePricing   TourPackagePricing? @relation(fields: [tourPackagePricingId], references: [id], onDelete: Cascade)
 
@@ -599,17 +595,19 @@ model TourPackagePricing {
   tourPackageId            String
   startDate                DateTime
   endDate                  DateTime
-  numberOfRooms            Int                     @default(1)
   isActive                 Boolean                 @default(true)
   description              String?                 @db.Text
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @default(now())
   mealPlanId               String
-  isGroupPricing           Boolean                 @default(false)
+  numberOfRooms            Int                     @default(1)
   locationSeasonalPeriodId String?
+  isGroupPricing           Boolean                 @default(false)
+  vehicleTypeId            String?
   tourPackage              TourPackage             @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   mealPlan                 MealPlan                @relation(fields: [mealPlanId], references: [id])
   locationSeasonalPeriod   LocationSeasonalPeriod? @relation(fields: [locationSeasonalPeriodId], references: [id])
+  vehicleType              VehicleType?            @relation(fields: [vehicleTypeId], references: [id])
   pricingComponents        PricingComponent[]
 
   @@index([tourPackageId])
@@ -617,6 +615,7 @@ model TourPackagePricing {
   @@index([startDate, endDate])
   @@index([numberOfRooms])
   @@index([locationSeasonalPeriodId])
+  @@index([vehicleTypeId])
 }
 
 model Activity {
@@ -776,23 +775,22 @@ model Images {
 }
 
 model Customer {
-  id                    String            @id @default(uuid())
-  name                  String
-  contact               String?
-  email                 String?
-  birthdate             DateTime?         @db.Date
-  marriageAnniversary   DateTime?         @db.Date
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @default(now())
-  associatePartnerId    String?
-  saleDetails           SaleDetail[]
-  receiptDetails        ReceiptDetail[]
-  refundPayments        PaymentDetail[]   // Added: Track refund payments to this customer
-  associatePartner      AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
-  // TDS additions
-  tanNumber             String?
-  isTdsDeductor         Boolean           @default(false)
-  tdsTransactions       TDSTransaction[]
+  id                  String            @id @default(uuid())
+  name                String
+  contact             String?
+  email               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now())
+  associatePartnerId  String?
+  birthdate           DateTime?         @db.Date
+  marriageAnniversary DateTime?         @db.Date
+  isTdsDeductor       Boolean           @default(false)
+  tanNumber           String?
+  saleDetails         SaleDetail[]
+  receiptDetails      ReceiptDetail[]
+  refundPayments      PaymentDetail[]
+  associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  tdsTransactions     TDSTransaction[]
 
   @@index([associatePartnerId])
 }
@@ -804,19 +802,18 @@ model Supplier {
   email           String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
-  locations       SupplierLocation[]
-  purchaseDetails PurchaseDetail[]
-  paymentDetails  PaymentDetail[]
-  refundReceipts  ReceiptDetail[]    // Added: Track refund receipts from this supplier
-  // TDS additions
-  panNumber       String?
-  tdsApplicable   Boolean            @default(false)
   defaultTdsId    String?
   lowerTdsCertNo  String?
   lowerTdsRate    Float?
   lowerValidFrom  DateTime?
   lowerValidTo    DateTime?
   msmeStatus      String?
+  panNumber       String?
+  tdsApplicable   Boolean            @default(false)
+  locations       SupplierLocation[]
+  purchaseDetails PurchaseDetail[]
+  paymentDetails  PaymentDetail[]
+  refundReceipts  ReceiptDetail[]
   defaultTds      TDSMaster?         @relation(fields: [defaultTdsId], references: [id])
   tdsTransactions TDSTransaction[]
 
@@ -880,10 +877,9 @@ model Inquiry {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @default(now())
   journeyDate          DateTime?          @db.Date
-  // New: next follow-up date for scheduling future contact
-  nextFollowUpDate     DateTime?          @db.Date
   assignedStaffAt      DateTime?
   assignedToStaffId    String?
+  nextFollowUpDate     DateTime?          @db.Date
   location             Location           @relation("LocationToInquiry", fields: [locationId], references: [id])
   associatePartner     AssociatePartner?  @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
   actions              InquiryAction[]
@@ -1015,9 +1011,9 @@ model Transfer {
 }
 
 model Organization {
-  id                String   @id @default(uuid())
+  id                String               @id @default(uuid())
   name              String
-  address           String?  @db.Text
+  address           String?              @db.Text
   city              String?
   state             String?
   pincode           String?
@@ -1028,15 +1024,14 @@ model Organization {
   gstNumber         String?
   panNumber         String?
   logoUrl           String?
-  defaultCurrency   String?  @default("₹")
+  defaultCurrency   String?              @default("₹")
   defaultTaxSlab    String?
-  invoicePrefix     String?  @default("INV-")
-  nextInvoiceNumber Int      @default(1)
-  billPrefix        String?  @default("BILL-")
-  nextBillNumber    Int      @default(1)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  // TDS additions
+  invoicePrefix     String?              @default("INV-")
+  nextInvoiceNumber Int                  @default(1)
+  billPrefix        String?              @default("BILL-")
+  nextBillNumber    Int                  @default(1)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   tanNumber         String?
   tdsDeductorType   String?
   tdsSignatoryName  String?
@@ -1044,25 +1039,16 @@ model Organization {
   members           OrganizationMember[]
 }
 
-// Organization members (mapped to Clerk users) for role-based authorization
-enum OrganizationRole {
-  OWNER
-  ADMIN
-  FINANCE
-  OPERATIONS
-  VIEWER
-}
-
 model OrganizationMember {
-  id             String            @id @default(uuid())
+  id             String           @id @default(uuid())
   organizationId String
-  userId         String            // Clerk user id
+  userId         String
   email          String?
-  role           OrganizationRole  @default(VIEWER)
-  isActive       Boolean           @default(true)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @default(now())
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           OrganizationRole @default(VIEWER)
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, userId])
   @@index([organizationId])
@@ -1111,7 +1097,7 @@ model PurchaseReturn {
   updatedAt        DateTime             @default(now())
   purchaseDetail   PurchaseDetail       @relation(fields: [purchaseDetailId], references: [id])
   items            PurchaseReturnItem[]
-  receipts         ReceiptDetail[]      // Added: Track receipts from supplier for this return
+  receipts         ReceiptDetail[]
 
   @@index([purchaseDetailId])
 }
@@ -1128,9 +1114,9 @@ model PurchaseReturnItem {
   taxAmount        Float?
   taxSlabId        String?
   totalAmount      Float
-  orderIndex       Int            @default(0)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @default(now())
+  orderIndex       Int            @default(0)
   purchaseReturn   PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
   purchaseItem     PurchaseItem?  @relation(fields: [purchaseItemId], references: [id])
   unitOfMeasure    UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
@@ -1156,7 +1142,7 @@ model SaleReturn {
   updatedAt    DateTime         @default(now())
   saleDetail   SaleDetail       @relation(fields: [saleDetailId], references: [id])
   items        SaleReturnItem[]
-  payments     PaymentDetail[]  // Added: Track payments to customer for this return
+  payments     PaymentDetail[]
 
   @@index([saleDetailId])
 }
@@ -1173,9 +1159,9 @@ model SaleReturnItem {
   taxAmount       Float?
   taxSlabId       String?
   totalAmount     Float
-  orderIndex      Int            @default(0)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @default(now())
+  orderIndex      Int            @default(0)
   saleReturn      SaleReturn     @relation(fields: [saleReturnId], references: [id], onDelete: Cascade)
   saleItem        SaleItem?      @relation(fields: [saleItemId], references: [id])
   unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
@@ -1268,10 +1254,10 @@ model RoomAllocation {
   itineraryMasterId String?
   mealPlanId        String?
   notes             String?          @db.Text
-  voucherNumber     String?          // Hotel booking voucher number
-  customRoomType    String?          // Manual room type entry
   occupancyTypeId   String
   roomTypeId        String
+  customRoomType    String?
+  voucherNumber     String?
   itinerary         Itinerary?       @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   inquiry           Inquiry?         @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
   itineraryMaster   ItineraryMaster? @relation(fields: [itineraryMasterId], references: [id], onDelete: Cascade)
@@ -1298,19 +1284,19 @@ model Notification {
 }
 
 model WhatsAppMessage {
-  id            String   @id @default(uuid())
-  to            String?  // Recipient phone number (with country code)
-  from          String?  // Sender WhatsApp number
-  message       String?  @db.Text
-  messageSid    String?  // Twilio message SID
-  status        String   @default("pending") // pending, sent, delivered, failed
-  direction     String   @default("outbound") // inbound or outbound
-  errorCode     String?
-  errorMessage  String?  @db.Text
-  sentAt        DateTime?
-  deliveredAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now())
+  id           String    @id @default(uuid())
+  message      String?   @db.Text
+  status       String    @default("pending")
+  direction    String    @default("outbound")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  messageSid   String?
+  deliveredAt  DateTime?
+  errorCode    String?
+  errorMessage String?   @db.Text
+  from         String?
+  sentAt       DateTime?
+  to           String?
 
   @@index([to])
   @@index([status])
@@ -1322,7 +1308,7 @@ model WhatsAppTemplate {
   id        String   @id @default(uuid())
   name      String   @unique
   body      String   @db.Text
-  variables Json?    // Array of variable names as JSON
+  variables Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1350,38 +1336,27 @@ model AuditLog {
   @@index([createdAt])
 }
 
-
-
-enum OperationalStaffRole {
-  OPERATIONS
-  ADMIN
-}
-
-
-
-// New TDS models
 model TDSMaster {
-  id                 String           @id @default(uuid())
-  sectionCode        String
-  description        String?
-  thresholdAmount    Float?
-  rateIndividual     Float?
-  rateCompany        Float?
-  rateWithPan        Float?
-  rateWithoutPan     Float?
-  effectiveFrom      DateTime
-  effectiveTo        DateTime?
-  isIncomeTaxTds     Boolean          @default(true)
-  isGstTds           Boolean          @default(false)
-  surchargeApplicable Boolean         @default(false)
-  cessApplicable     Boolean          @default(false)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @default(now())
-  // Relations
-  supplierDefaults   Supplier[]
-  purchaseDetails    PurchaseDetail[]
-  expenseDetails     ExpenseDetail[]
-  tdsTransactions    TDSTransaction[]
+  id                  String           @id @default(uuid())
+  sectionCode         String
+  description         String?
+  thresholdAmount     Float?
+  rateIndividual      Float?
+  rateCompany         Float?
+  rateWithPan         Float?
+  rateWithoutPan      Float?
+  effectiveFrom       DateTime
+  effectiveTo         DateTime?
+  isIncomeTaxTds      Boolean          @default(true)
+  isGstTds            Boolean          @default(false)
+  surchargeApplicable Boolean          @default(false)
+  cessApplicable      Boolean          @default(false)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @default(now())
+  supplierDefaults    Supplier[]
+  purchaseDetails     PurchaseDetail[]
+  expenseDetails      ExpenseDetail[]
+  tdsTransactions     TDSTransaction[]
 
   @@index([sectionCode])
   @@index([isIncomeTaxTds, isGstTds])
@@ -1389,22 +1364,21 @@ model TDSMaster {
 }
 
 model TDSChallan {
-  id               String           @id @default(uuid())
-  bsrCode          String?
-  challanSerialNo  String?
-  depositDate      DateTime?
-  paymentMode      String?
-  bankName         String?
-  amount           Float?           // Total deposited amount
-  notes            String?          @db.Text
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @default(now())
-  updatedBy        String?          // Clerk user id of last modifier (add migration)
-  deletedAt        DateTime?        // Soft delete timestamp
-  // Relations
-  purchaseDetails  PurchaseDetail[]
-  expenseDetails   ExpenseDetail[]
-  tdsTransactions  TDSTransaction[]
+  id              String           @id @default(uuid())
+  bsrCode         String?
+  challanSerialNo String?
+  depositDate     DateTime?
+  paymentMode     String?
+  bankName        String?
+  amount          Float?
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now())
+  updatedBy       String?
+  deletedAt       DateTime?
+  purchaseDetails PurchaseDetail[]
+  expenseDetails  ExpenseDetail[]
+  tdsTransactions TDSTransaction[]
 
   @@index([bsrCode])
   @@index([depositDate])
@@ -1412,36 +1386,35 @@ model TDSChallan {
 }
 
 model TDSTransaction {
-  id                 String      @id @default(uuid())
-  tdsType            String      @default("INCOME_TAX") // INCOME_TAX or GST
-  sectionId          String?
-  baseAmount         Float
-  appliedRate        Float
-  tdsAmount          Float
-  financialYear      String?
-  quarter            String?
-  status             String      @default("pending") // pending, deposited, certified
-  certificateNumber  String?
-  pan                String?
-  tan                String?
-  notes              String?     @db.Text
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @default(now())
-  // Relations
-  section            TDSMaster?  @relation(fields: [sectionId], references: [id])
-  challanId          String?
-  challan            TDSChallan? @relation(fields: [challanId], references: [id])
-  supplierId         String?
-  supplier           Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  customerId         String?
-  customer           Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  organizationId     String?
-  purchaseDetailId   String?
-  paymentDetailId    String?
-  expenseDetailId    String?
-  purchaseDetail     PurchaseDetail? @relation(fields: [purchaseDetailId], references: [id], onDelete: SetNull)
-  paymentDetail      PaymentDetail?
-  expenseDetail      ExpenseDetail?  @relation(fields: [expenseDetailId], references: [id], onDelete: SetNull)
+  id                String          @id @default(uuid())
+  tdsType           String          @default("INCOME_TAX")
+  sectionId         String?
+  baseAmount        Float
+  appliedRate       Float
+  tdsAmount         Float
+  financialYear     String?
+  quarter           String?
+  status            String          @default("pending")
+  certificateNumber String?
+  pan               String?
+  tan               String?
+  notes             String?         @db.Text
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now())
+  challanId         String?
+  supplierId        String?
+  customerId        String?
+  organizationId    String?
+  purchaseDetailId  String?
+  paymentDetailId   String?
+  expenseDetailId   String?
+  section           TDSMaster?      @relation(fields: [sectionId], references: [id])
+  challan           TDSChallan?     @relation(fields: [challanId], references: [id])
+  supplier          Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  customer          Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  purchaseDetail    PurchaseDetail? @relation(fields: [purchaseDetailId], references: [id], onDelete: SetNull)
+  paymentDetail     PaymentDetail?
+  expenseDetail     ExpenseDetail?  @relation(fields: [expenseDetailId], references: [id], onDelete: SetNull)
 
   @@index([sectionId])
   @@index([supplierId])
@@ -1454,15 +1427,28 @@ model TDSTransaction {
 }
 
 model TDSReturn {
-  id                String        @id @default(uuid())
-  returnType        String        // 24Q, 26Q, 27Q, 27EQ, GSTR7
-  financialYear     String
-  quarter           String
-  acknowledgmentNo  String?
-  filedDate         DateTime?
-  isRevised         Boolean       @default(false)
-  revisionNumber    Int?          @default(0)
-  notes             String?       @db.Text
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @default(now())
+  id               String    @id @default(uuid())
+  returnType       String
+  financialYear    String
+  quarter          String
+  acknowledgmentNo String?
+  filedDate        DateTime?
+  isRevised        Boolean   @default(false)
+  revisionNumber   Int?      @default(0)
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now())
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  FINANCE
+  OPERATIONS
+  VIEWER
+}
+
+enum OperationalStaffRole {
+  OPERATIONS
+  ADMIN
 }

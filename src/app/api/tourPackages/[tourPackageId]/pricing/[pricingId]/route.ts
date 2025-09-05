@@ -22,6 +22,7 @@ export async function GET(
       },
       include: {
         mealPlan: true,
+        vehicleType: true,
         locationSeasonalPeriod: true,
         pricingComponents: {
           include: {
@@ -72,6 +73,7 @@ export async function PATCH(
       endDate, 
       mealPlanId,
       numberOfRooms,
+      vehicleTypeId,
       locationSeasonalPeriodId,
       isActive,
       description,
@@ -135,6 +137,7 @@ export async function PATCH(
         endDate: dateToUtc(endDate)!,
         mealPlanId,
         numberOfRooms,
+        vehicleTypeId: vehicleTypeId || null,
         locationSeasonalPeriodId: locationSeasonalPeriodId || null,
         isActive: isActive !== undefined ? isActive : true,
         description: description || null,
@@ -145,13 +148,13 @@ export async function PATCH(
             pricingAttributeId: component.pricingAttributeId,
             price: parseFloat(component.price || 0),
             purchasePrice: component.purchasePrice ? parseFloat(component.purchasePrice) : null,
-            transportation: component.transportation || null,
             description: component.description || null
           }))
         } : undefined
       },
       include: {
         mealPlan: true,
+        vehicleType: true,
         locationSeasonalPeriod: true,
         pricingComponents: {
           include: {

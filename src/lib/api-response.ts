@@ -16,13 +16,17 @@ export async function handleApi(fn: () => Promise<NextResponse>) {
   try {
     return await fn();
   } catch (e: any) {
-    console.error('[API_ERROR]', e);
+    console.error('[API_ERROR] Error name:', e?.name);
+    console.error('[API_ERROR] Error message:', e?.message);
+    
     if (e?.code === 'FORBIDDEN') return jsonError('Forbidden', 403, 'FORBIDDEN');
     if (e?.code === 'NOT_FOUND') return jsonError('Not found', 404, 'NOT_FOUND');
     if (e?.name === 'ZodError') {
+      console.error('[API_ERROR] Validation issues:', e.issues?.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', '));
       const issue = e.issues?.[0];
       return jsonError(issue?.message || 'Validation error', 422, 'VALIDATION', e.issues);
     }
+    console.error('[API_ERROR] Unhandled error, returning 500');
     return jsonError('Internal error', 500, 'SERVER');
   }
 }

@@ -185,6 +185,7 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
   const noTourPackageQuery = searchParams.noTourPackageQuery === '1';
   if (noTourPackageQuery) {
     where.tourPackageQueries = { none: {} };
+    where.status = { notIn: ['CANCELLED'] };
   }
   const inquiries = await prismadb.inquiry.findMany({
     where,

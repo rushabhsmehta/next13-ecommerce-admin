@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { CalendarIcon, Download, FileSpreadsheet } from "lucide-react";
@@ -53,15 +53,24 @@ interface Transaction {
 
 const BankBookPage = () => {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [openingBalance, setOpeningBalance] = useState(0);
 
-  // Date range for filtering (default to last 30 days)
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 30),
-    to: new Date(),
+  // Date range for filtering, initialized from URL params or default to last 30 days
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    if (from && to) {
+      return { from: new Date(from), to: new Date(to) };
+    }
+    return {
+      from: subDays(new Date(), 30),
+      to: new Date(),
+    };
   });
 
   // Fetch bank account details
@@ -79,6 +88,23 @@ const BankBookPage = () => {
       fetchBankAccount();
     }
   }, [params.bankAccountId]);
+
+  // Update URL when date range changes
+  useEffect(() => {
+    if (dateRange.from && dateRange.to) {
+      const from = searchParams.get('from');
+      const to = searchParams.get('to');
+      const formattedFrom = format(dateRange.from, 'yyyy-MM-dd');
+      const formattedTo = format(dateRange.to, 'yyyy-MM-dd');
+
+      if (from !== formattedFrom || to !== formattedTo) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('from', formattedFrom);
+        url.searchParams.set('to', formattedTo);
+        router.replace(url.toString(), { scroll: false });
+      }
+    }
+  }, [dateRange, router, searchParams]);
 
   // Fetch transactions when date range changes
   useEffect(() => {

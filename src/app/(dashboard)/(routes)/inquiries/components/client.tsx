@@ -62,7 +62,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   const [localPeriod, setLocalPeriod] = useState<string>(searchParams.get('period') || '');
   // Add this fallback state to ensure consistent behavior
   const [isMobile, setIsMobile] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || "");
   // Keep a local copy of rows so we can update optimistically without refresh
   const [rows, setRows] = useState<InquiryColumn[]>(data);
 
@@ -167,10 +167,25 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     setLocalPeriod(period || '');
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
-      if (period && period !== 'ALL') params.set('period', period); else {
+      if (period && period !== 'ALL') {
+        params.set('period', period);
+      } else {
         params.delete('period');
         params.delete('startDate');
         params.delete('endDate');
+      }
+      router.replace(`/inquiries?${params.toString()}`);
+    });
+  };
+
+  const onSearchChange = (query: string) => {
+    setSearchQuery(query);
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (query) {
+        params.set('q', query);
+      } else {
+        params.delete('q');
       }
       router.replace(`/inquiries?${params.toString()}`);
     });
@@ -338,7 +353,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           <Input
             placeholder="Search name, phone, location..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="w-[340px]"
           />
           <div className="px-3 py-1 rounded-full border bg-white flex items-center gap-2">
@@ -438,7 +453,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
             <Input
               placeholder="Search name, phone, location..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
               className="w-full"
             />
           </div>

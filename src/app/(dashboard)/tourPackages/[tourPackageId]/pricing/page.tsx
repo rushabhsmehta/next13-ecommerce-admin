@@ -907,8 +907,8 @@ export default function TourPackagePricingPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Pricing Attribute</TableHead>
-                            <TableHead>Sales Price</TableHead>
                             <TableHead>Purchase Price</TableHead>
+                            <TableHead>Sales Price</TableHead>
                             <TableHead>Transportation</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="w-[100px]">Actions</TableHead>
@@ -949,7 +949,7 @@ export default function TourPackagePricingPage() {
                               <TableCell>
                                 <FormField
                                   control={form.control}
-                                  name={`pricingComponents.${index}.price`}
+                                  name={`pricingComponents.${index}.purchasePrice`}
                                   render={({ field }) => (
                                     <FormItem className="space-y-0">
                                       <FormControl>
@@ -957,7 +957,7 @@ export default function TourPackagePricingPage() {
                                           type="number"
                                           min="0"
                                           step="0.01"
-                                          placeholder="Sales Price"
+                                          placeholder="Purchase Price"
                                           {...field}
                                         />
                                       </FormControl>
@@ -969,7 +969,7 @@ export default function TourPackagePricingPage() {
                               <TableCell>
                                 <FormField
                                   control={form.control}
-                                  name={`pricingComponents.${index}.purchasePrice`}
+                                  name={`pricingComponents.${index}.price`}
                                   render={({ field }) => (
                                     <FormItem className="space-y-0">
                                       <FormControl>
@@ -977,7 +977,7 @@ export default function TourPackagePricingPage() {
                                           type="number"
                                           min="0"
                                           step="0.01"
-                                          placeholder="Purchase Price"
+                                          placeholder="Sales Price"
                                           {...field}
                                         />
                                       </FormControl>
@@ -1110,8 +1110,8 @@ export default function TourPackagePricingPage() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Component</TableHead>
-                              <TableHead>Sales Price</TableHead>
                               <TableHead>Purchase Price</TableHead>
+                              <TableHead>Sales Price</TableHead>
                               <TableHead>Transportation</TableHead>
                               <TableHead>Description</TableHead>
                             </TableRow>
@@ -1121,10 +1121,10 @@ export default function TourPackagePricingPage() {
                               <TableRow key={comp.id}>
                                 <TableCell>{comp.pricingAttribute?.name || 'Unknown Component'}</TableCell>
                                 <TableCell>
-                                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.price))}
+                                  {comp.purchasePrice ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.purchasePrice)) : '-'}
                                 </TableCell>
                                 <TableCell>
-                                  {comp.purchasePrice ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.purchasePrice)) : '-'}
+                                  {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(parseFloat(comp.price))}
                                 </TableCell>
                                 <TableCell>
                                   <div className="text-sm text-gray-700 max-w-[200px] truncate" title={comp.transportation || ''}>

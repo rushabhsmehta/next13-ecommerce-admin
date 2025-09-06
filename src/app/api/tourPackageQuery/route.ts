@@ -26,11 +26,32 @@ async function createItineraryAndActivities(itinerary: {
         title: itinerary.itineraryTitle,
         dayNumber: itinerary.dayNumber,
         days: itinerary.days,
+        locationId: itinerary.locationId,
         tourPackageQueryId
     });
 
+    // Strict validation - no fallback values
+    const validationErrors: string[] = [];
+    
+    if (!itinerary.itineraryTitle) {
+        validationErrors.push(`Missing itinerary title for day ${itinerary.dayNumber || 'unknown'}`);
+    }
+
+    if (!itinerary.locationId) {
+        validationErrors.push(`Missing location ID for itinerary "${itinerary.itineraryTitle || 'unknown'}"`);
+    }
+
+    if (!itinerary.dayNumber) {
+        validationErrors.push(`Missing day number for itinerary "${itinerary.itineraryTitle || 'unknown'}"`);
+    }
+
+    if (validationErrors.length > 0) {
+        console.log('❌ Itinerary validation failed:', validationErrors);
+        throw new Error(`Itinerary validation failed: ${validationErrors.join(', ')}`);
+    }
+
     try {
-        // First, create the itinerary and get its id
+        // Create the itinerary with actual values (no fallbacks)
         const createdItinerary = await prismadb.itinerary.create({
             data: {
                 itineraryTitle: itinerary.itineraryTitle,
@@ -55,7 +76,8 @@ async function createItineraryAndActivities(itinerary: {
         console.log("Created itinerary with ID:", createdItinerary.id);
 
         // Create activities in parallel with error handling
-        if (itinerary.activities && itinerary.activities.length > 0) {
+        if (itinerary.activities && Array.isArray(itinerary.activities) && itinerary.activities.length > 0) {
+            console.log('Creating activities, count:', itinerary.activities.length);
             await Promise.all(itinerary.activities.map(async (activity: { activityTitle: any; activityDescription: any; locationId: any; activityImages: any[]; }) => {
                 try {
                     return await prismadb.activity.create({
@@ -79,7 +101,19 @@ async function createItineraryAndActivities(itinerary: {
         }
 
         // Create room allocations with error handling
-        if (itinerary.roomAllocations && itinerary.roomAllocations.length > 0) {
+        console.log('🔍 CREATING ROOM ALLOCATIONS FOR ITINERARY');
+        console.log('============================================');
+        console.log('Itinerary object:', JSON.stringify(itinerary, null, 2));
+        console.log('Itinerary.roomAllocations type:', typeof itinerary.roomAllocations);
+        console.log('Itinerary.roomAllocations value:', itinerary.roomAllocations);
+        console.log('Itinerary.roomAllocations is array:', Array.isArray(itinerary.roomAllocations));
+        
+        if (itinerary.roomAllocations && Array.isArray(itinerary.roomAllocations) && itinerary.roomAllocations.length > 0) {
+            console.log('Room allocations array length:', itinerary.roomAllocations.length);
+            itinerary.roomAllocations.forEach((allocation: any, index: number) => {
+                console.log(`Room allocation ${index}:`, JSON.stringify(allocation, null, 2));
+            });
+            
             await Promise.all(itinerary.roomAllocations.map(async (roomAllocation: any) => {
                 try {
                     return await prismadb.roomAllocation.create({
@@ -102,7 +136,8 @@ async function createItineraryAndActivities(itinerary: {
         }
 
         // Create transport details with error handling
-        if (itinerary.transportDetails && itinerary.transportDetails.length > 0) {
+        if (itinerary.transportDetails && Array.isArray(itinerary.transportDetails) && itinerary.transportDetails.length > 0) {
+            console.log('Creating transport details, count:', itinerary.transportDetails.length);
             await Promise.all(itinerary.transportDetails.map(async (transport: any) => {
                 try {
                     return await prismadb.transportDetail.create({
@@ -133,7 +168,18 @@ export async function POST(
     try {
         const { userId } = auth();
 
-        const body = await req.json();        const {
+        const body = await req.json();
+        
+        console.log('🔍 TOUR PACKAGE QUERY API - POST REQUEST');
+        console.log('========================================');
+        console.log('1. Full request body:', JSON.stringify(body, null, 2));
+        console.log('2. Itineraries in body:', JSON.stringify(body.itineraries, null, 2));
+        if (body.itineraries) {
+            body.itineraries.forEach((itinerary: any, index: number) => {
+                console.log(`3. Itinerary ${index} room allocations:`, JSON.stringify(itinerary.roomAllocations, null, 2));
+            });
+        }
+        console.log('========================================');        const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -184,6 +230,23 @@ export async function POST(
             isFeatured,
             isArchived } = body;
 
+        // Log all potentially undefined arrays for debugging
+        console.log('🔍 ARRAY SAFETY CHECK');
+        console.log('=====================');
+        console.log('usefulTip type:', typeof usefulTip, 'value:', usefulTip);
+        console.log('cancellationPolicy type:', typeof cancellationPolicy, 'value:', cancellationPolicy);
+        console.log('airlineCancellationPolicy type:', typeof airlineCancellationPolicy, 'value:', airlineCancellationPolicy);
+        console.log('termsconditions type:', typeof termsconditions, 'value:', termsconditions);
+        console.log('kitchenGroupPolicy type:', typeof kitchenGroupPolicy, 'value:', kitchenGroupPolicy);
+        console.log('images type:', typeof images, 'value:', images);
+        console.log('flightDetails type:', typeof flightDetails, 'value:', flightDetails);
+        console.log('inclusions type:', typeof inclusions, 'value:', inclusions);
+        console.log('exclusions type:', typeof exclusions, 'value:', exclusions);
+        console.log('importantNotes type:', typeof importantNotes, 'value:', importantNotes);
+        console.log('paymentPolicy type:', typeof paymentPolicy, 'value:', paymentPolicy);
+        console.log('itineraries type:', typeof itineraries, 'value:', itineraries);
+        console.log('=====================');
+
         if (!userId) {
             return new NextResponse("Unauthenticated", { status: 403 });
         }
@@ -208,15 +271,63 @@ export async function POST(
                return new NextResponse("Hotel id is required", { status: 400 });
            }
     */        // Process policy fields to ensure they're arrays, then convert to strings for Prisma
-        const processedInclusions = Array.isArray(inclusions) ? JSON.stringify(inclusions) : inclusions ? JSON.stringify([inclusions]) : '';
-        const processedExclusions = Array.isArray(exclusions) ? JSON.stringify(exclusions) : exclusions ? JSON.stringify([exclusions]) : '';
-        const processedImportantNotes = Array.isArray(importantNotes) ? JSON.stringify(importantNotes) : importantNotes ? JSON.stringify([importantNotes]) : '';
-        const processedPaymentPolicy = Array.isArray(paymentPolicy) ? JSON.stringify(paymentPolicy) : paymentPolicy ? JSON.stringify([paymentPolicy]) : '';
-        const processedUsefulTip = Array.isArray(usefulTip) ? JSON.stringify(usefulTip) : usefulTip ? JSON.stringify([usefulTip]) : '';
-        const processedCancellationPolicy = Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : cancellationPolicy ? JSON.stringify([cancellationPolicy]) : '';
-        const processedAirlineCancellationPolicy = Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : airlineCancellationPolicy ? JSON.stringify([airlineCancellationPolicy]) : '';
-        const processedTermsConditions = Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : termsconditions ? JSON.stringify([termsconditions]) : '';
-        const processedKitchenGroupPolicy = Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : kitchenGroupPolicy ? JSON.stringify([kitchenGroupPolicy]) : '';
+        // Add comprehensive null/undefined safety checks for all array operations
+        console.log('🔧 Processing policy arrays with safety checks...');
+        const processedInclusions = (() => {
+            console.log('Processing inclusions:', typeof inclusions, inclusions);
+            if (inclusions === null || inclusions === undefined) return '';
+            return Array.isArray(inclusions) ? JSON.stringify(inclusions) : JSON.stringify([inclusions]);
+        })();
+        
+        const processedExclusions = (() => {
+            console.log('Processing exclusions:', typeof exclusions, exclusions);
+            if (exclusions === null || exclusions === undefined) return '';
+            return Array.isArray(exclusions) ? JSON.stringify(exclusions) : JSON.stringify([exclusions]);
+        })();
+        
+        const processedImportantNotes = (() => {
+            console.log('Processing importantNotes:', typeof importantNotes, importantNotes);
+            if (importantNotes === null || importantNotes === undefined) return '';
+            return Array.isArray(importantNotes) ? JSON.stringify(importantNotes) : JSON.stringify([importantNotes]);
+        })();
+        
+        const processedPaymentPolicy = (() => {
+            console.log('Processing paymentPolicy:', typeof paymentPolicy, paymentPolicy);
+            if (paymentPolicy === null || paymentPolicy === undefined) return '';
+            return Array.isArray(paymentPolicy) ? JSON.stringify(paymentPolicy) : JSON.stringify([paymentPolicy]);
+        })();
+        
+        const processedUsefulTip = (() => {
+            console.log('Processing usefulTip:', typeof usefulTip, usefulTip);
+            if (usefulTip === null || usefulTip === undefined) return '';
+            return Array.isArray(usefulTip) ? JSON.stringify(usefulTip) : JSON.stringify([usefulTip]);
+        })();
+        
+        const processedCancellationPolicy = (() => {
+            console.log('Processing cancellationPolicy:', typeof cancellationPolicy, cancellationPolicy);
+            if (cancellationPolicy === null || cancellationPolicy === undefined) return '';
+            return Array.isArray(cancellationPolicy) ? JSON.stringify(cancellationPolicy) : JSON.stringify([cancellationPolicy]);
+        })();
+        
+        const processedAirlineCancellationPolicy = (() => {
+            console.log('Processing airlineCancellationPolicy:', typeof airlineCancellationPolicy, airlineCancellationPolicy);
+            if (airlineCancellationPolicy === null || airlineCancellationPolicy === undefined) return '';
+            return Array.isArray(airlineCancellationPolicy) ? JSON.stringify(airlineCancellationPolicy) : JSON.stringify([airlineCancellationPolicy]);
+        })();
+        
+        const processedTermsConditions = (() => {
+            console.log('Processing termsconditions:', typeof termsconditions, termsconditions);
+            if (termsconditions === null || termsconditions === undefined) return '';
+            return Array.isArray(termsconditions) ? JSON.stringify(termsconditions) : JSON.stringify([termsconditions]);
+        })();
+        
+        const processedKitchenGroupPolicy = (() => {
+            console.log('Processing kitchenGroupPolicy:', typeof kitchenGroupPolicy, kitchenGroupPolicy);
+            if (kitchenGroupPolicy === null || kitchenGroupPolicy === undefined) return '';
+            return Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : JSON.stringify([kitchenGroupPolicy]);
+        })();
+        
+        console.log('✅ All policy arrays processed successfully');
 
         const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
@@ -267,46 +378,105 @@ export async function POST(
                 //   hotelId,
                 images: {
                     createMany: {
-                        data: [
-                            ...images.map((image: { url: string }) => image),
-                        ],
+                        data: (() => {
+                            console.log('🖼️ Processing images for createMany:');
+                            console.log('images type:', typeof images);
+                            console.log('images value:', images);
+                            console.log('images isArray:', Array.isArray(images));
+                            
+                            if (images && Array.isArray(images)) {
+                                console.log('images length:', images.length);
+                                const processedImages = images.map((image: { url: string }) => {
+                                    console.log('Processing image:', image);
+                                    return image;
+                                });
+                                console.log('Processed images:', processedImages);
+                                return processedImages;
+                            }
+                            console.log('No images to process, returning empty array');
+                            return [];
+                        })(),
                     },
                 },
                 flightDetails: {
-                    createMany: {                        data: [
-                            ...flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => flightDetail),
-                        ]
+                    createMany: {
+                        data: (() => {
+                            console.log('✈️ Processing flightDetails for createMany:');
+                            console.log('flightDetails type:', typeof flightDetails);
+                            console.log('flightDetails value:', flightDetails);
+                            console.log('flightDetails isArray:', Array.isArray(flightDetails));
+                            
+                            if (flightDetails && Array.isArray(flightDetails)) {
+                                console.log('flightDetails length:', flightDetails.length);
+                                const processedFlightDetails = flightDetails.map((flightDetail: { date: string, flightName: string, flightNumber: string, from: string, to: string, departureTime: string, arrivalTime: string, flightDuration: string }) => {
+                                    console.log('Processing flight detail:', flightDetail);
+                                    return flightDetail;
+                                });
+                                console.log('Processed flight details:', processedFlightDetails);
+                                return processedFlightDetails;
+                            }
+                            console.log('No flight details to process, returning empty array');
+                            return [];
+                        })(),
                     }
                 },
             } as any,
         });
 
-        if (itineraries && itineraries.length > 0) {
-            // Create all itineraries in parallel with better error handling
+        if (itineraries && Array.isArray(itineraries) && itineraries.length > 0) {
+            // Create all itineraries with strict validation
+            console.log(`📋 Creating ${itineraries.length} itineraries with strict validation...`);
             try {
-                await Promise.all(
-                    itineraries.map(async (itinerary: any) => {
+                const results = await Promise.all(
+                    itineraries.map(async (itinerary: any, index: number) => {
                         try {
-                            await createItineraryAndActivities(itinerary, newTourPackageQuery.id);
-                        } catch (itineraryError) {
-                            console.error('[ITINERARY_CREATION_ERROR]', {
+                            console.log(`🔄 Processing itinerary ${index + 1}/${itineraries.length}...`);
+                            const result = await createItineraryAndActivities(itinerary, newTourPackageQuery.id);
+                            console.log(`✅ Successfully created itinerary ${index + 1}`);
+                            return result;
+                        } catch (itineraryError: any) {
+                            const errorMessage = `Itinerary ${index + 1} failed: ${itineraryError.message}`;
+                            console.error('[ITINERARY_VALIDATION_ERROR]', {
+                                index: index + 1,
                                 itineraryTitle: itinerary.itineraryTitle,
                                 dayNumber: itinerary.dayNumber,
-                                error: itineraryError
+                                error: errorMessage
                             });
-                            // Re-throw to fail the entire operation if any itinerary fails
-                            throw itineraryError;
+                            // Throw error to fail the entire operation - no partial success
+                            throw new Error(errorMessage);
                         }
                     })
                 );
-            } catch (error) {
-                console.error('[ITINERARIES_CREATION_FAILED]', error);
-                // Delete the tour package query if itinerary creation fails
+                
+                console.log(`📊 All ${results.length} itineraries created successfully`);
+            } catch (error: any) {
+                console.error('[ITINERARIES_CREATION_FAILED]', error.message);
+                // Delete the tour package query since itinerary creation failed
                 await prismadb.tourPackageQuery.delete({
                     where: { id: newTourPackageQuery.id }
                 });
-                throw new Error("Failed to create itineraries");
+                // Return detailed error message to frontend
+                return new NextResponse(
+                    JSON.stringify({ 
+                        message: error.message || 'Itinerary creation failed',
+                        details: 'The tour package template has missing or invalid data. Please ensure all required fields are properly filled.'
+                    }), 
+                    { status: 400, headers: { 'Content-Type': 'application/json' } }
+                );
             }
+        } else {
+            console.log('⚠️ No itineraries provided or empty array');
+            // Delete the tour package query since no itineraries were provided
+            await prismadb.tourPackageQuery.delete({
+                where: { id: newTourPackageQuery.id }
+            });
+            return new NextResponse(
+                JSON.stringify({ 
+                    message: 'No itineraries found in the selected tour package template',
+                    details: 'The selected tour package template does not contain any itineraries. Please select a different template or contact an administrator.'
+                }), 
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
+            );
         }
 
         const createdTourPackageQuery = await prismadb.tourPackageQuery.findUnique({

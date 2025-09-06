@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { AlertCircle, AlignLeft, BedDouble, CheckIcon, ChevronDown, ChevronsUpDown, ChevronUp, FileCheck, FileText, HotelIcon, ImageIcon, ListChecks, ListPlus, MapPin, Plane, Plus, ScrollText, Tag, Trash, Type, Users, Utensils } from "lucide-react"
-import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, Inquiry, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, SaleDetail, Supplier, TourPackage } from "@prisma/client"
+import { Activity, AssociatePartner, Customer, ExpenseDetail, Images, Inquiry, ItineraryMaster, PaymentDetail, PurchaseDetail, ReceiptDetail, RoomAllocation, SaleDetail, Supplier, TourPackage, TransportDetail } from "@prisma/client"
 import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import {
@@ -199,7 +199,10 @@ const formSchema = z.object({
 export type TourPackageQueryFormValues = z.infer<typeof formSchema>
 
 interface TourPackageQueryFormProps {
-  inquiry: Inquiry | null;
+  inquiry: (Inquiry & {
+    roomAllocations?: RoomAllocation[];
+    transportDetails?: TransportDetail[];
+  }) | null;
   locations: Location[];
   // --- ADJUSTED hotels TYPE ---
   hotels: (Hotel & {
@@ -490,6 +493,12 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     console.log('=== Tour Package Selection Started ===');
     console.log('selectedTourPackageId:', selectedTourPackageId);
     
+    // Log inquiry room allocation data
+    console.log('=== Inquiry Room Allocation Data ===');
+    console.log('inquiry:', inquiry);
+    console.log('inquiry.roomAllocations:', inquiry?.roomAllocations);
+    console.log('inquiry.transportDetails:', inquiry?.transportDetails);
+    
     const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
     console.log('Found selectedTourPackage:', selectedTourPackage);
     
@@ -544,30 +553,64 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           activityDescription: activity.activityDescription || ''
         })) || [],
         hotelId: itinerary.hotelId || '', // Use optional default
-        // Map roomAllocations and transportDetails, ensuring types match the new schema
-        roomAllocations: Array.isArray((itinerary as any).roomAllocations) 
-          ? (itinerary as any).roomAllocations.map((alloc: any) => {
+        // Apply inquiry room allocations to all itinerary days if available
+        roomAllocations: (() => {
+          if (inquiry?.roomAllocations && inquiry.roomAllocations.length > 0) {
+            console.log('🏨 APPLYING INQUIRY ROOM ALLOCATIONS to day', itinerary.dayNumber);
+            console.log('Inquiry room allocations:', inquiry.roomAllocations);
+            return inquiry.roomAllocations.map((allocation: any) => ({
+              roomTypeId: allocation.roomTypeId || '',
+              occupancyTypeId: allocation.occupancyTypeId || '',
+              mealPlanId: allocation.mealPlanId || '',
+              quantity: Number(allocation.quantity) || 1,
+              guestNames: allocation.guestNames || '',
+              voucherNumber: allocation.voucherNumber || '',
+              customRoomType: allocation.customRoomType || '',
+              useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0)
+            }));
+          } else if (Array.isArray((itinerary as any).roomAllocations)) {
+            console.log('Using template room allocations for day', itinerary.dayNumber);
+            return (itinerary as any).roomAllocations.map((alloc: any) => {
               console.log('Mapping roomAllocation:', alloc);
               return {
                 roomTypeId: alloc.roomTypeId || alloc.roomType || '',
                 occupancyTypeId: alloc.occupancyTypeId || alloc.occupancyType || '',
                 mealPlanId: alloc.mealPlanId || alloc.mealPlan || '',
                 quantity: Number(alloc.quantity) || 1,
-                guestNames: alloc.guestNames || ''
+                guestNames: alloc.guestNames || '',
+                voucherNumber: alloc.voucherNumber || '',
+                customRoomType: alloc.customRoomType || '',
+                useCustomRoomType: Boolean(alloc.customRoomType && alloc.customRoomType.trim().length > 0)
               };
-            })
-          : (() => {
-              console.log('roomAllocations is not an array, setting to empty array. Value was:', (itinerary as any).roomAllocations);
-              return [];
-            })(),
-        transportDetails: Array.isArray((itinerary as any).transportDetails)
-          ? (itinerary as any).transportDetails.map((detail: any) => ({
+            });
+          } else {
+            console.log('No room allocations for day', itinerary.dayNumber, 'Value was:', (itinerary as any).roomAllocations);
+            return [];
+          }
+        })(),
+        // Apply inquiry transport details to all itinerary days if available
+        transportDetails: (() => {
+          if (inquiry?.transportDetails && inquiry.transportDetails.length > 0) {
+            console.log('🚗 APPLYING INQUIRY TRANSPORT DETAILS to day', itinerary.dayNumber);
+            console.log('Inquiry transport details:', inquiry.transportDetails);
+            return inquiry.transportDetails.map((transport: any) => ({
+              vehicleTypeId: transport.vehicleTypeId || '',
+              quantity: Number(transport.quantity) || 1,
+              description: transport.description || ''
+            }));
+          } else if (Array.isArray((itinerary as any).transportDetails)) {
+            console.log('Using template transport details for day', itinerary.dayNumber);
+            return (itinerary as any).transportDetails.map((detail: any) => ({
               vehicleTypeId: detail.vehicleTypeId || detail.vehicleType || '',
               transportType: detail.transportType || '',
               quantity: Number(detail.quantity) || 1,
               description: detail.description || ''
-            }))
-          : [],
+            }));
+          } else {
+            console.log('No transport details for day', itinerary.dayNumber);
+            return [];
+          }
+        })(),
       })) || [];
       
       console.log('=== Final transformedItineraries ===');
@@ -600,6 +643,45 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('pricingTier', (selectedTourPackage as any).pricingTier || 'standard'); // Handle pricing tier
       form.setValue('customMarkup', (selectedTourPackage as any).customMarkup || ''); // Handle custom markup
     }
+  };
+
+  // Helper function to apply inquiry room allocations to all itinerary days
+  const applyInquiryRoomAllocationsToAllDays = () => {
+    if (!inquiry?.roomAllocations || inquiry.roomAllocations.length === 0) {
+      toast.error("No room allocations found in inquiry");
+      return;
+    }
+
+    const currentItineraries = form.getValues('itineraries') || [];
+    const inquiryRoomAllocations = inquiry.roomAllocations.map((allocation: any) => ({
+      roomTypeId: allocation.roomTypeId || '',
+      occupancyTypeId: allocation.occupancyTypeId || '',
+      mealPlanId: allocation.mealPlanId || '',
+      quantity: Number(allocation.quantity) || 1,
+      guestNames: allocation.guestNames || '',
+      voucherNumber: allocation.voucherNumber || '',
+      customRoomType: allocation.customRoomType || '',
+      useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0)
+    }));
+
+    const inquiryTransportDetails = inquiry?.transportDetails && inquiry.transportDetails.length > 0
+      ? inquiry.transportDetails.map((transport: any) => ({
+          vehicleTypeId: transport.vehicleTypeId || '',
+          quantity: Number(transport.quantity) || 1,
+          description: transport.description || ''
+        }))
+      : [];
+
+    const updatedItineraries = currentItineraries.map((itinerary: any) => ({
+      ...itinerary,
+      roomAllocations: inquiryRoomAllocations,
+      transportDetails: inquiryTransportDetails.length > 0 ? inquiryTransportDetails : itinerary.transportDetails
+    }));
+
+    form.setValue('itineraries', updatedItineraries);
+    toast.success(`Applied inquiry room allocations to ${currentItineraries.length} days`);
+    console.log('🏨 Applied inquiry room allocations to all days:', inquiryRoomAllocations);
+    console.log('🚗 Applied inquiry transport details to all days:', inquiryTransportDetails);
   };
 
   const onSubmit = async (data: TourPackageQueryFormValues) => {
@@ -827,6 +909,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 form={form}
                 isAssociatePartner={true}
                 enableTourPackageSelection={true}
+                inquiry={inquiry}
+                applyInquiryRoomAllocationsToAllDays={applyInquiryRoomAllocationsToAllDays}
               />
             </TabsContent>
 
@@ -924,6 +1008,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 isAssociatePartner={true}
                 enableRoomAllocation={true}
                 enableTransport={true}
+                inquiry={inquiry || undefined} // Pass inquiry for room allocation application
                 // --- END PASS LOOKUP DATA & STATE ---
               />
             </TabsContent>

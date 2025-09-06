@@ -11,7 +11,19 @@ const TourPackageQueryPage = async ({
       id: params.inquiryId
     },
     include: {
-      associatePartner: true
+      associatePartner: true,
+      roomAllocations: {
+        include: {
+          roomType: true,
+          occupancyType: true,
+          mealPlan: true
+        }
+      },
+      transportDetails: {
+        include: {
+          vehicleType: true
+        }
+      }
     }
   });
 

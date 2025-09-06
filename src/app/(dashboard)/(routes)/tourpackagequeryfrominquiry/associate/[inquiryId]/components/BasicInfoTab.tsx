@@ -1,7 +1,7 @@
 // filepath: d:\next13-ecommerce-admin\src\components\tour-package-query\BasicInfoTab.tsx
 import { useState, useRef } from "react";
 import { Control } from "react-hook-form";
-import { FileText, ChevronDown, CheckIcon } from "lucide-react";
+import { FileText, ChevronDown, CheckIcon, BedIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
 import { AssociatePartner, TourPackage, TourPackageQuery } from "@prisma/client";
@@ -50,6 +50,9 @@ interface BasicInfoProps {
   // Add props for associate partner restrictions
   isAssociatePartner?: boolean;
   enableTourPackageSelection?: boolean;
+  // Add inquiry prop for room allocation information
+  inquiry?: any;
+  applyInquiryRoomAllocationsToAllDays?: () => void;
 }
 
 const BasicInfoTab: React.FC<BasicInfoProps> = ({
@@ -62,7 +65,9 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   handleTourPackageSelection,
   form,
   isAssociatePartner = false,
-  enableTourPackageSelection = true
+  enableTourPackageSelection = true,
+  inquiry,
+  applyInquiryRoomAllocationsToAllDays
 }) => {
   const editor = useRef(null);
 
@@ -153,6 +158,50 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
+        
+        {/* Inquiry Room Allocation Summary */}
+        {inquiry?.roomAllocations && inquiry.roomAllocations.length > 0 && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BedIcon className="h-4 w-4 text-blue-600" />
+                Inquiry Room Allocation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-sm text-blue-700">
+                <p className="font-medium mb-2">This inquiry has {inquiry.roomAllocations.length} room allocation(s):</p>
+                <div className="space-y-1">
+                  {inquiry.roomAllocations.map((allocation: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2 text-xs bg-white rounded px-2 py-1">
+                      <span>•</span>
+                      <span>{allocation.roomType?.name || 'Custom Room'}</span>
+                      <span>({allocation.occupancyType?.name || 'Unknown Occupancy'})</span>
+                      <span>x{allocation.quantity || 1}</span>
+                      {allocation.mealPlan && <span>+ {allocation.mealPlan.name}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <p className="text-xs text-blue-600 flex-1">
+                  ✓ Room allocations are automatically applied when you select a tour package template.
+                </p>
+                {applyInquiryRoomAllocationsToAllDays && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    onClick={applyInquiryRoomAllocationsToAllDays}
+                  >
+                    Apply to All Days
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Mobile-friendly responsive grid for Associate Partner section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">

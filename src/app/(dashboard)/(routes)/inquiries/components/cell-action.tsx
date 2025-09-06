@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react"
 import axios from "axios"
-import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2, MessageCircle } from "lucide-react"
+import { Copy, Edit, MoreHorizontal, Trash, PackagePlus, Loader2, MessageCircle, Zap } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useParams, useRouter } from "next/navigation"
 
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { useAssociatePartner } from "@/hooks/use-associate-partner"
 import { WhatsAppSupplierButton } from "@/components/whatsapp-supplier-button"
+import { AutomatedQueryCreationDialog } from "@/components/dialogs/automated-query-creation-dialog"
 
 import { InquiryColumn } from "./columns"
 
@@ -33,6 +34,7 @@ export const CellAction: React.FC<CellActionProps> = ({
   const [creatingQuery, setCreatingQuery] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [automatedDialogOpen, setAutomatedDialogOpen] = useState(false);
   const { isAssociatePartner } = useAssociatePartner();
 
   const onConfirm = async () => {
@@ -80,6 +82,16 @@ export const CellAction: React.FC<CellActionProps> = ({
     setWhatsappOpen(true);
   };
 
+  const onAutomatedQuery = () => {
+    setMenuOpen(false);
+    setAutomatedDialogOpen(true);
+  };
+
+  const handleAutomatedQuerySuccess = (queryId: string) => {
+    toast.success(`Tour Package Query created successfully! ID: ${queryId}`);
+    router.refresh();
+  };
+
 
   return (
     <>
@@ -107,6 +119,14 @@ export const CellAction: React.FC<CellActionProps> = ({
         isOpen={whatsappOpen}
         onOpenChange={setWhatsappOpen}
         hideButton={true}
+      />
+      
+      {/* Automated Query Creation Dialog */}
+      <AutomatedQueryCreationDialog
+        isOpen={automatedDialogOpen}
+        onClose={() => setAutomatedDialogOpen(false)}
+        inquiryId={data.id}
+        onSuccess={handleAutomatedQuerySuccess}
       />
       
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
@@ -143,7 +163,15 @@ export const CellAction: React.FC<CellActionProps> = ({
             }}
           >
             <Trash className="mr-2 h-4 w-4" /> Delete
-          </DropdownMenuItem>          <DropdownMenuItem
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem
+            onClick={onAutomatedQuery}
+          >
+            <Zap className="mr-2 h-4 w-4" /> Auto Create Query
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem
             onClick={onCreateQuery}
             disabled={creatingQuery}
           >
@@ -152,7 +180,7 @@ export const CellAction: React.FC<CellActionProps> = ({
             ) : (
               <PackagePlus className="mr-2 h-4 w-4" />
             )}
-            {creatingQuery ? "Loading..." : "Create Query"}
+            {creatingQuery ? "Loading..." : "Manual Create Query"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -5,7 +5,8 @@ import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
 import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
-import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
+// Import types we need
+import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType, Inquiry } from "@prisma/client"; // Added lookup types
 
 // Import necessary UI components
 import {
@@ -69,6 +70,10 @@ interface ItineraryTabProps {
   isAssociatePartner?: boolean; // Flag to determine if this is for associate partners
   enableRoomAllocation?: boolean; // Flag to enable room allocation section
   enableTransport?: boolean; // Flag to enable transport section
+  inquiry?: Inquiry & {
+    roomAllocations?: any[];
+    transportDetails?: any[];
+  }; // Inquiry data for room allocation application
   // --- END ASSOCIATE PARTNER PROPS ---
 }
 
@@ -88,6 +93,7 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
   isAssociatePartner = false,
   enableRoomAllocation = false,
   enableTransport = false,
+  inquiry,
   // --- END DESTRUCTURE ---
 }) => {
   // Create a refs object to store multiple editor references instead of a single ref
@@ -333,6 +339,34 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                               key={itineraryMaster.id} 
                                               onSelect={() => {
                                                 const updatedItineraries = [...value];
+                                                
+                                                // Apply inquiry room allocations and transport details
+                                                const inquiryRoomAllocations = inquiry?.roomAllocations && inquiry.roomAllocations.length > 0 
+                                                  ? inquiry.roomAllocations.map((allocation: any) => ({
+                                                      roomTypeId: allocation.roomTypeId || '',
+                                                      occupancyTypeId: allocation.occupancyTypeId || '',
+                                                      mealPlanId: allocation.mealPlanId || '',
+                                                      quantity: Number(allocation.quantity) || 1,
+                                                      guestNames: allocation.guestNames || '',
+                                                      voucherNumber: allocation.voucherNumber || '',
+                                                      customRoomType: allocation.customRoomType || '',
+                                                      useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0)
+                                                    }))
+                                                  : [];
+                                                
+                                                const inquiryTransportDetails = inquiry?.transportDetails && inquiry.transportDetails.length > 0
+                                                  ? inquiry.transportDetails.map((transport: any) => ({
+                                                      vehicleTypeId: transport.vehicleTypeId || '',
+                                                      quantity: Number(transport.quantity) || 1,
+                                                      description: transport.description || ''
+                                                    }))
+                                                  : [];
+                                                
+                                                console.log('🏨 APPLYING INQUIRY ROOM ALLOCATIONS to itinerary master selection, day', index + 1);
+                                                console.log('Inquiry room allocations:', inquiryRoomAllocations);
+                                                console.log('🚗 APPLYING INQUIRY TRANSPORT DETAILS to itinerary master selection, day', index + 1);
+                                                console.log('Inquiry transport details:', inquiryTransportDetails);
+                                                
                                                 updatedItineraries[index] = {
                                                   ...itinerary,
                                                   itineraryTitle: itineraryMaster.itineraryMasterTitle || '',
@@ -343,6 +377,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                                     activityDescription: activity.activityDescription || '',
                                                     activityImages: activity.activityImages?.map(image => ({ url: image.url })) || [],
                                                   })) || [],
+                                                  // Apply inquiry room allocations and transport details
+                                                  roomAllocations: inquiryRoomAllocations.length > 0 ? inquiryRoomAllocations : (itinerary.roomAllocations || []),
+                                                  transportDetails: inquiryTransportDetails.length > 0 ? inquiryTransportDetails : (itinerary.transportDetails || [])
                                                 };
                                                 onChange(updatedItineraries); // Update the state with the new itineraries
                                               }}

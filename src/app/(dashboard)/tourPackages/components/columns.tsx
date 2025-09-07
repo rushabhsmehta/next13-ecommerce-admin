@@ -6,6 +6,7 @@ import { ArrowUpDown } from "lucide-react"
 import { CellAction } from "./cell-action"
 import { EditableSelectCell, EditableInputCell } from "./editable-cells"
 import { Switch } from "@/components/ui/switch"
+import { useRouter } from "next/navigation";
 
 export type TourPackageColumn = {
   id: string

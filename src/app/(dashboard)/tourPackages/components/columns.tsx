@@ -106,6 +106,37 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
     },
   },
   {
+    accessorKey: "isFeatured",
+    header: "Available on Website",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center">
+        <input
+          type="checkbox"
+          checked={row.original.isFeatured}
+          onChange={async (e) => {
+            const newValue = e.target.checked;
+            // Here you would typically call an API to update the value
+            console.log(`Updating isFeatured for ${row.original.id} to ${newValue}`);
+            try {
+              await fetch(`/api/tourPackages/${row.original.id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ isFeatured: newValue }),
+              });
+              // Optionally, refresh data or show a toast notification
+            } catch (error) {
+              console.error("Failed to update isFeatured status", error);
+              // Handle error, maybe revert checkbox state or show error message
+            }
+          }}
+          className="h-4 w-4"
+        />
+      </div>
+    ),
+  },
+  {
     id: "actions",
     cell: ({ row }) => <CellAction data={row.original} />
   },
@@ -196,6 +227,37 @@ export const createColumns = (readOnly: boolean = false): ColumnDef<TourPackageC
     cell: ({ row }) => {
       return <div className="font-medium">{row.getValue("updatedAt")}</div>
     },
+  },
+  {
+    accessorKey: "isFeatured",
+    header: "Available on Website",
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center">
+        <input
+          type="checkbox"
+          checked={row.original.isFeatured}
+          onChange={async (e) => {
+            const newValue = e.target.checked;
+            // Here you would typically call an API to update the value
+            console.log(`Updating isFeatured for ${row.original.id} to ${newValue}`);
+            try {
+              await fetch(`/api/tourPackages/${row.original.id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ isFeatured: newValue }),
+              });
+              // Optionally, refresh data or show a toast notification
+            } catch (error) {
+              console.error("Failed to update isFeatured status", error);
+              // Handle error, maybe revert checkbox state or show error message
+            }
+          }}
+          className="h-4 w-4"
+        />
+      </div>
+    ),
   },
   {
     id: "actions",

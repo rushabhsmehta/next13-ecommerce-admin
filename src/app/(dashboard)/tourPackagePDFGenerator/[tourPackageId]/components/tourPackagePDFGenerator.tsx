@@ -83,35 +83,22 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
 
   // --- Helper styles (converted from your Tailwind classes) ---
   const containerStyle =
-    "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto;";
+    "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto; background:#fafaf9;";
   const cardStyle =
-    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden;";
+    "border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 6px 14px rgba(0,0,0,0.06); margin-bottom: 16px; overflow: hidden; background:#ffffff;";
   const headerStyle =
-    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px; text-align: center;";
+    "background: linear-gradient(90deg, #f97316, #fb923c); color: #ffffff; padding: 16px; text-align: center;";
   const contentStyle =
-    "padding: 16px; background: #ffffff; color: #4a5568; font-size: 16px;";
+    "padding: 16px; background: #ffffff; color: #374151; font-size: 16px;";
   const sectionTitleStyle =
     "font-size: 24px; font-weight: bold; margin: 0;";
   const subTitleStyle =
     "font-size: 18px; font-weight: bold; margin-right: 8px;";
   const textStyle = "font-size: 16px; color: #1a202c;";
   const gradientFooter =
-    "background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 16px;";
+    "background: linear-gradient(90deg, #f97316, #fb923c); color: #ffffff; padding: 16px;";
 
-  // Add this helper function
-  const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
-    if (!pricingData) return [];
-    
-    try {
-      if (typeof pricingData === 'string') {
-        return JSON.parse(pricingData);
-      }
-      return Array.isArray(pricingData) ? pricingData : [];
-    } catch (e) {
-      console.error("Error parsing pricing section:", e);
-      return [];
-    }
-  };
+  //
 
   // --- Build HTML content ---
   const buildHtmlContent = useCallback((): string => {
@@ -179,7 +166,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       </div>
     `;
 
-    // 3. Tour Pricing Section (if applicable)
+  // 3. Tour Pricing Section (if applicable)
     const pricingSection =
       initialData.price && initialData.price.trim() !== ""
         ? `
@@ -234,77 +221,50 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     `
         : "";
 
-    // Add this new section in buildHtmlContent
-    const dynamicPricingSection = 
-      initialData.pricingSection
-        ? `
-        <div style="${cardStyle}; page-break-inside: avoid; margin-top: 20px;">
-          <div style="${headerStyle}">
-            <h2 style="${sectionTitleStyle}">Detailed Pricing Options</h2>
-          </div>
-          <div style="padding: 16px;">
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb;">
-              <thead>
-                <tr style="background-color: #f2f2f2;">
-                  <th style="width: 30%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Type</th>
-                  <th style="width: 30%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Price</th>
-                  <th style="width: 40%; padding: 12px; text-align: left; border: 1px solid #bfbfbf; font-weight: bold; font-size: 14px;">Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${parsePricingSection(initialData.pricingSection).map((item, index) => `
-                  <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-                    <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.name || ''}</td>
-                    <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.price || 'Contact for pricing'}</td>
-                    <td style="padding: 12px; border: 1px solid #bfbfbf; font-size: 14px;">${item.description || '-'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+    // 5. Hotels Summary Section (aggregated from itineraries)
+    const hotelsSummary = (initialData.itineraries || [])
+      .filter((it) => it.hotelId && hotels.find((h) => h.id === it.hotelId))
+      .map((it) => ({
+        dayNumber: it.dayNumber,
+        days: it.days,
+        roomCategory: it.roomCategory,
+        mealsIncluded: it.mealsIncluded,
+        hotel: hotels.find((h) => h.id === it.hotelId)!,
+      }))
+      .sort((a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0));
+
+    const hotelsSection = hotelsSummary.length > 0 ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}">
+          <h2 style="${sectionTitleStyle}">Hotels</h2>
+        </div>
+        <div style="${contentStyle}">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+            ${hotelsSummary
+              .map(({ dayNumber, days, roomCategory, mealsIncluded, hotel }) => `
+                <div style="border:1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background:#ffffff;">
+                  <div style="position: relative; width: 100%; height: 160px; background:#f3f4f6;">
+                    ${hotel.images?.[0]?.url ? `<a href="${hotel.link || '#'}" target="_blank" rel="noopener noreferrer"><img src="${hotel.images[0].url}" alt="${hotel.name}" style="width:100%; height:100%; object-fit:cover; display:block;" /></a>` : ''}
+                    <div style="position:absolute; top:8px; left:8px; background: rgba(249,115,22,0.95); color:#fff; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700;">
+                      Day ${dayNumber}${days ? `: ${days}` : ''}
+                    </div>
+                  </div>
+                  <div style="padding:12px;">
+                    <div style="font-size:16px; font-weight:700; color:#111827; margin-bottom:4px;">
+                      <a href="${hotel.link || '#'}" target="_blank" rel="noopener noreferrer" style="color:#111827; text-decoration:none;">${hotel.name || 'Hotel'}</a>
+                    </div>
+                    ${roomCategory ? `<div style=\"font-size:14px; color:#374151; margin-bottom:4px;\"><span style=\"font-weight:600;\">Room:</span> ${roomCategory}</div>` : ''}
+                    ${mealsIncluded ? `<div style=\"font-size:14px; color:#374151;\"><span style=\"font-weight:600;\">Meal Plan:</span> ${mealsIncluded}</div>` : ''}
+                  </div>
+                </div>
+              `)
+              .join("")}
           </div>
         </div>
-        `
-        : '';
-
-    // 6. Tour Highlights Section
-    const highlightsSection = (initialData.itineraries && initialData.itineraries.length > 0)
-      ? `
-      <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
-        <!-- Section Header -->
-        <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
-          Tour Highlights
-        </h2>
-        <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
-          <thead>
-            <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
-              <th style="width: 20%; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; border: 1px solid #ddd;">
-                Day
-              </th>
-              <th style="width: 80%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border: 1px solid #ddd;">
-                Description
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            ${initialData.itineraries
-        .map(
-          (itinerary) => `
-              <tr style="border: 1px solid #ddd; background: #fff; color: #333;">
-                <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: center; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
-                  Day ${itinerary.dayNumber}: ${itinerary.days}
-                </td>
-                <td style="width: 90%; padding: 12px; vertical-align: middle; font-size: 16px; font-weight: bold; border: 1px solid #ddd;">
-                  ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
-                </td>
-              </tr>
-            `
-        )
-        .join("")}
-          </tbody>
-        </table>
       </div>
-    `
-      : "";
+    ` : '';
+
+    // 6. (Removed) Tour Highlights Section per requirement
 
 
     // 7. Flight Details Section (if applicable)
@@ -355,7 +315,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       // Render the Itinerary header once.
       itinerariesSection += `
         <div style="${cardStyle} page-break-before: always">
-          <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center;">
+          <div style="${headerStyle}">
             <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Itinerary</h2>
           </div>
         </div>
@@ -367,14 +327,14 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
           <!-- Itinerary Header -->
        <div style="display: flex; margin-bottom: 8px;">
     <!-- Left Box: Day and Days -->
-   <div style="flex: 0 0 20%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; align-items: center; justify-content: center;">
+  <div style="flex: 0 0 20%; background: linear-gradient(90deg, #f97316, #fb923c); color: white; padding: 8px; text-align: center; display: flex; align-items: center; justify-content: center;">
     <p style="font-size: 24px; font-weight: bold; margin: 0;">
       Day ${itinerary.dayNumber}: ${itinerary.days}
     </p>
   </div>
   
     <!-- Right Box: Description -->
-    <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
+   <div style="flex: 1; background: linear-gradient(90deg, #f97316, #fb923c); color: white; padding: 16px; text-align: left;">
       <p style="font-size: 24px; font-weight: bold; margin: 0;">
         ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
       </p>
@@ -418,87 +378,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
               .join("")
             : ""
           }
-    <!-- Hotel Details Section -->
-${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
-            ? `
-    <div style="${cardStyle}">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: center;">
-        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Hotel Details</h2>
-      </div>
-      <div style="padding: 16px;">
-        ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images.length === 1
-              ? `
-              <div style="display: flex; gap: 16px; margin-bottom: 16px;">
-                <div style="width: 250px; height: 250px;">
-                  <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                    <img src="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images[0].url}" 
-                         alt="Hotel Image" 
-                         style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                  </a>
-                </div>
-                <div>
-                  <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
-                  <div style="font-size: 16px; margin-bottom: 8px;">
-                    <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                      ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
-                    </a>
-                  </div>
-               
-                  ${itinerary.roomCategory
-                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
-                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
-                : ""
-              }
-                  ${itinerary.mealsIncluded
-                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
-                       <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
-                : ""
-              }
-                </div>
-              </div>
-            `
-              : `
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
-                ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.images
-                .map(
-                  (img) => `
-                      <div style="width: 250px; height: 250px;">
-                        <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                          <img src="${img.url}" alt="Hotel Image" 
-                               style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                        </a>
-                      </div>
-                    `
-                )
-                .join("")
-              }
-              </div>
-              <div>
-                <div style="font-weight: bold; font-size: 16px;">Hotel Name:</div>
-                <div style="font-size: 16px; margin-bottom: 8px;">
-                  <a href="${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.link}" target="_blank" rel="noopener noreferrer">
-                    ${hotels.find((hotel) => hotel.id === itinerary.hotelId)?.name || ""}
-                  </a>
-                </div>
-            
-                ${itinerary.roomCategory
-                ? `<div style="font-weight: bold; font-size: 16px;">Room Category:</div>
-                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.roomCategory}</div>`
-                : ""
-              }
-                ${itinerary.mealsIncluded
-                ? `<div style="font-weight: bold; font-size: 16px;">Meal Plan:</div>
-                     <div style="font-size: 16px; margin-bottom: 8px;">${itinerary.mealsIncluded}</div>`
-                : ""
-              }
-              </div>
-            `
-            }
-      </div>
-    </div>
-  `
-            : ""
-          }
+          
            <!-- Activities Section -->
             ${itinerary.activities && itinerary.activities.length > 0
             ? `
@@ -706,9 +586,8 @@ ${itinerary.hotelId && hotels.find((hotel) => hotel.id === itinerary.hotelId)
       <div style="${containerStyle}">
         ${headerSection}
         ${tourInfoSection}
-        ${dynamicPricingSection}
         ${totalPriceSection}
-        ${highlightsSection}
+  ${hotelsSection}
         ${flightSection}
         ${itinerariesSection}
         ${inclusionsSection}

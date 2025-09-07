@@ -10,7 +10,7 @@ import {
   Itinerary,
   TourPackage,
 } from "@prisma/client";
-import { format } from "date-fns";
+// import { format } from "date-fns";
 
 interface TourPackagePDFGeneratorProps {
   initialData: TourPackage & {
@@ -85,7 +85,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
   const containerStyle =
     "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto; background:#fafaf9;";
   const cardStyle =
-    "border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 6px 14px rgba(0,0,0,0.06); margin-bottom: 16px; overflow: hidden; background:#ffffff;";
+  "border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 6px 14px rgba(0,0,0,0.06); margin-bottom: 16px; overflow: hidden; background:#ffffff; page-break-inside: avoid; break-inside: avoid;";
   const headerStyle =
     "background: linear-gradient(90deg, #f97316, #fb923c); color: #ffffff; padding: 16px; text-align: center;";
   const contentStyle =
@@ -99,6 +99,44 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     "background: linear-gradient(90deg, #f97316, #fb923c); color: #ffffff; padding: 16px;";
 
   //
+  // Policy parsing helpers (aligned with Tour Package Query PDF)
+  const extractText = (obj: any): string => {
+    if (!obj) return '';
+    for (const k of ['text','value','description','label','name']) {
+      if (obj[k]) return String(obj[k]);
+    }
+    return String(obj);
+  };
+
+  const parsePolicyField = (field: any): string[] => {
+    if (!field) return [];
+    try {
+      if (typeof field === 'string') {
+        try {
+          const parsed = JSON.parse(field);
+          if (Array.isArray(parsed)) return parsed.map(i => typeof i === 'string' ? i : extractText(i));
+        } catch {
+          return field.split(/\n|•|-|\u2022/).map(s => s.trim()).filter(Boolean);
+        }
+        return [field];
+      }
+      if (Array.isArray(field)) {
+        return field.flatMap(item => {
+          if (item == null) return [];
+          if (typeof item === 'string') return [item];
+          if (typeof item === 'object') return [extractText(item)];
+          return [String(item)];
+        }).filter(Boolean);
+      }
+      if (typeof field === 'object') {
+        const vals = Object.values(field as any);
+        return vals.flatMap(v => parsePolicyField(v));
+      }
+      return [String(field)];
+    } catch {
+      return [];
+    }
+  };
 
   // --- Build HTML content ---
   const buildHtmlContent = useCallback((): string => {
@@ -209,13 +247,31 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
       `
         : "";
 
-    // 4. Total Price Section
+    // 4. Total Price Section (revamped styling + INR formatting)
+    const formatINR = (val: string) => {
+      try {
+        const n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
+        if (isNaN(n)) return String(val);
+        return n.toLocaleString('en-IN');
+      } catch { return String(val); }
+    };
+
     const totalPriceSection =
       initialData.totalPrice && initialData.totalPrice.trim() !== ""
         ? `
-      <div style="${cardStyle}; padding: 16px;">
-        <div style="font-weight: bold; font-size: 20px; background: #f7fafc; padding: 12px; border-radius: 8px; color: #f97316;">
-          Total Price: ${initialData.totalPrice}
+      <div style="${cardStyle}; border: 2px solid #fed7aa; border-radius: 12px; overflow: hidden;">
+        <div style="background: #fafafa; padding: 20px;">
+          <h3 style="font-size: 28px; font-weight: 800; background: linear-gradient(to right, #fb923c, #f87171, #f472b6); -webkit-background-clip: text; color: transparent; margin: 0;">
+            🎯 Total Package Price
+          </h3>
+        </div>
+        <div style="padding: 24px; text-align: center;">
+          <div style="font-size: 48px; font-weight: 800; color: #111827; margin-bottom: 12px;">
+            <span style="color:#ea580c;">₹ </span>${formatINR(initialData.totalPrice)}
+          </div>
+          <div style="font-size: 16px; color: #374151; background: #fff7ed; padding: 10px 16px; border-radius: 999px; display: inline-block;">
+            <span style="font-weight: 600;">Final Tour Package Cost</span>
+          </div>
         </div>
       </div>
     `
@@ -417,169 +473,173 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
     }
 
 
-    // 10. Inclusions, Exclusions, Important Notes, Payment Policy, Terms, Cancellation Policies
-    const renderPolicyContent = (policyData: any): string => {
-      if (!policyData) return "";
-      
-      try {
-        // If policyData is already a string (legacy data), use it directly
-        if (typeof policyData === 'string') {
-          return policyData            
-        }
-        
-        // If it's JSON, parse it and render as HTML
-        const parsedData = typeof policyData === 'object' ? policyData : JSON.parse(policyData);
-        
-        if (Array.isArray(parsedData)) {
-          return parsedData.map(item => {
-            if (typeof item === 'string') {
-              return `<div style="margin-bottom: 8px;">• ${item}</div>`;
-            } else if (item.type === 'bullet' && item.text) {
-              return `<div style="margin-bottom: 8px;">• ${item.text}</div>`;
-            } else if (item.type === 'paragraph' && item.text) {
-              return `<div style="margin-bottom: 12px;">${item.text}</div>`;
-            } else if (item.text) {
-              return `<div style="margin-bottom: 8px;">${item.text}</div>`;
-            }
-            return '';
-          }).join('');
-        } else if (typeof parsedData === 'object' && parsedData !== null) {
-          // Handle object format if needed
-          return Object.values(parsedData).map(item => 
-            typeof item === 'string' ? `<div style="margin-bottom: 8px;">• ${item}</div>` : ''
-          ).join('');
-        }
-        
-        return JSON.stringify(parsedData);
-      } catch (e) {
-        // If JSON parsing fails, treat it as a string
-        console.error("Policy parsing error:", e);
-        return String(policyData)
-       
-      }
+    // 10. Policies with location fallbacks and bullet list rendering
+    const loc = locations.find((l) => l.id === initialData.locationId) as any;
+    const withFallback = (primary: any, fallback: any) => {
+      const primaryParsed = parsePolicyField(primary);
+      if (primaryParsed.length > 0) return primaryParsed;
+      return parsePolicyField(fallback);
     };
 
-    const inclusionsSection = initialData.inclusions
+    const inclusionsArr = withFallback(initialData.inclusions, loc?.inclusions);
+    const exclusionsArr = withFallback(initialData.exclusions, loc?.exclusions);
+    const importantArr = withFallback(initialData.importantNotes, loc?.importantNotes);
+    const paymentArr = withFallback(initialData.paymentPolicy, loc?.paymentPolicy);
+    const kitchenArr = withFallback(initialData.kitchenGroupPolicy, loc?.kitchenGroupPolicy);
+    const termsArr = withFallback(initialData.termsconditions, loc?.termsconditions);
+    const cancelArr = withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy);
+    const airlineCancelArr = withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy);
+    const usefulTipsArr = withFallback((initialData as any).usefulTip, loc?.usefulTip);
+
+    const renderBulletList = (items: string[]) => items.map(i => `<div style="margin-bottom: 8px;">• ${i}</div>`).join('');
+
+    const inclusionsSection = inclusionsArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.inclusions)}
+          ${renderBulletList(inclusionsArr)}
         </div>
       </div>
       `
       : "";
-    const exclusionsSection = initialData.exclusions
+    const exclusionsSection = exclusionsArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.exclusions)}
+          ${renderBulletList(exclusionsArr)}
         </div>
       </div>
       `
       : "";
-    const importantNotesSection = initialData.importantNotes
+    const importantNotesSection = importantArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.importantNotes)}
+          ${renderBulletList(importantArr)}
         </div>
       </div>
       `
       : "";
-    const paymentPolicySection = initialData.paymentPolicy
+    const paymentPolicySection = paymentArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.paymentPolicy)}
+          ${renderBulletList(paymentArr)}
         </div>
       </div>
       `
       : "";
-    const kitchenGroupPolicySection = initialData.kitchenGroupPolicy
+    const kitchenGroupPolicySection = kitchenArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Kitchen Group Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.kitchenGroupPolicy)}
+          ${renderBulletList(kitchenArr)}
         </div>
       </div>
       `
       : "";
-    const termsConditionsSection = initialData.termsconditions
+    const termsConditionsSection = termsArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.termsconditions)}
+          ${renderBulletList(termsArr)}
         </div>
       </div>
       `
       : "";
-    const cancellationPolicySection = initialData.cancellationPolicy
+    const cancellationPolicySection = cancelArr.length
       ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.cancellationPolicy)}
+          ${renderBulletList(cancelArr)}
         </div>
       </div>
       `
       : "";
-    const airlineCancellationSection = initialData.airlineCancellationPolicy
+    const airlineCancellationSection = airlineCancelArr.length
       ? `
       <div style="${cardStyle}">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
-          ${renderPolicyContent(initialData.airlineCancellationPolicy)}
+          ${renderBulletList(airlineCancelArr)}
+        </div>
+      </div>
+      `
+      : "";
+    const usefulTipsSection = usefulTipsArr.length
+      ? `
+      <div style="${cardStyle}">
+        <div style="${headerStyle}; display: flex; align-items: center;">
+          <div style="font-size: 24px; font-weight: bold;">Useful Tips</div>
+        </div>
+        <div style="${contentStyle}; font-size: 16px;">
+          ${renderBulletList(usefulTipsArr)}
         </div>
       </div>
       `
       : "";
 
-    // 16. Company Information Section
-    const companyInfoSection = `
+    // 16. Company Information Section (aligned with Query PDF)
+    let companySection = "";
+    if (
+      selectedOption !== "Empty" &&
+      selectedOption !== "SupplierA" &&
+      selectedOption !== "SupplierB"
+    ) {
+      companySection = `
       <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center; border-radius: 8px;">
-      <div style="width: 120px; height: 120px; position: relative; padding: 8px; margin-right: 16px;">
-        <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        <div style="width: 120px; height: 120px; margin-right: 16px;">
+          <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+          <div style="font-size:18px; background: linear-gradient(to right, #fb923c, #ef4444); -webkit-background-clip: text; color: transparent;">${currentCompany.name || ''}</div>
+          <div>${currentCompany.address}</div>
+          <div>Phone: ${currentCompany.phone}</div>
+          <div>Email: <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">${currentCompany.email}</a></div>
+          <div>Website: <a href="${currentCompany.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${currentCompany.website}</a></div>
+        </div>
       </div>
-      <ul style="list-style-type: none; margin: 0; padding: 0; font-weight: bold; color: #1a202c;">
-        <li>${currentCompany.address}</li>
-        <li>Phone: ${currentCompany.phone}</li>
-        <li>
-        Email: 
-        <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">
-          ${currentCompany.email}
-        </a>
-        </li>
-        <li>
-        Website: 
-        <a href="${currentCompany.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">
-          ${currentCompany.website}
-        </a>
-        </li>
-      </ul>
+      `;
+    } else if (selectedOption === "SupplierA" || selectedOption === "SupplierB") {
+      const ah = companyInfo.AH;
+      companySection = `
+      <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center; border-radius: 8px;">
+        <div style="width: 120px; height: 120px; margin-right: 16px;">
+          <img src="${ah.logo}" alt="${ah.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
+        </div>
+        <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
+          <div style="font-size:18px; background: linear-gradient(to right, #fb923c, #ef4444); -webkit-background-clip: text; color: transparent;">${ah.name}</div>
+          <div>${ah.address}</div>
+          <div>Phone: ${ah.phone}</div>
+          <div>Email: <a href="mailto:${ah.email}" style="color: #2563eb; text-decoration: underline;">${ah.email}</a></div>
+          <div>Website: <a href="${ah.website || '#'}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${ah.website}</a></div>
+        </div>
       </div>
-    `;
+      `;
+    }
 
     // Combine all sections into the final HTML content
     return `
@@ -598,9 +658,10 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         ${termsConditionsSection}
         ${cancellationPolicySection}
         ${airlineCancellationSection}
-        ${companyInfoSection}      </div>
+  ${usefulTipsSection}
+  ${companySection}      </div>
     `;
-  }, [initialData, currentCompany, locations, hotels]);
+  }, [initialData, currentCompany, locations, hotels, parsePolicyField, selectedOption]);
   const generatePDF = useCallback(async () => {
     setLoading(true);
 

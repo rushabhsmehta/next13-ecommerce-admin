@@ -24,8 +24,8 @@ export async function PATCH(
       return new NextResponse("Field and value are required", { status: 400 });
     }
 
-    // Define allowed fields for security
-    const allowedFields = ['tourPackageType', 'tourCategory', 'numDaysNight'];
+  // Define allowed fields for security
+  const allowedFields = ['tourPackageType', 'tourCategory', 'numDaysNight', 'isFeatured', 'isArchived'];
     
     if (!allowedFields.includes(field)) {
       return new NextResponse("Field not allowed for update", { status: 400 });

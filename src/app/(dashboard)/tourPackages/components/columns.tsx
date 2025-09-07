@@ -7,6 +7,42 @@ import { CellAction } from "./cell-action"
 import { EditableSelectCell, EditableInputCell } from "./editable-cells"
 import { Switch } from "@/components/ui/switch"
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+
+// Local cell component to toggle isFeatured with optimistic UI
+const FeaturedToggle = ({ id, initial }: { id: string; initial: boolean }) => {
+  const router = useRouter();
+  const [value, setValue] = useState<boolean>(initial);
+  const [busy, setBusy] = useState<boolean>(false);
+
+  const update = async (next: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    const prev = value;
+    setValue(next); // optimistic
+    try {
+      const res = await fetch(`/api/tourPackages/${id}/field-update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ field: 'isFeatured', value: next })
+      });
+      if (!res.ok) throw new Error('Update failed');
+      toast.success(next ? 'Made available on website' : 'Removed from website');
+      router.refresh();
+    } catch (e) {
+      console.error(e);
+      setValue(prev); // revert
+      toast.error('Could not update');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Switch checked={value} onCheckedChange={update} disabled={busy} />
+  );
+};
 
 export type TourPackageColumn = {
   id: string
@@ -112,27 +148,7 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
     header: "Available on Website",
     cell: ({ row }) => (
       <div className="flex items-center justify-center">
-        <Switch
-          checked={row.original.isFeatured}
-          onCheckedChange={async (checked) => {
-            // Here you would typically call an API to update the value
-            console.log(`Updating isFeatured for ${row.original.id} to ${checked}`);
-            try {
-              await fetch(`/api/tourPackages/${row.original.id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ isFeatured: checked }),
-              });
-              // Optionally, refresh data or show a toast notification
-            } catch (error) {
-              console.error("Failed to update isFeatured status", error);
-              // Handle error, maybe revert checkbox state or show error message
-            }
-          }}
-          className="h-4 w-4"
-        />
+        <FeaturedToggle id={row.original.id} initial={row.original.isFeatured} />
       </div>
     ),
   },
@@ -233,27 +249,7 @@ export const createColumns = (readOnly: boolean = false): ColumnDef<TourPackageC
     header: "Available on Website",
     cell: ({ row }) => (
       <div className="flex items-center justify-center">
-        <Switch
-          checked={row.original.isFeatured}
-          onCheckedChange={async (checked) => {
-            // Here you would typically call an API to update the value
-            console.log(`Updating isFeatured for ${row.original.id} to ${checked}`);
-            try {
-              await fetch(`/api/tourPackages/${row.original.id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ isFeatured: checked }),
-              });
-              // Optionally, refresh data or show a toast notification
-            } catch (error) {
-              console.error("Failed to update isFeatured status", error);
-              // Handle error, maybe revert checkbox state or show error message
-            }
-          }}
-          className="h-4 w-4"
-        />
+        <FeaturedToggle id={row.original.id} initial={row.original.isFeatured} />
       </div>
     ),
   },

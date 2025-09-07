@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowUpDown } from "lucide-react"
 import { CellAction } from "./cell-action"
 import { EditableSelectCell, EditableInputCell } from "./editable-cells"
+import { Switch } from "@/components/ui/switch"
 
 export type TourPackageColumn = {
   id: string
@@ -110,20 +111,18 @@ export const columns: ColumnDef<TourPackageColumn>[] = [
     header: "Available on Website",
     cell: ({ row }) => (
       <div className="flex items-center justify-center">
-        <input
-          type="checkbox"
+        <Switch
           checked={row.original.isFeatured}
-          onChange={async (e) => {
-            const newValue = e.target.checked;
+          onCheckedChange={async (checked) => {
             // Here you would typically call an API to update the value
-            console.log(`Updating isFeatured for ${row.original.id} to ${newValue}`);
+            console.log(`Updating isFeatured for ${row.original.id} to ${checked}`);
             try {
               await fetch(`/api/tourPackages/${row.original.id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ isFeatured: newValue }),
+                body: JSON.stringify({ isFeatured: checked }),
               });
               // Optionally, refresh data or show a toast notification
             } catch (error) {
@@ -233,20 +232,18 @@ export const createColumns = (readOnly: boolean = false): ColumnDef<TourPackageC
     header: "Available on Website",
     cell: ({ row }) => (
       <div className="flex items-center justify-center">
-        <input
-          type="checkbox"
+        <Switch
           checked={row.original.isFeatured}
-          onChange={async (e) => {
-            const newValue = e.target.checked;
+          onCheckedChange={async (checked) => {
             // Here you would typically call an API to update the value
-            console.log(`Updating isFeatured for ${row.original.id} to ${newValue}`);
+            console.log(`Updating isFeatured for ${row.original.id} to ${checked}`);
             try {
               await fetch(`/api/tourPackages/${row.original.id}`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ isFeatured: newValue }),
+                body: JSON.stringify({ isFeatured: checked }),
               });
               // Optionally, refresh data or show a toast notification
             } catch (error) {

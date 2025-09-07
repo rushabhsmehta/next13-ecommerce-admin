@@ -543,11 +543,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <!-- Itinerary Header -->
      <div style="display: flex; margin-bottom: 8px;">
   <!-- Left Box: Day and Days -->
- <div style="flex: 0 0 30%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; align-items: center; justify-content: center;">
-  <p style="font-size: 24px; font-weight: bold; margin: 0;">
-    Day ${itinerary.dayNumber}: ${itinerary.days}
-  </p>
-</div>
+  <div style="flex: 0 0 20%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <p style="font-size: 24px; font-weight: bold; margin: 0;">Day ${itinerary.dayNumber}</p>
+    <p style="font-size: 18px; font-weight: bold; margin: 0;">${itinerary.days}</p>
+  </div>
 
   <!-- Right Box: Description -->
   <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">

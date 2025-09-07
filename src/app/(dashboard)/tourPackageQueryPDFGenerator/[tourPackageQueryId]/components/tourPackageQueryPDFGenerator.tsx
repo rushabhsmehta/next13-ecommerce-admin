@@ -304,6 +304,36 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   // Legacy Tour Pricing section removed to match display page.
   const pricingSection = "";
 
+  // Function to parse pricing section JSON data
+  const parsePricingSection = (pricingData: any): Array<{name?: string, price?: string, description?: string}> => {
+    console.log('🔍 PDF Generator - Parsing pricing data:', pricingData);
+    if (!pricingData) return [];
+    try {
+      // If it's already an array, return it
+      if (Array.isArray(pricingData)) {
+        console.log('✅ Pricing data is array:', pricingData);
+        return pricingData;
+      }
+      // If it's a JSON string, parse it
+      if (typeof pricingData === 'string') {
+        const parsed = JSON.parse(pricingData);
+        console.log('✅ Parsed pricing data from string:', parsed);
+        return parsed;
+      }
+      // If it's an object, try to extract pricing items
+      if (typeof pricingData === 'object') {
+        const values = Object.values(pricingData).filter((item: any) => 
+          item && typeof item === 'object' && (item.name || item.price)
+        ) as Array<{name?: string, price?: string, description?: string}>;
+        console.log('✅ Extracted pricing data from object:', values);
+        return values;
+      }
+    } catch (error) {
+      console.error('❌ Error parsing pricing section:', error);
+    }
+    return [];
+  };
+
     // 5. Total Price Section
     const formatINR = (val: string) => {
       try {
@@ -333,6 +363,48 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
     `
         : "";
+
+    // 5.5. Dynamic Pricing Section - Display pricing breakdown if available
+    console.log("PDF Generator - initialData pricingSection:", {
+      pricingSection: initialData.pricingSection
+    });
+
+    let dynamicPricingSection = "";
+    
+    // Get pricing data from the pricingSection field
+    const pricingData = initialData.pricingSection;
+
+    if (pricingData) {
+      const parsedPricing = parsePricingSection(pricingData);
+      console.log("PDF Generator - parsed pricing:", parsedPricing);
+      
+      if (parsedPricing && parsedPricing.length > 0) {
+        const pricingItems = parsedPricing.map(item => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <div>
+              <div style="font-weight: 600; color: #111827;">${item.name || 'Pricing Component'}</div>
+              ${item.description ? `<div style="font-size: 14px; color: #6b7280; margin-top: 4px;">${item.description}</div>` : ''}
+            </div>
+            <div style="font-size: 18px; font-weight: 700; color: #ea580c;">
+              ${item.price || 'Price on request'}
+            </div>
+          </div>
+        `).join('');
+
+        dynamicPricingSection = `
+          <div style="${cardStyle}; border: 2px solid #fed7aa; border-radius: 12px; overflow: hidden;">
+            <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 20px;">
+              <h3 style="font-size: 24px; font-weight: 800; margin: 0; display: flex; align-items: center;">
+                💰 Pricing Breakdown
+              </h3>
+            </div>
+            <div style="padding: 24px; background: #ffffff;">
+              ${pricingItems}
+            </div>
+          </div>
+        `;
+      }
+    }
 
     // 6. Remarks Section
     const remarksSection =
@@ -773,46 +845,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       `
       : "";
 
-   // Add this new section in buildHtmlContent
-   const dynamicPricingSection = 
-   initialData.pricingSection && selectedOption !== "Empty" &&
-   selectedOption !== "SupplierA" &&
-   selectedOption !== "SupplierB"
-     ? `
-  <div style="${cardStyle}; page-break-inside: avoid; page-break-before: always; margin-top: 20px; border: 1px solid #fed7aa;">
-       <div style="background: #f9fafb; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between;">
-         <h2 style="${sectionTitleStyle}; background: linear-gradient(to right, #fb923c, #ef4444, #f472b6); -webkit-background-clip: text; color: transparent; margin: 0; display:flex; align-items:center; gap:6px;">💰 Pricing Options</h2>
-         <span style="font-size: 12px; color:#6b7280;">INR</span>
-       </div>
-       <div style="padding: 0;">
-         <table style="width: 100%; border-collapse: collapse;">
-           <colgroup>
-             <col style="width:55%" />
-             <col style="width:20%" />
-             <col style="width:25%" />
-           </colgroup>
-           <thead style="background:#f9fafb; font-size:11px; color:#4b5563; text-transform:uppercase;">
-             <tr>
-               <th style="padding: 8px; text-align: left; border-bottom:1px solid #f3f4f6;">Item</th>
-               <th style="padding: 8px; text-align: center; border-bottom:1px solid #f3f4f6;">Base</th>
-               <th style="padding: 8px; text-align: left; border-bottom:1px solid #f3f4f6;">Notes</th>
-             </tr>
-           </thead>
-           <tbody>
-             ${parsePricingSection(initialData.pricingSection).map((item, index) => `
-               <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#fff7ed'};">
-                 <td style="padding: 10px; font-size: 14px; color:#111827;">${item.name || ''}</td>
-                 <td style="padding: 10px; font-size: 14px; color:#16a34a; font-weight:700; text-align:center;">${item.price ? `₹ ${formatINR(item.price)}` : '-'}</td>
-                 <td style="padding: 10px; font-size: 14px; color:#374151;">${item.description || '-'}</td>
-               </tr>
-             `).join('')}
-           </tbody>
-         </table>
-         <div style="padding: 8px 12px; background:#fff7ed; border-top:1px solid #fbd3bd; font-size:11px; color:#c2410c; font-style:italic;">* Subject to availability & taxes.</div>
-       </div>
-     </div>
-     `
-     : '';
     // 11. Footer / Company Details
   let companySection = "";
     if (

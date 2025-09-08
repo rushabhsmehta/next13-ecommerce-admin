@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Package, Utensils, BedDouble, Calculator, FileDown, Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Plus, Minus, Package, Utensils, BedDouble, Calculator, FileDown, Check, ArrowRight, ArrowLeft, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -42,12 +42,13 @@ const automatedQuerySchema = z.object({
   tourPackageId: z.string().min(1, "Please select a tour package"),
   mealPlanId: z.string().min(1, "Please select a meal plan"),
   roomAllocations: z.array(z.object({
-    roomTypeId: z.string().min(1),
+    roomTypeId: z.string().optional(),
     occupancyTypeId: z.string().min(1),
     quantity: z.number().min(1),
     customRoomType: z.string().optional(),
     useCustomRoomType: z.boolean().default(false),
   })).min(1, "Please add at least one room allocation"),
+  tourPackageQueryNumber: z.string().optional(),
 });
 
 type AutomatedQueryFormData = z.infer<typeof automatedQuerySchema>;
@@ -85,12 +86,54 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const [isValidating, setIsValidating] = useState(false);
   const [isCalculatingPrice, setIsCalculatingPrice] = useState(false);
   const [priceCalculationDetails, setPriceCalculationDetails] = useState<any[]>([]);
+  const [availablePricingComponents, setAvailablePricingComponents] = useState<any[]>([]);
+  const [selectedPricingComponentIds, setSelectedPricingComponentIds] = useState<string[]>([]);
+  const [serverError, setServerError] = useState<string | null>(null);
+  // Debug logging state
+  const [debugLog, setDebugLog] = useState<any[]>([]);
+  const [showDebug, setShowDebug] = useState<boolean>(false);
+  const [debugSessionId, setDebugSessionId] = useState<string>("");
+
+  // Helper to add structured logs
+  const addLog = (entry: {
+    step: string;
+    level?: 'info' | 'warn' | 'error';
+    msg?: string;
+    data?: any;
+  }) => {
+    const e = {
+      t: new Date().toISOString(),
+      id: debugSessionId || 'unknown',
+      level: entry.level || 'info',
+      step: entry.step,
+      msg: entry.msg || '',
+      data: entry.data,
+    };
+    setDebugLog(prev => [...prev, e]);
+    // Keep console logs too for dev tools
+    const prefix = `[DBG:${e.id}] ${e.step}`;
+    if (e.level === 'error') console.error(prefix, e.msg || '', e.data ?? '');
+    else if (e.level === 'warn') console.warn(prefix, e.msg || '', e.data ?? '');
+    else console.log(prefix, e.msg || '', e.data ?? '');
+  };
+
+  const copyLogsToClipboard = async () => {
+    const text = debugLog.map(l => JSON.stringify(l)).join('\n');
+    await navigator.clipboard.writeText(text);
+    toast.success('Debug logs copied');
+  };
+
+  const clearLogs = () => {
+    setDebugLog([]);
+    toast.success('Debug logs cleared');
+  };
 
   const form = useForm<AutomatedQueryFormData>({
     resolver: zodResolver(automatedQuerySchema),
     defaultValues: {
       tourPackageId: '',
       mealPlanId: '',
+  tourPackageQueryNumber: `TPQ-${Date.now()}`,
       roomAllocations: [
         {
           roomTypeId: '',
@@ -103,9 +146,32 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     },
   });
 
+  // Flattened list of Zod/react-hook-form validation errors to show in a banner
+  const zodErrorList = React.useMemo(() => {
+    const errs: any = form.formState.errors as any;
+    const list: string[] = [];
+    if (!errs) return list;
+    if (errs.tourPackageId?.message) list.push(String(errs.tourPackageId.message));
+    if (errs.mealPlanId?.message) list.push(String(errs.mealPlanId.message));
+    if (errs.roomAllocations?.message) list.push(String(errs.roomAllocations.message));
+    if (Array.isArray(errs.roomAllocations)) {
+      errs.roomAllocations.forEach((allocErr: any, idx: number) => {
+        if (!allocErr) return;
+        if (allocErr.roomTypeId?.message) list.push(`Room ${idx + 1}: ${allocErr.roomTypeId.message}`);
+        if (allocErr.occupancyTypeId?.message) list.push(`Room ${idx + 1}: ${allocErr.occupancyTypeId.message}`);
+        if (allocErr.quantity?.message) list.push(`Room ${idx + 1}: ${allocErr.quantity.message}`);
+        if (allocErr.customRoomType?.message) list.push(`Room ${idx + 1}: ${allocErr.customRoomType.message}`);
+      });
+    }
+    return list;
+  }, [form.formState.errors]);
+
   // Fetch required data when dialog opens
   useEffect(() => {
     if (isOpen) {
+      const sid = `DBG-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      setDebugSessionId(sid);
+      addLog({ step: 'dialog/open', msg: 'Automated dialog opened' });
       fetchRequiredData();
     }
   }, [isOpen]);
@@ -113,11 +179,13 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const fetchRequiredData = async () => {
     try {
       setLoading(true);
+      addLog({ step: 'fetchRequiredData/start', data: { inquiryId } });
       
       // First fetch the inquiry data
       const inquiryRes = await axios.get(`/api/inquiries/${inquiryId}`);
       const inquiryData = inquiryRes.data;
       setInquiry(inquiryData);
+      addLog({ step: 'fetchRequiredData/inquiry', data: { locationId: inquiryData.locationId, journeyDate: inquiryData.journeyDate } });
       
       // Then fetch all required data in parallel
       const [
@@ -139,9 +207,17 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       setRoomTypes(roomTypesRes.data);
       setOccupancyTypes(occupancyTypesRes.data);
       setVehicleTypes(vehicleTypesRes.data);
+      addLog({ step: 'fetchRequiredData/success', data: {
+        tourPackages: tourPackagesRes.data?.length ?? 0,
+        mealPlans: mealPlansRes.data?.length ?? 0,
+        roomTypes: roomTypesRes.data?.length ?? 0,
+        occupancyTypes: occupancyTypesRes.data?.length ?? 0,
+        vehicleTypes: vehicleTypesRes.data?.length ?? 0,
+      }});
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load required data');
+      addLog({ step: 'fetchRequiredData/error', level: 'error', msg: (error as any)?.message, data: (error as any)?.response?.data || String(error) });
     } finally {
       setLoading(false);
     }
@@ -169,11 +245,13 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const calculateAutomaticPrice = async () => {
     if (!selectedTourPackage) {
       toast.error('Please select a tour package first');
+  addLog({ step: 'autoCalc/guard', level: 'warn', msg: 'No tour package selected' });
       return;
     }
 
     if (!inquiry) {
       toast.error('Inquiry data not loaded');
+  addLog({ step: 'autoCalc/guard', level: 'warn', msg: 'Inquiry not loaded' });
       return;
     }
 
@@ -181,11 +259,13 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     
     if (!formData.mealPlanId) {
       toast.error('Please select a meal plan first');
+  addLog({ step: 'autoCalc/guard', level: 'warn', msg: 'No meal plan selected' });
       return;
     }
 
     if (!formData.roomAllocations || formData.roomAllocations.length === 0) {
       toast.error('Please add at least one room allocation first');
+  addLog({ step: 'autoCalc/guard', level: 'warn', msg: 'No room allocations' });
       return;
     }
 
@@ -199,12 +279,12 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         sum + (allocation.quantity || 1), 0
       );
       
-      console.log('1. Calculation inputs:', {
+      addLog({ step: 'autoCalc/inputs', data: {
         tourPackageId: selectedTourPackage.id,
         mealPlanId: formData.mealPlanId,
-        totalRooms: totalRooms,
+        totalRooms,
         journeyDate: inquiry.journeyDate
-      });
+      }});
 
       // Fetch pricing data from the tour package
       const response = await axios.get(`/api/tourPackages/${selectedTourPackage.id}/pricing`);
@@ -217,7 +297,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         return;
       }
 
-      console.log('2. Available pricing periods:', tourPackagePricings.length);
+  addLog({ step: 'autoCalc/pricingPeriods', data: { count: tourPackagePricings.length } });
 
       // Filter matching pricing periods based on date, meal plan, and number of rooms
       const queryDate = new Date(inquiry.journeyDate);
@@ -250,6 +330,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         toast.error(`No matching pricing found for: ${queryDate.toISOString().split('T')[0]}, ${totalRooms} room(s), selected meal plan`);
         setCalculatedPrice(null);
         setPriceCalculationDetails([]);
+        addLog({ step: 'autoCalc/noMatch', level: 'warn', data: {
+          date: queryDate.toISOString().split('T')[0], totalRooms,
+          mealPlanId: formData.mealPlanId
+        }});
         return;
       }
 
@@ -258,19 +342,26 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         toast.error('Multiple pricing periods match the criteria. Please refine the tour package pricing definitions.');
         setCalculatedPrice(null);
         setPriceCalculationDetails([]);
+        addLog({ step: 'autoCalc/multiMatch', level: 'warn', data: { matchedPricingIds: matchedPricings.map((p:any)=>p.id) } });
         return;
       }
 
       // Apply the uniquely matched pricing
       const selectedPricing = matchedPricings[0];
-      console.log('4. Selected pricing period:', selectedPricing);
+  addLog({ step: 'autoCalc/selectedPricing', data: { id: selectedPricing.id, numberOfRooms: selectedPricing.numberOfRooms, mealPlanId: selectedPricing.mealPlanId } });
 
       // Calculate total price from pricing components
       let totalPrice = 0;
       const calculationDetails: any[] = [];
+      // expose components for selection
+      setAvailablePricingComponents(selectedPricing.pricingComponents || []);
 
-      if (selectedPricing.pricingComponents && selectedPricing.pricingComponents.length > 0) {
-        selectedPricing.pricingComponents.forEach((comp: any) => {
+      const componentsToUse = (selectedPricing.pricingComponents || []).filter((comp: any) =>
+        selectedPricingComponentIds.length > 0 ? selectedPricingComponentIds.includes(comp.id) : true
+      );
+
+      if (componentsToUse && componentsToUse.length > 0) {
+        componentsToUse.forEach((comp: any) => {
           const componentName = comp.pricingAttribute?.name || 'Pricing Component';
           const basePrice = parseFloat(comp.price || '0');
           const occupancyMultiplier = getOccupancyMultiplier(componentName);
@@ -299,8 +390,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         });
       }
 
-      console.log('5. Price calculation details:', calculationDetails);
-      console.log('6. Total calculated price:', totalPrice);
+  addLog({ step: 'autoCalc/result', data: { totalPrice, lines: calculationDetails.length } });
 
       setCalculatedPrice(totalPrice);
       setPriceCalculationDetails(calculationDetails);
@@ -312,9 +402,113 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       toast.error('Failed to calculate price: ' + (error.response?.data?.message || error.message));
       setCalculatedPrice(null);
       setPriceCalculationDetails([]);
+  addLog({ step: 'autoCalc/error', level: 'error', msg: error?.message, data: error?.response?.data });
     } finally {
       setIsCalculatingPrice(false);
     }
+  };
+
+  // Compute price from currently available components without refetch
+  const applySelectedPricingComponents = () => {
+    if (!availablePricingComponents || availablePricingComponents.length === 0) {
+      toast.error('No pricing components available. Run Auto Calculate first.');
+  addLog({ step: 'pricing/applySelected/guard', level: 'warn', msg: 'No components available' });
+      return;
+    }
+    const totalRooms = form.getValues('roomAllocations').reduce((sum, a: any) => sum + (a.quantity || 1), 0);
+    const toUse = availablePricingComponents.filter((comp: any) => selectedPricingComponentIds.includes(comp.id));
+    if (toUse.length === 0) {
+      toast.error('Please select at least one pricing component.');
+  addLog({ step: 'pricing/applySelected/guard', level: 'warn', msg: 'No components selected' });
+      return;
+    }
+    let totalPrice = 0;
+    const calculationDetails: any[] = [];
+    toUse.forEach((comp: any) => {
+      const name = comp.pricingAttribute?.name || 'Pricing Component';
+      const base = parseFloat(comp.price || '0');
+      const occ = getOccupancyMultiplier(name);
+      const line = base * occ * totalRooms;
+      calculationDetails.push({
+        name,
+        basePrice: base,
+        occupancyMultiplier: occ,
+        rooms: totalRooms,
+        totalPrice: line,
+        description: `₹${base.toFixed(2)} × ${occ} occupancy × ${totalRooms} room${totalRooms > 1 ? 's' : ''} = ₹${line.toFixed(2)}`
+      });
+      totalPrice += line;
+    });
+    setCalculatedPrice(totalPrice);
+    setPriceCalculationDetails(calculationDetails);
+    toast.success(`Applied ${toUse.length} pricing component${toUse.length !== 1 ? 's' : ''}.`);
+  addLog({ step: 'pricing/applySelected/success', data: { selectedCount: toUse.length, totalPrice } });
+  };
+
+  const applyAllPricingComponents = () => {
+    if (!availablePricingComponents || availablePricingComponents.length === 0) {
+      toast.error('No pricing components available. Run Auto Calculate first.');
+      addLog({ step: 'pricing/applyAll/guard', level: 'warn', msg: 'No components available' });
+      return;
+    }
+    setSelectedPricingComponentIds(availablePricingComponents.map((c: any) => c.id));
+    // Reuse selected apply after selecting all
+    setTimeout(applySelectedPricingComponents, 0);
+    addLog({ step: 'pricing/applyAll/selectAll', data: { count: availablePricingComponents.length } });
+  };
+
+  const clearPricingComponentSelection = () => {
+    setSelectedPricingComponentIds([]);
+    setCalculatedPrice(null);
+    setPriceCalculationDetails([]);
+    toast.success('Pricing components selection cleared.');
+  addLog({ step: 'pricing/clear' });
+  };
+
+  // Reset pricing related state when meal plan or room allocations change
+  useEffect(() => {
+    setAvailablePricingComponents([]);
+    setSelectedPricingComponentIds([]);
+    setCalculatedPrice(null);
+    setPriceCalculationDetails([]);
+  }, [form.watch('mealPlanId'), JSON.stringify(form.watch('roomAllocations'))]);
+
+  // Handle tour package selection with validation
+  const handleTourPackageSelection = (tourPackageId: string) => {
+    const selectedPackage = tourPackages.find(pkg => pkg.id === tourPackageId);
+    
+    console.log('🔍 TOUR PACKAGE SELECTION DEBUG');
+    console.log('===============================');
+    console.log('1. Selected Package ID:', tourPackageId);
+    console.log('2. Found Package:', selectedPackage?.tourPackageName);
+    console.log('3. Package Itineraries Count:', selectedPackage?.itineraries?.length || 0);
+    
+  if (selectedPackage) {
+      // Validate the selected package
+      setIsValidating(true);
+      const errors = validateTourPackageTemplate(selectedPackage);
+      setValidationErrors(errors);
+      setIsValidating(false);
+      
+      if (errors.length > 0) {
+        console.log('❌ Validation Errors:', errors);
+        toast.error(`Template validation failed: ${errors.length} issues found`);
+    addLog({ step: 'template/validation', level: 'warn', data: { errors } });
+      } else {
+        console.log('✅ Template validation passed');
+        toast.success(`Template "${selectedPackage.tourPackageName}" validated successfully`);
+    addLog({ step: 'template/validation', data: { status: 'ok', tourPackageId: selectedPackage.id } });
+      }
+      
+      console.log('4. Package Itineraries:', JSON.stringify(selectedPackage.itineraries, null, 2));
+    } else {
+      setValidationErrors(['Selected tour package not found']);
+    }
+    
+    console.log('===============================');
+    
+  setSelectedTourPackage(selectedPackage || null);
+    form.setValue('tourPackageId', tourPackageId);
   };
   const validateTourPackageTemplate = (tourPackage: TourPackageExtended): string[] => {
     const errors: string[] = [];
@@ -327,18 +521,14 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     if (!tourPackage.itineraries || tourPackage.itineraries.length === 0) {
       errors.push(`Selected tour package "${tourPackage.tourPackageName}" has no itineraries defined`);
     } else {
-      // Check each itinerary for required fields
       tourPackage.itineraries.forEach((itinerary: any, index: number) => {
         const dayRef = `Day ${index + 1}`;
-        
         if (!itinerary.itineraryTitle && !itinerary.dayTitle) {
           errors.push(`${dayRef}: Missing itinerary title`);
         }
-        
         if (!itinerary.locationId) {
           errors.push(`${dayRef}: Missing location information`);
         }
-        
         if (!itinerary.dayNumber && !itinerary.day) {
           errors.push(`${dayRef}: Missing day number`);
         }
@@ -356,42 +546,6 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     return errors;
   };
 
-  // Handle tour package selection with validation
-  const handleTourPackageSelection = (tourPackageId: string) => {
-    const selectedPackage = tourPackages.find(pkg => pkg.id === tourPackageId);
-    
-    console.log('🔍 TOUR PACKAGE SELECTION DEBUG');
-    console.log('===============================');
-    console.log('1. Selected Package ID:', tourPackageId);
-    console.log('2. Found Package:', selectedPackage?.tourPackageName);
-    console.log('3. Package Itineraries Count:', selectedPackage?.itineraries?.length || 0);
-    
-    if (selectedPackage) {
-      // Validate the selected package
-      setIsValidating(true);
-      const errors = validateTourPackageTemplate(selectedPackage);
-      setValidationErrors(errors);
-      setIsValidating(false);
-      
-      if (errors.length > 0) {
-        console.log('❌ Validation Errors:', errors);
-        toast.error(`Template validation failed: ${errors.length} issues found`);
-      } else {
-        console.log('✅ Template validation passed');
-        toast.success(`Template "${selectedPackage.tourPackageName}" validated successfully`);
-      }
-      
-      console.log('4. Package Itineraries:', JSON.stringify(selectedPackage.itineraries, null, 2));
-    } else {
-      setValidationErrors(['Selected tour package not found']);
-    }
-    
-    console.log('===============================');
-    
-    setSelectedTourPackage(selectedPackage || null);
-    form.setValue('tourPackageId', tourPackageId);
-  };
-
   // Add room allocation
   const addRoomAllocation = () => {
     const currentAllocations = form.getValues('roomAllocations');
@@ -405,6 +559,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         useCustomRoomType: false,
       }
     ]);
+  addLog({ step: 'roomAllocation/add', data: { newCount: (currentAllocations?.length || 0) + 1 } });
   };
 
   // Remove room allocation
@@ -412,6 +567,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     const currentAllocations = form.getValues('roomAllocations');
     if (currentAllocations.length > 1) {
       form.setValue('roomAllocations', currentAllocations.filter((_, i) => i !== index));
+  addLog({ step: 'roomAllocation/remove', data: { index, newCount: currentAllocations.length - 1 } });
     }
   };
 
@@ -424,6 +580,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const createTourPackageQuery = async () => {
     try {
       setLoading(true);
+  setServerError(null);
+      addLog({ step: 'submit/start' });
       const formData = form.getValues();
       
       console.log('🔍 AUTOMATED DIALOG - CREATING TOUR PACKAGE QUERY');
@@ -437,6 +595,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         const error = 'Tour package not selected';
         setValidationErrors([error]);
         toast.error(error);
+        addLog({ step: 'submit/guard', level: 'error', msg: error });
         return;
       }
 
@@ -445,6 +604,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       if (templateErrors.length > 0) {
         setValidationErrors(templateErrors);
         toast.error(`Template validation failed: ${templateErrors.join(', ')}`);
+        addLog({ step: 'submit/templateInvalid', level: 'error', data: { errors: templateErrors } });
         return;
       }
 
@@ -452,6 +612,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         const error = 'Please add at least one room allocation';
         setValidationErrors([error]);
         toast.error(error);
+        addLog({ step: 'submit/guard', level: 'error', msg: error });
         return;
       }
 
@@ -459,10 +620,11 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         const error = 'Please select a meal plan';
         setValidationErrors([error]);
         toast.error(error);
+        addLog({ step: 'submit/guard', level: 'error', msg: error });
         return;
       }
 
-      console.log('1. Form Data:', JSON.stringify(formData, null, 2));
+  addLog({ step: 'submit/formData', data: { mealPlanId: formData.mealPlanId, roomAllocations: formData.roomAllocations } });
       console.log('2. Selected Tour Package:', JSON.stringify(selectedTourPackage, null, 2));
       console.log('3. Inquiry Data:', JSON.stringify(inquiry, null, 2));
 
@@ -471,8 +633,9 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       console.log('5. Safe Room Allocations:', JSON.stringify(safeRoomAllocations, null, 2));
 
       // Prepare the tour package query data
-      const queryData = {
+  const queryData: any = {
         inquiryId: inquiry.id,
+        tourPackageQueryNumber: form.getValues('tourPackageQueryNumber') || undefined,
         tourPackageQueryName: `${inquiry.customerName} - ${selectedTourPackage.tourPackageName}`,
         tourPackageQueryType: selectedTourPackage.tourPackageType,
         tourCategory: selectedTourPackage.tourCategory || 'Domestic',
@@ -483,6 +646,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         tourPackageTemplate: formData.tourPackageId,
         selectedTemplateId: formData.tourPackageId,
         selectedTemplateType: 'TourPackage',
+  selectedMealPlanId: formData.mealPlanId,
         numAdults: inquiry.numAdults.toString(),
         numChild5to12: (inquiry.numChildrenAbove11 || 0).toString(),
         numChild0to5: (inquiry.numChildrenBelow5 || 0).toString(),
@@ -507,7 +671,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             itineraryImages: itinerary.itineraryImages || [],
             activities: itinerary.activities || [],
             roomAllocations: safeRoomAllocations.map(allocation => ({
-              roomTypeId: allocation.roomTypeId,
+              roomTypeId: allocation.useCustomRoomType ? undefined : allocation.roomTypeId,
               occupancyTypeId: allocation.occupancyTypeId,
               mealPlanId: formData.mealPlanId,
               quantity: allocation.quantity,
@@ -536,7 +700,24 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           });
           return itineraryData;
         }) || [],
+        debugSessionId,
       };
+      // attach top-level pricing details and log snapshot
+      if (priceCalculationDetails && priceCalculationDetails.length > 0) {
+        queryData.pricingSection = priceCalculationDetails.map((detail: any) => ({
+          name: detail.name,
+          price: (detail.totalPrice ?? detail.basePrice ?? 0).toString(),
+          description: detail.description,
+        }));
+        queryData.totalPrice = (calculatedPrice ?? 0).toString();
+      }
+      // attach a compact client debug log (last 200 entries)
+      queryData.clientDebugLog = debugLog.slice(-200);
+      addLog({ step: 'submit/payloadBuilt', data: {
+        itineraries: queryData.itineraries?.length || 0,
+        totalPrice: queryData.totalPrice,
+        hasPricingSection: !!queryData.pricingSection,
+      }});
       
       console.log('8. Final Query Data Structure:');
       console.log('   - inquiryId:', queryData.inquiryId);
@@ -547,10 +728,11 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
       // Create the tour package query
       console.log('9. Sending request to API...');
-      const response = await axios.post('/api/tourPackageQuery', queryData);
+  const response = await axios.post('/api/tourPackageQuery', queryData);
       const createdQuery = response.data;
 
       toast.success('Tour Package Query created successfully!');
+  addLog({ step: 'submit/success', data: { id: createdQuery?.id } });
       
       // Auto-download PDF
       await downloadPDF(createdQuery.id);
@@ -566,9 +748,18 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       
     } catch (error: any) {
       console.error('Error creating tour package query:', error);
-      toast.error(error.response?.data?.message || 'Failed to create tour package query');
+      const data = error?.response?.data;
+      const message = typeof data === 'string'
+        ? data
+        : (data?.message || error?.message || 'Failed to create tour package query');
+      const details = typeof data === 'object' ? data?.details : undefined;
+      const composed = details ? `${message} — ${details}` : message;
+      setServerError(composed);
+      toast.error(message);
+  addLog({ step: 'submit/error', level: 'error', msg: message, data });
     } finally {
       setLoading(false);
+  addLog({ step: 'submit/end' });
     }
   };
 
@@ -602,7 +793,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       case 3:
         const allocations = form.getValues('roomAllocations');
         return allocations.every(allocation => 
-          allocation.roomTypeId !== '' && allocation.occupancyTypeId !== ''
+          allocation.occupancyTypeId !== '' && (
+            (allocation.useCustomRoomType && (allocation.customRoomType || '').trim().length > 0) ||
+            (!allocation.useCustomRoomType && allocation.roomTypeId !== '')
+          )
         );
       case 4:
         return calculatedPrice !== null;
@@ -623,7 +817,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -637,7 +831,26 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           </DialogDescription>
         </DialogHeader>
 
-        {/* Validation Errors Display */}
+        {/* Server Error Banner */}
+        {serverError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-red-800">{serverError}</p>
+              </div>
+              <button
+                type="button"
+                className="text-red-600 text-sm underline"
+                onClick={() => setServerError(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Template Validation Errors (from template checks) */}
         {validationErrors.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
@@ -665,6 +878,23 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           </div>
         )}
 
+        {/* Zod/Form Validation Errors (from resolver) */}
+        {form.formState.isSubmitted && zodErrorList.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-amber-800">Please fix the following issues</h3>
+                <ul className="mt-2 text-sm text-amber-700 list-disc pl-5 space-y-1">
+                  {zodErrorList.map((msg, i) => (
+                    <li key={i}>{msg}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Loading Validation State */}
         {isValidating && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -686,30 +916,38 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         ) : (
           <>
             {/* Progress Steps */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2 md:gap-3 mb-4 overflow-x-auto px-2 sm:px-0">
               {stepTitles.map((title, index) => {
                 const stepNumber = index + 1;
                 const StepIcon = stepIcons[index];
                 const isActive = currentStep === stepNumber;
                 const isCompleted = currentStep > stepNumber;
-                
+
                 return (
-                  <div key={stepNumber} className="flex flex-col items-center">
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                  isCompleted ? 'bg-green-500 border-green-500 text-white' :
-                  isActive ? 'border-blue-500 text-blue-500' : 'border-gray-300 text-gray-300'
-                }`}>
-                  {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
-                </div>
-                <span className={`text-xs mt-1 text-center ${
-                  isActive ? 'text-blue-600 font-medium' : 'text-gray-500'
-                }`}>
-                  {title}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                  <div key={stepNumber} className="flex items-center flex-shrink-0">
+                    <button
+                      type="button"
+                      title={title}
+                      onClick={() => setCurrentStep(stepNumber)}
+                      className="flex flex-col items-center focus:outline-none px-1"
+                    >
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-sm ${
+                        isCompleted ? 'bg-green-500 border-green-500 text-white' :
+                        isActive ? 'border-blue-500 text-blue-500' : 'border-gray-300 text-gray-300'
+                      }`}>
+                        {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
+                      </div>
+
+                      {/* full label on small+ screens, compact number on xs */}
+                      <span className={`hidden sm:block text-xs mt-1 text-center truncate ${isActive ? 'text-blue-600 font-medium' : 'text-gray-500'}`} style={{maxWidth: 120}}>
+                        {title}
+                      </span>
+                      <span className={`sm:hidden text-[10px] mt-1 ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>{stepNumber}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(createTourPackageQuery)} className="space-y-6">
@@ -759,7 +997,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 />
 
                 {selectedTourPackage && (
-                  <Card>
+                  <Card className="shadow-sm">
                     <CardHeader>
                       <CardTitle className="text-base">Selected Package Preview</CardTitle>
                     </CardHeader>
@@ -838,7 +1076,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 </div>
 
                 {form.watch('roomAllocations').map((_, index) => (
-                  <Card key={index}>
+          <Card className="shadow-sm">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">Room {index + 1}</CardTitle>
@@ -855,27 +1093,53 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
                           name={`roomAllocations.${index}.roomTypeId`}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Room Type</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select room type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {roomTypes.map((type) => (
-                                    <SelectItem key={type.id} value={type.id}>
-                                      {type.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4"
+                                    checked={form.watch(`roomAllocations.${index}.useCustomRoomType`) || false}
+                                    onChange={(e) => {
+                                      form.setValue(`roomAllocations.${index}.useCustomRoomType`, e.target.checked);
+                                      if (e.target.checked) {
+                                        form.setValue(`roomAllocations.${index}.roomTypeId`, '');
+                                      } else {
+                                        form.setValue(`roomAllocations.${index}.customRoomType`, '');
+                                      }
+                                    }}
+                                  />
+                                  <span className="text-sm">Use custom room type</span>
+                                </div>
+                                {form.watch(`roomAllocations.${index}.useCustomRoomType`) ? (
+                                  <Input
+                                    placeholder="Enter custom room type"
+                                    value={form.watch(`roomAllocations.${index}.customRoomType`) || ''}
+                                    onChange={(e) => form.setValue(`roomAllocations.${index}.customRoomType`, e.target.value)}
+                                  />
+                                ) : (
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select room type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {roomTypes.map((type) => (
+                                        <SelectItem key={type.id} value={type.id}>
+                                          {type.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -933,18 +1197,18 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
             {/* Step 4: Price Calculation */}
             {currentStep === 4 && (
-              <div className="space-y-4">
+              <div className="space-y-4 px-3 sm:px-0">
                 <h3 className="text-lg font-semibold">Step 4: Auto Price Calculation</h3>
                 <p className="text-sm text-gray-600">
                   Calculate price automatically based on tour package pricing configurations.
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
+                <div className="space-y-4">
+                  <Card className="shadow-sm">
                     <CardHeader>
                       <CardTitle className="text-base">Inquiry Summary</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
+                    <CardContent className="space-y-2 text-sm py-3 px-3">
                       <p><strong>Customer:</strong> {inquiry.customerName}</p>
                       <p><strong>Adults:</strong> {inquiry.numAdults}</p>
                       <p><strong>Children (5-11):</strong> {inquiry.numChildrenAbove11 || 0}</p>
@@ -953,14 +1217,62 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="shadow-sm">
                     <CardHeader>
                       <CardTitle className="text-base">Selection Summary</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
+                    <CardContent className="space-y-2 text-sm py-3 px-3">
                       <p><strong>Package:</strong> {selectedTourPackage?.tourPackageName}</p>
                       <p><strong>Meal Plan:</strong> {mealPlans.find(m => m.id === form.getValues('mealPlanId'))?.name}</p>
                       <p><strong>Total Rooms:</strong> {form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0)}</p>
+                      {availablePricingComponents.length > 0 && (
+                        <div className="pt-2 border-t">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium">Include Pricing Components</p>
+                            <span className="text-xs text-gray-500">Selected: {selectedPricingComponentIds.length}/{availablePricingComponents.length}</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 mt-2">
+                            {availablePricingComponents.map((comp: any, i: number) => {
+                              const checked = selectedPricingComponentIds.includes(comp.id);
+                              const colorIdx = (i % 5) + 1;
+                              const chartVar = `--chart-${colorIdx}`;
+                              return (
+                                <button
+                                  key={comp.id}
+                                  type="button"
+                                  onClick={() => setSelectedPricingComponentIds(prev => prev.includes(comp.id) ? prev.filter(id => id !== comp.id) : [...prev, comp.id])}
+                                  className={`relative text-left rounded-lg border p-3 transition-shadow hover:shadow-md h-full flex flex-col justify-between overflow-hidden ${checked ? 'ring-2 ring-offset-1' : ''}`}
+                                  style={{
+                                    borderColor: `hsl(var(${chartVar}))`,
+                                    background: checked ? `linear-gradient(180deg, hsl(var(${chartVar}) / 0.12), transparent)` : undefined
+                                  }}
+                                  aria-pressed={checked}
+                                >
+                                  <div className="absolute -left-1 top-0 bottom-0 w-1" style={{ background: `linear-gradient(180deg, hsl(var(${chartVar}) / 1), hsl(var(${chartVar}) / 0.8))` }} />
+                                  <div className="flex-grow pl-3">
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-sm font-semibold text-foreground">{comp.pricingAttribute?.name || 'Component'}</div>
+                                      <div className="text-sm font-bold text-foreground">₹{parseFloat(comp.price || '0').toFixed(2)}</div>
+                                    </div>
+                                    {comp.description && (
+                                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2 pl-0">{comp.description}</div>
+                                    )}
+                                  </div>
+                                  <div className="mt-3 flex items-center justify-between gap-2">
+                                    <Badge variant={checked ? 'secondary' : 'outline'}>{checked ? 'Included' : 'Tap to include'}</Badge>
+                                    <div className="text-xs text-muted-foreground">Per unit</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={clearPricingComponentSelection}>Clear</Button>
+                            <Button type="button" variant="outline" size="sm" onClick={applySelectedPricingComponents}>Apply Selected</Button>
+                            <Button type="button" size="sm" onClick={applyAllPricingComponents}>Apply All</Button>
+                          </div>
+                        </div>
+                      )}
                       <div className="pt-2 border-t">
                         <Button 
                           type="button" 
@@ -1014,7 +1326,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 
                 {/* Calculation Notes */}
                 {calculatedPrice !== null && (
-                  <Card className="bg-blue-50 border-blue-200">
+                  <Card className="bg-blue-50 border-blue-200 shadow-sm">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-2">
                         <Calculator className="h-5 w-5 text-blue-600 mt-0.5" />
@@ -1062,10 +1374,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     
                     <div>
                       <h4 className="font-medium mb-2">Room Allocations</h4>
-                      {form.getValues('roomAllocations').map((allocation, index) => (
+          {form.getValues('roomAllocations').map((allocation, index) => (
                         <div key={index} className="flex items-center justify-between py-1 text-sm">
                           <span>
-                            Room {index + 1}: {roomTypes.find(r => r.id === allocation.roomTypeId)?.name} - {occupancyTypes.find(o => o.id === allocation.occupancyTypeId)?.name}
+            Room {index + 1}: {allocation.useCustomRoomType ? (allocation.customRoomType || 'Custom') : (roomTypes.find(r => r.id === allocation.roomTypeId)?.name)} - {occupancyTypes.find(o => o.id === allocation.occupancyTypeId)?.name}
                           </span>
                           <Badge variant="secondary">Qty: {allocation.quantity}</Badge>
                         </div>
@@ -1088,7 +1400,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-6 border-t">
+            <div className="flex items-center justify-between py-3 border-t sticky bottom-0 bg-white/90 backdrop-blur-sm px-2 sm:px-0">
               <Button
                 type="button"
                 variant="outline"
@@ -1112,20 +1424,49 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    disabled={loading || !canProceedToNextStep()}
-                    className="flex items-center gap-2"
-                  >
-                    {loading ? 'Creating...' : (
-                      <>
-                        <FileDown className="h-4 w-4" />
-                        Create Query & Download PDF
-                      </>
-                    )}
-                  </Button>
+                   <Button
+                     type="submit"
+                     disabled={loading || !canProceedToNextStep()}
+                     className="flex items-center gap-2 px-3 py-2"
+                   >
+                     {loading ? 'Creating...' : (
+                       <>
+                         <FileDown className="h-4 w-4" />
+                         Create & Download
+                       </>
+                     )}
+                   </Button>
                 )}
               </div>
+            </div>
+
+            {/* Debug panel */}
+            <div className="mt-2 border-t pt-2">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground underline"
+                  onClick={() => setShowDebug(v => !v)}
+                  title="Toggle debug logs"
+                >
+                  {showDebug ? 'Hide debug logs' : 'Show debug logs'}
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground">{debugLog.length} logs</span>
+                  <span className="text-[11px] text-muted-foreground">Session: {debugSessionId || 'n/a'}</span>
+                  <Button type="button" variant="outline" onClick={copyLogsToClipboard}>Copy</Button>
+                  <Button type="button" variant="outline" onClick={clearLogs}>Clear</Button>
+                </div>
+              </div>
+              {showDebug && (
+                <div className="mt-2 h-40 overflow-auto rounded border bg-muted/30 p-2">
+                  <pre className="text-[11px] leading-4 whitespace-pre-wrap">
+                    {debugLog.map((l, i) => (
+                      <div key={i}>{JSON.stringify(l)}</div>
+                    ))}
+                  </pre>
+                </div>
+              )}
             </div>
           </form>
         </Form>

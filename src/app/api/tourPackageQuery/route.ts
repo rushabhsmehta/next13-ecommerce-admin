@@ -114,18 +114,44 @@ async function createItineraryAndActivities(itinerary: {
                 console.log(`Room allocation ${index}:`, JSON.stringify(allocation, null, 2));
             });
             
-            await Promise.all(itinerary.roomAllocations.map(async (roomAllocation: any) => {
+            await Promise.all(itinerary.roomAllocations.map(async (roomAllocation: any, idx: number) => {
                 try {
+                    // Determine roomTypeId to use: if custom is provided, map to a placeholder RoomType("Custom")
+                    let roomTypeIdToUse: string | undefined = roomAllocation.roomTypeId;
+
+                    const useCustom: boolean = !!roomAllocation.useCustomRoomType;
+                    const customLabel: string = (roomAllocation.customRoomType || '').trim();
+
+                    if (!roomTypeIdToUse) {
+                        if (useCustom && customLabel.length > 0) {
+                            // Find or create a placeholder RoomType named 'Custom'
+                            let placeholder = await prismadb.roomType.findUnique({ where: { name: 'Custom' } });
+                            if (!placeholder) {
+                                placeholder = await prismadb.roomType.create({
+                                    data: {
+                                        name: 'Custom',
+                                        description: 'Custom ad-hoc room type placeholder',
+                                        isActive: true,
+                                    }
+                                });
+                            }
+                            roomTypeIdToUse = placeholder.id;
+                        } else {
+                            // Neither a roomTypeId nor a custom label provided
+                            throw new Error(`Room allocation ${idx + 1}: roomTypeId is required unless a customRoomType is provided with useCustomRoomType=true`);
+                        }
+                    }
+
                     return await prismadb.roomAllocation.create({
                         data: {
                             itineraryId: createdItinerary.id,
-                            roomTypeId: roomAllocation.roomTypeId,
+                            roomTypeId: roomTypeIdToUse!,
                             occupancyTypeId: roomAllocation.occupancyTypeId,
                             mealPlanId: roomAllocation.mealPlanId,
                             quantity: roomAllocation.quantity || 1,
                             guestNames: roomAllocation.guestNames || "",
                             voucherNumber: roomAllocation.voucherNumber || "",
-                            customRoomType: roomAllocation.customRoomType || "",
+                            customRoomType: customLabel || "",
                         }
                     });
                 } catch (roomError) {
@@ -179,7 +205,7 @@ export async function POST(
                 console.log(`3. Itinerary ${index} room allocations:`, JSON.stringify(itinerary.roomAllocations, null, 2));
             });
         }
-        console.log('========================================');        const {
+    console.log('========================================');        const {
             tourPackageQueryNumber,
             tourPackageQueryName,
             tourPackageQueryType,
@@ -229,6 +255,23 @@ export async function POST(
             inquiryId,
             isFeatured,
             isArchived } = body;
+
+        // Fallback generator for Tour Package Query Number if not provided
+        const generateTourPackageQueryNumber = () => {
+            const now = new Date();
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const y = now.getFullYear();
+            const m = pad(now.getMonth() + 1);
+            const d = pad(now.getDate());
+            const hh = pad(now.getHours());
+            const mm = pad(now.getMinutes());
+            const ss = pad(now.getSeconds());
+            return `TPQ-${y}${m}${d}-${hh}${mm}${ss}`;
+        };
+
+        const effectiveTourPackageQueryNumber = tourPackageQueryNumber && String(tourPackageQueryNumber).trim().length > 0
+            ? tourPackageQueryNumber
+            : generateTourPackageQueryNumber();
 
         // Log all potentially undefined arrays for debugging
         console.log('🔍 ARRAY SAFETY CHECK');
@@ -327,12 +370,12 @@ export async function POST(
             return Array.isArray(kitchenGroupPolicy) ? JSON.stringify(kitchenGroupPolicy) : JSON.stringify([kitchenGroupPolicy]);
         })();
         
-        console.log('✅ All policy arrays processed successfully');
+    console.log('✅ All policy arrays processed successfully');
 
-        const newTourPackageQuery = await prismadb.tourPackageQuery.create({
+    const newTourPackageQuery = await prismadb.tourPackageQuery.create({
             data: {
                 inquiryId,
-                tourPackageQueryNumber,
+        tourPackageQueryNumber: effectiveTourPackageQueryNumber,
                 tourPackageQueryName,
                 tourPackageQueryType,
                 tourCategory,
@@ -360,7 +403,7 @@ export async function POST(
                 pricePerChild5to12YearsNoBed,
                 pricePerChildwithSeatBelow5Years,
                 totalPrice,
-                pricingSection, // Add this line
+                pricingSection, // use exactly what client sends (no server fallback)
                 remarks,
                 //  hotelDetails,                inclusions: processedInclusions,
                 exclusions: processedExclusions,
@@ -496,7 +539,7 @@ export async function POST(
                 action: "CREATE",
                 before: null,
                 after: {
-                    tourPackageQueryNumber,
+                    tourPackageQueryNumber: effectiveTourPackageQueryNumber,
                     tourPackageQueryName,
                     tourPackageQueryType,
                     locationId,

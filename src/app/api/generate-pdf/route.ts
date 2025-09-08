@@ -2,7 +2,7 @@ import { generatePDF } from "@/utils/generatepdf";
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    const { htmlContent }: { htmlContent: string } = await req.json();
+  const { htmlContent, headerHtml, footerHtml, margin, scale }: { htmlContent: string; headerHtml?: string; footerHtml?: string; margin?: any; scale?: number } = await req.json();
 
     if (!htmlContent) {
       return new Response(
@@ -11,9 +11,9 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
 
-    const pdfBuffer = await generatePDF(htmlContent);
+  const pdfBuffer = await generatePDF(htmlContent, { headerHtml, footerHtml, margin, scale });
 
-    return new Response(pdfBuffer, {
+  return new Response(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": "attachment; filename=generated.pdf",

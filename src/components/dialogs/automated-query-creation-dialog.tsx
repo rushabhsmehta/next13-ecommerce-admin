@@ -1075,8 +1075,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                   </Button>
                 </div>
 
-                {form.watch('roomAllocations').map((_, index) => (
-          <Card className="shadow-sm">
+        {form.watch('roomAllocations').map((_, index) => (
+      <Card key={index} className="shadow-sm">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base">Room {index + 1}</CardTitle>

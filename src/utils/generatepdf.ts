@@ -2,13 +2,27 @@ import puppeteer, { type Browser } from "puppeteer";
 // import puppeteerCore, { type Browser as BrowserCore } from "puppeteer-core";
 import chromium from "@sparticuz/chromium-min";
 
+export type PdfMargin = {
+  top?: string;
+  right?: string;
+  bottom?: string;
+  left?: string;
+};
+
+export interface GeneratePdfOptions {
+  headerHtml?: string;
+  footerHtml?: string;
+  margin?: PdfMargin;
+  scale?: number;
+}
+
 /**
  * Generates a PDF from the provided HTML content.
  * @param htmlContent - The HTML content to render into a PDF.
  * @returns A buffer containing the PDF file.
  * @throws Error if the PDF generation fails.
  */
-export async function generatePDF(htmlContent: string): Promise<Buffer> {
+export async function generatePDF(htmlContent: string, options?: GeneratePdfOptions): Promise<Buffer> {
   if (!htmlContent) {
     throw new Error("HTML content is required to generate a PDF.");
   }
@@ -47,16 +61,29 @@ export async function generatePDF(htmlContent: string): Promise<Buffer> {
     await page.evaluateHandle('document.fonts.ready');
 
     // Generate the PDF
+    const hasHeaderFooter = Boolean(options?.headerHtml || options?.footerHtml);
+    const marginDefaults = hasHeaderFooter
+      ? { top: "72px", right: "14px", bottom: "72px", left: "14px" }
+      : { top: "10px", right: "10px", bottom: "10px", left: "10px" };
+
+    const margin = {
+      top: options?.margin?.top ?? marginDefaults.top,
+      right: options?.margin?.right ?? marginDefaults.right,
+      bottom: options?.margin?.bottom ?? marginDefaults.bottom,
+      left: options?.margin?.left ?? marginDefaults.left,
+    };
+
+    const headerTemplate = options?.headerHtml ?? "<div></div>";
+    const footerTemplate = options?.footerHtml ?? "<div></div>";
+
     const pdfBuffer = (await page.pdf({
       format: "A4",
       printBackground: true,
-      scale: 0.8,
-      margin: {
-        top: "10px",
-        right: "10px",
-        bottom: "10px",
-        left: "10px",
-      },
+      scale: options?.scale ?? 0.8,
+      margin,
+      displayHeaderFooter: hasHeaderFooter,
+      headerTemplate,
+      footerTemplate,
     })) as Buffer; // Explicitly cast the result to Buffer
 
     return pdfBuffer;

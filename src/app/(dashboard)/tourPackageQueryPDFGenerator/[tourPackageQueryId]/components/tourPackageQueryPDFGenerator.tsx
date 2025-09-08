@@ -910,13 +910,50 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     setLoading(true);
     const htmlContent = buildHtmlContent();
 
+    // Build footer HTML with company info and social links
+    const footerHtml = (() => {
+      const c = currentCompany;
+      const showBrand = selectedOption !== "Empty";
+      const brandBlock = showBrand ? `
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${c.logo ? `<img src="${c.logo}" style="height:18px; width:auto; object-fit:contain;"/>` : ''}
+          <span style="font-size:10px; font-weight:700; color:#111827;">${c.name ?? ''}</span>
+        </div>
+      ` : '';
+      const addressLine = showBrand && c.address ? `<span style="font-size:9px; color:#6b7280;">${c.address}</span>` : '';
+      const contactLine = showBrand ? `
+        <span style="font-size:9px; color:#6b7280;">${[c.phone, c.email].filter(Boolean).join(' | ')}</span>
+      ` : '';
+      const socialLine = showBrand && c.website ? `<a href="${c.website}" style="font-size:9px; color:#2563eb; text-decoration:none;" target="_blank">${c.website}</a>` : '';
+
+      return `
+        <div style="width:100%; font-family: Arial, sans-serif;">
+          <div style="height:56px; padding:8px 16px; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; border-top:1px solid #e5e7eb;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              ${brandBlock}
+              ${addressLine}
+              ${contactLine}
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+              ${socialLine}
+              <span style="font-size:10px; color:#6b7280;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+            </div>
+          </div>
+        </div>`;
+    })();
+
     try {
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ htmlContent }),
+        body: JSON.stringify({
+          htmlContent,
+          footerHtml,
+          margin: { top: "64px", bottom: "64px", left: "14px", right: "14px" },
+          scale: 0.9,
+        }),
       });
 
       if (response.ok) {

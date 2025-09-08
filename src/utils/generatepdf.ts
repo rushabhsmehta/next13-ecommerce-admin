@@ -16,9 +16,52 @@ export interface GeneratePdfOptions {
   scale?: number;
 }
 
+// Inline external <img src="http(s)://..."> tags as data URIs to ensure they render in header/footer templates
+async function inlineImagesInHtml(html: string): Promise<string> {
+  if (!html) return html;
+  try {
+    const imgSrcRegex = /<img\b[^>]*?src=["'](http[^"']+)["'][^>]*>/gi;
+    const urls: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = imgSrcRegex.exec(html)) !== null) {
+      if (m[1]) urls.push(m[1]);
+    }
+
+    if (urls.length === 0) return html;
+    const uniqueUrls = Array.from(new Set(urls));
+    const urlToDataUri = new Map<string, string>();
+
+    await Promise.all(
+      uniqueUrls.map(async (url) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const contentType = res.headers.get("content-type") || "image/png";
+          const buffer = Buffer.from(await res.arrayBuffer());
+          const base64 = buffer.toString("base64");
+          const dataUri = `data:${contentType};base64,${base64}`;
+          urlToDataUri.set(url, dataUri);
+        } catch {
+          // ignore failed fetch; keep original URL
+        }
+      })
+    );
+
+    let out = html;
+    urlToDataUri.forEach((dataUri, url) => {
+      const esc = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      out = out.replace(new RegExp(esc, "g"), dataUri);
+    });
+    return out;
+  } catch {
+    return html;
+  }
+}
+
 /**
  * Generates a PDF from the provided HTML content.
  * @param htmlContent - The HTML content to render into a PDF.
+ * @param options - Optional header/footer and PDF tuning options.
  * @returns A buffer containing the PDF file.
  * @throws Error if the PDF generation fails.
  */
@@ -73,8 +116,12 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
       left: options?.margin?.left ?? marginDefaults.left,
     };
 
-    const headerTemplate = options?.headerHtml ?? "<div></div>";
-    const footerTemplate = options?.footerHtml ?? "<div></div>";
+    const headerTemplate = options?.headerHtml
+      ? await inlineImagesInHtml(options.headerHtml)
+      : "<div></div>";
+    const footerTemplate = options?.footerHtml
+      ? await inlineImagesInHtml(options.footerHtml)
+      : "<div></div>";
 
     const pdfBuffer = (await page.pdf({
       format: "A4",

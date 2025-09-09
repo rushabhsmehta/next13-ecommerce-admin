@@ -350,10 +350,14 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       const selectedPricing = matchedPricings[0];
   addLog({ step: 'autoCalc/selectedPricing', data: { id: selectedPricing.id, numberOfRooms: selectedPricing.numberOfRooms, mealPlanId: selectedPricing.mealPlanId } });
 
-      // Calculate total price from pricing components
+      // ================= PARITY WITH PRICING TAB =================
+      // Pricing Tab semantics: Each pricing component's 'price' represents the value
+      // for the defined numberOfRooms in the pricing period (NOT per room / occupancy).
+      // Therefore we simply sum the selected component prices. We do NOT
+      // multiply by occupancy or room count again (the period already encodes rooms).
+      // Group pricing flag (isGroupPricing) is informational; calculation remains a sum.
       let totalPrice = 0;
       const calculationDetails: any[] = [];
-      // expose components for selection
       setAvailablePricingComponents(selectedPricing.pricingComponents || []);
 
       const componentsToUse = (selectedPricing.pricingComponents || []).filter((comp: any) =>
@@ -363,34 +367,29 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       if (componentsToUse && componentsToUse.length > 0) {
         componentsToUse.forEach((comp: any) => {
           const componentName = comp.pricingAttribute?.name || 'Pricing Component';
-          const basePrice = parseFloat(comp.price || '0');
-          const occupancyMultiplier = getOccupancyMultiplier(componentName);
-          const totalComponentPrice = basePrice * occupancyMultiplier * totalRooms;
-          
+          const componentPrice = parseFloat(comp.price || '0');
+          totalPrice += componentPrice;
           calculationDetails.push({
             name: componentName,
-            basePrice: basePrice,
-            occupancyMultiplier: occupancyMultiplier,
-            rooms: totalRooms,
-            totalPrice: totalComponentPrice,
-            description: `₹${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${totalRooms} room${totalRooms > 1 ? 's' : ''} = ₹${totalComponentPrice.toFixed(2)}`
+            basePrice: componentPrice,
+            totalPrice: componentPrice,
+            roomsRepresented: selectedPricing.numberOfRooms,
+            isGroupPricing: !!selectedPricing.isGroupPricing,
+            description: `₹${componentPrice.toFixed(2)} (component price${selectedPricing.isGroupPricing ? ' - group pricing' : ''})`
           });
-          
-          totalPrice += totalComponentPrice;
         });
       } else {
-        // If no pricing components, create a basic calculation
         calculationDetails.push({
-          name: 'Tour Package Price',
+          name: 'No Pricing Components',
           basePrice: 0,
-          occupancyMultiplier: 1,
-          rooms: totalRooms,
           totalPrice: 0,
-          description: `No pricing components configured for ${totalRooms} room${totalRooms > 1 ? 's' : ''}`
+          roomsRepresented: selectedPricing.numberOfRooms,
+          isGroupPricing: !!selectedPricing.isGroupPricing,
+          description: 'No pricing components configured in the matched pricing period.'
         });
       }
 
-  addLog({ step: 'autoCalc/result', data: { totalPrice, lines: calculationDetails.length } });
+      addLog({ step: 'autoCalc/result', data: { totalPrice, lines: calculationDetails.length, groupPricing: !!selectedPricing.isGroupPricing } });
 
       setCalculatedPrice(totalPrice);
       setPriceCalculationDetails(calculationDetails);
@@ -415,34 +414,29 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   addLog({ step: 'pricing/applySelected/guard', level: 'warn', msg: 'No components available' });
       return;
     }
-    const totalRooms = form.getValues('roomAllocations').reduce((sum, a: any) => sum + (a.quantity || 1), 0);
     const toUse = availablePricingComponents.filter((comp: any) => selectedPricingComponentIds.includes(comp.id));
     if (toUse.length === 0) {
       toast.error('Please select at least one pricing component.');
-  addLog({ step: 'pricing/applySelected/guard', level: 'warn', msg: 'No components selected' });
+      addLog({ step: 'pricing/applySelected/guard', level: 'warn', msg: 'No components selected' });
       return;
     }
-    let totalPrice = 0;
-    const calculationDetails: any[] = [];
+    let total = 0;
+    const details: any[] = [];
     toUse.forEach((comp: any) => {
       const name = comp.pricingAttribute?.name || 'Pricing Component';
-      const base = parseFloat(comp.price || '0');
-      const occ = getOccupancyMultiplier(name);
-      const line = base * occ * totalRooms;
-      calculationDetails.push({
+      const price = parseFloat(comp.price || '0');
+      total += price;
+      details.push({
         name,
-        basePrice: base,
-        occupancyMultiplier: occ,
-        rooms: totalRooms,
-        totalPrice: line,
-        description: `₹${base.toFixed(2)} × ${occ} occupancy × ${totalRooms} room${totalRooms > 1 ? 's' : ''} = ₹${line.toFixed(2)}`
+        basePrice: price,
+        totalPrice: price,
+        description: `₹${price.toFixed(2)} (component price)`
       });
-      totalPrice += line;
     });
-    setCalculatedPrice(totalPrice);
-    setPriceCalculationDetails(calculationDetails);
+    setCalculatedPrice(total);
+    setPriceCalculationDetails(details);
     toast.success(`Applied ${toUse.length} pricing component${toUse.length !== 1 ? 's' : ''}.`);
-  addLog({ step: 'pricing/applySelected/success', data: { selectedCount: toUse.length, totalPrice } });
+    addLog({ step: 'pricing/applySelected/success', data: { selectedCount: toUse.length, totalPrice: total } });
   };
 
   const applyAllPricingComponents = () => {
@@ -1177,12 +1171,41 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                             <FormItem>
                               <FormLabel>Quantity</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                                />
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = Number(field.value) || 1;
+                                      const next = Math.max(1, current - 1);
+                                      field.onChange(next);
+                                    }}
+                                    className="h-9 w-9 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-lg font-medium"
+                                    aria-label="Decrease quantity"
+                                  >
+                                    –
+                                  </button>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={field.value}
+                                    onChange={(e) => {
+                                      const v = parseInt(e.target.value);
+                                      field.onChange(isNaN(v) || v < 1 ? 1 : v);
+                                    }}
+                                    className="w-20 text-center"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = Number(field.value) || 1;
+                                      field.onChange(current + 1);
+                                    }}
+                                    className="h-9 w-9 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-lg font-medium"
+                                    aria-label="Increase quantity"
+                                  >
+                                    +
+                                  </button>
+                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>

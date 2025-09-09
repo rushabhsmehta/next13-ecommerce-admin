@@ -350,12 +350,12 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       const selectedPricing = matchedPricings[0];
   addLog({ step: 'autoCalc/selectedPricing', data: { id: selectedPricing.id, numberOfRooms: selectedPricing.numberOfRooms, mealPlanId: selectedPricing.mealPlanId } });
 
-      // ================= PARITY WITH PRICING TAB =================
-      // Pricing Tab semantics: Each pricing component's 'price' represents the value
-      // for the defined numberOfRooms in the pricing period (NOT per room / occupancy).
-      // Therefore we simply sum the selected component prices. We do NOT
-      // multiply by occupancy or room count again (the period already encodes rooms).
-      // Group pricing flag (isGroupPricing) is informational; calculation remains a sum.
+      // ================= UPDATED PARITY WITH PRICING TAB (OCCUPANCY & ROOMS) =================
+      // Pricing Tab multiplies each component base price by an inferred occupancy multiplier
+      // (derived from component name: single/double/triple/quad) and by the number of rooms
+      // matched in the pricing period (selectedPricing.numberOfRooms). This produces a
+      // per-component total: basePrice * occupancyMultiplier * rooms.
+      // We replicate that here so that auto calculation from inquiry matches the Pricing Tab exactly.
       let totalPrice = 0;
       const calculationDetails: any[] = [];
       setAvailablePricingComponents(selectedPricing.pricingComponents || []);
@@ -367,21 +367,28 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       if (componentsToUse && componentsToUse.length > 0) {
         componentsToUse.forEach((comp: any) => {
           const componentName = comp.pricingAttribute?.name || 'Pricing Component';
-          const componentPrice = parseFloat(comp.price || '0');
-          totalPrice += componentPrice;
+          const basePrice = parseFloat(comp.price || '0');
+          const occupancyMultiplier = getOccupancyMultiplier(componentName);
+          const roomQty = selectedPricing.numberOfRooms || 1;
+          const componentTotal = basePrice * occupancyMultiplier * roomQty;
+          totalPrice += componentTotal;
           calculationDetails.push({
             name: componentName,
-            basePrice: componentPrice,
-            totalPrice: componentPrice,
-            roomsRepresented: selectedPricing.numberOfRooms,
+            basePrice,
+            occupancyMultiplier,
+            roomQuantity: roomQty,
+            totalPrice: componentTotal,
+            roomsRepresented: roomQty,
             isGroupPricing: !!selectedPricing.isGroupPricing,
-            description: `₹${componentPrice.toFixed(2)} (component price${selectedPricing.isGroupPricing ? ' - group pricing' : ''})`
+            description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} occupancy × ${roomQty} room${roomQty > 1 ? 's' : ''} = ₹${componentTotal.toFixed(2)}`
           });
         });
       } else {
         calculationDetails.push({
           name: 'No Pricing Components',
           basePrice: 0,
+          occupancyMultiplier: 0,
+            roomQuantity: selectedPricing.numberOfRooms || 0,
           totalPrice: 0,
           roomsRepresented: selectedPricing.numberOfRooms,
           isGroupPricing: !!selectedPricing.isGroupPricing,
@@ -389,7 +396,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         });
       }
 
-      addLog({ step: 'autoCalc/result', data: { totalPrice, lines: calculationDetails.length, groupPricing: !!selectedPricing.isGroupPricing } });
+      addLog({ step: 'autoCalc/result', data: { totalPrice, lines: calculationDetails.length, groupPricing: !!selectedPricing.isGroupPricing, details: calculationDetails } });
 
       setCalculatedPrice(totalPrice);
       setPriceCalculationDetails(calculationDetails);
@@ -422,15 +429,23 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     }
     let total = 0;
     const details: any[] = [];
+    // Try to infer numberOfRooms from any available component metadata (roomsRepresented) else fallback to total from current form allocations
+    const formData = form.getValues();
+    const inferredRooms = formData.roomAllocations?.reduce((s: number, a: any) => s + (a.quantity || 1), 0) || 1;
     toUse.forEach((comp: any) => {
       const name = comp.pricingAttribute?.name || 'Pricing Component';
-      const price = parseFloat(comp.price || '0');
-      total += price;
+      const basePrice = parseFloat(comp.price || '0');
+      const occupancyMultiplier = getOccupancyMultiplier(name);
+      const roomQty = comp.numberOfRooms || inferredRooms;
+      const componentTotal = basePrice * occupancyMultiplier * roomQty;
+      total += componentTotal;
       details.push({
         name,
-        basePrice: price,
-        totalPrice: price,
-        description: `₹${price.toFixed(2)} (component price)`
+        basePrice,
+        occupancyMultiplier,
+        roomQuantity: roomQty,
+        totalPrice: componentTotal,
+        description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} × ${roomQty} room${roomQty > 1 ? 's' : ''} = ₹${componentTotal.toFixed(2)}`
       });
     });
     setCalculatedPrice(total);
@@ -701,7 +716,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         queryData.pricingSection = priceCalculationDetails.map((detail: any) => ({
           name: detail.name,
           price: (detail.totalPrice ?? detail.basePrice ?? 0).toString(),
-          description: detail.description,
+          description: detail.description // already includes base × occupancy × rooms
         }));
         queryData.totalPrice = (calculatedPrice ?? 0).toString();
       }

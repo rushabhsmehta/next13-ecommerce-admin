@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, MapPin, Calendar as CalendarIcon, ListPlus, Plane, Tag, FileCheck } from "lucide-react"
+import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -543,10 +543,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               <TabsTrigger value="location" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Location
-              </TabsTrigger>
-              <TabsTrigger value="dates" className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                Dates
               </TabsTrigger>
               <TabsTrigger value="itinerary" className="flex items-center gap-2">
                 <ListPlus className="h-4 w-4" />

@@ -86,7 +86,6 @@ const itinerarySchema = z.object({
   itineraryTitle: z.string().optional(),
   itineraryDescription: z.string().optional(),
   dayNumber: z.coerce.number().optional(),
-  days: z.string().optional(),
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string().optional(), // Array of hotel IDs
@@ -339,7 +338,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       itineraries: data.itineraries.map((itinerary: any) => ({
 
         dayNumber: itinerary.dayNumber ?? 0,
-        days: itinerary.days ?? '',
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
         itineraryDescription: itinerary.itineraryDescription ?? '',
@@ -403,13 +401,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
     images: [],
     itineraries: [],
-    /* itineraries: [{
-      days: '',
-      activities: [],
-      mealsIncluded: [],
-      hotelId: '',
-    }],
-     */
     locationId: '',
     //location : '',
     // hotelId: '',
@@ -1220,23 +1211,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                       </FormControl>
                                     </FormItem>
 
-                                    <FormItem>
-                                      <FormLabel>Date</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          placeholder="Day"
-                                          disabled={loading}
-
-                                          value={itinerary.days}
-                                          onChange={(e) => {
-                                            const newItineraries = [...value];
-                                            newItineraries[index] = { ...itinerary, days: e.target.value };
-                                            onChange(newItineraries);
-                                          }}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-
                                     <ImageUpload
                                       value={itinerary.itineraryImages?.map((image) => image.url) || []}
                                       disabled={loading}
@@ -1548,7 +1522,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                             className="mt-4"
                             onClick={() => onChange([...value, {
                               dayNumber: 0,
-                              days: '',
                               itineraryImages: [],
                               itineraryTitle: '',
                               itineraryDescription: '',

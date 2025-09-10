@@ -16,6 +16,55 @@ export interface GeneratePdfOptions {
   scale?: number;
 }
 
+export interface CompanyInfo {
+  name: string;
+  phone: string;
+  email: string;
+  website?: string;
+  address?: string;
+}
+
+/**
+ * Creates a professional footer template for PDFs
+ * @param companyInfo - Company information to include in footer
+ * @returns HTML string for footer template
+ */
+export function createProfessionalFooter(companyInfo?: CompanyInfo): string {
+  const currentDate = new Date().toLocaleDateString();
+  
+  return `
+    <div style="
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 10px; 
+      padding: 15px 20px; 
+      border-top: 3px solid #2563eb; 
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #475569;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 50px;
+    ">
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        ${companyInfo ? `
+          <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">${companyInfo.name}</div>
+          <div style="font-size: 9px;">
+            ${companyInfo.phone ? `📞 ${companyInfo.phone}` : ''}
+            ${companyInfo.phone && companyInfo.email ? ' • ' : ''}
+            ${companyInfo.email ? `📧 ${companyInfo.email}` : ''}
+          </div>
+        ` : `<div style="font-weight: 500;">Generated on: ${currentDate}</div>`}
+      </div>
+      <div style="text-align: right;">
+        <div style="font-weight: 600; color: #1e293b;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
+        <div style="font-size: 9px; margin-top: 2px;">${currentDate}</div>
+      </div>
+    </div>
+  `;
+}
+
 // Inline external <img src="http(s)://..."> tags as data URIs to ensure they render in header/footer templates
 async function inlineImagesInHtml(html: string): Promise<string> {
   if (!html) return html;
@@ -121,7 +170,21 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
       : "<div></div>";
     const footerTemplate = options?.footerHtml
       ? await inlineImagesInHtml(options.footerHtml)
-      : "<div></div>";
+      : `<div style="
+          font-size: 10px; 
+          padding: 15px; 
+          border-top: 2px solid #e5e7eb; 
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          color: #64748b;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          box-sizing: border-box;
+        ">
+          <span style="font-weight: 500;">Generated on: ${new Date().toLocaleDateString()}</span>
+          <span style="font-weight: 500;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+        </div>`;
 
     const pdfBuffer = (await page.pdf({
       format: "A4",

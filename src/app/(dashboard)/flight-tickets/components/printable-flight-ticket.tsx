@@ -452,25 +452,42 @@ export const PrintableFlightTicket: React.FC<PrintableFlightTicketProps> = ({
           </div>
         )}
 
-        {/* QR Code and Footer */}
-        <div className="flex flex-col md:flex-row justify-between items-center mt-8">
-          <div className="order-2 md:order-1 text-center md:text-left mt-4 md:mt-0">
-            <p className="text-sm text-muted-foreground mb-1">For support, contact:</p>
-            <p className="font-medium">{company.phone}</p>
-            <p className="font-medium">{company.email}</p>
-            <p className="mt-4 text-xs text-muted-foreground">
-              This is a computer-generated document and does not require a signature.
-            </p>
-          </div>
-          
-          <div className="order-1 md:order-2 flex flex-col items-center">
-            <div className="p-2 bg-white border rounded-lg" ref={qrCodeRef}>
-              <QRCode 
-                value={`PNR:${flightTicket.pnr},FLIGHT:${flightTicket.flightNumber}`} 
-                size={100} 
-              />
+        {/* Enhanced Footer Section */}
+        <div className="mt-8 pt-6 border-t-2 border-gray-200">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                  Customer Support
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium w-16">Phone:</span>
+                    <span className="text-blue-600 font-medium">{company.phone}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium w-16">Email:</span>
+                    <span className="text-blue-600 font-medium">{company.email}</span>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-r">
+                  <p className="text-xs text-amber-800">
+                    <span className="font-semibold">Important:</span> This is a computer-generated document and does not require a signature.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <div className="p-3 bg-white border-2 border-gray-200 rounded-xl shadow-sm" ref={qrCodeRef}>
+                  <QRCode 
+                    value={`PNR:${flightTicket.pnr},FLIGHT:${flightTicket.flightNumber}`} 
+                    size={100} 
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2 font-medium">Scan for verification</p>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">Scan for verification</p>
           </div>
         </div>
       </div>

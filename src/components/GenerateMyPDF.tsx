@@ -211,14 +211,24 @@ const styles = StyleSheet.create({
   // Specific Card Styles
   cardDescription: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 8,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    padding: 15,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    marginTop: 20,
+    borderTop: '3px solid #2563eb',
   },
   imageContainer: {
-    width: 48,
-    height: 48,
+    width: 80,
+    height: 80,
     position: 'relative',
+    marginRight: 20,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    border: '2px solid #e5e7eb',
+    padding: 5,
   },
   list: {
     listStyleType: 'none',
@@ -226,11 +236,15 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   listItem: {
-    marginBottom: 4,
+    marginBottom: 8,
+    fontSize: 11,
+    color: '#374151',
+    lineHeight: 1.5,
   },
   link: {
-    color: 'blue',
+    color: '#2563eb',
     textDecoration: 'underline',
+    fontSize: 11,
   },
 
   // Price and Flight Details
@@ -300,6 +314,77 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 5, // Add space between the icon and the text
+  },
+
+  // Enhanced Footer Styles
+  footerContainer: {
+    marginTop: 30,
+    paddingTop: 20,
+    borderTop: '2px solid #e5e7eb',
+  },
+  footerHeader: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 15,
+    textAlign: 'center',
+    paddingBottom: 10,
+    borderBottom: '1px solid #e5e7eb',
+  },
+  companyInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 12,
+    border: '1px solid #e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  companyLogo: {
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+    marginRight: 25,
+    backgroundColor: '#ffffff',
+    border: '2px solid #f3f4f6',
+    padding: 8,
+  },
+  companyDetailsContainer: {
+    flex: 1,
+    paddingTop: 5,
+  },
+  companyName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  contactInfo: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 6,
+    lineHeight: 1.6,
+  },
+  contactLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginRight: 5,
+  },
+  websiteLink: {
+    color: '#2563eb',
+    textDecoration: 'underline',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  emailLink: {
+    color: '#2563eb',
+    textDecoration: 'underline',
+    fontSize: 11,
   },
 
 });
@@ -817,40 +902,68 @@ const GenerateMyPDF: React.FC<GenerateMyPDFProps> = ({ data, locations, hotels, 
         )}
 
         {selectedOption !== 'Empty' && selectedOption !== 'Supplier' && (
-          <View wrap={false} style={styles.card}>
-            <View style={styles.cardDescription}>
+          <View wrap={false} style={styles.footerContainer}>
+            <Text style={styles.footerHeader}>Contact Information</Text>
+            <View style={styles.companyInfoContainer}>
               <View style={styles.imageContainer}>
-                <Image src={currentCompany.logo} style={styles.image} />
+                <Image src={currentCompany.logo} style={styles.companyLogo} />
               </View>
-              <View>
-                <Text style={styles.listItem}>{currentCompany.address}</Text>
-                <Text style={styles.listItem}>Phone: {currentCompany.phone}</Text>
-                <Text style={styles.listItem}>
-                  Email: <Link style={styles.link} src={`mailto:${currentCompany.email}`}>{currentCompany.email}</Link>
-                </Text>
-                <Text style={styles.listItem}>
-                  Website: <Link style={styles.link} src={currentCompany.website || '#'}>{currentCompany.website}</Link>
-                </Text>
+              <View style={styles.companyDetailsContainer}>
+                <Text style={styles.companyName}>{currentCompany.name}</Text>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Address:</Text>
+                  <Text style={styles.contactInfo}>{currentCompany.address}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Phone:</Text>
+                  <Text style={styles.contactInfo}>{currentCompany.phone}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Email:</Text>
+                  <Link style={styles.emailLink} src={`mailto:${currentCompany.email}`}>
+                    {currentCompany.email}
+                  </Link>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Website:</Text>
+                  <Link style={styles.websiteLink} src={currentCompany.website || '#'}>
+                    {currentCompany.website}
+                  </Link>
+                </View>
               </View>
             </View>
           </View>
         )}
 
         {selectedOption === 'Supplier' && (
-          <View wrap={false} style={styles.card}>
-            <View style={styles.cardDescription}>
+          <View wrap={false} style={styles.footerContainer}>
+            <Text style={styles.footerHeader}>Contact Information</Text>
+            <View style={styles.companyInfoContainer}>
               <View style={styles.imageContainer}>
-                <Image src={companyInfo.AH.logo} style={styles.image} />
+                <Image src={companyInfo.AH.logo} style={styles.companyLogo} />
               </View>
-              <View>
-                <Text style={styles.listItem}>{companyInfo.AH.address}</Text>
-                <Text style={styles.listItem}>Phone: {companyInfo.AH.phone}</Text>
-                <Text style={styles.listItem}>
-                  Email: <Link style={styles.link} src={`mailto:${companyInfo.AH.email}`}>{companyInfo.AH.email}</Link>
-                </Text>
-                <Text style={styles.listItem}>
-                  Website: <Link style={styles.link} src={companyInfo.AH.website || '#'}>{companyInfo.AH.website}</Link>
-                </Text>
+              <View style={styles.companyDetailsContainer}>
+                <Text style={styles.companyName}>{companyInfo.AH.name}</Text>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Address:</Text>
+                  <Text style={styles.contactInfo}>{companyInfo.AH.address}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Phone:</Text>
+                  <Text style={styles.contactInfo}>{companyInfo.AH.phone}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Email:</Text>
+                  <Link style={styles.emailLink} src={`mailto:${companyInfo.AH.email}`}>
+                    {companyInfo.AH.email}
+                  </Link>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.contactLabel}>Website:</Text>
+                  <Link style={styles.websiteLink} src={companyInfo.AH.website || '#'}>
+                    {companyInfo.AH.website}
+                  </Link>
+                </View>
               </View>
             </View>
           </View>

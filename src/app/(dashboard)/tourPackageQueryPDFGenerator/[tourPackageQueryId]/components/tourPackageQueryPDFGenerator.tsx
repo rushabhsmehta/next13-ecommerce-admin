@@ -1135,7 +1135,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           <style>${pageStyle}\n${itineraryHeaderStyle}</style>
         </head>
         <body>
-          ${itineraryHeaderHtml}
           <div style="${containerStyle}">
             ${headerSection}
             ${customerSection}
@@ -1144,6 +1143,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             ${totalPriceSection}
             ${remarksSection}
             ${hotelSummarySection}
+            ${itineraryHeaderHtml}
             ${itinerariesSection}
             ${inclusionsSection}
             ${exclusionsSection}

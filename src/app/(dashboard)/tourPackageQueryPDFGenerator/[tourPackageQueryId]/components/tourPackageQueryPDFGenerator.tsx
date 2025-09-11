@@ -141,10 +141,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     color: ${brandColors.text};
   `;
   
+  // Card style with subtle gradient border matching brand colors
   const cardStyle = `
-    background: ${brandColors.white};
-    border: 1px solid ${brandColors.border}; 
-    border-radius: 6px; 
+    background: linear-gradient(#ffffff,#ffffff) padding-box, ${brandGradients.primary} border-box;
+    border: 1px solid transparent; 
+    border-radius: 8px; 
     margin-bottom: 16px; 
     overflow: hidden; 
     page-break-inside: avoid; 
@@ -260,21 +261,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     page-break-before: always;
     break-before: page;
   `;
-
-  // Add this helper function
-  const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
-    if (!pricingData) return [];
-    
-    try {
-      if (typeof pricingData === 'string') {
-        return JSON.parse(pricingData);
-      }
-      return Array.isArray(pricingData) ? pricingData : [];
-    } catch (e) {
-      console.error("Error parsing pricing section:", e);
-      return [];
-    }
-  };
 
   // Policy parsing helpers aligned with display component
   const extractText = (obj: any): string => {
@@ -396,7 +382,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         </div>
         <div style="${contentStyle}">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 3px solid #6b7280;">
+            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
               <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">DESTINATION</div>
               <div style="font-size: 14px; font-weight: 600; color: #1f2937;">
                 ${locations.find((loc) => loc.id === initialData.locationId)?.label || "Not specified"}
@@ -404,7 +390,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
             
             ${initialData.numDaysNight ? `
-              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 3px solid #6b7280;">
+              <div style="background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">DURATION</div>
                 <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${initialData.numDaysNight}</div>
               </div>
@@ -412,7 +398,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           ${(initialData.tourStartsFrom || initialData.tourEndsOn) ? `
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; margin-bottom: 12px; border-left: 3px solid #6b7280;">
+            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; margin-bottom: 12px; border-left: 4px solid ${brandColors.primary};">
               <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 8px;">TRAVEL DATES</div>
               <div style="display: flex; gap: 16px; align-items: center;">
                 ${initialData.tourStartsFrom ? `
@@ -436,21 +422,21 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
             ${initialData.transport ? `
-              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 3px solid #6b7280;">
+              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">TRANSPORT</div>
                 <div style="font-size: 12px; color: #1f2937; font-weight: 500;">${initialData.transport}</div>
               </div>
             ` : ''}
             
             ${initialData.pickup_location ? `
-              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 3px solid #6b7280;">
+              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">PICKUP</div>
                 <div style="font-size: 12px; color: #1f2937; font-weight: 500;">${initialData.pickup_location}</div>
               </div>
             ` : ''}
             
             ${initialData.drop_location ? `
-              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 3px solid #6b7280;">
+              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">DROP</div>
                 <div style="font-size: 12px; color: #1f2937; font-weight: 500;">${initialData.drop_location}</div>
               </div>
@@ -458,7 +444,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           ${(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) ? `
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; margin-top: 12px; border-left: 3px solid #6b7280;">
+            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; margin-top: 12px; border-left: 4px solid ${brandColors.primary};">
               <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 8px;">TRAVELLERS</div>
               <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                 ${initialData.numAdults ? `
@@ -487,7 +473,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     `;
 
   // Legacy Tour Pricing section removed to match display page.
-  const pricingSection = "";
 
   // Function to parse pricing section JSON data
   const parsePricingSection = (pricingData: any): Array<{name?: string, price?: string, description?: string}> => {
@@ -538,11 +523,12 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </h3>
         </div>
         
-        <div style="background: white; border-radius: 4px; padding: 16px; margin: 8px 0; border: 1px solid #e5e7eb;">
-          <div style="font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">
+        <div style="background: white; border-radius: 6px; padding: 20px 16px; margin: 8px 0; border: 1px solid #e5e7eb; position:relative;">
+          <div style="position:absolute; top:0; left:0; right:0; height:3px; background:${brandGradients.primary};"></div>
+          <div style="font-size: 26px; font-weight: 700; color: ${brandColors.primary}; margin-bottom: 4px; letter-spacing:0.5px;">
             ₹ ${formatINR(initialData.totalPrice)}
           </div>
-          <div style="font-size: 12px; color: #6b7280; font-weight: 500;">
+          <div style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform:uppercase; letter-spacing:0.75px;">
             Complete Tour Package Cost
           </div>
         </div>
@@ -566,7 +552,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       
       if (parsedPricing && parsedPricing.length > 0) {
         const pricingItems = parsedPricing.map((item, index) => `
-          <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 3px solid #6b7280; border: 1px solid #e5e7eb;">
+          <div style="background: ${index % 2 === 0 ? '#f9fafb' : 'white'}; padding: 12px; border-radius: 4px; margin-bottom: 8px; border-left: 4px solid ${brandColors.primary}; border: 1px solid #e5e7eb;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="flex: 1;">
                 <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 2px;">
@@ -613,7 +599,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </h3>
         </div>
         <div style="${contentStyle};">
-          <div style="font-size: 14px; line-height: 1.5; color: #1f2937; background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 3px solid #6b7280;">
+          <div style="font-size: 14px; line-height: 1.5; color: #1f2937; background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
             ${initialData.remarks}
           </div>
         </div>
@@ -623,24 +609,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
   // Remove Tour Highlights section to match display
   const highlightsSection = "";
-
-
-
-
-    // 7. Tour Highlights Section
-    // const highlightsSection2 =
-    //   initialData.tour_highlights && initialData.tour_highlights.trim() !== ""
-    //     ? `
-    //   <div style="${cardStyle}">
-    //     <div style="${headerStyle}">
-    //       <h2 style="${sectionTitleStyle}">Tour Highlights</h2>
-    //     </div>
-    //     <div style="${contentStyle}; font-size: 18px;">
-    //       ${initialData.tour_highlights}
-    //     </div>
-    //   </div>
-    // `
-    //     : "";
 
     // 8. Flight Details Section (if applicable)
   // Flight details not shown on display page; omit to match.
@@ -747,7 +715,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 <div style="margin-left: 44px; margin-top: 16px;">
                   <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Transport Details</div>
                   ${it.transportDetails.map((t: any) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; background:#fff7ed; padding:10px 12px; border-radius:4px; margin-bottom:8px; border-left: 3px solid #fb923c;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:#fff7ed; padding:10px 12px; border-radius:4px; margin-bottom:8px; border-left: 4px solid ${brandColors.secondary};">
                       <div>
                         <div style="font-weight:600; color:#7c2d12;">${t?.vehicleType?.name || 'Vehicle'}</div>
                         ${t.description ? `<div style="font-size:12px; color:#9a3412; margin-top: 2px;">${t.description}</div>` : ''}
@@ -1117,44 +1085,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </div>
       `
       : "";
-
-    // 11. Footer / Company Details
-  let companySection = "";
-    if (
-      selectedOption !== "Empty" &&
-      selectedOption !== "SupplierA" &&
-      selectedOption !== "SupplierB"
-    ) {
-      companySection = `
-      <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
-      <div style="width: 120px; height: 120px; margin-right: 16px;">
-        <img src="${currentCompany.logo}" alt="${currentCompany.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-      </div>
-      <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
-      <div style="font-size:18px; background: linear-gradient(to right, #fb923c, #ef4444); -webkit-background-clip: text; color: transparent;">${currentCompany.name || ''}</div>
-        <div>${currentCompany.address}</div>
-        <div>Phone: ${currentCompany.phone}</div>
-        <div>Email: <a href="mailto:${currentCompany.email}" style="color: #2563eb; text-decoration: underline;">${currentCompany.email}</a></div>
-        <div>Website: <a href="${currentCompany.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${currentCompany.website}</a></div>
-      </div>
-      </div>
-      `;
-    } else if (selectedOption === "SupplierA" || selectedOption === "SupplierB") {
-      companySection = `
-      <div style="border: 1px solid #ddd; margin: 16px 0; padding: 16px; display: flex; align-items: center;">
-      <div style="width: 120px; height: 120px; margin-right: 16px;">
-        <img src="${companyInfo.AH.logo}" alt="${companyInfo.AH.name} Logo" style="width: 100%; height: 100%; object-fit: contain;" />
-      </div>
-      <div style="font-weight: bold; font-size: 16px; color: #1a202c;">
-      <div style="font-size:18px; background: linear-gradient(to right, #fb923c, #ef4444); -webkit-background-clip: text; color: transparent;">${companyInfo.AH.name}</div>
-        <div>${companyInfo.AH.address}</div>
-        <div>Phone: ${companyInfo.AH.phone}</div>
-        <div>Email: <a href="mailto:${companyInfo.AH.email}" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.email}</a></div>
-        <div>Website: <a href="${companyInfo.AH.website || "#"}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${companyInfo.AH.website}</a></div>
-      </div>
-      </div>
-      `;
-    }
 
     // Assemble all sections.
     const fullHtml = `

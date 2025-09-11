@@ -137,6 +137,27 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   `;
 
+  // Fixed itinerary header CSS (will be used when itineraries are present)
+  const itineraryHeaderStyle = `
+    .itinerary-fixed-header {
+      position: fixed;
+      top: 28px;
+      left: 14px;
+      right: 14px;
+      z-index: 9999;
+      pointer-events: none;
+      display: block;
+    }
+    .itinerary-fixed-header .inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      pointer-events: auto;
+    }
+    @media print {
+      .itinerary-fixed-header { display: block; }
+    }
+  `;
+
   const containerStyle = `
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
     background: #f7f8fa;
@@ -1093,13 +1114,24 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       `
       : "";
 
+    // Build optional repeating itinerary header (appears on every PDF page when itineraries exist)
+    const itineraryHeaderHtml = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0) ? `
+      <div class="itinerary-fixed-header">
+        <div class="inner" style="background: ${brandColors.panelBg}; border-radius:8px; padding:10px 12px; border: 1px solid ${brandColors.primary}; box-shadow: 0 2px 6px rgba(0,0,0,0.04); text-align:center;">
+          <h2 style="margin:0; font-size:18px; font-weight:700; background: ${brandGradients.primary}; -webkit-background-clip: text; color: transparent;">Travel Itinerary</h2>
+          <p style="margin:4px 0 0 0; font-size:12px; color: ${brandColors.muted};">Your day-by-day adventure guide</p>
+        </div>
+      </div>
+    ` : '';
+
     // Assemble all sections.
     const fullHtml = `
       <html>
         <head>
-          <style>${pageStyle}</style>
+          <style>${pageStyle}\n${itineraryHeaderStyle}</style>
         </head>
         <body>
+          ${itineraryHeaderHtml}
           <div style="${containerStyle}">
             ${headerSection}
             ${customerSection}

@@ -98,23 +98,134 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const currentCompany =
     companyInfo[selectedOption] ?? companyInfo["Empty"];
 
-  // --- Helper styles (converted from your Tailwind classes) ---
-  const containerStyle =
-    "font-family: Arial, sans-serif; padding: 16px; max-width: 1200px; margin: auto;";
-  const cardStyle =
-    "border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 16px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;";
-  // Simplified header style (removed gradient for cleaner PDF look)
-  const headerStyle =
-    "background: #ffffff; color: #111827; padding: 16px; text-align: center; border-bottom: 2px solid #f3f4f6;";
-  const contentStyle =
-    "padding: 16px; background: #ffffff; color: #4a5568; font-size: 16px;";
-  const sectionTitleStyle =
-    "font-size: 24px; font-weight: bold; margin: 0;";
-  const subTitleStyle =
-    "font-size: 18px; font-weight: bold; margin-right: 8px;";
-  const textStyle = "font-size: 16px; color: #1a202c;";
-  // (Former gradient footer removed for a cleaner design)
-  const gradientFooter = "";
+  // --- Enhanced Beautiful Styles for Aesthetic PDF ---
+  const containerStyle = `
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 20px; 
+    max-width: 1200px; 
+    margin: auto;
+    line-height: 1.6;
+  `;
+  
+  const cardStyle = `
+    background: white;
+    border-radius: 16px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.05); 
+    margin-bottom: 24px; 
+    overflow: hidden; 
+    page-break-inside: avoid; 
+    break-inside: avoid;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  `;
+  
+  const headerStyle = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white; 
+    padding: 24px; 
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  `;
+  
+  const headerStyleAlt = `
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white; 
+    padding: 20px; 
+    text-align: center;
+    border-radius: 12px 12px 0 0;
+  `;
+  
+  const contentStyle = `
+    padding: 28px; 
+    background: white; 
+    color: #374151; 
+    font-size: 16px;
+    line-height: 1.7;
+  `;
+  
+  const sectionTitleStyle = `
+    font-size: 28px; 
+    font-weight: 700; 
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    letter-spacing: -0.025em;
+  `;
+  
+  const subTitleStyle = `
+    font-size: 18px; 
+    font-weight: 600; 
+    margin-right: 12px;
+    color: #1f2937;
+    display: inline-block;
+  `;
+  
+  const textStyle = `
+    font-size: 16px; 
+    color: #4b5563;
+    font-weight: 400;
+  `;
+
+  const accentCardStyle = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 16px 0;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  `;
+
+  const priceCardStyle = `
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 20px 0;
+    border: 2px solid rgba(132, 250, 176, 0.3);
+    box-shadow: 0 10px 25px rgba(132, 250, 176, 0.2);
+  `;
+
+  const tableStyle = `
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  `;
+
+  const tableHeaderStyle = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.025em;
+  `;
+
+  const tableCellStyle = `
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    font-size: 14px;
+  `;
+
+  const badgeStyle = `
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+    display: inline-block;
+  `;
+
+  const iconStyle = `
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 18px;
+  `;
 
   // Add this helper function
   const parsePricingSection = (pricingData: any): Array<{name: string, price?: string, description?: string}> => {
@@ -174,130 +285,180 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const buildHtmlContent = useCallback((): string => {
     if (!initialData) return "";
 
-    // 1. Header Section (Tour Name, Type and Images)
+    // 1. Enhanced Beautiful Header Section (Tour Name, Type and Images)
     const headerSection = `
-  <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}">
-          <h1 style="font-size: 28px; margin: 0;">${initialData.tourPackageQueryName}</h1>
-          <h2 style="font-size: 24px; margin: 0;">${initialData.tourPackageQueryType} Package</h2>
-        </div>
-        ${initialData.images
-        .map(
-          (image, index) => `
-            <div style="width: 100%; height: 500px; overflow: hidden;">
-              <img src="${image.url}" alt="Tour Image ${index + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+      <div style="${cardStyle}; margin-bottom: 32px; page-break-before: always;">
+        <div style="${headerStyle}; position: relative;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><defs><pattern id=\"grain\" patternUnits=\"userSpaceOnUse\" width=\"100\" height=\"100\"><circle cx=\"20\" cy=\"20\" r=\"1\" fill=\"white\" opacity=\"0.1\"/><circle cx=\"80\" cy=\"80\" r=\"1\" fill=\"white\" opacity=\"0.1\"/></pattern></defs><rect width=\"100\" height=\"100\" fill=\"url(%23grain)\"/></svg>'); opacity: 0.1;"></div>
+          <div style="position: relative; z-index: 1;">
+            <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+              <div style="width: 6px; height: 40px; background: white; margin-right: 16px; border-radius: 3px;"></div>
+              <h1 style="font-size: 36px; margin: 0; font-weight: 800; letter-spacing: -0.05em; text-align: center; line-height: 1.1;">
+                ${initialData.tourPackageQueryName}
+              </h1>
+              <div style="width: 6px; height: 40px; background: white; margin-left: 16px; border-radius: 3px;"></div>
             </div>
-          `
-        )
-        .join("")}
-      </div>
-    `;
-
-    // 2. Customer Details Section
-    const customerSection = `
-      <div style="${cardStyle}; padding: 16px;">
-        <div style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">
-          ${initialData.tourPackageQueryNumber}
-        </div>
-        ${selectedOption !== "SupplierA" && selectedOption !== "SupplierB"
-        ? `
-          <div style="font-size: 16px; color: #4a5568;">
-            <div style="margin-bottom: 8px;">
-              <span style="font-weight: bold;">Customer:</span> ${initialData.customerName} | ${initialData.customerNumber}
-            </div>
-            <div>
-              <span style="font-weight: bold;">Associate Partner:</span> ${initialData.associatePartner?.name} | ${initialData.associatePartner?.mobileNumber} | ${initialData.associatePartner?.email}
+            <div style="text-align: center;">
+              <span style="background: rgba(255,255,255,0.2); padding: 8px 24px; border-radius: 25px; font-size: 18px; font-weight: 600; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3);">
+                ✨ ${initialData.tourPackageQueryType} Package
+              </span>
             </div>
           </div>
-          `
-        : ""
-      }
-      ${preparedBy ? `<div style="margin-top:8px; font-size: 14px; color: #6b7280;"><span style="font-weight:600;">Prepared by:</span> ${preparedBy.name} (${preparedBy.email})</div>` : ''}
+        </div>
+        
+        ${initialData.images && initialData.images.length > 0 ? `
+          <div style="position: relative;">
+            ${initialData.images.slice(0, 1).map((image, index) => `
+              <div style="width: 100%; height: 400px; overflow: hidden; position: relative; border-radius: 0 0 16px 16px;">
+                <img src="${image.url}" alt="Tour Image ${index + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%); padding: 24px;">
+                  <p style="color: white; margin: 0; font-size: 16px; font-weight: 500; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                    🌟 Experience the Ultimate Journey
+                  </p>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        ` : ''}
       </div>
     `;
 
-    // 3. Tour Information Section
+    // 2. Enhanced Customer Details Section
+    const customerSection = `
+      <div style="${cardStyle}; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border: 2px solid #e2e8f0;">
+        <div style="background: linear-gradient(135deg, #475569 0%, #64748b 100%); color: white; padding: 16px; border-radius: 14px 14px 0 0;">
+          <h3 style="margin: 0; font-size: 20px; font-weight: 700; display: flex; align-items: center;">
+            <span style="${iconStyle}">📋</span>
+            Query Details - ${initialData.tourPackageQueryNumber}
+          </h3>
+        </div>
+        <div style="padding: 24px;">
+          ${selectedOption !== "SupplierA" && selectedOption !== "SupplierB" ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #667eea;">
+                <div style="font-size: 14px; color: #64748b; font-weight: 600; margin-bottom: 4px;">CUSTOMER</div>
+                <div style="font-size: 16px; font-weight: 700; color: #1e293b;">${initialData.customerName}</div>
+                <div style="font-size: 14px; color: #475569; margin-top: 4px;">📞 ${initialData.customerNumber}</div>
+              </div>
+              <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #10b981;">
+                <div style="font-size: 14px; color: #64748b; font-weight: 600; margin-bottom: 4px;">ASSOCIATE PARTNER</div>
+                <div style="font-size: 16px; font-weight: 700; color: #1e293b;">${initialData.associatePartner?.name || 'N/A'}</div>
+                <div style="font-size: 14px; color: #475569; margin-top: 4px;">
+                  📞 ${initialData.associatePartner?.mobileNumber || 'N/A'} | 
+                  ✉️ ${initialData.associatePartner?.email || 'N/A'}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${preparedBy ? `
+            <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #f59e0b;">
+              <div style="font-size: 14px; color: #64748b; font-weight: 600; margin-bottom: 4px;">PREPARED BY</div>
+              <div style="font-size: 16px; font-weight: 700; color: #1e293b;">${preparedBy.name}</div>
+              <div style="font-size: 14px; color: #475569; margin-top: 4px;">✉️ ${preparedBy.email}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    // 3. Enhanced Tour Information Section
     const tourInfoSection = `
-  <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}">
-          <h2 style="${sectionTitleStyle}">Tour Information</h2>
+      <div style="${cardStyle}; page-break-before: always;">
+        <div style="${headerStyleAlt}">
+          <h2 style="${sectionTitleStyle}; display: flex; align-items: center; justify-content: center;">
+            <span style="${iconStyle}">🗺️</span>
+            Tour Information
+          </h2>
         </div>
         <div style="${contentStyle}">
-          <div style="margin-bottom: 12px;">
-            <span style="${subTitleStyle}">Location:</span>
-            <span style="${textStyle}">${locations.find((loc) => loc.id === initialData.locationId)?.label || ""}</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #f59e0b;">
+              <div style="font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 8px;">📍 DESTINATION</div>
+              <div style="font-size: 18px; font-weight: 700; color: #1f2937;">
+                ${locations.find((loc) => loc.id === initialData.locationId)?.label || "Not specified"}
+              </div>
+            </div>
+            
+            ${initialData.numDaysNight ? `
+              <div style="background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #8b5cf6;">
+                <div style="font-size: 14px; color: #6b21a8; font-weight: 600; margin-bottom: 8px;">⏱️ DURATION</div>
+                <div style="font-size: 18px; font-weight: 700; color: #1f2937;">${initialData.numDaysNight}</div>
+              </div>
+            ` : ''}
           </div>
-          ${initialData.numDaysNight
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Duration:</span>
-                   <span style="${textStyle}">${initialData.numDaysNight}</span>
-                 </div>`
-        : ""
-      }
-          <div style="display: flex; gap: 16px; margin-bottom: 12px;">
-            ${initialData.tourStartsFrom
-        ? `<div>
-                     <span style="${subTitleStyle}">Period:</span>
-                     <span style="${textStyle}">${format(
-          initialData.tourStartsFrom,
-          "dd-MM-yyyy"
-        )}</span>
-                   </div>`
-        : ""
-      }
-            ${initialData.tourEndsOn
-        ? `<div>
-                     <span style="${subTitleStyle}">To:</span>
-                     <span style="${textStyle}">${format(
-          initialData.tourEndsOn,
-          "dd-MM-yyyy"
-        )}</span>
-                   </div>`
-        : ""
-      }
+
+          ${(initialData.tourStartsFrom || initialData.tourEndsOn) ? `
+            <div style="background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #ec4899;">
+              <div style="font-size: 14px; color: #be185d; font-weight: 600; margin-bottom: 12px;">📅 TRAVEL DATES</div>
+              <div style="display: flex; gap: 24px; align-items: center;">
+                ${initialData.tourStartsFrom ? `
+                  <div>
+                    <div style="font-size: 12px; color: #9f1239; font-weight: 600;">FROM</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #1f2937;">${format(initialData.tourStartsFrom, "dd MMM, yyyy")}</div>
+                  </div>
+                ` : ''}
+                ${(initialData.tourStartsFrom && initialData.tourEndsOn) ? `
+                  <div style="font-size: 20px; color: #9f1239;">→</div>
+                ` : ''}
+                ${initialData.tourEndsOn ? `
+                  <div>
+                    <div style="font-size: 12px; color: #9f1239; font-weight: 600;">TO</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #1f2937;">${format(initialData.tourEndsOn, "dd MMM, yyyy")}</div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+            ${initialData.transport ? `
+              <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #06b6d4;">
+                <div style="font-size: 14px; color: #0e7490; font-weight: 600; margin-bottom: 4px;">🚗 TRANSPORT</div>
+                <div style="font-size: 16px; color: #1f2937; font-weight: 500;">${initialData.transport}</div>
+              </div>
+            ` : ''}
+            
+            ${initialData.pickup_location ? `
+              <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #10b981;">
+                <div style="font-size: 14px; color: #059669; font-weight: 600; margin-bottom: 4px;">📍 PICKUP</div>
+                <div style="font-size: 16px; color: #1f2937; font-weight: 500;">${initialData.pickup_location}</div>
+              </div>
+            ` : ''}
+            
+            ${initialData.drop_location ? `
+              <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #f59e0b;">
+                <div style="font-size: 14px; color: #d97706; font-weight: 600; margin-bottom: 4px;">🏁 DROP</div>
+                <div style="font-size: 16px; color: #1f2937; font-weight: 500;">${initialData.drop_location}</div>
+              </div>
+            ` : ''}
           </div>
-          ${initialData.transport
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Transport:</span>
-                   <span style="${textStyle}">${initialData.transport}</span>
-                 </div>`
-        : ""
-      }
-          ${initialData.pickup_location
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Pickup:</span>
-                   <span style="${textStyle}">${initialData.pickup_location}</span>
-                 </div>`
-        : ""
-      }
-          ${initialData.drop_location
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Drop:</span>
-                   <span style="${textStyle}">${initialData.drop_location}</span>
-                 </div>`
-        : ""
-      }
-          ${initialData.numAdults
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Adults:</span>
-                   <span style="${textStyle}">${initialData.numAdults}</span>
-                 </div>`
-        : ""
-      }
-          ${initialData.numChild5to12
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Children (5-12 Years):</span>
-                   <span style="${textStyle}">${initialData.numChild5to12}</span>
-                 </div>`
-        : ""
-      }
-          ${initialData.numChild0to5
-        ? `<div style="margin-bottom: 12px;">
-                   <span style="${subTitleStyle}">Children (0-5 Years):</span>
-                   <span style="${textStyle}">${initialData.numChild0to5}</span>
-                 </div>`
-        : ""
-      }
+
+          ${(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) ? `
+            <div style="background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%); padding: 20px; border-radius: 12px; margin-top: 20px; border-left: 4px solid #0288d1;">
+              <div style="font-size: 14px; color: #01579b; font-weight: 600; margin-bottom: 12px;">👥 TRAVELLERS</div>
+              <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                ${initialData.numAdults ? `
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: #1f2937;">${initialData.numAdults}</div>
+                    <div style="font-size: 12px; color: #01579b; font-weight: 600;">Adults</div>
+                  </div>
+                ` : ''}
+                ${initialData.numChild5to12 ? `
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: #1f2937;">${initialData.numChild5to12}</div>
+                    <div style="font-size: 12px; color: #01579b; font-weight: 600;">Children (5-12)</div>
+                  </div>
+                ` : ''}
+                ${initialData.numChild0to5 ? `
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: #1f2937;">${initialData.numChild0to5}</div>
+                    <div style="font-size: 12px; color: #01579b; font-weight: 600;">Children (0-5)</div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -335,7 +496,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     return [];
   };
 
-    // 5. Total Price Section
+    // 5. Enhanced Total Price Section
     const formatINR = (val: string) => {
       try {
         const n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
@@ -347,25 +508,34 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const totalPriceSection =
       initialData.totalPrice && initialData.totalPrice.trim() !== ""
         ? `
-      <div style="${cardStyle}; border: 2px solid #fed7aa; border-radius: 12px; overflow: hidden;">
-        <div style="background: #fafafa; padding: 20px;">
-          <h3 style="font-size: 28px; font-weight: 800; background: linear-gradient(to right, #fb923c, #f87171, #f472b6); -webkit-background-clip: text; color: transparent; margin: 0;">
-            🎯 Total Package Price
+      <div style="${priceCardStyle}; text-align: center; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50px; right: -50px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
+        <div style="position: absolute; bottom: -30px; left: -30px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.3;"></div>
+        
+        <div style="position: relative; z-index: 1;">
+          <h3 style="font-size: 24px; font-weight: 800; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center; justify-content: center;">
+            <span style="${iconStyle}">💎</span>
+            Total Package Investment
           </h3>
-        </div>
-        <div style="padding: 24px; text-align: center;">
-          <div style="font-size: 48px; font-weight: 800; color: #111827; margin-bottom: 12px;">
-            <span style="color:#ea580c;">₹ </span>${formatINR(initialData.totalPrice)}
+          
+          <div style="background: white; border-radius: 16px; padding: 32px; margin: 16px 0; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="font-size: 56px; font-weight: 900; color: #1f2937; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <span style="color: #059669; font-size: 48px;">₹</span> ${formatINR(initialData.totalPrice)}
+            </div>
+            <div style="font-size: 16px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+              Complete Tour Package Cost
+            </div>
           </div>
-          <div style="font-size: 16px; color: #374151; background: #fff7ed; padding: 10px 16px; border-radius: 999px; display: inline-block;">
-            <span style="font-weight: 600;">Final Tour Package Cost</span>
+          
+          <div style="background: rgba(255,255,255,0.3); padding: 12px 24px; border-radius: 25px; display: inline-block; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.4);">
+            <span style="font-size: 14px; font-weight: 700; color: #1f2937;">🌟 Best Value Guaranteed</span>
           </div>
         </div>
       </div>
     `
         : "";
 
-    // 5.5. Dynamic Pricing Section - Display pricing breakdown if available
+    // 5.5. Enhanced Dynamic Pricing Section
     console.log("PDF Generator - initialData pricingSection:", {
       pricingSection: initialData.pricingSection
     });
@@ -380,26 +550,41 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       console.log("PDF Generator - parsed pricing:", parsedPricing);
       
       if (parsedPricing && parsedPricing.length > 0) {
-        const pricingItems = parsedPricing.map(item => `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
-            <div>
-              <div style="font-weight: 600; color: #111827;">${item.name || 'Pricing Component'}</div>
-              ${item.description ? `<div style="font-size: 14px; color: #6b7280; margin-top: 4px;">${item.description}</div>` : ''}
-            </div>
-            <div style="font-size: 18px; font-weight: 700; color: #ea580c;">
-              ${item.price || 'Price on request'}
+        const pricingItems = parsedPricing.map((item, index) => `
+          <div style="background: ${index % 2 === 0 ? '#f8fafc' : 'white'}; padding: 20px; border-radius: 12px; margin-bottom: 12px; border-left: 4px solid #667eea; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1;">
+                <div style="font-size: 18px; font-weight: 700; color: #1f2937; margin-bottom: 4px;">
+                  ${item.name || 'Pricing Component'}
+                </div>
+                ${item.description ? `
+                  <div style="font-size: 14px; color: #6b7280; line-height: 1.5;">
+                    ${item.description}
+                  </div>
+                ` : ''}
+              </div>
+              <div style="text-align: right; margin-left: 20px;">
+                <div style="font-size: 24px; font-weight: 800; color: #059669; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                  ${item.price || 'On Request'}
+                </div>
+              </div>
             </div>
           </div>
         `).join('');
 
         dynamicPricingSection = `
-          <div style="${cardStyle}; border: 2px solid #fed7aa; border-radius: 12px; overflow: hidden;">
-            <div style="background: linear-gradient(to right, #ef4444, #f97316); color: white; padding: 20px;">
-              <h3 style="font-size: 24px; font-weight: 800; margin: 0; display: flex; align-items: center;">
-                💰 Pricing Breakdown
-              </h3>
+          <div style="${cardStyle}; border: 2px solid #c7d2fe; margin-bottom: 24px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; position: relative; overflow: hidden;">
+              <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
+              <div style="position: relative; z-index: 1;">
+                <h3 style="font-size: 28px; font-weight: 800; margin: 0; display: flex; align-items: center;">
+                  <span style="${iconStyle}">💰</span>
+                  Detailed Pricing Breakdown
+                </h3>
+                <p style="margin: 8px 0 0 0; font-size: 16px; opacity: 0.9;">Complete cost analysis for your tour package</p>
+              </div>
             </div>
-            <div style="padding: 24px; background: #ffffff;">
+            <div style="padding: 28px; background: #ffffff;">
               ${pricingItems}
             </div>
           </div>
@@ -407,12 +592,22 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       }
     }
 
-    // 6. Remarks Section
+    // 6. Enhanced Remarks Section
     const remarksSection =
-      initialData.remarks !== ""
+      initialData.remarks && initialData.remarks.trim() !== ""
         ? `
-      <div style="${cardStyle}; padding: 16px;">
-        <div style="font-size: 16px;">${initialData.remarks}</div>
+      <div style="${cardStyle}; border: 2px solid #fde68a; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
+        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 14px 14px 0 0;">
+          <h3 style="font-size: 22px; font-weight: 800; margin: 0; display: flex; align-items: center;">
+            <span style="${iconStyle}">📝</span>
+            Important Notes & Remarks
+          </h3>
+        </div>
+        <div style="padding: 24px;">
+          <div style="font-size: 16px; line-height: 1.7; color: #1f2937; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            ${initialData.remarks}
+          </div>
+        </div>
       </div>
     `
         : "";
@@ -474,32 +669,65 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                       <a href=\"${hotels.find(h => h.id === it.hotelId)?.link || '#'}\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"font-size:18px; font-weight:600; color:#111827; text-decoration:underline;\">${hotels.find(h => h.id === it.hotelId)?.name || ''}</a>
                     </div>
                     ${(it.roomAllocations && it.roomAllocations.length>0) ? `
-                      <table style=\"width:100%; border-collapse:collapse;\">
-                        <thead>
-                          <tr>
-                            <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Room Type</th>
-                            <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Occupancy</th>
-                            <th style=\"padding:6px; text-align:center; color:#111827; border-bottom:1px solid #e5e7eb;\">Qty</th>
-                            <th style=\"padding:6px; text-align:left; color:#111827; border-bottom:1px solid #e5e7eb;\">Voucher No.</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-          ${it.roomAllocations.map((room:any) => `
+                      <div style="margin-top: 12px;">
+                        <table style="${tableStyle}">
+                          <thead>
                             <tr>
-                              <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">
-            ${(() => { const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : ''; const isCustom = customText.length > 0; const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard'); return label; })()}
+                              <th style="${tableHeaderStyle}">🏨 Room Type</th>
+                              <th style="${tableHeaderStyle}">👥 Occupancy</th>
+                              <th style="${tableHeaderStyle}; text-align: center;">📊 Qty</th>
+                              <th style="${tableHeaderStyle}">🎫 Voucher No.</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+          ${it.roomAllocations.map((room:any, index: number) => `
+                            <tr style="background: ${index % 2 === 0 ? '#f8fafc' : 'white'};">
+                              <td style="${tableCellStyle}">
+                                <div style="display: flex; align-items: center;">
+                                  <span style="font-weight: 600;">
+                                    ${(() => { 
+                                      const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : ''; 
+                                      const isCustom = customText.length > 0; 
+                                      const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard'); 
+                                      return label; 
+                                    })()}
+                                  </span>
+                                  ${(() => { 
+                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : ''; 
+                                    const isCustom = customText.length > 0; 
+                                    return isCustom ? `<span style="${badgeStyle}">Custom</span>` : ''; 
+                                  })()}
+                                </div>
                               </td>
-                              <td style=\"padding:6px; border-top:1px solid #f3f4f6;\">${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}</td>
-                              <td style=\"padding:6px; text-align:center; border-top:1px solid #f3f4f6;\">${room.quantity || 1}</td>
-                              <td style=\"padding:6px; border-top:1px solid #f3f4f6; font-size:12px; color:#6b7280;\">${room.voucherNumber || '-'}</td>
+                              <td style="${tableCellStyle}">
+                                <span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: 500;">
+                                  ${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}
+                                </span>
+                              </td>
+                              <td style="${tableCellStyle}; text-align: center;">
+                                <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;">
+                                  ${room.quantity || 1}
+                                </span>
+                              </td>
+                              <td style="${tableCellStyle}">
+                                <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                  ${room.voucherNumber || '-'}
+                                </span>
+                              </td>
                             </tr>
                           `).join('')}
-                        </tbody>
-                      </table>
-                      ${(() => {
-                        const plans = Array.from(new Set((it.roomAllocations || []).map((r:any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
-                        return plans.length ? `<div style=\\\"margin-top:8px; font-size:14px; color:#374151; font-style:italic;\\\"><span style=\\\"font-weight:600;\\\">Meal Plan:</span> ${plans.join(' / ')}</div>` : '';
-                      })()}
+                          </tbody>
+                        </table>
+                        ${(() => {
+                          const plans = Array.from(new Set((it.roomAllocations || []).map((r:any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
+                          return plans.length ? `
+                            <div style="margin-top: 12px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                              <span style="font-weight: 700; color: #92400e;">🍽️ Meal Plan:</span> 
+                              <span style="color: #1f2937; font-weight: 600;">${plans.join(' / ')}</span>
+                            </div>
+                          ` : '';
+                        })()}
+                      </div>
                     ` : ''}
                   </div>
                 </div>
@@ -529,106 +757,126 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       initialData.itineraries &&
       initialData.itineraries.length > 0
     ) {
-  // Render the Itinerary header once.
+  // Enhanced Itinerary header with beautiful design
       itinerariesSection += `
-    <div style="${cardStyle} page-break-before: always">
-      <div style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center;">
-        <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Itinerary</h2>
+    <div style="${cardStyle} page-break-before: always; border: none; box-shadow: none; background: transparent;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px; text-align: center; border-radius: 16px; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
+        <div style="position: absolute; bottom: -30px; left: -30px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.3;"></div>
+        <div style="position: relative; z-index: 1;">
+          <h2 style="font-size: 36px; font-weight: 900; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); letter-spacing: -0.02em;">
+            🗓️ Travel Itinerary
+          </h2>
+          <p style="margin: 8px 0 0 0; font-size: 18px; opacity: 0.9; font-weight: 500;">Your day-by-day adventure guide</p>
+        </div>
       </div>
     </div>
   `;
-      // Map over each itinerary.
+      // Enhanced individual itinerary day cards
       itinerariesSection += initialData.itineraries
-        .map((itinerary) => `
-      <div style="${cardStyle}; background: #fff; padding: 16px; page-break-after: always;">
-        <!-- Itinerary Header -->
-     <div style="display: flex; margin-bottom: 8px;">
-  <!-- Left Box: Day and Days -->
-  <div style="flex: 0 0 20%; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-    <p style="font-size: 24px; font-weight: bold; margin: 0;">Day ${itinerary.dayNumber}</p>
-    <p style="font-size: 18px; font-weight: bold; margin: 0;">${itinerary.days}</p>
-  </div>
+        .map((itinerary, dayIndex) => `
+      <div style="${cardStyle}; background: white; padding: 0; page-break-after: always; border: 2px solid #e5e7eb;">
+        <!-- Enhanced Itinerary Header -->
+        <div style="display: flex; margin-bottom: 0; overflow: hidden; border-radius: 14px 14px 0 0;">
+          <!-- Left Box: Day and Days -->
+          <div style="flex: 0 0 25%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <div style="position: absolute; top: -10px; right: -10px; width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; opacity: 0.5;"></div>
+            <div style="position: relative; z-index: 1;">
+              <p style="font-size: 32px; font-weight: 900; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Day</p>
+              <p style="font-size: 48px; font-weight: 900; margin: 8px 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">${itinerary.dayNumber}</p>
+              <p style="font-size: 16px; font-weight: 600; margin: 0; opacity: 0.9;">${itinerary.days}</p>
+            </div>
+          </div>
 
-  <!-- Right Box: Description -->
-  <div style="flex: 1; background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; padding: 16px; text-align: left;">
-    <p style="font-size: 24px; font-weight: bold; margin: 0;">
-      ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "")}
-    </p>
-  </div>
-</div>
-   <!-- Itinerary Description & Images -->
-        <div style="padding: 8px;">
-      <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">
-  ${(itinerary.itineraryDescription || "")
-            // Replace both opening and closing <p> tags with <br>
-            .replace(/<\/?p>/gi, "<br>")
-            // Collapse multiple <br> tags into a single <br>
-            .replace(/(<br>\s*)+/gi, "<br>")
-            // Remove extra whitespace characters
-            .replace(/\s+/g, " ")
-            // Trim any leading/trailing whitespace
-            .trim().replace(/<\/?(html|body)>/gi, '')
-            .replace(/<!--StartFragment-->/gi, '')
-            .replace(/<!--EndFragment-->/gi, '')
-            // Replace opening <p> tags with <br> and remove closing </p> tags
-            .replace(/<p>/gi, '<br>')
-            .replace(/<\/p>/gi, '')
-            // Normalize any <br> tag (remove extra attributes)
-            .replace(/<br\s*[^>]*>/gi, '<br>')
-            // Replace multiple consecutive <br> tags with a single <br>
-            .replace(/(<br>\s*){2,}/gi, '<br>')
-            // Remove extra whitespace and newlines
-            .replace(/\s+/g, ' ')
-            .trim()
-          }
-</div>
+          <!-- Right Box: Description -->
+          <div style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
+            <div style="position: relative; z-index: 1; width: 100%;">
+              <h3 style="font-size: 24px; font-weight: 800; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">
+                ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "") || `Day ${itinerary.dayNumber} Activities`}
+              </h3>
+            </div>
+          </div>
+        </div>
 
-          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0
-            ? itinerary.itineraryImages
-              .map(
-                (img, idx) => `
-                    <div style="width: 100%; height: 300px; overflow: hidden; margin-bottom: 16px;">
+        <!-- Enhanced Itinerary Content -->
+        <div style="padding: 28px;">
+          ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
+            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #667eea;">
+              <h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0; display: flex; align-items: center;">
+                <span style="${iconStyle}">📋</span>
+                Day Overview
+              </h4>
+              <div style="font-size: 16px; line-height: 1.7; color: #374151; text-align: justify;">
+                ${(itinerary.itineraryDescription || "")
+                  .replace(/<\/?p>/gi, "<br>")
+                  .replace(/(<br>\s*)+/gi, "<br>")
+                  .replace(/\s+/g, " ")
+                  .trim().replace(/<\/?(html|body)>/gi, '')
+                  .replace(/<!--StartFragment-->/gi, '')
+                  .replace(/<!--EndFragment-->/gi, '')
+                  .replace(/<p>/gi, '<br>')
+                  .replace(/<\/p>/gi, '')
+                  .replace(/<br\s*[^>]*>/gi, '<br>')
+                  .replace(/(<br>\s*){2,}/gi, '<br>')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                }
+              </div>
+            </div>
+          ` : ''}
+
+          ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
+            <div style="margin-bottom: 24px;">
+              <h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center;">
+                <span style="${iconStyle}">📸</span>
+                Gallery
+              </h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                ${itinerary.itineraryImages.slice(0, 3).map((img, idx) => `
+                  <div style="position: relative; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div style="width: 100%; height: 200px; overflow: hidden;">
                       <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" />
                     </div>
-                  `
-              )
-              .join("")
-            : ""
-          }
-       <!-- Activities Section -->
-          ${itinerary.activities && itinerary.activities.length > 0
-            ? `
-              <div style="margin-top: 16px; padding: 16px; border: 1px solid #ddd; border-radius: 8px;">
-                <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 16px;">Activities</div>
-                ${itinerary.activities
-              .map(
-                (activity) => `
-                    <div style="margin-bottom: 16px;">
-                      <div style="font-size: 20px; font-weight: bold;">${activity.activityTitle || "Activity"}</div>
-                      <div style="font-size: 16px; text-align: justify; margin-bottom: 8px;">${activity.activityDescription || "No description provided."}</div>
-                      ${activity.activityImages && activity.activityImages.length > 0
-                    ? activity.activityImages
-                      .map(
-                        (actImg, idx) => `
-                                <div style="width: 100%; height: 250px; overflow: hidden; margin-top: 8px;">
-                                  <img src="${actImg.url}" alt="Activity Image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" />
-                                </div>
-                              `
-                      )
-                      .join("")
-                    : ""
-                  }
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%); padding: 12px;">
+                      <p style="color: white; margin: 0; font-size: 14px; font-weight: 500;">Day ${itinerary.dayNumber} - Photo ${idx + 1}</p>
                     </div>
-                  `
-              )
-              .join("")}
+                  </div>
+                `).join("")}
               </div>
-              `
-            : ""
-          }
+            </div>
+          ` : ''}
+
+          <!-- Enhanced Activities Section -->
+          ${itinerary.activities && itinerary.activities.length > 0 ? `
+            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #10b981;">
+              <h4 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0 0 20px 0; display: flex; align-items: center;">
+                <span style="${iconStyle}">🎯</span>
+                Planned Activities
+              </h4>
+              <div style="display: grid; gap: 16px;">
+                ${itinerary.activities.map((activity, actIdx) => `
+                  <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #059669;">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                      <div style="background: #10b981; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px;">
+                        ${actIdx + 1}
+                      </div>
+                      <h5 style="font-size: 16px; font-weight: 700; color: #1f2937; margin: 0;">
+                        ${activity.activityTitle || `Activity ${actIdx + 1}`}
+                      </h5>
+                    </div>
+                    ${activity.activityDescription ? `
+                      <p style="font-size: 14px; color: #374151; margin: 8px 0 0 36px; line-height: 1.5;">
+                        ${activity.activityDescription}
+                      </p>
+                    ` : ''}
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : ''}
         </div>
-      </div>
-    `)
+      </div>`)
         .join("");
     } else if (
       (selectedOption === "SupplierA" || selectedOption === "SupplierB") &&

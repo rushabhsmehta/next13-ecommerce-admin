@@ -950,8 +950,9 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   // Download PDF
   const downloadPDF = async (queryId: string) => {
     try {
-      window.open(`/tourPackageQueryPDFGenerator/${queryId}?search=Empty`, '_blank');
-      toast.success('PDF generation initiated');
+      // Use AH template by default for better aesthetics, user can change if needed
+      window.open(`/tourPackageQueryPDFGenerator/${queryId}?search=AH`, '_blank');
+      toast.success('Generating beautiful PDF...');
     } catch (error) {
       console.error('Error downloading PDF:', error);
       toast.error('Failed to generate PDF');

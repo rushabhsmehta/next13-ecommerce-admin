@@ -33,6 +33,7 @@ import { useEffect, useState, useTransition, useMemo } from "react";
 import { parseISO, isSameDay } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Pagination } from "./pagination";
 
 interface InquiriesClientProps {
   data: InquiryColumn[];
@@ -41,6 +42,12 @@ interface InquiriesClientProps {
   organization: any;
   isAssociateUser?: boolean;
   accessError?: string;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+  };
 }
 
 export const InquiriesClient: React.FC<InquiriesClientProps> = ({
@@ -49,22 +56,32 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
   operationalStaffs,
   organization,
   isAssociateUser = false,
-  accessError
+  accessError,
+  pagination
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobileHook = useIsMobile();
   const [isPending, startTransition] = useTransition();
   // Persist filters in local state to avoid flicker when updating URL
-  const [localAssociateId, setLocalAssociateId] = useState<string>(searchParams.get('associateId') || '');
-  const [localAssignedStaffId, setLocalAssignedStaffId] = useState<string>(searchParams.get('assignedStaffId') || '');
-  const [localStatus, setLocalStatus] = useState<string>(searchParams.get('status') || '');
-  const [localPeriod, setLocalPeriod] = useState<string>(searchParams.get('period') || '');
+  const [localAssociateId, setLocalAssociateId] = useState<string>('');
+  const [localAssignedStaffId, setLocalAssignedStaffId] = useState<string>('');
+  const [localStatus, setLocalStatus] = useState<string>('');
+  const [localPeriod, setLocalPeriod] = useState<string>('');
   // Add this fallback state to ensure consistent behavior
   const [isMobile, setIsMobile] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || "");
+  const [searchQuery, setSearchQuery] = useState('');
   // Keep a local copy of rows so we can update optimistically without refresh
   const [rows, setRows] = useState<InquiryColumn[]>(data);
+
+  // Initialize state from searchParams on client side
+  useEffect(() => {
+    setLocalAssociateId(searchParams.get('associateId') || '');
+    setLocalAssignedStaffId(searchParams.get('assignedStaffId') || '');
+    setLocalStatus(searchParams.get('status') || '');
+    setLocalPeriod(searchParams.get('period') || '');
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
 
   // Listen for updates from row-level components
   useEffect(() => {
@@ -108,6 +125,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (associateId) params.set('associateId', associateId); else params.delete('associateId');
+      params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
     });
   };
@@ -126,6 +144,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     } else {
       params.delete('followUpsOnly');
     }
+    params.set('page', '1'); // Reset to first page
     startTransition(() => {
       router.replace(`/inquiries?${params.toString()}`);
     });
@@ -140,6 +159,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     } else {
       params.delete('noTourPackageQuery');
     }
+    params.set('page', '1'); // Reset to first page
     startTransition(() => {
       router.replace(`/inquiries?${params.toString()}`);
     });
@@ -150,6 +170,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (staffId) params.set('assignedStaffId', staffId); else params.delete('assignedStaffId');
+      params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
     });
   };
@@ -159,6 +180,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     startTransition(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (status && status !== 'ALL') params.set('status', status); else params.delete('status');
+      params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
     });
   };
@@ -174,6 +196,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         params.delete('startDate');
         params.delete('endDate');
       }
+      params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
     });
   };
@@ -187,6 +210,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
       } else {
         params.delete('q');
       }
+      params.set('page', '1'); // Reset to first page
       router.replace(`/inquiries?${params.toString()}`);
     });
   };
@@ -212,14 +236,8 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
     downloadAsPDF(data, filename, organization);
   };
 
-  // Filter data based on search query for mobile view
-  const filteredData = searchQuery 
-    ? rows.filter(item => 
-        item.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.customerMobileNumber.includes(searchQuery) ||
-        item.location.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : rows;
+  // For mobile view, we'll use server-side filtered data directly
+  const displayData = rows;
 
   // Follow-up counters
   const totalFollowUps = useMemo(() => {
@@ -299,7 +317,7 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         {/* Main heading and Action Buttons */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Heading title={`Inquiries (${data.length})`} description="Manage inquiries" />
+            <Heading title={`Inquiries (${pagination?.totalCount || data.length})`} description="Manage inquiries" />
             <div className="flex items-center gap-2">
               <Badge className="bg-blue-50 text-blue-700">Follow-ups: {totalFollowUps}</Badge>
               <Badge className="bg-green-50 text-green-700">Today: {todayFollowUps}</Badge>
@@ -426,7 +444,6 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
         </div>
       </div>
       <Separator />
-      <DataTable searchKey="name" columns={columns} data={filteredData} />
       
       {/* Access Error Alert */}
       {accessError && (
@@ -460,14 +477,21 @@ export const InquiriesClient: React.FC<InquiriesClientProps> = ({
           
           {/* For content display, still use JS-based detection as a fallback */}
           <div className="block md:hidden">
-            <MobileInquiryCard data={filteredData} isAssociateUser={isAssociateUser} />
+            <MobileInquiryCard data={displayData} isAssociateUser={isAssociateUser} />
           </div>
           <div className="hidden md:block">
             <InquiriesDataTable
               columns={columns}
-              data={filteredData}
+              data={displayData}
             />
           </div>
+          
+          {/* Pagination Controls */}
+          {pagination && pagination.totalCount > 0 && (
+            <div className="mt-4">
+              <Pagination {...pagination} />
+            </div>
+          )}
         </>
       )}
       

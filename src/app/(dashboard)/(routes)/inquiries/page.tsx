@@ -11,12 +11,15 @@ interface InquiriesPageProps {
   searchParams: {
     associateId?: string;
     status?: string;
-  assignedStaffId?: string;
+    assignedStaffId?: string;
     period?: string;
     startDate?: string;
     endDate?: string;
-  followUpsOnly?: string;
-  noTourPackageQuery?: string;
+    followUpsOnly?: string;
+    noTourPackageQuery?: string;
+    page?: string;
+    pageSize?: string;
+    q?: string;
   }
 }
 
@@ -87,6 +90,12 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
                 organization={organization}
                 isAssociateUser={true}
                 accessError="Your email is not associated with any registered associate. Please contact administration."
+                pagination={{
+                  page: 1,
+                  pageSize: 25,
+                  totalCount: 0,
+                  totalPages: 0
+                }}
               />
             </div>
           </div>
@@ -169,7 +178,14 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     ...(searchParams.status && searchParams.status !== 'ALL' && {
       status: searchParams.status
     }),
-    ...dateFilter  // Add the date filter to the where clause
+    ...dateFilter,  // Add the date filter to the where clause
+    ...(searchParams.q && {
+      OR: [
+        { customerName: { contains: searchParams.q, mode: 'insensitive' } },
+        { customerMobileNumber: { contains: searchParams.q } },
+        { location: { label: { contains: searchParams.q, mode: 'insensitive' } } }
+      ]
+    })
   };
   // Apply follow-ups-only filter: include records with a nextFollowUpDate set and exclude CANCELLED/CONFIRMED
   const followUpsOnly = searchParams.followUpsOnly === '1';
@@ -187,6 +203,15 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     where.tourPackageQueries = { none: {} };
     where.status = { notIn: ['CANCELLED'] };
   }
+
+  // Pagination parameters
+  const page = parseInt(searchParams.page || '1');
+  const pageSize = parseInt(searchParams.pageSize || '25');
+  const skip = (page - 1) * pageSize;
+
+  // Get total count for pagination
+  const totalCount = await prismadb.inquiry.count({ where });
+
   const inquiries = await prismadb.inquiry.findMany({
     where,
     include: {
@@ -200,7 +225,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
         }
       }
     },
-    orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' }
+    orderBy: followUpsOnly ? { nextFollowUpDate: 'asc' } : { updatedAt: 'desc' },
+    skip,
+    take: pageSize
   });
   const formattedInquiries: InquiryColumn[] = inquiries.map((item) => {
     console.log('📋 INQUIRY LIST PAGE - FORMATTING JOURNEY DATE:');
@@ -251,6 +278,12 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
           organization={organization}
           operationalStaffs={operationalStaffs}
           isAssociateUser={isAssociateUser}
+          pagination={{
+            page,
+            pageSize,
+            totalCount,
+            totalPages: Math.ceil(totalCount / pageSize)
+          }}
         />
       </div>
     </div>

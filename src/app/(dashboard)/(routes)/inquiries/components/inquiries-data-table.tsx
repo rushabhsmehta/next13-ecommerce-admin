@@ -12,13 +12,14 @@ interface InquiriesDataTableProps {
 export const InquiriesDataTable = ({
   data,
   columns,
-  
 }: InquiriesDataTableProps) => {
   return (
     <div>
       <DataTable 
-  columns={columns}
-  data={data}
+        columns={columns}
+        data={data}
+        searchKey=""
+        enablePagination={false}
       />
     </div>
   );

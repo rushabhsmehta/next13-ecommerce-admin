@@ -834,10 +834,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
             <div style="margin-bottom: 24px;">
-              <h4 style="font-size: 15px; font-weight: 600; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center; border-bottom: 2px solid ${brandColors.light}; padding-bottom: 8px;">
-                <span style="${iconStyle}">📸</span>
-                Gallery
-              </h4>
+           
               <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
                 ${itinerary.itineraryImages.slice(0, 3).map((img, idx) => `
                   <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">

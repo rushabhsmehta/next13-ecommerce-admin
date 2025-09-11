@@ -109,7 +109,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     muted: "#6B7280", // Muted gray
     white: "#FFFFFF",
     border: "#E5E7EB", // Light gray border
-    success: "#059669" // Green for pricing
+  success: "#059669", // Green for pricing
+  // Additional unified neutrals / semantic aliases
+  panelBg: "#FFF8F5", // unified soft panel background
+  subtlePanel: "#FFFDFB", // extra subtle background
+  tableHeaderBg: "#FFF3EC", // table header background aligned with warm palette
+  slateText: "#374151", // darker text variant
+  softDivider: "#F5E8E5" // soft divider line
   };
 
   // Brand Gradients for cleaner look
@@ -221,8 +227,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   const tableHeaderStyle = `
-    background: #f1f5f9;
-    color: #334155;
+    background: ${brandColors.tableHeaderBg};
+    color: ${brandColors.text};
     padding: 10px 12px;
     text-align: left;
     font-weight: 600;
@@ -339,14 +345,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <div style="${contentStyle};">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             <!-- Query Info -->
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px;">
+            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
               <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Query Number</div>
               <div style="font-size: 14px; font-weight: 600; color: #1e293b;">#${initialData.tourPackageQueryNumber}</div>
             </div>
             
             <!-- Prepared By -->
             ${preparedBy ? `
-              <div style="background: #f9fafb; padding: 12px; border-radius: 4px;">
+              <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Prepared By</div>
                 <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${preparedBy.name}</div>
                 <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">${preparedBy.email}</div>
@@ -357,13 +363,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           ${selectedOption !== "SupplierA" && selectedOption !== "SupplierB" ? `
             <div style="border-top: 1px solid ${brandColors.border}; margin-top: 16px; padding-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <!-- Customer -->
-              <div style="background: #f9fafb; padding: 12px; border-radius: 4px;">
+              <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Customer</div>
                 <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${initialData.customerName}</div>
                 <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">${initialData.customerNumber}</div>
               </div>
               <!-- Associate Partner -->
-              <div style="background: #f9fafb; padding: 12px; border-radius: 4px;">
+              <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
                 <div style="font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px;">Associate Partner</div>
                 <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${initialData.associatePartner?.name || 'N/A'}</div>
                 <div style="font-size: 12px; color: #4b5563; margin-top: 2px;">
@@ -402,7 +408,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           ${(initialData.tourStartsFrom || initialData.tourEndsOn) ? `
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; margin-bottom: 12px; border-left: 4px solid ${brandColors.primary};">
+            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; margin-bottom: 12px; border-left: 4px solid ${brandColors.primary};">
               <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 8px;">TRAVEL DATES</div>
               <div style="display: flex; gap: 16px; align-items: center;">
                 ${initialData.tourStartsFrom ? `
@@ -426,21 +432,21 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
             ${initialData.transport ? `
-              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+              <div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">TRANSPORT</div>
                 <div style="font-size: 12px; color: #1f2937; font-weight: 500;">${initialData.transport}</div>
               </div>
             ` : ''}
             
             ${initialData.pickup_location ? `
-              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+              <div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">PICKUP</div>
                 <div style="font-size: 12px; color: #1f2937; font-weight: 500;">${initialData.pickup_location}</div>
               </div>
             ` : ''}
             
             ${initialData.drop_location ? `
-              <div style="background: #f9fafb; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+              <div style="background: ${brandColors.panelBg}; padding: 10px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
                 <div style="font-size: 10px; color: #6b7280; font-weight: 600; margin-bottom: 2px;">DROP</div>
                 <div style="font-size: 12px; color: #1f2937; font-weight: 500;">${initialData.drop_location}</div>
               </div>
@@ -448,7 +454,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           ${(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) ? `
-            <div style="background: #f9fafb; padding: 12px; border-radius: 4px; margin-top: 12px; border-left: 4px solid ${brandColors.primary};">
+            <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; margin-top: 12px; border-left: 4px solid ${brandColors.primary};">
               <div style="font-size: 12px; color: #6b7280; font-weight: 600; margin-bottom: 8px;">TRAVELLERS</div>
               <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                 ${initialData.numAdults ? `
@@ -603,7 +609,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </h3>
         </div>
         <div style="${contentStyle};">
-          <div style="font-size: 14px; line-height: 1.5; color: #1f2937; background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
+          <div style="font-size: 14px; line-height: 1.5; color: ${brandColors.text}; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; border-left: 4px solid ${brandColors.primary};">
             ${initialData.remarks}
           </div>
         </div>
@@ -710,7 +716,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   </div>
                 ` : ''}
               ` : `
-                <div style="margin-left: 44px; margin-top: 12px; background: #f9fafb; padding: 12px; border-radius: 4px;">
+                <div style="margin-left: 44px; margin-top: 12px; background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px;">
                   <span style="color: #6b7280; font-size: 13px;">No hotel assigned for this day.</span>
                 </div>
               `}
@@ -719,13 +725,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 <div style="margin-left: 44px; margin-top: 16px;">
                   <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Transport Details</div>
                   ${it.transportDetails.map((t: any) => `
-                    <div style="display:flex; align-items:center; justify-content:space-between; background:#fff7ed; padding:10px 12px; border-radius:4px; margin-bottom:8px; border-left: 4px solid ${brandColors.secondary};">
+          <div style="display:flex; align-items:center; justify-content:space-between; background:${brandColors.lightOrange}; padding:10px 12px; border-radius:4px; margin-bottom:8px; border-left: 4px solid ${brandColors.secondary};">
                       <div>
-                        <div style="font-weight:600; color:#7c2d12;">${t?.vehicleType?.name || 'Vehicle'}</div>
-                        ${t.description ? `<div style="font-size:12px; color:#9a3412; margin-top: 2px;">${t.description}</div>` : ''}
+            <div style="font-weight:600; color:${brandColors.secondary};">${t?.vehicleType?.name || 'Vehicle'}</div>
+            ${t.description ? `<div style="font-size:12px; color:${brandColors.muted}; margin-top: 2px;">${t.description}</div>` : ''}
                       </div>
                       <div style="text-align: right;">
-                        <span style="background: #fed7aa; color: #7c2d12; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">
+            <span style="background: ${brandColors.accent}; color: ${brandColors.white}; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">
                           Qty: ${t.quantity || 1}
                         </span>
                       </div>
@@ -835,8 +841,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               </h4>
               <div style="display: grid; gap: 12px;">
                 ${itinerary.activities.map((activity, actIdx) => `
-                  <div style="background: #f9fafb; padding: 12px; border-radius: 4px; display: flex; align-items: flex-start;">
-                    <div style="background: ${brandColors.secondary}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px; flex-shrink: 0;">
+                  <div style="background: ${brandColors.panelBg}; padding: 12px; border-radius: 4px; display: flex; align-items: flex-start;">
+                    <div style="background: ${brandColors.secondary}; color: ${brandColors.white}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px; flex-shrink: 0;">
                       ${actIdx + 1}
                     </div>
                     <div>
@@ -864,14 +870,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ) {
       // For SupplierA/B, render a simpler itinerary section.
       itinerariesSection = `
-     <div style="${cardStyle}; page-break-before: always; padding: 16px; background: #fff;">
+     <div style="${cardStyle}; page-break-before: always; padding: 16px; background: ${brandColors.white};">
             <!-- Section Header -->
-            <h2 style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white; font-size: 28px; font-weight: bold; text-align: center;">
+            <h2 style="background: ${brandGradients.primary}; color: ${brandColors.white}; font-size: 28px; font-weight: bold; text-align: center;">
               Tour Highlights
             </h2>
             <table style="width: 100%; border-collapse: collapse;">
               <thead>
-                <tr style="background: linear-gradient(to right, #ef4444, #f97316, #facc15); color: white;">
+                <tr style="background: ${brandGradients.primary}; color: ${brandColors.white};">
                   <th style="width: 10%; padding: 12px; font-size: 16px; font-weight: bold; text-align: left; border-bottom: 2px solid rgba(255,255,255,0.7);">
                     Day
                   </th>
@@ -884,7 +890,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 ${initialData.itineraries
           .map(
             (itinerary) => `
-                  <tr style="border-bottom: 1px solid #ddd; background: #fff; color: #333;">
+                  <tr style="border-bottom: 1px solid ${brandColors.border}; background: ${brandColors.white}; color: ${brandColors.text};">
                     <td style="width: 10%; padding: 12px; vertical-align: middle; text-align: left; font-size: 16px; font-weight: bold;">
                       Day ${itinerary.dayNumber}: ${itinerary.days}
                     </td>

@@ -1111,16 +1111,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       `
       : "";
 
-    // Build optional repeating itinerary header (appears on every PDF page when itineraries exist)
-    const itineraryHeaderHtml = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0) ? `
-      <div class="itinerary-static-header">
-        <div class="inner" style="background: ${brandColors.panelBg}; border-radius:8px; padding:10px 12px; border: 1px solid ${brandColors.primary}; box-shadow: 0 2px 6px rgba(0,0,0,0.04); text-align:center;">
-          <h2 style="margin:0; font-size:18px; font-weight:700; background: ${brandGradients.primary}; -webkit-background-clip: text; color: transparent;">Travel Itinerary</h2>
-          <p style="margin:4px 0 0 0; font-size:12px; color: ${brandColors.muted};">Your day-by-day adventure guide</p>
-        </div>
-      </div>
-    ` : '';
-
+    
     // Assemble all sections.
     const fullHtml = `
       <html>
@@ -1136,7 +1127,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             ${totalPriceSection}
             ${remarksSection}
             ${hotelSummarySection}
-            ${itineraryHeaderHtml}
+            
             ${itinerariesSection}
             ${inclusionsSection}
             ${exclusionsSection}

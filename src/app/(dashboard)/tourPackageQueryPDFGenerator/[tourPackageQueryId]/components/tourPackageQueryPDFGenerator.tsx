@@ -748,7 +748,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <!-- Clean Itinerary Header -->
         <div style="display: flex; margin-bottom: 0; overflow: hidden;">
           <!-- Left Box: Day and Days -->
-          <div style="flex: 0 0 25%; background: #374151; color: white; padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="flex: 0 0 25%; background: ${brandColors.text}; color: white; padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <div>
               <p style="font-size: 14px; font-weight: 600; margin: 0;">Day</p>
               <p style="font-size: 24px; font-weight: 700; margin: 4px 0;">${itinerary.dayNumber}</p>
@@ -757,7 +757,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           <!-- Right Box: Description -->
-          <div style="flex: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden;">
+          <div style="flex: 1; background: ${brandColors.primary}; color: white; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden;">
             <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
             <div style="position: relative; z-index: 1; width: 100%;">
               <h3 style="font-size: 24px; font-weight: 800; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">
@@ -770,13 +770,12 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <!-- Enhanced Itinerary Content -->
         <div style="padding: 28px;">
           ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
-            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #667eea;">
-              <h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0 0 12px 0; display: flex; align-items: center;">
+            <div style="background: ${brandColors.lightOrange}; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid ${brandColors.secondary};">
+              <h4 style="font-size: 18px; font-weight: 700; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center;">
                 <span style="${iconStyle}">📋</span>
                 Day Overview
               </h4>
-              <div style="font-size: 16px; line-height: 1.7; color: #374151; text-align: justify;">
-                ${(itinerary.itineraryDescription || "")
+              <div style="font-size: 16px; line-height: 1.7; color: ${brandColors.muted}; text-align: justify;">${(itinerary.itineraryDescription || "")
                   .replace(/<\/?p>/gi, "<br>")
                   .replace(/(<br>\s*)+/gi, "<br>")
                   .replace(/\s+/g, " ")
@@ -796,7 +795,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           ${itinerary.itineraryImages && itinerary.itineraryImages.length > 0 ? `
             <div style="margin-bottom: 24px;">
-              <h4 style="font-size: 18px; font-weight: 700; color: #1f2937; margin: 0 0 16px 0; display: flex; align-items: center;">
+              <h4 style="font-size: 18px; font-weight: 700; color: ${brandColors.text}; margin: 0 0 16px 0; display: flex; align-items: center;">
                 <span style="${iconStyle}">📸</span>
                 Gallery
               </h4>
@@ -817,24 +816,24 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           <!-- Enhanced Activities Section -->
           ${itinerary.activities && itinerary.activities.length > 0 ? `
-            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 24px; border-radius: 12px; border-left: 4px solid #10b981;">
-              <h4 style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 0 0 20px 0; display: flex; align-items: center;">
+            <div style="background: ${brandColors.light}; padding: 24px; border-radius: 12px; border-left: 4px solid ${brandColors.accent};">
+              <h4 style="font-size: 20px; font-weight: 700; color: ${brandColors.text}; margin: 0 0 20px 0; display: flex; align-items: center;">
                 <span style="${iconStyle}">🎯</span>
                 Planned Activities
               </h4>
               <div style="display: grid; gap: 16px;">
                 ${itinerary.activities.map((activity, actIdx) => `
-                  <div style="background: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #059669;">
+                  <div style="background: ${brandColors.white}; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid ${brandColors.secondary};">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                      <div style="background: #10b981; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px;">
+                      <div style="background: ${brandColors.secondary}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px;">
                         ${actIdx + 1}
                       </div>
-                      <h5 style="font-size: 16px; font-weight: 700; color: #1f2937; margin: 0;">
+                      <h5 style="font-size: 16px; font-weight: 700; color: ${brandColors.text}; margin: 0;">
                         ${activity.activityTitle || `Activity ${actIdx + 1}`}
                       </h5>
                     </div>
                     ${activity.activityDescription ? `
-                      <p style="font-size: 14px; color: #374151; margin: 8px 0 0 36px; line-height: 1.5;">
+                      <p style="font-size: 14px; color: ${brandColors.muted}; margin: 8px 0 0 36px; line-height: 1.5;">
                         ${activity.activityDescription}
                       </p>
                     ` : ''}

@@ -241,6 +241,117 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     return 1;
   };
 
+  // Function to fetch available pricing components (like the screenshot interface)
+  const fetchAvailablePricingComponents = async () => {
+    if (!selectedTourPackage) {
+      toast.error('Please select a tour package first');
+      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No tour package selected' });
+      return;
+    }
+
+    if (!inquiry) {
+      toast.error('Inquiry data not loaded');
+      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'Inquiry not loaded' });
+      return;
+    }
+
+    const formData = form.getValues();
+    
+    if (!formData.mealPlanId) {
+      toast.error('Please select a meal plan first');
+      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No meal plan selected' });
+      return;
+    }
+
+    if (!formData.roomAllocations || formData.roomAllocations.length === 0) {
+      toast.error('Please add at least one room allocation first');
+      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No room allocations' });
+      return;
+    }
+
+    setIsCalculatingPrice(true);
+    toast.loading("Fetching available pricing components...");
+    
+    try {
+      // Get total number of rooms from allocations
+      const totalRooms = formData.roomAllocations.reduce((sum: number, allocation: any) => 
+        sum + (allocation.quantity || 1), 0
+      );
+      
+      addLog({ step: 'fetchComponents/inputs', data: {
+        tourPackageId: selectedTourPackage.id,
+        mealPlanId: formData.mealPlanId,
+        totalRooms,
+        journeyDate: inquiry.journeyDate
+      }});
+
+      // Fetch pricing data from the tour package
+      const response = await axios.get(`/api/tourPackages/${selectedTourPackage.id}/pricing`);
+      const tourPackagePricings = response.data;
+      toast.dismiss();
+
+      if (!tourPackagePricings || tourPackagePricings.length === 0) {
+        toast.error('No pricing periods found for the selected tour package');
+        setAvailablePricingComponents([]);
+        return;
+      }
+
+      addLog({ step: 'fetchComponents/pricingPeriods', data: { count: tourPackagePricings.length } });
+
+      // Filter matching pricing periods based on date, meal plan, and number of rooms
+      const queryDate = new Date(inquiry.journeyDate);
+      const matchedPricings = tourPackagePricings.filter((p: any) => {
+        const periodStart = new Date(p.startDate);
+        const periodEnd = new Date(p.endDate);
+        const isDateMatch = queryDate >= periodStart && queryDate <= periodEnd;
+        const isMealPlanMatch = p.mealPlanId === formData.mealPlanId;
+        const isRoomMatch = p.numberOfRooms === totalRooms;
+
+        return isDateMatch && isMealPlanMatch && isRoomMatch;
+      });
+
+      if (matchedPricings.length === 0) {
+        toast.error(`No matching pricing period found for the selected criteria (Date, Meal Plan, ${totalRooms} Room${totalRooms > 1 ? 's' : ''}).`);
+        setAvailablePricingComponents([]);
+        addLog({ step: 'fetchComponents/noMatch', level: 'warn', data: {
+          date: queryDate.toISOString().split('T')[0], totalRooms,
+          mealPlanId: formData.mealPlanId
+        }});
+        return;
+      }
+
+      if (matchedPricings.length > 1) {
+        console.warn('Multiple matching pricing periods found:', matchedPricings);
+        toast.error('Multiple pricing periods match the criteria. Cannot automatically fetch components. Please refine Tour Package pricing definitions.');
+        setAvailablePricingComponents([]);
+        addLog({ step: 'fetchComponents/multiMatch', level: 'warn', data: { matchedPricingIds: matchedPricings.map((p:any)=>p.id) } });
+        return;
+      }
+
+      // Get components from the matched pricing
+      const selectedPricing = matchedPricings[0];
+      const components = selectedPricing.pricingComponents || [];
+      
+      setAvailablePricingComponents(components);
+      
+      // Initially select all components
+      const allComponentIds = components.map((comp: any) => comp.id);
+      setSelectedPricingComponentIds(allComponentIds);
+      
+      addLog({ step: 'fetchComponents/success', data: { components: components.length, selectedPricing: selectedPricing.id } });
+      toast.success(`Found ${components.length} pricing component${components.length !== 1 ? 's' : ''} available for selection.`);
+
+    } catch (error: any) {
+      toast.dismiss();
+      console.error('Error fetching pricing components:', error);
+      toast.error('Failed to fetch pricing components: ' + (error.response?.data?.message || error.message));
+      setAvailablePricingComponents([]);
+      addLog({ step: 'fetchComponents/error', level: 'error', msg: error?.message, data: error?.response?.data });
+    } finally {
+      setIsCalculatingPrice(false);
+    }
+  };
+
   // Function to calculate price automatically (same logic as manual form)
   const calculateAutomaticPrice = async () => {
     if (!selectedTourPackage) {
@@ -480,6 +591,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     setSelectedPricingComponentIds([]);
     setCalculatedPrice(null);
     setPriceCalculationDetails([]);
+    addLog({ step: 'form/reset', msg: 'Reset pricing components due to form changes' });
   }, [form.watch('mealPlanId'), JSON.stringify(form.watch('roomAllocations'))]);
 
   // Handle tour package selection with validation
@@ -808,7 +920,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           )
         );
       case 4:
-        return calculatedPrice !== null;
+        return calculatedPrice !== null && selectedPricingComponentIds.length > 0;
       default:
         return true;
     }
@@ -818,7 +930,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     'Select Tour Package Template',
     'Choose Meal Plan',
     'Configure Room Allocations',
-    'Price Calculation',
+    'Fetch Pricing Components',
     'Review & Create'
   ];
 
@@ -1236,9 +1348,9 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             {/* Step 4: Price Calculation */}
             {currentStep === 4 && (
               <div className="space-y-4 px-3 sm:px-0">
-                <h3 className="text-lg font-semibold">Step 4: Auto Price Calculation</h3>
+                <h3 className="text-lg font-semibold">Step 4: Fetch Available Pricing Components</h3>
                 <p className="text-sm text-gray-600">
-                  Calculate price automatically based on tour package pricing configurations.
+                  Fetch and select pricing components from tour package pricing configuration.
                 </p>
 
                 <div className="space-y-4">
@@ -1259,68 +1371,160 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     <CardHeader>
                       <CardTitle className="text-base">Selection Summary</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2 text-sm py-3 px-3">
+                    <CardContent className="space-y-3 text-sm py-3 px-3">
                       <p><strong>Package:</strong> {selectedTourPackage?.tourPackageName}</p>
                       <p><strong>Meal Plan:</strong> {mealPlans.find(m => m.id === form.getValues('mealPlanId'))?.name}</p>
                       <p><strong>Total Rooms:</strong> {form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0)}</p>
-                      {availablePricingComponents.length > 0 && (
-                        <div className="pt-2 border-t">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="font-medium">Include Pricing Components</p>
-                            <span className="text-xs text-gray-500">Selected: {selectedPricingComponentIds.length}/{availablePricingComponents.length}</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 mt-2">
-                            {availablePricingComponents.map((comp: any, i: number) => {
-                              const checked = selectedPricingComponentIds.includes(comp.id);
-                              const colorIdx = (i % 5) + 1;
-                              const chartVar = `--chart-${colorIdx}`;
-                              return (
-                                <button
-                                  key={comp.id}
-                                  type="button"
-                                  onClick={() => setSelectedPricingComponentIds(prev => prev.includes(comp.id) ? prev.filter(id => id !== comp.id) : [...prev, comp.id])}
-                                  className={`relative text-left rounded-lg border p-3 transition-shadow hover:shadow-md h-full flex flex-col justify-between overflow-hidden ${checked ? 'ring-2 ring-offset-1' : ''}`}
-                                  style={{
-                                    borderColor: `hsl(var(${chartVar}))`,
-                                    background: checked ? `linear-gradient(180deg, hsl(var(${chartVar}) / 0.12), transparent)` : undefined
-                                  }}
-                                  aria-pressed={checked}
-                                >
-                                  <div className="absolute -left-1 top-0 bottom-0 w-1" style={{ background: `linear-gradient(180deg, hsl(var(${chartVar}) / 1), hsl(var(${chartVar}) / 0.8))` }} />
-                                  <div className="flex-grow pl-3">
-                                    <div className="flex items-center justify-between">
-                                      <div className="text-sm font-semibold text-foreground">{comp.pricingAttribute?.name || 'Component'}</div>
-                                      <div className="text-sm font-bold text-foreground">₹{parseFloat(comp.price || '0').toFixed(2)}</div>
-                                    </div>
-                                    {comp.description && (
-                                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2 pl-0">{comp.description}</div>
-                                    )}
-                                  </div>
-                                  <div className="mt-3 flex items-center justify-between gap-2">
-                                    <Badge variant={checked ? 'secondary' : 'outline'}>{checked ? 'Included' : 'Tap to include'}</Badge>
-                                    <div className="text-xs text-muted-foreground">Per unit</div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Button type="button" variant="outline" size="sm" onClick={clearPricingComponentSelection}>Clear</Button>
-                            <Button type="button" variant="outline" size="sm" onClick={applySelectedPricingComponents}>Apply Selected</Button>
-                            <Button type="button" size="sm" onClick={applyAllPricingComponents}>Apply All</Button>
-                          </div>
-                        </div>
-                      )}
+                      
+                      {/* Fetch Components Button */}
                       <div className="pt-2 border-t">
                         <Button 
                           type="button" 
-                          onClick={calculatePrice} 
+                          onClick={fetchAvailablePricingComponents} 
                           disabled={isCalculatingPrice || loading} 
-                          className="w-full"
+                          className="w-full mb-3"
+                          variant="outline"
                         >
-                          <Calculator className="mr-2 h-4 w-4" />
-                          {isCalculatingPrice ? 'Calculating...' : 'Auto Calculate Price'}
+                          <Package className="mr-2 h-4 w-4" />
+                          {isCalculatingPrice ? 'Fetching Components...' : '📦 Fetch Available Pricing Components'}
                         </Button>
+                        
+                        {availablePricingComponents.length > 0 && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="font-medium text-blue-800">Select Pricing Components:</p>
+                              <div className="text-xs text-blue-600">
+                                Choose which pricing components to include in your tour package pricing breakdown:
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              {/* Select All / Clear Selection */}
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
+                                    setSelectedPricingComponentIds(allComponentIds);
+                                  }}
+                                  className="text-xs"
+                                >
+                                  Select All
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedPricingComponentIds([])}
+                                  className="text-xs"
+                                >
+                                  Deselect All
+                                </Button>
+                              </div>
+                              
+                              {/* Pricing Components Grid */}
+                              <div className="space-y-2">
+                                {availablePricingComponents.map((component: any) => {
+                                  const isSelected = selectedPricingComponentIds.includes(component.id);
+                                  const occupancyMultiplier = getOccupancyMultiplier(component.pricingAttribute?.name || '');
+                                  const basePrice = parseFloat(component.price || '0');
+                                  const totalRooms = form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0);
+                                  const totalComponentPrice = basePrice * occupancyMultiplier * totalRooms;
+                                  
+                                  return (
+                                    <div key={component.id} className="border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                                      <label className="flex items-start gap-3 p-3 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setSelectedPricingComponentIds(prev => [...prev, component.id]);
+                                            } else {
+                                              setSelectedPricingComponentIds(prev => prev.filter(id => id !== component.id));
+                                            }
+                                          }}
+                                          className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <div className="flex-1">
+                                          <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-medium text-gray-900">
+                                              {component.pricingAttribute?.name || 'Pricing Component'}
+                                            </h4>
+                                            <div className="text-right">
+                                              <span className="text-lg font-bold text-blue-700">
+                                                ₹{totalComponentPrice.toFixed(2)}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          {component.description && (
+                                            <p className="text-sm text-gray-600">{component.description}</p>
+                                          )}
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            <span className="font-medium">Sales Price:</span> ₹{parseFloat(component.price || '0').toFixed(2)} per person
+                                            {occupancyMultiplier > 1 && (
+                                              <span className="text-blue-600 ml-1 block">
+                                                (×{occupancyMultiplier} for {component.pricingAttribute?.name?.toLowerCase().includes('double') ? 'Double' : component.pricingAttribute?.name?.toLowerCase().includes('triple') ? 'Triple' : component.pricingAttribute?.name?.toLowerCase().includes('quad') ? 'Quad' : 'Multi'} occupancy)
+                                              </span>
+                                            )}
+                                          </p>
+                                          <div className="flex items-center gap-4 mt-2">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs text-gray-500">Rooms:</span>
+                                              <span className="font-medium text-gray-700">{totalRooms}</span>
+                                            </div>
+                                            {(totalRooms > 1 || occupancyMultiplier > 1) && (
+                                              <p className="text-xs text-gray-500">
+                                                {totalRooms} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {occupancyMultiplier} occupancy
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </label>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              
+                              {/* Summary of selected components */}
+                              {selectedPricingComponentIds.length > 0 && (
+                                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                                  <p className="text-sm font-medium text-green-800">
+                                    Selected: {selectedPricingComponentIds.length} component{selectedPricingComponentIds.length !== 1 ? 's' : ''}
+                                  </p>
+                                  <p className="text-xs text-green-600 mt-1">
+                                    Total: ₹{availablePricingComponents
+                                      .filter((comp: any) => selectedPricingComponentIds.includes(comp.id))
+                                      .reduce((sum: number, comp: any) => {
+                                        const basePrice = parseFloat(comp.price || '0');
+                                        const occupancyMultiplier = getOccupancyMultiplier(comp.pricingAttribute?.name || '');
+                                        const totalRooms = form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0);
+                                        return sum + (basePrice * occupancyMultiplier * totalRooms);
+                                      }, 0).toFixed(2)}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Apply Button */}
+                              <Button 
+                                type="button" 
+                                onClick={() => {
+                                  if (selectedPricingComponentIds.length === 0) {
+                                    toast.error('Please select at least one pricing component.');
+                                    return;
+                                  }
+                                  applySelectedPricingComponents();
+                                }} 
+                                disabled={selectedPricingComponentIds.length === 0}
+                                className="w-full"
+                              >
+                                <Check className="mr-2 h-4 w-4" />
+                                Apply Selected Components ({selectedPricingComponentIds.length})
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
                       {/* Price Calculation Results */}
@@ -1354,7 +1558,9 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         <div className="bg-blue-50 p-3 rounded-lg">
                           <div className="flex items-center gap-2">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                            <span className="text-sm text-blue-700">Calculating price from tour package pricing...</span>
+                            <span className="text-sm text-blue-700">
+                              {availablePricingComponents.length === 0 ? 'Fetching pricing components...' : 'Processing pricing components...'}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -1371,8 +1577,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         <div>
                           <p className="text-sm font-medium text-blue-800">Auto Price Calculation Complete</p>
                           <p className="text-xs text-blue-600 mt-1">
-                            Price calculated based on tour package pricing configuration, selected meal plan, 
-                            number of rooms, and journey date. This matches the same calculation method used 
+                            Price calculated based on selected pricing components from tour package pricing configuration, 
+                            selected meal plan, number of rooms, and journey date. This matches the same calculation method used 
                             in manual tour package queries.
                           </p>
                         </div>

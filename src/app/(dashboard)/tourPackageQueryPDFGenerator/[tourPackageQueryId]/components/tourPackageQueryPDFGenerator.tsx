@@ -98,20 +98,34 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const currentCompany =
     companyInfo[selectedOption] ?? companyInfo["Empty"];
 
-  // --- Clean, Professional Styles for PDF ---
+  // Aagam Holidays Brand Colors (based on their logo)
+  const brandColors = {
+    primary: "#DC2626", // Red from logo
+    secondary: "#EA580C", // Orange from logo  
+    accent: "#F97316", // Bright orange
+    light: "#FEF2F2", // Light red background
+    lightOrange: "#FFF7ED", // Light orange background
+    text: "#1F2937", // Dark gray text
+    muted: "#6B7280", // Muted gray
+    white: "#FFFFFF",
+    border: "#E5E7EB", // Light gray border
+    success: "#059669" // Green for pricing
+  };
+
+  // --- Clean, Professional Styles with Aagam Holidays Branding ---
   const containerStyle = `
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-    background: white;
+    background: ${brandColors.white};
     padding: 16px; 
     max-width: 1200px; 
     margin: auto;
     line-height: 1.5;
-    color: #374151;
+    color: ${brandColors.text};
   `;
   
   const cardStyle = `
-    background: white;
-    border: 1px solid #e5e7eb; 
+    background: ${brandColors.white};
+    border: 1px solid ${brandColors.border}; 
     border-radius: 4px; 
     margin-bottom: 12px; 
     overflow: hidden; 
@@ -120,23 +134,23 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
   
   const headerStyle = `
-    background: #374151;
-    color: white; 
+    background: ${brandColors.primary};
+    color: ${brandColors.white}; 
     padding: 16px; 
     text-align: center;
   `;
   
   const headerStyleAlt = `
-    background: #6b7280;
-    color: white; 
+    background: ${brandColors.secondary};
+    color: ${brandColors.white}; 
     padding: 10px; 
     text-align: center;
   `;
   
   const contentStyle = `
     padding: 12px; 
-    background: white; 
-    color: #374151; 
+    background: ${brandColors.white}; 
+    color: ${brandColors.text}; 
     font-size: 13px;
     line-height: 1.4;
   `;
@@ -145,34 +159,34 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     font-size: 18px; 
     font-weight: 600; 
     margin: 0;
-    color: white;
+    color: ${brandColors.white};
   `;
   
   const subTitleStyle = `
     font-size: 14px; 
     font-weight: 600; 
     margin-right: 8px;
-    color: #1f2937;
+    color: ${brandColors.text};
     display: inline-block;
   `;
   
   const textStyle = `
     font-size: 14px; 
-    color: #4b5563;
+    color: ${brandColors.muted};
     font-weight: 400;
   `;
 
   const accentCardStyle = `
-    background: #f9fafb;
-    border: 1px solid #d1d5db;
+    background: ${brandColors.lightOrange};
+    border: 1px solid ${brandColors.accent};
     border-radius: 4px;
     padding: 12px;
     margin: 8px 0;
   `;
 
   const priceCardStyle = `
-    background: #f0f9ff;
-    border: 1px solid #0ea5e9;
+    background: ${brandColors.light};
+    border: 1px solid ${brandColors.secondary};
     border-radius: 4px;
     padding: 12px;
     margin: 12px 0;
@@ -182,13 +196,13 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     width: 100%;
     border-collapse: collapse;
     margin: 12px 0;
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: ${brandColors.white};
+    border: 1px solid ${brandColors.border};
   `;
 
   const tableHeaderStyle = `
-    background: #f3f4f6;
-    color: #374151;
+    background: ${brandColors.primary};
+    color: ${brandColors.white};
     padding: 10px 8px;
     text-align: left;
     font-weight: 600;
@@ -197,14 +211,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
   const tableCellStyle = `
     padding: 8px;
-    border-bottom: 1px solid #e5e7eb;
-    color: #374151;
+    border-bottom: 1px solid ${brandColors.border};
+    color: ${brandColors.text};
     font-size: 12px;
   `;
 
   const badgeStyle = `
-    background: #374151;
-    color: white;
+    background: ${brandColors.secondary};
+    color: ${brandColors.white};
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 10px;

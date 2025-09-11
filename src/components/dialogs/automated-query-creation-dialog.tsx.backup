@@ -94,6 +94,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const [pricingMealPlanId, setPricingMealPlanId] = useState<string>('');
   const [pricingNumberOfRooms, setPricingNumberOfRooms] = useState<number>(1);
   const [componentRoomQuantities, setComponentRoomQuantities] = useState<Record<string, number>>({});
+  
   // Debug logging state
   const [debugLog, setDebugLog] = useState<any[]>([]);
   const [showDebug, setShowDebug] = useState<boolean>(false);
@@ -259,7 +260,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'Inquiry not loaded' });
       return;
     }
-
+    
     if (!pricingMealPlanId) {
       toast.error('Please select a meal plan for pricing calculation');
       addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No pricing meal plan selected' });
@@ -1396,18 +1397,32 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     <CardContent className="space-y-3 text-sm py-3 px-3">
                       <p><strong>Package:</strong> {selectedTourPackage?.tourPackageName}</p>
                       <p><strong>Meal Plan:</strong> {mealPlans.find(m => m.id === form.getValues('mealPlanId'))?.name}</p>
-                      <p><strong>Total Rooms:</strong> {form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0)}</p>
+                      <div className="flex items-center justify-between">
+                        <p><strong>Total Rooms:</strong> {form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0)}</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addRoomAllocation}
+                          className="text-xs"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Room
+                        </Button>
+                      </div>
                       
-                      {/* Independent Pricing Configuration */}
-                      <div className="pt-3 border-t space-y-3">
-                        <h4 className="font-medium text-purple-800">🧮 Pricing Configuration</h4>
+                      
+                      {/* Independent Pricing Configuration Section */}
+                      <div className="pt-3 border-t space-y-4">
+                        <h4 className="font-semibold text-purple-800">🧮 Pricing Configuration</h4>
+                        <p className="text-xs text-gray-600">Configure meal plan and room count for fetching pricing components (independent of room allocations above):</p>
                         
                         {/* Meal Plan for Pricing */}
-                        <div>
-                          <label className="text-xs font-medium text-gray-700 block mb-1">Meal Plan for Pricing:</label>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">Meal Plan for Pricing:</label>
                           <Select value={pricingMealPlanId} onValueChange={setPricingMealPlanId}>
-                            <SelectTrigger className="w-full h-8 text-sm">
-                              <SelectValue placeholder="Select meal plan" />
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select meal plan for pricing" />
                             </SelectTrigger>
                             <SelectContent>
                               {mealPlans.map((plan) => (
@@ -1420,99 +1435,102 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                         </div>
                         
                         {/* Number of Rooms for Pricing */}
-                        <div>
-                          <label className="text-xs font-medium text-gray-700 block mb-1">Rooms for Pricing:</label>
-                          <div className="flex items-center gap-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700">Number of Rooms for Pricing:</label>
+                          <div className="flex items-center gap-3">
                             <button
                               type="button"
                               onClick={() => setPricingNumberOfRooms(Math.max(1, pricingNumberOfRooms - 1))}
-                              className="h-7 w-7 rounded border hover:bg-gray-100 text-sm"
+                              className="h-8 w-8 rounded-full border border-purple-300 hover:bg-purple-50 flex items-center justify-center"
                               disabled={pricingNumberOfRooms <= 1}
                             >
-                              -
+                              <span className="text-purple-600 font-bold">-</span>
                             </button>
                             <input
                               type="number"
                               value={pricingNumberOfRooms}
                               onChange={(e) => setPricingNumberOfRooms(Math.max(1, parseInt(e.target.value) || 1))}
-                              className="w-16 text-center border rounded px-1 py-1 text-sm"
+                              className="w-20 text-center border border-gray-300 rounded px-2 py-1"
                               min="1"
                             />
                             <button
                               type="button"
                               onClick={() => setPricingNumberOfRooms(pricingNumberOfRooms + 1)}
-                              className="h-7 w-7 rounded border hover:bg-gray-100 text-sm"
+                              className="h-8 w-8 rounded-full border border-purple-300 hover:bg-purple-50 flex items-center justify-center"
                             >
-                              +
+                              <span className="text-purple-600 font-bold">+</span>
                             </button>
-                            <span className="text-xs text-gray-600">🏨 {pricingNumberOfRooms} room{pricingNumberOfRooms > 1 ? 's' : ''}</span>
+                            <div className="flex items-center bg-purple-100 px-2 py-1 rounded text-xs">
+                              🏨 {pricingNumberOfRooms} room{pricingNumberOfRooms > 1 ? 's' : ''}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Fetch Components Button */}
-                      <div className="pt-2">
+                        
+                        {/* Fetch Components Button */}
                         <Button 
                           type="button" 
                           onClick={fetchAvailablePricingComponents} 
                           disabled={isCalculatingPrice || loading || !pricingMealPlanId || pricingNumberOfRooms <= 0} 
-                          className="w-full mb-3"
+                          className="w-full"
                           variant="outline"
                         >
                           <Package className="mr-2 h-4 w-4" />
                           {isCalculatingPrice ? 'Fetching Components...' : '📦 Fetch Available Pricing Components'}
                         </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {availablePricingComponents.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="font-medium text-blue-800">Select Pricing Components:</p>
+                        <div className="text-xs text-blue-600">
+                          Choose which pricing components to include in your tour package pricing breakdown:
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {/* Select All / Clear Selection */}
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
+                              setSelectedPricingComponentIds(allComponentIds);
+                              // Initialize room quantities for all components if not already set
+                              const newQuantities = { ...componentRoomQuantities };
+                              availablePricingComponents.forEach((comp: any) => {
+                                if (!newQuantities[comp.id]) {
+                                  newQuantities[comp.id] = 1;
+                                }
+                              });
+                              setComponentRoomQuantities(newQuantities);
+                            }}
+                            className="text-xs"
+                          >
+                            Select All
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedPricingComponentIds([])}
+                            className="text-xs"
+                          >
+                            Deselect All
+                          </Button>
+                        </div>
                         
-                        {availablePricingComponents.length > 0 && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="font-medium text-blue-800">Select Pricing Components:</p>
-                              <div className="text-xs text-blue-600">
-                                Choose which pricing components to include in your tour package pricing breakdown:
-                              </div>
-                            </div>
-                            <div className="space-y-3">
-                              {/* Select All / Clear Selection */}
-                              <div className="flex gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    const allComponentIds = availablePricingComponents.map((comp: any) => comp.id);
-                                    setSelectedPricingComponentIds(allComponentIds);
-                                    // Initialize room quantities for all components if not already set
-                                    const newQuantities = { ...componentRoomQuantities };
-                                    availablePricingComponents.forEach((comp: any) => {
-                                      if (!newQuantities[comp.id]) {
-                                        newQuantities[comp.id] = 1;
-                                      }
-                                    });
-                                    setComponentRoomQuantities(newQuantities);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  Select All
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setSelectedPricingComponentIds([])}
-                                  className="text-xs"
-                                >
-                                  Deselect All
-                                </Button>
-                              </div>
-                              
-                              {/* Pricing Components Grid */}
-                              <div className="space-y-2">
-                                {availablePricingComponents.map((component: any) => {
-                                  const isSelected = selectedPricingComponentIds.includes(component.id);
-                                  const occupancyMultiplier = getOccupancyMultiplier(component.pricingAttribute?.name || '');
-                                  const basePrice = parseFloat(component.price || '0');
-                                  const componentRoomQty = componentRoomQuantities[component.id] || 1;
-                                  const totalComponentPrice = calculateComponentTotalPrice(component, componentRoomQty);
+                        {/* Pricing Components Grid */}
+                        <div className="space-y-2">
+                          {availablePricingComponents.map((component: any) => {
+                            const isSelected = selectedPricingComponentIds.includes(component.id);
+                            const occupancyMultiplier = getOccupancyMultiplier(component.pricingAttribute?.name || '');
+                            const basePrice = parseFloat(component.price || '0');
+                            const componentRoomQty = componentRoomQuantities[component.id] || 1;
+                            const totalComponentPrice = calculateComponentTotalPrice(component, componentRoomQty);
                                   
                                   return (
                                     <div key={component.id} className="border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
@@ -1554,41 +1572,11 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                           <div className="flex items-center gap-4 mt-2">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xs text-gray-500">Rooms:</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleComponentRoomQuantityChange(
-                                                  component.id, 
-                                                  (componentRoomQuantities[component.id] || 1) - 1
-                                                )}
-                                                className="h-5 w-5 text-xs border rounded hover:bg-gray-100"
-                                                disabled={(componentRoomQuantities[component.id] || 1) <= 1}
-                                              >
-                                                -
-                                              </button>
-                                              <input
-                                                type="number"
-                                                value={componentRoomQuantities[component.id] || 1}
-                                                onChange={(e) => handleComponentRoomQuantityChange(
-                                                  component.id, 
-                                                  parseInt(e.target.value) || 1
-                                                )}
-                                                min="1"
-                                                className="w-12 text-center text-xs border rounded px-1"
-                                              />
-                                              <button
-                                                type="button"
-                                                onClick={() => handleComponentRoomQuantityChange(
-                                                  component.id, 
-                                                  (componentRoomQuantities[component.id] || 1) + 1
-                                                )}
-                                                className="h-5 w-5 text-xs border rounded hover:bg-gray-100"
-                                              >
-                                                +
-                                              </button>
+                                              <span className="font-medium text-gray-700">{totalRooms}</span>
                                             </div>
-                                            {(componentRoomQty > 1 || occupancyMultiplier > 1) && (
+                                            {(totalRooms > 1 || occupancyMultiplier > 1) && (
                                               <p className="text-xs text-gray-500">
-                                                {componentRoomQty} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {occupancyMultiplier} occupancy
+                                                {totalRooms} rooms × ₹{parseFloat(component.price || '0').toFixed(2)} × {occupancyMultiplier} occupancy
                                               </p>
                                             )}
                                           </div>
@@ -1609,8 +1597,10 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                     Total: ₹{availablePricingComponents
                                       .filter((comp: any) => selectedPricingComponentIds.includes(comp.id))
                                       .reduce((sum: number, comp: any) => {
-                                        const roomQuantity = componentRoomQuantities[comp.id] || 1;
-                                        return sum + calculateComponentTotalPrice(comp, roomQuantity);
+                                        const basePrice = parseFloat(comp.price || '0');
+                                        const occupancyMultiplier = getOccupancyMultiplier(comp.pricingAttribute?.name || '');
+                                        const totalRooms = form.getValues('roomAllocations').reduce((sum, allocation) => sum + allocation.quantity, 0);
+                                        return sum + (basePrice * occupancyMultiplier * totalRooms);
                                       }, 0).toFixed(2)}
                                   </p>
                                 </div>

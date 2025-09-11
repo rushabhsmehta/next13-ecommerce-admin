@@ -822,10 +822,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   <div style="position: relative; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <div style="width: 100%; padding-bottom: 75%; /* 4:3 aspect ratio */ height: 0; position: relative;">
                       <img src="${img.url}" alt="Itinerary Image ${idx + 1}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;" />
-                    </div>
-                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%); padding: 8px;">
-                      <p style="color: white; margin: 0; font-size: 12px; font-weight: 500;">Day ${itinerary.dayNumber} - Photo ${idx + 1}</p>
-                    </div>
+                    </div>                  
                   </div>
                 `).join("")}
               </div>

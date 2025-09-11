@@ -137,25 +137,18 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   `;
 
-  // Fixed itinerary header CSS (will be used when itineraries are present)
+  // Itinerary header CSS as a normal block (not fixed) so it doesn't repeat on every printed page
   const itineraryHeaderStyle = `
-    .itinerary-fixed-header {
-      position: fixed;
-      top: 28px;
-      left: 14px;
-      right: 14px;
-      z-index: 9999;
-      pointer-events: none;
+    .itinerary-static-header {
       display: block;
+      margin: 0 0 12px 0;
     }
-    .itinerary-fixed-header .inner {
+    .itinerary-static-header .inner {
       max-width: 1200px;
       margin: 0 auto;
-      pointer-events: auto;
     }
-    @media print {
-      .itinerary-fixed-header { display: block; }
-    }
+    /* Force the itinerary header to start on its own page so it only appears where itineraries begin */
+    .itinerary-static-header { page-break-before: always; break-before: page; }
   `;
 
   const containerStyle = `
@@ -1120,7 +1113,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     // Build optional repeating itinerary header (appears on every PDF page when itineraries exist)
     const itineraryHeaderHtml = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0) ? `
-      <div class="itinerary-fixed-header">
+      <div class="itinerary-static-header">
         <div class="inner" style="background: ${brandColors.panelBg}; border-radius:8px; padding:10px 12px; border: 1px solid ${brandColors.primary}; box-shadow: 0 2px 6px rgba(0,0,0,0.04); text-align:center;">
           <h2 style="margin:0; font-size:18px; font-weight:700; background: ${brandGradients.primary}; -webkit-background-clip: text; color: transparent;">Travel Itinerary</h2>
           <p style="margin:4px 0 0 0; font-size:12px; color: ${brandColors.muted};">Your day-by-day adventure guide</p>

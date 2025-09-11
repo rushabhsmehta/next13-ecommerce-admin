@@ -567,16 +567,28 @@ export async function GET(
         const associatePartnerId = searchParams.get('associatePartnerId') || undefined;  // Add this line
         //  const hotelId = searchParams.get('hotelId') || undefined;
         const isFeatured = searchParams.get('isFeatured');
+        // Pagination params (page starts at 1)
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('pageSize');
+        const page = Math.max(1, parseInt(pageParam || '1', 10));
+        const pageSize = Math.min(100, Math.max(1, parseInt(pageSizeParam || '25', 10))); // cap at 100
 
+        const whereClause: any = {
+            locationId,
+            associatePartnerId,
+            isFeatured: isFeatured ? true : undefined,
+            isArchived: false,
+        };
+
+        // Count total for pagination (only if client requests pagination explicitly via page/pageSize param or defaults)
+        const total = await prismadb.tourPackageQuery.count({ where: whereClause });
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        const safePage = Math.min(page, totalPages); // Adjust if page > totalPages
+
+        const skip = (safePage - 1) * pageSize;
 
         const tourPackageQuery = await prismadb.tourPackageQuery.findMany({
-            where: {
-                locationId,
-                associatePartnerId,  // Add this line
-                //hotelId,
-                isFeatured: isFeatured ? true : undefined,
-                isArchived: false,
-            },
+            where: whereClause,
             include: {
                 associatePartner: true,  // Add this line
                 images: true,                location: true, itineraries: {
@@ -598,10 +610,22 @@ export async function GET(
             },
             orderBy: {
                 updatedAt: 'desc',
+            },
+            skip,
+            take: pageSize,
+        });
+        // Backward compatibility note: we now always return an object with data + pagination
+        return NextResponse.json({
+            data: tourPackageQuery,
+            pagination: {
+                page: safePage,
+                pageSize,
+                total,
+                totalPages,
+                hasNextPage: safePage < totalPages,
+                hasPrevPage: safePage > 1,
             }
         });
-
-        return NextResponse.json(tourPackageQuery);
     } catch (error) {
         console.log('[TOUR_PACKAGES_GET]', error);
         return new NextResponse("Internal error", { status: 500 });

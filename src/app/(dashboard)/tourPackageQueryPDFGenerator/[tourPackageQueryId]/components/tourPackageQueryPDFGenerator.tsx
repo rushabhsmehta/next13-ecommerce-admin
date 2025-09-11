@@ -112,6 +112,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     success: "#059669" // Green for pricing
   };
 
+  // Brand Gradients for cleaner look
+  const brandGradients = {
+    primary: `linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.secondary} 100%)`,
+    secondary: `linear-gradient(135deg, ${brandColors.secondary} 0%, ${brandColors.accent} 100%)`,
+    light: `linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%)`,
+    subtle: `linear-gradient(135deg, ${brandColors.white} 0%, ${brandColors.lightOrange} 100%)`,
+    accent: `linear-gradient(135deg, ${brandColors.lightOrange} 0%, ${brandColors.light} 100%)`
+  };
+
   // --- Clean, Professional Styles with Aagam Holidays Branding ---
   const containerStyle = `
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
@@ -134,14 +143,14 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
   
   const headerStyle = `
-    background: ${brandColors.primary};
+    background: ${brandGradients.primary};
     color: ${brandColors.white}; 
     padding: 16px; 
     text-align: center;
   `;
   
   const headerStyleAlt = `
-    background: ${brandColors.secondary};
+    background: ${brandGradients.secondary};
     color: ${brandColors.white}; 
     padding: 10px; 
     text-align: center;
@@ -177,7 +186,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   const accentCardStyle = `
-    background: ${brandColors.lightOrange};
+    background: ${brandGradients.accent};
     border: 1px solid ${brandColors.accent};
     border-radius: 4px;
     padding: 12px;
@@ -185,7 +194,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   const priceCardStyle = `
-    background: ${brandColors.light};
+    background: ${brandGradients.light};
     border: 1px solid ${brandColors.secondary};
     border-radius: 4px;
     padding: 12px;
@@ -201,7 +210,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   const tableHeaderStyle = `
-    background: ${brandColors.primary};
+    background: ${brandGradients.primary};
     color: ${brandColors.white};
     padding: 10px 8px;
     text-align: left;
@@ -217,7 +226,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   const badgeStyle = `
-    background: ${brandColors.secondary};
+    background: ${brandGradients.secondary};
     color: ${brandColors.white};
     padding: 2px 6px;
     border-radius: 3px;
@@ -748,7 +757,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <!-- Clean Itinerary Header -->
         <div style="display: flex; margin-bottom: 0; overflow: hidden;">
           <!-- Left Box: Day and Days -->
-          <div style="flex: 0 0 25%; background: ${brandColors.text}; color: white; padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <div style="flex: 0 0 25%; background: ${brandGradients.primary}; color: white; padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <div>
               <p style="font-size: 14px; font-weight: 600; margin: 0;">Day</p>
               <p style="font-size: 24px; font-weight: 700; margin: 4px 0;">${itinerary.dayNumber}</p>
@@ -757,7 +766,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           <!-- Right Box: Description -->
-          <div style="flex: 1; background: ${brandColors.primary}; color: white; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden;">
+          <div style="flex: 1; background: ${brandGradients.secondary}; color: white; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden;">
             <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
             <div style="position: relative; z-index: 1; width: 100%;">
               <h3 style="font-size: 24px; font-weight: 800; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">
@@ -770,7 +779,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         <!-- Enhanced Itinerary Content -->
         <div style="padding: 28px;">
           ${(itinerary.itineraryDescription && itinerary.itineraryDescription.trim()) ? `
-            <div style="background: ${brandColors.lightOrange}; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid ${brandColors.secondary};">
+            <div style="background: ${brandGradients.subtle}; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid ${brandColors.secondary};">
               <h4 style="font-size: 18px; font-weight: 700; color: ${brandColors.text}; margin: 0 0 12px 0; display: flex; align-items: center;">
                 <span style="${iconStyle}">📋</span>
                 Day Overview
@@ -816,7 +825,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           <!-- Enhanced Activities Section -->
           ${itinerary.activities && itinerary.activities.length > 0 ? `
-            <div style="background: ${brandColors.light}; padding: 24px; border-radius: 12px; border-left: 4px solid ${brandColors.accent};">
+            <div style="background: ${brandGradients.accent}; padding: 24px; border-radius: 12px; border-left: 4px solid ${brandColors.accent};">
               <h4 style="font-size: 20px; font-weight: 700; color: ${brandColors.text}; margin: 0 0 20px 0; display: flex; align-items: center;">
                 <span style="${iconStyle}">🎯</span>
                 Planned Activities
@@ -825,7 +834,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                 ${itinerary.activities.map((activity, actIdx) => `
                   <div style="background: ${brandColors.white}; padding: 16px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid ${brandColors.secondary};">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                      <div style="background: ${brandColors.secondary}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px;">
+                      <div style="background: ${brandGradients.secondary}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px;">
                         ${actIdx + 1}
                       </div>
                       <h5 style="font-size: 16px; font-weight: 700; color: ${brandColors.text}; margin: 0;">

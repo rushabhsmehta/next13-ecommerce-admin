@@ -307,19 +307,23 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     // 1. Clean Header Section (Tour Name, Type and Images)
     const headerSection = `
-      <div style="${cardStyle}; margin-bottom: 16px; text-align: center;">
+      <div style="${cardStyle}; margin-bottom: 16px; text-align: center; position:relative;">
         ${initialData.images && initialData.images.length > 0 ? `
-          <div style="width: 100%; height: 250px; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px;">
-            <img src="${initialData.images[0].url}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover;" />
+          <div style="width: 100%; height: 240px; overflow: hidden; border-top-left-radius: 6px; border-top-right-radius: 6px; position:relative;">
+            <img src="${initialData.images[0].url}" alt="Tour Image" style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.9);" />
+            ${currentCompany.logo ? `<div style=\"position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.85); backdrop-filter: blur(4px); padding:6px 10px; border-radius:6px; display:flex; align-items:center; gap:8px; box-shadow:0 2px 4px rgba(0,0,0,0.08);\"><img src='${currentCompany.logo}' alt='${currentCompany.name} Logo' style=\"height:34px; width:auto; object-fit:contain;\"/></div>` : ''}
           </div>
+        ` : currentCompany.logo ? `
+          <div style=\"padding-top:24px; display:flex; justify-content:center;\"><img src='${currentCompany.logo}' alt='${currentCompany.name} Logo' style=\"height:56px; width:auto; object-fit:contain;\"/></div>
         ` : ''}
-        <div style="padding: 24px;">
-          <span style="background: ${brandColors.light}; color: ${brandColors.primary}; padding: 6px 16px; border-radius: 9999px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+        <div style="padding: 24px 24px 28px;">
+          <span style="background: ${brandColors.light}; color: ${brandColors.primary}; padding: 6px 16px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.65px;">
             ${initialData.tourPackageQueryType} Package
           </span>
-          <h1 style="font-size: 28px; margin: 12px 0 0 0; font-weight: 700; line-height: 1.2; color: ${brandColors.text};">
+          <h1 style="font-size: 30px; margin: 14px 0 0 0; font-weight: 800; line-height: 1.18; background:${brandGradients.primary}; -webkit-background-clip:text; color:transparent; letter-spacing:0.75px;">
             ${initialData.tourPackageQueryName}
           </h1>
+          ${currentCompany.name ? `<div style=\"margin-top:10px; font-size:12px; font-weight:600; color:${brandColors.muted}; letter-spacing:1px; text-transform:uppercase;\">Prepared by ${currentCompany.name}</div>` : ''}
         </div>
       </div>
     `;

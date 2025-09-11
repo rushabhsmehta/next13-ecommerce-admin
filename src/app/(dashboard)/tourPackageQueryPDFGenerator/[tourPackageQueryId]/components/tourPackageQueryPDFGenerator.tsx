@@ -135,6 +135,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const cardStyle = `
     background: ${brandColors.white};
     border: 1px solid ${brandColors.border}; 
+    border-left: 4px solid ${brandColors.primary};
     border-radius: 4px; 
     margin-bottom: 12px; 
     overflow: hidden; 
@@ -186,16 +187,18 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   const accentCardStyle = `
-    background: ${brandGradients.accent};
+    background: ${brandColors.lightOrange};
     border: 1px solid ${brandColors.accent};
+    border-left: 4px solid ${brandColors.accent};
     border-radius: 4px;
     padding: 12px;
     margin: 8px 0;
   `;
 
   const priceCardStyle = `
-    background: ${brandGradients.light};
+    background: ${brandColors.light};
     border: 1px solid ${brandColors.secondary};
+    border-left: 4px solid ${brandColors.secondary};
     border-radius: 4px;
     padding: 12px;
     margin: 12px 0;
@@ -627,15 +630,17 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     // 9. Hotel, Room Allocation & Transport Summary (matches display order)
     const hotelSummarySection = (selectedOption !== "SupplierA" && initialData.itineraries && initialData.itineraries.length > 0)
       ? `
-      <div style="${cardStyle};">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyleAlt}">
           <h2 style="${sectionTitleStyle};">
             Hotel, Room Allocation & Transport Details
           </h2>
         </div>
         <div style="${contentStyle}">
-          ${initialData.itineraries.map((it) => `
-            <div style="border-bottom: 1px solid #e5e7eb; padding: 12px 0; margin-bottom: 12px;">
+          ${initialData.itineraries.map((it) => {
+            const hotel = hotels.find(h => h.id === it.hotelId);
+            return `
+            <div style="border-bottom: 1px solid #e5e7eb; padding: 12px 0; margin-bottom: 12px; break-inside: avoid;">
               <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom: 8px;">
                 <div style="width:24px; height:24px; background: #6b7280; color:white; border-radius:4px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:12px;">
                   ${it.dayNumber}
@@ -645,88 +650,113 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   ${(() => { const t = it.itineraryTitle ? String(it.itineraryTitle) : ''; const cleaned = t.replace(/^<p>/i, '').replace(/<\/p>$/i, ''); return it.itineraryTitle ? '<div style="font-size:12px; color:#374151; margin-top:2px;">' + cleaned + '</div>' : ''; })()}
                 </div>
               </div>
-              ${(it.hotelId && hotels.find(h => h.id === it.hotelId)) ? `
-                <div style="margin-left: 36px;">
-                  <div style="margin-bottom:8px;">
-                    <a href="${hotels.find(h => h.id === it.hotelId)?.link || '#'}" target="_blank" rel="noopener noreferrer" style="font-size:14px; font-weight:600; color:#111827; text-decoration:underline;">${hotels.find(h => h.id === it.hotelId)?.name || ''}</a>
+              ${hotel ? `
+                <div style="margin-left: 36px; margin-top: 12px; display: grid; grid-template-columns: 120px 1fr; gap: 16px;">
+                  <!-- Hotel Image -->
+                  <div style="width: 120px; height: 90px; border-radius: 4px; overflow: hidden; background: #f3f4f6;">
+                    ${hotel.images && hotel.images.length > 0 ? `
+                      <img src="${hotel.images[0].url}" alt="${hotel.name}" style="width: 100%; height: 100%; object-fit: cover;" />
+                    ` : `
+                      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px;">No Image</div>
+                    `}
                   </div>
-                  ${(it.roomAllocations && it.roomAllocations.length>0) ? `
-                    <div style="margin-top: 8px;">
-                      <table style="${tableStyle}">
-                        <thead>
-                          <tr>
-                            <th style="${tableHeaderStyle}">Room Type</th>
-                            <th style="${tableHeaderStyle}">Occupancy</th>
-                            <th style="${tableHeaderStyle}; text-align: center;">Qty</th>
-                            <th style="${tableHeaderStyle}">Voucher No.</th>
-                          </tr>
-                          </thead>
-                          <tbody>
-          ${it.roomAllocations.map((room:any, index: number) => `
-                            <tr style="background: ${index % 2 === 0 ? '#f8fafc' : 'white'};">
-                              <td style="${tableCellStyle}">
-                                <div style="display: flex; align-items: center;">
-                                  <span style="font-weight: 600;">
-                                    ${(() => { 
-                                      const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : ''; 
-                                      const isCustom = customText.length > 0; 
-                                      const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard'); 
-                                      return label; 
-                                    })()}
-                                  </span>
-                                  ${(() => { 
-                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : ''; 
-                                    const isCustom = customText.length > 0; 
-                                    return isCustom ? `<span style="${badgeStyle}">Custom</span>` : ''; 
-                                  })()}
-                                </div>
-                              </td>
-                              <td style="${tableCellStyle}">
-                                <span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: 500;">
-                                  ${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}
-                                </span>
-                              </td>
-                              <td style="${tableCellStyle}; text-align: center;">
-                                <span style="background: #374151; color: white; padding: 2px 6px; border-radius: 3px; font-weight: 500; font-size: 11px;">
-                                  ${room.quantity || 1}
-                                </span>
-                              </td>
-                              <td style="${tableCellStyle}">
-                                <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
-                                  ${room.voucherNumber || '-'}
-                                </span>
-                              </td>
-                            </tr>
-                          `).join('')}
-                          </tbody>
-                        </table>
-                        ${(() => {
-                          const plans = Array.from(new Set((it.roomAllocations || []).map((r:any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
-                          return plans.length ? `
-                            <div style="margin-top: 8px; background: #f9fafb; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #6b7280;">
-                              <span style="font-weight: 600; color: #374151; font-size: 12px;">Meal Plan:</span> 
-                              <span style="color: #1f2937; font-weight: 500; font-size: 12px;">${plans.join(' / ')}</span>
-                            </div>
-                          ` : '';
-                        })()}
-                      </div>
-                    ` : ''}
+                  
+                  <!-- Hotel Details -->
+                  <div>
+                    <a href="${hotel.link || '#'}" target="_blank" rel="noopener noreferrer" style="font-size:14px; font-weight:600; color:#111827; text-decoration:underline;">
+                      ${hotel.name || ''}
+                    </a>
+                   
                   </div>
                 </div>
-              ` : ''}
-              ${(it.transportDetails && it.transportDetails.length>0) ? `
-                <div style=\"margin-top:12px; padding-top:8px; border-top:1px solid #e5e7eb;\">
-                  <div style=\"font-size:14px; font-weight:600; color:#9a3412; margin-bottom:8px;\">Transport Details</div>
-                  ${it.transportDetails.map((t:any) => `
-                    <div style=\"display:flex; align-items:center; justify-content:space-between; background:#fff7ed; padding:8px; border-radius:8px; margin-bottom:8px;\">
-                      <div style=\"font-weight:600; color:#7c2d12;\">${t?.vehicleType?.name || 'Vehicle'}</div>
-                      <div style=\"font-size:14px; color:#7c2d12;\">${'Qty: ' + (t.quantity || 1) + (t.capacity ? ' | Capacity: ' + t.capacity : '')}</div>
+
+                ${(it.roomAllocations && it.roomAllocations.length > 0) ? `
+                  <div style="margin-left: 36px; margin-top: 12px;">
+                    <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Room Allocations</div>
+                    <table style="${tableStyle}">
+                      <thead>
+                        <tr>
+                          <th style="${tableHeaderStyle}">Room Type</th>
+                          <th style="${tableHeaderStyle}">Occupancy</th>
+                          <th style="${tableHeaderStyle}; text-align: center;">Qty</th>
+                          <th style="${tableHeaderStyle}">Voucher No.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${it.roomAllocations.map((room: any, index: number) => `
+                          <tr style="background: ${index % 2 === 0 ? '#f8fafc' : 'white'};">
+                            <td style="${tableCellStyle}">
+                              <div style="display: flex; align-items: center;">
+                                <span style="font-weight: 600;">
+                                  ${(() => {
+                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                    const isCustom = customText.length > 0;
+                                    const label = isCustom ? customText : (room?.roomType?.name || room.roomType || 'Standard');
+                                    return label;
+                                  })()}
+                                </span>
+                                ${(() => {
+                                  const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                  const isCustom = customText.length > 0;
+                                  return isCustom ? `<span style="${badgeStyle}">Custom</span>` : '';
+                                })()}
+                              </div>
+                            </td>
+                            <td style="${tableCellStyle}">
+                              <span style="background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: 500;">
+                                ${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}
+                              </span>
+                            </td>
+                            <td style="${tableCellStyle}; text-align: center;">
+                              <span style="background: #374151; color: white; padding: 2px 6px; border-radius: 3px; font-weight: 500; font-size: 11px;">
+                                ${room.quantity || 1}
+                              </span>
+                            </td>
+                            <td style="${tableCellStyle}">
+                              <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                                ${room.voucherNumber || '-'}
+                              </span>
+                            </td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                    ${(() => {
+                      const plans = Array.from(new Set((it.roomAllocations || []).map((r: any) => r?.mealPlan?.name || r.mealPlan).filter(Boolean)));
+                      return plans.length ? `
+                        <div style="margin-top: 8px; background: #f9fafb; padding: 8px 12px; border-radius: 4px; border-left: 3px solid #6b7280;">
+                          <span style="font-weight: 600; color: #374151; font-size: 12px;">Meal Plan:</span> 
+                          <span style="color: #1f2937; font-weight: 500; font-size: 12px;">${plans.join(' / ')}</span>
+                        </div>
+                      ` : '';
+                    })()}
+                  </div>
+                ` : ''}
+              ` : `
+                <div style="margin-left: 36px; margin-top: 12px; background: #f9fafb; padding: 12px; border-radius: 4px; border-left: 3px solid #6b7280;">
+                  <span style="color: #6b7280; font-size: 13px;">No hotel assigned for this day.</span>
+                </div>
+              `}
+              
+              ${(it.transportDetails && it.transportDetails.length > 0) ? `
+                <div style="margin-left: 36px; margin-top: 16px;">
+                  <div style="font-size:13px; font-weight:600; color:#374151; margin-bottom:8px;">Transport Details</div>
+                  ${it.transportDetails.map((t: any) => `
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:#fff7ed; padding:8px 12px; border-radius:4px; margin-bottom:8px; border-left: 3px solid #fb923c;">
+                      <div>
+                        <div style="font-weight:600; color:#7c2d12;">${t?.vehicleType?.name || 'Vehicle'}</div>
+                        ${t.description ? `<div style="font-size:11px; color:#9a3412; margin-top: 2px;">${t.description}</div>` : ''}
+                      </div>
+                      <div style="font-size:13px; color:#7c2d12; text-align: right;">
+                        <div>Qty: ${t.quantity || 1}</div>
+                        ${t.capacity ? `<div>Cap: ${t.capacity}</div>` : ''}
+                      </div>
                     </div>
                   `).join('')}
                 </div>
               ` : ''}
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
       </div>
       ` : "";
@@ -741,7 +771,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ) {
   // Clean Itinerary header
       itinerariesSection += `
-    <div style="${cardStyle};">
+    <div style="${cardStyle}; page-break-before: always;">
       <div style="${headerStyleAlt}; text-align: center;">
         <h2 style="${sectionTitleStyle};">
           Travel Itinerary
@@ -1033,7 +1063,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       : "";
     const cancellationPolicySection = cancelArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
         </div>
@@ -1045,7 +1075,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       : "";
     const airlineCancellationSection = airlineCancelArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
         </div>
@@ -1058,7 +1088,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
     const usefulTipsSection = usefulTipsArr.length
       ? `
-      <div style="${cardStyle}">
+      <div style="${cardStyle}; page-break-before: always;">
         <div style="${headerStyle}; display: flex; align-items: center;">
           <div style="font-size: 24px; font-weight: bold;">Useful Tips</div>
         </div>

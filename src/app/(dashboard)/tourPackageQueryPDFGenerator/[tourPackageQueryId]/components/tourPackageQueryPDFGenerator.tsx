@@ -664,9 +664,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   ${it.dayNumber}
                 </div>
                 <div>
-                  <div style="font-size:15px; font-weight:600; color:#111827;">Day ${it.dayNumber}: ${it.days}</div>
-                  ${(() => { const t = it.itineraryTitle ? String(it.itineraryTitle) : ''; const cleaned = t.replace(/^<p>/i, '').replace(/<\/p>$/i, ''); return it.itineraryTitle ? `<div style="font-size:13px; color:#475569; margin-top:2px;">${cleaned}</div>` : ''; })()}
-                </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <span style="display:inline-flex; align-items:center; justify-content:center; background:${brandColors.primary}; color:${brandColors.white}; padding:6px 10px; border-radius:8px; font-weight:700; font-size:12px;">DAY ${it.dayNumber}</span>
+                      <div style="flex:1;">
+                        <h3 style="margin:0; font-size:16px; font-weight:800; line-height:1.1; background: ${brandGradients.secondary}; -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.15px; text-shadow: 0 1px 0 rgba(0,0,0,0.03);">${it.days}</h3>
+                        <div style="height:6px; width:84px; background: ${brandGradients.primary}; border-radius:4px; margin-top:8px;"></div>
+                      </div>
+                    </div>
+                    ${(() => { const t = it.itineraryTitle ? String(it.itineraryTitle) : ''; const cleaned = t.replace(/^<p>/i, '').replace(/<\/p>$/i, ''); return it.itineraryTitle ? `<div style="font-size:13px; color:${brandColors.slateText}; margin-top:8px;">${cleaned}</div>` : ''; })()}
+                  </div>
               </div>
               ${hotel ? `
                 <div style="margin-left: 44px; margin-top: 12px; display: grid; grid-template-columns: 100px 1fr; gap: 16px; align-items: center;">
@@ -796,10 +802,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <span style="font-size: 16px; font-weight: 700;">${itinerary.dayNumber}</span>
           </div>
           <div style="margin-left: 16px;">
-            <h3 style="font-size: 18px; font-weight: 700; margin: 0; background: ${brandGradients.secondary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: ${brandColors.text};">
+            <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height:1.05; background: ${brandGradients.primary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing:0.3px; text-shadow: 0 1px 0 rgba(0,0,0,0.04);">
               ${itinerary.days}
             </h3>
-            <p style="font-size: 14px; margin: 2px 0 0 0; color: ${brandColors.muted};">
+            <div style="height:6px; width:96px; background: ${brandGradients.secondary}; border-radius:4px; margin-top:8px;"></div>
+            <p style="font-size: 14px; margin: 8px 0 0 0; color: ${brandColors.muted};">
               ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "") || `Day ${itinerary.dayNumber} Activities`}
             </p>
           </div>

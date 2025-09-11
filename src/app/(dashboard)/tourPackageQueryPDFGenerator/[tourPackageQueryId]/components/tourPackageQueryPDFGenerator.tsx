@@ -1145,10 +1145,12 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           <span style="font-size:10px; font-weight:700; color:#111827;">${c.name ?? ''}</span>
         </div>
       ` : '';
-  const addressLine = showBrand && c.address ? `<span style=\"font-size:9px; color:#6b7280;\">${c.address}</span>` : '';
-      // Separate lines for phone and email
-      const phoneLine = showBrand && c.phone ? `<span style=\"font-size:9px; color:#6b7280;\">${c.phone}</span>` : '';
-      const emailLine = showBrand && c.email ? `<span style=\"font-size:9px; color:#6b7280;\">${c.email}</span>` : '';
+  const addressLine = showBrand && c.address ? `<div style=\"font-size:9px; color:#6b7280; margin-top:4px;\">${c.address}</div>` : '';
+      // Combine phone and email on one line with symbols
+      const contactParts: string[] = [];
+      if (showBrand && c.phone) contactParts.push(`<span style=\"display:inline-flex; align-items:center; gap:6px; font-size:9px; color:#6b7280;\">📞<span>${c.phone}</span></span>`);
+      if (showBrand && c.email) contactParts.push(`<span style=\"display:inline-flex; align-items:center; gap:6px; font-size:9px; color:#6b7280;\">✉️<span>${c.email}</span></span>`);
+      const contactLine = contactParts.length ? `<div style=\"margin-top:6px; display:flex; gap:12px; align-items:center;\">${contactParts.join('')}</div>` : '';
       // Social icons with labels
       const socialLine = showBrand ? `
         <div style=\"display:flex; align-items:center; gap:14px; justify-content:flex-end; flex-wrap:wrap;\">
@@ -1174,8 +1176,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <div style=\"display:flex; flex-direction:column; gap:2px;\">
               ${brandBlock}
               ${addressLine}
-              ${phoneLine}
-              ${emailLine}
+              ${contactLine}
             </div>
             <div style=\"text-align:right; display:flex; flex-direction:column; gap:2px; align-items:flex-end;\">
               ${socialLine}

@@ -775,7 +775,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <span style="font-size: 16px; font-weight: 700;">${itinerary.dayNumber}</span>
           </div>
           <div style="margin-left: 16px;">
-            <h3 style="font-size: 18px; font-weight: 700; margin: 0; color: ${brandColors.text};">
+            <h3 style="font-size: 18px; font-weight: 700; margin: 0; background: ${brandGradients.secondary}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: ${brandColors.text};">
               ${itinerary.days}
             </h3>
             <p style="font-size: 14px; margin: 2px 0 0 0; color: ${brandColors.muted};">

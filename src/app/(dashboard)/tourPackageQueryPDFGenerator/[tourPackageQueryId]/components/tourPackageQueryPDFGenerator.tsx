@@ -144,17 +144,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
   
   const headerStyle = `
-    background: ${brandGradients.primary};
-    color: ${brandColors.white}; 
     padding: 16px; 
     text-align: center;
+    border-bottom: 1px solid ${brandColors.border};
   `;
   
   const headerStyleAlt = `
-    background: ${brandGradients.secondary};
-    color: ${brandColors.white}; 
     padding: 10px; 
     text-align: center;
+    border-bottom: 1px solid ${brandColors.border};
   `;
   
   const contentStyle = `
@@ -169,7 +167,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     font-size: 18px; 
     font-weight: 600; 
     margin: 0;
-    color: ${brandColors.white};
+    color: ${brandColors.text};
   `;
   
   const subTitleStyle = `
@@ -307,11 +305,11 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const headerSection = `
       <div style="${cardStyle}; margin-bottom: 16px;">
         <div style="${headerStyle};">
-          <h1 style="font-size: 22px; margin: 0; font-weight: 600; text-align: center; line-height: 1.2;">
+          <h1 style="font-size: 22px; margin: 0; font-weight: 600; text-align: center; line-height: 1.2; color: ${brandColors.primary};">
             ${initialData.tourPackageQueryName}
           </h1>
           <div style="text-align: center; margin-top: 8px;">
-            <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 500;">
+            <span style="background: ${brandColors.light}; color: ${brandColors.primary}; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 500;">
               ${initialData.tourPackageQueryType} Package
             </span>
           </div>
@@ -796,10 +794,10 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           </div>
 
           <!-- Right Box: Description -->
-          <div style="flex: 1; background: ${brandGradients.secondary}; color: white; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden;">
-            <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; opacity: 0.5;"></div>
+          <div style="flex: 1; background: ${brandColors.white}; color: ${brandColors.text}; padding: 24px; display: flex; align-items: center; position: relative; overflow: hidden; border-left: 1px solid ${brandColors.border};">
+            <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: ${brandColors.light}; border-radius: 50%; opacity: 0.5;"></div>
             <div style="position: relative; z-index: 1; width: 100%;">
-              <h3 style="font-size: 24px; font-weight: 800; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2); line-height: 1.2;">
+              <h3 style="font-size: 24px; font-weight: 800; margin: 0; color: ${brandColors.secondary}; line-height: 1.2;">
                 ${itinerary.itineraryTitle?.replace(/^<p>/, "").replace(/<\/p>$/, "") || `Day ${itinerary.dayNumber} Activities`}
               </h3>
             </div>
@@ -992,8 +990,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const inclusionsSection = inclusionsArr.length
       ? `
   <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Inclusions</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Inclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(inclusionsArr)}
@@ -1004,8 +1002,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const exclusionsSection = exclusionsArr.length
       ? `
   <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Exclusions</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Exclusions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(exclusionsArr)}
@@ -1016,8 +1014,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const importantNotesSection = importantArr.length
       ? `
   <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Important Notes</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Important Notes</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(importantArr)}
@@ -1028,8 +1026,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const paymentPolicySection = paymentArr.length
       ? `
   <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Payment Policy</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Payment Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(paymentArr)}
@@ -1040,8 +1038,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const kitchenGroupPolicySection = kitchenArr.length
       ? `
   <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Kitchen Group Policy</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Kitchen Group Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(kitchenArr)}
@@ -1052,8 +1050,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const termsConditionsSection = termsArr.length
       ? `
   <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Terms and Conditions</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Terms and Conditions</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(termsArr)}
@@ -1064,8 +1062,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const cancellationPolicySection = cancelArr.length
       ? `
       <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Cancellation Policy</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(cancelArr)}
@@ -1076,8 +1074,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const airlineCancellationSection = airlineCancelArr.length
       ? `
       <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Airline Cancellation Policy</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Airline Cancellation Policy</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(airlineCancelArr)}
@@ -1089,8 +1087,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const usefulTipsSection = usefulTipsArr.length
       ? `
       <div style="${cardStyle}; page-break-before: always;">
-        <div style="${headerStyle}; display: flex; align-items: center;">
-          <div style="font-size: 24px; font-weight: bold;">Useful Tips</div>
+        <div style="${headerStyle};">
+          <div style="font-size: 24px; font-weight: bold; color: ${brandColors.text};">Useful Tips</div>
         </div>
         <div style="${contentStyle}; font-size: 16px;">
       ${renderBulletList(usefulTipsArr)}

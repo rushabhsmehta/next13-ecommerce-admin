@@ -553,7 +553,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       const name = comp.pricingAttribute?.name || 'Pricing Component';
       const basePrice = parseFloat(comp.price || '0');
       const occupancyMultiplier = getOccupancyMultiplier(name);
-      const roomQty = comp.numberOfRooms || inferredRooms;
+      // Use the specific room quantity set for this component, fallback to inferredRooms
+      const roomQty = componentRoomQuantities[comp.id] || comp.numberOfRooms || inferredRooms;
       const componentTotal = basePrice * occupancyMultiplier * roomQty;
       total += componentTotal;
       details.push({
@@ -599,6 +600,45 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     setPriceCalculationDetails([]);
     addLog({ step: 'form/reset', msg: 'Reset pricing components due to form changes' });
   }, [form.watch('mealPlanId'), JSON.stringify(form.watch('roomAllocations'))]);
+
+  // Auto-recalculate total when component room quantities change
+  useEffect(() => {
+    if (selectedPricingComponentIds.length > 0 && Object.keys(componentRoomQuantities).length > 0) {
+      // Automatically update the calculation when room quantities change
+      const timeout = setTimeout(() => {
+        // Recalculate manually to avoid dependency issues
+        const toUse = availablePricingComponents.filter((comp: any) => selectedPricingComponentIds.includes(comp.id));
+        if (toUse.length > 0) {
+          let total = 0;
+          const details: any[] = [];
+          const formData = form.getValues();
+          const inferredRooms = formData.roomAllocations?.reduce((s: number, a: any) => s + (a.quantity || 1), 0) || 1;
+          
+          toUse.forEach((comp: any) => {
+            const name = comp.pricingAttribute?.name || 'Pricing Component';
+            const basePrice = parseFloat(comp.price || '0');
+            const occupancyMultiplier = getOccupancyMultiplier(name);
+            const roomQty = componentRoomQuantities[comp.id] || comp.numberOfRooms || inferredRooms;
+            const componentTotal = basePrice * occupancyMultiplier * roomQty;
+            total += componentTotal;
+            details.push({
+              name,
+              basePrice,
+              occupancyMultiplier,
+              roomQuantity: roomQty,
+              totalPrice: componentTotal,
+              description: `${basePrice.toFixed(2)} × ${occupancyMultiplier} × ${roomQty} room${roomQty > 1 ? 's' : ''} = ₹${componentTotal.toFixed(2)}`
+            });
+          });
+          
+          setCalculatedPrice(total);
+          setPriceCalculationDetails(details);
+        }
+      }, 300); // Debounce to avoid excessive calculations
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [componentRoomQuantities, selectedPricingComponentIds, availablePricingComponents, form]);
 
   // Handle tour package selection with validation
   const handleTourPackageSelection = (tourPackageId: string) => {
@@ -705,6 +745,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       ...prev,
       [componentId]: newQuantity
     }));
+    // The useEffect will handle recalculation automatically
   };
 
   // Calculate component total price

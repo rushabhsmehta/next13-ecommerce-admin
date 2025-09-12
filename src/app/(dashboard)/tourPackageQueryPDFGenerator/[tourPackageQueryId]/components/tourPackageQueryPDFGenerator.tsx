@@ -1168,54 +1168,105 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const footerHtml = (() => {
       const c = currentCompany;
       const showBrand = selectedOption !== "Empty";
+      
       // Social links for Aagam Holidays
       const social = {
         facebook: "https://www.facebook.com/aagamholidays",
         instagram: "https://www.instagram.com/aagamholidays",
         twitter: "https://twitter.com/aagamholidays",
+        website: "aagamholidays.com"
       };
-  const brandBlock = showBrand ? `
-        <div style="display:flex; align-items:center; gap:8px;">
-          ${c.logo ? `<img src="${c.logo}" style="height:18px; width:auto; object-fit:contain;"/>` : ''}
-          <span style="font-size:10px; font-weight:700; color:#111827;">${c.name ?? ''}</span>
-        </div>
-      ` : '';
-  const addressLine = showBrand && c.address ? `<div style=\"font-size:9px; color:#6b7280; margin-top:4px;\">${c.address}</div>` : '';
-      // Combine phone and email on one line with symbols
-      const contactParts: string[] = [];
-      if (showBrand && c.phone) contactParts.push(`<span style=\"display:inline-flex; align-items:center; gap:6px; font-size:9px; color:#6b7280;\">📞<span>${c.phone}</span></span>`);
-      if (showBrand && c.email) contactParts.push(`<span style=\"display:inline-flex; align-items:center; gap:6px; font-size:9px; color:#6b7280;\">✉️<span>${c.email}</span></span>`);
-      const contactLine = contactParts.length ? `<div style=\"margin-top:6px; display:flex; gap:12px; align-items:center;\">${contactParts.join('')}</div>` : '';
-      // Social icons with labels
-      const socialLine = showBrand ? `
-        <div style=\"display:flex; align-items:center; gap:14px; justify-content:flex-end; flex-wrap:wrap;\">
-          ${c.website ? `<a href=\"${c.website}\" target=\"_blank\" style=\"font-size:9px; color:#2563eb; text-decoration:none; display:inline-flex; align-items:center; gap:4px;\">🔗 <span>${new URL(c.website).hostname.replace('www.','')}</span></a>` : ''}
-          <a href=\"${social.facebook}\" target=\"_blank\" style=\"display:inline-flex; align-items:center; gap:4px; text-decoration:none;\">
-            <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"#1877F2\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M22.675 0H1.325C.594 0 0 .593 0 1.325v21.351C0 23.406.594 24 1.325 24h11.495v-9.294H9.847v-3.622h2.973V8.413c0-2.939 1.796-4.543 4.418-4.543 1.256 0 2.336.093 2.651.135v3.073l-1.82.001c-1.428 0-1.704.679-1.704 1.675v2.197h3.406l-.444 3.622h-2.962V24h5.807C23.406 24 24 23.406 24 22.676V1.325C24 .593 23.406 0 22.675 0z\"/></svg>
-            <span style=\"font-size:9px; color:#374151;\">Facebook</span>
-          </a>
-          <a href=\"${social.instagram}\" target=\"_blank\" style=\"display:inline-flex; align-items:center; gap:4px; text-decoration:none;\">
-            <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"#E1306C\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12 2.163c3.204 0 3.584.012 4.85.07 1.17.056 1.97.24 2.428.403a4.92 4.92 0 0 1 1.78 1.153 4.92 4.92 0 0 1 1.153 1.78c.163.458.347 1.258.403 2.428.058 1.266.07 1.646.07 4.851s-.012 3.584-.07 4.85c-.056 1.17-.24 1.97-.403 2.428a4.92 4.92 0 0 1-1.153 1.78 4.92 4.92 0 0 1-1.78 1.153c-.458.163-1.258.347-2.428.403-1.266.058-1.646.07-4.85.07s-3.584-.012-4.851-.07c-1.17-.056-1.97-.24-2.428-.403a4.92 4.92 0 0 1-1.78-1.153 4.92 4.92 0 0 1-1.153-1.78c-.163-.458-.347-1.258-.403-2.428C2.175 15.584 2.163 15.204 2.163 12s.012-3.584.07-4.851c.056-1.17.24-1.97.403-2.428A4.92 4.92 0 0 1 3.789 2.94a4.92 4.92 0 0 1 1.78-1.153c.458-.163 1.258-.347 2.428-.403C8.264 2.175 8.644 2.163 11.849 2.163H12zm0 1.837c-3.17 0-3.548.012-4.795.07-.998.046-1.54.213-1.897.355-.478.185-.82.407-1.178.765-.358.358-.58.7-.765 1.178-.142.357-.309.899-.355 1.897-.058 1.247-.07 1.625-.07 4.795s.012 3.548.07 4.795c.046.998.213 1.54.355 1.897.185.478.407.82.765 1.178.358.358.58.7.765 1.178.142.357.309.899.355 1.897.058 1.247.07 1.625.07 4.795s-.012 3.548-.07 4.795c-.046.998-.213 1.54-.355 1.897a3.079 3.079 0 0 0-.765 1.178 3.079 3.079 0 0 0-1.178.765c-.357.142-.899.309-1.897.355-1.247.058-1.625.07-4.795.07zm0 3.89a4.11 4.11 0 1 1 0 8.22 4.11 4.11 0 0 1 0-8.22zm0 1.837a2.273 2.273 0 1 0 0 4.546 2.273 2.273 0 0 0 0-4.546zm5.2-2.905a1.02 1.02 0 1 1 0 2.04 1.02 1.02 0 0 1 0-2.04z\"/></svg>
-            <span style=\"font-size:9px; color:#374151;\">Instagram</span>
-          </a>
-          <a href=\"${social.twitter}\" target=\"_blank\" style=\"display:inline-flex; align-items:center; gap:4px; text-decoration:none;\">
-            <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"#1DA1F2\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M23.954 4.569c-.885.392-1.83.657-2.825.775a4.932 4.932 0 0 0 2.163-2.724 9.864 9.864 0 0 1-3.127 1.195 4.916 4.916 0 0 0-8.384 4.482A13.95 13.95 0 0 1 1.671 3.149a4.916 4.916 0 0 0 1.523 6.559 4.897 4.897 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.904 4.904 0 0 1-2.224.085 4.918 4.918 0 0 0 4.588 3.417A9.867 9.867 0 0 1 0 19.54a13.94 13.94 0 0 0 7.548 2.212c9.057 0 14.01-7.513 13.995-14.262.009-.206.014-.412.014-.617z\"/></svg>
-            <span style=\"font-size:9px; color:#374151;\">Twitter</span>
-          </a>
-        </div>
-      ` : '';
+
+      // Enhanced footer with proper Aagam Holidays branding
+      if (!showBrand) {
+        return `
+          <div style="width:100%; font-family: Arial, sans-serif;">
+            <div style="height:40px; padding:12px 20px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; border-top:1px solid #e5e7eb; background:#f9fafb;">
+              <span style="font-size:10px; color:#6b7280;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+            </div>
+          </div>`;
+      }
 
       return `
-        <div style=\"width:100%; font-family: Arial, sans-serif;\">
-          <div style=\"height:56px; padding:8px 16px; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; border-top:1px solid #e5e7eb;\">
-            <div style=\"display:flex; flex-direction:column; gap:2px;\">
-              ${brandBlock}
-              ${addressLine}
-              ${contactLine}
+        <div style="width:100%; font-family: Arial, sans-serif;">
+          <div style="min-height:70px; padding:12px 20px; box-sizing:border-box; background:linear-gradient(135deg, #fef7f0 0%, #fff2e6 100%); border-top:2px solid #ea580c;">
+            
+            <!-- Company Header Section -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                ${c.logo ? `<img src="${c.logo}" style="height:24px; width:auto; object-fit:contain;"/>` : ''}
+                <div>
+                  <div style="font-size:14px; font-weight:700; color:#dc2626; margin-bottom:2px;">${c.name || 'Aagam Holidays'}</div>
+                  <div style="font-size:9px; color:#7c2d12; font-weight:500;">Your Trusted Travel Partner</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px; color:#6b7280; font-weight:500;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></div>
+              </div>
             </div>
-            <div style=\"text-align:right; display:flex; flex-direction:column; gap:2px; align-items:flex-end;\">
-              ${socialLine}
-              <span style=\"font-size:10px; color:#6b7280;\">Page <span class=\"pageNumber\"></span> / <span class=\"totalPages\"></span></span>
+
+            <!-- Contact & Social Section -->
+            <div style="display:flex; align-items:center; justify-content:space-between; padding-top:8px; border-top:1px solid #fed7aa;">
+              
+              <!-- Left: Contact Information -->
+              <div style="display:flex; flex-direction:column; gap:3px;">
+                ${c.address ? `
+                  <div style="font-size:8px; color:#7c2d12; display:flex; align-items:center; gap:6px;">
+                    <span style="color:#ea580c;">�</span>
+                    <span>${c.address}</span>
+                  </div>
+                ` : ''}
+                <div style="display:flex; gap:16px; align-items:center;">
+                  ${c.phone ? `
+                    <div style="font-size:8px; color:#7c2d12; display:flex; align-items:center; gap:4px;">
+                      <span style="color:#ea580c;">📞</span>
+                      <span>${c.phone}</span>
+                    </div>
+                  ` : ''}
+                  ${c.email ? `
+                    <div style="font-size:8px; color:#7c2d12; display:flex; align-items:center; gap:4px;">
+                      <span style="color:#ea580c;">✉️</span>
+                      <span>${c.email}</span>
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+
+              <!-- Right: Social Media Links -->
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                ${c.website ? `
+                  <a href="https://${social.website}" target="_blank" style="font-size:8px; color:#dc2626; text-decoration:none; display:flex; align-items:center; gap:3px; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                    <span style="color:#ea580c;">🌐</span>
+                    <span style="font-weight:600; color:#7c2d12;">${social.website}</span>
+                  </a>
+                ` : ''}
+                
+                <a href="${social.facebook}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  <span style="font-size:8px; color:#7c2d12; font-weight:600;">aagamholidays</span>
+                </a>
+                
+                <a href="${social.instagram}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#E4405F" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  <span style="font-size:8px; color:#7c2d12; font-weight:600;">@aagamholidays</span>
+                </a>
+                
+                <a href="${social.twitter}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#1DA1F2" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                  </svg>
+                  <span style="font-size:8px; color:#7c2d12; font-weight:600;">@aagamholidays</span>
+                </a>
+              </div>
+            </div>
+            
+            <!-- Bottom Tagline -->
+            <div style="text-align:center; margin-top:6px; padding-top:6px; border-top:1px solid #fed7aa;">
+              <div style="font-size:8px; color:#7c2d12; font-style:italic;">Making your dream destinations come true with personalized travel experiences</div>
             </div>
           </div>
         </div>`;

@@ -723,9 +723,20 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       setLoading(true);
       console.log("Submitting data:", formattedData); // Log data before sending
       const response = await axios.post(`/api/tourPackageQuery`, formattedData);
-      console.log("API Response:", response.data); // Log API response      router.refresh();
-      router.push(`/inquiries`); // Redirect back to inquiries after successful creation
-      toast.success("Tour Package Query created successfully!");
+      console.log("API Response:", response.data); // Log API response
+      
+      // Check if we have a tour package query ID to redirect to display page
+      if (response.data?.id) {
+        router.refresh();
+        // Redirect to tour package query display page instead of direct PDF download
+        router.push(`/tourPackageQuery/${response.data.id}`);
+        toast.success("Tour Package Query created successfully! Redirecting to display page...");
+      } else {
+        // Fallback to inquiries if no ID is returned
+        router.refresh();
+        router.push(`/inquiries`);
+        toast.success("Tour Package Query created successfully!");
+      }
     } catch (error: any) {
       console.error("Submission error:", error.response?.data || error.message);
       toast.error(error.response?.data?.message || "Something went wrong.");

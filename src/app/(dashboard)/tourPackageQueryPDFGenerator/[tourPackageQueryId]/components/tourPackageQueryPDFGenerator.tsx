@@ -714,29 +714,38 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                         </tr>
                       </thead>
                       <tbody>
-                        ${it.roomAllocations.map((room: any, r_index: number) => `
-                          <tr style="${r_index % 2 === 0 ? 'background: #fdfdfe;' : 'background: white;'}">
-                            <td style="${tableCellStyle}">
-                              <div style="font-weight: 600;">
-                                ${(() => {
-                                  const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
-                                  return customText.length > 0 ? customText : (room?.roomType?.name || room.roomType || 'Standard');
-                                })()}
-                              </div>
-                            </td>
-                            <td style="${tableCellStyle}">
-                              ${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}
-                            </td>
-                            <td style="${tableCellStyle}; text-align: center;">
-                              <span style="background: #e2e8f0; color: #334155; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">
-                                ${room.quantity || 1}
-                              </span>
-                            </td>
-                            <td style="${tableCellStyle}">
-                              ${room.voucherNumber || '-'}
-                            </td>
-                          </tr>
-                        `).join('')}
+                        ${(() => {
+                          // Sort room allocations by occupancy type display order
+                          const sortedRoomAllocations = [...it.roomAllocations].sort((a: any, b: any) => {
+                            const aOrder = a?.occupancyType?.displayOrder ?? a?.occupancyType?.display_order ?? 999;
+                            const bOrder = b?.occupancyType?.displayOrder ?? b?.occupancyType?.display_order ?? 999;
+                            return aOrder - bOrder;
+                          });
+                          
+                          return sortedRoomAllocations.map((room: any, r_index: number) => `
+                            <tr style="${r_index % 2 === 0 ? 'background: #fdfdfe;' : 'background: white;'}">
+                              <td style="${tableCellStyle}">
+                                <div style="font-weight: 600;">
+                                  ${(() => {
+                                    const customText = typeof room?.customRoomType === 'string' ? room.customRoomType.trim() : '';
+                                    return customText.length > 0 ? customText : (room?.roomType?.name || room.roomType || 'Standard');
+                                  })()}
+                                </div>
+                              </td>
+                              <td style="${tableCellStyle}">
+                                ${room?.occupancyType?.name || room.occupancyType || room.occupancyTypeId || '-'}
+                              </td>
+                              <td style="${tableCellStyle}; text-align: center;">
+                                <span style="background: #e2e8f0; color: #334155; padding: 2px 8px; border-radius: 99px; font-weight: 600; font-size: 12px;">
+                                  ${room.quantity || 1}
+                                </span>
+                              </td>
+                              <td style="${tableCellStyle}">
+                                ${room.voucherNumber || '-'}
+                              </td>
+                            </tr>
+                          `).join('');
+                        })()}
                       </tbody>
                     </table>
                     ${(() => {

@@ -69,6 +69,8 @@ const tourPackageQueryPage = async ({
     
     include: {
       images: true,
+      destination: true,
+      location: true,
     }
   });
 

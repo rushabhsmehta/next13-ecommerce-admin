@@ -13,6 +13,7 @@ import {
   AssociatePartner,
   RoomAllocation,
   TransportDetail,
+  TourDestination,
 } from "@prisma/client";
 import { format } from "date-fns";
 
@@ -36,6 +37,8 @@ interface TourPackageQueryPDFGeneratorProps {
   locations: Location[];
   hotels: (Hotel & {
     images: Images[];
+    destination: TourDestination | null;
+    location: Location;
   })[];
   selectedOption?: string;
   associatePartners: AssociatePartner[];
@@ -686,6 +689,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                     <a href="${hotel.link || '#'}" target="_blank" rel="noopener noreferrer" style="font-size:14px; font-weight:600; color:#1e293b; text-decoration:none;">
                       ${hotel.name || ''}
                     </a>
+                    ${hotel.destination ? `
+                      <div style="font-size:12px; color:${brandColors.muted}; margin-top:2px; font-weight:500;">
+                        📍 ${hotel.destination.name}
+                      </div>
+                    ` : hotel.location ? `
+                      <div style="font-size:12px; color:${brandColors.muted}; margin-top:2px; font-weight:500;">
+                        📍 ${hotel.location.label}
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
 

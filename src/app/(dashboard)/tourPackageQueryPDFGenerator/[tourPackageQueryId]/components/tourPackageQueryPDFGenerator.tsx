@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Activity,
   FlightDetails,
@@ -93,6 +93,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   hotels,
 }) => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const selectedOption = searchParams.get("search") || "Empty";
   const [loading, setLoading] = useState(false);
   const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);
@@ -1198,84 +1199,71 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
       return `
         <div style="width:100%; font-family: Arial, sans-serif;">
-          <div style="padding:10px 20px; box-sizing:border-box; background:linear-gradient(135deg, #fef7f0 0%, #fff2e6 100%); border-top:2px solid #ea580c;">
-            
-            <!-- Top Row: Company Name & Page Number -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                ${c.logo ? `<img src="${c.logo}" style="height:16px; width:auto; object-fit:contain;"/>` : ''}
+          <div style="padding: 12px 20px; box-sizing: border-box; background: linear-gradient(135deg, #fefaf6 0%, #fff5eb 100%); border-top: 2px solid #ea580c;">
+
+            <!-- Top Row: Company Info & Page Number -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                ${c.logo ? `<img src="${c.logo}" style="height: 22px; width: auto; object-fit: contain;"/>` : ''}
                 <div>
-                  <div style="font-size:12px; font-weight:700; color:#dc2626; line-height:1.1;">${c.name || 'Aagam Holidays'}</div>
-                  <div style="font-size:7px; color:#7c2d12; font-weight:500; margin-top:1px;">Your Trusted Travel Partner</div>
+                  <div style="font-size: 14px; font-weight: 700; color: #dc2626; line-height: 1.1;">${c.name || 'Aagam Holidays'}</div>
+                  <div style="font-size: 8px; color: #7c2d12; font-weight: 500; margin-top: 2px;">Your Trusted Travel Partner</div>
                 </div>
               </div>
-              <div style="background:#fff; padding:2px 6px; border-radius:8px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
-                <span style="font-size:8px; color:#7c2d12; font-weight:600;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+              <div style="background: #fff; padding: 3px 8px; border-radius: 10px; border: 1px solid #fed7aa; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <span style="font-size: 9px; color: #7c2d12; font-weight: 600;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
               </div>
             </div>
 
-            <!-- Middle Row: Contact Information -->
-            <div style="background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #fed7aa; margin-bottom:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-              <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;">
+            <!-- Middle Row: Contact Information Card -->
+            <div style="background: #ffffff; padding: 6px 12px; border-radius: 6px; border: 1px solid #fed7aa; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: center; text-align: center;">
                 ${c.address ? `
-                  <div style="font-size:6px; color:#7c2d12; display:flex; align-items:center; gap:2px;">
-                    <span style="color:#ea580c;">�</span>
-                    <span>${c.address}</span>
+                  <div style="font-size: 8px; color: #7c2d12; display: flex; align-items: center; gap: 3px;">
+                    <span style="color: #ea580c; font-size: 10px;">📍</span>
+                    <span style="font-weight: 500;">${c.address}</span>
                   </div>
                 ` : ''}
                 ${c.phone ? `
-                  <div style="font-size:6px; color:#7c2d12; display:flex; align-items:center; gap:2px;">
-                    <span style="color:#ea580c;">📞</span>
-                    <span style="font-weight:500;">${c.phone}</span>
+                  <div style="font-size: 8px; color: #7c2d12; display: flex; align-items: center; gap: 3px;">
+                    <span style="color: #ea580c; font-size: 10px;">📞</span>
+                    <span style="font-weight: 500;">${c.phone}</span>
                   </div>
                 ` : ''}
                 ${c.email ? `
-                  <div style="font-size:6px; color:#7c2d12; display:flex; align-items:center; gap:2px;">
-                    <span style="color:#ea580c;">✉️</span>
-                    <span style="font-weight:500;">${c.email}</span>
+                  <div style="font-size: 8px; color: #7c2d12; display: flex; align-items: center; gap: 3px;">
+                    <span style="color: #ea580c; font-size: 10px;">✉️</span>
+                    <span style="font-weight: 500;">${c.email}</span>
                   </div>
                 ` : ''}
               </div>
             </div>
 
             <!-- Bottom Row: Social Media & Tagline -->
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px;">
-              
-              <!-- Social Media Links -->
-              <div style="display:flex; align-items:center; gap:3px; flex-wrap:wrap;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
                 ${c.website ? `
-                  <a href="https://${social.website}" target="_blank" style="font-size:5px; color:#dc2626; text-decoration:none; display:flex; align-items:center; gap:1px; padding:1px 3px; background:#fff; border-radius:2px; border:1px solid #fed7aa;">
-                    <span style="color:#ea580c;">🌐</span>
-                    <span style="font-weight:600; color:#7c2d12;">${social.website}</span>
+                  <a href="https://${social.website}" target="_blank" style="font-size: 8px; text-decoration: none; display: flex; align-items: center; gap: 2px; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                    <span style="color: #ea580c; font-size: 9px;">🌐</span>
+                    <span style="font-weight: 600; color: #7c2d12;">${social.website}</span>
                   </a>
                 ` : ''}
-                
-                <a href="${social.facebook}" target="_blank" style="display:flex; align-items:center; gap:1px; text-decoration:none; padding:1px 3px; background:#fff; border-radius:2px; border:1px solid #fed7aa;">
-                  <svg width="6" height="6" viewBox="0 0 24 24" fill="#1877F2">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                  <span style="font-size:5px; color:#7c2d12; font-weight:600;">aagamholidays</span>
+                <a href="${social.facebook}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                  <span style="font-size: 8px; color: #3b5998; font-weight: 600;">aagamholidays</span>
                 </a>
-                
-                <a href="${social.instagram}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#E4405F" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                  </svg>
-                  <span style="font-size:8px; color:#7c2d12; font-weight:600;">@aagamholidays</span>
+                <a href="${social.instagram}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="url(#insta-gradient)"><defs><radialGradient id="insta-gradient" cx="0.3" cy="1" r="1"><stop offset="0" stop-color="#FFD600"/><stop offset="0.5" stop-color="#FF7A00"/><stop offset="1" stop-color="#D62976"/></radialGradient></defs><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163m0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.28.072-1.689.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.88 1.44 1.44 0 000-2.88z"/></svg>
+                  <span style="font-size: 8px; color: #7c2d12; font-weight: 600;">@aagamholidays</span>
                 </a>
-                
-                <a href="${social.twitter}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#1DA1F2" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                  </svg>
-                  <span style="font-size:8px; color:#7c2d12; font-weight:600;">@aagamholidays</span>
+                <a href="${social.twitter}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                  <span style="font-size: 8px; color: #1da1f2; font-weight: 600;">@aagamholidays</span>
                 </a>
               </div>
-            </div>
-            
-            <!-- Bottom Tagline -->
-            <div style="text-align:right; margin-top:6px;">
-              <div style="font-size:5px; color:#7c2d12; font-style:italic; font-weight:500; line-height:1.2;">Making your dream destinations come true with personalized travel experiences</div>
+              <div style="text-align: right; flex-shrink: 0;">
+                <div style="font-size: 7px; color: #7c2d12; font-style: italic; font-weight: 500;">Making your dream destinations come true...</div>
+              </div>
             </div>
           </div>
         </div>`;
@@ -1333,12 +1321,32 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             }
           } catch {}
         })();
-      generatePDF();
+        
+        // Redirect to tour package query display instead of generating PDF
+        const redirectUrl = `/tourPackageQueryDisplay/${initialData.id}${selectedOption !== "Empty" ? `?search=${selectedOption}` : ''}`;
+        router.push(redirectUrl);
     }
-  }, [initialData, generatePDF]);
+  }, [initialData, router, selectedOption]);
 
   if (!initialData) return <div>No data available</div>;
-  return <div>{loading ? <p>Generating PDF...</p> : <p>PDF Generated Successfully</p>}</div>;
+  
+  return (
+    <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#333" }}>
+      <div style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px" }}>
+        Redirecting to Tour Package Query...
+      </div>
+      <div style={{ fontSize: "16px", color: "#666" }}>
+        Taking you to the tour package query display page.
+      </div>
+      <div style={{ marginTop: "24px" }}>
+        <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ margin: "auto" }}>
+          <circle cx="12" cy="12" r="10" stroke="#ea580c" strokeWidth="2" fill="none" strokeDasharray="15 60" transform="rotate(0 12 12)">
+            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      </div>
+    </div>
+  );
 };
 
 export default TourPackageQueryPDFGenerator;

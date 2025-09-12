@@ -640,8 +640,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       // Check if we have a tour package query ID to redirect to display page
       if (response.data?.id) {
         router.refresh();
-        // Redirect to tour package query display page instead of direct PDF download
-        router.push(`/tourPackageQuery/${response.data.id}`);
+        // Redirect to tour package query display page instead of edit page
+        router.push(`/tourPackageQueryDisplay/${response.data.id}`);
         toast.success("Tour Package Query created successfully! Redirecting to display page...");
       } else {
         // Fallback to inquiries if no ID is returned

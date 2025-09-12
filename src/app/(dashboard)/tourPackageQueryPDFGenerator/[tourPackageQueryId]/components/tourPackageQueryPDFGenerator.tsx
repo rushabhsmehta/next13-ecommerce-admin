@@ -1006,135 +1006,180 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     const cancelArr = withFallback(initialData.cancellationPolicy, loc?.cancellationPolicy);
     const airlineCancelArr = withFallback(initialData.airlineCancellationPolicy, loc?.airlineCancellationPolicy);
 
-    const renderBulletList = (items: string[]) => items.map(i => `<li style="margin-bottom: 8px; line-height: 1.5;">${i}</li>`).join('');
+    const renderBulletList = (items: string[]) => items.map(i => `
+      <div style="display: flex; align-items: flex-start; margin-bottom: 8px; line-height: 1.5;">
+        <span style="color: #ea580c; margin-right: 8px; font-weight: bold; flex-shrink: 0;">•</span>
+        <span style="color: #374151; font-size: 13px;">${i}</span>
+      </div>
+    `).join('');
 
-    const inclusionsSection = inclusionsArr.length
-      ? `
-  <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Inclusions</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(inclusionsArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const exclusionsSection = exclusionsArr.length
-      ? `
-  <div style="${cardStyle};">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Exclusions</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(exclusionsArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const importantNotesSection = importantArr.length
-      ? `
-  <div style="${cardStyle}; ${exclusionsArr.length ? '' : pageBreakBefore}">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Important Notes</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(importantArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const paymentPolicySection = paymentArr.length
-      ? `
-  <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Payment Policy</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(paymentArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const kitchenGroupPolicySection = kitchenArr.length
-      ? `
-  <div style="${cardStyle};">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Kitchen Group Policy</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(kitchenArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const termsConditionsSection = termsArr.length
-      ? `
-  <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Terms and Conditions</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(termsArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const cancellationPolicySection = cancelArr.length
-      ? `
+    // Create a comprehensive policies section
+    const policiesAndTermsSection = (inclusionsArr.length || exclusionsArr.length || importantArr.length || paymentArr.length || kitchenArr.length || termsArr.length || cancelArr.length || airlineCancelArr.length || usefulTipsArr.length) ? `
       <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Cancellation Policy</h3>
+        <div style="background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); padding: 20px; text-align: center; margin-bottom: 0;">
+          <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: 0.5px;">Policies & Terms</h2>
+          <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 6px 0 0 0;">Comprehensive overview of inclusions, exclusions and important travel policies</p>
         </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(cancelArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
-    const airlineCancellationSection = airlineCancelArr.length
-      ? `
-      <div style="${cardStyle};">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Airline Cancellation Policy</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(airlineCancelArr)}
-          </ul>
-        </div>
-      </div>
-      `
-      : "";
+        
+        <div style="padding: 24px; background: #fefefe;">
+          <!-- First Row: Inclusions and Exclusions -->
+          ${(inclusionsArr.length || exclusionsArr.length) ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              ${inclusionsArr.length ? `
+                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 12px; border-bottom: 1px solid #fed7aa;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">✓</span>
+                      Inclusions
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(inclusionsArr)}
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${exclusionsArr.length ? `
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 12px; border-bottom: 1px solid #fecaca;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">✗</span>
+                      Exclusions
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(exclusionsArr)}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
 
-    const usefulTipsSection = usefulTipsArr.length
-      ? `
-      <div style="${cardStyle}; ${pageBreakBefore}">
-        <div style="${headerStyleAlt};">
-          <h3 style="${sectionTitleStyle}">Useful Tips</h3>
-        </div>
-        <div style="${contentStyle}">
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${brandColors.muted};">
-            ${renderBulletList(usefulTipsArr)}
-          </ul>
+          <!-- Second Row: Important Notes and Payment Policy -->
+          ${(importantArr.length || paymentArr.length) ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              ${importantArr.length ? `
+                <div style="background: #fefdf8; border: 1px solid #fde68a; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 12px; border-bottom: 1px solid #fde68a;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">⚠</span>
+                      Important Notes
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(importantArr)}
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${paymentArr.length ? `
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 12px; border-bottom: 1px solid #bbf7d0;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">💳</span>
+                      Payment Policy
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(paymentArr)}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Third Row: Cancellation and Airline Cancellation -->
+          ${(cancelArr.length || airlineCancelArr.length) ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              ${cancelArr.length ? `
+                <div style="background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #be185d 0%, #9d174d 100%); padding: 12px; border-bottom: 1px solid #f9a8d4;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">📅</span>
+                      Cancellation Policy
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(cancelArr)}
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${airlineCancelArr.length ? `
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 12px; border-bottom: 1px solid #bae6fd;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">✈️</span>
+                      Airline Cancellation Policy
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(airlineCancelArr)}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Fourth Row: Kitchen Group Policy and Useful Tips -->
+          ${(kitchenArr.length || usefulTipsArr.length) ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              ${kitchenArr.length ? `
+                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 12px; border-bottom: 1px solid #c4b5fd;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">🍽️</span>
+                      Kitchen Group Policy
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(kitchenArr)}
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${usefulTipsArr.length ? `
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px; border-bottom: 1px solid #a7f3d0;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">💡</span>
+                      Useful Tips
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(usefulTipsArr)}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Fifth Row: Terms and Conditions (Full Width) -->
+          ${termsArr.length ? `
+            <div style="margin-bottom: 20px;">
+              <div style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                  <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                    <span style="margin-right: 8px;">📋</span>
+                    Terms and Conditions
+                  </h3>
+                </div>
+                <div style="padding: 16px;">
+                  ${renderBulletList(termsArr)}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Footer Note -->
+          <div style="background: #fef7f0; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; text-align: center; margin-top: 20px;">
+            <p style="color: #ea580c; font-size: 12px; font-weight: 500; margin: 0; font-style: italic;">
+              Policies are subject to change based on supplier terms & prevailing conditions at the time of booking.
+            </p>
+          </div>
         </div>
       </div>
-      `
-      : "";
+    ` : "";
 
     
     // Assemble all sections.
@@ -1154,15 +1199,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             ${hotelSummarySection}
             
             ${itinerariesSection}
-            ${inclusionsSection}
-            ${exclusionsSection}
-            ${importantNotesSection}
-            ${paymentPolicySection}
-            ${kitchenGroupPolicySection}
-            ${termsConditionsSection}
-            ${cancellationPolicySection}
-            ${airlineCancellationSection}
-            ${usefulTipsSection}
+            ${policiesAndTermsSection}
           </div>
         </body>
       </html>
@@ -1322,29 +1359,67 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           } catch {}
         })();
         
-        // Redirect to tour package query display instead of generating PDF
-        const redirectUrl = `/tourPackageQueryDisplay/${initialData.id}${selectedOption !== "Empty" ? `?search=${selectedOption}` : ''}`;
-        router.push(redirectUrl);
+        // Generate and download PDF automatically
+        generatePDF();
     }
-  }, [initialData, router, selectedOption]);
+  }, [initialData, generatePDF]);
 
   if (!initialData) return <div>No data available</div>;
   
   return (
     <div style={{ padding: "40px", textAlign: "center", fontFamily: "sans-serif", color: "#333" }}>
       <div style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px" }}>
-        Redirecting to Tour Package Query...
+        {loading ? "Generating PDF..." : "Preparing Your Tour Package PDF"}
       </div>
-      <div style={{ fontSize: "16px", color: "#666" }}>
-        Taking you to the tour package query display page.
+      <div style={{ fontSize: "16px", color: "#666", marginBottom: "24px" }}>
+        {loading ? "Please wait while we generate your PDF document." : "Your PDF will download automatically."}
       </div>
-      <div style={{ marginTop: "24px" }}>
-        <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ margin: "auto" }}>
-          <circle cx="12" cy="12" r="10" stroke="#ea580c" strokeWidth="2" fill="none" strokeDasharray="15 60" transform="rotate(0 12 12)">
-            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
-          </circle>
-        </svg>
-      </div>
+      
+      {loading && (
+        <div style={{ marginTop: "24px" }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ margin: "auto" }}>
+            <circle cx="12" cy="12" r="10" stroke="#ea580c" strokeWidth="2" fill="none" strokeDasharray="15 60" transform="rotate(0 12 12)">
+              <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </div>
+      )}
+      
+      {!loading && (
+        <div style={{ marginTop: "24px" }}>
+          <button 
+            onClick={generatePDF}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#ea580c",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "16px",
+              fontWeight: "600",
+              cursor: "pointer",
+              marginRight: "12px"
+            }}
+          >
+            Download PDF Again
+          </button>
+          <button 
+            onClick={() => router.push(`/tourPackageQueryDisplay/${initialData.id}${selectedOption !== "Empty" ? `?search=${selectedOption}` : ''}`)}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#6b7280",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "16px",
+              fontWeight: "600",
+              cursor: "pointer"
+            }}
+          >
+            Back to Display
+          </button>
+        </div>
+      )}
     </div>
   );
 };

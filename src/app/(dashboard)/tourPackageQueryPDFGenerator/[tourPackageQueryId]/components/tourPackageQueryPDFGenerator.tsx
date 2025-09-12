@@ -1054,8 +1054,40 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               ` : ''}
             </div>
           ` : ''}
+          <!-- Second Row: Kitchen Group Policy and Useful Tips (moved right after Inclusions/Exclusions) -->
+          ${(kitchenArr.length || usefulTipsArr.length) ? `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              ${kitchenArr.length ? `
+                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 12px; border-bottom: 1px solid #c4b5fd;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">🍽️</span>
+                      Kitchen Group Policy
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(kitchenArr)}
+                  </div>
+                </div>
+              ` : ''}
+              
+              ${usefulTipsArr.length ? `
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; overflow: hidden;">
+                  <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px; border-bottom: 1px solid #a7f3d0;">
+                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
+                      <span style="margin-right: 8px;">�</span>
+                      Useful Tips
+                    </h3>
+                  </div>
+                  <div style="padding: 16px;">
+                    ${renderBulletList(usefulTipsArr)}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
 
-          <!-- Second Row: Important Notes and Payment Policy -->
+          <!-- Third Row: Important Notes and Payment Policy -->
           ${(importantArr.length || paymentArr.length) ? `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               ${importantArr.length ? `
@@ -1088,7 +1120,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
           ` : ''}
 
-          <!-- Third Row: Cancellation and Airline Cancellation -->
+          <!-- Fourth Row: Cancellation and Airline Cancellation -->
           ${(cancelArr.length || airlineCancelArr.length) ? `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               ${cancelArr.length ? `
@@ -1115,39 +1147,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
                   </div>
                   <div style="padding: 16px;">
                     ${renderBulletList(airlineCancelArr)}
-                  </div>
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-
-          <!-- Fourth Row: Kitchen Group Policy and Useful Tips -->
-          ${(kitchenArr.length || usefulTipsArr.length) ? `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-              ${kitchenArr.length ? `
-                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
-                  <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 12px; border-bottom: 1px solid #c4b5fd;">
-                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
-                      <span style="margin-right: 8px;">🍽️</span>
-                      Kitchen Group Policy
-                    </h3>
-                  </div>
-                  <div style="padding: 16px;">
-                    ${renderBulletList(kitchenArr)}
-                  </div>
-                </div>
-              ` : ''}
-              
-              ${usefulTipsArr.length ? `
-                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; overflow: hidden;">
-                  <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px; border-bottom: 1px solid #a7f3d0;">
-                    <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
-                      <span style="margin-right: 8px;">💡</span>
-                      Useful Tips
-                    </h3>
-                  </div>
-                  <div style="padding: 16px;">
-                    ${renderBulletList(usefulTipsArr)}
                   </div>
                 </div>
               ` : ''}

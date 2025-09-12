@@ -1198,63 +1198,63 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
       return `
         <div style="width:100%; font-family: Arial, sans-serif;">
-          <div style="min-height:70px; padding:12px 20px; box-sizing:border-box; background:linear-gradient(135deg, #fef7f0 0%, #fff2e6 100%); border-top:2px solid #ea580c;">
+          <div style="padding:10px 20px; box-sizing:border-box; background:linear-gradient(135deg, #fef7f0 0%, #fff2e6 100%); border-top:2px solid #ea580c;">
             
-            <!-- Company Header Section -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-              <div style="display:flex; align-items:center; gap:12px;">
-                ${c.logo ? `<img src="${c.logo}" style="height:24px; width:auto; object-fit:contain;"/>` : ''}
+            <!-- Top Row: Company Name & Page Number -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                ${c.logo ? `<img src="${c.logo}" style="height:16px; width:auto; object-fit:contain;"/>` : ''}
                 <div>
-                  <div style="font-size:14px; font-weight:700; color:#dc2626; margin-bottom:2px;">${c.name || 'Aagam Holidays'}</div>
-                  <div style="font-size:9px; color:#7c2d12; font-weight:500;">Your Trusted Travel Partner</div>
+                  <div style="font-size:12px; font-weight:700; color:#dc2626; line-height:1.1;">${c.name || 'Aagam Holidays'}</div>
+                  <div style="font-size:7px; color:#7c2d12; font-weight:500; margin-top:1px;">Your Trusted Travel Partner</div>
                 </div>
               </div>
-              <div style="text-align:right;">
-                <div style="font-size:11px; color:#6b7280; font-weight:500;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></div>
+              <div style="background:#fff; padding:2px 6px; border-radius:8px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+                <span style="font-size:8px; color:#7c2d12; font-weight:600;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
               </div>
             </div>
 
-            <!-- Contact & Social Section -->
-            <div style="display:flex; align-items:center; justify-content:space-between; padding-top:8px; border-top:1px solid #fed7aa;">
-              
-              <!-- Left: Contact Information -->
-              <div style="display:flex; flex-direction:column; gap:3px;">
+            <!-- Middle Row: Contact Information -->
+            <div style="background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #fed7aa; margin-bottom:5px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+              <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;">
                 ${c.address ? `
-                  <div style="font-size:8px; color:#7c2d12; display:flex; align-items:center; gap:6px;">
+                  <div style="font-size:6px; color:#7c2d12; display:flex; align-items:center; gap:2px;">
                     <span style="color:#ea580c;">�</span>
                     <span>${c.address}</span>
                   </div>
                 ` : ''}
-                <div style="display:flex; gap:16px; align-items:center;">
-                  ${c.phone ? `
-                    <div style="font-size:8px; color:#7c2d12; display:flex; align-items:center; gap:4px;">
-                      <span style="color:#ea580c;">📞</span>
-                      <span>${c.phone}</span>
-                    </div>
-                  ` : ''}
-                  ${c.email ? `
-                    <div style="font-size:8px; color:#7c2d12; display:flex; align-items:center; gap:4px;">
-                      <span style="color:#ea580c;">✉️</span>
-                      <span>${c.email}</span>
-                    </div>
-                  ` : ''}
-                </div>
+                ${c.phone ? `
+                  <div style="font-size:6px; color:#7c2d12; display:flex; align-items:center; gap:2px;">
+                    <span style="color:#ea580c;">📞</span>
+                    <span style="font-weight:500;">${c.phone}</span>
+                  </div>
+                ` : ''}
+                ${c.email ? `
+                  <div style="font-size:6px; color:#7c2d12; display:flex; align-items:center; gap:2px;">
+                    <span style="color:#ea580c;">✉️</span>
+                    <span style="font-weight:500;">${c.email}</span>
+                  </div>
+                ` : ''}
               </div>
+            </div>
 
-              <!-- Right: Social Media Links -->
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <!-- Bottom Row: Social Media & Tagline -->
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px;">
+              
+              <!-- Social Media Links -->
+              <div style="display:flex; align-items:center; gap:3px; flex-wrap:wrap;">
                 ${c.website ? `
-                  <a href="https://${social.website}" target="_blank" style="font-size:8px; color:#dc2626; text-decoration:none; display:flex; align-items:center; gap:3px; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                  <a href="https://${social.website}" target="_blank" style="font-size:5px; color:#dc2626; text-decoration:none; display:flex; align-items:center; gap:1px; padding:1px 3px; background:#fff; border-radius:2px; border:1px solid #fed7aa;">
                     <span style="color:#ea580c;">🌐</span>
                     <span style="font-weight:600; color:#7c2d12;">${social.website}</span>
                   </a>
                 ` : ''}
                 
-                <a href="${social.facebook}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
+                <a href="${social.facebook}" target="_blank" style="display:flex; align-items:center; gap:1px; text-decoration:none; padding:1px 3px; background:#fff; border-radius:2px; border:1px solid #fed7aa;">
+                  <svg width="6" height="6" viewBox="0 0 24 24" fill="#1877F2">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
-                  <span style="font-size:8px; color:#7c2d12; font-weight:600;">aagamholidays</span>
+                  <span style="font-size:5px; color:#7c2d12; font-weight:600;">aagamholidays</span>
                 </a>
                 
                 <a href="${social.instagram}" target="_blank" style="display:flex; align-items:center; gap:4px; text-decoration:none; padding:3px 8px; background:#fff; border-radius:6px; border:1px solid #fed7aa; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
@@ -1274,8 +1274,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             </div>
             
             <!-- Bottom Tagline -->
-            <div style="text-align:center; margin-top:6px; padding-top:6px; border-top:1px solid #fed7aa;">
-              <div style="font-size:8px; color:#7c2d12; font-style:italic;">Making your dream destinations come true with personalized travel experiences</div>
+            <div style="text-align:right; margin-top:6px;">
+              <div style="font-size:5px; color:#7c2d12; font-style:italic; font-weight:500; line-height:1.2;">Making your dream destinations come true with personalized travel experiences</div>
             </div>
           </div>
         </div>`;

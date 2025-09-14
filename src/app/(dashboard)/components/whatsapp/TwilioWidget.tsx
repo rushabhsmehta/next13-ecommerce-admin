@@ -35,7 +35,7 @@ export default function TwilioWidget() {
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: process.env.NEXT_PUBLIC_WHATSAPP_TEST_NUMBER || 'whatsapp:+919898744701', body: 'Test message from admin dashboard' })
+        body: JSON.stringify({ to: process.env.NEXT_PUBLIC_WHATSAPP_TEST_NUMBER || 'whatsapp:+919898744701', message: 'Test message from admin dashboard' })
       });
       if (!res.ok) {
         const text = await res.text();

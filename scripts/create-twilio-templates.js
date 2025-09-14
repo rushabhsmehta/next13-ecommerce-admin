@@ -264,15 +264,45 @@ async function createAllTemplates() {
 
 // Run the script
 if (require.main === module) {
-  createAllTemplates()
-    .then(results => {
-      console.log('\n🎉 Template creation process completed!');
+  const args = process.argv.slice(2);
+  // Simple CLI: --status-sid <sid> or --status-name <templateName>
+  if (args[0] === '--status-sid' && args[1]) {
+    (async () => {
+      const sid = args[1];
+      console.log(`🔎 Checking status for Content SID: ${sid}`);
+      const s = await checkTemplateStatus(sid);
+      console.log(`Status: ${s}`);
       process.exit(0);
-    })
-    .catch(error => {
-      console.error('❌ Template creation failed:', error);
-      process.exit(1);
-    });
+    })();
+  } else if (args[0] === '--status-name' && args[1]) {
+    (async () => {
+      const name = args[1];
+      console.log(`🔎 Looking up template by name: ${name}`);
+      try {
+        const contents = await client.content.v1.contents.list({ limit: 50 });
+        const match = contents.find(c => c.friendlyName === name || c.sid === name);
+        if (!match) {
+          console.log('Not found');
+          process.exit(0);
+        }
+        const s = await checkTemplateStatus(match.sid);
+        console.log(`Found: ${match.sid} — Status: ${s}`);
+      } catch (e) {
+        console.error('Error while querying content list:', e.message);
+      }
+      process.exit(0);
+    })();
+  } else {
+    createAllTemplates()
+      .then(results => {
+        console.log('\n🎉 Template creation process completed!');
+        process.exit(0);
+      })
+      .catch(error => {
+        console.error('❌ Template creation failed:', error);
+        process.exit(1);
+      });
+  }
 }
 
 module.exports = { 

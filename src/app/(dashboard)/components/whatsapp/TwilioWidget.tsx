@@ -32,10 +32,17 @@ export default function TwilioWidget() {
     setError(null);
     setSending(true);
     try {
+      const testNumber = process.env.NEXT_PUBLIC_WHATSAPP_TEST_NUMBER;
+      if (!testNumber) {
+        setError('Set NEXT_PUBLIC_WHATSAPP_TEST_NUMBER in your local env to send test messages');
+        setSending(false);
+        return;
+      }
+
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: process.env.NEXT_PUBLIC_WHATSAPP_TEST_NUMBER || 'whatsapp:+919898744701', message: 'Test message from admin dashboard' })
+        body: JSON.stringify({ to: testNumber.replace('whatsapp:', ''), message: 'Test message from admin dashboard' })
       });
       if (!res.ok) {
         const text = await res.text();
@@ -84,7 +91,7 @@ export default function TwilioWidget() {
         <button onClick={sendTest} disabled={sending} style={{ flex: 1, padding: '8px 10px', background: '#0ea5a3', color: 'white', border: 'none', borderRadius: 6 }}>
           {sending ? 'Sending…' : 'Send test message'}
         </button>
-        <button onClick={() => window.open('/api/whatsapp/debug','_blank')} style={{ padding: '8px 10px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+  <button onClick={() => window.open('/api/whatsapp/env-check','_blank')} style={{ padding: '8px 10px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6 }}>
           Debug
         </button>
       </div>

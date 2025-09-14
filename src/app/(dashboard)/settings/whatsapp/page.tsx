@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import TwilioWidget from '@/app/(dashboard)/components/whatsapp/TwilioWidget';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
 import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus } from 'lucide-react';
@@ -189,7 +190,7 @@ export default function WhatsAppSettingsPage() {
         <h1 className="text-2xl font-bold">WhatsApp Business Settings</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Send Message Section */}
         <Card>
           <CardHeader>
@@ -302,8 +303,8 @@ export default function WhatsAppSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Configuration Info */}
-        <Card>
+  {/* Configuration Info */}
+  <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Settings className="h-5 w-5" />
@@ -355,6 +356,10 @@ export default function WhatsAppSettingsPage() {
             </div>
           </CardContent>
         </Card>
+        {/* Right column: Twilio widget */}
+        <div className="lg:col-span-1">
+          <TwilioWidget />
+        </div>
       </div>
 
       {/* Last Result */}

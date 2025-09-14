@@ -118,7 +118,7 @@ const NAV_ITEMS = [
   {
     title: "Communication",
     items: [
-      { title: "WhatsApp Business", url: "/whatsapp" },
+  { title: "WhatsApp Business", url: "/settings/whatsapp" },
     ],
   },
   {

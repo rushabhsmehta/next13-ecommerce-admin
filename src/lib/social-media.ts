@@ -4,6 +4,8 @@ import fetch from 'node-fetch';
 
 /**
  * Social Media Service for handling image sharing to different platforms
+ *
+ * Note: WhatsApp Cloud (Meta) integration removed — project is Twilio-first.
  */
 
 // Initialize Twitter client
@@ -44,16 +46,16 @@ export const shareToTwitter = async (imageUrl: string, text: string): Promise<st
   try {
     const client = getTwitterClient();
     const imageBuffer = await downloadImage(imageUrl);
-    
+
     // Upload the media
     const mediaId = await client.v1.uploadMedia(imageBuffer, { mimeType: 'image/png' });
-    
+
     // Create the tweet with the media
     const tweet = await client.v2.tweet({
       text,
       media: { media_ids: [mediaId] },
     });
-    
+
     return tweet.data.id;
   } catch (error) {
     console.error('Error sharing to Twitter/X:', error);
@@ -63,13 +65,13 @@ export const shareToTwitter = async (imageUrl: string, text: string): Promise<st
 
 // Share to Facebook
 export const shareToFacebook = async (
-  imageUrl: string, 
+  imageUrl: string,
   caption: string
 ): Promise<string> => {
   try {
     const accessToken = process.env.FACEBOOK_ACCESS_TOKEN;
     const pageId = process.env.FACEBOOK_PAGE_ID;
-    
+
     if (!accessToken || !pageId) {
       throw new Error('Facebook credentials are not configured');
     }
@@ -91,13 +93,13 @@ export const shareToFacebook = async (
 
 // Share to Instagram (requires Facebook Business API integration)
 export const shareToInstagram = async (
-  imageUrl: string, 
+  imageUrl: string,
   caption: string
 ): Promise<string> => {
   try {
     const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
     const igUserId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-    
+
     if (!accessToken || !igUserId) {
       throw new Error('Instagram credentials are not configured');
     }
@@ -111,9 +113,9 @@ export const shareToInstagram = async (
         access_token: accessToken,
       }
     );
-    
+
     const containerId = containerResponse.data.id;
-    
+
     // Step 2: Publish the container
     const publishResponse = await axios.post(
       `https://graph.facebook.com/v18.0/${igUserId}/media_publish`,
@@ -137,7 +139,7 @@ export const shareToLinkedIn = async (
 ): Promise<string> => {
   try {
     const accessToken = process.env.LINKEDIN_ACCESS_TOKEN;
-    
+
     if (!accessToken) {
       throw new Error('LinkedIn API credentials are not configured');
     }
@@ -145,9 +147,9 @@ export const shareToLinkedIn = async (
     // LinkedIn requires a more complex flow with URNs
     // This is a simplified version and would need to be expanded with proper asset registration
     const authorUrn = process.env.LINKEDIN_AUTHOR_URN; // person or organization URN
-    
+
     // Register the image as an asset
-    const registerImageResponse = await axios.post(
+    await axios.post(
       'https://api.linkedin.com/v2/assets?action=registerUpload',
       {
         registerUploadRequest: {
@@ -169,10 +171,8 @@ export const shareToLinkedIn = async (
       }
     );
 
-    // The rest of LinkedIn posting implementation...
-    // This would include uploading to the provided upload URL and then creating the share
-    
-    return "linkedin-post-id"; // Actual implementation would return the real post ID
+    // The rest of LinkedIn posting implementation would go here.
+    return 'linkedin-post-id';
   } catch (error) {
     console.error('Error sharing to LinkedIn:', error);
     throw error;
@@ -188,7 +188,7 @@ export const shareToPinterest = async (
   try {
     const accessToken = process.env.PINTEREST_ACCESS_TOKEN;
     const boardId = process.env.PINTEREST_BOARD_ID;
-    
+
     if (!accessToken || !boardId) {
       throw new Error('Pinterest API credentials are not configured');
     }
@@ -215,50 +215,6 @@ export const shareToPinterest = async (
     return response.data.id;
   } catch (error) {
     console.error('Error sharing to Pinterest:', error);
-    throw error;
-  }
-};
-
-// Share to WhatsApp Business
-export const shareToWhatsAppBusiness = async (
-  imageUrl: string,
-  caption: string,
-  phoneNumber: string
-): Promise<string> => {
-  try {
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    
-    if (!accessToken || !phoneNumberId) {
-      throw new Error('WhatsApp API credentials are not configured');
-    }
-
-    // WhatsApp Cloud API endpoint
-    const apiUrl = `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`;
-
-    const response = await axios.post(
-      apiUrl,
-      {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: phoneNumber,
-        type: 'image',
-        image: {
-          link: imageUrl,
-          caption: caption
-        }
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        }
-      }
-    );
-
-    return response.data.messages[0].id;
-  } catch (error) {
-    console.error('Error sharing to WhatsApp Business:', error);
     throw error;
   }
 };

@@ -1,23 +1,18 @@
 # WhatsApp Business API Integration
 
-This project now includes WhatsApp Business messaging functionality using Twilio's WhatsApp API.
+This project uses Twilio's WhatsApp API for all WhatsApp messaging.
 
 ## Setup
 
 ### Environment Variables
 
-Make sure your `.env` file contains the following WhatsApp-related variables:
+Fill your `.env.local` with these WhatsApp-related variables (required):
 
 ```env
 # Twilio Configuration
 TWILIO_ACCOUNT_SID=ACXXXXX...
 TWILIO_AUTH_TOKEN=REDACTED
 TWILIO_WHATSAPP_NUMBER=whatsapp:+919898744701
-
-# WhatsApp Business API (Optional - for Meta's API)
-WHATSAPP_ACCESS_TOKEN=REDACTED
-WHATSAPP_BUSINESS_ACCOUNT_ID=YOUR_WABA_ACCOUNT_ID
-WHATSAPP_PHONE_NUMBER_ID=YOUR_PHONE_NUMBER_ID
 ```
 
 ## API Endpoints
@@ -79,25 +74,9 @@ Send a WhatsApp message using a predefined template.
 ### Get WhatsApp Templates
 **GET** `/api/whatsapp/templates`
 
-Retrieve all available message templates.
+Retrieve all available message templates (managed in-app).
 
-**Response:**
-```json
-{
-  "success": true,
-  "templates": [
-    {
-      "id": "uuid",
-      "name": "Welcome Message",
-      "body": "Hello {{name}}! Welcome to {{company}}.",
-      "variables": ["name", "company"],
-      "createdAt": "2025-08-31T...",
-      "updatedAt": "2025-08-31T..."
-    }
-  ],
-  "count": 6
-}
-```
+**Response:** template list JSON
 
 ### Create WhatsApp Template
 **POST** `/api/whatsapp/templates`
@@ -267,16 +246,10 @@ curl -X POST http://localhost:3000/api/whatsapp/send \
 ## Twilio Configuration
 
 1. **WhatsApp Number Setup:**
-   - Go to [Twilio Console](https://console.twilio.com)
-   - Navigate to Messaging > WhatsApp
-   - Enable WhatsApp and get your WhatsApp number
+  - Go to Twilio Console and enable WhatsApp for your number.
 
 2. **Webhook Configuration:**
-   - In Twilio Console, set the webhook URL to:
-     ```
-     https://admin.aagamholidays.com/api/whatsapp/webhook
-     ```
-   - This receives status updates for sent messages
+  - Set your Twilio webhook to point to `/api/whatsapp/webhook` in this app so delivery status updates arrive.
 
 ## Phone Number Format
 

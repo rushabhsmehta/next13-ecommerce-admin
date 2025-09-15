@@ -45,9 +45,7 @@ TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_NUMBER=
 
 # WhatsApp Business API (Optional)
-WHATSAPP_ACCESS_TOKEN=
-WHATSAPP_BUSINESS_ACCOUNT_ID=
-WHATSAPP_PHONE_NUMBER_ID=
+ # WhatsApp is handled via Twilio only; legacy Meta/WhatsApp Cloud vars are not required.
 
 # Next.js
 NEXTAUTH_SECRET=

@@ -199,13 +199,36 @@ async function createTemplate(templateData) {
 // Function to check template approval status
 async function checkTemplateStatus(contentSid) {
   try {
-    const approvalRequests = await client.content.v1
-      .contents(contentSid)
-      .approvalRequests
-      .list();
-    
-    const whatsappApproval = approvalRequests.find(req => req.name === 'whatsapp');
-    return whatsappApproval ? whatsappApproval.status : 'unknown';
+    // The SDK sometimes doesn't expose approvalRequests helpers directly.
+    // Work around by listing contents, reading the approval_fetch link, and calling it.
+    const contents = await client.content.v1.contents.list({ limit: 100 });
+    const match = contents.find(c => c.sid === contentSid || c.friendlyName === contentSid);
+    if (!match) {
+      return 'not_found';
+    }
+
+    const approvalFetchUrl = match.links && match.links.approval_fetch;
+    if (!approvalFetchUrl) {
+      return 'no_approvals';
+    }
+
+    // Use the Twilio client's raw request to fetch approval data
+    const res = await client.request({ method: 'GET', uri: approvalFetchUrl });
+
+    // The response body shape may vary; try common fields
+    const body = res && (res.body || res);
+    const approvalRequests = body && (body.approval_requests || body.approvalRequests || body.approval_request || []);
+
+    if (!approvalRequests || !Array.isArray(approvalRequests)) {
+      // If body itself is the single approval object
+      if (body && body.name && (body.name === 'whatsapp' || body.channel === 'whatsapp')) {
+        return body.status || body.approval_status || 'unknown';
+      }
+      return 'unknown';
+    }
+
+    const whatsappApproval = approvalRequests.find(req => req.name === 'whatsapp' || req.channel === 'whatsapp');
+    return whatsappApproval ? (whatsappApproval.status || whatsappApproval.approval_status || 'unknown') : 'unknown';
   } catch (error) {
     console.error(`Failed to check status for ${contentSid}:`, error.message);
     return 'error';

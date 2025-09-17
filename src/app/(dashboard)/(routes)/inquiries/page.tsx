@@ -181,9 +181,9 @@ const InquiriesPage = async ({ searchParams }: InquiriesPageProps) => {
     ...dateFilter,  // Add the date filter to the where clause
     ...(searchParams.q && {
       OR: [
-        { customerName: { contains: searchParams.q, mode: 'insensitive' } },
+        { customerName: { contains: searchParams.q } },
         { customerMobileNumber: { contains: searchParams.q } },
-        { location: { label: { contains: searchParams.q, mode: 'insensitive' } } }
+        { location: { label: { contains: searchParams.q } } }
       ]
     })
   };

@@ -1593,6 +1593,9 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   <CheckCircle className="mr-1 h-3 w-3" />
                   This represents the final total price for your tour package
                 </p>
+                <p className="text-xs text-orange-500 mt-1 bg-orange-50 px-2 py-1 rounded border border-orange-200">
+                  + 5% GST applicable on total package cost
+                </p>
               </FormItem>
             )}
           />

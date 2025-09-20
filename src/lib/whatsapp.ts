@@ -1,109 +1,82 @@
-import twilio from 'twilio';
 import prisma from './prismadb';
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!
-);
+const CLOUD_API_VERSION = process.env.WHATSAPP_CLOUD_API_VERSION || 'v19.0';
 
 export interface SendWhatsAppMessageParams {
-  to: string; // Phone number with country code (e.g., +1234567890)
+  to: string; // E.164
   message: string;
   saveToDb?: boolean;
 }
 
 export interface WhatsAppMessageResponse {
   success: boolean;
-  messageSid?: string;
+  messageSid?: string; // Cloud API message id
   error?: string;
   dbRecord?: any;
 }
 
-export async function sendWhatsAppMessage({
-  to,
-  message,
-  saveToDb = true
-}: SendWhatsAppMessageParams): Promise<WhatsAppMessageResponse> {
+function cloudApiUrl(path: string) {
+  return `https://graph.facebook.com/${CLOUD_API_VERSION}/${path}`;
+}
+
+export async function sendWhatsAppMessage({ to, message, saveToDb = true }: SendWhatsAppMessageParams): Promise<WhatsAppMessageResponse> {
   try {
-    // Validate environment variables
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_WHATSAPP_NUMBER) {
-      throw new Error('Missing Twilio configuration');
+    if (!process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || !process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID) {
+      throw new Error('Missing WhatsApp Cloud API configuration');
     }
-
-    // Format the recipient number (ensure it starts with whatsapp:)
-    const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-    const formattedFrom = process.env.TWILIO_WHATSAPP_NUMBER!;
-
-    // Ensure the from number also has the whatsapp: prefix
-    const properlyFormattedFrom = formattedFrom.startsWith('whatsapp:') ? formattedFrom : `whatsapp:${formattedFrom}`;
-
-    console.log('Sending WhatsApp message:', {
-      from: properlyFormattedFrom,
-      to: formattedTo,
-      message: message.substring(0, 50) + '...'
+    const url = cloudApiUrl(`${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}/messages`);
+    const payload: any = {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'text',
+      text: { body: message, preview_url: false },
+    };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.WHATSAPP_CLOUD_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
-
-    // Send the message via Twilio
-    const twilioMessage = await client.messages.create({
-      from: properlyFormattedFrom,
-      to: formattedTo,
-      body: message,
-    });
-
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
+    const messageId = data?.messages?.[0]?.id || data?.message_id;
     let dbRecord;
     if (saveToDb) {
-      // Save to database
       dbRecord = await prisma.whatsAppMessage.create({
         data: {
-          to: formattedTo,
-          from: properlyFormattedFrom,
+          to: `whatsapp:${to}`,
+          from: `whatsapp:${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}`,
           message,
-          messageSid: twilioMessage.sid,
-          status: twilioMessage.status || 'sent',
+          messageSid: messageId,
+          status: 'sent',
           direction: 'outbound',
           sentAt: new Date(),
         },
       });
     }
-
-    return {
-      success: true,
-      messageSid: twilioMessage.sid,
-      dbRecord,
-    };
-  } catch (error) {
-    console.error('Error sending WhatsApp message:', error);
-
-    // Format numbers for error case too
-    const formattedTo = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-    const formattedFrom = process.env.TWILIO_WHATSAPP_NUMBER!;
-    const properlyFormattedFrom = formattedFrom.startsWith('whatsapp:') ? formattedFrom : `whatsapp:${formattedFrom}`;
-
+    return { success: true, messageSid: messageId, dbRecord };
+  } catch (error: any) {
+    console.error('Error sending WhatsApp (Cloud API) message:', error);
     let dbRecord;
     if (saveToDb) {
       try {
-        // Save failed message to database
         dbRecord = await prisma.whatsAppMessage.create({
           data: {
-            to: formattedTo,
-            from: properlyFormattedFrom,
+            to: `whatsapp:${to}`,
+            from: `whatsapp:${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || ''}`,
             message,
             status: 'failed',
             direction: 'outbound',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-            errorCode: (error as any)?.code?.toString(),
+            errorMessage: error?.message || 'Unknown error',
           },
         });
       } catch (dbError) {
         console.error('Error saving failed message to DB:', dbError);
       }
     }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      dbRecord,
-    };
+    return { success: false, error: error?.message || 'Unknown error', dbRecord };
   }
 }
 
@@ -132,5 +105,52 @@ export async function updateMessageStatus(messageSid: string, status: string) {
   } catch (error) {
     console.error('Error updating message status:', error);
     return null;
+  }
+}
+
+export interface SendTemplateParams {
+  to: string;
+  templateName: string;
+  languageCode?: string; // e.g., en_US
+  bodyParams?: Array<string | number>;
+  buttonParams?: Array<Array<string>>;
+}
+
+export async function sendWhatsAppTemplate(params: SendTemplateParams): Promise<WhatsAppMessageResponse> {
+  const { to, templateName, languageCode = 'en_US', bodyParams = [], buttonParams = [] } = params;
+  try {
+    if (!process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || !process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID) {
+      throw new Error('Missing WhatsApp Cloud API configuration');
+    }
+    const url = cloudApiUrl(`${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}/messages`);
+    const components: any[] = [];
+    if (bodyParams.length > 0) {
+      components.push({ type: 'body', parameters: bodyParams.map(v => ({ type: 'text', text: String(v) })) });
+    }
+    if (buttonParams.length > 0) {
+      buttonParams.forEach((params, idx) => {
+        components.push({ type: 'button', sub_type: 'url', index: String(idx), parameters: params.map(v => ({ type: 'text', text: String(v) })) });
+      });
+    }
+    const payload: any = {
+      messaging_product: 'whatsapp',
+      to,
+      type: 'template',
+      template: { name: templateName, language: { code: languageCode }, ...(components.length ? { components } : {}) },
+    };
+    const res = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${process.env.WHATSAPP_CLOUD_ACCESS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
+    const messageId = data?.messages?.[0]?.id || data?.message_id;
+    let dbRecord;
+    try {
+      dbRecord = await prisma.whatsAppMessage.create({
+        data: { to: `whatsapp:${to}`, from: `whatsapp:${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}`, message: `[template:${templateName}]`, messageSid: messageId, status: 'sent', direction: 'outbound', sentAt: new Date() },
+      });
+    } catch {}
+    return { success: true, messageSid: messageId, dbRecord };
+  } catch (error: any) {
+    console.error('Error sending WhatsApp template (Cloud API):', error);
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }

@@ -5,7 +5,7 @@ import fetch from 'node-fetch';
 /**
  * Social Media Service for handling image sharing to different platforms
  *
- * Note: WhatsApp Cloud (Meta) integration removed — project is Twilio-first.
+ * Note: WhatsApp Cloud (Meta) integration is the primary path in this project.
  */
 
 // Initialize Twitter client

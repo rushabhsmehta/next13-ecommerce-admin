@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 interface CredentialStatusProps {
   status: {
     configured: boolean;
-    twilio: boolean;
-    whatsappApi: boolean;
+    cloudApi: boolean;
     missing: string[];
   } | null;
 }
@@ -23,25 +22,12 @@ export function CredentialStatus({ status }: CredentialStatusProps) {
       
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          {status.twilio ? (
+          {status.cloudApi ? (
             <CheckCircle className="w-4 h-4 text-green-500" />
           ) : (
             <XCircle className="w-4 h-4 text-red-500" />
           )}
-          <span className="text-sm">
-            Twilio WhatsApp (Template Creation & Messaging)
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {status.whatsappApi ? (
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : (
-            <XCircle className="w-4 h-4 text-gray-400" />
-          )}
-          <span className="text-sm">
-            WhatsApp Business API (Optional - Direct Meta Integration)
-          </span>
+          <span className="text-sm">WhatsApp Cloud API (Meta)</span>
         </div>
       </div>
       
@@ -51,31 +37,23 @@ export function CredentialStatus({ status }: CredentialStatusProps) {
             <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
             <div className="space-y-2">
               <p className="text-sm text-orange-800">
-                <strong>Setup Required:</strong> Configure Twilio credentials for WhatsApp functionality.
+                <strong>Setup Required:</strong> Configure WhatsApp Cloud API credentials for messaging functionality.
               </p>
               
               {status.missing.length > 0 && (
                 <div>
                   <p className="text-xs text-orange-700 mb-1">Missing environment variables:</p>
                   <ul className="text-xs text-orange-700 space-y-0.5">
-                    {status.missing
-                      .filter(variable => variable.includes('twilio') || variable.includes('TWILIO'))
-                      .map((variable) => (
-                        <li key={variable} className="ml-2">• {variable}</li>
-                      ))}
+                    {status.missing.map((variable) => (
+                      <li key={variable} className="ml-2">• {variable}</li>
+                    ))}
                   </ul>
                 </div>
               )}
               
               <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open('/TWILIO_WHATSAPP_SETUP.md', '_blank')}
-                  className="text-xs h-7"
-                >
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  Twilio Setup Guide
+                <Button size="sm" variant="outline" onClick={() => window.open('https://developers.facebook.com/docs/whatsapp/cloud-api', '_blank')} className="text-xs h-7">
+                  <ExternalLink className="w-3 h-3 mr-1" /> Cloud API Guide
                 </Button>
               </div>
             </div>
@@ -87,9 +65,7 @@ export function CredentialStatus({ status }: CredentialStatusProps) {
         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-600" />
-            <span className="text-sm text-green-800 font-medium">
-              Twilio WhatsApp is configured and ready to use!
-            </span>
+            <span className="text-sm text-green-800 font-medium">WhatsApp Cloud API is configured and ready to use!</span>
           </div>
         </div>
       )}

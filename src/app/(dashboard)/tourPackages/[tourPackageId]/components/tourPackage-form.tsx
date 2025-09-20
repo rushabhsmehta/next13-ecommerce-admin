@@ -56,21 +56,6 @@ const activitySchema = z.object({
   activityImages: z.object({ url: z.string() }).array(),
 });
 
-const roomAllocationSchema = z.object({
-  roomTypeId: z.string().optional(),
-  occupancyTypeId: z.string().optional(),
-  mealPlanId: z.string().optional(),
-  quantity: z.union([
-    z.string().transform(val => parseInt(val) || 1),
-    z.number()
-  ]).optional(),
-  guestNames: z.string().optional().nullable(),
-  // New fields for enhanced room allocation
-  voucherNumber: z.string().optional().nullable(),
-  customRoomType: z.string().optional().nullable(),
-  useCustomRoomType: z.boolean().optional().default(false)
-});
-
 const transportDetailsSchema = z.object({
   vehicleTypeId: z.string().optional(),
   transportType: z.string().optional(),
@@ -93,7 +78,6 @@ const itinerarySchema = z.object({
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
   // Centralized allocations
-  roomAllocations: z.array(roomAllocationSchema).optional().default([]),
   transportDetails: z.array(transportDetailsSchema).optional().default([]),
   // hotel : z.string(),
 });
@@ -266,9 +250,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   // Lookup data for Hotels tab
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
-  const [occupancyTypes, setOccupancyTypes] = useState<OccupancyType[]>([]);
-  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [lookupLoading, setLookupLoading] = useState(true);
 
@@ -345,7 +326,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
-        roomAllocations: (itinerary as any).roomAllocations || [],
         transportDetails: (itinerary as any).transportDetails || [],
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
@@ -419,15 +399,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     const fetchLookupData = async () => {
       setLookupLoading(true);
       try {
-        const [roomTypesRes, occupancyTypesRes, mealPlansRes, vehicleTypesRes] = await Promise.all([
-          axios.get('/api/room-types'),
-          axios.get('/api/occupancy-types'),
-          axios.get('/api/meal-plans'),
+        const [vehicleTypesRes] = await Promise.all([
           axios.get('/api/vehicle-types')
         ]);
-        setRoomTypes(roomTypesRes.data);
-        setOccupancyTypes(occupancyTypesRes.data);
-        setMealPlans(mealPlansRes.data);
         setVehicleTypes(vehicleTypesRes.data);
       } catch (error) {
         console.error('Error fetching lookup data:', error);
@@ -1531,7 +1505,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                               numberofRooms: '',
                               roomCategory: '',
                               locationId: form.getValues('locationId') || '',
-                              roomAllocations: [],
                               transportDetails: []
                             }])}
                           >
@@ -1557,9 +1530,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 form={form as any}
                 loading={loading || readOnly || lookupLoading}
                 hotels={hotels as any}
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
               />
             </TabsContent>

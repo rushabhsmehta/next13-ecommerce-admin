@@ -590,9 +590,20 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                 <ListPlus className="h-4 w-4" />
                 Itinerary
               </TabsTrigger>
-              <TabsTrigger value="hotels" className="flex items-center gap-2">
+              <TabsTrigger value="hotels" className="flex items-center gap-2 relative">
                 <Users className="h-4 w-4" />
                 Hotels
+                {(() => {
+                  try {
+                    const its: any[] = form.watch('itineraries') || [];
+                    const missing = its.reduce((a, it) => !it?.hotelId ? a + 1 : a, 0);
+                    return missing > 0 ? (
+                      <span className="ml-1 bg-red-600 text-white rounded-full px-1.5 py-0.5 text-[10px] leading-none font-medium">
+                        {missing}
+                      </span>
+                    ) : null;
+                  } catch { return null; }
+                })()}
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />

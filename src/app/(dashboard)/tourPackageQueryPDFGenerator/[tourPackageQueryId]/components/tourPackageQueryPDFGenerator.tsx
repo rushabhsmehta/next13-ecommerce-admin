@@ -1314,8 +1314,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         body: JSON.stringify({
           htmlContent,
           footerHtml,
-          margin: { top: "64px", bottom: "64px", left: "14px", right: "14px" },
-          scale: 0.9,
+          margin: { top: "72px", bottom: "110px", left: "14px", right: "14px" },
+          scale: 0.88,
         }),
       });
 

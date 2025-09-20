@@ -154,16 +154,45 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
 
     // Generate the PDF
     const hasHeaderFooter = Boolean(options?.headerHtml || options?.footerHtml);
+    // Use a larger default bottom margin when header/footer are displayed to prevent overlap
     const marginDefaults = hasHeaderFooter
-      ? { top: "72px", right: "14px", bottom: "72px", left: "14px" }
+      ? { top: "72px", right: "14px", bottom: "96px", left: "14px" }
       : { top: "10px", right: "10px", bottom: "10px", left: "10px" };
 
-    const margin = {
+    // Helper to parse a pixel string like "64px" to a number (64)
+    const pxToNumber = (v?: string) => {
+      if (!v) return undefined;
+      const n = parseFloat(String(v).replace(/px$/i, ""));
+      return isNaN(n) ? undefined : n;
+    };
+
+    // Compose margins and enforce a safe minimum when footer/header is used
+    const composed = {
       top: options?.margin?.top ?? marginDefaults.top,
       right: options?.margin?.right ?? marginDefaults.right,
       bottom: options?.margin?.bottom ?? marginDefaults.bottom,
       left: options?.margin?.left ?? marginDefaults.left,
     };
+
+    // Clamp bottom margin to avoid footer overlap when a footer is present
+    if (options?.footerHtml) {
+      const minBottomPx = 96; // safe minimum space for branded footer
+      const currentBottomPx = pxToNumber(composed.bottom) ?? minBottomPx;
+      if (currentBottomPx < minBottomPx) {
+        composed.bottom = `${minBottomPx}px`;
+      }
+    }
+
+    // Slightly protect top margin if a header is present
+    if (options?.headerHtml) {
+      const minTopPx = 72;
+      const currentTopPx = pxToNumber(composed.top) ?? minTopPx;
+      if (currentTopPx < minTopPx) {
+        composed.top = `${minTopPx}px`;
+      }
+    }
+
+    const margin = composed;
 
     const headerTemplate = options?.headerHtml
       ? await inlineImagesInHtml(options.headerHtml)

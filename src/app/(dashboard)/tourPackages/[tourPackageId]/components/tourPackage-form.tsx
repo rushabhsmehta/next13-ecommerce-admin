@@ -56,16 +56,6 @@ const activitySchema = z.object({
   activityImages: z.object({ url: z.string() }).array(),
 });
 
-const transportDetailsSchema = z.object({
-  vehicleTypeId: z.string().optional(),
-  transportType: z.string().optional(),
-  quantity: z.union([
-    z.string().transform(val => parseInt(val) || 1),
-    z.number()
-  ]).optional(),
-  description: z.string().optional().nullable()
-});
-
 const itinerarySchema = z.object({
   itineraryImages: z.object({ url: z.string() }).array(),
   itineraryTitle: z.string().optional(),
@@ -74,11 +64,8 @@ const itinerarySchema = z.object({
   activities: z.array(activitySchema),
   mealsIncluded: z.array(z.string()).optional(),
   hotelId: z.string().optional(), // Array of hotel IDs
-  numberofRooms: z.string().optional(),
-  roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
   // Centralized allocations
-  transportDetails: z.array(transportDetailsSchema).optional().default([]),
   // hotel : z.string(),
 });
 
@@ -250,7 +237,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   // Lookup data for Hotels tab
-  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [lookupLoading, setLookupLoading] = useState(true);
 
   const editor = useRef(null)
@@ -326,7 +312,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
-        transportDetails: (itinerary as any).transportDetails || [],
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
@@ -399,10 +384,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     const fetchLookupData = async () => {
       setLookupLoading(true);
       try {
-        const [vehicleTypesRes] = await Promise.all([
-          axios.get('/api/vehicle-types')
-        ]);
-        setVehicleTypes(vehicleTypesRes.data);
+        // any data fetching can be done here
       } catch (error) {
         console.error('Error fetching lookup data:', error);
         toast.error('Failed to load configuration data');
@@ -1298,24 +1280,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                       <FormMessage />
                                     </FormItem>
 
-                                    <FormItem>
-                                      <FormLabel>Room Category</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          placeholder="Room Category"
-                                          disabled={loading}
-
-                                          value={itinerary.roomCategory}
-                                          onChange={(e) => {
-                                            const newItineraries = [...value];
-                                            newItineraries[index] = { ...itinerary, roomCategory: e.target.value };
-                                            onChange(newItineraries);
-                                          }}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-
-
                                     <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                                       <FormLabel>Meal Plan</FormLabel>
                                       <FormControl>
@@ -1502,10 +1466,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                               activities: [],
                               mealsIncluded: [],
                               hotelId: '',
-                              numberofRooms: '',
-                              roomCategory: '',
                               locationId: form.getValues('locationId') || '',
-                              transportDetails: []
                             }])}
                           >
                             <Plus className="h-4 w-4 mr-2" />
@@ -1530,7 +1491,6 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 form={form as any}
                 loading={loading || readOnly || lookupLoading}
                 hotels={hotels as any}
-                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
 

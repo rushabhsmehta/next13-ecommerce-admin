@@ -1058,10 +1058,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 form={form}
                 loading={loading}
                 hotels={hotels}
-                roomTypes={roomTypes}
-                occupancyTypes={occupancyTypes}
-                mealPlans={mealPlans}
-                vehicleTypes={vehicleTypes}
               />
             </TabsContent>
             <TabsContent value="flights" className="space-y-4 mt-4">

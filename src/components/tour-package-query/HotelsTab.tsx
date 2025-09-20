@@ -1,6 +1,6 @@
 "use client";
 import { Control, useWatch } from "react-hook-form";
-import { Hotel, Images, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
+import { Hotel, Images } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FormItem, FormLabel, FormMessage, FormControl } from "@/components/ui/form";
@@ -13,14 +13,18 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import Image from "next/image";
 import { useState } from "react";
-import { Car, Check, Hotel as HotelIcon, Plus, Trash, Users, ChevronsUpDown, BedDouble, LayoutGrid, List, Sparkles, Building2, Copy, Receipt } from "lucide-react";
+import { Car, Check, Hotel as HotelIcon, Plus, Trash, ChevronsUpDown, LayoutGrid, List, Sparkles, Building2, Copy, BedDouble, Users, Receipt } from "lucide-react";
+import { MealPlan, OccupancyType, RoomType, VehicleType } from "@prisma/client";
 
 interface HotelsTabProps {
   control: Control<any>;
   form: any; // Use any to avoid circular type import
   loading: boolean;
   hotels: (Hotel & { images: Images[] })[];
-  vehicleTypes: VehicleType[];
+  roomTypes?: RoomType[];
+  occupancyTypes?: OccupancyType[];
+  mealPlans?: MealPlan[];
+  vehicleTypes?: VehicleType[];
 }
 
 const HotelsTab: React.FC<HotelsTabProps> = ({
@@ -28,11 +32,13 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   form,
   loading,
   hotels,
+  roomTypes,
+  occupancyTypes,
+  mealPlans,
   vehicleTypes,
 }) => {
   const itineraries = useWatch({ control, name: "itineraries" }) as any[] || [];
   // Derived stats
-  const totalVehicles = itineraries.reduce((sum, it: any) => sum + (Array.isArray(it.transportDetails) ? it.transportDetails.length : 0), 0);
   const assignedHotels = itineraries.reduce((sum, it: any) => sum + (it.hotelId ? 1 : 0), 0);
   const daysMissingHotel = itineraries.reduce((acc, it: any) => !it?.hotelId ? acc + 1 : acc, 0);
   const [openHotelIndex, setOpenHotelIndex] = useState<number | null>(null);
@@ -49,14 +55,21 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
     'before:bg-rose-500/80',
   ];
 
-  // Helpers (restored after refactor)
-  const addTransportDetail = (dayIdx: number) => {
-    const current = form.getValues(`itineraries.${dayIdx}.transportDetails`) || [];
-    form.setValue(`itineraries.${dayIdx}.transportDetails`, [...current, { vehicleTypeId: '', quantity: 1 }]);
+  const addRoomAllocation = (itineraryIndex: number) => {
+    const currentItineraries = form.getValues('itineraries');
+    const targetItinerary = currentItineraries[itineraryIndex];
+    const newAllocations = [
+      ...(targetItinerary.roomAllocations || []),
+      { roomTypeId: '', occupancyTypeId: '', mealPlanId: '', quantity: 1, useCustomRoomType: false, customRoomType: '', voucherNumber: '' }
+    ];
+    form.setValue(`itineraries.${itineraryIndex}.roomAllocations`, newAllocations);
   };
-  const removeTransportDetail = (dayIdx: number, idx: number) => {
-    const current = form.getValues(`itineraries.${dayIdx}.transportDetails`) || [];
-    form.setValue(`itineraries.${dayIdx}.transportDetails`, current.filter((_: any, i: number) => i !== idx));
+
+  const removeRoomAllocation = (itineraryIndex: number, allocationIndex: number) => {
+    const currentItineraries = form.getValues('itineraries');
+    const targetItinerary = currentItineraries[itineraryIndex];
+    const newAllocations = (targetItinerary.roomAllocations || []).filter((_: any, i: number) => i !== allocationIndex);
+    form.setValue(`itineraries.${itineraryIndex}.roomAllocations`, newAllocations);
   };
 
   return (
@@ -66,7 +79,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
         <CardHeader className="pb-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" /> Hotels, Rooms & Transport
+              <Building2 className="h-5 w-5 text-primary" /> Hotels
             </CardTitle>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Centralized allocation management
@@ -75,7 +88,6 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Days: {itineraries.length}</Badge>
             <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Hotels: {assignedHotels}/{itineraries.length}</Badge>
-            <Badge variant="outline" className="bg-white/60 backdrop-blur text-xs font-medium">Vehicles: {totalVehicles}</Badge>
             {daysMissingHotel > 0 && (
               <Badge variant="destructive" className="animate-pulse text-xs">Unassigned: {daysMissingHotel}</Badge>
             )}
@@ -91,16 +103,16 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
               onClick={() => {
                 if (itineraries.length <= 1) return;
                 const firstDay = itineraries[0];
-                const transportDetails = firstDay.transportDetails || [];
+                const hotelId = firstDay.hotelId || null;
                 const updated = itineraries.map((it: any, idx: number) => idx === 0 ? it : ({
                   ...it,
-                  transportDetails: JSON.parse(JSON.stringify(transportDetails))
+                  hotelId: hotelId,
                 }));
                 form.setValue('itineraries', updated);
-                alert('Room allocations and transport details copied to all days');
+                alert('Hotel selection copied to all days');
               }}
             >
-              <Copy className="h-3.5 w-3.5" /> Copy First Day Allocations
+              <Copy className="h-3.5 w-3.5" /> Copy First Day Hotel
             </Button>
           )}
           <Button
@@ -121,7 +133,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
             <CardTitle className="text-sm">No itineraries added yet</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            Add day wise itineraries first in the Itinerary tab to assign hotels, rooms & transport.
+            Add day wise itineraries first in the Itinerary tab to assign hotels.
           </CardContent>
         </Card>
       )}
@@ -134,7 +146,6 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
       )}
       <Accordion type="multiple" value={expandAll ? allAccordionValues : undefined} className="space-y-4">
         {itineraries.map((it, index) => {
-          const transports = (it.transportDetails || []) as any[];
           const accent = accentBarClasses[index % accentBarClasses.length];
           return (
             <AccordionItem
@@ -154,7 +165,6 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         ) : (
                           <Badge variant="destructive" className="h-5 px-1.5 animate-pulse bg-rose-500 text-white">Hotel?</Badge>
                         )}
-                        {transports.length > 0 && <Badge className="h-5 px-1.5 flex items-center gap-1 bg-sky-100 text-sky-700 border border-sky-200"><Car className="h-3 w-3" />{transports.length}</Badge>}
                       </div>
                     </div>
                   </div>
@@ -225,38 +235,144 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                   </CardContent>
                 </Card>
 
+                {roomTypes && occupancyTypes && mealPlans && (
                 <Card>
-                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-sky-100 via-sky-50 to-transparent rounded-t-md">
-                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Car className="h-4 w-4 text-sky-600" />Transport Details</CardTitle>
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent rounded-t-md">
+                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Users className="h-4 w-4 text-emerald-600" />Room Allocations</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {transports.map((tr, tIndex) => (
-                      <Card key={tIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
+                  <CardContent className="space-y-4 pt-4">
+                    {(it.roomAllocations || []).map((room: any, rIndex: number) => (
+                      <Card key={rIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
-                          <CardTitle className="text-xs font-medium flex items-center gap-1"><Car className="h-3.5 w-3.5 text-sky-600" />Vehicle {tIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" disabled={loading} className="hover:text-red-600" onClick={()=> removeTransportDetail(index, tIndex)}>
+                          <CardTitle className="text-xs font-medium flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-primary" />Room {rIndex + 1}</CardTitle>
+                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={loading} onClick={()=> removeRoomAllocation(index, rIndex)}>
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </CardHeader>
-                        <CardContent className="pt-3 grid gap-3 md:grid-cols-3">
-                          <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.vehicleTypeId` as any}
+                        <CardContent className="pt-3 space-y-3">
+                          {/* Custom Room Type Toggle */}
+                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType` as any}
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide">Vehicle Type</FormLabel>
-                                <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
-                                  <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vehicle" /></SelectTrigger></FormControl>
-                                  <SelectContent>{vehicleTypes.map(v=> <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
-                                </Select>
+                              <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value || false}
+                                    onCheckedChange={(checked) => {
+                                      field.onChange(checked);
+                                      // Clear the opposite field when toggling
+                                      if (checked) {
+                                        // Switching to custom - clear roomTypeId
+                                        form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId`, "");
+                                      } else {
+                                        // Switching to dropdown - clear customRoomType
+                                        form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.customRoomType`, "");
+                                      }
+                                    }}
+                                    disabled={loading}
+                                  />
+                                </FormControl>
+                                <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">
+                                  Custom Room Type
+                                </FormLabel>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
-                          <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.quantity` as any}
+                          
+                          {/* Main Fields Grid */}
+                          <div className="grid gap-3 md:grid-cols-4">
+                            {/* Room Type - Conditional */}
+                            {(() => {
+                              const useCustom = form.watch(`itineraries.${index}.roomAllocations.${rIndex}.useCustomRoomType`);
+                              if (useCustom) {
+                                return (
+                                  <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.customRoomType` as any}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-[10px] uppercase tracking-wide">Custom Room Type</FormLabel>
+                                        <FormControl>
+                                          <Input 
+                                            placeholder="Enter room type" 
+                                            className="h-8 text-xs" 
+                                            {...field} 
+                                            disabled={loading}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                );
+                              } else {
+                                return (
+                                  <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.roomTypeId` as any}
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
+                                        <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                          <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
+                                          <SelectContent>{roomTypes.map(rt=> <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                );
+                              }
+                            })()}
+                            
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.occupancyTypeId` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Occupancy</FormLabel>
+                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger></FormControl>
+                                    <SelectContent>{occupancyTypes.map(o=> <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.mealPlanId` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
+                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
+                                    <SelectContent>{mealPlans.map(mp=> <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.quantity` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          
+                          {/* Voucher Number Field */}
+                          <FormField control={control as any} name={`itineraries.${index}.roomAllocations.${rIndex}.voucherNumber` as any}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                <FormLabel className="text-[10px] uppercase tracking-wide flex items-center gap-1">
+                                  <Receipt className="h-3 w-3" />
+                                  Hotel Voucher Number
+                                </FormLabel>
                                 <FormControl>
-                                  <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                  <Input 
+                                    placeholder="Enter hotel booking voucher number" 
+                                    className="h-8 text-xs" 
+                                    {...field} 
+                                    disabled={loading}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -265,11 +381,12 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         </CardContent>
                       </Card>
                     ))}
-                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
-                      <Plus className="h-4 w-4 mr-1" /> Add Vehicle
+                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
+                      <Plus className="h-4 w-4 mr-1" /> Add Room
                     </Button>
                   </CardContent>
                 </Card>
+                )}
               </AccordionContent>
             </AccordionItem>
           )

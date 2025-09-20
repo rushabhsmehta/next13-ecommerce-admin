@@ -50,9 +50,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prefer WhatsApp Cloud template path when name provided (or templateId not Twilio SID)
-    const maybeName = templateName || (templateId && !/^H[A-Za-z0-9]+$/.test(String(templateId)) ? String(templateId) : undefined);
-    if (maybeName) {
+  // Prefer WhatsApp Cloud template path when name provided (or templateId not Twilio SID)
+  const maybeName = templateName || (templateId && !/^H[A-Za-z0-9]+$/.test(String(templateId)) ? String(templateId) : undefined);
+  // Validate phone number format (basic validation)
+  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  const cleanTo = to.replace('whatsapp:', '');
+  if (maybeName) {
       // Build template components from variables
       let bodyParams: Array<string | number> = [];
       let buttonParams: Array<Array<string>> = [];
@@ -92,15 +95,12 @@ export async function POST(request: NextRequest) {
     const templateVars = (template.variables as string[]) || [];
     if (templateVars.length > 0 && variables) {
       templateVars.forEach((variable, index) => {
-        const placeholderByName = new RegExp(`\\{\\{${variable}\\}\\}`, 'g');
+        const placeholderByName = new RegExp(`\{\{${variable}\}\}`, 'g');
         const value = (variables && (variables[variable] ?? variables[index])) ?? `{{${variable}}}`;
         message = message.replace(placeholderByName, String(value));
       });
     }
 
-    // Validate phone number format (basic validation)
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    const cleanTo = to.replace('whatsapp:', '');
     if (!phoneRegex.test(cleanTo)) {
       return NextResponse.json({ error: 'Invalid phone number format. Use international format (e.g., +1234567890)' }, { status: 400 });
     }

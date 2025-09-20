@@ -787,7 +787,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ) {
   // Clean Itinerary header
       itinerariesSection += `
-    <div style="${cardStyle}; ${pageBreakBefore}">
+    <div style="${cardStyle};">
       <div style="${headerStyleAlt}; text-align: center;">
         <h2 style="${sectionTitleStyle}">
           Travel Itinerary
@@ -799,7 +799,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       // Clean individual itinerary day cards
       itinerariesSection += initialData.itineraries
         .map((itinerary, dayIndex) => `
-      <div style="${cardStyle}; margin-bottom: 24px;">
+      <div style="${cardStyle}; margin-bottom: 24px; ${dayIndex > 0 ? pageBreakBefore : ''} page-break-inside: avoid; break-inside: avoid-page;">
         <!-- Clean Itinerary Header -->
         <div style="display: flex; align-items: center; background: #f9fafb; padding: 16px; border-bottom: 1px solid ${brandColors.border};">
           <div style="background: ${brandColors.primary}; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">

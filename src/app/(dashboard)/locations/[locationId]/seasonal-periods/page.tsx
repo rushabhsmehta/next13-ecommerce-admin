@@ -115,10 +115,6 @@ export default function LocationSeasonalPeriodsPage() {
     }
   })
 
-  useEffect(() => {
-    fetchLocationAndPeriods()
-  }, [locationId])
-
   const fetchLocationAndPeriods = async () => {
     try {
       setLoading(true)
@@ -137,6 +133,11 @@ export default function LocationSeasonalPeriodsPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchLocationAndPeriods()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId])
 
   const onSubmit = async (data: SeasonalPeriodFormValues) => {
     try {

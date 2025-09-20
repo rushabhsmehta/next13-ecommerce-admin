@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck, Building2 } from "lucide-react"
+import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -42,7 +42,7 @@ import { CaretSortIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
 import { DevTool } from "@hookform/devtools"
-import HotelsTab from '@/components/tour-package-query/HotelsTab'
+// Hotels tab removed from Tour Package form as per requirement
 
 // This will be overridden in the component
 const defaultEditorConfig = {
@@ -237,7 +237,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [flightDetails, setFlightDetails] = useState([]);
   // Lookup data for Hotels tab
-  const [lookupLoading, setLookupLoading] = useState(true);
+  // Removed lookupLoading since Hotels tab is not used in Tour Package form
+  // const [lookupLoading, setLookupLoading] = useState(true);
 
   const editor = useRef(null)
 
@@ -380,20 +381,21 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   });
 
   // Fetch lookup data required for Hotels tab
-  useEffect(() => {
-    const fetchLookupData = async () => {
-      setLookupLoading(true);
-      try {
-        // any data fetching can be done here
-      } catch (error) {
-        console.error('Error fetching lookup data:', error);
-        toast.error('Failed to load configuration data');
-      } finally {
-        setLookupLoading(false);
-      }
-    };
-    fetchLookupData();
-  }, []);
+  // Lookup data effect removed because Hotels tab was removed
+  // useEffect(() => {
+  //   const fetchLookupData = async () => {
+  //     setLookupLoading(true);
+  //     try {
+  //       // any data fetching can be done here
+  //     } catch (error) {
+  //       console.error('Error fetching lookup data:', error);
+  //       toast.error('Failed to load configuration data');
+  //     } finally {
+  //       setLookupLoading(false);
+  //     }
+  //   };
+  //   fetchLookupData();
+  // }, []);
 
   const {
     fields: pricingFields,
@@ -628,7 +630,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-9 w-full"> {/* Added Hotels tab so cols -> 9 */}
+            <TabsList className="grid grid-cols-8 w-full">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -645,10 +647,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <ListPlus className="h-4 w-4" />
                 Itinerary
               </TabsTrigger>
-              <TabsTrigger value="hotels" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Hotels
-              </TabsTrigger>
+              {/* Hotels tab removed from Tour Package */}
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
                 Flights
@@ -1480,19 +1479,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               </Card>
             </TabsContent>
 
-            <TabsContent value="hotels" className="space-y-4 mt-4">
-              {/* Reuse existing HotelsTab for centralized hotel/room/transport allocations */}
-              {/**
-               * Note: We pass loading || readOnly to disable edits in view-only mode.
-               */}
-              {/* @ts-ignore - HotelsTab is typed for queries but is form-agnostic */}
-              <HotelsTab
-                control={form.control as any}
-                form={form as any}
-                loading={loading || readOnly || lookupLoading}
-                hotels={hotels as any}
-              />
-            </TabsContent>
+            {/* Hotels tab content removed */}
 
             <TabsContent value="flights" className="space-y-4 mt-4">
               <Card>

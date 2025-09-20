@@ -216,7 +216,7 @@ export default function WhatsAppSettingsPage() {
       });
       return out;
     });
-  }, [messages]);
+  }, [messages, activeId]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
 

@@ -99,8 +99,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const [showDebug, setShowDebug] = useState<boolean>(false);
   const [debugSessionId, setDebugSessionId] = useState<string>("");
 
-  // Helper to add structured logs
-  const addLog = (entry: {
+  // Helper to add structured logs (stable reference)
+  const addLog = React.useCallback((entry: {
     step: string;
     level?: 'info' | 'warn' | 'error';
     msg?: string;
@@ -120,7 +120,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     if (e.level === 'error') console.error(prefix, e.msg || '', e.data ?? '');
     else if (e.level === 'warn') console.warn(prefix, e.msg || '', e.data ?? '');
     else console.log(prefix, e.msg || '', e.data ?? '');
-  };
+  }, [debugSessionId]);
 
   const copyLogsToClipboard = async () => {
     const text = debugLog.map(l => JSON.stringify(l)).join('\n');
@@ -171,64 +171,59 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     return list;
   }, [form.formState.errors]);
 
-  // Fetch required data when dialog opens
+  // Fetch required data when dialog opens (inline async to avoid hoisting/deps issues)
   useEffect(() => {
-    if (isOpen) {
-      const sid = `DBG-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      setDebugSessionId(sid);
-      addLog({ step: 'dialog/open', msg: 'Automated dialog opened' });
-      fetchRequiredData();
-    }
-  }, [isOpen]);
+    if (!isOpen) return;
+    const sid = `DBG-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setDebugSessionId(sid);
+    addLog({ step: 'dialog/open', msg: 'Automated dialog opened' });
+    (async () => {
+      try {
+        setLoading(true);
+        addLog({ step: 'fetchRequiredData/start', data: { inquiryId } });
 
-  const fetchRequiredData = async () => {
-    try {
-      setLoading(true);
-      addLog({ step: 'fetchRequiredData/start', data: { inquiryId } });
-      
-      // First fetch the inquiry data
-      const inquiryRes = await axios.get(`/api/inquiries/${inquiryId}`);
-      const inquiryData = inquiryRes.data;
-      setInquiry(inquiryData);
-      addLog({ step: 'fetchRequiredData/inquiry', data: { locationId: inquiryData.locationId, journeyDate: inquiryData.journeyDate } });
-      
-      // Then fetch all required data in parallel
-      const [
-        tourPackagesRes,
-        mealPlansRes,
-        roomTypesRes,
-        occupancyTypesRes,
-        vehicleTypesRes
-      ] = await Promise.all([
-        axios.get(`/api/tourPackages?locationId=${inquiryData.locationId}&isArchived=false`),
-        axios.get('/api/config/meal-plans'),
-        axios.get('/api/config/room-types'),
-        axios.get('/api/config/occupancy-types'),
-        axios.get('/api/config/vehicle-types'),
-      ]);
+        // First fetch the inquiry data
+        const inquiryRes = await axios.get(`/api/inquiries/${inquiryId}`);
+        const inquiryData = inquiryRes.data;
+        setInquiry(inquiryData);
+        addLog({ step: 'fetchRequiredData/inquiry', data: { locationId: inquiryData.locationId, journeyDate: inquiryData.journeyDate } });
 
-      setTourPackages(tourPackagesRes.data);
-      setMealPlans(mealPlansRes.data);
-      setRoomTypes(roomTypesRes.data);
-      setOccupancyTypes(occupancyTypesRes.data);
-      setVehicleTypes(vehicleTypesRes.data);
-      addLog({ step: 'fetchRequiredData/success', data: {
-        tourPackages: tourPackagesRes.data?.length ?? 0,
-        mealPlans: mealPlansRes.data?.length ?? 0,
-        roomTypes: roomTypesRes.data?.length ?? 0,
-        occupancyTypes: occupancyTypesRes.data?.length ?? 0,
-        vehicleTypes: vehicleTypesRes.data?.length ?? 0,
-      }});
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load required data');
-      addLog({ step: 'fetchRequiredData/error', level: 'error', msg: (error as any)?.message, data: (error as any)?.response?.data || String(error) });
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Then fetch all required data in parallel
+        const [
+          tourPackagesRes,
+          mealPlansRes,
+          roomTypesRes,
+          occupancyTypesRes,
+          vehicleTypesRes
+        ] = await Promise.all([
+          axios.get(`/api/tourPackages?locationId=${inquiryData.locationId}&isArchived=false`),
+          axios.get('/api/config/meal-plans'),
+          axios.get('/api/config/room-types'),
+          axios.get('/api/config/occupancy-types'),
+          axios.get('/api/config/vehicle-types'),
+        ]);
 
-  // Function to get occupancy multiplier from component name (same as manual form)
+        setTourPackages(tourPackagesRes.data);
+        setMealPlans(mealPlansRes.data);
+        setRoomTypes(roomTypesRes.data);
+        setOccupancyTypes(occupancyTypesRes.data);
+        setVehicleTypes(vehicleTypesRes.data);
+        addLog({ step: 'fetchRequiredData/success', data: {
+          tourPackages: tourPackagesRes.data?.length ?? 0,
+          mealPlans: mealPlansRes.data?.length ?? 0,
+          roomTypes: roomTypesRes.data?.length ?? 0,
+          occupancyTypes: occupancyTypesRes.data?.length ?? 0,
+          vehicleTypes: vehicleTypesRes.data?.length ?? 0,
+        }});
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load required data');
+        addLog({ step: 'fetchRequiredData/error', level: 'error', msg: (error as any)?.message, data: (error as any)?.response?.data || String(error) });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [isOpen, addLog, inquiryId]);
   const getOccupancyMultiplier = (componentName: string): number => {
     const name = componentName.toLowerCase();
     
@@ -248,53 +243,40 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
   // Function to fetch available pricing components (like the screenshot interface)
   const fetchAvailablePricingComponents = async () => {
-    if (!selectedTourPackage) {
-      toast.error('Please select a tour package first');
-      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No tour package selected' });
-      return;
-    }
-
-    if (!inquiry) {
-      toast.error('Inquiry data not loaded');
-      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'Inquiry not loaded' });
-      return;
-    }
-
-    if (!pricingMealPlanId) {
-      toast.error('Please select a meal plan for pricing calculation');
-      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No pricing meal plan selected' });
-      return;
-    }
-
-    if (pricingNumberOfRooms <= 0) {
-      toast.error('Please specify number of rooms for pricing calculation');
-      addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'Invalid number of rooms' });
-      return;
-    }
-
     setIsCalculatingPrice(true);
-    toast.loading("Fetching available pricing components...");
-    
     try {
-      addLog({ step: 'fetchComponents/inputs', data: {
-        tourPackageId: selectedTourPackage.id,
-        mealPlanId: pricingMealPlanId,
-        totalRooms: pricingNumberOfRooms,
-        journeyDate: inquiry.journeyDate
-      }});
+      if (!selectedTourPackage) {
+        toast.error('Please select a tour package first');
+        addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No tour package selected' });
+        return;
+      }
+      if (!inquiry) {
+        toast.error('Inquiry data not loaded');
+        addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'Inquiry not loaded' });
+        return;
+      }
+      if (!pricingMealPlanId) {
+        toast.error('Please select a meal plan for pricing');
+        addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'No pricing meal plan selected' });
+        return;
+      }
+      if (pricingNumberOfRooms <= 0) {
+        toast.error('Please set a valid number of rooms for pricing');
+        addLog({ step: 'fetchComponents/guard', level: 'warn', msg: 'Invalid pricing room count' });
+        return;
+      }
 
-      // Fetch pricing data from the tour package
+      // Fetch pricing data for the selected tour package
+      addLog({ step: 'fetchComponents/pricingRequest', data: { tourPackageId: selectedTourPackage.id } });
       const response = await axios.get(`/api/tourPackages/${selectedTourPackage.id}/pricing`);
-      const tourPackagePricings = response.data;
-      toast.dismiss();
+      const tourPackagePricings = response.data || [];
+      addLog({ step: 'fetchComponents/pricingPeriods', data: { count: tourPackagePricings.length } });
 
-      if (!tourPackagePricings || tourPackagePricings.length === 0) {
+      if (!Array.isArray(tourPackagePricings) || tourPackagePricings.length === 0) {
         toast.error('No pricing periods found for the selected tour package');
         setAvailablePricingComponents([]);
         return;
       }
-
-      addLog({ step: 'fetchComponents/pricingPeriods', data: { count: tourPackagePricings.length } });
 
       // Filter matching pricing periods based on date, meal plan, and number of rooms
       const queryDate = new Date(inquiry.journeyDate);
@@ -304,7 +286,6 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         const isDateMatch = queryDate >= periodStart && queryDate <= periodEnd;
         const isMealPlanMatch = p.mealPlanId === pricingMealPlanId;
         const isRoomMatch = p.numberOfRooms === pricingNumberOfRooms;
-
         return isDateMatch && isMealPlanMatch && isRoomMatch;
       });
 
@@ -330,27 +311,25 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       // Get components from the matched pricing
       const selectedPricing = matchedPricings[0];
       const components = selectedPricing.pricingComponents || [];
-      
       setAvailablePricingComponents(components);
-      
+
       // Initially select all components
       const allComponentIds = components.map((comp: any) => comp.id);
       setSelectedPricingComponentIds(allComponentIds);
-      
+
       // Initialize room quantities for all components (default to 1)
       const initialQuantities: Record<string, number> = {};
       components.forEach((comp: any) => {
         initialQuantities[comp.id] = 1;
       });
       setComponentRoomQuantities(initialQuantities);
-      
+
       addLog({ step: 'fetchComponents/success', data: { components: components.length, selectedPricing: selectedPricing.id } });
       toast.success(`Found ${components.length} pricing component${components.length !== 1 ? 's' : ''} available for selection.`);
-
     } catch (error: any) {
       toast.dismiss();
       console.error('Error fetching pricing components:', error);
-      toast.error('Failed to fetch pricing components: ' + (error.response?.data?.message || error.message));
+      toast.error('Failed to fetch pricing components: ' + (error?.response?.data?.message || error?.message));
       setAvailablePricingComponents([]);
       addLog({ step: 'fetchComponents/error', level: 'error', msg: error?.message, data: error?.response?.data });
     } finally {
@@ -593,13 +572,15 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   };
 
   // Reset pricing related state when meal plan or room allocations change
+  const watchedMealPlanId = form.watch('mealPlanId');
+  const watchedRoomAllocations = JSON.stringify(form.watch('roomAllocations'));
   useEffect(() => {
     setAvailablePricingComponents([]);
     setSelectedPricingComponentIds([]);
     setCalculatedPrice(null);
     setPriceCalculationDetails([]);
     addLog({ step: 'form/reset', msg: 'Reset pricing components due to form changes' });
-  }, [form.watch('mealPlanId'), JSON.stringify(form.watch('roomAllocations'))]);
+  }, [watchedMealPlanId, watchedRoomAllocations, addLog]);
 
   // Auto-recalculate total when component room quantities change
   useEffect(() => {
@@ -638,7 +619,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       
       return () => clearTimeout(timeout);
     }
-  }, [componentRoomQuantities, selectedPricingComponentIds, availablePricingComponents, form]);
+  }, [componentRoomQuantities, selectedPricingComponentIds, availablePricingComponents, form, addLog]);
 
   // Handle tour package selection with validation
   const handleTourPackageSelection = (tourPackageId: string) => {

@@ -2,13 +2,13 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useRef, useState } from "react"
+import { JSXElementConstructor, Key, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CalendarIcon, CheckIcon, ChevronDown, ChevronUp, FileText, MapPin, Trash, Users, Plane, Tag, FileCheck, ListPlus, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
 import { Activity, Images, ItineraryMaster, TourPackage } from "@prisma/client"
-import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
+import { Location, Hotel, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Input } from "@/components/ui/input"
@@ -44,6 +44,7 @@ import { CaretSortIcon } from "@radix-ui/react-icons"
 import { PolicyField } from "./policy-fields"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DevTool } from "@hookform/devtools"
+import HotelsTab from "@/components/tour-package-query/HotelsTab"
 
 const editorConfig = {
   readonly: false,
@@ -77,7 +78,29 @@ const itinerarySchema = z.object({
   numberofRooms: z.string().optional(),
   roomCategory: z.string().optional(),
   locationId: z.string(), // Array of hotel IDs
-
+  // Added for Tour Package Query parity
+  roomAllocations: z.array(z.object({
+    roomTypeId: z.string().optional(),
+    occupancyTypeId: z.string().optional(),
+    mealPlanId: z.string().optional(),
+    quantity: z.union([
+      z.string().transform(val => parseInt(val) || 1),
+      z.number()
+    ]).optional(),
+    guestNames: z.string().optional().nullable(),
+    voucherNumber: z.string().optional().nullable(),
+    customRoomType: z.string().optional().nullable(),
+    useCustomRoomType: z.boolean().optional().default(false),
+  })).optional().default([]),
+  transportDetails: z.array(z.object({
+    vehicleTypeId: z.string().optional(),
+    transportType: z.string().optional(),
+    quantity: z.union([
+      z.string().transform(val => parseInt(val) || 1),
+      z.number()
+    ]).optional(),
+    description: z.string().optional().nullable(),
+  })).optional().default([]),
   // hotel : z.string(),
 });
 
@@ -201,6 +224,37 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
     termsconditions: false,
     kitchenGroupPolicy: false,
   });
+  // Lookup data for allocations/transport
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [occupancyTypes, setOccupancyTypes] = useState<OccupancyType[]>([]);
+  const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [lookupLoading, setLookupLoading] = useState<boolean>(false);
+
+  // Fetch lookup data similar to main TourPackageQuery form
+  useEffect(() => {
+    const fetchLookup = async () => {
+      try {
+        setLookupLoading(true);
+        const [rt, ot, mp, vt] = await Promise.all([
+          axios.get('/api/room-types'),
+          axios.get('/api/occupancy-types'),
+          axios.get('/api/meal-plans'),
+          axios.get('/api/vehicle-types'),
+        ]);
+        setRoomTypes(rt.data || []);
+        setOccupancyTypes(ot.data || []);
+        setMealPlans(mp.data || []);
+        setVehicleTypes(vt.data || []);
+      } catch (e) {
+        console.error('Failed to load lookup data', e);
+        toast.error('Failed to load configuration data');
+      } finally {
+        setLookupLoading(false);
+      }
+    };
+    fetchLookup();
+  }, []);
 
   
 
@@ -306,6 +360,8 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
         numberofRooms: itinerary.numberofRooms ?? '',
         roomCategory: itinerary.roomCategory ?? '',
         locationId: itinerary.locationId ?? '',
+        roomAllocations: Array.isArray((itinerary as any).roomAllocations) ? (itinerary as any).roomAllocations : [],
+        transportDetails: Array.isArray((itinerary as any).transportDetails) ? (itinerary as any).transportDetails : [],
         //hotel : hotels.find(hotel => hotel.id === hotelId)?.name ?? '',
         mealsIncluded: itinerary.mealsIncluded ? itinerary.mealsIncluded.split('-') : [],
         activities: itinerary.activities?.map((activity: any) => ({
@@ -513,7 +569,7 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-8 w-full"> {/* Changed from grid-cols-7 to grid-cols-8 */}
+            <TabsList className="grid grid-cols-9 w-full"> {/* Increased to 9 due to Hotels tab */}
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -533,6 +589,10 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
               <TabsTrigger value="itinerary" className="flex items-center gap-2">
                 <ListPlus className="h-4 w-4" />
                 Itinerary
+              </TabsTrigger>
+              <TabsTrigger value="hotels" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Hotels
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
@@ -1464,6 +1524,116 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                                       </FormControl>
                                     </FormItem>
 
+                                    {/* Transport Details Section */}
+                                    <div className="space-y-3 mt-4 p-3 border rounded-md bg-slate-50">
+                                      <h4 className="text-sm font-medium">Transport Details</h4>
+                                      {(itinerary.transportDetails || []).map((td: any, tdIndex: number) => (
+                                        <div key={tdIndex} className="grid grid-cols-4 gap-4 items-end p-3 bg-white rounded-md border">
+                                          {/* Vehicle Type */}
+                                          <div className="col-span-1">
+                                            <FormLabel className="text-xs">Vehicle Type</FormLabel>
+                                            <Select
+                                              disabled={loading}
+                                              value={td.vehicleTypeId || ''}
+                                              onValueChange={(newVal) => {
+                                                const updated = [...value];
+                                                const tds = [...(updated[index].transportDetails || [])];
+                                                tds[tdIndex] = { ...tds[tdIndex], vehicleTypeId: newVal };
+                                                updated[index] = { ...updated[index], transportDetails: tds };
+                                                onChange(updated);
+                                              }}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Select vehicle" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {vehicleTypes.map(v => (
+                                                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          {/* Transport Type */}
+                                          <div className="col-span-1">
+                                            <FormLabel className="text-xs">Transport Type</FormLabel>
+                                            <Input
+                                              disabled={loading}
+                                              placeholder="e.g. Sedan / Bus / Transfer"
+                                              value={td.transportType || ''}
+                                              onChange={(e) => {
+                                                const updated = [...value];
+                                                const tds = [...(updated[index].transportDetails || [])];
+                                                tds[tdIndex] = { ...tds[tdIndex], transportType: e.target.value };
+                                                updated[index] = { ...updated[index], transportDetails: tds };
+                                                onChange(updated);
+                                              }}
+                                            />
+                                          </div>
+                                          {/* Quantity */}
+                                          <div className="col-span-1">
+                                            <FormLabel className="text-xs">Quantity</FormLabel>
+                                            <Input
+                                              type="number"
+                                              disabled={loading}
+                                              value={td.quantity ?? ''}
+                                              onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                const updated = [...value];
+                                                const tds = [...(updated[index].transportDetails || [])];
+                                                tds[tdIndex] = { ...tds[tdIndex], quantity: val };
+                                                updated[index] = { ...updated[index], transportDetails: tds };
+                                                onChange(updated);
+                                              }}
+                                            />
+                                          </div>
+                                          {/* Description */}
+                                          <div className="col-span-1">
+                                            <FormLabel className="text-xs">Description</FormLabel>
+                                            <Input
+                                              disabled={loading}
+                                              placeholder="Notes"
+                                              value={td.description || ''}
+                                              onChange={(e) => {
+                                                const updated = [...value];
+                                                const tds = [...(updated[index].transportDetails || [])];
+                                                tds[tdIndex] = { ...tds[tdIndex], description: e.target.value };
+                                                updated[index] = { ...updated[index], transportDetails: tds };
+                                                onChange(updated);
+                                              }}
+                                            />
+                                          </div>
+                                          <div className="col-span-4 flex justify-end">
+                                            <Button
+                                              type="button"
+                                              variant="destructive"
+                                              size="sm"
+                                              onClick={() => {
+                                                const updated = [...value];
+                                                const tds = [...(updated[index].transportDetails || [])];
+                                                updated[index].transportDetails = tds.filter((_: any, i: number) => i !== tdIndex);
+                                                onChange(updated);
+                                              }}
+                                            >
+                                              Remove
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => {
+                                          const updated = [...value];
+                                          const tds = [...(updated[index].transportDetails || [])];
+                                          tds.push({ vehicleTypeId: '', transportType: '', quantity: 1, description: '' });
+                                          updated[index] = { ...updated[index], transportDetails: tds };
+                                          onChange(updated);
+                                        }}
+                                      >
+                                        Add Transport Detail
+                                      </Button>
+                                    </div>
+
 
                                     <FormItem className="flex flex-col items-start space-y-3 rounded-md border p-4">
                                       <FormLabel>Meal Plan</FormLabel>
@@ -1645,7 +1815,9 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                               hotelId: '',
                               numberofRooms: '',
                               roomCategory: '',
-                              locationId: form.getValues('locationId') || ''
+                                          locationId: form.getValues('locationId') || '',
+                                          roomAllocations: [],
+                                          transportDetails: [],
                             }])}
                           >
                             <Plus className="h-4 w-4 mr-2" />
@@ -1654,6 +1826,26 @@ export const TourPackageQueryFromTourPackageForm: React.FC<TourPackageQueryFromT
                         </div>
                       </FormItem>
                     )}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="hotels" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Hotels</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <HotelsTab
+                    control={form.control as any}
+                    form={form as any}
+                    loading={loading || lookupLoading}
+                    hotels={hotels as any}
+                    roomTypes={roomTypes}
+                    occupancyTypes={occupancyTypes}
+                    mealPlans={mealPlans}
+                    vehicleTypes={vehicleTypes}
                   />
                 </CardContent>
               </Card>

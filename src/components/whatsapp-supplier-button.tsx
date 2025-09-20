@@ -170,44 +170,17 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
     setSupplierDropdownOpen(false);
   };
 
-  // Fetch and populate message template with complete inquiry data
-  useEffect(() => {
-    if (open && inquiryData) {
-      
-      // If we have complete data, use it directly
-      if (inquiryData.numAdults !== undefined && inquiryData.numAdults !== 0) {
-        populateMessageFromData(inquiryData);
-      } else {
-        // Fetch complete inquiry data from API
-        fetchCompleteInquiryData(inquiryData.id);
-      }
-    }
-  }, [open, inquiryData]);
 
-  const fetchCompleteInquiryData = async (inquiryId: string) => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/inquiries/${inquiryId}`);
-      if (response.ok) {
-        const completeData = await response.json();
-        populateMessageFromData(completeData);
-      } else {
-        populateMessageFromData(inquiryData); // Fallback to basic data
-      }
-    } catch (error) {
-      populateMessageFromData(inquiryData); // Fallback to basic data
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // ...other hooks and functions...
 
+
+  // --- Move these functions above the useEffect to fix hoisting ---
   const populateMessageFromData = (data: any) => {
     // Build a clean travelers string, skipping zero counts and handling plurals
     const parts: string[] = [];
     const adults = Number(data.numAdults || 0);
     const kids511 = Number(data.numChildren5to11 || 0);
     const kidsBelow5 = Number(data.numChildrenBelow5 || 0);
-
 
     if (adults > 0) parts.push(`${adults} Adult${adults === 1 ? '' : 's'}`);
     if (kids511 > 0) parts.push(`${kids511} Child${kids511 === 1 ? '' : 'ren'} (5-11)`);
@@ -250,6 +223,37 @@ export const WhatsAppSupplierButton: React.FC<WhatsAppSupplierButtonProps> = ({
       .replace('{{remarks}}', remarks);
     setMessage(populatedMessage);
   };
+
+  const fetchCompleteInquiryData = React.useCallback(async (inquiryId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/inquiries/${inquiryId}`);
+      if (response.ok) {
+        const completeData = await response.json();
+        populateMessageFromData(completeData);
+      } else {
+        populateMessageFromData(inquiryData); // Fallback to basic data
+      }
+    } catch (error) {
+      populateMessageFromData(inquiryData); // Fallback to basic data
+    } finally {
+      setIsLoading(false);
+    }
+  }, [inquiryData]);
+
+  // Fetch and populate message template with complete inquiry data
+  useEffect(() => {
+    if (open && inquiryData) {
+      // If we have complete data, use it directly
+      if (inquiryData.numAdults !== undefined && inquiryData.numAdults !== 0) {
+        populateMessageFromData(inquiryData);
+      } else {
+        // Fetch complete inquiry data from API
+        fetchCompleteInquiryData(inquiryData.id);
+      }
+    }
+  }, [open, inquiryData, fetchCompleteInquiryData]);
+
 
   // Format phone number for WhatsApp (remove any non-digits and ensure it starts with country code)
   const formatPhoneForWhatsApp = (phone: string): string => {

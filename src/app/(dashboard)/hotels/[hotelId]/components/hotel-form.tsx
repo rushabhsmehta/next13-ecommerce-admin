@@ -108,6 +108,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({
 
   // Watch for location changes
   const watchedLocationId = form.watch('locationId');
+
   React.useEffect(() => {
     if (watchedLocationId) {
       fetchDestinations(watchedLocationId);
@@ -115,14 +116,14 @@ export const HotelForm: React.FC<HotelFormProps> = ({
       setDestinations([]);
       form.setValue('destinationId', '');
     }
-  }, [watchedLocationId]);
+  }, [watchedLocationId, form]);
 
   // Load initial destinations if editing
   React.useEffect(() => {
     if (initialData?.locationId) {
       fetchDestinations(initialData.locationId);
     }
-  }, []);
+  }, [initialData?.locationId]);
 
   const onSubmit = async (data: HotelFormValues) => {
     try {

@@ -180,9 +180,11 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
   });
 
   // Fetch linkable TDS transactions when customer/payment context changes
+  const watchedCustomerId = form.watch('customerId');
+  const watchedReceiptType = form.watch('receiptType');
   useEffect(() => {
-    const receiptType = form.watch('receiptType');
-    const customerId = form.watch('customerId');
+    const receiptType = watchedReceiptType;
+    const customerId = watchedCustomerId;
     if(receiptType==='customer_payment' && customerId) {
       (async()=>{
         try{
@@ -193,7 +195,7 @@ export const ReceiptFormDialog: React.FC<ReceiptFormProps> = ({
     } else {
       setLinkableTds([]);
     }
-  }, [form.watch('customerId'), form.watch('receiptType')]);
+  }, [watchedCustomerId, watchedReceiptType]);
 
   // Clear TDS fields if TDS disabled
   useEffect(()=>{

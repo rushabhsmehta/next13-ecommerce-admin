@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Activity,
@@ -103,7 +103,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     companyInfo[selectedOption] ?? companyInfo["Empty"];
 
   // Aagam Holidays Brand Colors (based on their logo)
-  const brandColors = {
+  const brandColors = useMemo(() => ({
     primary: "#DC2626", // Red from logo
     secondary: "#EA580C", // Orange from logo  
     accent: "#F97316", // Bright orange
@@ -120,16 +120,16 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   tableHeaderBg: "#FFF3EC", // table header background aligned with warm palette
   slateText: "#374151", // darker text variant
   softDivider: "#F5E8E5" // soft divider line
-  };
+  }), []);
 
   // Brand Gradients for cleaner look
-  const brandGradients = {
+  const brandGradients = useMemo(() => ({
     primary: `linear-gradient(135deg, ${brandColors.primary} 0%, ${brandColors.secondary} 100%)`,
     secondary: `linear-gradient(135deg, ${brandColors.secondary} 0%, ${brandColors.accent} 100%)`,
     light: `linear-gradient(135deg, ${brandColors.light} 0%, ${brandColors.lightOrange} 100%)`,
     subtle: `linear-gradient(135deg, ${brandColors.white} 0%, ${brandColors.lightOrange} 100%)`,
     accent: `linear-gradient(135deg, ${brandColors.lightOrange} 0%, ${brandColors.light} 100%)`
-  };
+  }), [brandColors]);
 
   // --- Clean, Professional Styles with Aagam Holidays Branding ---
   const pageStyle = `
@@ -287,15 +287,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   `;
 
   // Policy parsing helpers aligned with display component
-  const extractText = (obj: any): string => {
+  const extractText = useCallback((obj: any): string => {
     if (!obj) return '';
     for (const k of ['text','value','description','label','name']) {
       if (obj[k]) return String(obj[k]);
     }
     return String(obj);
-  };
+  }, []);
 
-  const parsePolicyField = (field: any): string[] => {
+  const parsePolicyField = useCallback((field: any): string[] => {
     if (!field) return [];
     try {
       if (typeof field === 'string') {
@@ -323,7 +323,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     } catch {
       return [];
     }
-  };
+  }, [extractText]);
 
   // --- Build HTML content ---
   const buildHtmlContent = useCallback((): string => {
@@ -1209,7 +1209,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, hotels, selectedOption, preparedBy]);
+  }, [initialData, currentCompany, locations, hotels, selectedOption, preparedBy, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, tableCellStyle, tableHeaderStyle, tableStyle]);
   // --- Function to generate the PDF via the API ---
   const generatePDF = useCallback(async () => {
     setLoading(true);
@@ -1347,7 +1347,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       alert("An error occurred while generating the PDF.");
     } finally {      setLoading(false);
     }
-  }, [initialData, buildHtmlContent]);
+  }, [initialData, buildHtmlContent, currentCompany, selectedOption]);
 
     useEffect(() => {
     if (initialData) {

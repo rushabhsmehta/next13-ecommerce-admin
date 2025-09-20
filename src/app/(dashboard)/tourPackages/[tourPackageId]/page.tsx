@@ -24,8 +24,6 @@ const tourPackagePage = async ({
       itineraries: {
         include: {
           itineraryImages: true,
-          roomAllocations: true,
-          transportDetails: true,
           activities:
           {
             include:

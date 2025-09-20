@@ -53,6 +53,14 @@ type CompanyInfo = {
     phone?: string;
     email?: string;
     website?: string;
+    social?: {
+      facebook?: string;
+      instagram?: string;
+      twitter?: string;
+      linkedin?: string;
+      youtube?: string;
+      whatsapp?: string;
+    }
   };
 };
 
@@ -67,6 +75,14 @@ const companyInfo: CompanyInfo = {
     phone: "+91-97244 44701",
     email: "info@aagamholidays.com",
     website: "https://aagamholidays.com",
+    social: {
+      facebook: "https://www.facebook.com/aagamholidays",
+      instagram: "https://www.instagram.com/aagamholidays",
+      twitter: "https://twitter.com/aagamholidays",
+      linkedin: "https://www.linkedin.com/company/aagamholidays",
+      youtube: "https://www.youtube.com/@aagamholidays",
+      whatsapp: "https://wa.me/919724444701"
+    }
   },
   KH: {
     logo: "https://next13-ecommerce-admin-zeta.vercel.app/kobawala.png",
@@ -76,6 +92,11 @@ const companyInfo: CompanyInfo = {
     phone: "+91-99040 35277",
     email: "kobawala.holiday@gmail.com",
     website: "http://kobawalaholidays.com",
+    social: {
+      facebook: "https://www.facebook.com/kobawalaholidays",
+      instagram: "https://www.instagram.com/kobawalaholidays",
+      twitter: "https://twitter.com/kobawalaholidays"
+    }
   },
   MT: {
     logo: "https://next13-ecommerce-admin-zeta.vercel.app/mahavirtravels.png",
@@ -84,6 +105,10 @@ const companyInfo: CompanyInfo = {
     phone: "+91-97244 44701",
     email: "info@aagamholidays.com",
     website: "https://mahavirtravels.com",
+    social: {
+      facebook: "https://www.facebook.com/mahavirtravels",
+      instagram: "https://www.instagram.com/mahavirtravels"
+    }
   },
 };
 
@@ -131,6 +156,48 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     accent: `linear-gradient(135deg, ${brandColors.lightOrange} 0%, ${brandColors.light} 100%)`
   }), [brandColors]);
 
+  // Shared building-block styles (kept as strings for HTML templates)
+  const containerStyle = useMemo(() => `
+    max-width: 820px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+    color: ${brandColors.text};
+    font-size: 14px;
+  `, [brandColors.text]);
+
+  const cardStyle = useMemo(() => `
+    background: ${brandColors.white};
+    border: 1px solid ${brandColors.border};
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  `, [brandColors.white, brandColors.border]);
+
+  const headerStyleAlt = useMemo(() => `
+    background: ${brandColors.tableHeaderBg};
+    border-bottom: 1px solid ${brandColors.border};
+    padding: 12px 16px;
+  `, [brandColors.tableHeaderBg, brandColors.border]);
+
+  const contentStyle = useMemo(() => `
+    padding: 16px;
+  `, []);
+
+  const sectionTitleStyle = useMemo(() => `
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: ${brandColors.text};
+  `, [brandColors.text]);
+
+  const priceCardStyle = useMemo(() => `
+    background: ${brandColors.subtlePanel};
+    border: 1px solid ${brandColors.border};
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 8px;
+  `, [brandColors.subtlePanel, brandColors.border]);
+
   // --- Clean, Professional Styles with Aagam Holidays Branding ---
   const pageStyle = `
     @media print {
@@ -147,91 +214,6 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
       display: block;
       margin: 0 0 12px 0;
     }
-    .itinerary-static-header .inner {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    /* Force the itinerary header to start on its own page so it only appears where itineraries begin */
-    .itinerary-static-header { page-break-before: always; break-before: page; }
-  `;
-
-  const containerStyle = `
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-    background: #f7f8fa;
-    padding: 24px; 
-    max-width: 1200px; 
-    margin: auto;
-    line-height: 1.6;
-    color: ${brandColors.text};
-  `;
-  
-  // Card style with subtle gradient border matching brand colors
-  const cardStyle = `
-    background: linear-gradient(#ffffff,#ffffff) padding-box, ${brandGradients.primary} border-box;
-    border: 1px solid transparent; 
-    border-radius: 8px; 
-    margin-bottom: 16px; 
-    overflow: hidden; 
-    page-break-inside: avoid; 
-    break-inside: avoid;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  `;
-  
-  const headerStyle = `
-    padding: 20px; 
-    text-align: center;
-    border-bottom: 1px solid ${brandColors.border};
-  `;
-  
-  const headerStyleAlt = `
-    padding: 12px 16px; 
-    background: #f9fafb;
-    border-bottom: 1px solid ${brandColors.border};
-  `;
-  
-  const contentStyle = `
-    padding: 16px; 
-    background: ${brandColors.white}; 
-    color: ${brandColors.text}; 
-    font-size: 14px;
-    line-height: 1.5;
-  `;
-  
-  const sectionTitleStyle = `
-    font-size: 16px; 
-    font-weight: 600; 
-    margin: 0;
-    color: ${brandColors.text};
-  `;
-  
-  const subTitleStyle = `
-    font-size: 14px; 
-    font-weight: 600; 
-    margin-right: 8px;
-    color: ${brandColors.text};
-    display: inline-block;
-  `;
-  
-  const textStyle = `
-    font-size: 14px; 
-    color: ${brandColors.muted};
-    font-weight: 400;
-  `;
-
-  const accentCardStyle = `
-    background: ${brandColors.lightOrange};
-    border: 1px solid ${brandColors.accent};
-    border-radius: 4px;
-    padding: 12px;
-    margin: 8px 0;
-  `;
-
-  const priceCardStyle = `
-    background: ${brandColors.light};
-    border: 1px solid ${brandColors.secondary};
-    border-radius: 4px;
-    padding: 16px;
-    margin: 16px 0;
   `;
 
   const tableStyle = `
@@ -1219,14 +1201,21 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
   const footerHtml = (() => {
       const c = currentCompany;
       const showBrand = selectedOption !== "Empty";
+      const isAagam = selectedOption === "AH";
       
-      // Social links for Aagam Holidays
-      const social = {
-        facebook: "https://www.facebook.com/aagamholidays",
-        instagram: "https://www.instagram.com/aagamholidays",
-        twitter: "https://twitter.com/aagamholidays",
-        website: "aagamholidays.com"
-      };
+      // Only allow socials for Aagam Holidays (AH)
+      const social = isAagam ? {
+        facebook: c.social?.facebook,
+        instagram: c.social?.instagram,
+        twitter: c.social?.twitter,
+      } as const : {
+        facebook: undefined,
+        instagram: undefined,
+        twitter: undefined,
+      } as const;
+
+      const websiteUrl = c.website || "https://aagamholidays.com";
+      const websiteLabel = websiteUrl.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
 
       // Enhanced footer with proper Aagam Holidays branding
       if (!showBrand) {
@@ -1283,24 +1272,30 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             <!-- Bottom Row: Social Media & Tagline -->
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
-                ${c.website ? `
-                  <a href="https://${social.website}" target="_blank" style="font-size: 8px; text-decoration: none; display: flex; align-items: center; gap: 2px; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                ${websiteUrl ? `
+                  <a href="${websiteUrl}" target="_blank" style="font-size: 8px; text-decoration: none; display: flex; align-items: center; gap: 2px; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
                     <span style="color: #ea580c; font-size: 9px;">🌐</span>
-                    <span style="font-weight: 600; color: #7c2d12;">${social.website}</span>
+                    <span style="font-weight: 600; color: #7c2d12;">${websiteLabel}</span>
                   </a>
                 ` : ''}
-                <a href="${social.facebook}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-                  <span style="font-size: 8px; color: #3b5998; font-weight: 600;">aagamholidays</span>
-                </a>
-                <a href="${social.instagram}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="url(#insta-gradient)"><defs><radialGradient id="insta-gradient" cx="0.3" cy="1" r="1"><stop offset="0" stop-color="#FFD600"/><stop offset="0.5" stop-color="#FF7A00"/><stop offset="1" stop-color="#D62976"/></radialGradient></defs><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163m0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.28.072-1.689.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.88 1.44 1.44 0 000-2.88z"/></svg>
-                  <span style="font-size: 8px; color: #7c2d12; font-weight: 600;">@aagamholidays</span>
-                </a>
-                <a href="${social.twitter}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
-                  <span style="font-size: 8px; color: #1da1f2; font-weight: 600;">@aagamholidays</span>
-                </a>
+                ${social.facebook ? `
+                  <a href="${social.facebook}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    <span style="font-size: 8px; color: #3b5998; font-weight: 600;">Facebook</span>
+                  </a>
+                ` : ''}
+                ${social.instagram ? `
+                  <a href="${social.instagram}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="url(#insta-gradient)"><defs><radialGradient id="insta-gradient" cx="0.3" cy="1" r="1"><stop offset="0" stop-color="#FFD600"/><stop offset="0.5" stop-color="#FF7A00"/><stop offset="1" stop-color="#D62976"/></radialGradient></defs><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163m0-2.163C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.058-1.28.072-1.689.072-4.947s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.88 1.44 1.44 0 000-2.88z"/></svg>
+                    <span style="font-size: 8px; color: #7c2d12; font-weight: 600;">Instagram</span>
+                  </a>
+                ` : ''}
+                ${social.twitter ? `
+                  <a href="${social.twitter}" target="_blank" style="display: flex; align-items: center; gap: 3px; text-decoration: none; padding: 2px 5px; background: #fff; border-radius: 4px; border: 1px solid #fed7aa;">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                    <span style="font-size: 8px; color: #1da1f2; font-weight: 600;">Twitter</span>
+                  </a>
+                ` : ''}
               </div>
               <div style="text-align: right; flex-shrink: 0;">
                 <div style="font-size: 7px; color: #7c2d12; font-style: italic; font-weight: 500;">Making your dream destinations come true...</div>
@@ -1349,23 +1344,22 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     }
   }, [initialData, buildHtmlContent, currentCompany, selectedOption]);
 
-    useEffect(() => {
-    if (initialData) {
-        // Fetch latest CREATE audit log for prepared by
-        (async () => {
-          try {
-            const res = await fetch(`/api/audit-logs?entityId=${initialData.id}&entityType=TourPackageQuery&action=CREATE&limit=1`);
-            if (res.ok) {
-              const data = await res.json();
-              const log = data.auditLogs?.[0];
-              if (log) setPreparedBy({ name: log.userName, email: log.userEmail });
-            }
-          } catch {}
-        })();
-        
-        // Generate and download PDF automatically
-        generatePDF();
-    }
+  useEffect(() => {
+    if (!initialData) return;
+    // Fetch latest CREATE audit log for prepared by
+    (async () => {
+      try {
+        const res = await fetch(`/api/audit-logs?entityId=${initialData.id}&entityType=TourPackageQuery&action=CREATE&limit=1`);
+        if (res.ok) {
+          const data = await res.json();
+          const log = data.auditLogs?.[0];
+          if (log) setPreparedBy({ name: log.userName, email: log.userEmail });
+        }
+      } catch {}
+    })();
+
+    // Generate and download PDF automatically
+    generatePDF();
   }, [initialData, generatePDF]);
 
   if (!initialData) return <div>No data available</div>;

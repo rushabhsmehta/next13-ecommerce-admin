@@ -132,6 +132,48 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
               <Copy className="h-3.5 w-3.5" /> Copy First Day Hotel
             </Button>
           )}
+          {itineraries.length > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs flex items-center gap-1 border-emerald-400/40 hover:bg-emerald-50"
+              onClick={() => {
+                try {
+                  if (itineraries.length <= 1) return;
+                  const first = itineraries[0];
+                  const roomsSource = Array.isArray(first?.roomAllocations) ? first.roomAllocations : [];
+                  const transportSource = Array.isArray(first?.transportDetails) ? first.transportDetails : [];
+                  if (!roomsSource.length && !transportSource.length) {
+                    alert('No room allocations or transport details found on Day 1');
+                    return;
+                  }
+                  const roomsCloned = roomsSource.map((r: any) => ({ ...r }));
+                  const transportCloned = transportSource.map((t: any) => ({ ...t }));
+                  const updated = itineraries.map((it: any, idx: number) => {
+                    if (idx === 0) return it;
+                    const next: any = { ...it };
+                    if (roomsCloned.length) {
+                      next.roomAllocations = roomsCloned.map((r: any) => ({ ...r }));
+                    }
+                    if (transportCloned.length) {
+                      next.transportDetails = transportCloned.map((t: any) => ({ ...t }));
+                    }
+                    return next;
+                  });
+                  form.setValue('itineraries', updated);
+                  const parts: string[] = [];
+                  if (roomsCloned.length) parts.push('room allocations');
+                  if (transportCloned.length) parts.push('transport details');
+                  alert(`${parts.join(' and ')} from Day 1 copied to all days`);
+                } catch (e) {
+                  console.error('Copy rooms/transport failed', e);
+                }
+              }}
+            >
+              <BedDouble className="h-3.5 w-3.5" /> Copy First Day Rooms + Transport
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"

@@ -72,6 +72,23 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
     form.setValue(`itineraries.${itineraryIndex}.roomAllocations`, newAllocations);
   };
 
+  const addTransportDetail = (itineraryIndex: number) => {
+    const currentItineraries = form.getValues('itineraries');
+    const targetItinerary = currentItineraries[itineraryIndex];
+    const newItems = [
+      ...(targetItinerary.transportDetails || []),
+      { vehicleTypeId: '', transportType: '', quantity: 1, description: '' }
+    ];
+    form.setValue(`itineraries.${itineraryIndex}.transportDetails`, newItems);
+  };
+
+  const removeTransportDetail = (itineraryIndex: number, tIndex: number) => {
+    const currentItineraries = form.getValues('itineraries');
+    const targetItinerary = currentItineraries[itineraryIndex];
+    const newItems = (targetItinerary.transportDetails || []).filter((_: any, i: number) => i !== tIndex);
+    form.setValue(`itineraries.${itineraryIndex}.transportDetails`, newItems);
+  };
+
   return (
     <div className="space-y-5">
       {/* Overview */}
@@ -383,6 +400,78 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                     ))}
                     <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
                       <Plus className="h-4 w-4 mr-1" /> Add Room
+                    </Button>
+                  </CardContent>
+                </Card>
+                )}
+
+                {vehicleTypes && (
+                <Card>
+                  <CardHeader className="pb-3 border-b bg-gradient-to-r from-sky-100 via-sky-50 to-transparent rounded-t-md">
+                    <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Car className="h-4 w-4 text-sky-600" />Transport Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-4">
+                    {(it.transportDetails || []).map((tr: any, tIndex: number) => (
+                      <Card key={tIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
+                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
+                          <CardTitle className="text-xs font-medium flex items-center gap-1"><Car className="h-3.5 w-3.5 text-sky-600" />Transport {tIndex + 1}</CardTitle>
+                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={loading} onClick={()=> removeTransportDetail(index, tIndex)}>
+                            <Trash className="h-3.5 w-3.5" />
+                          </Button>
+                        </CardHeader>
+                        <CardContent className="pt-3 space-y-3">
+                          <div className="grid gap-3 md:grid-cols-4">
+                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.vehicleTypeId` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Vehicle Type</FormLabel>
+                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                    <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vehicle" /></SelectTrigger></FormControl>
+                                    <SelectContent>{vehicleTypes.map(v=> <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.transportType` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Transport Type</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="e.g. AC, Non-AC" className="h-8 text-xs" {...field} disabled={loading} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.quantity` as any}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField control={control as any} name={`itineraries.${index}.transportDetails.${tIndex}.description` as any}
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-1">
+                                  <FormLabel className="text-[10px] uppercase tracking-wide">Description</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Notes" className="h-8 text-xs" {...field} disabled={loading} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
+                      <Plus className="h-4 w-4 mr-1" /> Add Transport
                     </Button>
                   </CardContent>
                 </Card>

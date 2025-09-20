@@ -3,6 +3,10 @@ import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 import { requireFinanceOrAdmin } from '@/lib/authz';
 
+// This route reads auth headers and must not be statically optimized
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: Request) {
   try {
     const { userId } = auth();

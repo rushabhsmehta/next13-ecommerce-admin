@@ -3,6 +3,10 @@ import { auth } from '@clerk/nextjs';
 import prismadb from '@/lib/prismadb';
 import { requireFinanceOrAdmin } from '@/lib/authz';
 
+// This route depends on auth headers and dynamic filters
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // List/filter TDS transactions (for challan selection, reporting)
 export async function GET(req: Request) {
   try {

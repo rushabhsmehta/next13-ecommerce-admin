@@ -278,7 +278,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         setLoading(false);
       }
     })();
-  }, [isOpen, inquiryId]);
+  }, [isOpen, inquiryId, addLog]);
   const getOccupancyMultiplier = (componentName: string): number => {
     const name = componentName.toLowerCase();
     
@@ -1484,7 +1484,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {(form.watch('transportDetails') || []).length === 0 && (
-                      <p className="text-sm text-muted-foreground">No transport added. Use "Add Transport" to include vehicle requirements.</p>
+                      <p className="text-sm text-muted-foreground">No transport added. Use &quot;Add Transport&quot; to include vehicle requirements.</p>
                     )}
                     {(form.watch('transportDetails') || []).map((_, index) => (
                       <div key={index} className="border rounded-md p-3 space-y-3">

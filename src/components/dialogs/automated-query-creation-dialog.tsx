@@ -893,7 +893,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         selectedTemplateType: 'TourPackage',
   selectedMealPlanId: formData.mealPlanId,
         numAdults: inquiry.numAdults.toString(),
-        numChild5to12: (inquiry.numChildrenAbove11 || 0).toString(),
+    numChild5to12: (inquiry.numChildren5to11 || 0).toString(),
         numChild0to5: (inquiry.numChildrenBelow5 || 0).toString(),
   // Only include totalPrice if we calculated it; otherwise omit
   ...(calculatedPrice !== null ? { totalPrice: calculatedPrice.toString() } : {}),
@@ -1100,7 +1100,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
               <div className="flex items-center gap-2 text-slate-700">
                 <BedDouble className="h-4 w-4 text-orange-600" />
                 <span>{inquiry.numAdults} adult{Number(inquiry.numAdults) > 1 ? 's' : ''}</span>
-                <span className="text-slate-500">• {inquiry.numChildrenAbove11 || 0} child (5–11)</span>
+                <span className="text-slate-500">• {inquiry.numChildren5to11 || 0} child (5–11)</span>
                 <span className="text-slate-500">• {inquiry.numChildrenBelow5 || 0} child (0–5)</span>
               </div>
               {inquiry.pickupLocation || inquiry.dropLocation ? (
@@ -1360,7 +1360,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <Badge variant="secondary" className="text-[11px]">Total Rooms: {form.getValues('roomAllocations').reduce((s, a) => s + (a.quantity || 1), 0)}</Badge>
-                      <span className="hidden md:inline text-[11px] text-gray-500">Guests: {inquiry.numAdults}A • {(inquiry.numChildrenAbove11||0)}C(5–11) • {(inquiry.numChildrenBelow5||0)}C(0–5)</span>
+                      <span className="hidden md:inline text-[11px] text-gray-500">Guests: {inquiry.numAdults}A • {(inquiry.numChildren5to11||0)}C(5–11) • {(inquiry.numChildrenBelow5||0)}C(0–5)</span>
                     </div>
                   </div>
                   <Button type="button" onClick={addRoomAllocation} size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
@@ -1711,7 +1711,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     <CardContent className="space-y-2 text-sm py-3 px-3">
                       <p><strong>Customer:</strong> {inquiry.customerName}</p>
                       <p><strong>Adults:</strong> {inquiry.numAdults}</p>
-                      <p><strong>Children (5-11):</strong> {inquiry.numChildrenAbove11 || 0}</p>
+                      <p><strong>Children (5-11):</strong> {inquiry.numChildren5to11 || 0}</p>
                       <p><strong>Children (0-5):</strong> {inquiry.numChildrenBelow5 || 0}</p>
                       <p><strong>Journey Date:</strong> {inquiry.journeyDate ? new Date(inquiry.journeyDate).toLocaleDateString() : 'Not specified'}</p>
                     </CardContent>

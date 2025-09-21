@@ -203,7 +203,8 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     @media print {
       @page {
         size: A4;
-        margin: 64px 14px;
+        /* Align with runtime PDF margins to prevent footer overlap */
+        margin: 72px 14px 140px 14px;
       }
     }
   `;
@@ -587,15 +588,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         `).join('');
 
         dynamicPricingSection = `
-          <div style="${cardStyle};">
+          <div style="${cardStyle}; page-break-inside: avoid; break-inside: avoid-page;">
             <div style="${headerStyleAlt};">
               <h3 style="${sectionTitleStyle};">
                 Detailed Pricing Breakdown
               </h3>
             </div>
-            <div style="${contentStyle};">
+            <div style="${contentStyle}; page-break-inside: avoid; break-inside: avoid-page;">
               ${pricingItems}
-              <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center;">
+              <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 4px; padding: 12px; margin-top: 12px; text-align: center; page-break-inside: avoid; break-inside: avoid-page;">
                 <div style="font-size: 12px; color: #ea580c; font-weight: 600;">
                   * All prices are subject to availability & taxes. + 5% GST applicable.
                 </div>
@@ -1013,7 +1014,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           ${(inclusionsArr.length || exclusionsArr.length) ? `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               ${inclusionsArr.length ? `
-                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; overflow: hidden;">
+                <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); padding: 12px; border-bottom: 1px solid #fed7aa;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">✓</span>
@@ -1027,7 +1028,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               ` : ''}
               
               ${exclusionsArr.length ? `
-                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; overflow: hidden;">
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 12px; border-bottom: 1px solid #fecaca;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">✗</span>
@@ -1045,7 +1046,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           ${(kitchenArr.length || usefulTipsArr.length) ? `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               ${kitchenArr.length ? `
-                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); padding: 12px; border-bottom: 1px solid #c4b5fd;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">🍽️</span>
@@ -1059,7 +1060,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               ` : ''}
               
               ${usefulTipsArr.length ? `
-                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; overflow: hidden;">
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 12px; border-bottom: 1px solid #a7f3d0;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">�</span>
@@ -1078,7 +1079,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           ${(importantArr.length || paymentArr.length) ? `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               ${importantArr.length ? `
-                <div style="background: #fefdf8; border: 1px solid #fde68a; border-radius: 8px; overflow: hidden;">
+                <div style="background: #fefdf8; border: 1px solid #fde68a; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 12px; border-bottom: 1px solid #fde68a;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">⚠</span>
@@ -1092,7 +1093,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               ` : ''}
               
               ${paymentArr.length ? `
-                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 12px; border-bottom: 1px solid #bbf7d0;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">💳</span>
@@ -1111,7 +1112,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
           ${(cancelArr.length || airlineCancelArr.length) ? `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               ${cancelArr.length ? `
-                <div style="background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; overflow: hidden;">
+                <div style="background: #fdf2f8; border: 1px solid #f9a8d4; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #be185d 0%, #9d174d 100%); padding: 12px; border-bottom: 1px solid #f9a8d4;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">📅</span>
@@ -1125,7 +1126,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
               ` : ''}
               
               ${airlineCancelArr.length ? `
-                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; overflow: hidden;">
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                   <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 12px; border-bottom: 1px solid #bae6fd;">
                     <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                       <span style="margin-right: 8px;">✈️</span>
@@ -1314,7 +1315,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
         body: JSON.stringify({
           htmlContent,
           footerHtml,
-          margin: { top: "72px", bottom: "110px", left: "14px", right: "14px" },
+          margin: { top: "72px", bottom: "140px", left: "14px", right: "14px" },
           scale: 0.88,
         }),
       });

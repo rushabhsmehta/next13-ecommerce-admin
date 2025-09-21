@@ -788,7 +788,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
     ) {
   // Clean Itinerary header
       itinerariesSection += `
-    <div style="${cardStyle};">
+    <div style="${cardStyle}; ${pageBreakBefore}">
       <div style="${headerStyleAlt}; text-align: center;">
         <h2 style="${sectionTitleStyle}">
           Travel Itinerary
@@ -1143,15 +1143,15 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
 
           <!-- Fifth Row: Terms and Conditions (Full Width) -->
           ${termsArr.length ? `
-            <div style="margin-bottom: 20px;">
-              <div style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+            <div style="margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid-page;">
+              <div style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid-page;">
                 <div style="background: linear-gradient(135deg, #374151 0%, #1f2937 100%); padding: 12px; border-bottom: 1px solid #e5e7eb;">
                   <h3 style="color: white; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center;">
                     <span style="margin-right: 8px;">📋</span>
                     Terms and Conditions
                   </h3>
                 </div>
-                <div style="padding: 16px;">
+                <div style="padding: 16px; page-break-inside: avoid; break-inside: avoid-page;">
                   ${renderBulletList(termsArr)}
                 </div>
               </div>

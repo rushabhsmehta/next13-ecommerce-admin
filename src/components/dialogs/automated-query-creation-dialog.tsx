@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Package, Utensils, BedDouble, Calculator, FileDown, Check, ArrowRight, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Plus, Minus, Package, Utensils, BedDouble, Calculator, FileDown, Check, ArrowRight, ArrowLeft, AlertTriangle, User, CalendarDays, Phone, Car, Trash2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1072,16 +1072,49 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       <DialogContent className="sm:max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto p-0 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Automated Tour Package Query Creation
+            <Package className="h-5 w-5 text-orange-600" />
+            <span className="tracking-tight">Automated Tour Package Query</span>
           </DialogTitle>
-          <DialogDescription>
-            {inquiry 
-              ? `Create a tour package query from inquiry: ${inquiry.customerName}`
-              : 'Loading inquiry details...'
-            }
-          </DialogDescription>
+          <DialogDescription className="sr-only">Create a tour package query from inquiry</DialogDescription>
         </DialogHeader>
+
+        {/* Inquiry summary banner */}
+        {inquiry && (
+          <div className="mb-2 rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <div className="flex items-center gap-2 text-slate-800">
+                <User className="h-4 w-4 text-orange-600" />
+                <span className="font-medium">{inquiry.customerName}</span>
+                {inquiry.customerMobileNumber ? (
+                  <span className="inline-flex items-center gap-1 text-slate-500">
+                    <Phone className="h-3.5 w-3.5" />{inquiry.customerMobileNumber}
+                  </span>
+                ) : null}
+              </div>
+              <span className="hidden sm:block h-4 w-px bg-orange-200" />
+              <div className="flex items-center gap-2 text-slate-700">
+                <CalendarDays className="h-4 w-4 text-orange-600" />
+                <span>{inquiry.journeyDate ? new Date(inquiry.journeyDate).toLocaleDateString() : 'Journey date: N/A'}</span>
+              </div>
+              <span className="hidden sm:block h-4 w-px bg-orange-200" />
+              <div className="flex items-center gap-2 text-slate-700">
+                <BedDouble className="h-4 w-4 text-orange-600" />
+                <span>{inquiry.numAdults} adult{Number(inquiry.numAdults) > 1 ? 's' : ''}</span>
+                <span className="text-slate-500">• {inquiry.numChildrenAbove11 || 0} child (5–11)</span>
+                <span className="text-slate-500">• {inquiry.numChildrenBelow5 || 0} child (0–5)</span>
+              </div>
+              {inquiry.pickupLocation || inquiry.dropLocation ? (
+                <>
+                  <span className="hidden sm:block h-4 w-px bg-orange-200" />
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Car className="h-4 w-4 text-orange-600" />
+                    <span className="truncate max-w-[14rem]">{inquiry.pickupLocation || 'Pickup N/A'} → {inquiry.dropLocation || 'Drop N/A'}</span>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
 
         {/* Server Error Banner */}
         {serverError && (
@@ -1167,8 +1200,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           </div>
         ) : (
           <>
-            {/* Progress Steps */}
-            <div className="flex items-center gap-2 md:gap-3 mb-4 overflow-x-auto px-2 sm:px-0">
+            {/* Progress Steps - compact, no horizontal scroll */}
+            <div className="flex items-center gap-1 mb-3 px-2 sm:px-0 w-full">
               {stepTitles.map((title, index) => {
                 const stepNumber = index + 1;
                 const StepIcon = stepIcons[index];
@@ -1176,26 +1209,31 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 const isCompleted = currentStep > stepNumber;
 
                 return (
-                  <div key={stepNumber} className="flex items-center flex-shrink-0">
+                  <div key={stepNumber} className="flex items-center flex-shrink-0 w-auto">
                     <button
                       type="button"
                       title={title}
                       onClick={() => setCurrentStep(stepNumber)}
                       className="flex flex-col items-center focus:outline-none px-1"
                     >
-                      <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 shadow-sm ${
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-sm transition-colors ${
                         isCompleted ? 'bg-green-500 border-green-500 text-white' :
-                        isActive ? 'border-blue-500 text-blue-500' : 'border-gray-300 text-gray-300'
+                        isActive ? 'border-orange-500 text-orange-600 bg-white' : 'border-gray-200 text-gray-300 bg-white'
                       }`}>
-                        {isCompleted ? <Check className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
+                        {isCompleted ? <Check className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
                       </div>
 
-                      {/* full label on small+ screens, compact number on xs */}
-                      <span className={`hidden sm:block text-xs mt-1 text-center truncate ${isActive ? 'text-blue-600 font-medium' : 'text-gray-500'}`} style={{maxWidth: 120}}>
+                      {/* labels on md+ to save space; numbers on xs */}
+                      <span className={`hidden md:block text-[11px] leading-tight mt-1 text-center truncate ${isActive ? 'text-orange-700 font-medium' : 'text-gray-500'}`} style={{maxWidth: 110}}>
                         {title}
                       </span>
-                      <span className={`sm:hidden text-[10px] mt-1 ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>{stepNumber}</span>
+                      <span className={`sm:hidden text-[10px] mt-1 ${isActive ? 'text-orange-700' : 'text-gray-400'}`}>{stepNumber}</span>
                     </button>
+
+                    {/* flexible connector fills remaining space */}
+                    {index < stepTitles.length - 1 && (
+                      <div className={`hidden sm:flex flex-1 mx-1 h-0.5 rounded ${currentStep > stepNumber ? 'bg-green-400' : 'bg-gray-200'}`} />
+                    )}
                   </div>
                 );
               })}
@@ -1249,7 +1287,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 />
 
                 {selectedTourPackage && (
-                  <Card className="shadow-sm">
+                  <Card className="shadow-sm ring-1 ring-gray-100">
                     <CardHeader>
                       <CardTitle className="text-base">Selected Package Preview</CardTitle>
                     </CardHeader>
@@ -1313,44 +1351,50 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
             {/* Step 3: Room Allocations */}
             {currentStep === 3 && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">Step 3: Configure Room Allocations</h3>
                     <p className="text-sm text-gray-600">
                       Set up room allocations based on the number of guests.
                     </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[11px]">Total Rooms: {form.getValues('roomAllocations').reduce((s, a) => s + (a.quantity || 1), 0)}</Badge>
+                      <span className="hidden md:inline text-[11px] text-gray-500">Guests: {inquiry.numAdults}A • {(inquiry.numChildrenAbove11||0)}C(5–11) • {(inquiry.numChildrenBelow5||0)}C(0–5)</span>
+                    </div>
                   </div>
-                  <Button type="button" onClick={addRoomAllocation} size="sm">
+                  <Button type="button" onClick={addRoomAllocation} size="sm" className="bg-orange-600 hover:bg-orange-700 text-white">
                     <Plus className="h-4 w-4 mr-1" />
                     Add Room
                   </Button>
                 </div>
 
         {form.watch('roomAllocations').map((_, index) => (
-      <Card key={index} className="shadow-sm">
-                    <CardHeader className="pb-3">
+      <Card key={index} className="shadow-sm ring-1 ring-gray-100">
+                    <CardHeader className="py-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">Room {index + 1}</CardTitle>
+                        <CardTitle className="text-sm">Room {index + 1}</CardTitle>
                         {form.watch('roomAllocations').length > 1 && (
                           <Button
                             type="button"
                             variant="outline"
-                            size="sm"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => removeRoomAllocation(index)}
+                            title="Remove room"
                           >
-                            <Minus className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                         <FormField
                           control={form.control}
                           name={`roomAllocations.${index}.roomTypeId`}
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="md:col-span-5">
                               <FormLabel>Room Type</FormLabel>
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
@@ -1401,7 +1445,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                           control={form.control}
                           name={`roomAllocations.${index}.occupancyTypeId`}
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="md:col-span-4">
                               <FormLabel>Occupancy Type</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
@@ -1426,7 +1470,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                           control={form.control}
                           name={`roomAllocations.${index}.quantity`}
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="md:col-span-3">
                               <FormLabel>Quantity</FormLabel>
                               <FormControl>
                                 <div className="flex items-center gap-1">
@@ -1437,7 +1481,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                       const next = Math.max(1, current - 1);
                                       field.onChange(next);
                                     }}
-                                    className="h-9 w-9 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-lg font-medium"
+                                    className="h-8 w-8 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-base font-medium"
                                     aria-label="Decrease quantity"
                                   >
                                     –
@@ -1450,7 +1494,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                       const v = parseInt(e.target.value);
                                       field.onChange(isNaN(v) || v < 1 ? 1 : v);
                                     }}
-                                    className="w-20 text-center"
+                                    className="w-16 text-center"
                                   />
                                   <button
                                     type="button"
@@ -1458,7 +1502,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                       const current = Number(field.value) || 1;
                                       field.onChange(current + 1);
                                     }}
-                                    className="h-9 w-9 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-lg font-medium"
+                                    className="h-8 w-8 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-base font-medium"
                                     aria-label="Increase quantity"
                                   >
                                     +
@@ -1475,7 +1519,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 ))}
 
                 {/* Transport Details */}
-                <Card className="shadow-sm">
+                <Card className="shadow-sm ring-1 ring-gray-100">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">Transport Details</CardTitle>
@@ -1489,9 +1533,9 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                       <p className="text-sm text-muted-foreground">No transport added. Use &quot;Add Transport&quot; to include vehicle requirements.</p>
                     )}
                     {(form.watch('transportDetails') || []).map((_, index) => (
-                      <div key={index} className="border rounded-md p-3 space-y-3">
+                      <div key={index} className="border rounded-md p-3 space-y-3 bg-orange-50/30">
                         <div className="flex items-center justify-between">
-                          <div className="text-sm font-medium">Transport {index + 1}</div>
+                          <div className="text-sm font-medium flex items-center gap-2"><Car className="h-4 w-4 text-orange-600"/>Transport {index + 1}</div>
                           <Button type="button" variant="outline" size="sm" onClick={() => removeTransportDetail(index)}>
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -1660,7 +1704,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 </p>
 
                 <div className="space-y-4">
-                  <Card className="shadow-sm">
+                  <Card className="shadow-sm ring-1 ring-gray-100">
                     <CardHeader>
                       <CardTitle className="text-base">Inquiry Summary</CardTitle>
                     </CardHeader>
@@ -1673,7 +1717,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     </CardContent>
                   </Card>
 
-                  <Card className="shadow-sm">
+                  <Card className="shadow-sm ring-1 ring-gray-100">
                     <CardHeader>
                       <CardTitle className="text-base">Selection Summary</CardTitle>
                     </CardHeader>
@@ -1740,7 +1784,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                           type="button" 
                           onClick={fetchAvailablePricingComponents} 
                           disabled={isCalculatingPrice || loading || !pricingMealPlanId || pricingNumberOfRooms <= 0} 
-                          className="w-full mb-3"
+                          className="w-full mb-3 bg-orange-600 text-white hover:bg-orange-700"
                           variant="outline"
                         >
                           <Package className="mr-2 h-4 w-4" />
@@ -1911,7 +1955,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                                   applySelectedPricingComponents();
                                 }} 
                                 disabled={selectedPricingComponentIds.length === 0}
-                                className="w-full"
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                               >
                                 <Check className="mr-2 h-4 w-4" />
                                 Apply Selected Components ({selectedPricingComponentIds.length})
@@ -1991,7 +2035,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                   Review all selections and create the tour package query.
                 </p>
 
-                <Card>
+                <Card className="ring-1 ring-gray-100">
                   <CardHeader>
                     <CardTitle className="text-base">Final Review</CardTitle>
                   </CardHeader>
@@ -2047,7 +2091,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex items-center justify-between py-3 border-t sticky bottom-0 bg-white/90 backdrop-blur-sm px-2 sm:px-0">
+            <div className="flex items-center justify-between py-2 border-t sticky bottom-0 bg-white/85 backdrop-blur-md px-2 sm:px-0">
               <Button
                 type="button"
                 variant="outline"
@@ -2065,7 +2109,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     type="button"
                     onClick={nextStep}
                     disabled={!canProceedToNextStep() || loading}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
                   >
                     Next
                     <ArrowRight className="h-4 w-4" />
@@ -2074,7 +2118,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                    <Button
                      type="submit"
                      disabled={loading || !canProceedToNextStep()}
-                     className="flex items-center gap-2 px-3 py-2"
+                     className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white"
                    >
                      {loading ? 'Creating...' : (
                        <>

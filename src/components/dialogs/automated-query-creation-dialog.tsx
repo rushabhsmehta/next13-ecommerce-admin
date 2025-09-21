@@ -48,6 +48,17 @@ const automatedQuerySchema = z.object({
     customRoomType: z.string().optional(),
     useCustomRoomType: z.boolean().default(false),
   })).min(1, "Please add at least one room allocation"),
+  // Optional transport details for the query
+  transportDetails: z.array(z.object({
+    vehicleTypeId: z.string().optional(),
+    quantity: z.number().min(1).default(1),
+    isAirportPickupRequired: z.boolean().default(false).optional(),
+    isAirportDropRequired: z.boolean().default(false).optional(),
+    pickupLocation: z.string().optional().nullable(),
+    dropLocation: z.string().optional().nullable(),
+    requirementDate: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  })).default([]).optional(),
   tourPackageQueryNumber: z.string().optional(),
 });
 
@@ -98,8 +109,14 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const [debugLog, setDebugLog] = useState<any[]>([]);
   const [showDebug, setShowDebug] = useState<boolean>(false);
   const [debugSessionId, setDebugSessionId] = useState<string>("");
+  // Refs to avoid dependency loops and repeated loads
+  const debugSessionIdRef = React.useRef<string>("");
+  const dataLoaded = React.useRef<boolean>(false);
+  const currentSessionId = React.useRef<string>("");
 
   // Helper to add structured logs (stable reference)
+  // NOTE: Keep this callback stable (no deps) and read session id from ref to avoid
+  // triggering useEffect re-runs when the session id changes.
   const addLog = React.useCallback((entry: {
     step: string;
     level?: 'info' | 'warn' | 'error';
@@ -108,7 +125,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   }) => {
     const e = {
       t: new Date().toISOString(),
-      id: debugSessionId || 'unknown',
+      id: debugSessionIdRef.current || 'unknown',
       level: entry.level || 'info',
       step: entry.step,
       msg: entry.msg || '',
@@ -120,7 +137,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     if (e.level === 'error') console.error(prefix, e.msg || '', e.data ?? '');
     else if (e.level === 'warn') console.warn(prefix, e.msg || '', e.data ?? '');
     else console.log(prefix, e.msg || '', e.data ?? '');
-  }, [debugSessionId]);
+  }, []);
 
   const copyLogsToClipboard = async () => {
     const text = debugLog.map(l => JSON.stringify(l)).join('\n');
@@ -148,6 +165,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           useCustomRoomType: false,
         }
       ],
+      transportDetails: [],
     },
   });
 
@@ -171,12 +189,47 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     return list;
   }, [form.formState.errors]);
 
-  // Fetch required data when dialog opens (inline async to avoid hoisting/deps issues)
+  // Initialize transport details from inquiry (if present) once inquiry loads
   useEffect(() => {
-    if (!isOpen) return;
+    if (!inquiry) return;
+    const existing = form.getValues('transportDetails');
+    const hasMeaningfulData = Array.isArray(existing) && existing.some(td => td?.vehicleTypeId || td?.pickupLocation || td?.dropLocation || td?.requirementDate || (td?.quantity && td.quantity > 0));
+    if (!hasMeaningfulData && Array.isArray(inquiry.transportDetails) && inquiry.transportDetails.length > 0) {
+      const mapped = inquiry.transportDetails.map((t: any) => ({
+        vehicleTypeId: t.vehicleTypeId || undefined,
+        quantity: t.quantity || 1,
+        isAirportPickupRequired: !!t.isAirportPickupRequired,
+        isAirportDropRequired: !!t.isAirportDropRequired,
+        pickupLocation: t.pickupLocation || '',
+        dropLocation: t.dropLocation || '',
+        requirementDate: t.requirementDate || undefined,
+        notes: t.notes || '',
+      }));
+      form.setValue('transportDetails', mapped);
+      addLog({ step: 'transport/initFromInquiry', data: { count: mapped.length } });
+    }
+  }, [inquiry, form, addLog]);
+
+  // Fetch required data when dialog opens (stabilized with guards to prevent loops)
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset guard when dialog closes so it can load again next time
+      dataLoaded.current = false;
+      return;
+    }
+
+    // Prevent multiple loads for the same open session
+    if (dataLoaded.current && currentSessionId.current) {
+      addLog({ step: 'fetchRequiredData/skip', msg: 'Data already loaded for this session' });
+      return;
+    }
+
     const sid = `DBG-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setDebugSessionId(sid);
+    debugSessionIdRef.current = sid;
+    currentSessionId.current = sid;
     addLog({ step: 'dialog/open', msg: 'Automated dialog opened' });
+
     (async () => {
       try {
         setLoading(true);
@@ -215,6 +268,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           occupancyTypes: occupancyTypesRes.data?.length ?? 0,
           vehicleTypes: vehicleTypesRes.data?.length ?? 0,
         }});
+        // Mark as loaded for this session
+        dataLoaded.current = true;
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load required data');
@@ -223,7 +278,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         setLoading(false);
       }
     })();
-  }, [isOpen, addLog, inquiryId]);
+  }, [isOpen, inquiryId]);
   const getOccupancyMultiplier = (componentName: string): number => {
     const name = componentName.toLowerCase();
     
@@ -719,6 +774,31 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     }
   };
 
+  // Transport details add/remove helpers
+  const addTransportDetail = () => {
+    const current = form.getValues('transportDetails') || [];
+    form.setValue('transportDetails', [
+      ...current,
+      {
+        vehicleTypeId: undefined,
+        quantity: 1,
+        isAirportPickupRequired: false,
+        isAirportDropRequired: false,
+        pickupLocation: '',
+        dropLocation: '',
+        requirementDate: undefined,
+        notes: '',
+      },
+    ]);
+    addLog({ step: 'transport/add', data: { newCount: current.length + 1 } });
+  };
+
+  const removeTransportDetail = (index: number) => {
+    const current = form.getValues('transportDetails') || [];
+    form.setValue('transportDetails', current.filter((_: any, i: number) => i !== index));
+    addLog({ step: 'transport/remove', data: { index, newCount: Math.max(0, current.length - 1) } });
+  };
+
   // Handle room quantity change for pricing components
   const handleComponentRoomQuantityChange = (componentId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -845,16 +925,20 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
               guestNames: '',
               voucherNumber: '',
             })),
-            transportDetails: inquiry.transportDetails?.map((transport: any) => ({
+            // Prefer transport details entered in this form; fallback to inquiry if form has none
+            transportDetails: (formData.transportDetails && formData.transportDetails.length > 0
+              ? formData.transportDetails
+              : (inquiry.transportDetails || [])
+            ).map((transport: any) => ({
               vehicleTypeId: transport.vehicleTypeId,
-              quantity: transport.quantity,
-              isAirportPickupRequired: transport.isAirportPickupRequired,
-              isAirportDropRequired: transport.isAirportDropRequired,
-              pickupLocation: transport.pickupLocation,
-              dropLocation: transport.dropLocation,
+              quantity: transport.quantity || 1,
+              isAirportPickupRequired: !!transport.isAirportPickupRequired,
+              isAirportDropRequired: !!transport.isAirportDropRequired,
+              pickupLocation: transport.pickupLocation || '',
+              dropLocation: transport.dropLocation || '',
               requirementDate: transport.requirementDate,
-              notes: transport.notes,
-            })) || [],
+              notes: transport.notes || '',
+            })),
           };
           
           console.log(`6. Itinerary ${index + 1} Data (NO FALLBACKS):`, JSON.stringify(itineraryData, null, 2));
@@ -1387,6 +1471,181 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                     </CardContent>
                   </Card>
                 ))}
+
+                {/* Transport Details */}
+                <Card className="shadow-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">Transport Details</CardTitle>
+                      <Button type="button" variant="outline" size="sm" onClick={addTransportDetail}>
+                        <Plus className="h-4 w-4 mr-1" /> Add Transport
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {(form.watch('transportDetails') || []).length === 0 && (
+                      <p className="text-sm text-muted-foreground">No transport added. Use "Add Transport" to include vehicle requirements.</p>
+                    )}
+                    {(form.watch('transportDetails') || []).map((_, index) => (
+                      <div key={index} className="border rounded-md p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-medium">Transport {index + 1}</div>
+                          <Button type="button" variant="outline" size="sm" onClick={() => removeTransportDetail(index)}>
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.vehicleTypeId` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Vehicle Type</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select vehicle type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {vehicleTypes.map((vt) => (
+                                      <SelectItem key={vt.id} value={vt.id}>{vt.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.quantity` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Quantity</FormLabel>
+                                <FormControl>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => field.onChange(Math.max(1, (Number(field.value) || 1) - 1))}
+                                      className="h-9 w-9 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-lg font-medium"
+                                      aria-label="Decrease quantity"
+                                    >
+                                      –
+                                    </button>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={field.value ?? 1}
+                                      onChange={(e) => {
+                                        const v = parseInt(e.target.value);
+                                        field.onChange(isNaN(v) || v < 1 ? 1 : v);
+                                      }}
+                                      className="w-20 text-center"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => field.onChange((Number(field.value) || 1) + 1)}
+                                      className="h-9 w-9 inline-flex items-center justify-center rounded-md border bg-background hover:bg-accent hover:text-accent-foreground text-lg font-medium"
+                                      aria-label="Increase quantity"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.requirementDate` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Requirement Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" value={field.value || ''} onChange={field.onChange} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.pickupLocation` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Pickup Location</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Airport / Hotel / Address" value={field.value || ''} onChange={field.onChange} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.dropLocation` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Drop Location</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Airport / Hotel / Address" value={field.value || ''} onChange={field.onChange} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.isAirportPickupRequired` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="sr-only">Airport Pickup</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <input type="checkbox" className="h-4 w-4" checked={!!field.value} onChange={(e) => field.onChange(e.target.checked)} />
+                                  <span className="text-sm">Airport Pickup Required</span>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.isAirportDropRequired` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="sr-only">Airport Drop</FormLabel>
+                                <div className="flex items-center gap-2">
+                                  <input type="checkbox" className="h-4 w-4" checked={!!field.value} onChange={(e) => field.onChange(e.target.checked)} />
+                                  <span className="text-sm">Airport Drop Required</span>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`transportDetails.${index}.notes` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Notes</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Driver notes / special instructions" value={field.value || ''} onChange={field.onChange} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               </div>
             )}
 

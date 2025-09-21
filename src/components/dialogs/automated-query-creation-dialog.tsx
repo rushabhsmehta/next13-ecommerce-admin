@@ -895,7 +895,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         numAdults: inquiry.numAdults.toString(),
         numChild5to12: (inquiry.numChildrenAbove11 || 0).toString(),
         numChild0to5: (inquiry.numChildrenBelow5 || 0).toString(),
-        totalPrice: calculatedPrice?.toString() || '0',
+  // Only include totalPrice if we calculated it; otherwise omit
+  ...(calculatedPrice !== null ? { totalPrice: calculatedPrice.toString() } : {}),
         journeyDate: inquiry.journeyDate,
         tourStartsFrom: inquiry.journeyDate,
         numDaysNight: selectedTourPackage.numDaysNight || '1',
@@ -952,13 +953,13 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
         debugSessionId,
       };
       // attach top-level pricing details and log snapshot
-      if (priceCalculationDetails && priceCalculationDetails.length > 0) {
+      if (calculatedPrice !== null && priceCalculationDetails && priceCalculationDetails.length > 0) {
         queryData.pricingSection = priceCalculationDetails.map((detail: any) => ({
           name: detail.name,
           price: (detail.totalPrice ?? detail.basePrice ?? 0).toString(),
           description: detail.description // already includes base × occupancy × rooms
         }));
-        queryData.totalPrice = (calculatedPrice ?? 0).toString();
+        queryData.totalPrice = calculatedPrice.toString();
       }
       // attach a compact client debug log (last 200 entries)
       queryData.clientDebugLog = debugLog.slice(-200);
@@ -1049,7 +1050,8 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
           )
         );
       case 4:
-        return calculatedPrice !== null && selectedPricingComponentIds.length > 0;
+        // Allow proceeding even if pricing components are not available or no calculation was performed
+        return true;
       default:
         return true;
     }
@@ -2020,12 +2022,21 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                       ))}
                     </div>
                     
-                    {calculatedPrice !== null && (
+                    {calculatedPrice !== null ? (
                       <>
                         <Separator />
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <p className="text-lg font-semibold text-blue-800">
                             Total Estimated Price: ₹{calculatedPrice.toLocaleString()}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Separator />
+                        <div className="bg-amber-50 p-4 rounded-lg">
+                          <p className="text-sm font-medium text-amber-800">
+                            No pricing components applied. You can create the query without a computed total price.
                           </p>
                         </div>
                       </>

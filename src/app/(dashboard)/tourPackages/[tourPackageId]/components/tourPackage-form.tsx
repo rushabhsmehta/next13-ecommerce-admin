@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck } from "lucide-react"
+import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck, Building2 } from "lucide-react"
+import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -647,7 +648,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 <ListPlus className="h-4 w-4" />
                 Itinerary
               </TabsTrigger>
-              {/* Hotels tab removed from Tour Package */}
+              <TabsTrigger value="hotels" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Hotels
+              </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
                 Flights
@@ -858,6 +862,80 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                     />
                   </div>
 
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="hotels" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Hotels (Contextual)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Derived helper explaining logic */}
+                  <p className="text-sm text-muted-foreground">Select & review hotels relevant to this Tour Package&apos;s location. Per-day hotel assignment still happens inside each itinerary day. This tab provides an overview of available hotels and quick filtering.</p>
+                  {form.watch('locationId') === '' && (
+                    <div className="text-sm text-red-600">Please select a Location in the Location tab to view associated hotels.</div>
+                  )}
+                  {form.watch('locationId') !== '' && (
+                    <div className="space-y-4">
+                      {(() => {
+                        const selectedLocationId = form.getValues('locationId');
+                        const filteredHotels = hotels.filter(h => h.locationId === selectedLocationId);
+                        if (filteredHotels.length === 0) {
+                          return <div className="text-sm">No hotels found for the selected location.</div>;
+                        }
+                        // Collect hotel usage from itineraries
+                        const itineraries = form.getValues('itineraries') || [];
+                        const usedHotelIds = new Set(itineraries.map(it => it.hotelId).filter(Boolean));
+                        return (
+                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {filteredHotels.map(hotel => {
+                              const isUsed = usedHotelIds.has(hotel.id);
+                              return (
+                                <div key={hotel.id} className={`border rounded-md p-3 space-y-2 relative ${isUsed ? 'ring-2 ring-primary/60' : ''}`}>
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-medium text-sm truncate" title={hotel.name}>{hotel.name}</h4>
+                                    {isUsed && <span className="text-xs px-2 py-0.5 rounded bg-primary text-white">In Itinerary</span>}
+                                  </div>
+                                  {hotel.images?.[0]?.url && (
+                                    <div className="aspect-video overflow-hidden rounded bg-muted relative">
+                                      <Image
+                                        src={hotel.images[0].url}
+                                        alt={hotel.name}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        className="object-cover"
+                                        priority={false}
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-muted-foreground line-clamp-3" dangerouslySetInnerHTML={{ __html: (hotel as any).description || '' }} />
+                                  {/* Quick action: add a blank itinerary day prefilled with this hotel */}
+                                  {!readOnly && (
+                                    <Button type="button" variant="secondary" size="sm" className="w-full"
+                                      onClick={() => {
+                                        const current = form.getValues('itineraries') || [];
+                                        form.setValue('itineraries', [...current, {
+                                          dayNumber: current.length + 1,
+                                          itineraryImages: [],
+                                          itineraryTitle: `Day ${current.length + 1} - ${hotel.name}`,
+                                          itineraryDescription: '',
+                                          hotelId: hotel.id,
+                                          locationId: form.getValues('locationId'),
+                                          mealsIncluded: [],
+                                          activities: []
+                                        }]);
+                                      }}
+                                    >Add Day with Hotel</Button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

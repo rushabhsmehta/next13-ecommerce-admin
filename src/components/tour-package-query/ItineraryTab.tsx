@@ -3,11 +3,12 @@ import { useState, useRef, useEffect } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { TourPackageQueryCreateCopyFormValues } from "@/app/(dashboard)/tourPackageQueryCreateCopy/[tourPackageQueryCreateCopyId]/components/tourPackageQueryCreateCopy-form"; // Adjust path if needed
-import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, MapPinIcon, Check as CheckIcon, GripVertical } from "lucide-react";
+import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, MapPinIcon, Check as CheckIcon, GripVertical, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
 import { Activity, ActivityMaster, Hotel, Images, ItineraryMaster, Location, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Added lookup types
-import { addDays, isValid } from "date-fns";
+import { addDays, isValid, parse } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 import { formatLocalDate } from '@/lib/timezone-utils';
 
 // Import necessary UI components
@@ -84,6 +85,8 @@ function ItineraryTab({
 }: ItineraryTabProps) {
   // Create a refs object to store multiple editor references instead of a single ref
   const editorsRef = useRef<{[key: string]: any}>({});
+  // Track open state for each itinerary accordion to avoid it collapsing on re-render
+  const [openMap, setOpenMap] = useState<Record<number, boolean>>({ 0: true });
   // Handle saving to master itinerary
   const handleSaveToMasterItinerary = async (itinerary: any) => {
     try {
@@ -272,7 +275,13 @@ function ItineraryTab({
                     {value.map((itinerary, index) => (
                       <SortableWrapper key={`it-${index}`} id={`it-${index}`}>
                         {({ attributes, listeners }) => (
-                          <Accordion type="single" collapsible className="w-full border rounded-lg shadow-sm hover:shadow-md transition-all">
+                          <Accordion
+                            type="single"
+                            collapsible
+                            value={openMap[index] ? `item-${index}` : undefined}
+                            onValueChange={(v) => setOpenMap(prev => ({ ...prev, [index]: !!v }))}
+                            className="w-full border rounded-lg shadow-sm hover:shadow-md transition-all"
+                          >
                             <AccordionItem value={`item-${index}`} className="border-0">
                               <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-t-lg">
                                 <div className="flex items-center gap-3">
@@ -289,9 +298,7 @@ function ItineraryTab({
                                   <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-white font-bold text-sm">
                                     {index + 1}
                                   </div>
-                                  <div className="font-bold" dangerouslySetInnerHTML={{
-                                    __html: itinerary.itineraryTitle || `Day ${index + 1}`,
-                                  }}></div>
+                                  <div className="font-bold" dangerouslySetInnerHTML={{ __html: itinerary.itineraryTitle || `Day ${index + 1}` }} />
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent className="pt-4 px-4 pb-6">
@@ -308,8 +315,7 @@ function ItineraryTab({
                                     Remove Day
                                   </Button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6" />
                                 <div className="flex flex-col gap-4 p-2 bg-slate-50 rounded-lg border border-slate-100">
                                   <h3 className="font-medium text-sm text-slate-500">Itinerary Template</h3>
                                   <Popover>
@@ -451,23 +457,66 @@ function ItineraryTab({
 
                                 <FormItem>
                                   <FormLabel>Date</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Day"
-                                      disabled={loading}
-                                      className="bg-white shadow-sm"
-                                      value={itinerary.days || ''}
-                                      onChange={(e) => {
-                                        const newItineraries = [...value];
-                                        newItineraries[index] = normalizeItinerary({ ...itinerary, days: e.target.value });
-                                        onChange(newItineraries);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        // Prevent keyboard events from bubbling up to accordion
-                                        e.stopPropagation();
-                                      }}
-                                    />
-                                  </FormControl>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={loading}
+                                        className={cn("w-full justify-between text-left font-normal bg-white shadow-sm", !itinerary.days && "text-muted-foreground")}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <span>{itinerary.days || 'Pick a date'}</span>
+                                        <CalendarIcon className="ml-2 h-4 w-4 opacity-60" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-2"
+                                      align="start"
+                                      onClick={(e) => e.stopPropagation()}
+                                      onPointerDownCapture={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="flex flex-col gap-2">
+                                        {/* Calendar Date Picker */}
+                                        <Calendar
+                                          mode="single"
+                                          selected={(() => {
+                                            try {
+                                              if (!itinerary.days) return undefined;
+                                              const parsed = parse(itinerary.days, 'dd-MM-yyyy', new Date());
+                                              return isValid(parsed) ? parsed : undefined;
+                                            } catch { return undefined; }
+                                          })()}
+                                          onSelect={(date) => {
+                                            const newItineraries = [...value];
+                                            const newDate = date && isValid(date) ? formatLocalDate(date, 'dd-MM-yyyy') : '';
+                                            newItineraries[index] = normalizeItinerary({ ...itinerary, days: newDate }, index);
+                                            onChange(newItineraries);
+                                            setOpenMap(prev => ({ ...prev, [index]: true }));
+                                          }}
+                                          initialFocus
+                                        />
+                                        <div className="flex items-center justify-between pt-1">
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            disabled={loading || !itinerary.days}
+                                            onClick={() => {
+                                              const newItineraries = [...value];
+                                              newItineraries[index] = normalizeItinerary({ ...itinerary, days: '' }, index);
+                                              onChange(newItineraries);
+                                              setOpenMap(prev => ({ ...prev, [index]: true }));
+                                            }}
+                                          >
+                                            Clear
+                                          </Button>
+                                          <div className="text-xs text-slate-500 pr-2">Format: dd-MM-yyyy</div>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                  {/* Manual text input removed to prevent duplicate date field */}
                                 </FormItem>
                               </div>
 

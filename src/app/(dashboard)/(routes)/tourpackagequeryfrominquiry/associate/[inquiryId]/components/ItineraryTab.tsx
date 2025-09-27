@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { Control, useFieldArray, useFormContext } from "react-hook-form";
 import { TourPackageQueryFormValues } from "./tourPackageQuery-form";
-import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon, GripVertical } from "lucide-react";
+import { ListPlus, ChevronDown, ChevronUp, Trash2, Plus, ImageIcon, Type, AlignLeft, BuildingIcon, CarIcon, MapPinIcon, BedIcon, Check as CheckIcon, GripVertical, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
 // Import types we need
@@ -42,6 +42,9 @@ import Image from 'next/image';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Calendar } from "@/components/ui/calendar";
+import { parse, isValid } from 'date-fns';
+import { formatLocalDate } from '@/lib/timezone-utils';
 
 // Define the props interface with a union type for control
 interface ItineraryTabProps {
@@ -114,6 +117,9 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
     };
     return <div ref={setNodeRef} style={style}>{children({ attributes, listeners, isDragging, setNodeRef, style })}</div>;
   };
+
+  // Track accordion open state to prevent unwanted closing when interacting with calendar
+  const [openMap, setOpenMap] = useState<Record<number, boolean>>({ 0: true });
 
   // Handle drag end to reorder itineraries and renumber dayNumber
   const handleDragEnd = (event: any, itineraries: any[], onChange: (val: any) => void) => {
@@ -260,7 +266,13 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                     {value.map((itinerary, index) => (
                       <SortableWrapper key={`it-${index}`} id={`it-${index}`}>
                         {({ attributes, listeners }) => (
-                          <Accordion type="single" collapsible className="w-full border rounded-lg shadow-sm hover:shadow-md transition-all">
+                          <Accordion
+                            type="single"
+                            collapsible
+                            value={openMap[index] ? `item-${index}` : undefined}
+                            onValueChange={(v) => setOpenMap(prev => ({ ...prev, [index]: !!v }))}
+                            className="w-full border rounded-lg shadow-sm hover:shadow-md transition-all"
+                          >
                             <AccordionItem value={`item-${index}`} className="border-0">
                               <AccordionTrigger className="bg-gradient-to-r from-white to-slate-50 px-4 py-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 rounded-t-lg min-h-[60px]">
                                 <div className="flex items-center gap-3 w-full">
@@ -289,7 +301,14 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                     variant="destructive"
                                     size="sm"
                                     disabled={loading}
-                                    onClick={() => onChange(value.filter((_: any, i: number) => i !== index).map((it, i) => ({ ...it, dayNumber: i + 1 })))}
+                                    onClick={() => {
+                                      const newVals = value.filter((_: any, i: number) => i !== index).map((it, i) => ({ ...it, dayNumber: i + 1 }));
+                                      onChange(newVals);
+                                      // Reset open map to keep first item open
+                                      const newMap: Record<number, boolean> = {};
+                                      if (newVals.length) newMap[0] = true;
+                                      setOpenMap(newMap);
+                                    }}
                                     className="h-8 px-2 min-h-[44px]"
                                   >
                                     <Trash2 className="h-4 w-4 mr-1" />
@@ -474,23 +493,64 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
 
                                 <FormItem>
                                   <FormLabel className="text-base font-medium">Date</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Day"
-                                      disabled={loading}
-                                      className="bg-white shadow-sm min-h-[44px]"
-                                      value={itinerary.days}
-                                      onChange={(e) => {
-                                        const newItineraries = [...value];
-                                        newItineraries[index] = { ...itinerary, days: e.target.value };
-                                        onChange(newItineraries);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        // Prevent keyboard events from bubbling up to accordion
-                                        e.stopPropagation();
-                                      }}
-                                    />
-                                  </FormControl>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        disabled={loading}
+                                        className={cn("w-full justify-between text-left font-normal bg-white shadow-sm min-h-[44px]", !itinerary.days && "text-muted-foreground")}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <span>{itinerary.days || 'Pick a date'}</span>
+                                        <CalendarIcon className="ml-2 h-4 w-4 opacity-60" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-2"
+                                      align="start"
+                                      onClick={(e) => e.stopPropagation()}
+                                      onPointerDownCapture={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="flex flex-col gap-2">
+                                        <Calendar
+                                          mode="single"
+                                          selected={(() => {
+                                            try {
+                                              if (!itinerary.days) return undefined;
+                                              const parsed = parse(itinerary.days, 'dd-MM-yyyy', new Date());
+                                              return isValid(parsed) ? parsed : undefined;
+                                            } catch { return undefined; }
+                                          })()}
+                                          onSelect={(date) => {
+                                            const newItineraries = [...value];
+                                            const newDate = date && isValid(date) ? formatLocalDate(date, 'dd-MM-yyyy') : '';
+                                            newItineraries[index] = { ...itinerary, days: newDate };
+                                            onChange(newItineraries);
+                                            setOpenMap(prev => ({ ...prev, [index]: true }));
+                                          }}
+                                          initialFocus
+                                        />
+                                        <div className="flex items-center justify-between pt-1">
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            disabled={loading || !itinerary.days}
+                                            onClick={() => {
+                                              const newItineraries = [...value];
+                                              newItineraries[index] = { ...itinerary, days: '' };
+                                              onChange(newItineraries);
+                                              setOpenMap(prev => ({ ...prev, [index]: true }));
+                                            }}
+                                          >
+                                            Clear
+                                          </Button>
+                                          <div className="text-xs text-slate-500 pr-2">Format: dd-MM-yyyy</div>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
                                 </FormItem>
                               </div>
 

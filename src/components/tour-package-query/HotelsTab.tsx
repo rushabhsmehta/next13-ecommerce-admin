@@ -25,6 +25,9 @@ interface HotelsTabProps {
   occupancyTypes?: OccupancyType[];
   mealPlans?: MealPlan[];
   vehicleTypes?: VehicleType[];
+  enableRoomAllocations?: boolean;
+  enableTransportDetails?: boolean;
+  readOnly?: boolean;
 }
 
 const HotelsTab: React.FC<HotelsTabProps> = ({
@@ -36,6 +39,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   occupancyTypes,
   mealPlans,
   vehicleTypes,
+  enableRoomAllocations = true,
+  enableTransportDetails = true,
+  readOnly = false,
 }) => {
   const itineraries = useWatch({ control, name: "itineraries" }) as any[] || [];
   // Derived stats
@@ -44,6 +50,14 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
   const [openHotelIndex, setOpenHotelIndex] = useState<number | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const allAccordionValues = itineraries.map((_: any, i: number) => `day-${i}`);
+  const showRoomAllocations = enableRoomAllocations && !!roomTypes?.length && !!occupancyTypes?.length && !!mealPlans?.length;
+  const showTransportDetails = enableTransportDetails && !!vehicleTypes?.length;
+  const copyRoomsTransportLabel = showRoomAllocations && showTransportDetails
+    ? 'Copy First Day Rooms + Transport'
+    : showRoomAllocations
+      ? 'Copy First Day Rooms'
+      : 'Copy First Day Transport';
+  const isDisabled = loading || readOnly;
 
   // Accent color classes (explicit list so Tailwind doesn't purge)
   const accentBarClasses = [
@@ -117,6 +131,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
               variant="outline"
               size="sm"
               className="h-8 px-3 text-xs flex items-center gap-1 border-primary/40 hover:bg-primary/10"
+              disabled={isDisabled}
               onClick={() => {
                 if (itineraries.length <= 1) return;
                 const firstDay = itineraries[0];
@@ -132,18 +147,19 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
               <Copy className="h-3.5 w-3.5" /> Copy First Day Hotel
             </Button>
           )}
-          {itineraries.length > 1 && (
+          {itineraries.length > 1 && (showRoomAllocations || showTransportDetails) && (
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="h-8 px-3 text-xs flex items-center gap-1 border-emerald-400/40 hover:bg-emerald-50"
+              disabled={isDisabled}
               onClick={() => {
                 try {
                   if (itineraries.length <= 1) return;
                   const first = itineraries[0];
-                  const roomsSource = Array.isArray(first?.roomAllocations) ? first.roomAllocations : [];
-                  const transportSource = Array.isArray(first?.transportDetails) ? first.transportDetails : [];
+                  const roomsSource = showRoomAllocations && Array.isArray(first?.roomAllocations) ? first.roomAllocations : [];
+                  const transportSource = showTransportDetails && Array.isArray(first?.transportDetails) ? first.transportDetails : [];
                   if (!roomsSource.length && !transportSource.length) {
                     alert('No room allocations or transport details found on Day 1');
                     return;
@@ -171,7 +187,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                 }
               }}
             >
-              <BedDouble className="h-3.5 w-3.5" /> Copy First Day Rooms + Transport
+              <BedDouble className="h-3.5 w-3.5" /> {copyRoomsTransportLabel}
             </Button>
           )}
           <Button
@@ -246,7 +262,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                             <FormLabel className="text-[11px] font-medium uppercase tracking-wide text-slate-600">Select Hotel</FormLabel>
                             <Popover open={open} onOpenChange={(o)=> setOpenHotelIndex(o? index : null)}>
                               <PopoverTrigger asChild>
-                                <Button type="button" variant="outline" size="sm" className="w-full justify-between bg-white hover:bg-primary/5 transition">
+                                <Button type="button" variant="outline" size="sm" className="w-full justify-between bg-white hover:bg-primary/5 transition" disabled={isDisabled}>
                                   <span className="truncate text-xs font-medium">{selectedHotel ? selectedHotel.name : 'Choose hotel'}</span>
                                   <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
                                 </Button>
@@ -258,7 +274,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                     <CommandEmpty>No hotel found.</CommandEmpty>
                                     <CommandGroup>
                                       {hotels.map(h => (
-                                        <CommandItem key={h.id} value={h.name} onSelect={()=> { field.onChange(h.id); setOpenHotelIndex(null); }} className="text-xs">
+                                        <CommandItem key={h.id} value={h.name} onSelect={()=> { if (isDisabled) { return; } field.onChange(h.id); setOpenHotelIndex(null); }} className="text-xs">
                                           {h.images?.[0]?.url && (
                                             <Image src={h.images[0].url} alt={h.name} width={28} height={20} className="mr-2 rounded object-cover" />
                                           )}
@@ -294,7 +310,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                   </CardContent>
                 </Card>
 
-                {roomTypes && occupancyTypes && mealPlans && (
+                {showRoomAllocations && (
                 <Card>
                   <CardHeader className="pb-3 border-b bg-gradient-to-r from-emerald-100 via-emerald-50 to-transparent rounded-t-md">
                     <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Users className="h-4 w-4 text-emerald-600" />Room Allocations</CardTitle>
@@ -304,7 +320,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                       <Card key={rIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
                           <CardTitle className="text-xs font-medium flex items-center gap-1"><BedDouble className="h-3.5 w-3.5 text-primary" />Room {rIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={loading} onClick={()=> removeRoomAllocation(index, rIndex)}>
+                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={isDisabled} onClick={()=> removeRoomAllocation(index, rIndex)}>
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </CardHeader>
@@ -327,7 +343,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                         form.setValue(`itineraries.${index}.roomAllocations.${rIndex}.customRoomType`, "");
                                       }
                                     }}
-                                    disabled={loading}
+                                    disabled={isDisabled}
                                   />
                                 </FormControl>
                                 <FormLabel className="text-xs font-medium text-gray-700 cursor-pointer">
@@ -354,7 +370,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                             placeholder="Enter room type" 
                                             className="h-8 text-xs" 
                                             {...field} 
-                                            disabled={loading}
+                                            disabled={isDisabled}
                                           />
                                         </FormControl>
                                         <FormMessage />
@@ -368,9 +384,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel className="text-[10px] uppercase tracking-wide">Room Type</FormLabel>
-                                        <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                        <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
                                           <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Room" /></SelectTrigger></FormControl>
-                                          <SelectContent>{roomTypes.map(rt=> <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
+                                          <SelectContent>{roomTypes?.map(rt=> <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                         <FormMessage />
                                       </FormItem>
@@ -384,9 +400,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Occupancy</FormLabel>
-                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Occupancy" /></SelectTrigger></FormControl>
-                                    <SelectContent>{occupancyTypes.map(o=> <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{occupancyTypes?.map(o=> <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}</SelectContent>
                                   </Select>
                                   <FormMessage />
                                 </FormItem>
@@ -396,9 +412,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Meal Plan</FormLabel>
-                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Meal" /></SelectTrigger></FormControl>
-                                    <SelectContent>{mealPlans.map(mp=> <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{mealPlans?.map(mp=> <SelectItem key={mp.id} value={mp.id}>{mp.name}</SelectItem>)}</SelectContent>
                                   </Select>
                                   <FormMessage />
                                 </FormItem>
@@ -409,7 +425,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 <FormItem>
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
                                   <FormControl>
-                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -430,7 +446,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                     placeholder="Enter hotel booking voucher number" 
                                     className="h-8 text-xs" 
                                     {...field} 
-                                    disabled={loading}
+                                    disabled={isDisabled}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -440,14 +456,14 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         </CardContent>
                       </Card>
                     ))}
-                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
+                    <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={()=> addRoomAllocation(index)} className="w-full border-dashed hover:border-solid">
                       <Plus className="h-4 w-4 mr-1" /> Add Room
                     </Button>
                   </CardContent>
                 </Card>
                 )}
 
-                {vehicleTypes && (
+                {showTransportDetails && (
                 <Card>
                   <CardHeader className="pb-3 border-b bg-gradient-to-r from-sky-100 via-sky-50 to-transparent rounded-t-md">
                     <CardTitle className="text-sm flex items-center gap-2 font-semibold"><Car className="h-4 w-4 text-sky-600" />Transport Details</CardTitle>
@@ -457,7 +473,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                       <Card key={tIndex} className="border-muted/40 shadow-sm hover:shadow-md transition">
                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between bg-slate-50/60">
                           <CardTitle className="text-xs font-medium flex items-center gap-1"><Car className="h-3.5 w-3.5 text-sky-600" />Transport {tIndex + 1}</CardTitle>
-                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={loading} onClick={()=> removeTransportDetail(index, tIndex)}>
+                          <Button type="button" variant="ghost" size="icon" className="hover:text-red-600" disabled={isDisabled} onClick={()=> removeTransportDetail(index, tIndex)}>
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </CardHeader>
@@ -467,9 +483,9 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Vehicle Type</FormLabel>
-                                  <Select disabled={loading} onValueChange={field.onChange} value={field.value}>
+                                  <Select disabled={isDisabled} onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Vehicle" /></SelectTrigger></FormControl>
-                                    <SelectContent>{vehicleTypes.map(v=> <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{vehicleTypes?.map(v=> <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}</SelectContent>
                                   </Select>
                                   <FormMessage />
                                 </FormItem>
@@ -480,7 +496,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 <FormItem>
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Transport Type</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="e.g. AC, Non-AC" className="h-8 text-xs" {...field} disabled={loading} />
+                                    <Input placeholder="e.g. AC, Non-AC" className="h-8 text-xs" {...field} disabled={isDisabled} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -491,7 +507,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 <FormItem>
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Qty</FormLabel>
                                   <FormControl>
-                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} />
+                                    <Input type="number" min={0} className="h-8 text-xs" value={field.value as any || ''} onChange={e=> field.onChange(parseInt(e.target.value) || 0)} disabled={isDisabled} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -502,7 +518,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                                 <FormItem className="md:col-span-1">
                                   <FormLabel className="text-[10px] uppercase tracking-wide">Description</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="Notes" className="h-8 text-xs" {...field} disabled={loading} />
+                                    <Input placeholder="Notes" className="h-8 text-xs" {...field} disabled={isDisabled} />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -512,7 +528,7 @@ const HotelsTab: React.FC<HotelsTabProps> = ({
                         </CardContent>
                       </Card>
                     ))}
-                    <Button type="button" variant="outline" size="sm" disabled={loading} onClick={()=> addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
+                    <Button type="button" variant="outline" size="sm" disabled={isDisabled} onClick={()=> addTransportDetail(index)} className="w-full border-dashed hover:border-solid">
                       <Plus className="h-4 w-4 mr-1" /> Add Transport
                     </Button>
                   </CardContent>

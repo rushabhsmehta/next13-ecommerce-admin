@@ -2,24 +2,24 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const cloudConfigured = !!process.env.WHATSAPP_CLOUD_ACCESS_TOKEN && !!process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID && !!process.env.WHATSAPP_CLOUD_WABA_ID;
+    const aiSensyConfigured = !!(process.env.AISENSY_API_KEY && process.env.AISENSY_AUTH_TOKEN && process.env.AISENSY_SENDER_ID);
 
     const envCheck = {
-      mode: cloudConfigured ? 'cloud' : 'incomplete',
-      phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID ? `${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}` : 'Missing',
-      wabaId: process.env.WHATSAPP_CLOUD_WABA_ID ? `${process.env.WHATSAPP_CLOUD_WABA_ID}` : 'Missing',
-      accessToken: process.env.WHATSAPP_CLOUD_ACCESS_TOKEN ? 'Present' : 'Missing',
-      apiVersion: process.env.WHATSAPP_CLOUD_API_VERSION || 'v19.0',
-      verifyTokenSet: !!process.env.WHATSAPP_CLOUD_VERIFY_TOKEN,
+      mode: aiSensyConfigured ? 'aisensy' : 'incomplete',
+      apiKey: process.env.AISENSY_API_KEY ? 'Present' : 'Missing',
+      authToken: process.env.AISENSY_AUTH_TOKEN ? 'Present' : 'Missing',
+      senderId: process.env.AISENSY_SENDER_ID || 'Missing',
+      defaultCampaign: process.env.AISENSY_DEFAULT_CAMPAIGN_NAME || process.env.AISENSY_DEFAULT_CAMPAIGN || 'Missing',
+      apiBase: process.env.AISENSY_API_BASE || 'https://backend.aisensy.com',
     };
 
-    const guidance = cloudConfigured
-      ? 'WhatsApp Cloud API detected: app will use Cloud API for messaging.'
-      : 'Cloud API not fully configured: set WHATSAPP_CLOUD_ACCESS_TOKEN, WHATSAPP_CLOUD_PHONE_NUMBER_ID and WHATSAPP_CLOUD_WABA_ID.';
+    const guidance = aiSensyConfigured
+      ? 'AiSensy detected: app will use AiSensy API for messaging.'
+      : 'AiSensy not fully configured: set AISENSY_API_KEY, AISENSY_AUTH_TOKEN, AISENSY_SENDER_ID, and default campaign environment variables.';
 
     return NextResponse.json({
       success: true,
-      message: 'Environment variables check (Cloud API)',
+      message: 'Environment variables check (AiSensy)',
       env: envCheck,
       guidance,
       timestamp: new Date().toISOString()

@@ -1,88 +1,116 @@
 #!/usr/bin/env node
 
 /**
- * Send WhatsApp template message directly via Twilio
- * This bypasses the database and uses Twilio Content API directly
+ * Send an AiSensy campaign message (template-based) directly from the CLI.
+ * This bypasses the Next.js API and hits AiSensy using environment credentials.
  */
 
-const twilio = require('twilio');
 require('dotenv').config();
+const fetch = require('node-fetch');
 
-if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-  console.log('❌ Twilio credentials not found in .env file');
-  process.exit(1);
+const AISENSY_ENDPOINT = (process.env.AISENSY_API_BASE || 'https://backend.aisensy.com').replace(/\/$/, '') + '/campaign/t1/api/v2';
+
+function parseArgs(raw) {
+  const positional = [];
+  const options = {};
+  raw.forEach(arg => {
+    if (arg.startsWith('--')) {
+      const [key, ...rest] = arg.replace(/^--/, '').split('=');
+      const value = rest.length ? rest.join('=') : true;
+      if (options[key] === undefined) {
+        options[key] = value;
+      } else if (Array.isArray(options[key])) {
+        options[key].push(value);
+      } else {
+        options[key] = [options[key], value];
+      }
+    } else {
+      positional.push(arg);
+    }
+  });
+  return { positional, options };
 }
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+function ensureE164(input) {
+  if (!input) return input;
+  const trimmed = String(input).trim();
+  if (trimmed.startsWith('+')) return trimmed;
+  const digits = trimmed.replace(/[^\d]/g, '');
+  if (!digits) return trimmed;
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`;
+  return `+${digits}`;
+}
 
-async function sendTemplateDirectly() {
+async function main() {
+  const { positional, options } = parseArgs(process.argv.slice(2));
+  const [toArg] = positional;
+  const templateName = options.template || options.campaign || process.env.AISENSY_DEFAULT_CAMPAIGN_NAME || process.env.AISENSY_DEFAULT_CAMPAIGN;
+
+  if (!toArg || !templateName) {
+    console.error('Usage: node send-template-direct.js +9199xxxxxxx --template=my_campaign --param="John" --param="24 Aug"');
+    process.exit(1);
+  }
+
+  const apiKey = process.env.AISENSY_API_KEY;
+  if (!apiKey) {
+    console.error('Missing AISENSY_API_KEY in environment');
+    process.exit(2);
+  }
+
+  const destination = ensureE164(toArg);
+  const templateParams = [];
+
+  const rawParams = ([]).concat(options.param || options.params || options.templateParam || []);
+  rawParams.forEach(value => {
+    if (value && value !== true) templateParams.push(String(value));
+  });
+
+  const payload = {
+    apiKey,
+    campaignName: templateName,
+    destination,
+    templateParams: templateParams.length ? templateParams : undefined,
+  };
+
+  if (options.userName) payload.userName = options.userName;
+  if (options.source) payload.source = options.source;
+
+  const cliTags = ([]).concat(options.tag || options.tags || []);
+  if (cliTags.length) payload.tags = cliTags.map(String);
+
+  const attributes = {};
+  Object.entries(options).forEach(([key, value]) => {
+    if (key.startsWith('attr.') && value !== true) {
+      attributes[key.replace(/^attr\./, '')] = String(value);
+    }
+  });
+  if (Object.keys(attributes).length) payload.attributes = attributes;
+
   try {
-    console.log('📱 Sending WhatsApp template message directly via Twilio...\n');
-    
-    const templateSid = 'HXa7cdcad4a90c1f0f98790f17882deeb2';
-    const toNumber = '+919978783238';
-    
-    console.log(`📋 Template SID: ${templateSid}`);
-    console.log(`📞 To: ${toNumber}`);
-    console.log(`📝 Template: aagam_marketing_hxa7cdcad4a90c1f0f98790f17882deeb2\n`);
-    
-    // Method 1: Send using Content Template
-    console.log('🚀 Attempting to send via Content Template...');
-    
-    const message = await client.messages.create({
-      contentSid: templateSid,
-      from: 'whatsapp:+919898744701', // Your Twilio WhatsApp number
-      to: `whatsapp:${toNumber}`,
+    console.log('� Sending AiSensy campaign request...');
+    console.log('Campaign:', templateName);
+    console.log('Destination:', destination);
+    if (templateParams.length) console.log('Template params:', templateParams.join(', '));
+
+    const res = await fetch(AISENSY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
-    
-    console.log('✅ SUCCESS! Message sent successfully:');
-    console.log(`   Message SID: ${message.sid}`);
-    console.log(`   Status: ${message.status}`);
-    console.log(`   Direction: ${message.direction}`);
-    console.log(`   Date Created: ${message.dateCreated}`);
-    
-    if (message.errorCode) {
-      console.log(`   Error Code: ${message.errorCode}`);
-      console.log(`   Error Message: ${message.errorMessage}`);
+
+    const data = await res.json();
+    if (!res.ok || String(data?.status || 'success').toLowerCase() === 'error') {
+      throw new Error(data?.error || data?.message || `Request failed with status ${res.status}`);
     }
-    
-    console.log('\n🎉 Template message sent successfully to +919978783238!');
-    console.log('📱 Check your WhatsApp to see the aagam_marketing message.');
-    
-    return message;
-    
+
+    const messageId = data?.data?.messageId || data?.data?.id || data?.requestId || data?.messageId;
+    console.log('✅ AiSensy request accepted');
+    if (messageId) console.log('Reference:', messageId);
+    if (data?.data?.whatsAppNumber) console.log('Sender:', data.data.whatsAppNumber);
   } catch (error) {
-    console.error('❌ Error sending WhatsApp message:', error.message);
-    
-    if (error.code) {
-      console.error(`Error Code: ${error.code}`);
-    }
-    
-    if (error.moreInfo) {
-      console.error(`More Info: ${error.moreInfo}`);
-    }
-    
-    console.log('\n💡 Troubleshooting suggestions:');
-    console.log('1. Make sure your Twilio WhatsApp number is correctly configured');
-    console.log('2. Verify that the template is approved for use');
-    console.log('3. Check if your Twilio account has WhatsApp messaging enabled');
-    console.log('4. Ensure the recipient number has opted in to receive WhatsApp messages');
-    
-    throw error;
+    console.error('❌ Failed to send AiSensy campaign message:', error.message || error);
+    process.exit(3);
   }
 }
 
-// Run the script
-if (require.main === module) {
-  sendTemplateDirectly()
-    .then((result) => {
-      console.log('\n🎉 Script completed successfully!');
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error('\n❌ Script failed:', error.message);
-      process.exit(1);
-    });
-}
-
-module.exports = { sendTemplateDirectly };
+main();

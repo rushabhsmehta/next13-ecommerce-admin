@@ -1,72 +1,195 @@
 import prisma from './prismadb';
 
-const CLOUD_API_VERSION = process.env.WHATSAPP_CLOUD_API_VERSION || 'v19.0';
+const AISENSY_API_BASE = process.env.AISENSY_API_BASE || 'https://backend.aisensy.com';
+const AISENSY_ENDPOINT = `${AISENSY_API_BASE.replace(/\/$/, '')}/campaign/t1/api/v2`;
 
 export interface SendWhatsAppMessageParams {
   to: string; // E.164
-  message: string;
+  message?: string;
   saveToDb?: boolean;
+  campaignName?: string;
+  userName?: string;
+  source?: string;
+  templateParams?: string[];
+  tags?: string[];
+  attributes?: Record<string, string>;
+  media?: { url: string; filename?: string };
+  location?: {
+    latitude: string;
+    longitude: string;
+    name: string;
+    address: string;
+  };
 }
 
 export interface WhatsAppMessageResponse {
   success: boolean;
-  messageSid?: string; // Cloud API message id
+  messageSid?: string; // Provider message id / reference
   error?: string;
   dbRecord?: any;
+  provider?: 'aisensy';
+  rawResponse?: any;
 }
 
-function cloudApiUrl(path: string) {
-  return `https://graph.facebook.com/${CLOUD_API_VERSION}/${path}`;
+function resolveDefaultCampaign() {
+  return process.env.AISENSY_DEFAULT_CAMPAIGN_NAME || process.env.AISENSY_DEFAULT_CAMPAIGN;
 }
 
-export async function sendWhatsAppMessage({ to, message, saveToDb = true }: SendWhatsAppMessageParams): Promise<WhatsAppMessageResponse> {
-  try {
-    if (!process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || !process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID) {
-      throw new Error('Missing WhatsApp Cloud API configuration');
-    }
-    const url = cloudApiUrl(`${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}/messages`);
-    const payload: any = {
-      messaging_product: 'whatsapp',
-      to,
-      type: 'text',
-      text: { body: message, preview_url: false },
+function normalizeE164(input: string) {
+  if (!input) return input;
+  const trimmed = input.trim();
+  if (trimmed.startsWith('+')) return trimmed;
+  const digits = trimmed.replace(/[^\d]/g, '');
+  if (!digits) return trimmed;
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`;
+  return `+${digits}`;
+}
+
+function mergeTags(requestTags?: string[]) {
+  const envTags = (process.env.AISENSY_DEFAULT_TAGS || '')
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+  const all = [...(requestTags || []), ...envTags];
+  return Array.from(new Set(all));
+}
+
+function sanitizeAttributes(attributes?: Record<string, string>) {
+  if (!attributes) return undefined;
+  const entries = Object.entries(attributes).filter(([, value]) => typeof value === 'string' && value.length > 0);
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
+function sanitizeTemplateParams(params?: string[], message?: string) {
+  if (params && params.length) return params.map(p => String(p));
+  if (message) return [message];
+  return undefined;
+}
+
+function buildDbMessageBody(params: SendWhatsAppMessageParams, campaign: string) {
+  if (params.message) return params.message;
+  if (params.templateParams?.length) {
+    const rendered = params.templateParams.join(' | ');
+    return `Template ${campaign} :: ${rendered}`;
+  }
+  return `[AiSensy campaign: ${campaign}]`;
+}
+
+async function sendViaAiSensy(params: SendWhatsAppMessageParams): Promise<WhatsAppMessageResponse> {
+  const {
+    to,
+    message,
+    saveToDb = true,
+    campaignName,
+    userName,
+    source,
+    templateParams,
+    tags,
+    attributes,
+    media,
+    location,
+  } = params;
+
+  if (!process.env.AISENSY_API_KEY) {
+    throw new Error('Missing AiSensy API key');
+  }
+
+  const resolvedCampaign = campaignName || resolveDefaultCampaign();
+  if (!resolvedCampaign) {
+    throw new Error('Missing AiSensy campaign name');
+  }
+
+  const destination = normalizeE164(to);
+  const payload: Record<string, any> = {
+    apiKey: process.env.AISENSY_API_KEY,
+    campaignName: resolvedCampaign,
+    destination,
+  };
+
+  const resolvedUserName = userName || process.env.AISENSY_DEFAULT_USERNAME;
+  if (resolvedUserName) payload.userName = resolvedUserName;
+
+  const resolvedSource = source || process.env.AISENSY_DEFAULT_SOURCE;
+  if (resolvedSource) payload.source = resolvedSource;
+
+  const resolvedTemplateParams = sanitizeTemplateParams(templateParams, message);
+  if (resolvedTemplateParams) payload.templateParams = resolvedTemplateParams;
+
+  const mergedTags = mergeTags(tags);
+  if (mergedTags.length) payload.tags = mergedTags;
+
+  const sanitizedAttributes = sanitizeAttributes(attributes);
+  if (sanitizedAttributes) payload.attributes = sanitizedAttributes;
+
+  if (media?.url) {
+    payload.media = {
+      url: media.url,
+      ...(media.filename ? { filename: media.filename } : {}),
     };
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_CLOUD_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
-    const messageId = data?.messages?.[0]?.id || data?.message_id;
-    let dbRecord;
-    if (saveToDb) {
+  }
+
+  if (location && location.latitude && location.longitude && location.name && location.address) {
+    payload.location = location;
+  }
+
+  const res = await fetch(AISENSY_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch (err) {
+    // AiSensy sometimes responds with empty body on errors
+    data = null;
+  }
+
+  if (!res.ok || (data && data.status && String(data.status).toLowerCase() === 'error')) {
+    const errorMessage = data?.error || data?.message || `AiSensy request failed (${res.status})`;
+    throw new Error(errorMessage);
+  }
+
+  const messageId = data?.data?.messageId || data?.data?.id || data?.requestId || data?.messageId || data?.id;
+  const dbBody = buildDbMessageBody({ ...params, message }, resolvedCampaign);
+
+  let dbRecord;
+  if (saveToDb) {
+    try {
       dbRecord = await prisma.whatsAppMessage.create({
         data: {
-          to: `whatsapp:${to}`,
-          from: `whatsapp:${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}`,
-          message,
-          messageSid: messageId,
+          to: `whatsapp:${destination}`,
+          from: `whatsapp:${process.env.AISENSY_SENDER_ID || 'AiSensy'}`,
+          message: dbBody,
+          messageSid: messageId || undefined,
           status: 'sent',
           direction: 'outbound',
           sentAt: new Date(),
         },
       });
+    } catch (err) {
+      console.error('Error saving AiSensy message to DB:', err);
     }
-    return { success: true, messageSid: messageId, dbRecord };
+  }
+
+  return { success: true, messageSid: messageId, dbRecord, provider: 'aisensy', rawResponse: data };
+}
+
+export async function sendWhatsAppMessage(params: SendWhatsAppMessageParams): Promise<WhatsAppMessageResponse> {
+  try {
+    return await sendViaAiSensy(params);
   } catch (error: any) {
-    console.error('Error sending WhatsApp (Cloud API) message:', error);
+    console.error('Error sending WhatsApp message:', error);
     let dbRecord;
-    if (saveToDb) {
+    if (params.saveToDb !== false) {
       try {
+        const to = normalizeE164(params.to || '');
         dbRecord = await prisma.whatsAppMessage.create({
           data: {
-            to: `whatsapp:${to}`,
-            from: `whatsapp:${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || ''}`,
-            message,
+            to: to ? `whatsapp:${to}` : params.to,
+            from: `whatsapp:${process.env.AISENSY_SENDER_ID || ''}`,
+            message: params.message || (params.templateParams?.length ? params.templateParams.join(' | ') : '[send failed]'),
             status: 'failed',
             direction: 'outbound',
             errorMessage: error?.message || 'Unknown error',
@@ -114,43 +237,40 @@ export interface SendTemplateParams {
   languageCode?: string; // e.g., en_US
   bodyParams?: Array<string | number>;
   buttonParams?: Array<Array<string>>;
+  campaignName?: string;
+  saveToDb?: boolean;
+  userName?: string;
+  source?: string;
+  tags?: string[];
+  attributes?: Record<string, string>;
 }
 
 export async function sendWhatsAppTemplate(params: SendTemplateParams): Promise<WhatsAppMessageResponse> {
-  const { to, templateName, languageCode = 'en_US', bodyParams = [], buttonParams = [] } = params;
-  try {
-    if (!process.env.WHATSAPP_CLOUD_ACCESS_TOKEN || !process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID) {
-      throw new Error('Missing WhatsApp Cloud API configuration');
-    }
-    const url = cloudApiUrl(`${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}/messages`);
-    const components: any[] = [];
-    if (bodyParams.length > 0) {
-      components.push({ type: 'body', parameters: bodyParams.map(v => ({ type: 'text', text: String(v) })) });
-    }
-    if (buttonParams.length > 0) {
-      buttonParams.forEach((params, idx) => {
-        components.push({ type: 'button', sub_type: 'url', index: String(idx), parameters: params.map(v => ({ type: 'text', text: String(v) })) });
-      });
-    }
-    const payload: any = {
-      messaging_product: 'whatsapp',
-      to,
-      type: 'template',
-      template: { name: templateName, language: { code: languageCode }, ...(components.length ? { components } : {}) },
-    };
-    const res = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${process.env.WHATSAPP_CLOUD_ACCESS_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
-    const messageId = data?.messages?.[0]?.id || data?.message_id;
-    let dbRecord;
-    try {
-      dbRecord = await prisma.whatsAppMessage.create({
-        data: { to: `whatsapp:${to}`, from: `whatsapp:${process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID}`, message: `[template:${templateName}]`, messageSid: messageId, status: 'sent', direction: 'outbound', sentAt: new Date() },
-      });
-    } catch {}
-    return { success: true, messageSid: messageId, dbRecord };
-  } catch (error: any) {
-    console.error('Error sending WhatsApp template (Cloud API):', error);
-    return { success: false, error: error?.message || 'Unknown error' };
-  }
+  const {
+    to,
+    templateName,
+    languageCode = 'en_US',
+    bodyParams = [],
+    buttonParams = [],
+    campaignName,
+    saveToDb,
+    userName,
+    source,
+    tags,
+    attributes,
+  } = params;
+
+  const renderedParams = bodyParams.map(v => String(v));
+  const preview = renderedParams.length ? `Template ${templateName} :: ${renderedParams.join(' | ')}` : `[template:${templateName}]`;
+  return sendWhatsAppMessage({
+    to,
+    message: preview,
+    saveToDb,
+    campaignName: campaignName || templateName,
+    templateParams: renderedParams,
+    userName,
+    source,
+    tags,
+    attributes,
+  });
 }

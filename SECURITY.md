@@ -9,7 +9,7 @@ All sensitive credentials have been removed from public files and are now proper
 ### ✅ Secured Files (No secrets exposed)
 - **`.env`** - Template file with placeholder values
 - **`.env.example`** - Template file for new setups
-- **`TWILIO_TEMPLATE_GUIDE.md`** - Documentation with placeholder values
+- **`TWILIO_TEMPLATE_GUIDE.md`** - Marked as deprecated
 - **All source code files** - No hardcoded secrets
 - **All documentation files** - No exposed credentials
 
@@ -39,13 +39,13 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 # OpenAI
 OPENAI_API_KEY=
 
-# Twilio (Required for WhatsApp)
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_WHATSAPP_NUMBER=
-
-# WhatsApp Business API (Optional)
- # WhatsApp is handled via Twilio only; legacy Meta/WhatsApp Cloud vars are not required.
+# WhatsApp via AiSensy
+AISENSY_API_KEY=
+AISENSY_DEFAULT_CAMPAIGN_NAME=
+AISENSY_DEFAULT_SOURCE=
+AISENSY_DEFAULT_TAGS=
+AISENSY_DEFAULT_USERNAME=
+AISENSY_SENDER_ID=
 
 # Next.js
 NEXTAUTH_SECRET=
@@ -82,6 +82,5 @@ NEXTAUTH_URL=
 
 ## 📚 Resources
 
-- [Twilio WhatsApp Setup Guide](./TWILIO_WHATSAPP_SETUP.md)
-- [WhatsApp Business API Setup](./WHATSAPP_BUSINESS_API_SETUP.md)
+- [AiSensy WhatsApp Integration Guide](./WHATSAPP_API_README.md)
 - [Environment Variables Best Practices](https://nextjs.org/docs/basic-features/environment-variables)

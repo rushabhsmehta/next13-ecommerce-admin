@@ -19,7 +19,6 @@ export default authMiddleware({
   // Use ignoredRoutes for webhook endpoints to completely bypass authentication
   ignoredRoutes: [
     "/api/whatsapp/:path*",
-    "/api/twilio/:path*",
   ],
   
   async beforeAuth(req) {

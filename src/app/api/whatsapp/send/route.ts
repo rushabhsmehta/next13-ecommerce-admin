@@ -4,12 +4,29 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { to, message, saveToDb = true } = body;
+    const {
+      to,
+      message,
+      saveToDb = true,
+      campaignName,
+      templateParams,
+      userName,
+      source,
+      tags,
+      attributes,
+    } = body;
 
     // Validate required fields
-    if (!to || !message) {
+    if (!to) {
       return NextResponse.json(
-        { error: 'Missing required fields: to and message' },
+        { error: 'Missing required field: to' },
+        { status: 400 }
+      );
+    }
+
+    if (!message && (!Array.isArray(templateParams) || templateParams.length === 0)) {
+      return NextResponse.json(
+        { error: 'Provide either message or templateParams' },
         { status: 400 }
       );
     }
@@ -24,11 +41,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedTemplateParams = Array.isArray(templateParams) ? templateParams.map((value: any) => String(value)) : undefined;
+    const normalizedTags = Array.isArray(tags) ? tags.map((value: any) => String(value)) : undefined;
+    const normalizedAttributes = (attributes && typeof attributes === 'object') ? attributes : undefined;
+
     // Send the message
     const result = await sendWhatsAppMessage({
+      campaignName,
       to: cleanTo,
       message,
       saveToDb,
+      templateParams: normalizedTemplateParams,
+      userName,
+      source,
+      tags: normalizedTags,
+      attributes: normalizedAttributes,
     });
 
     if (result.success) {
@@ -37,6 +64,7 @@ export async function POST(request: NextRequest) {
         messageSid: result.messageSid,
         status: 'Message sent successfully',
         dbRecord: result.dbRecord,
+        provider: result.provider,
       });
     } else {
       return NextResponse.json(
@@ -44,6 +72,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: result.error,
           dbRecord: result.dbRecord,
+          provider: result.provider,
         },
         { status: 500 }
       );

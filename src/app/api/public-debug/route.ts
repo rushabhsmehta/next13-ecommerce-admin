@@ -4,9 +4,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     message: 'WhatsApp Configuration',
     configuration: {
-  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || 'Not configured',
-  twilioWhatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER || 'Not configured',
-  hasCredentials: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+      aiSensyApiKey: process.env.AISENSY_API_KEY ? 'Configured' : 'Not configured',
+      aiSensySenderId: process.env.AISENSY_SENDER_ID || 'Not configured',
+      aiSensyAuthToken: process.env.AISENSY_AUTH_TOKEN ? 'Configured' : 'Not configured',
+      hasCredentials: !!(process.env.AISENSY_API_KEY && process.env.AISENSY_AUTH_TOKEN && process.env.AISENSY_SENDER_ID),
       timestamp: new Date().toISOString()
     }
   });

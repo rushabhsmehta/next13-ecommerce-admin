@@ -33,10 +33,19 @@ interface WhatsAppMessage {
   updatedAt: string;
 }
 
+type WhatsAppProvider = 'aisensy' | 'meta' | 'unknown';
+
 interface WhatsAppConfig {
+  provider?: WhatsAppProvider;
   isCloudConfigured?: boolean;
-  accountSid: string;
-  whatsappNumber: string;
+  whatsappNumber?: string;
+  isAiSensyConfigured?: boolean;
+  aiSensy?: {
+    apiBase: string;
+    defaultCampaign: string | null;
+    defaultSource: string | null;
+    defaultTags: string[];
+  } | null;
 }
 
 interface OrganizationInfo {
@@ -359,6 +368,14 @@ export default function WhatsAppSettingsPage() {
   };
 
   const runDiagnostics = async () => {
+    if (config?.provider === 'aisensy') {
+      setDiagResult({
+        info: 'Diagnostics are currently available for Meta WhatsApp Cloud API only.',
+      });
+      toast.success('Diagnostics summary ready');
+      return;
+    }
+
     setDiagLoading(true);
     try {
       const [cfgRes, tplRes] = await Promise.all([
@@ -434,7 +451,7 @@ export default function WhatsAppSettingsPage() {
                   <span>Send Test Message</span>
                 </CardTitle>
                 <CardDescription>
-                  Send a test WhatsApp message using your WhatsApp Cloud API configuration
+                  Send a test WhatsApp message using your configured provider
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -575,44 +592,84 @@ export default function WhatsAppSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Cloud API Status</Label>
+                  <Label>Active Provider</Label>
                   <div className="flex items-center space-x-2">
                     <code className="text-sm bg-muted p-2 rounded flex-1">
-                      {config ? config.accountSid : 'Loading...'}
+                      {config ? (
+                        config.provider === 'aisensy'
+                          ? 'AiSensy Campaign API'
+                          : config.provider === 'meta'
+                            ? 'Meta WhatsApp Cloud API'
+                            : 'Not configured'
+                      ) : 'Loading...'}
                     </code>
-                    {config?.isCloudConfigured ? (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
+                    {config?.provider === 'unknown' ? (
                       <XCircle className="h-4 w-4 text-red-500" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Phone Number ID</Label>
-                  <div className="flex items-center space-x-2">
-                    <code className="text-sm bg-muted p-2 rounded flex-1">
-                      {config ? config.whatsappNumber : 'Loading...'}
-                    </code>
-                    {config?.isCloudConfigured ? (
+                {config?.isCloudConfigured && (
+                  <div className="space-y-2">
+                    <Label>Phone Number ID</Label>
+                    <div className="flex items-center space-x-2">
+                      <code className="text-sm bg-muted p-2 rounded flex-1">
+                        {config?.whatsappNumber || 'Not configured'}
+                      </code>
                       <CheckCircle className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {config?.isAiSensyConfigured && config.aiSensy && (
+                  <div className="space-y-4">
+                    <Separator />
+                    <div className="space-y-2">
+                      <Label>AiSensy Endpoint</Label>
+                      <code className="text-sm bg-muted p-2 rounded block">{config.aiSensy.apiBase}</code>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default Campaign</Label>
+                      <code className="text-sm bg-muted p-2 rounded block">{config.aiSensy.defaultCampaign || 'Not set'}</code>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default Source</Label>
+                      <code className="text-sm bg-muted p-2 rounded block">{config.aiSensy.defaultSource || 'Not set'}</code>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default Tags</Label>
+                      {config.aiSensy.defaultTags.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {config.aiSensy.defaultTags.map(tag => (
+                            <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No default tags configured</span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <Separator />
 
-                <div className="space-y-2">
-                  <Label>Webhook URL (Cloud API)</Label>
-                  <code className="text-sm bg-muted p-2 rounded block">
-                    https://admin.aagamholidays.com/api/whatsapp/webhook
-                  </code>
-                  <p className="text-sm text-muted-foreground">
-                    Configure this URL and your verify token in Meta Developer Console (WhatsApp Cloud API)
-                  </p>
-                </div>
+                {config?.isCloudConfigured ? (
+                  <div className="space-y-2">
+                    <Label>Webhook URL (Cloud API)</Label>
+                    <code className="text-sm bg-muted p-2 rounded block">
+                      https://admin.aagamholidays.com/api/whatsapp/webhook
+                    </code>
+                    <p className="text-sm text-muted-foreground">
+                      Configure this URL and your verify token in Meta Developer Console (WhatsApp Cloud API)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    Webhook configuration applies only when using Meta WhatsApp Cloud API.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

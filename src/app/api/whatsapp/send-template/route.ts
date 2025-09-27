@@ -33,7 +33,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const url = new URL(request.url);
     const qpDebug = url.searchParams.get('debug') === '1';
-    const { to, templateId, contentSid, templateName, languageCode = 'en_US', variables, saveToDb = true, debug: bodyDebug } = body;
+    const { 
+      to,
+      templateId,
+      contentSid,
+      templateName,
+      languageCode = 'en_US',
+      variables,
+      saveToDb = true,
+      campaignName,
+      userName,
+      source,
+      tags,
+      attributes,
+      debug: bodyDebug,
+    } = body;
     const debugEnabled = !!bodyDebug || qpDebug || process.env.WHATSAPP_DEBUG === '1';
     const debugEvents: any[] = [];
     if (debugEnabled) {
@@ -50,11 +64,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-  // Prefer WhatsApp Cloud template path when name provided (or templateId not Twilio SID)
+  // When a template/campaign name is provided, forward directly to AiSensy.
   const maybeName = templateName || (templateId && !/^H[A-Za-z0-9]+$/.test(String(templateId)) ? String(templateId) : undefined);
   // Validate phone number format (basic validation)
   const phoneRegex = /^\+?[1-9]\d{1,14}$/;
   const cleanTo = to.replace('whatsapp:', '');
+  const normalizedTags = Array.isArray(tags) ? tags.map((value: any) => String(value)) : undefined;
+  const normalizedAttributes = attributes && typeof attributes === 'object'
+    ? Object.fromEntries(Object.entries(attributes as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
+    : undefined;
   if (maybeName) {
       // Build template components from variables
       let bodyParams: Array<string | number> = [];
@@ -78,7 +96,19 @@ export async function POST(request: NextRequest) {
         }
         if ((variables as any).cta_url) buttonParams.push([String((variables as any).cta_url)]);
       }
-      const result = await sendWhatsAppTemplate({ to: cleanTo, templateName: maybeName, languageCode, bodyParams, buttonParams });
+      const result = await sendWhatsAppTemplate({
+        to: cleanTo,
+        templateName: maybeName,
+        languageCode,
+        bodyParams,
+        buttonParams,
+        campaignName,
+        userName,
+        source,
+        tags: normalizedTags,
+        attributes: normalizedAttributes,
+        saveToDb,
+      });
       if (result.success) return NextResponse.json({ success: true, messageSid: result.messageSid, status: 'Template message sent successfully' });
       return NextResponse.json({ success: false, error: result.error || 'Send failed' }, { status: 500 });
     }
@@ -105,7 +135,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid phone number format. Use international format (e.g., +1234567890)' }, { status: 400 });
     }
 
-    const result = await sendWhatsAppMessage({ to: cleanTo, message, saveToDb });
+    const result = await sendWhatsAppMessage({
+      to: cleanTo,
+      message,
+      saveToDb,
+      campaignName,
+      userName,
+      source,
+      tags: normalizedTags,
+      attributes: normalizedAttributes,
+    });
     if (debugEnabled) debugEvents.push({ event: 'local_send_result', success: result.success, sid: result.messageSid });
     if (result.success) {
       const resp: any = { success: true, messageSid: result.messageSid, status: 'Template message sent successfully', template: template.name, processedMessage: message, dbRecord: result.dbRecord };

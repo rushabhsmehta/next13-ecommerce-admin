@@ -1,191 +1,133 @@
 # WhatsApp Business API Integration
 
-This project uses Twilio's WhatsApp API for all WhatsApp messaging.
+## Overview
+- Primary provider: **AiSensy Campaign API**
+- WhatsApp Cloud API and Twilio integrations have been fully removed.
 
-## Setup
+The admin UI under `/settings/whatsapp` automatically reflects whichever provider is active and exposes recent message history, template previews, and diagnostics.
 
-### Environment Variables
+## Environment variables
 
-Fill your `.env.local` with these WhatsApp-related variables (required):
-
-```env
-# Twilio Configuration
-TWILIO_ACCOUNT_SID=ACXXXXX...
-TWILIO_AUTH_TOKEN=REDACTED
-TWILIO_WHATSAPP_NUMBER=whatsapp:+919898744701
+### Required (AiSensy)
+```
+AISENSY_API_KEY=your-long-api-key
+AISENSY_DEFAULT_CAMPAIGN_NAME=My Live API Campaign
 ```
 
-## API Endpoints
+### Optional AiSensy helpers
+```
+AISENSY_DEFAULT_SOURCE=Website lead          # stored against the AiSensy contact
+AISENSY_DEFAULT_TAGS=lead,automation         # comma-separated; merged with per-request tags
+AISENSY_DEFAULT_USERNAME=Aagam Holidays      # default "userName" sent to AiSensy
+AISENSY_SENDER_ID=whatsapp:+919876543210     # used when recording the sender in Prisma
+AISENSY_API_BASE=https://backend.aisensy.com # override only if AiSensy support instructs you to
+```
 
-### Send WhatsApp Message
-**POST** `/api/whatsapp/send`
+> **Critical:** `AISENSY_DEFAULT_CAMPAIGN_NAME` must match the **live API campaign** created inside AiSensy. That campaign already points to a pre-approved WhatsApp template. The backend simply injects your dynamic values through `templateParams` and sends everything through AiSensy.
 
-Send a WhatsApp message to a recipient.
+## REST endpoints
 
-**Request Body:**
-```json
+### `POST /api/whatsapp/send`
+Send a message through the active provider (AiSensy by default).
+
+Request body:
+```
 {
-  "to": "+1234567890",
-  "message": "Hello from WhatsApp Business!",
-  "saveToDb": true
+  "to": "+1234567890",                // E.164
+  "message": "Hello from WhatsApp!",   // optional when templateParams provided
+  "campaignName": "My Live API Campaign", // optional, overrides AISENSY_DEFAULT_CAMPAIGN_NAME
+  "templateParams": ["John", "Invoice #123"], // optional array; defaults to [message]
+  "userName": "John Doe",              // optional contact display name
+  "source": "CRM",                     // optional source channel
+  "tags": ["renewal"],                 // optional array, merged with AISENSY_DEFAULT_TAGS
+  "attributes": { "city": "Surat" },  // optional string map stored in AiSensy
+  "saveToDb": true                      // defaults to true
 }
 ```
 
-**Response:**
-```json
+Response:
+```
 {
   "success": true,
-  "messageSid": "SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "messageSid": "4c932942-8b3e-4a4a-9d0f...", // AiSensy request id (or Meta message id)
   "status": "Message sent successfully",
-  "dbRecord": { ... }
+  "provider": "aisensy",
+  "dbRecord": { ... }                       // Prisma WhatsAppMessage row
 }
 ```
 
-### Send Template Message
-**POST** `/api/whatsapp/send-template`
+### `POST /api/whatsapp/send-template`
+Triggers either:
+- AiSensy campaign (when `campaignName`/`templateName` matches a live AiSensy API campaign)
+- Local template rendering (fallback, typically for legacy Meta usage)
 
-Send a WhatsApp message using a predefined template.
-
-**Request Body:**
-```json
+Key request arguments:
+```
 {
   "to": "+1234567890",
-  "templateId": "template-uuid-here",
-  "variables": {
-    "name": "John Doe",
-    "company": "Your Company"
-  },
+  "templateId": "template-uuid-here",       // local DB template id OR campaign name
+  "templateName": "booking_confirmation",   // optional explicit AiSensy campaign/template name
+  "variables": { "1": "John", "2": "24 Aug" },
+  "campaignName": "booking_confirmation",   // optional override
+  "userName": "John Doe",                   // optional
+  "source": "Sales",
+  "tags": ["tour"],
+  "attributes": { "package": "Himalaya" },
   "saveToDb": true
 }
 ```
+`variables` can be either an object keyed by placeholder index/name or an array. Internally, body parameters are serialised in order and forwarded as AiSensy `templateParams`.
 
-**Response:**
-```json
-{
-  "success": true,
-  "messageSid": "SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  "status": "Template message sent successfully",
-  "template": "Welcome Message",
-  "processedMessage": "Hello John Doe! Welcome to Your Company...",
-  "dbRecord": { ... }
-}
-```
+### `GET /api/whatsapp/templates`
+Lists templates available to the UI. Returns Prisma-managed templates only.
 
-### Get WhatsApp Templates
-**GET** `/api/whatsapp/templates`
+### `POST /api/whatsapp/templates`
+Creates a Prisma-managed plain-text template for the fallback path.
 
-Retrieve all available message templates (managed in-app).
+### `GET /api/whatsapp/messages?limit=50`
+Returns recent `WhatsAppMessage` rows recorded in Prisma.
 
-**Response:** template list JSON
+### `GET /api/whatsapp/config`
+Returns a summary of the active provider and key configuration flags displayed in the settings UI.
 
-### Create WhatsApp Template
-**POST** `/api/whatsapp/templates`
+### `POST /api/whatsapp/webhook`
+Legacy WhatsApp Cloud webhook endpoint. It now returns `410 Gone` to signal that Cloud-based inbound traffic is no longer supported.
 
-Create a new message template.
+## Usage snippets
 
-**Request Body:**
-```json
-{
-  "name": "New Template",
-  "body": "Hello {{name}}, your order {{orderNumber}} is ready!",
-  "variables": ["name", "orderNumber"]
-}
-```
-
-### Get WhatsApp Messages
-**GET** `/api/whatsapp/messages?limit=50`
-
-Retrieve recent WhatsApp messages from the database.
-
-**Response:**
-```json
-{
-  "success": true,
-  "messages": [...],
-  "count": 10
-}
-```
-
-### WhatsApp Webhook
-**POST** `/api/whatsapp/webhook`
-
-Handles status updates from Twilio (message delivered, failed, etc.).
-
-## Usage Examples
-
-### Using Template Messages
-
-```typescript
+```ts
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 
-// Send a template message via API
-const response = await fetch('/api/whatsapp/send-template', {
+await sendWhatsAppMessage({
+  to: '+917000000000',
+  message: 'Payment received! Thank you ❤️',
+  tags: ['payment'],
+  attributes: { invoice: 'INV-2024-001' }
+});
+```
+
+```ts
+await fetch('/api/whatsapp/send-template', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    to: '+1234567890',
-    templateId: 'template-uuid-here',
-    variables: {
-      name: 'John Doe',
-      company: 'Your Company',
-      orderNumber: '12345'
-    }
+    to: '+441234567890',
+    templateName: 'booking_confirmation',
+    variables: { 1: 'Alex', 2: '15 Sep' },
+    tags: ['uk-market']
   })
 });
-
-// Get all templates
-const templatesResponse = await fetch('/api/whatsapp/templates');
-const { templates } = await templatesResponse.json();
 ```
 
-### Using the WhatsApp Utility Function
+## Data model snapshot
 
-```typescript
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
-
-// Send a message
-const result = await sendWhatsAppMessage({
-  to: '+1234567890',
-  message: 'Hello from your app!',
-  saveToDb: true
-});
-
-if (result.success) {
-  console.log('Message sent:', result.messageSid);
-} else {
-  console.error('Failed to send:', result.error);
-}
 ```
-
-### Using Fetch API
-
-```javascript
-// Send a message
-const response = await fetch('/api/whatsapp/send', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    to: '+1234567890',
-    message: 'Test message'
-  }),
-});
-
-const result = await response.json();
-```
-
-## Database Schema
-
-The `WhatsAppMessage` model stores message data:
-
-```prisma
 model WhatsAppMessage {
   id            String   @id @default(uuid())
-  to            String?  // Recipient phone number
-  from          String?  // Sender WhatsApp number
+  to            String?
+  from          String?
   message       String?  @db.Text
-  messageSid    String?  // Twilio message SID
+  messageSid    String?
   status        String   @default("pending")
   direction     String   @default("outbound")
   errorCode     String?
@@ -195,96 +137,29 @@ model WhatsAppMessage {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
-model WhatsAppTemplate {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  body      String   @db.Text
-  variables Json?    // Array of variable names as JSON
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 ```
 
-## Default Templates
+## AiSensy-specific notes
+1. **Campaign must be live** – AiSensy rejects requests sent to campaigns that are in draft or paused state.
+2. **Template parameters** – the array length must match the template bound to the campaign. The backend will send `templateParams` in the order supplied.
+3. **Contacts** – AiSensy automatically creates/updates contacts. Optional `userName`, `source`, `tags`, and `attributes` from the request (plus defaults from environment variables) are persisted against that contact.
+4. **Media** – set `media.url` (and optional `media.filename`) when calling `sendWhatsAppMessage`. The URL has to be publicly accessible.
 
-The system comes with 6 pre-configured templates:
+## Provider behaviour
+- All outbound messaging flows through AiSensy. Missing or invalid AiSensy credentials will surface as errors to the caller.
+- Diagnostics in the settings UI are tailored for AiSensy; Cloud-specific checks are removed.
 
-1. **Welcome Message**: `Hello {{name}}! Welcome to {{company}}.`
-2. **Order Confirmation**: `Hi {{name}}, your order #{{orderNumber}} has been confirmed...`
-3. **Tour Package Inquiry**: `Hello {{name}}, thank you for your interest in our {{packageName}} tour...`
-4. **Payment Reminder**: `Dear {{name}}, this is a reminder that your payment of {{amount}}...`
-5. **Meeting Reminder**: `Hi {{name}}, reminder about our meeting on {{date}} at {{time}}...`
-6. **Custom Promotion**: `Special offer for {{name}}! Get {{discount}}% off on {{product}}...`
+## Phone number hygiene
+- Always use E.164 format (leading `+` and country code).
+- If users submit local numbers, normalise them before invoking the API or provide a sensible default country code on the server.
 
-## Testing
+## Error handling & troubleshooting
+- The server saves failed sends to Prisma with `status = 'failed'` and the provider error message.
+- Common AiSensy failures: invalid campaign name, inactive template, mismatched `templateParams`, or non-public media URLs.
+- Enable `WHATSAPP_DEBUG=1` to include raw provider responses in API responses (useful during debugging only).
+- Use AiSensy dashboard logs for delivery analytics and webhook-equivalent status tracking.
 
-### Web Interface
-Visit `/settings/whatsapp` in your application to:
-- Send test messages
-- View recent messages
-- Check configuration status
-
-### API Testing
-Run the test script:
-```bash
-node test-whatsapp.js
-```
-
-### Manual Testing
-Use tools like Postman or curl:
-
-```bash
-curl -X POST http://localhost:3000/api/whatsapp/send \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "+1234567890",
-    "message": "Test message"
-  }'
-```
-
-## Twilio Configuration
-
-1. **WhatsApp Number Setup:**
-  - Go to Twilio Console and enable WhatsApp for your number.
-
-2. **Webhook Configuration:**
-  - Set your Twilio webhook to point to `/api/whatsapp/webhook` in this app so delivery status updates arrive.
-
-## Phone Number Format
-
-- Always include country code: `+1` for US, `+91` for India, etc.
-- Example: `+919898744701` for an Indian number
-- The API automatically handles the `whatsapp:` prefix
-
-## Error Handling
-
-The API includes comprehensive error handling:
-- Invalid phone numbers
-- Missing Twilio configuration
-- Network errors
-- Twilio API errors
-
-All errors are logged and can be saved to the database for debugging.
-
-## Security Notes
-
-- Never expose Twilio credentials in client-side code
-- Use environment variables for all sensitive data
-- Validate phone numbers before sending
-- Implement rate limiting for production use
-
-## Troubleshooting
-
-1. **Messages not sending:**
-   - Check Twilio credentials in `.env`
-   - Verify WhatsApp number is enabled in Twilio
-   - Check Twilio account balance
-
-2. **Webhook not receiving updates:**
-   - Ensure webhook URL is correctly set in Twilio Console
-   - Check server logs for webhook requests
-
-3. **Database errors:**
-   - Run `npx prisma migrate dev` if schema changes
-   - Check database connection in `.env`
+## Security reminders
+- Keep API keys in environment variables—never expose them in client code.
+- Rate-limit automations that trigger WhatsApp sends to avoid spamming contacts.
+- Audit Prisma logs regularly to monitor failed deliveries or integration errors.

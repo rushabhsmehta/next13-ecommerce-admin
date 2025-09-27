@@ -11,6 +11,8 @@
 - ✅ **Template extraction working**: Body text properly extracted from template
 
 ### 2. New Issue: Phone Number Validation ❌
+> **Note:** This analysis predates the AiSensy migration. Twilio-specific guidance below is retained only for historical reference.
+
 **Root Cause**: The target phone number `+919978783238` is not valid for Twilio WhatsApp messaging.
 
 ## 🛠️ Solutions

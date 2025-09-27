@@ -441,6 +441,10 @@ function ItineraryTab({
                                         newItineraries[index] = normalizeItinerary({ ...itinerary, dayNumber });
                                         onChange(newItineraries);
                                       }}
+                                      onKeyDown={(e) => {
+                                        // Prevent keyboard events from bubbling up to accordion
+                                        e.stopPropagation();
+                                      }}
                                     />
                                   </FormControl>
                                 </FormItem>
@@ -457,6 +461,10 @@ function ItineraryTab({
                                         const newItineraries = [...value];
                                         newItineraries[index] = normalizeItinerary({ ...itinerary, days: e.target.value });
                                         onChange(newItineraries);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        // Prevent keyboard events from bubbling up to accordion
+                                        e.stopPropagation();
                                       }}
                                     />
                                   </FormControl>
@@ -555,6 +563,10 @@ function ItineraryTab({
                                                   newItineraries[index] = normalizeItinerary(newItineraries[index], index);
                                                   onChange(newItineraries);
                                                 }}
+                                                onKeyDown={(e) => {
+                                                  // Prevent keyboard events from bubbling up to accordion
+                                                  e.stopPropagation();
+                                                }}
                                                 className="bg-white"
                                               />
                                             </FormControl>
@@ -573,6 +585,10 @@ function ItineraryTab({
                                                   newItineraries[index].activities[activityIndex].activityDescription = e.target.value;
                                                   newItineraries[index] = normalizeItinerary(newItineraries[index], index);
                                                   onChange(newItineraries);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  // Prevent keyboard events from bubbling up to accordion
+                                                  e.stopPropagation();
                                                 }}
                                                 className="bg-white min-h-[100px]"
                                               />

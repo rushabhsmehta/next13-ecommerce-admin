@@ -464,6 +464,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                         newItineraries[index] = { ...itinerary, dayNumber: dayNumber };
                                         onChange(newItineraries);
                                       }}
+                                      onKeyDown={(e) => {
+                                        // Prevent keyboard events from bubbling up to accordion
+                                        e.stopPropagation();
+                                      }}
                                     />
                                   </FormControl>
                                 </FormItem>
@@ -480,6 +484,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                         const newItineraries = [...value];
                                         newItineraries[index] = { ...itinerary, days: e.target.value };
                                         onChange(newItineraries);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        // Prevent keyboard events from bubbling up to accordion
+                                        e.stopPropagation();
                                       }}
                                     />
                                   </FormControl>
@@ -752,6 +760,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                                   newItineraries[index].activities[activityIndex].activityTitle = e.target.value;
                                                   onChange(newItineraries);
                                                 }}
+                                                onKeyDown={(e) => {
+                                                  // Prevent keyboard events from bubbling up to accordion
+                                                  e.stopPropagation();
+                                                }}
                                                 className="bg-white"
                                               />
                                             </FormControl>
@@ -769,6 +781,10 @@ const ItineraryTab: React.FC<ItineraryTabProps> = ({
                                                   const newItineraries = [...value];
                                                   newItineraries[index].activities[activityIndex].activityDescription = e.target.value;
                                                   onChange(newItineraries);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  // Prevent keyboard events from bubbling up to accordion
+                                                  e.stopPropagation();
                                                 }}
                                                 className="bg-white min-h-[100px]"
                                               />

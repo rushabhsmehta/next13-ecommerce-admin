@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 
 import prismadb from '@/lib/prismadb';
+import { Prisma } from '@prisma/client';
  
 export async function POST(
   req: Request,
@@ -56,21 +57,90 @@ export async function GET(
   req: Request,
 ) {
   try {
-  
+    const { searchParams } = new URL(req.url);
+    const locationId = searchParams.get('locationId') || undefined;
+    const destinationId = searchParams.get('destinationId') || undefined;
+    const summaryParam = searchParams.get('summary');
+    const limitParam = searchParams.get('limit');
+
+    const summary = summaryParam ? ['true', '1'].includes(summaryParam.toLowerCase()) : false;
+    const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
+    const limit = Number.isFinite(parsedLimit) && parsedLimit! > 0 ? Math.min(parsedLimit!, 100) : undefined;
+
+    const baseWhere = {
+      locationId,
+      destinationId,
+    } satisfies Prisma.HotelWhereInput;
+
+    const orderBy = {
+      createdAt: 'desc' as const,
+    };
+
+    if (summary) {
+      const hotels = await prismadb.hotel.findMany({
+        where: baseWhere,
+        orderBy,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          link: true,
+          createdAt: true,
+          updatedAt: true,
+          location: {
+            select: {
+              id: true,
+              label: true,
+              slug: true,
+            },
+          },
+          destination: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          images: {
+            select: {
+              url: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+            take: 1,
+          },
+        },
+      });
+
+      const summaries = hotels.map((hotel) => ({
+        id: hotel.id,
+        name: hotel.name,
+        link: hotel.link,
+        locationId: hotel.location?.id ?? null,
+        locationLabel: hotel.location?.label,
+        locationSlug: hotel.location?.slug,
+        destinationId: hotel.destination?.id ?? null,
+        destinationName: hotel.destination?.name,
+        heroImageUrl: hotel.images?.[0]?.url,
+        createdAt: hotel.createdAt,
+        updatedAt: hotel.updatedAt,
+      }));
+
+      return NextResponse.json(summaries);
+    }
+
     const hotels = await prismadb.hotel.findMany({
-   
+      where: baseWhere,
       include: {
         images: true,
         location: true,
-        destination: true, // Include destination relationship
-        //  hotel: true,
-        // itineraries: true,  // Include itineraries here     
-    },
-    orderBy: {
-        createdAt: 'desc',
-    }
+        destination: true,
+      },
+      orderBy,
+      take: limit,
     });
-  
+
     return NextResponse.json(hotels);
   } catch (error) {
     console.log('[HOTELS_GET]', error);

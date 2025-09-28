@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs';
 
 import prismadb from '@/lib/prismadb';
+import { Prisma } from '@prisma/client';
 export const dynamic = 'force-dynamic';
 
 async function createItineraryAndActivities(itinerary: { itineraryTitle: any; itineraryDescription: any; locationId: any; tourPackageQueryId: any; dayNumber : any; days: any; hotelId: any; numberofRooms : any; roomCategory : any; mealsIncluded: any; itineraryImages: any[]; activities: any[]; }, tourPackageId: any) {
@@ -213,20 +214,116 @@ export async function GET(
         const { searchParams } = new URL(req.url)
         const locationId = searchParams.get('locationId') || undefined;
         //  const hotelId = searchParams.get('hotelId') || undefined;
-        const isFeatured = searchParams.get('isFeatured');
+        const isFeaturedParam = searchParams.get('isFeatured');
+        const limitParam = searchParams.get('limit');
+        const summaryParam = searchParams.get('summary');
 
-      
+        const isFeatured =
+          typeof isFeaturedParam === 'string'
+            ? ['true', '1'].includes(isFeaturedParam.toLowerCase())
+            : undefined;
+
+        const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
+        const limit = Number.isFinite(parsedLimit) && parsedLimit! > 0 ? Math.min(parsedLimit!, 100) : undefined;
+        const summary = summaryParam ? ['true', '1'].includes(summaryParam.toLowerCase()) : false;
+
+        const baseWhere = {
+            locationId,
+            isFeatured: isFeatured ? true : isFeatured === false ? false : undefined,
+            isArchived: false,
+        } satisfies Prisma.TourPackageWhereInput;
+
+        const orderBy = {
+            createdAt: 'desc' as const,
+        };
+
+        if (summary) {
+            const packages = await prismadb.tourPackage.findMany({
+                where: baseWhere,
+                orderBy,
+                take: limit,
+                select: {
+                    id: true,
+                    slug: true,
+                    locationId: true,
+                    tourPackageName: true,
+                    tourPackageType: true,
+                    numDaysNight: true,
+                    price: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    location: {
+                        select: {
+                            id: true,
+                            label: true,
+                            slug: true,
+                        },
+                    },
+                    images: {
+                        select: { url: true, createdAt: true },
+                        orderBy: {
+                            createdAt: 'asc',
+                        },
+                        take: 1,
+                    },
+                    tourPackagePricings: {
+                        where: {
+                            isActive: true,
+                        },
+                        select: {
+                            pricingComponents: {
+                                select: {
+                                    price: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+
+            const summaries = packages.map((pkg) => {
+                const componentTotals = (pkg.tourPackagePricings ?? []).map((pricing) =>
+                    (pricing.pricingComponents ?? []).reduce((sum, component) => {
+                        const raw = component.price;
+                        const numeric = typeof raw === 'string' ? Number.parseFloat(raw) : Number(raw);
+                        return Number.isFinite(numeric) ? sum + numeric : sum;
+                    }, 0)
+                ).filter((value) => Number.isFinite(value) && value > 0);
+
+                const lowestComponentTotal = componentTotals.length > 0 ? Math.min(...componentTotals) : null;
+
+                const fallbackPrice = pkg.price ? Number.parseFloat(pkg.price) : NaN;
+                const minimumPrice = Number.isFinite(lowestComponentTotal)
+                    ? lowestComponentTotal
+                    : Number.isFinite(fallbackPrice) && fallbackPrice > 0
+                        ? fallbackPrice
+                        : null;
+
+                return {
+                    id: pkg.id,
+                    slug: pkg.slug,
+                    locationId: pkg.locationId,
+                    locationLabel: pkg.location?.label,
+                    locationSlug: pkg.location?.slug,
+                    tourPackageName: pkg.tourPackageName,
+                    tourPackageType: pkg.tourPackageType,
+                    numDaysNight: pkg.numDaysNight,
+                    heroImageUrl: pkg.images?.[0]?.url,
+                    minimumPrice,
+                    createdAt: pkg.createdAt,
+                    updatedAt: pkg.updatedAt,
+                };
+            });
+
+            return NextResponse.json(summaries);
+        }
 
         const tourPackage = await prismadb.tourPackage.findMany({
-            where: {
-                        locationId,
-                //hotelId,
-                isFeatured: isFeatured ? true : undefined,
-                isArchived: false,
-            },
+            where: baseWhere,
             include: {
                 images: true,
-                location: true,                itineraries: {
+                location: true,
+                itineraries: {
                     include: {
                         itineraryImages: true,
                         activities: {
@@ -241,9 +338,8 @@ export async function GET(
                     ]
                 },
             },
-            orderBy: {
-                createdAt: 'desc',
-            }
+            orderBy,
+            take: limit,
         });
 
         return NextResponse.json(tourPackage);

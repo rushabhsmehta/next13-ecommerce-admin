@@ -416,7 +416,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </table>
           </div>
           <div className="px-4 py-2 bg-orange-50 border-t border-orange-100">
-            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes. + 5% GST applicable.</p>
+            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes. + GST as per applicablity.</p>
           </div>
         </div>
       )}

@@ -543,7 +543,7 @@ const TourPackageQueryPDFGenerator: React.FC<TourPackageQueryPDFGeneratorProps> 
             Complete Tour Package Cost
           </div>
           <div style="font-size: 11px; color: ${brandColors.muted}; font-weight: 500; margin-top: 6px; padding: 4px 8px; background: ${brandColors.lightOrange}; border-radius: 4px; display: inline-block;">
-            + 5% GST
+            + GST
           </div>
         </div>
       </div>

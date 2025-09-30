@@ -416,7 +416,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
             </table>
           </div>
           <div className="px-4 py-2 bg-orange-50 border-t border-orange-100">
-            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes. + GST as per applicablity.</p>
+            <p className="text-[11px] text-orange-600 italic">* Subject to availability & taxes. + GST (As Applicable).</p>
           </div>
         </div>
       )}
@@ -444,7 +444,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
                   <span className="font-semibold">Final Tour Package Cost</span>
                 </div>
                 <div className="text-sm text-orange-600 bg-orange-100 px-4 py-2 rounded-lg inline-block border border-orange-200">
-                  <span className="font-semibold">+ 5% GST</span>
+                  <span className="font-semibold">+ GST (As Applicable) </span>
                 </div>
               </div>
             </CardContent>

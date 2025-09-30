@@ -1594,7 +1594,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   This represents the final total price for your tour package
                 </p>
                 <p className="text-xs text-orange-500 mt-1 bg-orange-50 px-2 py-1 rounded border border-orange-200">
-                  + GST as applicable on total package cost
+                  + GST (As Applicable) on total package cost
                 </p>
               </FormItem>
             )}

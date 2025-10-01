@@ -216,6 +216,25 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     return list;
   }, [form.formState.errors]);
 
+  // Initialize room allocations from inquiry (if present) once inquiry loads
+  useEffect(() => {
+    if (!inquiry) return;
+    const existing = form.getValues('roomAllocations');
+    // Check if existing room allocations have meaningful data (not just the default empty allocation)
+    const hasMeaningfulData = Array.isArray(existing) && existing.some(ra => ra?.roomTypeId || ra?.occupancyTypeId || (ra?.quantity && ra.quantity > 1));
+    if (!hasMeaningfulData && Array.isArray(inquiry.roomAllocations) && inquiry.roomAllocations.length > 0) {
+      const mapped = inquiry.roomAllocations.map((allocation: any) => ({
+        roomTypeId: allocation.roomTypeId || undefined,
+        occupancyTypeId: allocation.occupancyTypeId || '',
+        quantity: allocation.quantity || 1,
+        customRoomType: allocation.customRoomType || '',
+        useCustomRoomType: Boolean(allocation.customRoomType && allocation.customRoomType.trim().length > 0),
+      }));
+      form.setValue('roomAllocations', mapped);
+      addLog({ step: 'roomAllocations/initFromInquiry', data: { count: mapped.length, allocations: mapped } });
+    }
+  }, [inquiry, form, addLog]);
+
   // Initialize transport details from inquiry (if present) once inquiry loads
   useEffect(() => {
     if (!inquiry) return;

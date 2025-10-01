@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Package, Utensils, BedDouble, Calculator, FileDown, Check, ArrowRight, ArrowLeft, AlertTriangle, User, CalendarDays, Phone, Car, Trash2 } from "lucide-react";
+import { Plus, Minus, Package, Utensils, BedDouble, Calculator, FileDown, Check, ArrowRight, ArrowLeft, AlertTriangle, User, CalendarDays, Phone, Car, Trash2, ChevronsUpDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { Inquiry, TourPackage, MealPlan, RoomType, OccupancyType, VehicleType } from '@prisma/client';
 
 // Schema for the automated query creation
@@ -101,13 +102,39 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const [selectedPricingComponentIds, setSelectedPricingComponentIds] = useState<string[]>([]);
   const [serverError, setServerError] = useState<string | null>(null);
   
+                  // Combobox state for tour package selection
+  const [tourPackageComboboxOpen, setTourPackageComboboxOpen] = useState(false);
+  const [tourPackageSearchTerm, setTourPackageSearchTerm] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Click outside handler to close custom dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tourPackageComboboxOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        addLog({ 
+          step: 'tourPackageCombobox/clickOutside',
+          data: { target: (event.target as HTMLElement)?.tagName }
+        });
+        setTourPackageComboboxOpen(false);
+      }
+    };
+
+    if (tourPackageComboboxOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [tourPackageComboboxOpen]);
+  
   // Independent pricing component calculation state
   const [pricingMealPlanId, setPricingMealPlanId] = useState<string>('');
   const [pricingNumberOfRooms, setPricingNumberOfRooms] = useState<number>(1);
   const [componentRoomQuantities, setComponentRoomQuantities] = useState<Record<string, number>>({});
-  // Debug logging state
+  // Debug logging state - enabled by default for dialogs where comboboxes/popovers are problematic
   const [debugLog, setDebugLog] = useState<any[]>([]);
-  const [showDebug, setShowDebug] = useState<boolean>(false);
+  const [showDebug, setShowDebug] = useState<boolean>(true); // Changed to true for better debugging in dialogs
   const [debugSessionId, setDebugSessionId] = useState<string>("");
   // Refs to avoid dependency loops and repeated loads
   const debugSessionIdRef = React.useRef<string>("");
@@ -279,6 +306,24 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       }
     })();
   }, [isOpen, inquiryId, addLog]);
+
+  // Log when tour packages are loaded/updated
+  useEffect(() => {
+    if (tourPackages.length > 0) {
+      addLog({ 
+        step: 'tourPackages/updated', 
+        data: { 
+          count: tourPackages.length,
+          packages: tourPackages.map(p => ({ 
+            id: p.id, 
+            name: p.tourPackageName,
+            type: p.tourPackageType 
+          })) 
+        } 
+      });
+    }
+  }, [tourPackages, addLog]);
+  
   const getOccupancyMultiplier = (componentName: string): number => {
     const name = componentName.toLowerCase();
     
@@ -678,6 +723,11 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
 
   // Handle tour package selection with validation
   const handleTourPackageSelection = (tourPackageId: string) => {
+    addLog({ 
+      step: 'handleTourPackageSelection/start', 
+      data: { tourPackageId } 
+    });
+    
     const selectedPackage = tourPackages.find(pkg => pkg.id === tourPackageId);
     
     console.log('🔍 TOUR PACKAGE SELECTION DEBUG');
@@ -685,13 +735,30 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     console.log('1. Selected Package ID:', tourPackageId);
     console.log('2. Found Package:', selectedPackage?.tourPackageName);
     console.log('3. Package Itineraries Count:', selectedPackage?.itineraries?.length || 0);
+    console.log('4. Total Packages Available:', tourPackages.length);
+    
+    addLog({ 
+      step: 'handleTourPackageSelection/packageFound', 
+      data: { 
+        found: !!selectedPackage,
+        packageName: selectedPackage?.tourPackageName,
+        itinerariesCount: selectedPackage?.itineraries?.length || 0
+      } 
+    });
     
   if (selectedPackage) {
       // Validate the selected package
       setIsValidating(true);
+      addLog({ step: 'handleTourPackageSelection/validationStart' });
+      
       const errors = validateTourPackageTemplate(selectedPackage);
       setValidationErrors(errors);
       setIsValidating(false);
+      
+      addLog({ 
+        step: 'handleTourPackageSelection/validationComplete', 
+        data: { errorsCount: errors.length, errors } 
+      });
       
       if (errors.length > 0) {
         console.log('❌ Validation Errors:', errors);
@@ -705,13 +772,27 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       
       console.log('4. Package Itineraries:', JSON.stringify(selectedPackage.itineraries, null, 2));
     } else {
+      console.log('❌ Selected package not found in available packages');
       setValidationErrors(['Selected tour package not found']);
+      addLog({ 
+        step: 'handleTourPackageSelection/packageNotFound', 
+        level: 'error',
+        data: { tourPackageId, availablePackageIds: tourPackages.map(p => p.id) } 
+      });
     }
     
     console.log('===============================');
     
   setSelectedTourPackage(selectedPackage || null);
     form.setValue('tourPackageId', tourPackageId);
+    
+    addLog({ 
+      step: 'handleTourPackageSelection/complete', 
+      data: { 
+        selectedPackageSet: !!selectedPackage,
+        formValueSet: tourPackageId 
+      } 
+    });
   };
   const validateTourPackageTemplate = (tourPackage: TourPackageExtended): string[] => {
     const errors: string[] = [];
@@ -1248,42 +1329,196 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
                 <h3 className="text-lg font-semibold">Step 1: Select Tour Package Template</h3>
                 <p className="text-sm text-gray-600">
                   Choose a tour package template that matches the inquiry requirements.
+                  {tourPackages.length > 0 && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                      {tourPackages.length} package{tourPackages.length !== 1 ? 's' : ''} available
+                    </span>
+                  )}
                 </p>
                 
                 <FormField
                   control={form.control}
                   name="tourPackageId"
-                  render={({ field }) => (
-                    <FormItem>
+                  render={({ field }) => {
+                    const selectedPackage = tourPackages.find((pkg) => pkg.id === field.value);
+                    
+                    return (
+                    <FormItem className="flex flex-col">
                       <FormLabel>Tour Package Template</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          handleTourPackageSelection(value);
-                        }} 
-                        value={field.value}
-                      >
+                      {/* CUSTOM DROPDOWN - Completely bypassing Popover due to Dialog incompatibility */}
+                      <div className="relative" ref={dropdownRef}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a tour package template" />
-                          </SelectTrigger>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={tourPackageComboboxOpen}
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const newState = !tourPackageComboboxOpen;
+                              setTourPackageComboboxOpen(newState);
+                              addLog({ 
+                                step: 'tourPackageCombobox/customTriggerClick', 
+                                data: { 
+                                  packagesAvailable: tourPackages.length,
+                                  currentValue: field.value,
+                                  newState
+                                } 
+                              });
+                            }}
+                          >
+                            {selectedPackage?.tourPackageName || "Select a tour package template"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
                         </FormControl>
-                        <SelectContent>
-                          {tourPackages.map((pkg) => (
-                            <SelectItem key={pkg.id} value={pkg.id}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{pkg.tourPackageName}</span>
-                                <span className="text-xs text-gray-500">
-                                  {pkg.tourPackageType} • ₹{pkg.price}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        
+                        {/* Custom dropdown panel with absolute positioning */}
+                        {tourPackageComboboxOpen && (
+                          <div 
+                            className="absolute z-[10000] w-full mt-1 bg-white border-2 border-orange-500 rounded-md shadow-lg p-2"
+                            style={{ maxWidth: '500px' }}
+                            onClick={(e) => {
+                              // Prevent clicks inside from bubbling
+                              e.stopPropagation();
+                              addLog({ 
+                                step: 'tourPackageCombobox/customDropdownClick',
+                                data: { target: (e.target as HTMLElement).tagName }
+                              });
+                            }}
+                          >
+                          {/* NATIVE IMPLEMENTATION - Replaced Command component to fix dialog interaction issues */}
+                          <div className="flex flex-col gap-2">
+                            <input 
+                              type="text"
+                              placeholder="Search tour packages..."
+                              value={tourPackageSearchTerm}
+                              onChange={(e) => {
+                                const search = e.target.value;
+                                addLog({ 
+                                  step: 'tourPackageCombobox/nativeSearch', 
+                                  data: { searchTerm: search } 
+                                });
+                                setTourPackageSearchTerm(search);
+                              }}
+                              onFocus={() => {
+                                addLog({ step: 'tourPackageCombobox/nativeInputFocus' });
+                              }}
+                              onBlur={() => {
+                                addLog({ step: 'tourPackageCombobox/nativeInputBlur' });
+                              }}
+                              onKeyDown={(e) => {
+                                addLog({ 
+                                  step: 'tourPackageCombobox/nativeInputKeyDown',
+                                  data: { key: e.key }
+                                });
+                              }}
+                              onMouseDown={(e) => {
+                                addLog({ step: 'tourPackageCombobox/nativeInputMouseDown' });
+                              }}
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                            
+                            <div className="max-h-[300px] overflow-auto">
+                              {tourPackages.length === 0 ? (
+                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                  No packages available. Please check the location filter.
+                                </div>
+                              ) : (
+                                <>
+                                  {tourPackages
+                                    .filter((pkg) => {
+                                      const searchLower = tourPackageSearchTerm.toLowerCase();
+                                      return (
+                                        pkg.tourPackageName?.toLowerCase().includes(searchLower) ||
+                                        pkg.tourPackageType?.toLowerCase().includes(searchLower) ||
+                                        pkg.price?.toString().includes(searchLower)
+                                      );
+                                    })
+                                    .map((pkg) => {
+                                      const handleSelection = () => {
+                                        addLog({ 
+                                          step: 'tourPackageCombobox/nativeHandleSelection', 
+                                          data: { 
+                                            packageId: pkg.id, 
+                                            packageName: pkg.tourPackageName
+                                          } 
+                                        });
+                                        field.onChange(pkg.id);
+                                        handleTourPackageSelection(pkg.id);
+                                        setTourPackageComboboxOpen(false);
+                                      };
+                                      
+                                      return (
+                                        <div
+                                          key={pkg.id}
+                                          onMouseDown={(e) => {
+                                            addLog({ 
+                                              step: 'tourPackageCombobox/nativeItemMouseDown', 
+                                              data: { 
+                                                packageId: pkg.id, 
+                                                packageName: pkg.tourPackageName,
+                                                button: e.button
+                                              } 
+                                            });
+                                          }}
+                                          onClick={(e) => {
+                                            addLog({ 
+                                              step: 'tourPackageCombobox/nativeItemClick', 
+                                              data: { 
+                                                packageId: pkg.id, 
+                                                packageName: pkg.tourPackageName 
+                                              } 
+                                            });
+                                            handleSelection();
+                                          }}
+                                          className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              field.value === pkg.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{pkg.tourPackageName}</span>
+                                            <span className="text-xs text-gray-500">
+                                              {pkg.tourPackageType} • ₹{pkg.price}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  }
+                                  {tourPackages.filter((pkg) => {
+                                    const searchLower = tourPackageSearchTerm.toLowerCase();
+                                    return (
+                                      pkg.tourPackageName?.toLowerCase().includes(searchLower) ||
+                                      pkg.tourPackageType?.toLowerCase().includes(searchLower) ||
+                                      pkg.price?.toString().includes(searchLower)
+                                    );
+                                  }).length === 0 && (
+                                    <div className="py-6 text-center text-sm">
+                                      <p>No tour package found.</p>
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        Try adjusting your search
+                                      </p>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
-                  )}
+                    );
+                  }}
                 />
 
                 {selectedTourPackage && (

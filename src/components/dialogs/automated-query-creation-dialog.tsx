@@ -1084,9 +1084,6 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
       toast.success('Tour Package Query created successfully!');
   addLog({ step: 'submit/success', data: { id: createdQuery?.id } });
       
-      // Auto-download PDF
-      await downloadPDF(createdQuery.id);
-      
       // Call success callback
       onSuccess?.(createdQuery.id);
       
@@ -1110,18 +1107,6 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     } finally {
       setLoading(false);
   addLog({ step: 'submit/end' });
-    }
-  };
-
-  // Download PDF
-  const downloadPDF = async (queryId: string) => {
-    try {
-      // Use AH template by default for better aesthetics, user can change if needed
-      window.open(`/tourPackageQueryPDFGenerator/${queryId}?search=AH`, '_blank');
-      toast.success('Generating beautiful PDF...');
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-      toast.error('Failed to generate PDF');
     }
   };
 

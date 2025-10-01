@@ -122,14 +122,6 @@ const NAV_ITEMS = [
     ],
   },
   {
-    title: "AI Tools",
-    items: [
-      { title: "Create Location (AI)", url: "/ai/locations" },
-  { title: "Create Inquiry (AI)", url: "/ai/inquiries" },
-      { title: "Create Tour Package Query (AI)", url: "/ai/tourPackageQuery" },
-    ],
-  },
-  {
     title: "Settings",
     items: [
       { title: "Organization Profile", url: "/settings/organization" },

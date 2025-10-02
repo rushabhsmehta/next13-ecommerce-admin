@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/providers/theme-provider'
 import './globals.css'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/app-sidebar'
+import { DebugLogPanel } from '@/components/DebugLogPanel'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -32,6 +33,7 @@ export default async function RootLayout({
           >
             <ToastProvider />
             <ModalProvider />
+            <DebugLogPanel />
             <SidebarProvider>
               {/* Render the sidebar */}
               <AppSidebar />

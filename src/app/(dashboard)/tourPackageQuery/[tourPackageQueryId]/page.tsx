@@ -20,6 +20,9 @@ const tourPackageQueryPage = async ({
         }
       },
       itineraries: {
+        orderBy: {
+          dayNumber: 'asc' // or 'desc', depending on the desired order
+        },
         include: {
           itineraryImages: true,
           roomAllocations: {
@@ -39,11 +42,20 @@ const tourPackageQueryPage = async ({
               activityImages: true,
             }
           }
-        },
-        orderBy: {
-          dayNumber: 'asc' // or 'desc', depending on the desired order
         }
       },
+      packageVariants: {
+        include: {
+          variantHotelMappings: {
+            include: {
+              hotel: true
+            }
+          }
+        },
+        orderBy: {
+          sortOrder: 'asc'
+        }
+      }
     }
   });
   // console.log("Fetched tourPackage Query:", tourPackageQuery);

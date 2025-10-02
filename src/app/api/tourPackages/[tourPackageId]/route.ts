@@ -36,6 +36,21 @@ export async function GET(
             { days: 'asc' }
           ],
         },
+        packageVariants: {
+          include: {
+            variantHotelMappings: {
+              include: {
+                hotel: {
+                  include: {
+                    images: true
+                  }
+                },
+                itinerary: true
+              }
+            }
+          },
+          orderBy: { sortOrder: 'asc' }
+        }
       },
     },)
     return NextResponse.json(tourPackage);
@@ -172,6 +187,7 @@ export async function PATCH(
       assignedToMobileNumber,
       assignedToEmail,
       slug,
+      packageVariants,
     } = body;
 
     console.log(flightDetails);
@@ -312,7 +328,58 @@ export async function PATCH(
       await Promise.all(itineraryPromises);
     }
 
+    // Handle Package Variants (after itineraries creation)
+    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
+      try {
+        console.log(`[VARIANTS] Processing ${packageVariants.length} package variants`);
+        
+        // Delete existing variants for this tour package
+        await prismadb.packageVariant.deleteMany({
+          where: { tourPackageId: params.tourPackageId }
+        });
+        console.log('[VARIANTS] Deleted existing variants');
 
+        // Create new variants with hotel mappings
+        for (const variant of packageVariants) {
+          const createdVariant = await prismadb.packageVariant.create({
+            data: {
+              name: variant.name,
+              description: variant.description || null,
+              isDefault: variant.isDefault || false,
+              sortOrder: variant.sortOrder || 0,
+              priceModifier: variant.priceModifier || 0,
+              tourPackageId: params.tourPackageId,
+            }
+          });
+
+          console.log(`[VARIANTS] Created variant: ${createdVariant.name}`);
+
+          // Create hotel mappings for this variant
+          if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
+            const mappings = Object.entries(variant.hotelMappings)
+              .map(([itineraryId, hotelId]) => ({
+                packageVariantId: createdVariant.id,
+                itineraryId: itineraryId,
+                hotelId: hotelId as string,
+              }))
+              .filter(m => m.hotelId && m.itineraryId); // Only create mappings where hotel and itinerary are selected
+
+            if (mappings.length > 0) {
+              await prismadb.variantHotelMapping.createMany({
+                data: mappings,
+              });
+              console.log(`[VARIANTS] Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
+            }
+          }
+        }
+        
+        console.log('[VARIANTS] Successfully saved all package variants');
+      } catch (variantError: any) {
+        console.error('[VARIANT_SAVE_ERROR]', variantError);
+        // Don't fail the entire request if variant save fails
+        // Variants are optional feature
+      }
+    }
 
     const tourPackage = await prismadb.tourPackage.findUnique({
       where: { id: params.tourPackageId },
@@ -333,6 +400,21 @@ export async function PATCH(
             { days: 'asc' }
           ]
         },
+        packageVariants: {
+          include: {
+            variantHotelMappings: {
+              include: {
+                hotel: {
+                  include: {
+                    images: true
+                  }
+                },
+                itinerary: true
+              }
+            }
+          },
+          orderBy: { sortOrder: 'asc' }
+        }
       }
     });
 

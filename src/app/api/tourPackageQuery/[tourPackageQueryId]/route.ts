@@ -44,9 +44,42 @@ export async function GET(
             { dayNumber: 'asc' },
             { days: 'asc' }
           ]
-        }
+        },
+        packageVariants: {
+          include: {
+            variantHotelMappings: {
+              include: {
+                hotel: {
+                  include: {
+                    images: true,
+                  },
+                },
+                itinerary: true,
+              },
+            },
+          },
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
       }
     });
+    
+    // 🔍 DEBUG: Log retrieved packageVariants
+    console.log('📥 [API GET] Retrieved packageVariants:', {
+      count: tourPackageQuery?.packageVariants?.length || 0,
+      variants: tourPackageQuery?.packageVariants?.map(v => ({
+        id: v.id,
+        name: v.name,
+        mappingsCount: v.variantHotelMappings?.length || 0,
+        mappings: v.variantHotelMappings?.map(m => ({
+          itineraryId: m.itineraryId,
+          hotelId: m.hotelId,
+          hotelName: m.hotel?.name
+        }))
+      }))
+    });
+    
     return NextResponse.json(tourPackageQuery);
   } catch (error) {
     console.log('[TOUR_PACKAGE_QUERY_GET]', error);
@@ -484,8 +517,18 @@ export async function PATCH(
       tourPackageTemplateName,
       selectedMealPlanId,
       occupancySelections,
-      itineraries
+      itineraries,
+      packageVariants
     } = body;
+
+    // 🔍 DEBUG: Log received packageVariants
+    console.log('📥 [API RECEIVE] packageVariants:', {
+      received: !!packageVariants,
+      type: typeof packageVariants,
+      isArray: Array.isArray(packageVariants),
+      length: packageVariants?.length,
+      data: packageVariants
+    });
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -743,6 +786,97 @@ export async function PATCH(
       } else {
         // If it's not a transaction timeout, re-throw the error
         throw transactionError;
+      }
+    }
+
+    // Handle Package Variants (after main transaction/fallback completes)    
+    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
+      try {
+        console.log(`🎨 [VARIANTS START] Processing ${packageVariants.length} package variants`);
+        console.log('🎨 [VARIANTS DATA] Full variants:', JSON.stringify(packageVariants, null, 2));
+        
+        // Fetch current itineraries to map old IDs to new IDs by dayNumber
+        const currentItineraries = await prismadb.itinerary.findMany({
+          where: { tourPackageQueryId: params.tourPackageQueryId },
+          select: { id: true, dayNumber: true }
+        });
+        console.log(`🔄 [ITINERARY MAPPING] Found ${currentItineraries.length} current itineraries`);
+
+        // If we have itineraries from the request body, create a mapping from old ID to new ID by dayNumber
+        const itineraryIdMap = new Map<string, string>();
+        if (itineraries && Array.isArray(itineraries)) {
+          itineraries.forEach((submittedItinerary, index) => {
+            const matchingCurrent = currentItineraries.find(curr => curr.dayNumber === submittedItinerary.dayNumber);
+            if (matchingCurrent && submittedItinerary.id) {
+              itineraryIdMap.set(submittedItinerary.id, matchingCurrent.id);
+              console.log(`🗺️ [ID MAP] Old: ${submittedItinerary.id} → New: ${matchingCurrent.id} (Day ${submittedItinerary.dayNumber})`);
+            }
+          });
+        }
+        
+        // Delete existing variants for this tour package query
+        await prismadb.packageVariant.deleteMany({
+          where: { tourPackageQueryId: params.tourPackageQueryId }
+        });
+        console.log('🗑️ [VARIANTS] Deleted existing variants');
+
+        // Create new variants with hotel mappings
+        for (const variant of packageVariants) {
+          console.log(`✨ [VARIANT CREATE] Creating variant:`, {
+            name: variant.name,
+            hotelMappingsCount: Object.keys(variant.hotelMappings || {}).length,
+            hotelMappings: variant.hotelMappings
+          });
+          
+          const createdVariant = await prismadb.packageVariant.create({
+            data: {
+              name: variant.name,
+              description: variant.description || null,
+              isDefault: variant.isDefault || false,
+              sortOrder: variant.sortOrder || 0,
+              priceModifier: variant.priceModifier || 0,
+              tourPackageQueryId: params.tourPackageQueryId,
+            }
+          });
+
+          console.log(`✅ [VARIANT CREATED] ID: ${createdVariant.id}, Name: ${createdVariant.name}`);
+
+          // Create hotel mappings for this variant, remapping itinerary IDs
+          if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
+            const mappings = Object.entries(variant.hotelMappings)
+              .map(([oldItineraryId, hotelId]) => {
+                // Use the new itinerary ID if we have a mapping, otherwise use the old ID (might be already new)
+                const newItineraryId = itineraryIdMap.get(oldItineraryId) || oldItineraryId;
+                console.log(`🔗 [REMAP] Itinerary ${oldItineraryId} → ${newItineraryId}, Hotel: ${hotelId}`);
+                return {
+                  packageVariantId: createdVariant.id,
+                  itineraryId: newItineraryId,
+                  hotelId: hotelId as string,
+                };
+              })
+              .filter(m => m.hotelId && m.itineraryId); // Only create mappings where hotel and itinerary are selected
+
+            console.log(`🏨 [HOTEL MAPPINGS] Prepared ${mappings.length} mappings:`, mappings);
+
+            if (mappings.length > 0) {
+              await prismadb.variantHotelMapping.createMany({
+                data: mappings,
+                skipDuplicates: true, // Skip if itinerary doesn't exist
+              });
+              console.log(`✅ [MAPPINGS SAVED] Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
+            } else {
+              console.log(`⚠️ [MAPPINGS EMPTY] No hotel mappings to save for variant: ${createdVariant.name}`);
+            }
+          } else {
+            console.log(`⚠️ [NO MAPPINGS] Variant "${variant.name}" has no hotelMappings object or it's empty`);
+          }
+        }
+        
+        console.log('[VARIANTS] Successfully saved all package variants');
+      } catch (variantError: any) {
+        console.error('[VARIANT_SAVE_ERROR]', variantError);
+        // Don't fail the entire request if variant save fails
+        // Variants are optional feature
       }
     }
 

@@ -107,26 +107,7 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
   const [tourPackageSearchTerm, setTourPackageSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  // Click outside handler to close custom dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (tourPackageComboboxOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        addLog({ 
-          step: 'tourPackageCombobox/clickOutside',
-          data: { target: (event.target as HTMLElement)?.tagName }
-        });
-        setTourPackageComboboxOpen(false);
-      }
-    };
-
-    if (tourPackageComboboxOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [tourPackageComboboxOpen]);
+  // Click outside handler to close custom dropdown (moved below addLog declaration)
   
   // Independent pricing component calculation state
   const [pricingMealPlanId, setPricingMealPlanId] = useState<string>('');
@@ -165,6 +146,27 @@ export const AutomatedQueryCreationDialog: React.FC<AutomatedQueryCreationDialog
     else if (e.level === 'warn') console.warn(prefix, e.msg || '', e.data ?? '');
     else console.log(prefix, e.msg || '', e.data ?? '');
   }, []);
+
+  // Click outside handler to close custom dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tourPackageComboboxOpen && dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        addLog({ 
+          step: 'tourPackageCombobox/clickOutside',
+          data: { target: (event.target as HTMLElement)?.tagName }
+        });
+        setTourPackageComboboxOpen(false);
+      }
+    };
+
+    if (tourPackageComboboxOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [tourPackageComboboxOpen, addLog]);
 
   const copyLogsToClipboard = async () => {
     const text = debugLog.map(l => JSON.stringify(l)).join('\n');

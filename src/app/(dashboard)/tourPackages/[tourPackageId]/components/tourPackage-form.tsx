@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck, Building2 } from "lucide-react"
+import { FileText, Users, MapPin, ListPlus, Plane, Tag, FileCheck, Building2, Sparkles } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Heading } from "@/components/ui/heading"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -43,6 +43,7 @@ import { Switch } from "@/components/ui/switch"
 import { PolicyField } from "./policy-fields";
 import { DevTool } from "@hookform/devtools"
 import HotelsTab from "@/components/tour-package-query/HotelsTab"
+import PackageVariantsTab from "@/components/tour-package-query/PackageVariantsTab"
 // Hotels tab now reuses shared HotelsTab component (room/transport disabled for Tour Package)
 
 // This will be overridden in the component
@@ -130,6 +131,15 @@ const formSchema = z.object({
   assignedToMobileNumber: z.string().optional(),
   assignedToEmail: z.string().optional(),
   slug: z.string().optional(),
+  packageVariants: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, "Variant name is required"),
+    description: z.string().optional(),
+    isDefault: z.boolean().optional(),
+    sortOrder: z.number().optional(),
+    priceModifier: z.number().optional(),
+    hotelMappings: z.record(z.string()).optional()
+  })).optional()
 });
 
 type TourPackageFormValues = z.infer<typeof formSchema>
@@ -631,7 +641,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-8 w-full">
+            <TabsList className="grid grid-cols-9 w-full">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -663,6 +673,10 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
               <TabsTrigger value="policies" className="flex items-center gap-2">
                 <FileCheck className="h-4 w-4" />
                 Policies
+              </TabsTrigger>
+              <TabsTrigger value="variants" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Variants
               </TabsTrigger>
             </TabsList>
 
@@ -1937,6 +1951,14 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                   </Tabs>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="variants" className="space-y-4 mt-4">
+              <PackageVariantsTab
+                control={form.control}
+                hotels={hotels}
+                form={form}
+              />
             </TabsContent>
 
           </Tabs>

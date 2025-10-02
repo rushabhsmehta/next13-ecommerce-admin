@@ -16,7 +16,8 @@ interface DebugLog {
 export const DebugLogPanel = () => {
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  // Default hidden as requested
+  const [isVisible, setIsVisible] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -91,7 +92,21 @@ export const DebugLogPanel = () => {
     setLogs([]);
   };
 
-  if (!isVisible) return null;
+  // When hidden, show a small floating toggle button so users can open the debug panel
+  if (!isVisible) {
+    return (
+      <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsVisible(true)}
+          className="h-8 w-8 p-0"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div 

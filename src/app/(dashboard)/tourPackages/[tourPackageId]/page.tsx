@@ -14,6 +14,40 @@ const tourPackagePage = async ({
 }: {
   params: { tourPackageId: string }
 }) => {
+  // Clean up any orphaned variantHotelMappings before fetching
+  // This prevents Prisma errors when fetching with includes
+  try {
+    // Find all itinerary IDs for this tour package
+    const validItineraries = await prismadb.itinerary.findMany({
+      where: { tourPackageId: params.tourPackageId },
+      select: { id: true }
+    });
+    const validItineraryIds = validItineraries.map(i => i.id);
+
+    // Delete orphaned mappings (mappings pointing to non-existent itineraries)
+    if (validItineraryIds.length > 0) {
+      const deleteResult = await prismadb.variantHotelMapping.deleteMany({
+        where: {
+          packageVariant: {
+            tourPackageId: params.tourPackageId
+          },
+          NOT: {
+            itineraryId: {
+              in: validItineraryIds
+            }
+          }
+        }
+      });
+      
+      if (deleteResult.count > 0) {
+        console.log(`[CLEANUP] Deleted ${deleteResult.count} orphaned hotel mappings for tour package ${params.tourPackageId}`);
+      }
+    }
+  } catch (cleanupError) {
+    console.error('[CLEANUP ERROR] Failed to clean orphaned mappings:', cleanupError);
+    // Continue anyway - we'll try to fetch the data
+  }
+
   const tourPackage = await prismadb.tourPackage.findUnique({
     where: {
       id: params.tourPackageId,
@@ -35,6 +69,21 @@ const tourPackagePage = async ({
         orderBy: {
           dayNumber: 'asc' // or 'desc', depending on the desired order
         }
+      },
+      packageVariants: {
+        include: {
+          variantHotelMappings: {
+            include: {
+              hotel: {
+                include: {
+                  images: true
+                }
+              },
+              itinerary: true
+            }
+          }
+        },
+        orderBy: { sortOrder: 'asc' }
       }
     }
   }

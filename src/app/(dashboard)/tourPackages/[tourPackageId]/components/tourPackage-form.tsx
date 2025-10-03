@@ -293,6 +293,44 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     return DEFAULT_PRICING_SECTION;
   };
 
+  // Transform packageVariants from API response to component format
+  const transformPackageVariants = (variants: any[]): any[] => {
+    if (!variants || !Array.isArray(variants)) return [];
+    
+    console.log('🔄 [TRANSFORM VARIANTS] Transforming packageVariants from API:', {
+      count: variants.length,
+      rawData: variants
+    });
+    
+    return variants.map(variant => {
+      // Convert variantHotelMappings array to hotelMappings object
+      const hotelMappings: { [itineraryId: string]: string } = {};
+      
+      if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
+        variant.variantHotelMappings.forEach((mapping: any) => {
+          if (mapping.itineraryId && mapping.hotelId) {
+            hotelMappings[mapping.itineraryId] = mapping.hotelId;
+          }
+        });
+      }
+      
+      console.log(`🔄 [TRANSFORM] Variant "${variant.name}":`, {
+        mappingsCount: Object.keys(hotelMappings).length,
+        hotelMappings
+      });
+      
+      return {
+        id: variant.id,
+        name: variant.name,
+        description: variant.description,
+        isDefault: variant.isDefault,
+        sortOrder: variant.sortOrder,
+        priceModifier: variant.priceModifier,
+        hotelMappings
+      };
+    });
+  };
+
   const transformInitialData = (data: any) => {
     return {
       ...data,
@@ -315,7 +353,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       })),
 
       itineraries: data.itineraries.map((itinerary: any) => ({
-
+        id: itinerary.id, // CRITICAL: Preserve the itinerary ID for variant hotel mappings
         dayNumber: itinerary.dayNumber ?? 0,
         itineraryImages: itinerary.itineraryImages.map((image: { url: any }) => ({ url: image.url })), // Transform to { url: string }[]        
         itineraryTitle: itinerary.itineraryTitle ?? '',
@@ -342,6 +380,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       airlineCancellationPolicy: parseJsonField(data.airlineCancellationPolicy) || AIRLINE_CANCELLATION_POLICY_DEFAULT,
       termsconditions: parseJsonField(data.termsconditions) || TERMS_AND_CONDITIONS_DEFAULT,
       pricingSection: parsePricingSection(data.pricingSection),
+      packageVariants: transformPackageVariants((data as any).packageVariants || []),
     };
   };
   const defaultValues = initialData ? transformInitialData(initialData) : {
@@ -384,6 +423,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     isFeatured: true,
     isArchived: false,
     pricingSection: DEFAULT_PRICING_SECTION, // Update this line to use the default pricing section
+    packageVariants: [],
   };
 
   const form = useForm<TourPackageFormValues>({
@@ -469,7 +509,8 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
 
           //      activityImages: activity.activityImages.map(img => img.url) // Extract URLs from activityImages  
         }))
-      }))
+      })),
+      packageVariants: data.packageVariants || [], // Include variants
     };
 
 
@@ -1956,8 +1997,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
             <TabsContent value="variants" className="space-y-4 mt-4">
               <PackageVariantsTab
                 control={form.control}
-                hotels={hotels}
                 form={form}
+                loading={loading}
+                hotels={hotels}
               />
             </TabsContent>
 

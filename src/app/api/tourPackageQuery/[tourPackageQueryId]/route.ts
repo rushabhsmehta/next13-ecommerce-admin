@@ -960,11 +960,25 @@ export async function PATCH(
 
             if (mappings.length > 0) {
               try {
-                await prismadb.variantHotelMapping.createMany({
-                  data: mappings as any,
-                  skipDuplicates: true,
+                // Final validation: ensure all itinerary IDs exist in database
+                const validItineraryIds = new Set(currentItineraries.map(i => i.id));
+                const validatedMappings = mappings.filter((m: any) => {
+                  const isValid = validItineraryIds.has(m.itineraryId);
+                  if (!isValid) {
+                    console.log(`⚠️ [INVALID MAPPING] Skipping mapping with non-existent itinerary ID: ${m.itineraryId}`);
+                  }
+                  return isValid;
                 });
-                console.log(`✅ [MAPPINGS SAVED] Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
+                
+                if (validatedMappings.length > 0) {
+                  await prismadb.variantHotelMapping.createMany({
+                    data: validatedMappings as any,
+                    skipDuplicates: true,
+                  });
+                  console.log(`✅ [MAPPINGS SAVED] Created ${validatedMappings.length} hotel mappings for variant: ${createdVariant.name}`);
+                } else {
+                  console.log(`⚠️ [NO VALID MAPPINGS] All ${mappings.length} mappings were filtered out (invalid itinerary IDs)`);
+                }
               } catch (mappingError: any) {
                 console.error(`❌ [MAPPING SAVE ERROR] Failed to save mappings:`, mappingError);
                 // Try to clean up orphaned mappings if creation failed

@@ -119,6 +119,11 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
     }
   }, [variants, form]);
 
+  // Close any open popovers when switching between variants
+  useEffect(() => {
+    setOpenHotelPopover(null);
+  }, [activeVariantIndex]);
+
   const addVariant = () => {
     const newVariant: PackageVariant = {
       name: `Variant ${variants.length + 1}`,
@@ -151,20 +156,25 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   };
 
   const updateHotelMapping = (variantIndex: number, itineraryId: string, hotelId: string) => {
-    // Use dayNumber as the stable mapping key when possible to avoid orphaned mappings
+    // CRITICAL: Use itinerary.id as primary key for stable, unique mappings
+    // Only fall back to dayNumber if id is missing (backward compatibility)
     const itinerary = itineraries.find(i => i.id === itineraryId);
-    const key = itinerary && typeof itinerary.dayNumber === 'number' ? String(itinerary.dayNumber) : itineraryId;
+    const key = itineraryId || (itinerary && typeof itinerary.dayNumber === 'number' ? String(itinerary.dayNumber) : `fallback-${itineraryId}`);
+    
     console.log('🏨 [HOTEL MAPPING] Updating hotel:', {
       variantIndex,
       variantName: variants[variantIndex]?.name,
       itineraryId,
+      itineraryDayNumber: itinerary?.dayNumber,
       mappingKey: key,
       hotelId,
       hotelName: hotels.find(h => h.id === hotelId)?.name
     });
+    
     const updated = [...variants];
     updated[variantIndex].hotelMappings = { ...(updated[variantIndex].hotelMappings || {}) };
     updated[variantIndex].hotelMappings[key] = hotelId;
+    
     console.log('🏨 [HOTEL MAPPING] Updated mappings:', updated[variantIndex].hotelMappings);
     setVariants(updated);
   };
@@ -353,7 +363,8 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                   // Support mappings keyed by itinerary.id or by dayNumber (string)
                   const selectedHotelId = variant.hotelMappings[itinerary.id] || variant.hotelMappings[String(itinerary.dayNumber)] || "";
                   const selectedHotel = hotels.find(h => h.id === selectedHotelId);
-                  const popoverKey = `${variantIndex}-${itinerary.id}`;
+                  // Use itinerary.id as primary key, fallback to index to ensure unique popover keys
+                  const popoverKey = `${variantIndex}-${itinerary.id || `index-${itineraryIndex}`}`;
                   const isOpen = openHotelPopover === popoverKey;
 
                   return (
@@ -373,7 +384,13 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                       </div>
                       <div className="ml-8">
                         <Label className="text-[11px] font-medium uppercase tracking-wide text-slate-600 mb-2 block">Select Hotel</Label>
-                        <Popover open={isOpen} onOpenChange={(o) => setOpenHotelPopover(o ? popoverKey : null)}>
+                        <Popover 
+                          open={isOpen} 
+                          onOpenChange={(open) => {
+                            // Only allow opening one popover at a time
+                            setOpenHotelPopover(open ? popoverKey : null);
+                          }}
+                        >
                           <PopoverTrigger asChild>
                             <Button
                               type="button"
@@ -388,7 +405,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                               <ChevronsUpDown className="h-3.5 w-3.5 opacity-60" />
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[320px] p-0" align="start">
+                          <PopoverContent className="w-[320px] p-0" align="start" side="bottom" sideOffset={5}>
                             <Command>
                               <CommandInput placeholder="Search hotel..." className="text-xs" />
                               <CommandList className="max-h-60 overflow-auto">
@@ -402,7 +419,7 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                                         updateHotelMapping(variantIndex, itinerary.id, h.id);
                                         setOpenHotelPopover(null);
                                       }}
-                                      className="text-xs"
+                                      className="text-xs cursor-pointer"
                                     >
                                       {h.images?.[0]?.url && (
                                         <Image

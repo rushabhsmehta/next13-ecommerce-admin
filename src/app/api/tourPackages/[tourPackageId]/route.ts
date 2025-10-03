@@ -238,7 +238,46 @@ export async function PATCH(
     const usefulTipString = JSON.stringify(processedUsefulTip);    const cancellationPolicyString = JSON.stringify(processedCancellationPolicy);
     const airlineCancellationPolicyString = JSON.stringify(processedAirlineCancellationPolicy);
     const termsConditionsString = JSON.stringify(processedTermsConditions);
-    const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);    const tourPackageUpdateData = {
+    const kitchenGroupPolicyString = JSON.stringify(processedKitchenGroupPolicy);    
+    
+    // ===== CRITICAL: Get old itinerary data BEFORE deletion =====
+    // This is needed for variant hotel mapping remapping (old itinerary IDs → dayNumbers)
+    const oldItineraryIdToDayMap = new Map<string, number>();
+    
+    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
+      // Get all old itinerary IDs from the variant hotel mappings
+      const allOldItineraryIds = new Set<string>();
+      for (const variant of packageVariants) {
+        if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
+          Object.keys(variant.hotelMappings).forEach(id => allOldItineraryIds.add(id));
+        }
+      }
+      
+      console.log(`[VARIANTS PRE] Found ${allOldItineraryIds.size} unique old itinerary IDs in mappings`);
+      
+      // Look up these old itineraries to get their dayNumbers BEFORE they're deleted
+      if (allOldItineraryIds.size > 0) {
+        const oldItineraries = await prismadb.itinerary.findMany({
+          where: {
+            id: { in: Array.from(allOldItineraryIds) },
+            tourPackageId: params.tourPackageId // Ensure they belong to this tour package
+          },
+          select: { id: true, dayNumber: true }
+        });
+        
+        oldItineraries.forEach(itin => {
+          if (itin.dayNumber != null) {
+            oldItineraryIdToDayMap.set(itin.id, itin.dayNumber);
+            console.log(`[VARIANTS PRE] Old ID ${itin.id} → day ${itin.dayNumber}`);
+          }
+        });
+        
+        console.log(`[VARIANTS PRE] Built old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
+      }
+    }
+    // ===== End of pre-deletion itinerary lookup =====
+    
+    const tourPackageUpdateData = {
       //  await prismadb.tourPackage.update({
       //  where: {
       //    id: params.tourPackageId
@@ -332,14 +371,35 @@ export async function PATCH(
     if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
       try {
         console.log(`[VARIANTS] Processing ${packageVariants.length} package variants`);
+        console.log(`[VARIANTS] Using pre-fetched old ID-to-day map with ${oldItineraryIdToDayMap.size} entries`);
         
-        // Delete existing variants for this tour package
+        // Fetch newly created itineraries
+        const newItineraries = await prismadb.itinerary.findMany({
+          where: { tourPackageId: params.tourPackageId },
+          orderBy: [
+            { dayNumber: 'asc' },
+            { days: 'asc' }
+          ],
+          select: { id: true, dayNumber: true }
+        });
+        console.log(`[VARIANTS] Found ${newItineraries.length} newly created itineraries`);
+        
+        // Build dayNumber to new itinerary ID map
+        const dayToNewIdMap = new Map<number, string>();
+        newItineraries.forEach(itin => {
+          if (itin.dayNumber != null) {
+            dayToNewIdMap.set(itin.dayNumber, itin.id);
+            console.log(`[VARIANTS] Day ${itin.dayNumber} → new ID ${itin.id}`);
+          }
+        });
+        
+        // Delete existing variants
         await prismadb.packageVariant.deleteMany({
           where: { tourPackageId: params.tourPackageId }
         });
         console.log('[VARIANTS] Deleted existing variants');
 
-        // Create new variants with hotel mappings
+        // Create new variants with remapped hotel mappings
         for (const variant of packageVariants) {
           const createdVariant = await prismadb.packageVariant.create({
             data: {
@@ -354,21 +414,43 @@ export async function PATCH(
 
           console.log(`[VARIANTS] Created variant: ${createdVariant.name}`);
 
-          // Create hotel mappings for this variant
+          // Create hotel mappings with ID remapping: old ID → dayNumber → new ID
           if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
             const mappings = Object.entries(variant.hotelMappings)
-              .map(([itineraryId, hotelId]) => ({
-                packageVariantId: createdVariant.id,
-                itineraryId: itineraryId,
-                hotelId: hotelId as string,
-              }))
-              .filter(m => m.hotelId && m.itineraryId); // Only create mappings where hotel and itinerary are selected
+              .map(([oldItineraryId, hotelId]) => {
+                // Get dayNumber from old ID (using pre-fetched map)
+                const dayNumber = oldItineraryIdToDayMap.get(oldItineraryId);
+                if (dayNumber == null) {
+                  console.log(`[VARIANTS] ⚠️ Cannot find dayNumber for old ID: ${oldItineraryId}`);
+                  return null;
+                }
+                
+                // Get new ID from dayNumber
+                const newItineraryId = dayToNewIdMap.get(dayNumber);
+                if (!newItineraryId) {
+                  console.log(`[VARIANTS] ⚠️ Cannot find new ID for day ${dayNumber}`);
+                  return null;
+                }
+                
+                console.log(`[VARIANTS] ✅ Remapped: ${oldItineraryId} → day ${dayNumber} → ${newItineraryId}`);
+                
+                return {
+                  packageVariantId: createdVariant.id,
+                  itineraryId: newItineraryId,
+                  hotelId: hotelId as string,
+                };
+              })
+              .filter((m): m is { packageVariantId: string; itineraryId: string; hotelId: string } => 
+                m !== null && !!m.hotelId && !!m.itineraryId
+              );
 
             if (mappings.length > 0) {
               await prismadb.variantHotelMapping.createMany({
                 data: mappings,
               });
-              console.log(`[VARIANTS] Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
+              console.log(`[VARIANTS] ✅ Created ${mappings.length} hotel mappings for variant: ${createdVariant.name}`);
+            } else {
+              console.log(`[VARIANTS] ⚠️ No valid hotel mappings to create for variant: ${createdVariant.name}`);
             }
           }
         }

@@ -151,15 +151,20 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
   };
 
   const updateHotelMapping = (variantIndex: number, itineraryId: string, hotelId: string) => {
+    // Use dayNumber as the stable mapping key when possible to avoid orphaned mappings
+    const itinerary = itineraries.find(i => i.id === itineraryId);
+    const key = itinerary && typeof itinerary.dayNumber === 'number' ? String(itinerary.dayNumber) : itineraryId;
     console.log('🏨 [HOTEL MAPPING] Updating hotel:', {
       variantIndex,
       variantName: variants[variantIndex]?.name,
       itineraryId,
+      mappingKey: key,
       hotelId,
       hotelName: hotels.find(h => h.id === hotelId)?.name
     });
     const updated = [...variants];
-    updated[variantIndex].hotelMappings[itineraryId] = hotelId;
+    updated[variantIndex].hotelMappings = { ...(updated[variantIndex].hotelMappings || {}) };
+    updated[variantIndex].hotelMappings[key] = hotelId;
     console.log('🏨 [HOTEL MAPPING] Updated mappings:', updated[variantIndex].hotelMappings);
     setVariants(updated);
   };
@@ -345,7 +350,8 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
               </CardHeader>
               <CardContent className="space-y-3 pt-4">
                 {itineraries.map((itinerary, itineraryIndex) => {
-                  const selectedHotelId = variant.hotelMappings[itinerary.id] || "";
+                  // Support mappings keyed by itinerary.id or by dayNumber (string)
+                  const selectedHotelId = variant.hotelMappings[itinerary.id] || variant.hotelMappings[String(itinerary.dayNumber)] || "";
                   const selectedHotel = hotels.find(h => h.id === selectedHotelId);
                   const popoverKey = `${variantIndex}-${itinerary.id}`;
                   const isOpen = openHotelPopover === popoverKey;

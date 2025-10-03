@@ -831,7 +831,12 @@ export async function PATCH(
         // Create a map from dayNumber to new itinerary ID
         const dayNumberToNewIdMap = new Map<number, string>();
         currentItineraries.forEach(itin => {
-          dayNumberToNewIdMap.set(itin.dayNumber, itin.id);
+          // dayNumber can be null in some records; guard against that for TypeScript and runtime safety
+          if (typeof itin.dayNumber === 'number') {
+            dayNumberToNewIdMap.set(itin.dayNumber, itin.id);
+          } else {
+            console.warn('[ITINERARY_MAPPING] Skipping itinerary with missing dayNumber:', itin.id, itin);
+          }
         });
 
         // Create a mapping from old itinerary ID to dayNumber using the captured old itineraries
@@ -840,8 +845,12 @@ export async function PATCH(
         // Use the OLD itineraries we captured before deletion
         if (oldItineraries && Array.isArray(oldItineraries)) {
           oldItineraries.forEach(oldItin => {
-            oldIdToDayNumberMap.set(oldItin.id, oldItin.dayNumber);
-            console.log(`📝 [OLD ITINERARY] ${oldItin.id} → Day ${oldItin.dayNumber}`);
+            if (typeof oldItin.dayNumber === 'number') {
+              oldIdToDayNumberMap.set(oldItin.id, oldItin.dayNumber);
+              console.log(`📝 [OLD ITINERARY] ${oldItin.id} → Day ${oldItin.dayNumber}`);
+            } else {
+              console.warn('[OLD_ITINERARY] Skipping old itinerary with missing dayNumber:', oldItin.id, oldItin);
+            }
           });
         }
 
@@ -878,11 +887,18 @@ export async function PATCH(
 
           // Create hotel mappings for this variant, remapping itinerary IDs
           if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
-            const mappings = Object.entries(variant.hotelMappings)
+            let mappings = Object.entries(variant.hotelMappings)
               .map(([oldItineraryId, hotelId]) => {
                 // Try to find the new itinerary ID by:
-                // 1. First check if oldItineraryId maps to a dayNumber, then get new ID from dayNumber
-                const dayNumber = oldIdToDayNumberMap.get(oldItineraryId);
+                // 1. If the key is a numeric string, treat it as a dayNumber
+                // 2. Otherwise check if oldItineraryId maps to a dayNumber, then get new ID from dayNumber
+                let dayNumber: number | undefined = undefined;
+                if (/^\d+$/.test(oldItineraryId)) {
+                  dayNumber = parseInt(oldItineraryId, 10);
+                  console.log(`🔎 [NUMERIC KEY] Interpreting mapping key '${oldItineraryId}' as dayNumber ${dayNumber}`);
+                } else {
+                  dayNumber = oldIdToDayNumberMap.get(oldItineraryId) as number | undefined;
+                }
                 let newItineraryId = oldItineraryId; // Default to old ID
                 
                 if (dayNumber !== undefined) {
@@ -913,6 +929,32 @@ export async function PATCH(
                 };
               })
               .filter(m => m !== null && m.hotelId && m.itineraryId); // Only create mappings where hotel and itinerary are selected
+
+            // Fallback: if remapping produced no mappings but the client provided the same
+            // number of hotel mappings as current itineraries, map by day order (index → day)
+            if ((mappings.length === 0 || mappings.length < Object.keys(variant.hotelMappings).length) &&
+                Object.keys(variant.hotelMappings).length > 0 &&
+                currentItineraries.length > 0) {
+              try {
+                const hotelIds = Object.values(variant.hotelMappings);
+                // Attempt fallback mapping by assigning provided hotelIds to earliest days in order.
+                // This supports partial assignments (e.g., 2 hotels -> map to Day 1 & Day 2).
+                console.log('🔁 [FALLBACK] Attempting day-order remap of hotel mappings (partial allowed)');
+                const sortedItins = [...currentItineraries].sort((a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0));
+                mappings = hotelIds.map((hotelId, idx) => {
+                  const itin = sortedItins[idx];
+                  if (!itin) return null;
+                  return {
+                    packageVariantId: createdVariant.id,
+                    itineraryId: itin.id,
+                    hotelId: hotelId as string,
+                  };
+                }).filter(Boolean) as any[];
+                console.log(`🔁 [FALLBACK] Prepared ${mappings.length} fallback mappings by day order (partial)`);
+              } catch (fbErr) {
+                console.error('❌ [FALLBACK] Failed to prepare fallback mappings', fbErr);
+              }
+            }
 
             console.log(`🏨 [HOTEL MAPPINGS] Prepared ${mappings.length} mappings:`, mappings);
 

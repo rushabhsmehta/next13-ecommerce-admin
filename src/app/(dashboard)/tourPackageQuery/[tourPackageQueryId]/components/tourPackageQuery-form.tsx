@@ -217,12 +217,14 @@ const formSchema = z.object({
   // Package variants for multi-tier packages (Luxury, Premium, Standard)
   packageVariants: z.array(z.object({
     id: z.string().optional(),
-    name: z.string(),
-    description: z.string().optional(),
-    isDefault: z.boolean(),
-    sortOrder: z.number(),
-    priceModifier: z.number().optional(),
-    hotelMappings: z.record(z.string()),
+    name: z.string().min(1, "Variant name is required"),
+    description: z.string().optional().nullable(),
+    // make flags optional with sensible defaults to tolerate different client shapes
+    isDefault: z.boolean().optional().default(false),
+    sortOrder: z.number().optional().default(0),
+    priceModifier: z.number().optional().nullable().default(0),
+    // hotelMappings may be missing or an empty object
+    hotelMappings: z.record(z.string()).optional().default({}),
   })).optional(),
 });
 
@@ -822,6 +824,17 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       if (!isValid) {
         console.log("VALIDATION ERROR DETAILS:");
         console.log("All errors:", form.formState.errors);
+        
+        // Log packageVariants errors specifically
+        if (form.formState.errors.packageVariants) {
+          console.error("❌ [PACKAGE VARIANTS ERROR]:", form.formState.errors.packageVariants);
+          // @ts-ignore - accessing array errors
+          if (Array.isArray(form.formState.errors.packageVariants)) {
+            form.formState.errors.packageVariants.forEach((variantError: any, idx: number) => {
+              console.error(`❌ [VARIANT ${idx} ERROR]:`, variantError);
+            });
+          }
+        }
 
         let errorMessage = "Please fix the validation errors."; // Default message
 
@@ -844,6 +857,30 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           toast.error(errorMessage, {
             duration: 10000 // Show for longer to read full message
           });
+        } else if (form.formState.errors.packageVariants) {
+          // Handle packageVariants errors specifically with detailed output
+          try {
+            // @ts-ignore
+            if (Array.isArray(form.formState.errors.packageVariants)) {
+              // @ts-ignore
+              const variantErrors = form.formState.errors.packageVariants
+                .map((err: any, idx: number) => {
+                  if (!err) return null;
+                  const fields = Object.keys(err || {});
+                  if (fields.length === 0) return null;
+                  return `Variant ${idx + 1}: ${fields.map(f => `${f} (${err[f]?.message || 'invalid'})`).join(', ')}`;
+                })
+                .filter(Boolean)
+                .join(' | ');
+              errorMessage = `Package Variants validation errors: ${variantErrors || 'Check console for details'}`;
+            } else {
+              // @ts-ignore
+              errorMessage = `Package Variants: ${form.formState.errors.packageVariants?.message || JSON.stringify(form.formState.errors.packageVariants)}`;
+            }
+          } catch (e) {
+            errorMessage = `Package Variants validation failed. Check console for details.`;
+          }
+          toast.error(errorMessage, { duration: 10000 });
         } else {
           // Handle other top-level errors
           const errorDetails = Object.entries(form.formState.errors)

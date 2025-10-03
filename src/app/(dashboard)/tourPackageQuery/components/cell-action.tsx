@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { Copy, Edit, MoreHorizontal, Trash, Hotel } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, Hotel, FileText } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
@@ -68,6 +68,11 @@ export const CellAction: React.FC<CellActionProps> = ({
   const handleOptionConfirmPDF = (selectedOption: string) => {
     setMenuOpen(false);
     window.open(`/tourPackageQueryPDFGenerator/${data.id}?search=${selectedOption}`, "_blank");
+  }
+
+  const handleOptionConfirmPDFWithVariants = (selectedOption: string) => {
+    setMenuOpen(false);
+    window.open(`/tourPackageQueryPDFGeneratorWithVariants/${data.id}?search=${selectedOption}`, "_blank");
   }
 
   const handleOptionConfirmVoucher = (selectedOption: string) => {
@@ -148,6 +153,28 @@ export const CellAction: React.FC<CellActionProps> = ({
           </DropdownMenuSub>
           <DropdownMenuSeparator />
 
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <FileText className="mr-2 h-4 w-4" />  Download PDF with Variants
+            </DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('Empty')}>
+                  Empty
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('AH')}>
+                  AH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('KH')}>
+                  KH
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleOptionConfirmPDFWithVariants('MT')}>
+                  MT
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
+          <DropdownMenuSeparator />
 
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>

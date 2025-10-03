@@ -83,6 +83,42 @@ npx prisma db push
 npm run dev
 ```
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the `/docs` folder:
+
+- **[Documentation Index](./docs/README.md)** - Start here for all documentation
+- **[Package Variants Guide](./docs/features/package-variants.md)** - Multi-variant tour packages
+- **[PDF Generation Guide](./docs/features/pdf-generation.md)** - PDF generation with variants
+- **[UI Component Fixes](./docs/fixes/ui-component-fixes.md)** - Combobox, Popover, and inline editing fixes
+
+### Quick Links
+- [Consolidation Summary](./docs/CONSOLIDATION_SUMMARY.md) - Documentation reorganization details
+- [Archive](./docs/archive/) - Original documentation files (80+ files preserved)
+
+## 🔧 Scripts
+
+All utility scripts, migrations, and tests are organized in the `/scripts` folder:
+
+- **[Scripts Index](./scripts/README.md)** - Complete scripts guide
+- **[Migrations](./scripts/migrations/)** - Database migrations (6 scripts)
+- **[Tests](./scripts/tests/)** - API & feature tests (20 scripts)
+- **[WhatsApp](./scripts/whatsapp/)** - WhatsApp integration (6 scripts)
+- **[Seed](./scripts/seed/)** - Database seeding (2 scripts)
+- **[Utilities](./scripts/utilities/)** - General utilities (10 scripts)
+
+### Quick Script Commands
+```bash
+# Run a migration
+node scripts/migrations/migrate-transportation-field.js
+
+# Run a test
+node scripts/tests/test-variants-api.js
+
+# Send WhatsApp
+node scripts/whatsapp/send-whatsapp.js
+```
+
 ## Available commands
 
 Running commands with npm `npm run [command]`

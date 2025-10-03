@@ -337,6 +337,11 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                 <CardTitle className="text-sm flex items-center gap-2">
                   <HotelIcon className="h-4 w-4 text-orange-600" /> Hotel Assignments
                 </CardTitle>
+                {Object.keys(variant.hotelMappings).length === 0 && (
+                  <p className="text-xs text-orange-600 mt-1 font-normal">
+                    ⚠️ No hotels assigned yet. Please select a hotel for each day below.
+                  </p>
+                )}
               </CardHeader>
               <CardContent className="space-y-3 pt-4">
                 {itineraries.map((itinerary, itineraryIndex) => {
@@ -439,15 +444,40 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
           {variants.map((variant, index) => {
-            const assignedCount = Object.keys(variant.hotelMappings).length;
+            // Count only valid hotel mappings (where itinerary still exists)
+            const validMappings = Object.entries(variant.hotelMappings).filter(([itinId, hotelId]) => {
+              const itineraryExists = itineraries.some(itin => itin.id === itinId);
+              const hotelExists = hotels.some(h => h.id === hotelId);
+              return itineraryExists && hotelExists;
+            });
+            const assignedCount = validMappings.length;
             const totalDays = itineraries.length;
             const isComplete = assignedCount === totalDays;
+            
             return (
-              <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
-                <span className="font-medium">{variant.name}</span>
-                <Badge variant={isComplete ? "default" : "destructive"} className="text-xs">
-                  {assignedCount}/{totalDays} Hotels Assigned
-                </Badge>
+              <div key={index} className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-white rounded border">
+                  <span className="font-medium">{variant.name}</span>
+                  <Badge variant={isComplete ? "default" : "destructive"} className="text-xs">
+                    {assignedCount}/{totalDays} Hotels Assigned
+                  </Badge>
+                </div>
+                {assignedCount > 0 && (
+                  <div className="ml-2 space-y-1 text-[10px] text-muted-foreground">
+                    {validMappings.map(([itinId, hotelId]) => {
+                      const itinerary = itineraries.find(i => i.id === itinId);
+                      const hotel = hotels.find(h => h.id === hotelId);
+                      return (
+                        <div key={itinId} className="flex items-center gap-2">
+                          <Badge variant="outline" className="h-4 w-4 rounded-full flex items-center justify-center p-0 text-[9px]">
+                            {itinerary?.dayNumber}
+                          </Badge>
+                          <span className="truncate">{hotel?.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}

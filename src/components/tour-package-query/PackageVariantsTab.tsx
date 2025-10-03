@@ -450,13 +450,24 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
           {variants.map((variant, index) => {
-            // Count only valid hotel mappings (where itinerary still exists)
-            const validMappings = Object.entries(variant.hotelMappings).filter(([itinId, hotelId]) => {
-              const itineraryExists = itineraries.some(itin => itin.id === itinId);
-              const hotelExists = hotels.some(h => h.id === hotelId);
-              return itineraryExists && hotelExists;
+            // Build a list of hotel assignments per itinerary
+            // Support both itinerary.id and dayNumber (string) as mapping keys
+            const assignments: Array<{itinerary: any, hotel: any}> = [];
+            
+            itineraries.forEach(itinerary => {
+              // Check both possible key formats: itinerary.id or String(dayNumber)
+              const hotelId = variant.hotelMappings[itinerary.id] 
+                           || variant.hotelMappings[String(itinerary.dayNumber)];
+              
+              if (hotelId) {
+                const hotel = hotels.find(h => h.id === hotelId);
+                if (hotel) {
+                  assignments.push({ itinerary, hotel });
+                }
+              }
             });
-            const assignedCount = validMappings.length;
+            
+            const assignedCount = assignments.length;
             const totalDays = itineraries.length;
             const isComplete = assignedCount === totalDays;
             
@@ -470,18 +481,14 @@ const PackageVariantsTab: React.FC<PackageVariantsTabProps> = ({
                 </div>
                 {assignedCount > 0 && (
                   <div className="ml-2 space-y-1 text-[10px] text-muted-foreground">
-                    {validMappings.map(([itinId, hotelId]) => {
-                      const itinerary = itineraries.find(i => i.id === itinId);
-                      const hotel = hotels.find(h => h.id === hotelId);
-                      return (
-                        <div key={itinId} className="flex items-center gap-2">
-                          <Badge variant="outline" className="h-4 w-4 rounded-full flex items-center justify-center p-0 text-[9px]">
-                            {itinerary?.dayNumber}
-                          </Badge>
-                          <span className="truncate">{hotel?.name}</span>
-                        </div>
-                      );
-                    })}
+                    {assignments.map(({ itinerary, hotel }) => (
+                      <div key={itinerary.id} className="flex items-center gap-2">
+                        <Badge variant="outline" className="h-4 w-4 rounded-full flex items-center justify-center p-0 text-[9px]">
+                          {itinerary.dayNumber}
+                        </Badge>
+                        <span className="truncate">{hotel.name}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

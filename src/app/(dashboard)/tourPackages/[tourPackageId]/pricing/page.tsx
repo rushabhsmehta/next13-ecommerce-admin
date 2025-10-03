@@ -17,6 +17,7 @@ import {
   MapPin,
   Sparkles,
   Settings,
+  Copy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { 
@@ -52,6 +53,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -142,6 +151,7 @@ export default function TourPackagePricingPage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [showCopyDialog, setShowCopyDialog] = useState(false)
     // Configuration items
   const [mealPlans, setMealPlans] = useState<any[]>([])
   const [pricingAttributes, setPricingAttributes] = useState<any[]>([])
@@ -471,6 +481,39 @@ export default function TourPackagePricingPage() {
     } else {
       toast.error("No pricing attributes available. Please create pricing attributes first.")
     }
+  }
+
+  const handleCopyFromPeriod = (sourcePeriod: any) => {
+    // Extract and copy the pricing components
+    const componentsToAdd = sourcePeriod.pricingComponents || []
+    
+    if (componentsToAdd.length === 0) {
+      toast.error("Selected period has no pricing components to copy")
+      return
+    }
+
+    // Clear existing components
+    while (fields.length > 0) {
+      remove(0)
+    }
+
+    // Add copied components
+    componentsToAdd.forEach((component: any) => {
+      append({
+        pricingAttributeId: component.pricingAttributeId,
+        price: component.price || 0,
+        purchasePrice: component.purchasePrice || 0,
+        description: component.description || "",
+      })
+    })
+
+    // Also copy other relevant fields
+    form.setValue("mealPlanId", sourcePeriod.mealPlanId || "")
+    form.setValue("vehicleTypeId", sourcePeriod.vehicleTypeId || "")
+    form.setValue("numberOfRooms", sourcePeriod.numberOfRooms || 1)
+
+    setShowCopyDialog(false)
+    toast.success(`Copied ${componentsToAdd.length} pricing components from selected period`)
   }
 
   // Helper function to find pricing attribute name by ID
@@ -930,15 +973,28 @@ export default function TourPackagePricingPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Pricing Components</h3>
-                    <Button 
-                      type="button" 
-                      onClick={handleAddComponent}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Component
-                    </Button>
+                    <div className="flex gap-2">
+                      {pricingPeriods.length > 0 && (
+                        <Button 
+                          type="button" 
+                          onClick={() => setShowCopyDialog(true)}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy from Period
+                        </Button>
+                      )}
+                      <Button 
+                        type="button" 
+                        onClick={handleAddComponent}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Component
+                      </Button>
+                    </div>
                   </div>
                     {fields.length === 0 ? (
                     <p className="text-sm text-muted-foreground p-4 border rounded">
@@ -1086,6 +1142,95 @@ export default function TourPackagePricingPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Copy from Period Dialog */}
+      <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Copy Pricing Components</DialogTitle>
+            <DialogDescription>
+              Select a pricing period to copy its pricing components, meal plan, transportation, and room configuration.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
+            {pricingPeriods.map((period) => {
+              const componentCount = period.pricingComponents?.length || 0
+              
+              return (
+                <Card 
+                  key={period.id} 
+                  className="cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => handleCopyFromPeriod(period)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {formatLocalDate(utcToLocal(period.startDate), "MMM dd, yyyy")} - {formatLocalDate(utcToLocal(period.endDate), "MMM dd, yyyy")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {period.mealPlan?.name || "No meal plan"} • {period.numberOfRooms} room{period.numberOfRooms !== 1 ? 's' : ''}
+                          {period.vehicleType && ` • ${period.vehicleType.name}`}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="secondary">
+                            {componentCount} component{componentCount !== 1 ? 's' : ''}
+                          </Badge>
+                          {period.isGroupPricing && (
+                            <Badge variant="outline">Group Pricing</Badge>
+                          )}
+                          {period.locationSeasonalPeriod && (
+                            <Badge 
+                              variant="outline"
+                              className={cn(
+                                "text-xs",
+                                getSeasonColor(period.locationSeasonalPeriod.seasonType).bg,
+                                getSeasonColor(period.locationSeasonalPeriod.seasonType).text
+                              )}
+                            >
+                              {period.locationSeasonalPeriod.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Show pricing components preview */}
+                    {componentCount > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="text-xs text-muted-foreground mb-2">Components:</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {period.pricingComponents.slice(0, 4).map((component: any, idx: number) => (
+                            <div key={idx} className="flex justify-between bg-muted/50 rounded px-2 py-1">
+                              <span className="truncate">{component.pricingAttribute?.name}</span>
+                              <span className="font-medium">₹{component.price?.toLocaleString()}</span>
+                            </div>
+                          ))}
+                          {componentCount > 4 && (
+                            <div className="col-span-2 text-center text-muted-foreground">
+                              +{componentCount - 4} more...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCopyDialog(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* List of existing pricing periods (table layout) */}
       <div>

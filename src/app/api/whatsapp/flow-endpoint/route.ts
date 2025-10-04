@@ -19,7 +19,7 @@ interface EncryptedFlowRequest {
 // Request format (decrypted) - after decryption
 interface FlowDataExchangeRequest {
   version: string;
-  action: 'INIT' | 'data_exchange' | 'BACK';
+  action: 'INIT' | 'data_exchange' | 'BACK' | 'ping';
   screen?: string;
   data?: Record<string, any>;
   flow_token: string;
@@ -137,6 +137,7 @@ function encryptResponse(
   try {
     // Flip the initialization vector (bitwise NOT operation)
     const flipped_iv: number[] = [];
+    // @ts-ignore - Iterator compatibility
     for (let i = 0; i < initialVectorBuffer.length; i++) {
       flipped_iv.push(~initialVectorBuffer[i]);
     }
@@ -157,20 +158,73 @@ function encryptResponse(
   }
 }
 
+/**
+ * Validate request signature using x-hub-signature-256 header
+ */
+function isRequestSignatureValid(body: string, signature: string | null): boolean {
+  const appSecret = process.env.META_APP_SECRET;
+  
+  if (!appSecret) {
+    console.warn('META_APP_SECRET is not set. Skipping signature validation.');
+    return true;
+  }
+  
+  if (!signature) {
+    console.error('Missing x-hub-signature-256 header');
+    return false;
+  }
+  
+  try {
+    const signatureBuffer = Buffer.from(signature.replace('sha256=', ''), 'utf-8');
+    const hmac = crypto.createHmac('sha256', appSecret);
+    const digestString = hmac.update(body).digest('hex');
+    const digestBuffer = Buffer.from(digestString, 'utf-8');
+    
+    // @ts-ignore - Buffer type compatibility
+    if (!crypto.timingSafeEqual(digestBuffer, signatureBuffer)) {
+      console.error('Request signature did not match');
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Signature validation error:', error);
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const encryptedBody: EncryptedFlowRequest = await req.json();
+    // Get raw body for signature validation
+    const rawBody = await req.text();
+    const encryptedBody: EncryptedFlowRequest = JSON.parse(rawBody);
+    
+    // Validate request signature
+    const signature = req.headers.get('x-hub-signature-256');
+    if (!isRequestSignatureValid(rawBody, signature)) {
+      // Return 432 if signature validation fails
+      return new NextResponse(null, { status: 432 });
+    }
 
     // Validate encrypted request format
     if (!encryptedBody.encrypted_flow_data || !encryptedBody.encrypted_aes_key || !encryptedBody.initial_vector) {
-      return NextResponse.json(
-        { error: 'Invalid encrypted request format' },
-        { status: 400 }
-      );
+      return new NextResponse(null, { status: 400 });
     }
 
     // Decrypt the request
-    const { decryptedBody, aesKeyBuffer, initialVectorBuffer } = decryptRequest(encryptedBody);
+    let decryptedBody: FlowDataExchangeRequest;
+    let aesKeyBuffer: Buffer;
+    let initialVectorBuffer: Buffer;
+    
+    try {
+      const result = decryptRequest(encryptedBody);
+      decryptedBody = result.decryptedBody;
+      aesKeyBuffer = result.aesKeyBuffer;
+      initialVectorBuffer = result.initialVectorBuffer;
+    } catch (error) {
+      console.error('Decryption failed:', error);
+      // Return 421 to refresh public key on client
+      return new NextResponse(null, { status: 421 });
+    }
 
     console.log('WhatsApp Flow Request (Decrypted):', {
       version: decryptedBody.version,
@@ -180,6 +234,35 @@ export async function POST(req: NextRequest) {
     });
 
     // Handle different actions
+    console.log('💬 Decrypted Request:', decryptedBody);
+
+    // Handle ping/health check
+    if (decryptedBody.action === 'ping') {
+      const pingResponse = { data: { status: 'active' } };
+      const encryptedPing = encryptResponse(pingResponse as any, aesKeyBuffer, initialVectorBuffer);
+      return new NextResponse(encryptedPing, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    // Handle error acknowledgment
+    if (decryptedBody.data?.error) {
+      console.warn('Received client error:', decryptedBody.data);
+      const errorAck = { data: { acknowledged: true } };
+      const encryptedAck = encryptResponse(errorAck as any, aesKeyBuffer, initialVectorBuffer);
+      return new NextResponse(encryptedAck, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
     let response: FlowResponse;
 
     if (decryptedBody.action === 'INIT') {

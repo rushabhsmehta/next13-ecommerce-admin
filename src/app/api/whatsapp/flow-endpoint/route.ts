@@ -1,18 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
+import crypto from 'crypto';
 
 /**
  * WhatsApp Flow Endpoint Handler
- * Receives data_exchange callbacks from Meta WhatsApp Flow Builder
+ * Receives encrypted data_exchange callbacks from Meta WhatsApp Flow Builder
  * Documentation: https://developers.facebook.com/docs/whatsapp/flows/reference/flowsJSON
+ * Encryption: https://developers.facebook.com/docs/whatsapp/flows/reference/flowsencryption
  */
 
+// Request format (encrypted) - as received from WhatsApp
+interface EncryptedFlowRequest {
+  encrypted_flow_data: string;  // Base64 encoded AES-encrypted JSON
+  encrypted_aes_key: string;    // Base64 encoded RSA-encrypted AES key
+  initial_vector: string;        // Base64 encoded AES IV
+}
+
+// Request format (decrypted) - after decryption
 interface FlowDataExchangeRequest {
   version: string;
-  action: string;
+  action: 'INIT' | 'data_exchange' | 'BACK';
+  screen?: string;
+  data?: Record<string, any>;
+  flow_token: string;
+}
+
+// Response format
+interface FlowResponse {
+  version: string;
   screen: string;
   data: Record<string, any>;
-  flow_token: string;
 }
 
 interface BookingData {
@@ -36,49 +53,210 @@ interface BookingData {
   package?: string;
 }
 
+/**
+ * Decrypt incoming WhatsApp Flow request
+ * Uses RSA-OAEP to decrypt AES key, then AES-256-GCM to decrypt flow data
+ */
+function decryptRequest(encryptedRequest: EncryptedFlowRequest): FlowDataExchangeRequest {
+  try {
+    // Get private key from environment
+    const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
+    if (!privateKeyPem) {
+      throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
+    }
+
+    // Step 1: Decrypt AES key using RSA private key
+    const encryptedAesKeyBuffer = Buffer.from(encryptedRequest.encrypted_aes_key, 'base64');
+    const aesKey = crypto.privateDecrypt(
+      {
+        key: privateKeyPem,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      encryptedAesKeyBuffer as any
+    );
+
+    // Step 2: Decrypt flow data using AES-256-GCM
+    const encryptedFlowDataBuffer = Buffer.from(encryptedRequest.encrypted_flow_data, 'base64');
+    const initialVector = Buffer.from(encryptedRequest.initial_vector, 'base64');
+    
+    // Extract auth tag (last 16 bytes) and ciphertext
+    const authTagLength = 16;
+    const ciphertext = encryptedFlowDataBuffer.subarray(0, -authTagLength);
+    const authTag = encryptedFlowDataBuffer.subarray(-authTagLength);
+
+    // Create decipher and set auth tag
+    const decipher = crypto.createDecipheriv('aes-256-gcm', aesKey as any, initialVector as any);
+    decipher.setAuthTag(authTag as any);
+
+    // Decrypt
+    const decryptedPart1 = decipher.update(ciphertext as any);
+    const decryptedPart2 = decipher.final();
+    const decrypted = Buffer.concat([decryptedPart1 as any, decryptedPart2 as any]);
+
+    return JSON.parse(decrypted.toString('utf8'));
+  } catch (error) {
+    console.error('Decryption error:', error);
+    throw new Error('Failed to decrypt request');
+  }
+}
+
+/**
+ * Encrypt outgoing WhatsApp Flow response
+ * Uses the same AES key that was used to encrypt the request
+ */
+function encryptResponse(
+  response: FlowResponse,
+  encryptedRequest: EncryptedFlowRequest
+): { encrypted_flow_data: string } {
+  try {
+    // Get private key from environment
+    const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
+    if (!privateKeyPem) {
+      throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
+    }
+
+    // Step 1: Decrypt AES key (same as in decryptRequest)
+    const encryptedAesKeyBuffer = Buffer.from(encryptedRequest.encrypted_aes_key, 'base64');
+    const aesKey = crypto.privateDecrypt(
+      {
+        key: privateKeyPem,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      encryptedAesKeyBuffer as any
+    );
+
+    // Step 2: Generate new IV for response
+    const iv = crypto.randomBytes(12); // 96-bit IV for GCM
+
+    // Step 3: Encrypt response using AES-256-GCM
+    const cipher = crypto.createCipheriv('aes-256-gcm', aesKey as any, iv as any);
+    const responseJson = JSON.stringify(response);
+    
+    const encryptedPart1 = cipher.update(responseJson, 'utf8');
+    const encryptedPart2 = cipher.final();
+    const encrypted = Buffer.concat([encryptedPart1 as any, encryptedPart2 as any]);
+    
+    // Get auth tag
+    const authTag = cipher.getAuthTag();
+    
+    // Combine encrypted data + auth tag
+    const encryptedWithTag = Buffer.concat([encrypted as any, authTag as any]);
+
+    // Return encrypted response (Base64 encoded)
+    return {
+      encrypted_flow_data: encryptedWithTag.toString('base64'),
+    };
+  } catch (error) {
+    console.error('Encryption error:', error);
+    throw new Error('Failed to encrypt response');
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body: FlowDataExchangeRequest = await req.json();
+    const encryptedBody: EncryptedFlowRequest = await req.json();
 
-    console.log('WhatsApp Flow Request:', {
-      version: body.version,
-      action: body.action,
-      screen: body.screen,
-      data: body.data,
-    });
-
-    // Validate request
-    if (!body.action || !body.screen) {
+    // Validate encrypted request format
+    if (!encryptedBody.encrypted_flow_data || !encryptedBody.encrypted_aes_key || !encryptedBody.initial_vector) {
       return NextResponse.json(
-        { error: 'Invalid request format' },
+        { error: 'Invalid encrypted request format' },
         { status: 400 }
       );
     }
 
-    // Handle different screens
-    switch (body.screen) {
-      case 'DESTINATION_SELECTOR':
-        return handleDestinationSelection(body);
-      
-      case 'TOUR_OPTIONS':
-        return handleTourOptions(body);
-      
-      case 'PACKAGE_OFFERS':
-        return handlePackageOffers(body);
-      
-      case 'PACKAGE_DETAIL':
-        return handleBookingSubmission(body);
-      
-      default:
+    // Decrypt the request
+    const body = decryptRequest(encryptedBody);
+
+    console.log('WhatsApp Flow Request (Decrypted):', {
+      version: body.version,
+      action: body.action,
+      screen: body.screen,
+      flow_token: body.flow_token,
+    });
+
+    // Handle different actions
+    let response: FlowResponse;
+
+    if (body.action === 'INIT') {
+      // INIT action - return DESTINATION_SELECTOR screen
+      response = {
+        version: body.version,
+        screen: 'DESTINATION_SELECTOR',
+        data: {
+          destinations: [
+            { id: '0_vietnam', title: '🇻🇳 Vietnam' },
+            { id: '1_thailand', title: '🇹🇭 Thailand' },
+            { id: '2_bali', title: '🇮🇩 Bali, Indonesia' },
+            { id: '3_singapore', title: '🇸🇬 Singapore' },
+            { id: '4_malaysia', title: '🇲🇾 Malaysia' },
+            { id: '5_dubai', title: '🇦🇪 Dubai, UAE' },
+            { id: '6_maldives', title: '🇲🇻 Maldives' },
+            { id: '7_europe', title: '🇪🇺 Europe' },
+          ],
+        },
+      };
+    } else if (body.action === 'data_exchange') {
+      // data_exchange action - route based on current screen
+      if (!body.screen) {
         return NextResponse.json(
-          { error: 'Unknown screen' },
+          { error: 'Screen not specified in data_exchange action' },
           { status: 400 }
         );
+      }
+
+      switch (body.screen) {
+        case 'DESTINATION_SELECTOR':
+          response = await handleDestinationSelection(body);
+          break;
+
+        case 'TOUR_OPTIONS':
+          response = await handleTourOptions(body);
+          break;
+
+        case 'PACKAGE_OFFERS':
+          response = await handlePackageOffers(body);
+          break;
+
+        case 'PACKAGE_DETAIL':
+          response = await handleBookingSubmission(body);
+          break;
+
+        default:
+          return NextResponse.json(
+            { error: `Unknown screen: ${body.screen}` },
+            { status: 400 }
+          );
+      }
+    } else if (body.action === 'BACK') {
+      // BACK action - navigate to previous screen
+      // For now, just return current screen (you can implement proper navigation)
+      response = {
+        version: body.version,
+        screen: body.screen || 'DESTINATION_SELECTOR',
+        data: {},
+      };
+    } else {
+      return NextResponse.json(
+        { error: `Unknown action: ${body.action}` },
+        { status: 400 }
+      );
     }
+
+    // Encrypt the response
+    const encryptedResponse = encryptResponse(response, encryptedBody);
+
+    console.log('WhatsApp Flow Response:', {
+      screen: response.screen,
+      encrypted: true,
+    });
+
+    return NextResponse.json(encryptedResponse);
   } catch (error) {
     console.error('WhatsApp Flow Endpoint Error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }
@@ -87,14 +265,14 @@ export async function POST(req: NextRequest) {
 /**
  * Handle destination selection - returns tour options data
  */
-async function handleDestinationSelection(body: FlowDataExchangeRequest) {
-  const { destination_selection } = body.data as BookingData;
+async function handleDestinationSelection(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const { destination_selection } = (body.data || {}) as BookingData;
 
   // Extract destination from ID (format: "0_vietnam")
   const destination = destination_selection?.split('_')[1] || 'vietnam';
 
   // Return data for TOUR_OPTIONS screen
-  return NextResponse.json({
+  return {
     version: body.version,
     screen: 'TOUR_OPTIONS',
     data: {
@@ -141,13 +319,13 @@ async function handleDestinationSelection(body: FlowDataExchangeRequest) {
         { id: '3_group', title: 'Group (9+ people)' },
       ],
     },
-  });
+  };
 }
 
 /**
  * Handle tour options - returns personalized package offers
  */
-async function handleTourOptions(body: FlowDataExchangeRequest) {
+async function handleTourOptions(body: FlowDataExchangeRequest): Promise<FlowResponse> {
   const {
     tour_types,
     duration,
@@ -156,7 +334,7 @@ async function handleTourOptions(body: FlowDataExchangeRequest) {
     travel_preferences,
     budget,
     selected_destination,
-  } = body.data as BookingData;
+  } = (body.data || {}) as BookingData;
 
   // TODO: Query actual packages from database based on preferences
   // For now, return mock data
@@ -183,7 +361,7 @@ async function handleTourOptions(body: FlowDataExchangeRequest) {
     },
   ];
 
-  return NextResponse.json({
+  return {
     version: body.version,
     screen: 'PACKAGE_OFFERS',
     data: {
@@ -191,14 +369,14 @@ async function handleTourOptions(body: FlowDataExchangeRequest) {
       offer_label: `Here are ${packages.length} shortlisted tour packages for you`,
       shortlisted_packages: packages,
     },
-  });
+  };
 }
 
 /**
  * Handle package selection - returns package details
  */
-async function handlePackageOffers(body: FlowDataExchangeRequest) {
-  const { package: packageId } = body.data as BookingData;
+async function handlePackageOffers(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const { package: packageId } = (body.data || {}) as BookingData;
 
   // TODO: Query actual package details from database
   // For now, return mock data
@@ -224,18 +402,18 @@ async function handlePackageOffers(body: FlowDataExchangeRequest) {
       '❌ Lunch & personal expenses\n❌ Tips & gratuities\n❌ Optional activities',
   };
 
-  return NextResponse.json({
+  return {
     version: body.version,
     screen: 'PACKAGE_DETAIL',
     data: packageData,
-  });
+  };
 }
 
 /**
  * Handle booking submission - save to database and return success
  */
-async function handleBookingSubmission(body: FlowDataExchangeRequest) {
-  const bookingData = body.data as BookingData;
+async function handleBookingSubmission(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const bookingData = (body.data || {}) as BookingData;
 
   try {
     // Get a default location (required field)
@@ -285,21 +463,16 @@ Preferences:
     // TODO: Notify admin team via email/SMS
 
     // Return success response - navigate to SUCCESS screen
-    return NextResponse.json({
+    return {
       version: body.version,
       screen: 'SUCCESS',
-      data: {}, // SUCCESS screen doesn't need dynamic data
-    });
+      data: {
+        confirmation_message: `Thank you! Your inquiry has been received. Our team will contact you shortly at ${bookingData.phone_number}.`,
+      },
+    };
   } catch (error) {
     console.error('Failed to save booking:', error);
-
-    // Return error response
-    return NextResponse.json(
-      {
-        error: 'Failed to save booking. Please try again or contact us directly.',
-      },
-      { status: 500 }
-    );
+    throw error; // Let the main POST handler catch this
   }
 }
 

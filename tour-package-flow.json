@@ -404,32 +404,25 @@
                             },
                             "title": {
                                 "type": "string"
-                            },
-                            "subtitle": {
-                                "type": "string"
                             }
                         }
                     },
                     "__example__": [
                         {
                             "id": "0_vietnam_adventure_7d",
-                            "title": "Vietnam Adventure - 7D/6N",
-                            "subtitle": "₹85,000 per person • 4★ Hotels"
+                            "title": "Vietnam Adventure - 7D/6N\n₹85,000 per person • 4★ Hotels"
                         },
                         {
                             "id": "1_vietnam_luxury_9d",
-                            "title": "Vietnam Luxury Tour - 9D/8N",
-                            "subtitle": "₹1,45,000 per person • 5★ Resorts"
+                            "title": "Vietnam Luxury Tour - 9D/8N\n₹1,45,000 per person • 5★ Resorts"
                         },
                         {
                             "id": "2_vietnam_budget_5d",
-                            "title": "Vietnam Explorer - 5D/4N",
-                            "subtitle": "₹45,000 per person • 3★ Hotels"
+                            "title": "Vietnam Explorer - 5D/4N\n₹45,000 per person • 3★ Hotels"
                         },
                         {
                             "id": "3_vietnam_honeymoon_8d",
-                            "title": "Vietnam Honeymoon Special - 8D/7N",
-                            "subtitle": "₹1,10,000 per person • Luxury Resorts"
+                            "title": "Vietnam Honeymoon Special - 8D/7N\n₹1,10,000 per person • Luxury Resorts"
                         }
                     ]
                 }

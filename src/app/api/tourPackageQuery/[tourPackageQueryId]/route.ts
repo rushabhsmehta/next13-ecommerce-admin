@@ -50,23 +50,6 @@ export async function GET(
             { days: 'asc' }
           ]
         },
-        packageVariants: {
-          include: {
-            variantHotelMappings: {
-              include: {
-                hotel: {
-                  include: {
-                    images: true,
-                  },
-                },
-                itinerary: true,
-              },
-            },
-          },
-          orderBy: {
-            sortOrder: 'asc',
-          },
-        },
       }
     });
     
@@ -76,21 +59,6 @@ export async function GET(
       console.log('[TOUR_PACKAGE_QUERY_GET] Tour package query not found');
       return new NextResponse("Tour package query not found", { status: 404 });
     }
-    
-    // 🔍 DEBUG: Log retrieved packageVariants
-    console.log('📥 [API GET] Retrieved packageVariants:', {
-      count: tourPackageQuery?.packageVariants?.length || 0,
-      variants: tourPackageQuery?.packageVariants?.map(v => ({
-        id: v.id,
-        name: v.name,
-        mappingsCount: v.variantHotelMappings?.length || 0,
-        mappings: v.variantHotelMappings?.map(m => ({
-          itineraryId: m.itineraryId,
-          hotelId: m.hotelId,
-          hotelName: m.hotel?.name
-        }))
-      }))
-    });
     
     return NextResponse.json(tourPackageQuery);
   } catch (error: any) {
@@ -535,17 +503,7 @@ export async function PATCH(
       selectedMealPlanId,
       occupancySelections,
       itineraries,
-      packageVariants
     } = body;
-
-    // 🔍 DEBUG: Log received packageVariants
-    console.log('📥 [API RECEIVE] packageVariants:', {
-      received: !!packageVariants,
-      type: typeof packageVariants,
-      isArray: Array.isArray(packageVariants),
-      length: packageVariants?.length,
-      data: packageVariants
-    });
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -812,195 +770,6 @@ export async function PATCH(
       } else {
         // If it's not a transaction timeout, re-throw the error
         throw transactionError;
-      }
-    }
-
-    // Handle Package Variants (after main transaction/fallback completes)    
-    if (packageVariants && Array.isArray(packageVariants) && packageVariants.length > 0) {
-      try {
-        console.log(`🎨 [VARIANTS START] Processing ${packageVariants.length} package variants`);
-        console.log('🎨 [VARIANTS DATA] Full variants:', JSON.stringify(packageVariants, null, 2));
-        
-        // Fetch current itineraries to map old IDs to new IDs by dayNumber
-        const currentItineraries = await prismadb.itinerary.findMany({
-          where: { tourPackageQueryId: params.tourPackageQueryId },
-          select: { id: true, dayNumber: true }
-        });
-        console.log(`🔄 [ITINERARY MAPPING] Found ${currentItineraries.length} current itineraries`);
-
-        // Create a map from dayNumber to new itinerary ID
-        const dayNumberToNewIdMap = new Map<number, string>();
-        currentItineraries.forEach(itin => {
-          // dayNumber can be null in some records; guard against that for TypeScript and runtime safety
-          if (typeof itin.dayNumber === 'number') {
-            dayNumberToNewIdMap.set(itin.dayNumber, itin.id);
-          } else {
-            console.warn('[ITINERARY_MAPPING] Skipping itinerary with missing dayNumber:', itin.id, itin);
-          }
-        });
-
-        // Create a mapping from old itinerary ID to dayNumber using the captured old itineraries
-        const oldIdToDayNumberMap = new Map<string, number>();
-        
-        // Use the OLD itineraries we captured before deletion
-        if (oldItineraries && Array.isArray(oldItineraries)) {
-          oldItineraries.forEach(oldItin => {
-            if (typeof oldItin.dayNumber === 'number') {
-              oldIdToDayNumberMap.set(oldItin.id, oldItin.dayNumber);
-              console.log(`📝 [OLD ITINERARY] ${oldItin.id} → Day ${oldItin.dayNumber}`);
-            } else {
-              console.warn('[OLD_ITINERARY] Skipping old itinerary with missing dayNumber:', oldItin.id, oldItin);
-            }
-          });
-        }
-
-        console.log(`🗺️ [MAPPING SETUP] DayNumber → NewID:`, Array.from(dayNumberToNewIdMap.entries()));
-        console.log(`🗺️ [MAPPING SETUP] OldID → DayNumber:`, Array.from(oldIdToDayNumberMap.entries()));
-        console.log(`✅ [MAPPING READY] Can now remap ${oldIdToDayNumberMap.size} old IDs to new IDs`);
-        
-        // Delete existing variants for this tour package query
-        await prismadb.packageVariant.deleteMany({
-          where: { tourPackageQueryId: params.tourPackageQueryId }
-        });
-        console.log('🗑️ [VARIANTS] Deleted existing variants');
-
-        // Create new variants with hotel mappings
-        for (const variant of packageVariants) {
-          console.log(`✨ [VARIANT CREATE] Creating variant:`, {
-            name: variant.name,
-            hotelMappingsCount: Object.keys(variant.hotelMappings || {}).length,
-            hotelMappings: variant.hotelMappings
-          });
-          
-          const createdVariant = await prismadb.packageVariant.create({
-            data: {
-              name: variant.name,
-              description: variant.description || null,
-              isDefault: variant.isDefault || false,
-              sortOrder: variant.sortOrder || 0,
-              priceModifier: variant.priceModifier || 0,
-              tourPackageQueryId: params.tourPackageQueryId,
-            }
-          });
-
-          console.log(`✅ [VARIANT CREATED] ID: ${createdVariant.id}, Name: ${createdVariant.name}`);
-
-          // Create hotel mappings for this variant, remapping itinerary IDs
-          if (variant.hotelMappings && Object.keys(variant.hotelMappings).length > 0) {
-            let mappings = Object.entries(variant.hotelMappings)
-              .map(([oldItineraryId, hotelId]) => {
-                // Try to find the new itinerary ID by:
-                // 1. If the key is a numeric string, treat it as a dayNumber
-                // 2. Otherwise check if oldItineraryId maps to a dayNumber, then get new ID from dayNumber
-                let dayNumber: number | undefined = undefined;
-                if (/^\d+$/.test(oldItineraryId)) {
-                  dayNumber = parseInt(oldItineraryId, 10);
-                  console.log(`🔎 [NUMERIC KEY] Interpreting mapping key '${oldItineraryId}' as dayNumber ${dayNumber}`);
-                } else {
-                  dayNumber = oldIdToDayNumberMap.get(oldItineraryId) as number | undefined;
-                }
-                let newItineraryId = oldItineraryId; // Default to old ID
-                
-                if (dayNumber !== undefined) {
-                  // We found the dayNumber for this old ID, now get the new ID for that dayNumber
-                  const mappedNewId = dayNumberToNewIdMap.get(dayNumber);
-                  if (mappedNewId) {
-                    newItineraryId = mappedNewId;
-                    console.log(`🔗 [REMAP SUCCESS] OldID: ${oldItineraryId} → Day ${dayNumber} → NewID: ${newItineraryId}, Hotel: ${hotelId}`);
-                  } else {
-                    console.log(`⚠️ [REMAP WARNING] Day ${dayNumber} not found in new itineraries`);
-                  }
-                } else {
-                  // Old ID doesn't map to a dayNumber, might be already a new ID or invalid
-                  // Check if it exists in current itineraries
-                  const existsInCurrent = currentItineraries.some(itin => itin.id === oldItineraryId);
-                  if (existsInCurrent) {
-                    console.log(`✅ [NO REMAP NEEDED] Itinerary ${oldItineraryId} already exists (current ID), Hotel: ${hotelId}`);
-                  } else {
-                    console.log(`❌ [REMAP FAILED] Cannot map itinerary ${oldItineraryId} - not in old or new itineraries, Hotel: ${hotelId}`);
-                    return null; // Skip this mapping
-                  }
-                }
-                
-                return {
-                  packageVariantId: createdVariant.id,
-                  itineraryId: newItineraryId,
-                  hotelId: hotelId as string,
-                };
-              })
-              .filter(m => m !== null && m.hotelId && m.itineraryId); // Only create mappings where hotel and itinerary are selected
-
-            // Fallback: if remapping produced no mappings but the client provided the same
-            // number of hotel mappings as current itineraries, map by day order (index → day)
-            if ((mappings.length === 0 || mappings.length < Object.keys(variant.hotelMappings).length) &&
-                Object.keys(variant.hotelMappings).length > 0 &&
-                currentItineraries.length > 0) {
-              try {
-                const hotelIds = Object.values(variant.hotelMappings);
-                // Attempt fallback mapping by assigning provided hotelIds to earliest days in order.
-                // This supports partial assignments (e.g., 2 hotels -> map to Day 1 & Day 2).
-                console.log('🔁 [FALLBACK] Attempting day-order remap of hotel mappings (partial allowed)');
-                const sortedItins = [...currentItineraries].sort((a, b) => (a.dayNumber ?? 0) - (b.dayNumber ?? 0));
-                mappings = hotelIds.map((hotelId, idx) => {
-                  const itin = sortedItins[idx];
-                  if (!itin) return null;
-                  return {
-                    packageVariantId: createdVariant.id,
-                    itineraryId: itin.id,
-                    hotelId: hotelId as string,
-                  };
-                }).filter(Boolean) as any[];
-                console.log(`🔁 [FALLBACK] Prepared ${mappings.length} fallback mappings by day order (partial)`);
-              } catch (fbErr) {
-                console.error('❌ [FALLBACK] Failed to prepare fallback mappings', fbErr);
-              }
-            }
-
-            console.log(`🏨 [HOTEL MAPPINGS] Prepared ${mappings.length} mappings:`, mappings);
-
-            if (mappings.length > 0) {
-              try {
-                // Final validation: ensure all itinerary IDs exist in database
-                const validItineraryIds = new Set(currentItineraries.map(i => i.id));
-                const validatedMappings = mappings.filter((m: any) => {
-                  const isValid = validItineraryIds.has(m.itineraryId);
-                  if (!isValid) {
-                    console.log(`⚠️ [INVALID MAPPING] Skipping mapping with non-existent itinerary ID: ${m.itineraryId}`);
-                  }
-                  return isValid;
-                });
-                
-                if (validatedMappings.length > 0) {
-                  await prismadb.variantHotelMapping.createMany({
-                    data: validatedMappings as any,
-                    skipDuplicates: true,
-                  });
-                  console.log(`✅ [MAPPINGS SAVED] Created ${validatedMappings.length} hotel mappings for variant: ${createdVariant.name}`);
-                } else {
-                  console.log(`⚠️ [NO VALID MAPPINGS] All ${mappings.length} mappings were filtered out (invalid itinerary IDs)`);
-                }
-              } catch (mappingError: any) {
-                console.error(`❌ [MAPPING SAVE ERROR] Failed to save mappings:`, mappingError);
-                // Try to clean up orphaned mappings if creation failed
-                const validItineraryIds = currentItineraries.map(i => i.id);
-                const invalidMappings = mappings.filter((m: any) => !validItineraryIds.includes(m.itineraryId));
-                if (invalidMappings.length > 0) {
-                  console.log(`⚠️ [INVALID MAPPINGS DETECTED] ${invalidMappings.length} mappings reference non-existent itineraries`);
-                }
-              }
-            } else {
-              console.log(`⚠️ [MAPPINGS EMPTY] No hotel mappings to save for variant: ${createdVariant.name}`);
-            }
-          } else {
-            console.log(`⚠️ [NO MAPPINGS] Variant "${variant.name}" has no hotelMappings object or it's empty`);
-          }
-        }
-        
-        console.log('[VARIANTS] Successfully saved all package variants');
-      } catch (variantError: any) {
-        console.error('[VARIANT_SAVE_ERROR]', variantError);
-        // Don't fail the entire request if variant save fails
-        // Variants are optional feature
       }
     }
 

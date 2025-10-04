@@ -264,7 +264,6 @@ model TourPackageQuery {
   flightTickets                    FlightTicket[]
   inquiry                          Inquiry?          @relation(fields: [inquiryId], references: [id])
   associatePartner                 AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
-  packageVariants                  PackageVariant[]
 
   @@index([locationId])
   @@index([inquiryId])
@@ -1449,18 +1448,15 @@ model PackageVariant {
   name                 String                  // "Luxury", "Premium", "Standard"
   description          String?                 @db.Text
   tourPackageId        String?
-  tourPackageQueryId   String?
   isDefault            Boolean                 @default(false)
   sortOrder            Int                     @default(0)
   priceModifier        Float?                  // % increase/decrease from base
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
   tourPackage          TourPackage?            @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
-  tourPackageQuery     TourPackageQuery?       @relation(fields: [tourPackageQueryId], references: [id], onDelete: Cascade)
   variantHotelMappings VariantHotelMapping[]
 
   @@index([tourPackageId])
-  @@index([tourPackageQueryId])
   @@index([sortOrder])
 }
 

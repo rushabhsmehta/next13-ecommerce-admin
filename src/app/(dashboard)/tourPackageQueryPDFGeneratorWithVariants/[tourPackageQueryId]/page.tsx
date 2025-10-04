@@ -52,18 +52,6 @@ const TourPackageQueryPDFWithVariantsPage = async ({
         }
       },
       associatePartner: true,
-      packageVariants: {
-        include: {
-          variantHotelMappings: {
-            include: {
-              itinerary: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'asc',
-        }
-      }
     }
   });
 

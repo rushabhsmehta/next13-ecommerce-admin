@@ -9,7 +9,12 @@
 - [PDF Generation](./features/pdf-generation.md) - PDF generation with and without variants
 - [Seasonal Pricing](./features/seasonal-pricing.md) - Location-based seasonal pricing system
 - [Tour Packages](./features/tour-packages.md) - Tour package management and enhancements
-- [WhatsApp Integration](./features/whatsapp-integration.md) - WhatsApp Business API integration
+
+### WhatsApp Integration 📱
+- **[Quick Start Guide](./WHATSAPP_QUICK_START.md)** ⚡ - Get WhatsApp working in 15 minutes
+- **[Complete Redesign](./WHATSAPP_INTEGRATION_REDESIGN.md)** 🏗️ - Full architecture & implementation plan
+- [Current Implementation](./META_WHATSAPP_INTEGRATION.md) - Existing Meta integration docs
+- [Setup Guide](./QUICK_SETUP_META_WHATSAPP.md) - Step-by-step configuration
 
 ### Fixes & Improvements
 - [Timezone & UTC Fixes](./fixes/timezone-utc-fixes.md) - Comprehensive timezone handling fixes
@@ -41,6 +46,7 @@
 ## 📝 Recent Updates
 
 ### Latest Features (2025)
+- ✅ **WhatsApp Integration Redesign** - Complete modular architecture with automation
 - ✅ **Package Variants with Hotel Mappings** - Complete multi-variant support
 - ✅ **PDF Generation with Variants** - Comprehensive PDF with all sections
 - ✅ **Seasonal Pricing** - Location-based multi-period pricing

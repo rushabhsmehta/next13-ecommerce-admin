@@ -1,0 +1,666 @@
+{
+   "version": "7.2",
+    "data_api_version": "3.0",
+    "routing_model": {
+        "DESTINATION_SELECTOR": [
+            "TOUR_OPTIONS"
+        ],
+        "TOUR_OPTIONS": [
+            "PACKAGE_OFFERS"
+        ],
+        "PACKAGE_OFFERS": [
+            "PACKAGE_DETAIL"
+        ],
+        "PACKAGE_DETAIL": [
+            "SUCCESS"
+        ]
+    },
+    "screens": [
+        {
+            "id": "DESTINATION_SELECTOR",
+            "title": "Aagam Holidays - Tour Packages",
+            "data": {
+                "destinations": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_vietnam",
+                            "title": "Vietnam Tour Packages"
+                        },
+                        {
+                            "id": "1_bali",
+                            "title": "Bali Tour Packages"
+                        },
+                        {
+                            "id": "2_dubai",
+                            "title": "Dubai Tour Packages"
+                        },
+                        {
+                            "id": "3_kashmir",
+                            "title": "Kashmir Tour Packages"
+                        },
+                        {
+                            "id": "4_europe",
+                            "title": "Europe Tour Packages"
+                        }
+                    ]
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "Form",
+                        "name": "selector_form",
+                        "children": [
+                            {
+                                "type": "RadioButtonsGroup",
+                                "label": "Where would you like to travel?",
+                                "name": "destination_selection",
+                                "data-source": "${data.destinations}",
+                                "required": true
+                            },
+                            {
+                                "type": "Footer",
+                                "label": "Continue",
+                                "on-click-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "destination_selection": "${form.destination_selection}"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "TOUR_OPTIONS",
+            "title": "Tour Package Preferences",
+            "data": {
+                "selected_destination": {
+                    "type": "string",
+                    "__example__": "vietnam"
+                },
+                "cta_label": {
+                    "type": "string",
+                    "__example__": "View Tour Packages"
+                },
+                "screen_heading": {
+                    "type": "string",
+                    "__example__": "Let's find the perfect tour package for you"
+                },
+                "show_travel_type": {
+                    "type": "boolean",
+                    "__example__": true
+                },
+                "tour_types": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_honeymoon",
+                            "title": "Honeymoon Package"
+                        },
+                        {
+                            "id": "1_family",
+                            "title": "Family Package"
+                        },
+                        {
+                            "id": "2_adventure",
+                            "title": "Adventure Package"
+                        },
+                        {
+                            "id": "3_luxury",
+                            "title": "Luxury Package"
+                        },
+                        {
+                            "id": "4_budget",
+                            "title": "Budget Package"
+                        }
+                    ]
+                },
+                "duration_options": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_3_5_days",
+                            "title": "3-5 Days"
+                        },
+                        {
+                            "id": "1_6_8_days",
+                            "title": "6-8 Days"
+                        },
+                        {
+                            "id": "2_9_12_days",
+                            "title": "9-12 Days"
+                        },
+                        {
+                            "id": "3_above_12_days",
+                            "title": "Above 12 Days"
+                        }
+                    ]
+                },
+                "accommodation_preferences": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_3_star",
+                            "title": "3 Star Hotels"
+                        },
+                        {
+                            "id": "1_4_star",
+                            "title": "4 Star Hotels"
+                        },
+                        {
+                            "id": "2_5_star",
+                            "title": "5 Star Hotels"
+                        },
+                        {
+                            "id": "3_luxury_resorts",
+                            "title": "Luxury Resorts"
+                        }
+                    ]
+                },
+                "travel_preferences": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_sightseeing",
+                            "title": "Sightseeing"
+                        },
+                        {
+                            "id": "1_adventure_sports",
+                            "title": "Adventure Sports"
+                        },
+                        {
+                            "id": "2_cultural_tours",
+                            "title": "Cultural Tours"
+                        },
+                        {
+                            "id": "3_beach_relaxation",
+                            "title": "Beach & Relaxation"
+                        },
+                        {
+                            "id": "4_local_cuisine",
+                            "title": "Local Cuisine Tours"
+                        }
+                    ]
+                },
+                "budget_range": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_under_50k",
+                            "title": "Under ₹50,000 per person"
+                        },
+                        {
+                            "id": "1_50k_1lakh",
+                            "title": "₹50,000 - ₹1,00,000"
+                        },
+                        {
+                            "id": "2_1lakh_2lakh",
+                            "title": "₹1,00,000 - ₹2,00,000"
+                        },
+                        {
+                            "id": "3_above_2lakh",
+                            "title": "Above ₹2,00,000"
+                        }
+                    ]
+                },
+                "group_size": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_couple",
+                            "title": "Couple (2 people)"
+                        },
+                        {
+                            "id": "1_small_family",
+                            "title": "Small Family (3-4 people)"
+                        },
+                        {
+                            "id": "2_large_family",
+                            "title": "Large Family (5-8 people)"
+                        },
+                        {
+                            "id": "3_group",
+                            "title": "Group (9+ people)"
+                        }
+                    ]
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "Form",
+                        "name": "options_form",
+                        "children": [
+                            {
+                                "type": "TextSubheading",
+                                "text": "${data.screen_heading}"
+                            },
+                            {
+                                "type": "CheckboxGroup",
+                                "label": "Select tour type",
+                                "required": true,
+                                "name": "tour_types",
+                                "data-source": "${data.tour_types}"
+                            },
+                            {
+                                "type": "RadioButtonsGroup",
+                                "label": "Preferred tour duration",
+                                "required": true,
+                                "name": "duration",
+                                "data-source": "${data.duration_options}"
+                            },
+                            {
+                                "type": "RadioButtonsGroup",
+                                "label": "Group size",
+                                "required": true,
+                                "name": "group_size",
+                                "data-source": "${data.group_size}"
+                            },
+                            {
+                                "type": "CheckboxGroup",
+                                "label": "Accommodation preference",
+                                "required": true,
+                                "name": "accommodation",
+                                "data-source": "${data.accommodation_preferences}"
+                            },
+                            {
+                                "type": "CheckboxGroup",
+                                "label": "What interests you most?",
+                                "required": "${data.show_travel_type}",
+                                "visible": "${data.show_travel_type}",
+                                "name": "travel_preferences",
+                                "data-source": "${data.travel_preferences}"
+                            },
+                            {
+                                "type": "RadioButtonsGroup",
+                                "label": "What is your budget per person?",
+                                "required": true,
+                                "name": "budget",
+                                "data-source": "${data.budget_range}"
+                            },
+                            {
+                                "type": "Footer",
+                                "label": "${data.cta_label}",
+                                "on-click-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "tour_types": "${form.tour_types}",
+                                        "duration": "${form.duration}",
+                                        "group_size": "${form.group_size}",
+                                        "accommodation": "${form.accommodation}",
+                                        "travel_preferences": "${form.travel_preferences}",
+                                        "budget": "${form.budget}",
+                                        "selected_destination": "${data.selected_destination}"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "PACKAGE_OFFERS",
+            "title": "Personalized Tour Packages",
+            "data": {
+                "selected_destination": {
+                    "type": "string",
+                    "__example__": "vietnam"
+                },
+                "offer_label": {
+                    "type": "string",
+                    "__example__": "Here are 4 shortlisted tour packages for you"
+                },
+                "shortlisted_packages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "subtitle": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "__example__": [
+                        {
+                            "id": "0_vietnam_adventure_7d",
+                            "title": "Vietnam Adventure - 7D/6N",
+                            "subtitle": "₹85,000 per person • 4★ Hotels"
+                        },
+                        {
+                            "id": "1_vietnam_luxury_9d",
+                            "title": "Vietnam Luxury Tour - 9D/8N",
+                            "subtitle": "₹1,45,000 per person • 5★ Resorts"
+                        },
+                        {
+                            "id": "2_vietnam_budget_5d",
+                            "title": "Vietnam Explorer - 5D/4N",
+                            "subtitle": "₹45,000 per person • 3★ Hotels"
+                        },
+                        {
+                            "id": "3_vietnam_honeymoon_8d",
+                            "title": "Vietnam Honeymoon Special - 8D/7N",
+                            "subtitle": "₹1,10,000 per person • Luxury Resorts"
+                        }
+                    ]
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "Form",
+                        "name": "offer_form",
+                        "children": [
+                            {
+                                "type": "RadioButtonsGroup",
+                                "label": "${data.offer_label}",
+                                "required": true,
+                                "name": "packages",
+                                "data-source": "${data.shortlisted_packages}"
+                            },
+                            {
+                                "type": "Footer",
+                                "label": "View Package Details",
+                                "on-click-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "package": "${form.packages}"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "PACKAGE_DETAIL",
+            "title": "${data.package_name}",
+            "data": {
+                "selected_package": {
+                    "type": "string",
+                    "__example__": "0_vietnam_adventure_7d"
+                },
+                "image_src": {
+                    "type": "string",
+                    "__example__": "https://example.com/vietnam-package.jpg"
+                },
+                "package_name": {
+                    "type": "string",
+                    "__example__": "Vietnam Adventure - 7D/6N"
+                },
+                "package_price": {
+                    "type": "string",
+                    "__example__": "₹85,000"
+                },
+                "package_duration": {
+                    "type": "string",
+                    "__example__": "7 Days / 6 Nights"
+                },
+                "package_highlights": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "__example__": [
+                        "✈️ Round-trip flights included",
+                        "🏨 4-star hotel accommodations",
+                        "🍽️ Daily breakfast & 3 dinners",
+                        "🚌 All transfers & sightseeing",
+                        "🎫 Entry tickets to attractions",
+                        "👨‍✈️ Professional tour guide"
+                    ]
+                },
+                "itinerary_summary": {
+                    "type": "string",
+                    "__example__": "Day 1: Arrival in Hanoi\nDay 2: Hanoi City Tour\nDay 3: Ha Long Bay Cruise\nDay 4: Transfer to Hoi An\nDay 5: Hoi An Ancient Town\nDay 6: My Son Sanctuary\nDay 7: Departure"
+                },
+                "inclusions": {
+                    "type": "string",
+                    "__example__": "✅ Visa assistance\n✅ Travel insurance\n✅ Airport transfers\n✅ All sightseeing\n✅ Guide services"
+                },
+                "exclusions": {
+                    "type": "string",
+                    "__example__": "❌ Lunch & personal expenses\n❌ Tips & gratuities\n❌ Optional activities"
+                }
+            },
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextHeading",
+                        "text": "${data.package_name}"
+                    },
+                    {
+                        "type": "TextSubheading",
+                        "text": "💰 Price: ${data.package_price} per person"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "📅 Duration: ${data.package_duration}"
+                    },
+                    {
+                        "type": "TextHeading",
+                        "text": "✨ Package Highlights"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.package_highlights}"
+                    },
+                    {
+                        "type": "TextHeading",
+                        "text": "📋 Itinerary Overview"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.itinerary_summary}"
+                    },
+                    {
+                        "type": "TextHeading",
+                        "text": "✅ What's Included"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.inclusions}"
+                    },
+                    {
+                        "type": "TextHeading",
+                        "text": "❌ What's Not Included"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "${data.exclusions}"
+                    },
+                    {
+                        "type": "Form",
+                        "name": "booking_form",
+                        "children": [
+                            {
+                                "type": "TextInput",
+                                "label": "Your Name",
+                                "name": "customer_name",
+                                "required": true,
+                                "input-type": "text"
+                            },
+                            {
+                                "type": "TextInput",
+                                "label": "Phone Number",
+                                "name": "phone_number",
+                                "required": true,
+                                "input-type": "phone"
+                            },
+                            {
+                                "type": "TextInput",
+                                "label": "Email Address",
+                                "name": "email",
+                                "required": true,
+                                "input-type": "email"
+                            },
+                            {
+                                "type": "TextInput",
+                                "label": "Number of Travelers",
+                                "name": "travelers_count",
+                                "required": true,
+                                "input-type": "number"
+                            },
+                            {
+                                "type": "DatePicker",
+                                "label": "Preferred Travel Date",
+                                "name": "travel_date",
+                                "required": true
+                            },
+                            {
+                                "type": "TextArea",
+                                "label": "Special Requests (Optional)",
+                                "name": "special_requests",
+                                "required": false
+                            },
+                            {
+                                "type": "Footer",
+                                "label": "Submit Booking Request",
+                                "on-click-action": {
+                                    "name": "data_exchange",
+                                    "payload": {
+                                        "package_id": "${data.selected_package}",
+                                        "package_name": "${data.package_name}",
+                                        "package_price": "${data.package_price}",
+                                        "customer_name": "${form.customer_name}",
+                                        "phone_number": "${form.phone_number}",
+                                        "email": "${form.email}",
+                                        "travelers_count": "${form.travelers_count}",
+                                        "travel_date": "${form.travel_date}",
+                                        "special_requests": "${form.special_requests}"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "SUCCESS",
+            "title": "Booking Request Submitted",
+            "terminal": true,
+            "data": {},
+            "layout": {
+                "type": "SingleColumnLayout",
+                "children": [
+                    {
+                        "type": "TextHeading",
+                        "text": "✅ Thank You!"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "Your booking request has been submitted successfully. Our team will contact you shortly on your WhatsApp number."
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "📞 For urgent queries, call us at +91 99787 83238"
+                    },
+                    {
+                        "type": "TextBody",
+                        "text": "💬 You can also continue chatting with us here!"
+                    },
+                    {
+                        "type": "Footer",
+                        "label": "Done",
+                        "on-click-action": {
+                            "name": "complete"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

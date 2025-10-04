@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 
-// GET all variants for a specific tour package or query
+// GET all variants for a specific tour package
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const tourPackageId = searchParams.get("tourPackageId");
-    const tourPackageQueryId = searchParams.get("tourPackageQueryId");
 
-    if (!tourPackageId && !tourPackageQueryId) {
-      return new NextResponse("tourPackageId or tourPackageQueryId is required", { status: 400 });
+    if (!tourPackageId) {
+      return new NextResponse("tourPackageId is required", { status: 400 });
     }
 
-    const where: any = {};
-    if (tourPackageId) where.tourPackageId = tourPackageId;
-    if (tourPackageQueryId) where.tourPackageQueryId = tourPackageQueryId;
-
     const variants = await prismadb.packageVariant.findMany({
-      where,
+      where: {
+        tourPackageId
+      },
       include: {
         variantHotelMappings: {
           include: {
@@ -55,7 +52,6 @@ export async function POST(req: Request) {
       name, 
       description, 
       tourPackageId, 
-      tourPackageQueryId, 
       isDefault,
       sortOrder,
       priceModifier,
@@ -65,8 +61,8 @@ export async function POST(req: Request) {
       return new NextResponse("Name is required", { status: 400 });
     }
 
-    if (!tourPackageId && !tourPackageQueryId) {
-      return new NextResponse("tourPackageId or tourPackageQueryId is required", { status: 400 });
+    if (!tourPackageId) {
+      return new NextResponse("tourPackageId is required", { status: 400 });
     }
 
     const variant = await prismadb.packageVariant.create({
@@ -74,7 +70,6 @@ export async function POST(req: Request) {
         name,
         description,
         tourPackageId,
-        tourPackageQueryId,
         isDefault: isDefault || false,
         sortOrder: sortOrder || 0,
         priceModifier: priceModifier || 0,

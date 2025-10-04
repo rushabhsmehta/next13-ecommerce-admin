@@ -85,7 +85,6 @@ import LocationTab from '@/components/tour-package-query/LocationTab'; // Update
 import PoliciesTab from '@/components/tour-package-query/PoliciesTab'; // Updated path
 import PricingTab from '@/components/tour-package-query/PricingTab'; // Updated path
 import HotelsTab from '@/components/tour-package-query/HotelsTab';
-import PackageVariantsTab from '@/components/tour-package-query/PackageVariantsTab'; // NEW: Multi-variant support
 import { AIRLINE_CANCELLATION_POLICY_DEFAULT, CANCELLATION_POLICY_DEFAULT, DEFAULT_PRICING_SECTION, DISCLAIMER_DEFAULT, EXCLUSIONS_DEFAULT, IMPORTANT_NOTES_DEFAULT, INCLUSIONS_DEFAULT, KITCHEN_GROUP_POLICY_DEFAULT, PAYMENT_TERMS_DEFAULT, TERMS_AND_CONDITIONS_DEFAULT, USEFUL_TIPS_DEFAULT } from "@/components/tour-package-query/defaultValues";
 
 
@@ -214,18 +213,6 @@ const formSchema = z.object({
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
   associatePartnerId: z.string().optional(), // Add associatePartnerId to the schema
-  // Package variants for multi-tier packages (Luxury, Premium, Standard)
-  packageVariants: z.array(z.object({
-    id: z.string().optional(),
-    name: z.string().min(1, "Variant name is required"),
-    description: z.string().optional().nullable(),
-    // make flags optional with sensible defaults to tolerate different client shapes
-    isDefault: z.boolean().optional().default(false),
-    sortOrder: z.number().optional().default(0),
-    priceModifier: z.number().optional().nullable().default(0),
-    // hotelMappings may be missing or an empty object
-    hotelMappings: z.record(z.string()).optional().default({}),
-  })).optional(),
 });
 
 export type TourPackageQueryFormValues = z.infer<typeof formSchema>
@@ -347,43 +334,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
     }
   };
   
-  // Transform packageVariants from API response to component format
-  const transformPackageVariants = (variants: any[]): any[] => {
-    if (!variants || !Array.isArray(variants)) return [];
-    
-    console.log('🔄 [TRANSFORM VARIANTS] Transforming packageVariants from API:', {
-      count: variants.length,
-      rawData: variants
-    });
-    
-    return variants.map(variant => {
-      // Convert variantHotelMappings array to hotelMappings object
-      const hotelMappings: { [itineraryId: string]: string } = {};
-      
-      if (variant.variantHotelMappings && Array.isArray(variant.variantHotelMappings)) {
-        variant.variantHotelMappings.forEach((mapping: any) => {
-          if (mapping.itineraryId && mapping.hotelId) {
-            hotelMappings[mapping.itineraryId] = mapping.hotelId;
-          }
-        });
-      }
-      
-      console.log(`🔄 [TRANSFORM] Variant "${variant.name}":`, {
-        mappingsCount: Object.keys(hotelMappings).length,
-        hotelMappings
-      });
-      
-      return {
-        id: variant.id,
-        name: variant.name,
-        description: variant.description,
-        isDefault: variant.isDefault,
-        sortOrder: variant.sortOrder,
-        priceModifier: variant.priceModifier,
-        hotelMappings
-      };
-    });
-  };
   const handleUseLocationDefaultsChange = (field: string, checked: boolean): void => {
     setUseLocationDefaults(prevState => ({ ...prevState, [field]: checked }));
     if (checked) {
@@ -498,7 +448,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       airlineCancellationPolicy: parseJsonField(initialData.airlineCancellationPolicy),
       termsconditions: parseJsonField(initialData.termsconditions),
       pricingSection: parsePricingSection(initialData.pricingSection),
-      packageVariants: transformPackageVariants((initialData as any).packageVariants || []),
     } : {
       inquiryId: '',
       tourPackageTemplate: '',
@@ -543,7 +492,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplateName: '',
       selectedMealPlanId: '',
       occupancySelections: [],
-      packageVariants: [],
     };  const form = useForm<TourPackageQueryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -781,7 +729,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
 
       // Add extremely detailed logging to diagnose the issue
       console.log("==== FORM SUBMISSION DIAGNOSIS ====");
-      console.log("🔍 [SUBMIT START] Full form data.packageVariants:", data.packageVariants);
       console.log("Form data structure:", Object.keys(data));
       console.log("Itineraries count:", data.itineraries?.length || 0);
 
@@ -824,17 +771,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       if (!isValid) {
         console.log("VALIDATION ERROR DETAILS:");
         console.log("All errors:", form.formState.errors);
-        
-        // Log packageVariants errors specifically
-        if (form.formState.errors.packageVariants) {
-          console.error("❌ [PACKAGE VARIANTS ERROR]:", form.formState.errors.packageVariants);
-          // @ts-ignore - accessing array errors
-          if (Array.isArray(form.formState.errors.packageVariants)) {
-            form.formState.errors.packageVariants.forEach((variantError: any, idx: number) => {
-              console.error(`❌ [VARIANT ${idx} ERROR]:`, variantError);
-            });
-          }
-        }
 
         let errorMessage = "Please fix the validation errors."; // Default message
 
@@ -857,30 +793,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           toast.error(errorMessage, {
             duration: 10000 // Show for longer to read full message
           });
-        } else if (form.formState.errors.packageVariants) {
-          // Handle packageVariants errors specifically with detailed output
-          try {
-            // @ts-ignore
-            if (Array.isArray(form.formState.errors.packageVariants)) {
-              // @ts-ignore
-              const variantErrors = form.formState.errors.packageVariants
-                .map((err: any, idx: number) => {
-                  if (!err) return null;
-                  const fields = Object.keys(err || {});
-                  if (fields.length === 0) return null;
-                  return `Variant ${idx + 1}: ${fields.map(f => `${f} (${err[f]?.message || 'invalid'})`).join(', ')}`;
-                })
-                .filter(Boolean)
-                .join(' | ');
-              errorMessage = `Package Variants validation errors: ${variantErrors || 'Check console for details'}`;
-            } else {
-              // @ts-ignore
-              errorMessage = `Package Variants: ${form.formState.errors.packageVariants?.message || JSON.stringify(form.formState.errors.packageVariants)}`;
-            }
-          } catch (e) {
-            errorMessage = `Package Variants validation failed. Check console for details.`;
-          }
-          toast.error(errorMessage, { duration: 10000 });
         } else {
           // Handle other top-level errors
           const errorDetails = Object.entries(form.formState.errors)
@@ -910,17 +822,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         drop_location: data.drop_location || '',
         totalPrice: data.totalPrice || '',
         disclaimer: data.disclaimer || '',
-        packageVariants: data.packageVariants || [], // Include variants
       };
-
-      // 🔍 DEBUG: Log packageVariants being submitted
-      console.log('📦 [FORM SUBMIT] packageVariants data:', {
-        type: typeof data.packageVariants,
-        isArray: Array.isArray(data.packageVariants),
-        length: data.packageVariants?.length,
-        data: data.packageVariants,
-        stringified: JSON.stringify(data.packageVariants, null, 2)
-      });
 
       if (initialData) {
         console.log("Updating existing query...");
@@ -1043,7 +945,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
           )}
 
           <Tabs defaultValue="basic" className="w-full">
-            <TabsList className="grid grid-cols-10 w-full"> {/* Updated to 10 for Variants tab */}
+            <TabsList className="grid grid-cols-9 w-full">
               <TabsTrigger value="basic" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Basic Info
@@ -1079,12 +981,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                     ) : null;
                   } catch { return null; }
                 })()}
-              </TabsTrigger>
-              <TabsTrigger value="variants" className="flex items-center gap-2">
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                Variants
               </TabsTrigger>
               <TabsTrigger value="flights" className="flex items-center gap-2">
                 <Plane className="h-4 w-4" />
@@ -1162,14 +1058,6 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 occupancyTypes={occupancyTypes}
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
-              />
-            </TabsContent>
-            <TabsContent value="variants" className="space-y-6 mt-4">
-              <PackageVariantsTab
-                control={form.control}
-                form={form}
-                loading={loading}
-                hotels={hotels}
               />
             </TabsContent>
             <TabsContent value="flights" className="space-y-4 mt-4">

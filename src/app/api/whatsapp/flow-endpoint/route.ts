@@ -255,10 +255,13 @@ export async function POST(req: NextRequest) {
       encrypted: true,
     });
 
-    // Return as plaintext (base64 string)
+    // Return as plaintext (base64 string) with CORS headers
     return new NextResponse(encryptedResponse, {
       status: 200,
-      headers: { 'Content-Type': 'text/plain' },
+      headers: {
+        'Content-Type': 'text/plain',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   } catch (error) {
     console.error('WhatsApp Flow Endpoint Error:', error);
@@ -483,6 +486,21 @@ async function handleBookingSubmission(body: FlowDataExchangeRequest): Promise<F
     console.error('❌ Failed to save booking:', error);
     throw error; // Let the main POST handler catch this
   }
+}
+
+/**
+ * OPTIONS method for CORS preflight
+ */
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }
 
 /**

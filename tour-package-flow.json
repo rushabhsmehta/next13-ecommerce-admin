@@ -445,7 +445,7 @@
                                 "type": "RadioButtonsGroup",
                                 "label": "${data.offer_label}",
                                 "required": true,
-                                "name": "packages",
+                                "name": "package",
                                 "data-source": "${data.shortlisted_packages}"
                             },
                             {
@@ -454,7 +454,7 @@
                                 "on-click-action": {
                                     "name": "data_exchange",
                                     "payload": {
-                                        "package": "${form.packages}"
+                                        "package": "${form.package}"
                                     }
                                 }
                             }

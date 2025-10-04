@@ -33,31 +33,43 @@ interface FlowResponse {
 }
 
 interface BookingData {
-  package_id?: string;
-  package_name?: string;
-  package_price?: string;
+  // From PACKAGE_OFFERS form payload
+  package?: string;  // e.g., "0_vietnam_adventure_7d"
+  
+  // From PACKAGE_DETAIL booking form payload (includes data.* values)
+  package_id?: string;      // From data.selected_package
+  package_name?: string;    // From data.package_name
+  package_price?: string;   // From data.package_price
   customer_name?: string;
   phone_number?: string;
   email?: string;
   travelers_count?: string;
   travel_date?: string;
   special_requests?: string;
+  
+  // From DESTINATION_SELECTOR form payload
   destination_selection?: string;
-  tour_types?: string[];
-  duration?: string;
-  group_size?: string;
-  accommodation?: string[];
-  travel_preferences?: string[];
-  budget?: string;
-  selected_destination?: string;
-  package?: string;
+  
+  // From TOUR_OPTIONS form payload
+  tour_types?: string[];  // CheckboxGroup returns array
+  duration?: string;       // RadioButtonsGroup returns string
+  group_size?: string;     // RadioButtonsGroup returns string
+  accommodation?: string[]; // CheckboxGroup returns array
+  travel_preferences?: string[]; // CheckboxGroup returns array
+  budget?: string;         // RadioButtonsGroup returns string
+  selected_destination?: string; // From data.selected_destination
 }
 
 /**
  * Decrypt incoming WhatsApp Flow request
- * Uses RSA-OAEP to decrypt AES key, then AES-256-GCM to decrypt flow data
+ * Uses RSA-OAEP to decrypt AES key, then AES-128-GCM to decrypt flow data
+ * Based on Meta's official example: https://developers.facebook.com/docs/whatsapp/flows/reference/flowsencryption
  */
-function decryptRequest(encryptedRequest: EncryptedFlowRequest): FlowDataExchangeRequest {
+function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
+  decryptedBody: FlowDataExchangeRequest;
+  aesKeyBuffer: Buffer;
+  initialVectorBuffer: Buffer;
+} {
   try {
     // Get private key from environment
     const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
@@ -65,36 +77,47 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): FlowDataExchang
       throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
     }
 
-    // Step 1: Decrypt AES key using RSA private key
-    const encryptedAesKeyBuffer = Buffer.from(encryptedRequest.encrypted_aes_key, 'base64');
-    const aesKey = crypto.privateDecrypt(
+    const { encrypted_aes_key, encrypted_flow_data, initial_vector } = encryptedRequest;
+
+    // Step 1: Decrypt the AES key created by the client
+    // @ts-ignore - Buffer type compatibility
+    const decryptedAesKey = crypto.privateDecrypt(
       {
-        key: privateKeyPem,
+        key: crypto.createPrivateKey(privateKeyPem),
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
         oaepHash: 'sha256',
       },
-      encryptedAesKeyBuffer as any
+      Buffer.from(encrypted_aes_key, 'base64') as any
     );
 
-    // Step 2: Decrypt flow data using AES-256-GCM
-    const encryptedFlowDataBuffer = Buffer.from(encryptedRequest.encrypted_flow_data, 'base64');
-    const initialVector = Buffer.from(encryptedRequest.initial_vector, 'base64');
-    
-    // Extract auth tag (last 16 bytes) and ciphertext
-    const authTagLength = 16;
-    const ciphertext = encryptedFlowDataBuffer.subarray(0, -authTagLength);
-    const authTag = encryptedFlowDataBuffer.subarray(-authTagLength);
+    // Step 2: Decrypt the Flow data
+    const flowDataBuffer = Buffer.from(encrypted_flow_data, 'base64');
+    const initialVectorBuffer = Buffer.from(initial_vector, 'base64');
 
-    // Create decipher and set auth tag
-    const decipher = crypto.createDecipheriv('aes-256-gcm', aesKey as any, initialVector as any);
-    decipher.setAuthTag(authTag as any);
+    const TAG_LENGTH = 16;
+    const encrypted_flow_data_body = flowDataBuffer.subarray(0, -TAG_LENGTH);
+    const encrypted_flow_data_tag = flowDataBuffer.subarray(-TAG_LENGTH);
 
-    // Decrypt
-    const decryptedPart1 = decipher.update(ciphertext as any);
-    const decryptedPart2 = decipher.final();
-    const decrypted = Buffer.concat([decryptedPart1 as any, decryptedPart2 as any]);
+    // Create decipher and set auth tag (using AES-128-GCM as per Meta's example)
+    // @ts-ignore - Buffer type compatibility
+    const decipher = crypto.createDecipheriv(
+      'aes-128-gcm',
+      decryptedAesKey as any,
+      initialVectorBuffer as any
+    );
+    decipher.setAuthTag(encrypted_flow_data_tag as any);
 
-    return JSON.parse(decrypted.toString('utf8'));
+    // @ts-ignore - Buffer.concat type compatibility
+    const decryptedJSONString = Buffer.concat([
+      decipher.update(encrypted_flow_data_body as any) as any,
+      decipher.final() as any,
+    ]).toString('utf-8');
+
+    return {
+      decryptedBody: JSON.parse(decryptedJSONString),
+      aesKeyBuffer: decryptedAesKey,
+      initialVectorBuffer,
+    };
   } catch (error) {
     console.error('Decryption error:', error);
     throw new Error('Failed to decrypt request');
@@ -103,51 +126,31 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): FlowDataExchang
 
 /**
  * Encrypt outgoing WhatsApp Flow response
- * Uses the same AES key that was used to encrypt the request
+ * Uses the same AES key and flipped IV as per Meta's official example
+ * Reference: https://developers.facebook.com/docs/whatsapp/flows/reference/flowsencryption
  */
 function encryptResponse(
   response: FlowResponse,
-  encryptedRequest: EncryptedFlowRequest
-): { encrypted_flow_data: string } {
+  aesKeyBuffer: Buffer,
+  initialVectorBuffer: Buffer
+): string {
   try {
-    // Get private key from environment
-    const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
-    if (!privateKeyPem) {
-      throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
+    // Flip the initialization vector (bitwise NOT operation)
+    const flipped_iv: number[] = [];
+    for (let i = 0; i < initialVectorBuffer.length; i++) {
+      flipped_iv.push(~initialVectorBuffer[i]);
     }
 
-    // Step 1: Decrypt AES key (same as in decryptRequest)
-    const encryptedAesKeyBuffer = Buffer.from(encryptedRequest.encrypted_aes_key, 'base64');
-    const aesKey = crypto.privateDecrypt(
-      {
-        key: privateKeyPem,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: 'sha256',
-      },
-      encryptedAesKeyBuffer as any
-    );
+    // Encrypt the response data using AES-128-GCM with flipped IV
+    // @ts-ignore - Buffer type compatibility
+    const cipher = crypto.createCipheriv('aes-128-gcm', aesKeyBuffer as any, Buffer.from(flipped_iv) as any);
 
-    // Step 2: Generate new IV for response
-    const iv = crypto.randomBytes(12); // 96-bit IV for GCM
-
-    // Step 3: Encrypt response using AES-256-GCM
-    const cipher = crypto.createCipheriv('aes-256-gcm', aesKey as any, iv as any);
-    const responseJson = JSON.stringify(response);
-    
-    const encryptedPart1 = cipher.update(responseJson, 'utf8');
-    const encryptedPart2 = cipher.final();
-    const encrypted = Buffer.concat([encryptedPart1 as any, encryptedPart2 as any]);
-    
-    // Get auth tag
-    const authTag = cipher.getAuthTag();
-    
-    // Combine encrypted data + auth tag
-    const encryptedWithTag = Buffer.concat([encrypted as any, authTag as any]);
-
-    // Return encrypted response (Base64 encoded)
-    return {
-      encrypted_flow_data: encryptedWithTag.toString('base64'),
-    };
+    // @ts-ignore - Buffer.concat type compatibility
+    return Buffer.concat([
+      cipher.update(JSON.stringify(response), 'utf-8') as any,
+      cipher.final() as any,
+      cipher.getAuthTag() as any,
+    ]).toString('base64');
   } catch (error) {
     console.error('Encryption error:', error);
     throw new Error('Failed to encrypt response');
@@ -167,22 +170,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Decrypt the request
-    const body = decryptRequest(encryptedBody);
+    const { decryptedBody, aesKeyBuffer, initialVectorBuffer } = decryptRequest(encryptedBody);
 
     console.log('WhatsApp Flow Request (Decrypted):', {
-      version: body.version,
-      action: body.action,
-      screen: body.screen,
-      flow_token: body.flow_token,
+      version: decryptedBody.version,
+      action: decryptedBody.action,
+      screen: decryptedBody.screen,
+      flow_token: decryptedBody.flow_token,
     });
 
     // Handle different actions
     let response: FlowResponse;
 
-    if (body.action === 'INIT') {
+    if (decryptedBody.action === 'INIT') {
       // INIT action - return DESTINATION_SELECTOR screen
       response = {
-        version: body.version,
+        version: decryptedBody.version,
         screen: 'DESTINATION_SELECTOR',
         data: {
           destinations: [
@@ -197,62 +200,66 @@ export async function POST(req: NextRequest) {
           ],
         },
       };
-    } else if (body.action === 'data_exchange') {
+    } else if (decryptedBody.action === 'data_exchange') {
       // data_exchange action - route based on current screen
-      if (!body.screen) {
+      if (!decryptedBody.screen) {
         return NextResponse.json(
           { error: 'Screen not specified in data_exchange action' },
           { status: 400 }
         );
       }
 
-      switch (body.screen) {
+      switch (decryptedBody.screen) {
         case 'DESTINATION_SELECTOR':
-          response = await handleDestinationSelection(body);
+          response = await handleDestinationSelection(decryptedBody);
           break;
 
         case 'TOUR_OPTIONS':
-          response = await handleTourOptions(body);
+          response = await handleTourOptions(decryptedBody);
           break;
 
         case 'PACKAGE_OFFERS':
-          response = await handlePackageOffers(body);
+          response = await handlePackageOffers(decryptedBody);
           break;
 
         case 'PACKAGE_DETAIL':
-          response = await handleBookingSubmission(body);
+          response = await handleBookingSubmission(decryptedBody);
           break;
 
         default:
           return NextResponse.json(
-            { error: `Unknown screen: ${body.screen}` },
+            { error: `Unknown screen: ${decryptedBody.screen}` },
             { status: 400 }
           );
       }
-    } else if (body.action === 'BACK') {
+    } else if (decryptedBody.action === 'BACK') {
       // BACK action - navigate to previous screen
       // For now, just return current screen (you can implement proper navigation)
       response = {
-        version: body.version,
-        screen: body.screen || 'DESTINATION_SELECTOR',
+        version: decryptedBody.version,
+        screen: decryptedBody.screen || 'DESTINATION_SELECTOR',
         data: {},
       };
     } else {
       return NextResponse.json(
-        { error: `Unknown action: ${body.action}` },
+        { error: `Unknown action: ${decryptedBody.action}` },
         { status: 400 }
       );
     }
 
     // Encrypt the response
-    const encryptedResponse = encryptResponse(response, encryptedBody);
+    const encryptedResponse = encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
 
     console.log('WhatsApp Flow Response:', {
       screen: response.screen,
       encrypted: true,
     });
 
-    return NextResponse.json(encryptedResponse);
+    // Return as plaintext (base64 string)
+    return new NextResponse(encryptedResponse, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    });
   } catch (error) {
     console.error('WhatsApp Flow Endpoint Error:', error);
     return NextResponse.json(
@@ -439,17 +446,15 @@ async function handleBookingSubmission(body: FlowDataExchangeRequest): Promise<F
         tourStartsFrom: travelDate,
         numAdults: bookingData.travelers_count || '1',
         remarks: `
-Email: ${bookingData.email || 'Not provided'}
-Package: ${bookingData.package_name || 'N/A'}
-Price: ${bookingData.package_price || 'N/A'}
-Special Requests: ${bookingData.special_requests || 'None'}
-Source: WhatsApp Flow
-Preferences:
-- Tour Types: ${bookingData.tour_types?.join(', ') || 'N/A'}
-- Duration: ${bookingData.duration || 'N/A'}
-- Group Size: ${bookingData.group_size || 'N/A'}
-- Accommodation: ${bookingData.accommodation?.join(', ') || 'N/A'}
-- Budget: ${bookingData.budget || 'N/A'}
+📦 Package: ${bookingData.package_name || 'N/A'}
+💰 Price: ${bookingData.package_price || 'N/A'}
+📧 Email: ${bookingData.email || 'Not provided'}
+👥 Number of Travelers: ${bookingData.travelers_count || 'N/A'}
+📅 Preferred Date: ${bookingData.travel_date || 'N/A'}
+📝 Special Requests: ${bookingData.special_requests || 'None'}
+
+🔖 Source: WhatsApp Flow
+🆔 Package ID: ${bookingData.package_id || 'N/A'}
         `.trim(),
         tourPackageQueryType: 'INQUIRY',
         isFeatured: false,
@@ -457,7 +462,13 @@ Preferences:
       },
     });
 
-    console.log('Booking saved to database:', booking.id);
+    console.log('✅ Booking saved to database:', booking.id);
+    console.log('📋 Booking details:', {
+      packageName: bookingData.package_name,
+      customer: bookingData.customer_name,
+      phone: bookingData.phone_number,
+      travelers: bookingData.travelers_count,
+    });
 
     // TODO: Send booking confirmation via WhatsApp template
     // TODO: Notify admin team via email/SMS
@@ -466,12 +477,10 @@ Preferences:
     return {
       version: body.version,
       screen: 'SUCCESS',
-      data: {
-        confirmation_message: `Thank you! Your inquiry has been received. Our team will contact you shortly at ${bookingData.phone_number}.`,
-      },
+      data: {},  // SUCCESS screen has terminal: true and empty data
     };
   } catch (error) {
-    console.error('Failed to save booking:', error);
+    console.error('❌ Failed to save booking:', error);
     throw error; // Let the main POST handler catch this
   }
 }

@@ -8,12 +8,7 @@ export async function POST(request: NextRequest) {
       to,
       message,
       saveToDb = true,
-      campaignName,
-      templateParams,
-      userName,
-      source,
-      tags,
-      attributes,
+      media,
     } = body;
 
     // Validate required fields
@@ -24,9 +19,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!message && (!Array.isArray(templateParams) || templateParams.length === 0)) {
+    if (!message && !media) {
       return NextResponse.json(
-        { error: 'Provide either message or templateParams' },
+        { error: 'Provide either message or media' },
         { status: 400 }
       );
     }
@@ -41,21 +36,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedTemplateParams = Array.isArray(templateParams) ? templateParams.map((value: any) => String(value)) : undefined;
-    const normalizedTags = Array.isArray(tags) ? tags.map((value: any) => String(value)) : undefined;
-    const normalizedAttributes = (attributes && typeof attributes === 'object') ? attributes : undefined;
-
     // Send the message
     const result = await sendWhatsAppMessage({
-      campaignName,
       to: cleanTo,
       message,
       saveToDb,
-      templateParams: normalizedTemplateParams,
-      userName,
-      source,
-      tags: normalizedTags,
-      attributes: normalizedAttributes,
+      media,
     });
 
     if (result.success) {

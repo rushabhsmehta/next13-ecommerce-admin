@@ -33,18 +33,18 @@ interface WhatsAppMessage {
   updatedAt: string;
 }
 
-type WhatsAppProvider = 'aisensy' | 'meta' | 'unknown';
+
+type WhatsAppProvider = 'meta' | 'unknown';
 
 interface WhatsAppConfig {
   provider?: WhatsAppProvider;
   isCloudConfigured?: boolean;
   whatsappNumber?: string;
-  isAiSensyConfigured?: boolean;
-  aiSensy?: {
-    apiBase: string;
-    defaultCampaign: string | null;
-    defaultSource: string | null;
-    defaultTags: string[];
+  isMetaConfigured?: boolean;
+  meta?: {
+    phoneNumberId: string;
+    apiVersion: string;
+    hasAccessToken: boolean;
   } | null;
 }
 
@@ -368,14 +368,6 @@ export default function WhatsAppSettingsPage() {
   };
 
   const runDiagnostics = async () => {
-    if (config?.provider === 'aisensy') {
-      setDiagResult({
-        info: 'Diagnostics are currently available for Meta WhatsApp Cloud API only.',
-      });
-      toast.success('Diagnostics summary ready');
-      return;
-    }
-
     setDiagLoading(true);
     try {
       const [cfgRes, tplRes] = await Promise.all([
@@ -596,11 +588,9 @@ export default function WhatsAppSettingsPage() {
                   <div className="flex items-center space-x-2">
                     <code className="text-sm bg-muted p-2 rounded flex-1">
                       {config ? (
-                        config.provider === 'aisensy'
-                          ? 'AiSensy Campaign API'
-                          : config.provider === 'meta'
-                            ? 'Meta WhatsApp Cloud API'
-                            : 'Not configured'
+                        config.provider === 'meta'
+                          ? 'Meta WhatsApp Cloud API'
+                          : 'Not configured'
                       ) : 'Loading...'}
                     </code>
                     {config?.provider === 'unknown' ? (
@@ -623,36 +613,6 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 )}
 
-                {config?.isAiSensyConfigured && config.aiSensy && (
-                  <div className="space-y-4">
-                    <Separator />
-                    <div className="space-y-2">
-                      <Label>AiSensy Endpoint</Label>
-                      <code className="text-sm bg-muted p-2 rounded block">{config.aiSensy.apiBase}</code>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Default Campaign</Label>
-                      <code className="text-sm bg-muted p-2 rounded block">{config.aiSensy.defaultCampaign || 'Not set'}</code>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Default Source</Label>
-                      <code className="text-sm bg-muted p-2 rounded block">{config.aiSensy.defaultSource || 'Not set'}</code>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Default Tags</Label>
-                      {config.aiSensy.defaultTags.length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {config.aiSensy.defaultTags.map(tag => (
-                            <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No default tags configured</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 <Separator />
 
                 {config?.isCloudConfigured ? (
@@ -667,7 +627,7 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground">
-                    Webhook configuration applies only when using Meta WhatsApp Cloud API.
+                    Meta WhatsApp Cloud API is not configured. Please set META_WHATSAPP_PHONE_NUMBER_ID and META_WHATSAPP_ACCESS_TOKEN.
                   </div>
                 )}
               </CardContent>

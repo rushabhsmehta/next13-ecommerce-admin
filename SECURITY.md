@@ -39,13 +39,15 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 # OpenAI
 OPENAI_API_KEY=
 
-# WhatsApp via AiSensy
-AISENSY_API_KEY=
-AISENSY_DEFAULT_CAMPAIGN_NAME=
-AISENSY_DEFAULT_SOURCE=
-AISENSY_DEFAULT_TAGS=
-AISENSY_DEFAULT_USERNAME=
-AISENSY_SENDER_ID=
+# WhatsApp via Meta Business API
+META_WHATSAPP_PHONE_NUMBER_ID=
+META_WHATSAPP_ACCESS_TOKEN=
+META_GRAPH_API_VERSION=
+
+# Optional: For token refresh and webhook verification
+META_APP_ID=
+META_APP_SECRET=
+META_WEBHOOK_VERIFY_TOKEN=
 
 # Next.js
 NEXTAUTH_SECRET=
@@ -82,5 +84,5 @@ NEXTAUTH_URL=
 
 ## 📚 Resources
 
-- [AiSensy WhatsApp Integration Guide](./WHATSAPP_API_README.md)
+- [Meta WhatsApp Business API Integration Guide](./docs/WHATSAPP_IMPLEMENTATION_GUIDE.md)
 - [Environment Variables Best Practices](https://nextjs.org/docs/basic-features/environment-variables)

@@ -2,24 +2,25 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const aiSensyConfigured = !!(process.env.AISENSY_API_KEY && process.env.AISENSY_AUTH_TOKEN && process.env.AISENSY_SENDER_ID);
+    const metaConfigured = !!(
+      process.env.META_WHATSAPP_PHONE_NUMBER_ID && 
+      process.env.META_WHATSAPP_ACCESS_TOKEN
+    );
 
     const envCheck = {
-      mode: aiSensyConfigured ? 'aisensy' : 'incomplete',
-      apiKey: process.env.AISENSY_API_KEY ? 'Present' : 'Missing',
-      authToken: process.env.AISENSY_AUTH_TOKEN ? 'Present' : 'Missing',
-      senderId: process.env.AISENSY_SENDER_ID || 'Missing',
-      defaultCampaign: process.env.AISENSY_DEFAULT_CAMPAIGN_NAME || process.env.AISENSY_DEFAULT_CAMPAIGN || 'Missing',
-      apiBase: process.env.AISENSY_API_BASE || 'https://backend.aisensy.com',
+      mode: metaConfigured ? 'meta' : 'incomplete',
+      phoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID || 'Missing',
+      accessToken: process.env.META_WHATSAPP_ACCESS_TOKEN ? 'Present' : 'Missing',
+      apiVersion: process.env.META_GRAPH_API_VERSION || 'v22.0 (default)',
     };
 
-    const guidance = aiSensyConfigured
-      ? 'AiSensy detected: app will use AiSensy API for messaging.'
-      : 'AiSensy not fully configured: set AISENSY_API_KEY, AISENSY_AUTH_TOKEN, AISENSY_SENDER_ID, and default campaign environment variables.';
+    const guidance = metaConfigured
+      ? 'Meta WhatsApp Cloud API configured successfully.'
+      : 'Meta WhatsApp not fully configured: set META_WHATSAPP_PHONE_NUMBER_ID and META_WHATSAPP_ACCESS_TOKEN environment variables.';
 
     return NextResponse.json({
       success: true,
-      message: 'Environment variables check (AiSensy)',
+      message: 'Environment variables check (Meta WhatsApp Cloud API)',
       env: envCheck,
       guidance,
       timestamp: new Date().toISOString()

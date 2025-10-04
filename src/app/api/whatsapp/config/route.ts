@@ -1,26 +1,26 @@
 import { NextResponse } from 'next/server';
 
-function resolveDefaultCampaign() {
-  return process.env.AISENSY_DEFAULT_CAMPAIGN_NAME || process.env.AISENSY_DEFAULT_CAMPAIGN;
+function getActiveProvider(): 'meta' | 'unknown' {
+  const isMetaConfigured = !!(process.env.META_WHATSAPP_PHONE_NUMBER_ID && process.env.META_WHATSAPP_ACCESS_TOKEN);
+  return isMetaConfigured ? 'meta' : 'unknown';
 }
 
 export async function GET() {
   try {
-    const isAiSensyConfigured = !!(process.env.AISENSY_API_KEY && resolveDefaultCampaign());
+    const activeProvider = getActiveProvider();
+    const isMetaConfigured = !!(process.env.META_WHATSAPP_PHONE_NUMBER_ID && process.env.META_WHATSAPP_ACCESS_TOKEN);
 
     const config = {
-      provider: isAiSensyConfigured ? 'aisensy' : 'unknown',
-      whatsappNumber: process.env.AISENSY_SENDER_ID ? `whatsapp:${process.env.AISENSY_SENDER_ID.replace(/^whatsapp:/, '')}` : 'Not configured',
-      isAiSensyConfigured,
-      aiSensy: isAiSensyConfigured ? {
-        apiBase: process.env.AISENSY_API_BASE || 'https://backend.aisensy.com',
-        defaultCampaign: resolveDefaultCampaign(),
-        defaultSource: process.env.AISENSY_DEFAULT_SOURCE || null,
-        defaultTags: (process.env.AISENSY_DEFAULT_TAGS || '')
-          .split(',')
-          .map(tag => tag.trim())
-          .filter(Boolean),
-        defaultUsername: process.env.AISENSY_DEFAULT_USERNAME || null,
+      provider: activeProvider,
+      whatsappNumber: isMetaConfigured 
+        ? `whatsapp:${process.env.META_WHATSAPP_PHONE_NUMBER_ID}`
+        : 'Not configured',
+      isMetaConfigured,
+      isCloudConfigured: isMetaConfigured,
+      meta: isMetaConfigured ? {
+        phoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID,
+        apiVersion: process.env.META_GRAPH_API_VERSION || 'v22.0',
+        hasAccessToken: !!process.env.META_WHATSAPP_ACCESS_TOKEN,
       } : null,
     };
 
@@ -30,4 +30,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

@@ -41,11 +41,6 @@ export async function POST(request: NextRequest) {
       languageCode = 'en_US',
       variables,
       saveToDb = true,
-      campaignName,
-      userName,
-      source,
-      tags,
-      attributes,
       debug: bodyDebug,
     } = body;
     const debugEnabled = !!bodyDebug || qpDebug || process.env.WHATSAPP_DEBUG === '1';
@@ -64,19 +59,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-  // When a template/campaign name is provided, forward directly to AiSensy.
+  // When a template/campaign name is provided, send via Meta WhatsApp Cloud API
   const maybeName = templateName || (templateId && !/^H[A-Za-z0-9]+$/.test(String(templateId)) ? String(templateId) : undefined);
   // Validate phone number format (basic validation)
   const phoneRegex = /^\+?[1-9]\d{1,14}$/;
   const cleanTo = to.replace('whatsapp:', '');
-  const normalizedTags = Array.isArray(tags) ? tags.map((value: any) => String(value)) : undefined;
-  const normalizedAttributes = attributes && typeof attributes === 'object'
-    ? Object.fromEntries(Object.entries(attributes as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
-    : undefined;
+
   if (maybeName) {
       // Build template components from variables
       let bodyParams: Array<string | number> = [];
-      let buttonParams: Array<Array<string>> = [];
+      let buttonParams: Array<{ type: string; parameters?: any[] }> = [];
       if (Array.isArray(variables)) {
         bodyParams = variables.map((v: any) => String(v));
       } else if (variables && typeof variables === 'object') {
@@ -92,9 +84,23 @@ export async function POST(request: NextRequest) {
         // buttons: button0, button1 arrays; or cta_url
         for (let i = 0; i < 3; i++) {
           const btn = (variables as any)[`button${i}`];
-          if (Array.isArray(btn)) buttonParams.push(btn.map((v: any) => String(v)));
+          if (Array.isArray(btn)) {
+            buttonParams.push({
+              type: 'button',
+              sub_type: 'url',
+              index: i,
+              parameters: btn.map((v: any) => ({ type: 'text', text: String(v) }))
+            } as any);
+          }
         }
-        if ((variables as any).cta_url) buttonParams.push([String((variables as any).cta_url)]);
+        if ((variables as any).cta_url) {
+          buttonParams.push({
+            type: 'button',
+            sub_type: 'url',
+            index: 0,
+            parameters: [{ type: 'text', text: String((variables as any).cta_url) }]
+          } as any);
+        }
       }
       const result = await sendWhatsAppTemplate({
         to: cleanTo,
@@ -102,11 +108,6 @@ export async function POST(request: NextRequest) {
         languageCode,
         bodyParams,
         buttonParams,
-        campaignName,
-        userName,
-        source,
-        tags: normalizedTags,
-        attributes: normalizedAttributes,
         saveToDb,
       });
       if (result.success) return NextResponse.json({ success: true, messageSid: result.messageSid, status: 'Template message sent successfully' });
@@ -139,11 +140,6 @@ export async function POST(request: NextRequest) {
       to: cleanTo,
       message,
       saveToDb,
-      campaignName,
-      userName,
-      source,
-      tags: normalizedTags,
-      attributes: normalizedAttributes,
     });
     if (debugEnabled) debugEvents.push({ event: 'local_send_result', success: result.success, sid: result.messageSid });
     if (result.success) {

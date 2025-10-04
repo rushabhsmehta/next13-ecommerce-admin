@@ -4,10 +4,10 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     message: 'WhatsApp Configuration',
     configuration: {
-      aiSensyApiKey: process.env.AISENSY_API_KEY ? 'Configured' : 'Not configured',
-      aiSensySenderId: process.env.AISENSY_SENDER_ID || 'Not configured',
-      aiSensyAuthToken: process.env.AISENSY_AUTH_TOKEN ? 'Configured' : 'Not configured',
-      hasCredentials: !!(process.env.AISENSY_API_KEY && process.env.AISENSY_AUTH_TOKEN && process.env.AISENSY_SENDER_ID),
+      metaPhoneNumberId: process.env.META_WHATSAPP_PHONE_NUMBER_ID ? 'Configured' : 'Not configured',
+      metaAccessToken: process.env.META_WHATSAPP_ACCESS_TOKEN ? 'Configured' : 'Not configured',
+      metaApiVersion: process.env.META_GRAPH_API_VERSION || 'v22.0 (default)',
+      hasCredentials: !!(process.env.META_WHATSAPP_PHONE_NUMBER_ID && process.env.META_WHATSAPP_ACCESS_TOKEN),
       timestamp: new Date().toISOString()
     }
   });

@@ -71,8 +71,10 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
   initialVectorBuffer: Buffer;
 } {
   try {
-    // Get private key from environment
+    // Get private key and passphrase from environment
     const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
+    const passphrase = process.env.WHATSAPP_FLOW_KEY_PASSPHRASE || '';
+    
     if (!privateKeyPem) {
       throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
     }
@@ -80,10 +82,16 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
     const { encrypted_aes_key, encrypted_flow_data, initial_vector } = encryptedRequest;
 
     // Step 1: Decrypt the AES key created by the client
+    // Create private key with passphrase support (following Meta's official example)
+    const privateKey = crypto.createPrivateKey({
+      key: privateKeyPem,
+      passphrase  // Support for encrypted private keys
+    });
+
     // @ts-ignore - Buffer type compatibility
     const decryptedAesKey = crypto.privateDecrypt(
       {
-        key: crypto.createPrivateKey(privateKeyPem),
+        key: privateKey,
         padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
         oaepHash: 'sha256',
       },

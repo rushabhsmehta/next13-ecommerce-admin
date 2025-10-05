@@ -224,20 +224,6 @@ function isRequestSignatureValid(body: string, signature: string | null): boolea
 
 export async function POST(req: NextRequest) {
   try {
-    // Log request details for debugging mobile vs desktop issues
-    const userAgent = req.headers.get('user-agent') || '';
-    const origin = req.headers.get('origin') || '';
-    const isMobile = userAgent.toLowerCase().includes('mobile') || 
-                    userAgent.toLowerCase().includes('android') || 
-                    userAgent.toLowerCase().includes('iphone');
-    
-    console.log('Flow Request Details:', {
-      userAgent: userAgent.substring(0, 100) + (userAgent.length > 100 ? '...' : ''),
-      origin,
-      isMobile,
-      timestamp: new Date().toISOString()
-    });
-
     // Get raw body for signature validation
     const rawBody = await req.text();
     const encryptedBody: EncryptedFlowRequest = JSON.parse(rawBody);
@@ -266,23 +252,10 @@ export async function POST(req: NextRequest) {
       initialVectorBuffer = result.initialVectorBuffer;
     } catch (error: any) {
       console.error('Decryption failed:', error);
-      console.error('Mobile context:', { isMobile, userAgent: userAgent.substring(0, 100) });
       // Return error details in development for debugging
       return NextResponse.json(
-        { 
-          error: 'Decryption failed', 
-          message: error.message, 
-          keyFound: !!process.env.WHATSAPP_FLOW_PRIVATE_KEY,
-          isMobile,
-          timestamp: new Date().toISOString()
-        },
-        { 
-          status: 421,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-          }
-        }
+        { error: 'Decryption failed', message: error.message, keyFound: !!process.env.WHATSAPP_FLOW_PRIVATE_KEY },
+        { status: 421 }
       );
     }
 
@@ -305,8 +278,6 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type': 'text/plain',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Vary': 'Origin, User-Agent',
         },
       });
     }
@@ -321,8 +292,6 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type': 'text/plain',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Vary': 'Origin, User-Agent',
         },
       });
     }
@@ -402,20 +371,12 @@ export async function POST(req: NextRequest) {
       encrypted: true,
     });
 
-    // Return as plaintext (base64 string) with enhanced headers for mobile compatibility
+    // Return as plaintext (base64 string) with CORS headers
     return new NextResponse(encryptedResponse, {
       status: 200,
       headers: {
         'Content-Type': 'text/plain',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-hub-signature-256, user-agent',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        // Mobile-specific headers
-        'X-Content-Type-Options': 'nosniff',
-        'Vary': 'Origin, User-Agent',
       },
     });
   } catch (error) {
@@ -640,30 +601,16 @@ async function handleBookingSubmission(body: FlowDataExchangeRequest): Promise<F
 }
 
 /**
- * OPTIONS method for CORS preflight - Enhanced for mobile compatibility
+ * OPTIONS method for CORS preflight
  */
 export async function OPTIONS(req: NextRequest) {
-  const userAgent = req.headers.get('user-agent') || '';
-  const origin = req.headers.get('origin') || '';
-  
-  console.log('CORS Preflight Request:', {
-    userAgent: userAgent.substring(0, 100) + (userAgent.length > 100 ? '...' : ''),
-    origin,
-    method: req.method,
-    timestamp: new Date().toISOString()
-  });
-
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-hub-signature-256, user-agent, origin, accept',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
-      'Access-Control-Allow-Credentials': 'false',
-      // Mobile-specific headers
-      'Vary': 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   });
 }

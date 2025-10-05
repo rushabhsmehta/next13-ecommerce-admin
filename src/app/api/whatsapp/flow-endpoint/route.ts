@@ -113,13 +113,9 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
     const flowDataBuffer = Buffer.from(encrypted_flow_data, 'base64');
     const initialVectorBuffer = Buffer.from(initial_vector, 'base64');
 
-    // Flip the IV (bitwise NOT operation) - Meta requires this for decryption
-    const flipped_iv: number[] = [];
-    for (let i = 0; i < initialVectorBuffer.length; i++) {
-      flipped_iv.push(~initialVectorBuffer[i] & 0xFF);
-    }
-    const flippedIvBuffer = Buffer.from(flipped_iv);
-
+    // NOTE: For incoming requests from WhatsApp, we use the ORIGINAL IV (not flipped)
+    // We only flip the IV when encrypting our RESPONSE back to WhatsApp
+    
     const TAG_LENGTH = 16;
     const encrypted_flow_data_body = flowDataBuffer.subarray(0, -TAG_LENGTH);
     const encrypted_flow_data_tag = flowDataBuffer.subarray(-TAG_LENGTH);
@@ -129,7 +125,7 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
     const decipher = crypto.createDecipheriv(
       'aes-128-gcm',
       decryptedAesKey as any,
-      flippedIvBuffer as any
+      initialVectorBuffer as any
     );
     decipher.setAuthTag(encrypted_flow_data_tag as any);
 

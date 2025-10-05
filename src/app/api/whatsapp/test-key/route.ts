@@ -51,6 +51,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+      version: '2.0-base64-support',
       diagnostics: {
         keyFound: true,
         passphraseFound: true,

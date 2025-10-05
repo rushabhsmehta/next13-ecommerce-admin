@@ -72,11 +72,17 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
 } {
   try {
     // Get private key and passphrase from environment
-    const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
+    let privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
     const passphrase = process.env.WHATSAPP_FLOW_KEY_PASSPHRASE || '';
     
     if (!privateKeyPem) {
       throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
+    }
+
+    // Decode base64 if the key is base64-encoded (for Vercel compatibility)
+    // Vercel doesn't support multi-line env vars, so we base64 encode them
+    if (!privateKeyPem.includes('-----BEGIN')) {
+      privateKeyPem = Buffer.from(privateKeyPem, 'base64').toString('utf-8');
     }
 
     const { encrypted_aes_key, encrypted_flow_data, initial_vector } = encryptedRequest;

@@ -7,7 +7,7 @@ import crypto from 'crypto';
  */
 export async function GET() {
   try {
-    const privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
+    let privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
     const passphrase = process.env.WHATSAPP_FLOW_KEY_PASSPHRASE;
     
     if (!privateKeyPem) {
@@ -22,6 +22,12 @@ export async function GET() {
         success: false,
         error: 'WHATSAPP_FLOW_KEY_PASSPHRASE not found in environment',
       }, { status: 500 });
+    }
+
+    // Decode base64 if the key is base64-encoded (for Vercel compatibility)
+    const isBase64 = !privateKeyPem.includes('-----BEGIN');
+    if (isBase64) {
+      privateKeyPem = Buffer.from(privateKeyPem, 'base64').toString('utf-8');
     }
 
     // Test 1: Check if key starts and ends correctly
@@ -48,6 +54,7 @@ export async function GET() {
       diagnostics: {
         keyFound: true,
         passphraseFound: true,
+        wasBase64Encoded: isBase64,
         keyLength,
         hasNewlines,
         keyStart,

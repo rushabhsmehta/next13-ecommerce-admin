@@ -75,14 +75,19 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
     let privateKeyPem = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
     const passphrase = process.env.WHATSAPP_FLOW_KEY_PASSPHRASE || '';
     
+    console.log('[DECRYPT] Key found:', !!privateKeyPem, 'Length:', privateKeyPem?.length, 'Has BEGIN:', privateKeyPem?.includes('-----BEGIN'));
+    
     if (!privateKeyPem) {
       throw new Error('WHATSAPP_FLOW_PRIVATE_KEY not configured in environment');
     }
 
     // Decode base64 if the key is base64-encoded (for Vercel compatibility)
     // Vercel doesn't support multi-line env vars, so we base64 encode them
-    if (!privateKeyPem.includes('-----BEGIN')) {
+    const isBase64 = !privateKeyPem.includes('-----BEGIN');
+    console.log('[DECRYPT] Is base64:', isBase64);
+    if (isBase64) {
       privateKeyPem = Buffer.from(privateKeyPem, 'base64').toString('utf-8');
+      console.log('[DECRYPT] Decoded to length:', privateKeyPem.length, 'Has newlines:', privateKeyPem.includes('\n'));
     }
 
     const { encrypted_aes_key, encrypted_flow_data, initial_vector } = encryptedRequest;
@@ -234,10 +239,13 @@ export async function POST(req: NextRequest) {
       decryptedBody = result.decryptedBody;
       aesKeyBuffer = result.aesKeyBuffer;
       initialVectorBuffer = result.initialVectorBuffer;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Decryption failed:', error);
-      // Return 421 to refresh public key on client
-      return new NextResponse(null, { status: 421 });
+      // Return error details in development for debugging
+      return NextResponse.json(
+        { error: 'Decryption failed', message: error.message, keyFound: !!process.env.WHATSAPP_FLOW_PRIVATE_KEY },
+        { status: 421 }
+      );
     }
 
     console.log('WhatsApp Flow Request (Decrypted):', {

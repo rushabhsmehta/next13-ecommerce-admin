@@ -2,6 +2,82 @@ import { NextRequest, NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 import crypto from 'crypto';
 
+const DESTINATION_OPTIONS = [
+  {
+    id: 'bali',
+    title: 'Bali, Indonesia',
+    description: 'Tropical paradise with beaches and culture',
+  },
+  {
+    id: 'paris',
+    title: 'Paris, France',
+    description: 'City of lights and romance',
+  },
+  {
+    id: 'tokyo',
+    title: 'Tokyo, Japan',
+    description: 'Modern metropolis with ancient traditions',
+  },
+  {
+    id: 'dubai',
+    title: 'Dubai, UAE',
+    description: 'Luxury and adventure in the desert',
+  },
+];
+
+const PACKAGE_TYPES = [
+  {
+    id: 'luxury',
+    title: 'Luxury Package',
+    description: '5-star hotels, private tours, premium experiences',
+  },
+  {
+    id: 'standard',
+    title: 'Standard Package',
+    description: '4-star hotels, guided tours, comfortable travel',
+  },
+  {
+    id: 'budget',
+    title: 'Budget Package',
+    description: '3-star hotels, basic tours, economical options',
+  },
+];
+
+const ACCOMMODATION_OPTIONS = [
+  { id: 'city_center', title: 'City Center Hotel' },
+  { id: 'beachfront', title: 'Beachfront Resort' },
+  { id: 'mountain_view', title: 'Mountain View Lodge' },
+];
+
+const ACTIVITY_OPTIONS = [
+  { id: 'scuba_diving', title: 'Scuba Diving Course', description: '$150', price: '$150' },
+  { id: 'cooking_class', title: 'Local Cooking Class', description: '$75', price: '$75' },
+  { id: 'safari', title: 'Safari Adventure', description: '$200', price: '$200' },
+];
+
+const PACKAGE_PRICE_MAP: Record<string, string> = {
+  luxury: '$2,850',
+  standard: '$1,950',
+  budget: '$1,250',
+};
+
+type SessionState = {
+  destinationId?: string;
+  destinationTitle?: string;
+  departureDate?: string;
+  returnDate?: string;
+  adultCount?: string;
+  childCount?: string;
+  packageTypeId?: string;
+  packageTypeTitle?: string;
+  accommodationId?: string;
+  accommodationTitle?: string;
+  activities?: string[];
+  activitiesTitles?: string[];
+};
+
+const flowSessions = new Map<string, SessionState>();
+
 /**
  * WhatsApp Flow Endpoint Handler
  * Receives encrypted data_exchange callbacks from Meta WhatsApp Flow Builder
@@ -33,31 +109,14 @@ interface FlowResponse {
 }
 
 interface BookingData {
-  // From PACKAGE_OFFERS form payload
-  package?: string;  // e.g., "0_vietnam_adventure_7d"
-  
-  // From PACKAGE_DETAIL booking form payload (includes data.* values)
-  package_id?: string;      // From data.selected_package
-  package_name?: string;    // From data.package_name
-  package_price?: string;   // From data.package_price
-  customer_name?: string;
-  phone_number?: string;
-  email?: string;
-  travelers_count?: string;
-  travel_date?: string;
-  special_requests?: string;
-  
-  // From DESTINATION_SELECTOR form payload
-  destination_selection?: string;
-  
-  // From TOUR_OPTIONS form payload
-  tour_types?: string[];  // CheckboxGroup returns array
-  duration?: string;       // RadioButtonsGroup returns string
-  group_size?: string;     // RadioButtonsGroup returns string
-  accommodation?: string[]; // CheckboxGroup returns array
-  travel_preferences?: string[]; // CheckboxGroup returns array
-  budget?: string;         // RadioButtonsGroup returns string
-  selected_destination?: string; // From data.selected_destination
+  selected_destination?: string;
+  departure_date?: string;
+  return_date?: string;
+  adult_count?: string;
+  child_count?: string;
+  selected_package?: string;
+  selected_accommodation?: string;
+  selected_activities?: string[];
 }
 
 /**
@@ -299,21 +358,12 @@ export async function POST(req: NextRequest) {
     let response: FlowResponse;
 
     if (decryptedBody.action === 'INIT') {
-      // INIT action - return DESTINATION_SELECTOR screen
+      flowSessions.set(decryptedBody.flow_token, {});
       response = {
         version: decryptedBody.version,
-        screen: 'DESTINATION_SELECTOR',
+        screen: 'DESTINATION_SELECTION',
         data: {
-          destinations: [
-            { id: '0_vietnam', title: '🇻🇳 Vietnam' },
-            { id: '1_thailand', title: '🇹🇭 Thailand' },
-            { id: '2_bali', title: '🇮🇩 Bali, Indonesia' },
-            { id: '3_singapore', title: '🇸🇬 Singapore' },
-            { id: '4_malaysia', title: '🇲🇾 Malaysia' },
-            { id: '5_dubai', title: '🇦🇪 Dubai, UAE' },
-            { id: '6_maldives', title: '🇲🇻 Maldives' },
-            { id: '7_europe', title: '🇪🇺 Europe' },
-          ],
+          destinations: DESTINATION_OPTIONS,
         },
       };
     } else if (decryptedBody.action === 'data_exchange') {
@@ -326,20 +376,32 @@ export async function POST(req: NextRequest) {
       }
 
       switch (decryptedBody.screen) {
-        case 'DESTINATION_SELECTOR':
+        case 'DESTINATION_SELECTION':
           response = await handleDestinationSelection(decryptedBody);
           break;
 
-        case 'TOUR_OPTIONS':
-          response = await handleTourOptions(decryptedBody);
+        case 'TRAVEL_DATES':
+          response = await handleTravelDates(decryptedBody);
           break;
 
-        case 'PACKAGE_OFFERS':
-          response = await handlePackageOffers(decryptedBody);
+        case 'TRAVELERS':
+          response = await handleTravelers(decryptedBody);
           break;
 
-        case 'PACKAGE_DETAIL':
-          response = await handleBookingSubmission(decryptedBody);
+        case 'PACKAGE_TYPE':
+          response = await handlePackageType(decryptedBody);
+          break;
+
+        case 'ACCOMMODATION':
+          response = await handleAccommodation(decryptedBody);
+          break;
+
+        case 'ACTIVITIES':
+          response = await handleActivities(decryptedBody);
+          break;
+
+        case 'PACKAGE_SUMMARY':
+          response = await handlePackageSummary(decryptedBody);
           break;
 
         default:
@@ -353,7 +415,7 @@ export async function POST(req: NextRequest) {
       // For now, just return current screen (you can implement proper navigation)
       response = {
         version: decryptedBody.version,
-        screen: decryptedBody.screen || 'DESTINATION_SELECTOR',
+        screen: decryptedBody.screen || 'DESTINATION_SELECTION',
         data: {},
       };
     } else {
@@ -388,215 +450,208 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Handle destination selection - returns tour options data
- */
 async function handleDestinationSelection(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const { destination_selection } = (body.data || {}) as BookingData;
+  const session = getSession(body.flow_token);
+  const { selected_destination } = (body.data || {}) as BookingData;
 
-  // Extract destination from ID (format: "0_vietnam")
-  const destination = destination_selection?.split('_')[1] || 'vietnam';
+  const destination = DESTINATION_OPTIONS.find((option) => option.id === selected_destination) || DESTINATION_OPTIONS[0];
 
-  // Return data for TOUR_OPTIONS screen
+  session.destinationId = destination.id;
+  session.destinationTitle = destination.title;
+
   return {
     version: body.version,
-    screen: 'TOUR_OPTIONS',
+    screen: 'TRAVEL_DATES',
     data: {
-      selected_destination: destination,
-      cta_label: 'View Tour Packages',
-      screen_heading: `Let's find the perfect ${destination} tour package for you`,
-      show_travel_type: true,
-      tour_types: [
-        { id: '0_honeymoon', title: 'Honeymoon Package' },
-        { id: '1_family', title: 'Family Package' },
-        { id: '2_adventure', title: 'Adventure Package' },
-        { id: '3_luxury', title: 'Luxury Package' },
-        { id: '4_budget', title: 'Budget Package' },
-      ],
-      duration_options: [
-        { id: '0_3_5_days', title: '3-5 Days' },
-        { id: '1_6_8_days', title: '6-8 Days' },
-        { id: '2_9_12_days', title: '9-12 Days' },
-        { id: '3_above_12_days', title: 'Above 12 Days' },
-      ],
-      accommodation_preferences: [
-        { id: '0_3_star', title: '3 Star Hotels' },
-        { id: '1_4_star', title: '4 Star Hotels' },
-        { id: '2_5_star', title: '5 Star Hotels' },
-        { id: '3_luxury_resorts', title: 'Luxury Resorts' },
-      ],
-      travel_preferences: [
-        { id: '0_sightseeing', title: 'Sightseeing' },
-        { id: '1_adventure_sports', title: 'Adventure Sports' },
-        { id: '2_cultural_tours', title: 'Cultural Tours' },
-        { id: '3_beach_relaxation', title: 'Beach & Relaxation' },
-        { id: '4_local_cuisine', title: 'Local Cuisine Tours' },
-      ],
-      budget_range: [
-        { id: '0_under_50k', title: 'Under ₹50,000 per person' },
-        { id: '1_50k_1lakh', title: '₹50,000 - ₹1,00,000' },
-        { id: '2_1lakh_2lakh', title: '₹1,00,000 - ₹2,00,000' },
-        { id: '3_above_2lakh', title: 'Above ₹2,00,000' },
-      ],
-      group_size: [
-        { id: '0_couple', title: 'Couple (2 people)' },
-        { id: '1_small_family', title: 'Small Family (3-4 people)' },
-        { id: '2_large_family', title: 'Large Family (5-8 people)' },
-        { id: '3_group', title: 'Group (9+ people)' },
-      ],
+      departure_date: '',
+      return_date: '',
     },
   };
 }
 
-/**
- * Handle tour options - returns personalized package offers
- */
-async function handleTourOptions(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const {
-    tour_types,
-    duration,
-    group_size,
-    accommodation,
-    travel_preferences,
-    budget,
-    selected_destination,
-  } = (body.data || {}) as BookingData;
+async function handleTravelDates(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const session = getSession(body.flow_token);
+  const { departure_date = '', return_date = '' } = (body.data || {}) as BookingData;
 
-  // TODO: Query actual packages from database based on preferences
-  // For now, return mock data
-  const packages = [
-    {
-      id: '0_vietnam_adventure_7d',
-      title: 'Vietnam Adventure - 7D/6N\n₹85,000 per person • 4★ Hotels',
-    },
-    {
-      id: '1_vietnam_luxury_9d',
-      title: 'Vietnam Luxury Tour - 9D/8N\n₹1,45,000 per person • 5★ Resorts',
-    },
-    {
-      id: '2_vietnam_budget_5d',
-      title: 'Vietnam Explorer - 5D/4N\n₹45,000 per person • 3★ Hotels',
-    },
-    {
-      id: '3_vietnam_honeymoon_8d',
-      title: 'Vietnam Honeymoon Special - 8D/7N\n₹1,10,000 per person • Luxury Resorts',
-    },
-  ];
+  session.departureDate = departure_date;
+  session.returnDate = return_date;
 
   return {
     version: body.version,
-    screen: 'PACKAGE_OFFERS',
+    screen: 'TRAVELERS',
     data: {
-      selected_destination: selected_destination || 'vietnam',
-      offer_label: `Here are ${packages.length} shortlisted tour packages for you`,
-      shortlisted_packages: packages,
+      adult_count: '',
+      child_count: '',
     },
   };
 }
 
-/**
- * Handle package selection - returns package details
- */
-async function handlePackageOffers(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const { package: packageId } = (body.data || {}) as BookingData;
+async function handleTravelers(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const session = getSession(body.flow_token);
+  const { adult_count = '1', child_count = '0' } = (body.data || {}) as BookingData;
 
-  // TODO: Query actual package details from database
-  // For now, return mock data
-  const packageData = {
-    selected_package: packageId || '0_vietnam_adventure_7d',
-    image_src: 'https://example.com/vietnam-package.jpg',
-    package_name: 'Vietnam Adventure - 7D/6N',
-    package_price: '₹85,000',
-    package_duration: '7 Days / 6 Nights',
-    package_highlights: [
-      '✈️ Round-trip flights included',
-      '🏨 4-star hotel accommodations',
-      '🍽️ Daily breakfast & 3 dinners',
-      '🚌 All transfers & sightseeing',
-      '🎫 Entry tickets to attractions',
-      '👨‍✈️ Professional tour guide',
-    ],
-    itinerary_summary:
-      'Day 1: Arrival in Hanoi\nDay 2: Hanoi City Tour\nDay 3: Ha Long Bay Cruise\nDay 4: Transfer to Hoi An\nDay 5: Hoi An Ancient Town\nDay 6: My Son Sanctuary\nDay 7: Departure',
-    inclusions:
-      '✅ Visa assistance\n✅ Travel insurance\n✅ Airport transfers\n✅ All sightseeing\n✅ Guide services',
-    exclusions:
-      '❌ Lunch & personal expenses\n❌ Tips & gratuities\n❌ Optional activities',
-  };
+  session.adultCount = adult_count;
+  session.childCount = child_count;
 
   return {
     version: body.version,
-    screen: 'PACKAGE_DETAIL',
-    data: packageData,
+    screen: 'PACKAGE_TYPE',
+    data: {
+      package_types: PACKAGE_TYPES,
+    },
   };
 }
 
-/**
- * Handle booking submission - save to database and return success
- */
-async function handleBookingSubmission(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const bookingData = (body.data || {}) as BookingData;
+async function handlePackageType(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const session = getSession(body.flow_token);
+  const { selected_package } = (body.data || {}) as BookingData;
 
+  const packageType = PACKAGE_TYPES.find((option) => option.id === selected_package) || PACKAGE_TYPES[0];
+
+  session.packageTypeId = packageType.id;
+  session.packageTypeTitle = packageType.title;
+
+  return {
+    version: body.version,
+    screen: 'ACCOMMODATION',
+    data: {
+      accommodation_options: ACCOMMODATION_OPTIONS,
+    },
+  };
+}
+
+async function handleAccommodation(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const session = getSession(body.flow_token);
+  const { selected_accommodation } = (body.data || {}) as BookingData;
+
+  const accommodation =
+    ACCOMMODATION_OPTIONS.find((option) => option.id === selected_accommodation) || ACCOMMODATION_OPTIONS[0];
+
+  session.accommodationId = accommodation.id;
+  session.accommodationTitle = accommodation.title;
+
+  return {
+    version: body.version,
+    screen: 'ACTIVITIES',
+    data: {
+      activities: ACTIVITY_OPTIONS,
+    },
+  };
+}
+
+async function handleActivities(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const session = getSession(body.flow_token);
+  const { selected_activities = [] } = (body.data || {}) as BookingData;
+
+  const selected = ACTIVITY_OPTIONS.filter((option) => selected_activities.includes(option.id));
+
+  session.activities = selected_activities;
+  session.activitiesTitles = selected.length ? selected.map((item) => item.title) : ['No add-on activities'];
+
+  return {
+    version: body.version,
+    screen: 'PACKAGE_SUMMARY',
+    data: {
+      summary: buildSummaryData(session),
+    },
+  };
+}
+
+async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<FlowResponse> {
+  const session = getSession(body.flow_token);
+
+  const bookingId = await persistBooking(body.flow_token, session);
+
+  return {
+    version: body.version,
+    screen: 'BOOKING_CONFIRMATION',
+    data: {
+      confirmation: {
+        booking_id: bookingId,
+        status: 'confirmed',
+      },
+    },
+  };
+}
+
+function getSession(flowToken: string): SessionState {
+  let session = flowSessions.get(flowToken);
+  if (!session) {
+    session = {};
+    flowSessions.set(flowToken, session);
+  }
+  return session;
+}
+
+function buildSummaryData(session: SessionState) {
+  const dates = session.departureDate && session.returnDate
+    ? `${session.departureDate} to ${session.returnDate}`
+    : session.departureDate || 'Flexible Dates';
+
+  const travelers = session.childCount && session.childCount !== '0'
+    ? `${session.adultCount || '0'} Adults, ${session.childCount} Children`
+    : `${session.adultCount || '0'} Adults`;
+
+  const totalPrice = session.packageTypeId
+    ? PACKAGE_PRICE_MAP[session.packageTypeId] || 'Quote on request'
+    : 'Quote on request';
+
+  return {
+    destination: session.destinationTitle || 'To be decided',
+    dates,
+    travelers,
+    package_type: session.packageTypeTitle || 'To be decided',
+    accommodation: session.accommodationTitle || 'To be decided',
+    activities: (session.activitiesTitles && session.activitiesTitles.length
+      ? session.activitiesTitles.join(', ')
+      : 'No add-on activities'),
+    total_price: totalPrice,
+  };
+}
+
+async function persistBooking(flowToken: string, session: SessionState): Promise<string> {
   try {
-    // Get a default location (required field)
-    // TODO: Map destination to actual location in database
-    const defaultLocation = await prismadb.location.findFirst();
-    
-    if (!defaultLocation) {
+    const location = await prismadb.location.findFirst();
+
+    if (!location) {
       throw new Error('No location found in database. Please create a location first.');
     }
 
-    // Calculate tour dates
-    const travelDate = bookingData.travel_date
-      ? new Date(bookingData.travel_date)
-      : new Date();
-    
-    // Save booking to database (TourPackageQuery table)
-    const booking = await prismadb.tourPackageQuery.create({
-      data: {
-        tourPackageQueryName: bookingData.package_name || 'WhatsApp Flow Inquiry',
-        customerName: bookingData.customer_name || 'Unknown',
-        customerNumber: bookingData.phone_number || '',
-        locationId: defaultLocation.id,
-        tourStartsFrom: travelDate,
-        numAdults: bookingData.travelers_count || '1',
-        remarks: `
-📦 Package: ${bookingData.package_name || 'N/A'}
-💰 Price: ${bookingData.package_price || 'N/A'}
-📧 Email: ${bookingData.email || 'Not provided'}
-👥 Number of Travelers: ${bookingData.travelers_count || 'N/A'}
-📅 Preferred Date: ${bookingData.travel_date || 'N/A'}
-📝 Special Requests: ${bookingData.special_requests || 'None'}
+    const generatedName = `${session.destinationTitle || 'Tour'} Inquiry`;
+    const tourStartsFrom = session.departureDate ? new Date(session.departureDate) : new Date();
 
-🔖 Source: WhatsApp Flow
-🆔 Package ID: ${bookingData.package_id || 'N/A'}
-        `.trim(),
+    const record = await prismadb.tourPackageQuery.create({
+      data: {
+        tourPackageQueryName: generatedName,
+        customerName: 'WhatsApp Flow Lead',
+        customerNumber: '',
+        locationId: location.id,
+        tourStartsFrom,
+        numAdults: session.adultCount || '1',
+        remarks: [
+          `Destination: ${session.destinationTitle || 'Not provided'}`,
+          `Dates: ${session.departureDate || 'N/A'} to ${session.returnDate || 'N/A'}`,
+          `Travelers: ${session.adultCount || '0'} adults${session.childCount && session.childCount !== '0' ? `, ${session.childCount} children` : ''}`,
+          `Package Type: ${session.packageTypeTitle || 'Not selected'}`,
+          `Accommodation: ${session.accommodationTitle || 'Not selected'}`,
+          `Activities: ${(session.activitiesTitles && session.activitiesTitles.join(', ')) || 'None'}`,
+          '',
+          'Source: WhatsApp Flow',
+          `Flow Token: ${flowToken}`,
+        ].join('\n'),
         tourPackageQueryType: 'INQUIRY',
         isFeatured: false,
         isArchived: false,
       },
     });
 
-    console.log('✅ Booking saved to database:', booking.id);
-    console.log('📋 Booking details:', {
-      packageName: bookingData.package_name,
-      customer: bookingData.customer_name,
-      phone: bookingData.phone_number,
-      travelers: bookingData.travelers_count,
-    });
-
-    // TODO: Send booking confirmation via WhatsApp template
-    // TODO: Notify admin team via email/SMS
-
-    // Return success response - navigate to SUCCESS screen
-    return {
-      version: body.version,
-      screen: 'SUCCESS',
-      data: {},  // SUCCESS screen has terminal: true and empty data
-    };
+    flowSessions.delete(flowToken);
+    return record.id;
   } catch (error) {
-    console.error('❌ Failed to save booking:', error);
-    throw error; // Let the main POST handler catch this
+    console.error('Failed to persist booking', error);
+    flowSessions.delete(flowToken);
+    const fallbackId = `TP-${Date.now().toString().slice(-6)}`;
+    return fallbackId;
   }
 }
 

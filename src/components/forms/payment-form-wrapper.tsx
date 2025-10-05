@@ -25,7 +25,7 @@ export const PaymentFormWrapper = ({
   const [customers, setCustomers] = useState(props.customers || []);
   const [bankAccounts, setBankAccounts] = useState(props.bankAccounts || []);
   const [cashAccounts, setCashAccounts] = useState(props.cashAccounts || []);
-  const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState([]);
+  const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState<any[]>([]);
   
   // Only fetch data if not provided as props
   useEffect(() => {
@@ -48,7 +48,8 @@ export const PaymentFormWrapper = ({
         
         // Always fetch confirmed tour package queries
         const tourPackageQueriesResponse = await axios.get('/api/tourPackageQuery?isFeatured=true');
-        setConfirmedTourPackageQueries(tourPackageQueriesResponse.data || []);
+        const queriesData = tourPackageQueriesResponse.data?.data || tourPackageQueriesResponse.data || [];
+        setConfirmedTourPackageQueries(Array.isArray(queriesData) ? queriesData : []);
       } catch (error) {
         toast.error("Failed to load data");
         console.error(error);
@@ -71,7 +72,7 @@ export const PaymentFormWrapper = ({
     <PaymentFormDialog
       initialData={{
         ...initialData,
-        confirmedTourPackageQueries: confirmedTourPackageQueries
+        confirmedTourPackageQueries: Array.isArray(confirmedTourPackageQueries) ? confirmedTourPackageQueries : []
       }}
       suppliers={suppliers}
       customers={customers}

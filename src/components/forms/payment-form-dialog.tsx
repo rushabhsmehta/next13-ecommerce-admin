@@ -103,6 +103,9 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
 }) => {
   const paymentData = initialData || {};
   const confirmedTourPackageQueries = confirmedTourPackageQueriesProp || initialData?.confirmedTourPackageQueries || [];
+  
+  // Ensure confirmedTourPackageQueries is always an array
+  const safeConfirmedTourPackageQueries = Array.isArray(confirmedTourPackageQueries) ? confirmedTourPackageQueries : [];
 
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
@@ -307,7 +310,7 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                             onClick={() => setTourPackageQueryDropdownOpen(!tourPackageQueryDropdownOpen)}
                           >
                             {field.value
-                              ? confirmedTourPackageQueries.find((query) => query.id === field.value)?.tourPackageQueryName || "Select tour package query"
+                              ? safeConfirmedTourPackageQueries.find((query) => query.id === field.value)?.tourPackageQueryName || "Select tour package query"
                               : "Select tour package query"}
                             <ChevronsUpDown className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -322,12 +325,12 @@ export const PaymentFormDialog: React.FC<PaymentFormProps> = ({
                                   onChange={(e) => setTourPackageQuerySearch(e.target.value)}
                                 />
                                 <div className="max-h-[200px] overflow-y-auto">
-                                  {confirmedTourPackageQueries.length === 0 ? (
+                                  {safeConfirmedTourPackageQueries.length === 0 ? (
                                     <div className="p-3 text-center text-sm text-muted-foreground">
                                       No confirmed tour package queries found
                                     </div>
                                   ) : (
-                                    confirmedTourPackageQueries
+                                    safeConfirmedTourPackageQueries
                                       .filter(query =>
                                         query.tourPackageQueryName.toLowerCase().includes(tourPackageQuerySearch.toLowerCase())
                                       )

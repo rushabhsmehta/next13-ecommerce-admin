@@ -9,23 +9,23 @@ import { z } from 'zod';
 
 // Zod schemas
 const paymentCreateSchema = z.object({
-  supplierId: z.string().uuid().optional(),
-  customerId: z.string().uuid().optional(),
+  supplierId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  customerId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
   paymentType: z.enum(['supplier_payment','customer_refund']),
-  saleReturnId: z.string().uuid().optional(),
-  tourPackageQueryId: z.string().uuid().optional(),
+  saleReturnId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  tourPackageQueryId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
   paymentDate: z.string().datetime(),
   amount: z.number().positive(),
-  method: z.string().max(50).optional(),
-  transactionId: z.string().max(100).optional(),
-  note: z.string().max(1000).optional(),
-  bankAccountId: z.string().uuid().optional(),
-  cashAccountId: z.string().uuid().optional(),
+  method: z.union([z.string().max(50), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  transactionId: z.union([z.string().max(100), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  note: z.union([z.string().max(1000), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  bankAccountId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  cashAccountId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
   images: z.array(z.string().url()).optional(),
-  tdsMasterId: z.string().uuid().optional(),
-  tdsOverrideRate: z.number().min(0).max(100).optional(),
+  tdsMasterId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val),
+  tdsOverrideRate: z.union([z.number().min(0).max(100), z.null()]).optional(),
   tdsType: z.enum(['GST','INCOME_TAX']).optional(),
-  linkTdsTransactionId: z.string().uuid().optional()
+  linkTdsTransactionId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional().transform(val => val === "" || val === null || val === undefined ? undefined : val)
 }).refine(d => d.bankAccountId || d.cashAccountId, { message: 'Either bankAccountId or cashAccountId required', path: ['bankAccountId'] })
   .refine(d => !(d.paymentType === 'supplier_payment' && !d.supplierId), { message: 'supplierId required for supplier_payment', path: ['supplierId'] })
   .refine(d => !(d.paymentType === 'customer_refund' && !d.customerId), { message: 'customerId required for customer_refund', path: ['customerId'] });

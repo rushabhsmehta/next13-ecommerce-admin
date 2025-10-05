@@ -25,7 +25,7 @@ export const ReceiptFormWrapper = ({
   const [suppliers, setSuppliers] = useState(props.suppliers || []);
   const [bankAccounts, setBankAccounts] = useState(props.bankAccounts || []);
   const [cashAccounts, setCashAccounts] = useState(props.cashAccounts || []);
-  const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState([]);
+  const [confirmedTourPackageQueries, setConfirmedTourPackageQueries] = useState<any[]>([]);
   
   // Only fetch data if not provided as props
   useEffect(() => {
@@ -48,10 +48,15 @@ export const ReceiptFormWrapper = ({
         
         // Always fetch confirmed tour package queries
         const tourPackageQueriesResponse = await axios.get('/api/tourPackageQuery?isFeatured=true');
-        setConfirmedTourPackageQueries(tourPackageQueriesResponse.data || []);
+        const responseData = tourPackageQueriesResponse.data;
+        // Handle both old format (direct array) and new format (object with data property)
+        const queriesData = responseData?.data || responseData;
+        setConfirmedTourPackageQueries(Array.isArray(queriesData) ? queriesData : []);
       } catch (error) {
         toast.error("Failed to load data");
         console.error(error);
+        // Ensure we have safe defaults even on error
+        setConfirmedTourPackageQueries([]);
       } finally {
         setIsLoading(false);
       }
@@ -71,7 +76,7 @@ export const ReceiptFormWrapper = ({
     <ReceiptFormDialog
       initialData={{
         ...initialData,
-        confirmedTourPackageQueries: confirmedTourPackageQueries
+        confirmedTourPackageQueries: Array.isArray(confirmedTourPackageQueries) ? confirmedTourPackageQueries : []
       }}
       customers={customers}
       suppliers={suppliers}

@@ -108,6 +108,8 @@ interface FlowResponse {
   data: Record<string, any>;
 }
 
+type FlowResponsePayload = FlowResponse | { data: Record<string, any> };
+
 interface BookingData {
   selected_destination?: string;
   departure_date?: string;
@@ -219,7 +221,7 @@ function decryptRequest(encryptedRequest: EncryptedFlowRequest): {
  * Reference: https://developers.facebook.com/docs/whatsapp/flows/reference/flowsencryption
  */
 function encryptResponse(
-  response: FlowResponse,
+  response: FlowResponsePayload,
   aesKeyBuffer: Buffer,
   initialVectorBuffer: Buffer
 ): string {
@@ -331,14 +333,11 @@ export async function POST(req: NextRequest) {
     // Handle ping/health check
     if (decryptedBody.action === 'ping') {
       console.log('[FLOW] Ping request received');
-      const pingResponse: FlowResponse = {
-        version: decryptedBody.version || '3.0',
-        screen: 'PING',
-        data: { status: 'active' },
-      };
+      const pingResponse: FlowResponsePayload = { data: { status: 'active' } };
       console.log('[FLOW] Ping response payload', pingResponse);
       const encryptedPing = encryptResponse(pingResponse, aesKeyBuffer, initialVectorBuffer);
       console.log('[FLOW] Ping encrypted payload length', encryptedPing.length);
+      console.log('[FLOW] Ping encrypted payload (base64)', encryptedPing);
       return new Response(encryptedPing, {
         status: 200,
         headers: {

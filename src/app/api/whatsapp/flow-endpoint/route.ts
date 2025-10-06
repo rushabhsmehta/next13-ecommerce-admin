@@ -331,9 +331,14 @@ export async function POST(req: NextRequest) {
     // Handle ping/health check
     if (decryptedBody.action === 'ping') {
       console.log('[FLOW] Ping request received');
-      const pingResponse = { data: { status: 'active' } };
-      const encryptedPing = encryptResponse(pingResponse as any, aesKeyBuffer, initialVectorBuffer);
-      console.log('[FLOW] Ping response dispatched');
+      const pingResponse: FlowResponse = {
+        version: decryptedBody.version || '3.0',
+        screen: 'PING',
+        data: { status: 'active' },
+      };
+      console.log('[FLOW] Ping response payload', pingResponse);
+      const encryptedPing = encryptResponse(pingResponse, aesKeyBuffer, initialVectorBuffer);
+      console.log('[FLOW] Ping encrypted payload length', encryptedPing.length);
       return new NextResponse(encryptedPing, {
         status: 200,
         headers: {

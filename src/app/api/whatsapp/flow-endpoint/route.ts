@@ -330,8 +330,10 @@ export async function POST(req: NextRequest) {
 
     // Handle ping/health check
     if (decryptedBody.action === 'ping') {
+      console.log('[FLOW] Ping request received');
       const pingResponse = { data: { status: 'active' } };
       const encryptedPing = encryptResponse(pingResponse as any, aesKeyBuffer, initialVectorBuffer);
+      console.log('[FLOW] Ping response dispatched');
       return new NextResponse(encryptedPing, {
         status: 200,
         headers: {
@@ -355,9 +357,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    console.log('[FLOW] Action routing decision', {
+      action: decryptedBody.action,
+      screen: decryptedBody.screen,
+      flowToken: decryptedBody.flow_token,
+    });
+
     let response: FlowResponse;
 
     if (decryptedBody.action === 'INIT') {
+      console.log('[FLOW] INIT request received', {
+        flowToken: decryptedBody.flow_token,
+        version: decryptedBody.version,
+      });
       flowSessions.set(decryptedBody.flow_token, {});
       response = {
         version: decryptedBody.version,
@@ -366,7 +378,15 @@ export async function POST(req: NextRequest) {
           destinations: DESTINATION_OPTIONS,
         },
       };
+      console.log('[FLOW] INIT response prepared', {
+        nextScreen: response.screen,
+        destinationsCount: DESTINATION_OPTIONS.length,
+      });
     } else if (decryptedBody.action === 'data_exchange') {
+      console.log('[FLOW] data_exchange received', {
+        screen: decryptedBody.screen,
+        flowToken: decryptedBody.flow_token,
+      });
       // data_exchange action - route based on current screen
       if (!decryptedBody.screen) {
         return NextResponse.json(
@@ -377,30 +397,37 @@ export async function POST(req: NextRequest) {
 
       switch (decryptedBody.screen) {
         case 'DESTINATION_SELECTION':
+          console.log('[FLOW] Handling DESTINATION_SELECTION submission');
           response = await handleDestinationSelection(decryptedBody);
           break;
 
         case 'TRAVEL_DATES':
+          console.log('[FLOW] Handling TRAVEL_DATES submission');
           response = await handleTravelDates(decryptedBody);
           break;
 
         case 'TRAVELERS':
+          console.log('[FLOW] Handling TRAVELERS submission');
           response = await handleTravelers(decryptedBody);
           break;
 
         case 'PACKAGE_TYPE':
+          console.log('[FLOW] Handling PACKAGE_TYPE submission');
           response = await handlePackageType(decryptedBody);
           break;
 
         case 'ACCOMMODATION':
+          console.log('[FLOW] Handling ACCOMMODATION submission');
           response = await handleAccommodation(decryptedBody);
           break;
 
         case 'ACTIVITIES':
+          console.log('[FLOW] Handling ACTIVITIES submission');
           response = await handleActivities(decryptedBody);
           break;
 
         case 'PACKAGE_SUMMARY':
+          console.log('[FLOW] Handling PACKAGE_SUMMARY confirmation');
           response = await handlePackageSummary(decryptedBody);
           break;
 
@@ -410,6 +437,11 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
       }
+
+      console.log('[FLOW] Next screen prepared', {
+        currentScreen: decryptedBody.screen,
+        nextScreen: response.screen,
+      });
     } else if (decryptedBody.action === 'BACK') {
       // BACK action - navigate to previous screen
       // For now, just return current screen (you can implement proper navigation)

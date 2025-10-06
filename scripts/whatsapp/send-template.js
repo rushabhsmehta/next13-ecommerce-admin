@@ -3,7 +3,8 @@ const https = require('https');
 // Configuration from environment
 const ACCESS_TOKEN = 'EAAVramqNmOUBPmXA9DAvQUgwcRlmZBdZCWQDEr3547bEUDnPlz3VVGbkPJKrIMkk4wjgoB9Qk9HDZCJCRAW7sle6gfZCZCL8yvVKw2ssshqgqvwixmOrwdDdRWsip52JO8IzmwtXIZAvLN8KUsQphmypNcvzZCJFTKpSguM29JUCEnKjnmLLsxuXlgPVxPfe9zC3wZDZD';
 const PHONE_NUMBER_ID = '769802949556238';
-const RECIPIENT_PHONE = '919978783238'; // Your test number from screenshot
+const rawRecipientPhone = process.argv[2] || process.env.RECIPIENT_PHONE || '919978783238';
+const RECIPIENT_PHONE = normalizePhoneNumber(rawRecipientPhone);
 
 const templateData = {
     messaging_product: 'whatsapp',
@@ -85,3 +86,16 @@ function sendTemplate() {
 
 // Run the function
 sendTemplate();
+
+function normalizePhoneNumber(input) {
+    if (!input) return input;
+    const digitsOnly = input.replace(/\D/g, '');
+    if (digitsOnly.length === 10) {
+        // Default to India (+91) when a 10-digit mobile is supplied
+        return `91${digitsOnly}`;
+    }
+    if (digitsOnly.startsWith('0') && digitsOnly.length > 10) {
+        return digitsOnly.replace(/^0+/, '');
+    }
+    return digitsOnly;
+}

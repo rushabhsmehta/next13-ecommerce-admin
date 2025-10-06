@@ -339,7 +339,7 @@ export async function POST(req: NextRequest) {
       console.log('[FLOW] Ping response payload', pingResponse);
       const encryptedPing = encryptResponse(pingResponse, aesKeyBuffer, initialVectorBuffer);
       console.log('[FLOW] Ping encrypted payload length', encryptedPing.length);
-      return new NextResponse(encryptedPing, {
+      return new Response(encryptedPing, {
         status: 200,
         headers: {
           'Content-Type': 'text/plain',
@@ -353,7 +353,7 @@ export async function POST(req: NextRequest) {
       console.warn('Received client error:', decryptedBody.data);
       const errorAck = { data: { acknowledged: true } };
       const encryptedAck = encryptResponse(errorAck as any, aesKeyBuffer, initialVectorBuffer);
-      return new NextResponse(encryptedAck, {
+      return new Response(encryptedAck, {
         status: 200,
         headers: {
           'Content-Type': 'text/plain',
@@ -471,7 +471,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Return as plaintext (base64 string) with CORS headers
-    return new NextResponse(encryptedResponse, {
+    return new Response(encryptedResponse, {
       status: 200,
       headers: {
         'Content-Type': 'text/plain',

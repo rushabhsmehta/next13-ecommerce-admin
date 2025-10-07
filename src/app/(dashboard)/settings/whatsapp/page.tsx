@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -128,6 +128,9 @@ export default function WhatsAppSettingsPage() {
   const [typing, setTyping] = useState(false);
   const [liveSend, setLiveSend] = useState(false);
   const [sendingLive, setSendingLive] = useState(false);
+  
+  // Ref for auto-scrolling to bottom of chat
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
   const filteredContacts = contacts.filter(c => 
     c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
@@ -336,6 +339,13 @@ export default function WhatsAppSettingsPage() {
   }, [messages, templates]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
+
+  // Auto-scroll to bottom when messages change or active contact changes
+  useEffect(() => {
+    if (chatMessagesEndRef.current) {
+      chatMessagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [convos, activeId]);
 
   const sendPreviewMessage = () => {
     if (!activeContact) return;
@@ -1182,7 +1192,28 @@ export default function WhatsAppSettingsPage() {
                           />
                         </div>
                       </div>
-                      <div className="overflow-y-auto flex-1">
+                      <style jsx>{`
+                        .contacts-list::-webkit-scrollbar {
+                          width: 6px;
+                        }
+                        .contacts-list::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .contacts-list::-webkit-scrollbar-thumb {
+                          background: rgba(0, 0, 0, 0.2);
+                          border-radius: 3px;
+                        }
+                        .contacts-list::-webkit-scrollbar-thumb:hover {
+                          background: rgba(0, 0, 0, 0.3);
+                        }
+                        .contacts-list.dark-scrollbar::-webkit-scrollbar-thumb {
+                          background: rgba(255, 255, 255, 0.15);
+                        }
+                        .contacts-list.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+                          background: rgba(255, 255, 255, 0.25);
+                        }
+                      `}</style>
+                      <div className={`overflow-y-auto flex-1 contacts-list ${darkPreview ? 'dark-scrollbar' : ''}`}>
                         {filteredContacts.map(c => {
                           const last = (convos[c.id] || [])[convos[c.id]?.length-1];
                           return (
@@ -1205,7 +1236,28 @@ export default function WhatsAppSettingsPage() {
 
                     {/* Chat area */}
                     <div className={`col-span-2 flex flex-col ${darkPreview ? 'bg-[url(https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png)] bg-[#0b141a]' : 'bg-[url(https://i.pinimg.com/736x/85/ec/df/85ecdf1c3642d55ba4373a8574d482a7.jpg)] bg-[#efeae2]'} bg-cover`}>
-                      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      <style jsx>{`
+                        .chat-messages::-webkit-scrollbar {
+                          width: 8px;
+                        }
+                        .chat-messages::-webkit-scrollbar-track {
+                          background: transparent;
+                        }
+                        .chat-messages::-webkit-scrollbar-thumb {
+                          background: rgba(0, 0, 0, 0.3);
+                          border-radius: 4px;
+                        }
+                        .chat-messages::-webkit-scrollbar-thumb:hover {
+                          background: rgba(0, 0, 0, 0.5);
+                        }
+                        .chat-messages.dark-scrollbar::-webkit-scrollbar-thumb {
+                          background: rgba(255, 255, 255, 0.2);
+                        }
+                        .chat-messages.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+                          background: rgba(255, 255, 255, 0.3);
+                        }
+                      `}</style>
+                      <div className={`flex-1 overflow-y-auto p-4 space-y-3 chat-messages ${darkPreview ? 'dark-scrollbar' : ''}`}>
                         {!activeContact ? (
                           <div className={`text-sm ${darkPreview ? 'text-[#8696a0]' : 'text-slate-600'}`}>Select a chat</div>
                         ) : (
@@ -1216,12 +1268,12 @@ export default function WhatsAppSettingsPage() {
                                 <div className={`relative rounded-lg overflow-hidden shadow ${m.direction==='out' ? (darkPreview ? 'bg-[#005c4b]' : 'bg-[#d9fdd3]') : (darkPreview ? 'bg-[#202c33]' : 'bg-white')} max-w-md`}>
                                   {/* Header Image */}
                                   {m.metadata?.headerImage && (
-                                    <div className="w-full">
+                                    <div className="w-full max-h-[300px] overflow-hidden">
                                       {/* eslint-disable-next-line @next/next/no-img-element */}
                                       <img 
                                         src={m.metadata.headerImage} 
                                         alt="Template header" 
-                                        className="w-full h-auto object-cover"
+                                        className="w-full h-auto object-cover max-h-[300px]"
                                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                       />
                                     </div>
@@ -1270,6 +1322,8 @@ export default function WhatsAppSettingsPage() {
                                 </div>
                               </div>
                             )}
+                            {/* Invisible element for auto-scroll */}
+                            <div ref={chatMessagesEndRef} />
                           </>
                         )}
                       </div>

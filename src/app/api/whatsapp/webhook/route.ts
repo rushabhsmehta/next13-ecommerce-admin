@@ -62,16 +62,40 @@ export async function POST(request: NextRequest) {
 
             // Handle incoming messages
             if (value.messages) {
-              value.messages.forEach((message: any) => {
-                console.log('Incoming message:', {
+              value.messages.forEach(async (message: any) => {
+                const incomingData = {
                   from: message.from,
                   type: message.type,
                   text: message.text?.body,
                   timestamp: message.timestamp,
-                });
+                  messageId: message.id,
+                };
+                
+                console.log('Incoming message:', incomingData);
 
-                // TODO: Handle incoming messages
-                // You can implement auto-replies, save to database, etc.
+                // Save incoming message to database
+                try {
+                  const { PrismaClient } = await import('@prisma/client');
+                  const prisma = new PrismaClient();
+                  
+                  await prisma.whatsAppMessage.create({
+                    data: {
+                      to: value.metadata?.phone_number_id || 'business',
+                      from: message.from,
+                      message: message.text?.body || `[${message.type}]`,
+                      messageSid: message.id,
+                      status: 'received',
+                      direction: 'inbound',
+                    },
+                  });
+                  
+                  await prisma.$disconnect();
+                  console.log(`Saved incoming message ${message.id} from ${message.from}`);
+                } catch (dbError) {
+                  console.error('Error saving incoming message to database:', dbError);
+                }
+
+                // TODO: Implement auto-replies or business logic here
               });
             }
           }

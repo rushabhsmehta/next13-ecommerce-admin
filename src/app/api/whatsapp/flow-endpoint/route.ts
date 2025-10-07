@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 import crypto from 'crypto';
+import { emitWhatsAppEvent, recordAnalyticsEvent, updateWhatsAppSession } from '@/lib/whatsapp';
 
 const DESTINATION_OPTIONS = [
   {
@@ -76,7 +77,51 @@ type SessionState = {
   activitiesTitles?: string[];
 };
 
-const flowSessions = new Map<string, SessionState>();
+async function loadFlowSession(flowToken: string): Promise<{ sessionId: string; state: SessionState }> {
+  let session = await prismadb.whatsAppSession.findUnique({ where: { flowToken } });
+  if (!session) {
+    session = await prismadb.whatsAppSession.create({
+      data: {
+        flowToken,
+        context: {},
+        lastInteraction: new Date(),
+        lastAction: 'flow:init',
+        lastScreen: 'DESTINATION_SELECTION',
+      },
+    });
+  }
+  const state = (session.context as SessionState) || {};
+  return { sessionId: session.id, state };
+}
+
+async function persistFlowSession(
+  sessionId: string,
+  flowToken: string,
+  patch: Partial<SessionState>,
+  meta: { lastScreen?: string; lastAction?: string } = {}
+) {
+  const session = await prismadb.whatsAppSession.findUnique({ where: { id: sessionId } });
+  const existing = (session?.context as SessionState) || {};
+  const nextState: SessionState = { ...existing, ...patch };
+  await prismadb.whatsAppSession.update({
+    where: { id: sessionId },
+    data: {
+      context: nextState as any,
+      lastInteraction: new Date(),
+      lastScreen: meta.lastScreen ?? session?.lastScreen,
+      lastAction: meta.lastAction ?? session?.lastAction,
+    },
+  });
+  await emitWhatsAppEvent('flow.session.updated', {
+    sessionId,
+    context: {
+      flowToken,
+      lastScreen: meta.lastScreen ?? session?.lastScreen,
+      lastAction: meta.lastAction ?? session?.lastAction,
+    },
+  });
+  return nextState;
+}
 
 /**
  * WhatsApp Flow Endpoint Handler
@@ -374,7 +419,18 @@ export async function POST(req: NextRequest) {
         flowToken: decryptedBody.flow_token,
         version: decryptedBody.version,
       });
-      flowSessions.set(decryptedBody.flow_token, {});
+      const { sessionId } = await loadFlowSession(decryptedBody.flow_token);
+      await persistFlowSession(sessionId, decryptedBody.flow_token, {}, {
+        lastScreen: 'DESTINATION_SELECTION',
+        lastAction: 'flow:init',
+      });
+      await emitWhatsAppEvent('flow.init', {
+        sessionId,
+        context: {
+          flowToken: decryptedBody.flow_token,
+          version: decryptedBody.version,
+        },
+      });
       response = {
         version: decryptedBody.version,
         screen: 'DESTINATION_SELECTION',
@@ -487,13 +543,33 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleDestinationSelection(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId } = await loadFlowSession(body.flow_token);
   const { selected_destination } = (body.data || {}) as BookingData;
 
-  const destination = DESTINATION_OPTIONS.find((option) => option.id === selected_destination) || DESTINATION_OPTIONS[0];
+  const destination =
+    DESTINATION_OPTIONS.find((option) => option.id === selected_destination) || DESTINATION_OPTIONS[0];
 
-  session.destinationId = destination.id;
-  session.destinationTitle = destination.title;
+  await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {
+      destinationId: destination.id,
+      destinationTitle: destination.title,
+    },
+    {
+      lastScreen: 'TRAVEL_DATES',
+      lastAction: 'flow:destination',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.destination.selected',
+    sessionId,
+    payload: {
+      destinationId: destination.id,
+      destinationTitle: destination.title,
+    },
+  });
 
   return {
     version: body.version,
@@ -506,11 +582,30 @@ async function handleDestinationSelection(body: FlowDataExchangeRequest): Promis
 }
 
 async function handleTravelDates(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId } = await loadFlowSession(body.flow_token);
   const { departure_date = '', return_date = '' } = (body.data || {}) as BookingData;
 
-  session.departureDate = departure_date;
-  session.returnDate = return_date;
+  await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {
+      departureDate: departure_date,
+      returnDate: return_date,
+    },
+    {
+      lastScreen: 'TRAVELERS',
+      lastAction: 'flow:dates',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.dates.updated',
+    sessionId,
+    payload: {
+      departureDate: departure_date,
+      returnDate: return_date,
+    },
+  });
 
   return {
     version: body.version,
@@ -523,11 +618,30 @@ async function handleTravelDates(body: FlowDataExchangeRequest): Promise<FlowRes
 }
 
 async function handleTravelers(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId } = await loadFlowSession(body.flow_token);
   const { adult_count = '1', child_count = '0' } = (body.data || {}) as BookingData;
 
-  session.adultCount = adult_count;
-  session.childCount = child_count;
+  await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {
+      adultCount: adult_count,
+      childCount: child_count,
+    },
+    {
+      lastScreen: 'PACKAGE_TYPE',
+      lastAction: 'flow:travellers',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.travellers.updated',
+    sessionId,
+    payload: {
+      adultCount: adult_count,
+      childCount: child_count,
+    },
+  });
 
   return {
     version: body.version,
@@ -539,13 +653,33 @@ async function handleTravelers(body: FlowDataExchangeRequest): Promise<FlowRespo
 }
 
 async function handlePackageType(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId } = await loadFlowSession(body.flow_token);
   const { selected_package } = (body.data || {}) as BookingData;
 
-  const packageType = PACKAGE_TYPES.find((option) => option.id === selected_package) || PACKAGE_TYPES[0];
+  const packageType =
+    PACKAGE_TYPES.find((option) => option.id === selected_package) || PACKAGE_TYPES[0];
 
-  session.packageTypeId = packageType.id;
-  session.packageTypeTitle = packageType.title;
+  await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {
+      packageTypeId: packageType.id,
+      packageTypeTitle: packageType.title,
+    },
+    {
+      lastScreen: 'ACCOMMODATION',
+      lastAction: 'flow:package-type',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.package.selected',
+    sessionId,
+    payload: {
+      packageTypeId: packageType.id,
+      packageTypeTitle: packageType.title,
+    },
+  });
 
   return {
     version: body.version,
@@ -557,14 +691,34 @@ async function handlePackageType(body: FlowDataExchangeRequest): Promise<FlowRes
 }
 
 async function handleAccommodation(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId } = await loadFlowSession(body.flow_token);
   const { selected_accommodation } = (body.data || {}) as BookingData;
 
   const accommodation =
-    ACCOMMODATION_OPTIONS.find((option) => option.id === selected_accommodation) || ACCOMMODATION_OPTIONS[0];
+    ACCOMMODATION_OPTIONS.find((option) => option.id === selected_accommodation) ||
+    ACCOMMODATION_OPTIONS[0];
 
-  session.accommodationId = accommodation.id;
-  session.accommodationTitle = accommodation.title;
+  await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {
+      accommodationId: accommodation.id,
+      accommodationTitle: accommodation.title,
+    },
+    {
+      lastScreen: 'ACTIVITIES',
+      lastAction: 'flow:accommodation',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.accommodation.selected',
+    sessionId,
+    payload: {
+      accommodationId: accommodation.id,
+      accommodationTitle: accommodation.title,
+    },
+  });
 
   return {
     version: body.version,
@@ -576,27 +730,66 @@ async function handleAccommodation(body: FlowDataExchangeRequest): Promise<FlowR
 }
 
 async function handleActivities(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId, state } = await loadFlowSession(body.flow_token);
   const { selected_activities = [] } = (body.data || {}) as BookingData;
 
   const selected = ACTIVITY_OPTIONS.filter((option) => selected_activities.includes(option.id));
+  const activitiesTitles = selected.length
+    ? selected.map((item) => item.title)
+    : ['No add-on activities'];
 
-  session.activities = selected_activities;
-  session.activitiesTitles = selected.length ? selected.map((item) => item.title) : ['No add-on activities'];
+  const nextState = await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {
+      activities: selected_activities,
+      activitiesTitles,
+    },
+    {
+      lastScreen: 'PACKAGE_SUMMARY',
+      lastAction: 'flow:activities',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.activities.updated',
+    sessionId,
+    payload: {
+      activities: selected_activities,
+    },
+  });
 
   return {
     version: body.version,
     screen: 'PACKAGE_SUMMARY',
     data: {
-      summary: buildSummaryData(session),
+      summary: buildSummaryData(nextState),
     },
   };
 }
 
 async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<FlowResponse> {
-  const session = getSession(body.flow_token);
+  const { sessionId, state } = await loadFlowSession(body.flow_token);
 
-  const bookingId = await persistBooking(body.flow_token, session);
+  const bookingId = await persistBooking(body.flow_token, state, sessionId);
+
+  await persistFlowSession(
+    sessionId,
+    body.flow_token,
+    {},
+    {
+      lastScreen: 'BOOKING_CONFIRMATION',
+      lastAction: 'flow:summary-confirmed',
+    }
+  );
+
+  await recordAnalyticsEvent({
+    eventType: 'flow.summary.confirmed',
+    sessionId,
+    payload: {
+      bookingId,
+    },
+  });
 
   return {
     version: body.version,
@@ -608,15 +801,6 @@ async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<Flow
       },
     },
   };
-}
-
-function getSession(flowToken: string): SessionState {
-  let session = flowSessions.get(flowToken);
-  if (!session) {
-    session = {};
-    flowSessions.set(flowToken, session);
-  }
-  return session;
 }
 
 function buildSummaryData(session: SessionState) {
@@ -645,7 +829,7 @@ function buildSummaryData(session: SessionState) {
   };
 }
 
-async function persistBooking(flowToken: string, session: SessionState): Promise<string> {
+async function persistBooking(flowToken: string, session: SessionState, sessionId?: string): Promise<string> {
   try {
     const location = await prismadb.location.findFirst();
 
@@ -681,11 +865,35 @@ async function persistBooking(flowToken: string, session: SessionState): Promise
       },
     });
 
-    flowSessions.delete(flowToken);
+    if (sessionId) {
+      await updateWhatsAppSession(sessionId, {
+        flowToken,
+        contextPatch: {
+          lastBookingId: record.id,
+        },
+        isArchived: true,
+        lastAction: 'flow:booking-created',
+      });
+      await emitWhatsAppEvent('flow.booking.created', {
+        sessionId,
+        context: {
+          bookingId: record.id,
+          flowToken,
+        },
+      });
+    }
     return record.id;
   } catch (error) {
     console.error('Failed to persist booking', error);
-    flowSessions.delete(flowToken);
+    if (sessionId) {
+      await emitWhatsAppEvent('flow.booking.failed', {
+        sessionId,
+        context: {
+          flowToken,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
     const fallbackId = `TP-${Date.now().toString().slice(-6)}`;
     return fallbackId;
   }

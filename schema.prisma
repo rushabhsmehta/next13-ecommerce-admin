@@ -1287,24 +1287,99 @@ model Notification {
 }
 
 model WhatsAppMessage {
-  id           String    @id @default(uuid())
-  message      String?   @db.Text
-  status       String    @default("pending")
-  direction    String    @default("outbound")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now())
+  id           String                  @id @default(uuid())
+  message      String?                 @db.Text
+  status       String                  @default("pending")
+  direction    String                  @default("outbound")
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @default(now())
   messageSid   String?
   deliveredAt  DateTime?
   errorCode    String?
-  errorMessage String?   @db.Text
+  errorMessage String?                 @db.Text
   from         String?
   sentAt       DateTime?
   to           String?
+  waId         String?
+  sessionId    String?
+  metadata     Json?
+  payload      Json?
+  scheduledAt  DateTime?
+  automationId String?
+  session      WhatsAppSession?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  automation   WhatsAppAutomation?     @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  analytics    WhatsAppAnalyticsEvent[]
 
   @@index([to])
   @@index([status])
   @@index([direction])
   @@index([createdAt])
+  @@index([sessionId])
+  @@index([automationId])
+  @@index([scheduledAt])
+}
+
+model WhatsAppSession {
+  id               String                   @id @default(uuid())
+  phoneNumber      String?
+  waId             String?
+  flowToken        String?
+  context          Json?
+  lastScreen       String?
+  lastAction       String?
+  lastMessageId    String?
+  lastInteraction  DateTime                 @default(now())
+  expiresAt        DateTime?
+  isArchived       Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  messages         WhatsAppMessage[]
+  analytics        WhatsAppAnalyticsEvent[]
+
+  @@unique([flowToken])
+  @@index([waId])
+  @@index([phoneNumber])
+  @@index([lastInteraction])
+  @@index([isArchived])
+}
+
+model WhatsAppAutomation {
+  id          String                   @id @default(uuid())
+  name        String
+  description String?                  @db.Text
+  triggerType String
+  triggerConfig Json?
+  actionType  String
+  actionConfig Json?
+  isActive    Boolean                  @default(true)
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  messages    WhatsAppMessage[]
+  analytics   WhatsAppAnalyticsEvent[]
+
+  @@index([triggerType])
+  @@index([actionType])
+  @@index([isActive])
+}
+
+model WhatsAppAnalyticsEvent {
+  id           String               @id @default(uuid())
+  sessionId    String?
+  messageId    String?
+  automationId String?
+  eventType    String
+  payload      Json?
+  observedAt   DateTime             @default(now())
+  createdAt    DateTime             @default(now())
+  session      WhatsAppSession?     @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  message      WhatsAppMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  automation   WhatsAppAutomation?  @relation(fields: [automationId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([messageId])
+  @@index([automationId])
+  @@index([eventType])
+  @@index([observedAt])
 }
 
 model WhatsAppTemplate {

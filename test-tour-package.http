@@ -1,0 +1,12 @@
+// Quick test: Try this request to test tour_package_flow template instead
+
+POST http://localhost:3000/api/whatsapp/send-template
+
+{
+  "to": "+919978783238",
+  "templateName": "tour_package_flow",
+  "languageCode": "en"
+}
+
+// This will help us determine if the issue is specific to first_flow template
+// or a general issue with all templates

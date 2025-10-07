@@ -66,9 +66,12 @@ interface WhatsAppTemplate {
   name: string;
   body: string;
   variables: string[] | Record<string, string>;
-  createdAt: string;
+  language?: string;
+  category?: string;
+  createdAt?: string;
   updatedAt?: string;
   status?: string;
+  components?: any[];
   whatsapp?: {
     hasCta: boolean;
     buttons: WhatsAppTemplateButton[];
@@ -231,23 +234,24 @@ export default function WhatsAppSettingsPage() {
 
   const sendPreviewMessage = () => {
     if (!activeContact) return;
-    const tpl = templates.find(t => t.id === selectedTemplate);
+    const selectedTemplateId = selectedTemplate;
+    const tpl = templates.find(t => t.id === selectedTemplateId);
     const hasVars = tpl && (Array.isArray(tpl.variables) ? tpl.variables.length > 0 : Object.keys(extractPlaceholders(tpl.body)).length > 0);
 
-    if (selectedTemplate && hasVars && Object.values(templateVariables).some(v => !v)) {
+    if (selectedTemplateId && hasVars && Object.values(templateVariables).some(v => !v)) {
         // If template is selected and has variables, but they are not filled,
         // we just return, because the modal should be handling it.
         // This prevents sending a message with unfilled placeholders.
         return;
     }
 
-    const base = selectedTemplate ? (tpl?.body || '') : (message || '');
-    const text = selectedTemplate ? substituteTemplate(base, templateVariables) : base;
+    const base = selectedTemplateId ? (tpl?.body || '') : (message || '');
+    const text = selectedTemplateId ? substituteTemplate(base, templateVariables) : base;
     if (!text.trim()) return;
 
     // Clear message and template selection after preparing the message
     setMessage('');
-    if (selectedTemplate) {
+    if (selectedTemplateId) {
         setSelectedTemplate('');
         setTemplateVariables({});
     }
@@ -269,10 +273,20 @@ export default function WhatsAppSettingsPage() {
       const to = activeContact.phone;
       (async () => {
         try {
-          if (selectedTemplate) {
+          if (selectedTemplateId) {
+            if (!tpl) {
+              throw new Error('Selected template not found');
+            }
             const res = await fetch('/api/whatsapp/send-template', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to, templateId: selectedTemplate, variables: templateVariables, saveToDb: true })
+              body: JSON.stringify({
+                to,
+                templateId: tpl.id,
+                templateName: tpl.name,
+                languageCode: tpl.language || 'en_US',
+                variables: templateVariables,
+                saveToDb: true,
+              })
             });
             const j = await res.json();
             if (!res.ok || !j.success) throw new Error(j.error || 'Send failed');
@@ -316,16 +330,56 @@ export default function WhatsAppSettingsPage() {
       return;
     }
 
+    const tpl = templates.find(t => t.id === selectedTemplate);
+    if (!tpl) {
+      toast.error('Selected template could not be found');
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // Process template variables into the correct format
+      const processedVariables: any = {};
+      
+      Object.entries(templateVariables).forEach(([key, value]) => {
+        if (key === '_header_image' && value) {
+          processedVariables.headerImage = value;
+        } else if (key === '_header_video' && value) {
+          processedVariables.header = {
+            type: 'video',
+            video: { link: value }
+          };
+        } else if (key === '_header_document' && value) {
+          const filename = templateVariables['_header_document_filename'] || 'document.pdf';
+          processedVariables.header = {
+            type: 'document',
+            document: { link: value, filename }
+          };
+        } else if (key === '_header_document_filename') {
+          // Skip, already handled in _header_document
+        } else if (key.startsWith('_button_')) {
+          // Handle button URL parameters
+          const btnMatch = key.match(/_button_(\d+)_url/);
+          if (btnMatch && value) {
+            const btnIndex = parseInt(btnMatch[1]);
+            processedVariables[`button${btnIndex}`] = [value];
+          }
+        } else if (value) {
+          // Regular template variable
+          processedVariables[key] = value;
+        }
+      });
+      
       // Always use unified endpoint; it will route to Cloud Template or local text
       const response = await fetch('/api/whatsapp/send-template', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: phoneNumber,
-          templateId: selectedTemplate,
-          variables: templateVariables,
+          templateId: tpl.id,
+          templateName: tpl.name,
+          languageCode: tpl.language || 'en_US',
+          variables: processedVariables,
         }),
       });
 
@@ -356,12 +410,54 @@ export default function WhatsAppSettingsPage() {
     if (template) {
       // Initialize variables object
       const vars: {[key: string]: string} = {};
+      
+      // Extract body variables
       const list = Array.isArray(template.variables) && template.variables.length > 0
         ? (template.variables as string[])
         : extractPlaceholders(template.body);
       (list || []).forEach((variable: string) => {
         vars[variable] = '';
       });
+      
+      // Check for header component in template.components
+      const components = template.components || [];
+      const headerComponent = components.find((c: any) => c.type === 'HEADER' || c.type === 'header');
+      
+      if (headerComponent) {
+        const headerFormat = headerComponent.format || headerComponent.type;
+        
+        // Add header field based on format
+        if (headerFormat === 'IMAGE' || headerFormat === 'image') {
+          vars['_header_image'] = '';
+        } else if (headerFormat === 'VIDEO' || headerFormat === 'video') {
+          vars['_header_video'] = '';
+        } else if (headerFormat === 'DOCUMENT' || headerFormat === 'document') {
+          vars['_header_document'] = '';
+          vars['_header_document_filename'] = '';
+        } else if (headerFormat === 'TEXT' || headerFormat === 'text') {
+          // Extract text variables from header
+          const headerText = headerComponent.text || '';
+          const headerVars = extractPlaceholders(headerText);
+          headerVars.forEach((v: string) => {
+            if (!vars[v]) vars[v] = '';
+          });
+        }
+      }
+      
+      // Check for button components with dynamic URLs
+      const buttonComponents = components.filter((c: any) => 
+        (c.type === 'BUTTONS' || c.type === 'buttons') && c.buttons
+      );
+      
+      buttonComponents.forEach((btnComp: any) => {
+        btnComp.buttons?.forEach((btn: any, index: number) => {
+          if (btn.type === 'URL' && btn.url && btn.url.includes('{{')) {
+            // URL button with variable
+            vars[`_button_${index}_url`] = '';
+          }
+        });
+      });
+      
       setTemplateVariables(vars);
       setMessage(''); // Clear manual message
     }
@@ -487,6 +583,7 @@ export default function WhatsAppSettingsPage() {
                           {templates.map((template) => (
                             <SelectItem key={template.id} value={template.id}>
                               {template.name}
+                              {template.language ? ` (${template.language})` : ''}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -529,19 +626,69 @@ export default function WhatsAppSettingsPage() {
                         {Object.keys(templateVariables).length > 0 && (
                           <div className="space-y-2">
                             <Label>Template Variables</Label>
-                            {Object.keys(templateVariables).map((variable) => (
-                              <div key={variable} className="space-y-1">
-                                <Label className="text-sm">{variable}</Label>
-                                <Input
-                                  placeholder={`Enter ${variable}`}
-                                  value={templateVariables[variable] || ''}
-                                  onChange={(e) => setTemplateVariables({
-                                    ...templateVariables,
-                                    [variable]: e.target.value
-                                  })}
-                                />
-                              </div>
-                            ))}
+                            {Object.keys(templateVariables).map((variable) => {
+                              // Determine field type and label
+                              let fieldLabel = variable;
+                              let fieldPlaceholder = `Enter ${variable}`;
+                              let fieldType = 'text';
+                              
+                              if (variable === '_header_image') {
+                                fieldLabel = '📷 Header Image URL';
+                                fieldPlaceholder = 'https://example.com/image.jpg';
+                                fieldType = 'url';
+                              } else if (variable === '_header_video') {
+                                fieldLabel = '🎥 Header Video URL';
+                                fieldPlaceholder = 'https://example.com/video.mp4';
+                                fieldType = 'url';
+                              } else if (variable === '_header_document') {
+                                fieldLabel = '📄 Header Document URL';
+                                fieldPlaceholder = 'https://example.com/document.pdf';
+                                fieldType = 'url';
+                              } else if (variable === '_header_document_filename') {
+                                fieldLabel = '📝 Document Filename';
+                                fieldPlaceholder = 'document.pdf';
+                              } else if (variable.startsWith('_button_')) {
+                                const btnMatch = variable.match(/_button_(\d+)_url/);
+                                if (btnMatch) {
+                                  const btnIndex = parseInt(btnMatch[1]);
+                                  fieldLabel = `🔗 Button ${btnIndex + 1} URL Parameter`;
+                                  fieldPlaceholder = 'dynamic-value';
+                                }
+                              } else {
+                                fieldLabel = `{{${variable}}}`;
+                              }
+                              
+                              return (
+                                <div key={variable} className="space-y-1">
+                                  <Label className="text-sm font-medium">{fieldLabel}</Label>
+                                  <Input
+                                    type={fieldType}
+                                    placeholder={fieldPlaceholder}
+                                    value={templateVariables[variable] || ''}
+                                    onChange={(e) => setTemplateVariables({
+                                      ...templateVariables,
+                                      [variable]: e.target.value
+                                    })}
+                                    className={variable.startsWith('_header_') || variable.startsWith('_button_') ? 'border-blue-200' : ''}
+                                  />
+                                  {variable === '_header_image' && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Must be HTTPS. Try: https://picsum.photos/800/400
+                                    </p>
+                                  )}
+                                  {variable === '_header_video' && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Must be HTTPS and publicly accessible
+                                    </p>
+                                  )}
+                                  {variable === '_header_document' && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Must be HTTPS. Supported: PDF, DOC, DOCX, etc.
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -665,7 +812,7 @@ export default function WhatsAppSettingsPage() {
             </CardHeader>
             <CardContent>
               {templates.length === 0 ? (
-                <p className="text-muted-foreground">No templates found. Create templates to see them here.</p>
+                <p className="text-muted-foreground">No approved templates found. Configure and approve templates in Meta Business Manager.</p>
               ) : (
                 <div className="space-y-4">
                   {templates.map((template) => (
@@ -673,7 +820,10 @@ export default function WhatsAppSettingsPage() {
                       <div className="flex items-center justify-between">
                         <h3 className="font-medium">{template.name}</h3>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(template.createdAt).toLocaleDateString()}
+                          {(() => {
+                            const ts = template.updatedAt || template.createdAt;
+                            return ts ? new Date(ts).toLocaleDateString() : '—';
+                          })()}
                         </span>
                       </div>
 
@@ -683,6 +833,8 @@ export default function WhatsAppSettingsPage() {
                         {template.whatsapp || template.status ? (
                           <div className="flex flex-wrap items-center gap-2">
                             {template.status && (<Badge variant="outline" className="text-xs">{template.status}</Badge>)}
+                            {template.language && (<Badge variant="secondary" className="text-xs">{template.language}</Badge>)}
+                            {template.category && (<Badge variant="outline" className="text-xs capitalize">{template.category.toLowerCase()}</Badge>)}
                             {template.whatsapp?.hasCta ? (
                               <>
                                 <Badge variant="default" className="text-xs">CTA</Badge>
@@ -981,6 +1133,21 @@ export default function WhatsAppSettingsPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Show phone number field if not in live send mode or no active contact */}
+              {(!liveSend || !activeContact) && (
+                <div>
+                  <Label htmlFor="dialog-phone" className="text-sm font-medium">📱 Phone Number</Label>
+                  <Input
+                    id="dialog-phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Include country code (e.g., +91 for India)</p>
+                </div>
+              )}
               {Object.keys(templateVariables).map((variable) => (
                 <div key={variable}>
                   <Label htmlFor={`var-${variable}`} className="text-sm font-medium">{variable}</Label>
@@ -999,7 +1166,16 @@ export default function WhatsAppSettingsPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { setSelectedTemplate(''); setTemplateVariables({}); }}>Cancel</Button>
-              <Button onClick={() => { sendPreviewMessage(); }}>Send Template</Button>
+              <Button 
+                onClick={() => { 
+                  sendTestMessage(); 
+                  setSelectedTemplate(''); 
+                  setTemplateVariables({}); 
+                }}
+                disabled={((!liveSend || !activeContact) && !phoneNumber) || Object.values(templateVariables).some(v => !v)}
+              >
+                Send Template
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

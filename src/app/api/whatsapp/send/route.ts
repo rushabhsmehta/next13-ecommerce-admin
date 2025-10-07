@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import {
+  sendWhatsAppMessage,
+  sendInteractiveMessage,
+  scheduleWhatsAppMessage,
+  emitWhatsAppEvent,
+} from '@/lib/whatsapp';
+import type { SessionUpdateInput, WhatsAppInteractiveMessagePayload } from '@/lib/whatsapp';
 
 export async function POST(request: NextRequest) {
   try {
@@ -7,8 +13,18 @@ export async function POST(request: NextRequest) {
     const {
       to,
       message,
-      saveToDb = true,
       media,
+      interactive,
+      reaction,
+      context,
+      previewUrl,
+      type,
+      scheduleFor,
+      metadata,
+      saveToDb = true,
+      session: sessionHintsInput,
+      automationId,
+      tags,
     } = body;
 
     // Validate required fields
@@ -19,9 +35,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!message && !media) {
+    if (!message && !media && !interactive && !reaction) {
       return NextResponse.json(
-        { error: 'Provide either message or media' },
+        { error: 'Provide message, media, interactive payload, or reaction' },
         { status: 400 }
       );
     }
@@ -36,21 +52,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send the message
-    const result = await sendWhatsAppMessage({
+    let sessionHints: SessionUpdateInput | undefined;
+    if (sessionHintsInput && typeof sessionHintsInput === 'object') {
+      sessionHints = {
+        flowToken: sessionHintsInput.flowToken,
+        waId: sessionHintsInput.waId,
+        phoneNumber: cleanTo,
+        contextPatch: sessionHintsInput.contextPatch || sessionHintsInput.context,
+        lastScreen: sessionHintsInput.lastScreen,
+        lastAction: sessionHintsInput.lastAction,
+        lastMessageId: sessionHintsInput.lastMessageId,
+        expiresAt: sessionHintsInput.expiresAt,
+      };
+    }
+
+    const payload: any = {
       to: cleanTo,
       message,
-      saveToDb,
       media,
-    });
+      reaction,
+      context,
+      previewUrl,
+      scheduleFor,
+      metadata,
+      saveToDb,
+      sessionHints,
+      automationId,
+      tags,
+    };
+
+    if (interactive) {
+      payload.interactive = interactive as WhatsAppInteractiveMessagePayload;
+    }
+
+    const sendFn =
+      type === 'interactive' || interactive
+        ? sendInteractiveMessage
+        : scheduleFor
+        ? scheduleWhatsAppMessage
+        : sendWhatsAppMessage;
+
+    const result = await sendFn(payload);
 
     if (result.success) {
+      if (result.dbRecord?.id) {
+        await emitWhatsAppEvent('message.api.dispatched', {
+          sessionId: result.dbRecord.sessionId ?? undefined,
+          messageId: result.dbRecord.id,
+          context: {
+            route: 'api/whatsapp/send',
+            scheduled: result.dbRecord.status === 'scheduled',
+          },
+        });
+      }
+
       return NextResponse.json({
         success: true,
         messageSid: result.messageSid,
-        status: 'Message sent successfully',
+        status: result.dbRecord?.status === 'scheduled' ? 'Message scheduled' : 'Message sent successfully',
         dbRecord: result.dbRecord,
         provider: result.provider,
+        scheduledFor: result.dbRecord?.scheduledAt?.toISOString?.(),
+        raw: result.rawResponse,
       });
     } else {
       return NextResponse.json(
@@ -79,7 +142,14 @@ export async function GET() {
       method: 'POST',
       body: {
         to: 'Phone number with country code (e.g., +1234567890)',
-        message: 'Message content',
+        message: 'Message content (optional when sending media/interactive)',
+        media: '{ url, type, caption } (optional)',
+        interactive: '{ type: "button" | "list", ... } (optional)',
+        reaction: '{ messageId, emoji } (optional)',
+        previewUrl: 'Boolean (optional, enable for link previews)',
+        scheduleFor: 'ISO8601 string or timestamp for future sends',
+        metadata: 'Arbitrary JSON stored with the message',
+        session: '{ flowToken, waId, contextPatch, lastScreen, lastAction }',
         saveToDb: 'Boolean (optional, defaults to true)',
       },
     },

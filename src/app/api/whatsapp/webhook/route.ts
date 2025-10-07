@@ -35,79 +35,82 @@ export async function POST(request: NextRequest) {
 
     // Meta sends a test POST request during webhook setup
     if (body.object === 'whatsapp_business_account') {
-      console.log('Received WhatsApp webhook event:', JSON.stringify(body, null, 2));
+      console.log('✅ Received WhatsApp webhook event');
 
-      // Process webhook entries
-      body.entry?.forEach((entry: any) => {
-        entry.changes?.forEach((change: any) => {
-          if (change.field === 'messages') {
-            const value = change.value;
+      // Import Prisma client once
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
 
-            // Handle message status updates
-            if (value.statuses) {
-              value.statuses.forEach(async (status: any) => {
-                const messageId = status.id;
-                const statusValue = status.status; // sent, delivered, read, failed
+      try {
+        // Process webhook entries
+        for (const entry of body.entry || []) {
+          for (const change of entry.changes || []) {
+            if (change.field === 'messages') {
+              const value = change.value;
 
-                console.log(`Message ${messageId} status: ${statusValue}`);
+              // Handle message status updates
+              if (value.statuses) {
+                for (const status of value.statuses) {
+                  const messageId = status.id;
+                  const statusValue = status.status; // sent, delivered, read, failed
 
-                // Update database
-                try {
-                  await updateMessageStatus(messageId, statusValue);
-                } catch (error) {
-                  console.error('Error updating message status:', error);
+                  console.log(`📊 Message ${messageId} status: ${statusValue}`);
+
+                  try {
+                    await updateMessageStatus(messageId, statusValue);
+                  } catch (error) {
+                    console.error('❌ Error updating message status:', error);
+                  }
                 }
-              });
-            }
+              }
 
-            // Handle incoming messages
-            if (value.messages) {
-              value.messages.forEach(async (message: any) => {
-                const incomingData = {
-                  from: message.from,
-                  type: message.type,
-                  text: message.text?.body,
-                  timestamp: message.timestamp,
-                  messageId: message.id,
-                };
-                
-                console.log('Incoming message:', incomingData);
+              // Handle incoming messages
+              if (value.messages) {
+                for (const message of value.messages) {
+                  const incomingData = {
+                    from: message.from,
+                    type: message.type,
+                    text: message.text?.body,
+                    timestamp: message.timestamp,
+                    messageId: message.id,
+                  };
+                  
+                  console.log('📨 Incoming message:', incomingData);
 
-                // Save incoming message to database
-                try {
-                  const { PrismaClient } = await import('@prisma/client');
-                  const prisma = new PrismaClient();
-                  
-                  await prisma.whatsAppMessage.create({
-                    data: {
-                      to: value.metadata?.phone_number_id || 'business',
-                      from: message.from,
-                      message: message.text?.body || `[${message.type}]`,
-                      messageSid: message.id,
-                      status: 'received',
-                      direction: 'inbound',
-                    },
-                  });
-                  
-                  await prisma.$disconnect();
-                  console.log(`Saved incoming message ${message.id} from ${message.from}`);
-                } catch (dbError) {
-                  console.error('Error saving incoming message to database:', dbError);
+                  // Save incoming message to database
+                  try {
+                    const savedMessage = await prisma.whatsAppMessage.create({
+                      data: {
+                        to: value.metadata?.phone_number_id || 'business',
+                        from: message.from,
+                        message: message.text?.body || `[${message.type}]`,
+                        messageSid: message.id,
+                        status: 'received',
+                        direction: 'inbound',
+                      },
+                    });
+                    
+                    console.log(`✅ Saved incoming message ${message.id} from ${message.from}`);
+                  } catch (dbError) {
+                    console.error('❌ Error saving incoming message to database:', dbError);
+                  }
+
+                  // TODO: Implement auto-replies or business logic here
                 }
-
-                // TODO: Implement auto-replies or business logic here
-              });
+              }
             }
           }
-        });
-      });
+        }
+      } finally {
+        await prisma.$disconnect();
+      }
 
       return NextResponse.json({ success: true, message: 'Webhook processed' });
     }
 
     return NextResponse.json({ success: false, message: 'Unknown webhook event' });
   } catch (error: any) {
-    console.error('Webhook processing error:', error);
+    console.error('❌ Webhook processing error:', error);
     return NextResponse.json(
       { success: false, error: error?.message || 'Internal server error' },
       { status: 500 }

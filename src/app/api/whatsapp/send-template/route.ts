@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
       to,
       templateId,
       templateName,
+      templateBody,
       languageCode = 'en_US',
       variables,
       saveToDb = true,
@@ -231,6 +232,7 @@ export async function POST(request: NextRequest) {
     const result = await sendWhatsAppTemplate({
       to: cleanTo,
       templateName: resolvedTemplateName,
+      templateBody, // Pass template body for better message preview
       languageCode: resolvedLanguageCode,
       bodyParams,
       buttonParams,

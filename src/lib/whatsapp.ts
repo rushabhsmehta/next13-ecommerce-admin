@@ -376,12 +376,41 @@ function buildMessagePreview(payload: GraphMessagePayload): string {
   }
 }
 
-function templatePreview(templateName: string, components?: Array<Record<string, any>>): string {
-  const body = components?.find((component) => component.type === 'body' || component.type === 'BODY');
-  if (body?.text) {
-    return `Template ${templateName}: ${body.text}`;
+function substituteTemplateVariables(templateBody: string, params: Array<string | number>): string {
+  if (!templateBody || !params || params.length === 0) {
+    return templateBody || '';
   }
-  return `Template ${templateName}`;
+  
+  let result = templateBody;
+  params.forEach((value, index) => {
+    // Replace {{1}}, {{2}}, etc. with actual values
+    const placeholder = `{{${index + 1}}}`;
+    result = result.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), String(value));
+  });
+  
+  return result;
+}
+
+function templatePreview(templateName: string, components?: Array<Record<string, any>>): string {
+  // Try to extract actual message content from body component
+  const bodyComponent = components?.find((c) => c.type === 'body' || c.type === 'BODY');
+  
+  // If body component has parameters, try to build a readable preview
+  if (bodyComponent?.parameters && Array.isArray(bodyComponent.parameters)) {
+    const params = bodyComponent.parameters.map((p: any) => p.text || p.value || '').filter(Boolean);
+    if (params.length > 0) {
+      // If we have parameters, include them in the preview
+      return `Template: ${templateName} (${params.join(', ')})`;
+    }
+  }
+  
+  // If body has text template, return it
+  if (bodyComponent?.text) {
+    return bodyComponent.text;
+  }
+  
+  // Fallback to template name
+  return `Template: ${templateName}`;
 }
 
 function buildTemplateComponents(
@@ -1182,6 +1211,7 @@ export async function processScheduledMessages(limit: number = 20) {
 export interface SendTemplateParams {
   to: string;
   templateName: string;
+  templateBody?: string; // Optional template body for better message preview
   languageCode?: string;
   bodyParams?: Array<string | number>;
   buttonParams?: Array<any>;
@@ -1255,10 +1285,16 @@ export async function sendWhatsAppTemplate(
   });
 
   const scheduleDate = parseDateInput(params.scheduleFor);
+  
+  // Create a readable message preview
+  const messagePreview = params.templateBody 
+    ? substituteTemplateVariables(params.templateBody, params.bodyParams || [])
+    : templatePreview(params.templateName, components);
+  
   if (scheduleDate && scheduleDate.getTime() > Date.now() + 1000 && (params.saveToDb ?? true)) {
     const record = await persistOutboundMessage({
       to: destination,
-      message: templatePreview(params.templateName, components),
+      message: messagePreview,
       status: 'scheduled',
       metadata: params.metadata,
       payload,
@@ -1301,7 +1337,7 @@ export async function sendWhatsAppTemplate(
     if (params.saveToDb !== false) {
       dbRecord = await persistOutboundMessage({
         to: destination,
-        message: templatePreview(params.templateName, components),
+        message: messagePreview, // Use the readable preview we created earlier
         status: 'sent',
         messageSid,
         metadata: params.metadata,

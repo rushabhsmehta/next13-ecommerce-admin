@@ -30,8 +30,17 @@ export async function GET(request: NextRequest) {
  * Webhook event handler for incoming WhatsApp messages and status updates
  */
 export async function POST(request: NextRequest) {
+  // Enhanced logging for debugging
+  const timestamp = new Date().toISOString();
+  console.log('🔔 ============================================');
+  console.log(`🔔 Webhook POST received at: ${timestamp}`);
+  console.log('🔔 ============================================');
+  
   try {
     const body = await request.json();
+    
+    // Log the full payload for debugging
+    console.log('📦 Full webhook payload:', JSON.stringify(body, null, 2));
 
     // Meta sends a test POST request during webhook setup
     if (body.object === 'whatsapp_business_account') {
@@ -66,6 +75,8 @@ export async function POST(request: NextRequest) {
 
               // Handle incoming messages
               if (value.messages) {
+                console.log(`📬 Found ${value.messages.length} incoming message(s)`);
+                
                 for (const message of value.messages) {
                   const incomingData = {
                     from: message.from,
@@ -75,7 +86,13 @@ export async function POST(request: NextRequest) {
                     messageId: message.id,
                   };
                   
-                  console.log('📨 Incoming message:', incomingData);
+                  console.log('📨 ========== INCOMING MESSAGE ==========');
+                  console.log('📨 From:', message.from);
+                  console.log('📨 Type:', message.type);
+                  console.log('📨 Text:', message.text?.body);
+                  console.log('📨 Message ID:', message.id);
+                  console.log('📨 Timestamp:', message.timestamp);
+                  console.log('📨 Full message object:', JSON.stringify(message, null, 2));
 
                   // Save incoming message to database
                   try {
@@ -108,9 +125,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Webhook processed' });
     }
 
+    console.log('⚠️  Unknown webhook event - object type:', body.object);
+    console.log('⚠️  Full body:', JSON.stringify(body, null, 2));
     return NextResponse.json({ success: false, message: 'Unknown webhook event' });
   } catch (error: any) {
-    console.error('❌ Webhook processing error:', error);
+    console.error('❌ ========== WEBHOOK ERROR ==========');
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error stack:', error?.stack);
+    console.error('❌ Full error:', error);
     return NextResponse.json(
       { success: false, error: error?.message || 'Internal server error' },
       { status: 500 }

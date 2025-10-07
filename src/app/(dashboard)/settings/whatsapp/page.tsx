@@ -10,11 +10,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from 'react-hot-toast';
-import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X } from 'lucide-react';
+import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 
 interface WhatsAppMessage {
@@ -1111,314 +1113,330 @@ export default function WhatsAppSettingsPage() {
           </Card>
         </>
       ) : (
-        <div className="h-[calc(100vh-12rem)]">
-          <Card className="h-full">
-            <CardContent className="p-0 h-full">
-              {/* Device frame */}
-              <div className="w-full h-full">
-                <div className={`w-full h-full overflow-hidden bg-background shadow-xl ${darkPreview ? 'bg-[#0b141a]' : 'bg-white'} relative`}>
-                  {/* Overlay controls (compact) */}
-                  <div className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full bg-black/20 backdrop-blur px-1 py-1 text-white">
-                    <button aria-label="Toggle dark mode" onClick={() => setDarkPreview(v => !v)} className="p-1 hover:opacity-80">
-                      {darkPreview ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </button>
-                    <button aria-label="Toggle live send" title="Send via API" onClick={() => setLiveSend(v => !v)} className={`p-1 hover:opacity-80 ${liveSend ? 'text-emerald-300' : 'text-white'}`}>
-                      <Cloud className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="absolute top-2 left-2 z-10">
-                    <button
-                      aria-label="Add chat"
-                      title="Add chat from phone input"
-                      onClick={() => setShowNewChatDialog(true)}
-                      className={`p-1 rounded-full ${darkPreview ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} hover:opacity-80`}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {/* Top bar like WhatsApp Web */}
-                  <div className={`flex items-center justify-between px-4 py-2 ${darkPreview ? 'bg-[#202c33] text-[#e9edef]' : 'bg-slate-100 text-slate-800'} border-b ${darkPreview ? 'border-[#0b141a]' : 'border-slate-200'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full overflow-hidden bg-muted flex items-center justify-center">
-                        {org?.logoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={org.logoUrl || ''} alt={org?.name || 'Logo'} className="h-full w-full object-cover" />
-                        ) : (
-                          <span className={`text-xs font-semibold ${darkPreview ? 'text-[#8696a0]' : 'text-slate-500]'}`}>{org?.name?.slice(0,1) || 'B'}</span>
-                        )}
-                      </div>
-                      <div className="leading-tight">
-                        <div className="text-sm font-semibold">{org?.name || 'Your Business'}</div>
-                        <div className={`text-[11px] ${darkPreview ? 'text-[#8696a0]' : 'text-slate-500'}`}>online</div>
-                      </div>
-                    </div>
-                    {activeContact && (
-                      <div className="flex items-center gap-4">
-                        <button className={`text-xs ${darkPreview ? 'text-[#8696a0]' : 'text-slate-500'}`} onClick={() => setShowContactInfo(true)}>
-                          {activeContact?.name || activeContact?.phone?.replace(/^whatsapp:/, '') || '+1 234 567 890'}
-                        </button>
-                        <div className="flex items-center gap-2 text-gray-400">
-                           <button 
-                             onClick={() => {
-                               fetchMessages();
-                               toast.success('Messages refreshed');
-                             }}
-                             className="hover:text-gray-200"
-                             title="Refresh messages"
-                           >
-                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                             </svg>
-                           </button>
-                           <Search className="h-4 w-4 cursor-pointer hover:text-gray-200" />
-                           <Info className="h-4 w-4 cursor-pointer hover:text-gray-200" onClick={() => setShowContactInfo(true)} />
-                        </div>
-                      </div>
+        <div className="flex h-[calc(100vh-12rem)] rounded-lg shadow-lg border overflow-hidden bg-background">
+          <style jsx global>{`
+            .scrollbar-custom::-webkit-scrollbar {
+              width: 6px;
+            }
+            .scrollbar-custom::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .scrollbar-custom::-webkit-scrollbar-thumb {
+              background: hsl(var(--muted-foreground) / 0.2);
+              border-radius: 3px;
+            }
+            .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+              background: hsl(var(--muted-foreground) / 0.4);
+            }
+          `}</style>
+          
+          {/* Chat Sidebar */}
+          <div className="flex w-80 flex-col border-r bg-muted/30">
+            <div className="flex items-center justify-between border-b p-4 bg-background/50">
+              <h1 className="text-2xl font-bold">Chats</h1>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDarkPreview(v => !v)}
+                  className="h-9 w-9"
+                  title="Toggle dark/light preview"
+                >
+                  {darkPreview ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowNewChatDialog(true)}
+                  className="h-9 w-9"
+                  title="New chat"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-3 border-b bg-background/50">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search chats..."
+                  className="pl-9 bg-background border-border h-10"
+                  value={chatSearchTerm}
+                  onChange={(e) => setChatSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-1 overflow-y-auto scrollbar-custom p-2">
+              {filteredContacts.map(c => {
+                const last = (convos[c.id] || [])[convos[c.id]?.length-1];
+                const isActive = activeId === c.id;
+                return (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "hover:bg-accent/50 flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-all",
+                      isActive && "bg-accent shadow-sm"
                     )}
+                    onClick={() => setActiveId(c.id)}
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
+                        {c.avatarText || c.phone.replace(/\D/g,'').slice(-2) || 'CT'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm truncate">{c.name}</span>
+                        <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">
+                          {last ? new Date(last.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground text-xs truncate">
+                        {last?.text || 'Start a conversation'}
+                      </p>
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
 
-                  {/* Main grid: left chat list + right chat */}
-                  <div className="grid grid-cols-3 h-[calc(100%-49px)]">
-                    {/* Left list */}
-                    <div className={`col-span-1 flex flex-col ${darkPreview ? 'bg-[#111b21] border-r border-[#0b141a]' : 'bg-white border-r border-slate-200'}`}>
-                      <div className={`p-2 border-b ${darkPreview ? 'border-gray-700' : 'border-gray-200'}`}>
-                        <div className="relative">
-                          <Search className={`absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 ${darkPreview ? 'text-gray-400' : 'text-gray-500'}`} />
-                          <Input 
-                            placeholder="Search or start new chat" 
-                            className={`pl-8 w-full rounded-full text-xs h-8 ${darkPreview ? 'bg-[#2a3942] border-transparent' : 'bg-gray-100'}`}
-                            value={chatSearchTerm}
-                            onChange={(e) => setChatSearchTerm(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <style jsx>{`
-                        .contacts-list::-webkit-scrollbar {
-                          width: 6px;
-                        }
-                        .contacts-list::-webkit-scrollbar-track {
-                          background: transparent;
-                        }
-                        .contacts-list::-webkit-scrollbar-thumb {
-                          background: rgba(0, 0, 0, 0.2);
-                          border-radius: 3px;
-                        }
-                        .contacts-list::-webkit-scrollbar-thumb:hover {
-                          background: rgba(0, 0, 0, 0.3);
-                        }
-                        .contacts-list.dark-scrollbar::-webkit-scrollbar-thumb {
-                          background: rgba(255, 255, 255, 0.15);
-                        }
-                        .contacts-list.dark-scrollbar::-webkit-scrollbar-thumb:hover {
-                          background: rgba(255, 255, 255, 0.25);
-                        }
-                      `}</style>
-                      <div className={`overflow-y-auto flex-1 contacts-list ${darkPreview ? 'dark-scrollbar' : ''}`}>
-                        {filteredContacts.map(c => {
-                          const last = (convos[c.id] || [])[convos[c.id]?.length-1];
-                          return (
-                            <button key={c.id} onClick={() => setActiveId(c.id)} className={`w-full text-left ${activeId===c.id ? (darkPreview? 'bg-white/10' : 'bg-slate-100') : ''}`}>
-                              <div className={`flex items-center gap-3 px-3 py-2 hover:bg-black/5 ${darkPreview ? 'hover:bg-white/5' : ''}`}>
-                                <div className="h-9 w-9 rounded-full bg-emerald-200/70 flex items-center justify-center text-emerald-900 text-xs font-semibold">{c.avatarText || c.phone.replace(/\D/g,'').slice(-2) || 'CT'}</div>
-                                <div className="min-w-0">
-                                  <div className={`flex items-center justify-between text-sm ${darkPreview ? 'text-[#e9edef]' : 'text-slate-800'}`}>
-                                    <span className="truncate">{c.name}</span>
-                                    <span className={`ml-2 shrink-0 text-[10px] ${darkPreview ? 'text-[#8696a0]' : 'text-slate-500'}`}>{last ? new Date(last.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                                  </div>
-                                  <div className={`truncate text-xs ${darkPreview ? 'text-[#8696a0]' : 'text-slate-600'}`}>{last?.text || 'Start a chat'}</div>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
+          {/* Chat Main */}
+          <div className="flex flex-1 flex-col bg-background">
+            {activeContact ? (
+              <>
+                <div className="flex items-center justify-between border-b p-4 bg-background/50">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
+                        {activeContact.avatarText || activeContact.phone.replace(/\D/g,'').slice(-2) || 'CT'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h2 className="font-semibold">{activeContact.name}</h2>
+                      <p className="text-muted-foreground text-sm">
+                        {activeContact.phone.replace(/^whatsapp:/, '')}
+                      </p>
                     </div>
-
-                    {/* Chat area */}
-                    <div className={`col-span-2 flex flex-col ${darkPreview ? 'bg-[url(https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png)] bg-[#0b141a]' : 'bg-[url(https://i.pinimg.com/736x/85/ec/df/85ecdf1c3642d55ba4373a8574d482a7.jpg)] bg-[#efeae2]'} bg-cover`}>
-                      <style jsx>{`
-                        .chat-messages::-webkit-scrollbar {
-                          width: 8px;
-                        }
-                        .chat-messages::-webkit-scrollbar-track {
-                          background: transparent;
-                        }
-                        .chat-messages::-webkit-scrollbar-thumb {
-                          background: rgba(0, 0, 0, 0.3);
-                          border-radius: 4px;
-                        }
-                        .chat-messages::-webkit-scrollbar-thumb:hover {
-                          background: rgba(0, 0, 0, 0.5);
-                        }
-                        .chat-messages.dark-scrollbar::-webkit-scrollbar-thumb {
-                          background: rgba(255, 255, 255, 0.2);
-                        }
-                        .chat-messages.dark-scrollbar::-webkit-scrollbar-thumb:hover {
-                          background: rgba(255, 255, 255, 0.3);
-                        }
-                      `}</style>
-                      <div className={`flex-1 overflow-y-auto p-4 space-y-3 chat-messages ${darkPreview ? 'dark-scrollbar' : ''}`}>
-                        {!activeContact ? (
-                          <div className={`text-sm ${darkPreview ? 'text-[#8696a0]' : 'text-slate-600'}`}>Select a chat</div>
-                        ) : (
-                          <>
-                            {(convos[activeContact.id] || []).map(m => (
-                              <div key={m.id} className={`flex ${m.direction==='out' ? 'justify-end' : 'items-end gap-2'}`}>
-                                {m.direction==='in' && <div className="h-7 w-7 rounded-full bg-slate-300" />}
-                                <div className={`relative rounded-lg overflow-hidden shadow ${m.direction==='out' ? (darkPreview ? 'bg-[#005c4b]' : 'bg-[#d9fdd3]') : (darkPreview ? 'bg-[#202c33]' : 'bg-white')} max-w-md`}>
-                                  {/* Header Image */}
-                                  {m.metadata?.headerImage && (
-                                    <div className="w-full max-h-[300px] overflow-hidden">
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img 
-                                        src={m.metadata.headerImage} 
-                                        alt="Template header" 
-                                        className="w-full h-auto object-cover max-h-[300px]"
-                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                      />
-                                    </div>
-                                  )}
-                                  
-                                  {/* Message Body */}
-                                  <div className={`px-3 py-2 text-sm ${m.direction==='out' ? (darkPreview ? 'text-[#e9edef]' : 'text-slate-800') : (darkPreview ? 'text-[#e9edef]' : 'text-slate-800')}`}>
-                                    {m.text}
-                                  </div>
-                                  
-                                  {/* Buttons */}
-                                  {m.metadata?.buttons && m.metadata.buttons.length > 0 && (
-                                    <div className={`border-t ${darkPreview ? 'border-white/10' : 'border-black/10'}`}>
-                                      {m.metadata.buttons.map((btn, idx) => (
-                                        <button
-                                          key={idx}
-                                          className={`w-full px-3 py-2 text-sm font-medium text-center ${idx > 0 ? (darkPreview ? 'border-t border-white/10' : 'border-t border-black/10') : ''} ${darkPreview ? 'text-[#00a5f4] hover:bg-white/5' : 'text-[#00a5f4] hover:bg-black/5'} transition-colors`}
-                                          onClick={() => {
-                                            if (btn.url) {
-                                              window.open(btn.url, '_blank');
-                                            } else if (btn.phone) {
-                                              window.open(`tel:${btn.phone}`, '_blank');
-                                            }
-                                          }}
-                                        >
-                                          {btn.type === 'PHONE_NUMBER' && '📞 '}
-                                          {btn.type === 'URL' && '🔗 '}
-                                          {btn.text || 'Button'}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                  
-                                  {/* Tail */}
-                                  <div className={`absolute -bottom-0.5 ${m.direction === 'out' ? '-right-2' : '-left-2'} w-0 h-0 border-[8px] border-transparent ${m.direction === 'out' ? (darkPreview ? 'border-l-[#005c4b]' : 'border-l-[#d9fdd3]') : (darkPreview ? 'border-r-[#202c33]' : 'border-r-white')}`} />
-                                </div>
-                              </div>
-                            ))}
-                            {typing && (
-                              <div className="flex items-center gap-2">
-                                <div className="h-7 w-7 rounded-full bg-slate-300" />
-                                <div className={`rounded-full px-3 py-1 text-xs ${darkPreview ? 'bg-[#202c33] text-[#e9edef]' : 'bg-white text-slate-800'}`}>
-                                  <span className="inline-block animate-pulse">●</span>
-                                  <span className="inline-block animate-pulse delay-75 ml-1">●</span>
-                                  <span className="inline-block animate-pulse delay-150 ml-1">●</span>
-                                </div>
-                              </div>
-                            )}
-                            {/* Invisible element for auto-scroll */}
-                            <div ref={chatMessagesEndRef} />
-                          </>
-                        )}
-                      </div>
-                      {/* Composer */}
-                      <div className={`relative mt-auto flex items-center gap-2 p-3 ${darkPreview ? 'bg-[#202c33]' : 'bg-slate-100'} border-t ${darkPreview ? 'border-[#0b141a]' : 'border-slate-200'}`}>
-                        {showTemplatePicker && (
-                          <div className="absolute bottom-full left-0 right-0 mb-2 p-1 max-w-md mx-auto">
-                            <div className={`bg-white dark:bg-[#2a3942] rounded-lg shadow-lg overflow-hidden border dark:border-transparent`}>
-                              <div className="flex items-center justify-between p-2 border-b dark:border-gray-700">
-                                <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">Select a template</div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setShowTemplatePicker(false)}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="max-h-60 overflow-y-auto">
-                                {templates.map(template => (
-                                  <button
-                                    key={template.id}
-                                    onClick={() => {
-                                      handleTemplateChange(template.id);
-                                      setShowTemplatePicker(false);
-                                    }}
-                                    className="block w-full text-left px-3 py-2 text-sm text-gray-800 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border-b dark:border-gray-700 last:border-0"
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-semibold">{template.name}</span>
-                                      {template.status && (
-                                        <Badge variant="outline" className="text-xs">{template.status}</Badge>
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{template.body}</p>
-                                  </button>
-                                ))}
-                                {templates.length === 0 && (
-                                  <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                    No templates available
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setShowTemplatePicker(!showTemplatePicker)}
-                          className={darkPreview ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}
-                          title="Select template"
-                        >
-                          <FileText className="h-5 w-5" />
-                        </Button>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className={darkPreview ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}>
-                              <Smile className="h-5 w-5" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="p-0 border-0">
-                            <EmojiPicker 
-                              onEmojiClick={(emoji) => setMessage(m => m + emoji.emoji)}
-                              theme={darkPreview ? EmojiTheme.DARK : EmojiTheme.LIGHT}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <input
-                          className={`flex-1 rounded-full px-4 py-2 text-sm outline-none ${darkPreview ? 'bg-[#2a3942] text-[#e9edef] placeholder:text-[#8696a0]' : 'bg-white text-slate-800 placeholder:text-slate-400'}`}
-                          placeholder={selectedTemplate ? 'Template selected. Type to clear.' : 'Type a message...'}
-                          value={selectedTemplate ? substituteTemplate(templates.find(t => t.id===selectedTemplate)?.body || '', templateVariables) : message}
-                          onChange={(e) => {
-                            if (selectedTemplate) {
-                              setSelectedTemplate('');
-                              setTemplateVariables({});
-                            }
-                            setMessage(e.target.value)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              sendPreviewMessage();
-                            }
-                          }}
-                        />
-                        <Button className="bg-[#25D366] hover:bg-[#22c15e] text-white h-9" onClick={sendPreviewMessage} disabled={!activeContact || sendingLive}>{sendingLive ? 'Sending…' : 'Send'}</Button>
-                      </div>
-                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        fetchMessages();
+                        toast.success('Messages refreshed');
+                      }}
+                      title="Refresh messages"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowContactInfo(true)}
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
                   </div>
                 </div>
+
+                <div className="flex-1 space-y-4 overflow-y-auto scrollbar-custom p-6 bg-muted/10">
+                  {(convos[activeContact.id] || []).map(m => (
+                    <div key={m.id} className={cn(
+                      "flex items-start gap-3",
+                      m.direction === 'out' && "justify-end"
+                    )}>
+                      {m.direction === 'in' && (
+                        <Avatar className="h-8 w-8 flex-shrink-0">
+                          <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
+                            {activeContact.avatarText || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div
+                        className={cn(
+                          "max-w-[70%] rounded-2xl p-3 shadow-sm",
+                          m.direction === 'out'
+                            ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-br-md"
+                            : "bg-background border rounded-bl-md"
+                        )}
+                      >
+                        {m.metadata?.headerImage && (
+                          <div className="mb-2 -mt-3 -mx-3 overflow-hidden rounded-t-2xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={m.metadata.headerImage}
+                              alt="Header"
+                              className="w-full h-auto max-h-[200px] object-cover"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          </div>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                        
+                        {m.metadata?.buttons && m.metadata.buttons.length > 0 && (
+                          <div className={cn(
+                            "mt-2 -mb-3 -mx-3 border-t pt-1",
+                            m.direction === 'out' ? "border-white/20" : "border-border"
+                          )}>
+                            {m.metadata.buttons.map((btn, idx) => (
+                              <button
+                                key={idx}
+                                className={cn(
+                                  "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
+                                  idx > 0 && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
+                                  m.direction === 'out' 
+                                    ? "text-white hover:bg-white/10" 
+                                    : "text-emerald-600 hover:bg-emerald-50"
+                                )}
+                                onClick={() => {
+                                  if (btn.url) window.open(btn.url, '_blank');
+                                  if (btn.phone) window.open(`tel:${btn.phone}`, '_blank');
+                                }}
+                              >
+                                {btn.type === 'PHONE_NUMBER' && '📞 '}
+                                {btn.type === 'URL' && '🔗 '}
+                                {btn.text || 'Button'}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {typing && (
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
+                          {activeContact.avatarText || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="bg-background border rounded-2xl rounded-bl-md p-4 shadow-sm">
+                        <div className="flex gap-1.5">
+                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '0ms'}}></span>
+                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '150ms'}}></span>
+                          <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '300ms'}}></span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div ref={chatMessagesEndRef} />
+                </div>
+
+                <div className="flex items-center gap-3 border-t bg-background/80 backdrop-blur-sm p-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground hover:bg-accent"
+                    onClick={() => setShowTemplatePicker(!showTemplatePicker)}
+                    title="Select template"
+                  >
+                    <FileText className="h-5 w-5" />
+                  </Button>
+                  
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hover:bg-accent">
+                        <Smile className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 border-0">
+                      <EmojiPicker
+                        onEmojiClick={(emoji) => setMessage(m => m + emoji.emoji)}
+                        theme={darkPreview ? EmojiTheme.DARK : EmojiTheme.LIGHT}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Input
+                    placeholder={selectedTemplate ? 'Template selected. Type to clear.' : 'Type a message...'}
+                    className="flex-1 border-none bg-muted/30 focus-visible:ring-1 focus-visible:ring-emerald-500/50 h-10 rounded-full px-4"
+                    value={selectedTemplate ? substituteTemplate(templates.find(t => t.id===selectedTemplate)?.body || '', templateVariables) : message}
+                    onChange={(e) => {
+                      if (selectedTemplate) {
+                        setSelectedTemplate('');
+                        setTemplateVariables({});
+                      }
+                      setMessage(e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendPreviewMessage();
+                      }
+                    }}
+                  />
+                  
+                  <Button
+                    size="icon"
+                    className="rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md"
+                    onClick={sendPreviewMessage}
+                    disabled={!activeContact || sendingLive}
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {showTemplatePicker && (
+                  <div className="absolute bottom-20 left-4 right-4 max-w-md mx-auto">
+                    <div className="bg-background border rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm">
+                      <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                        <div className="text-sm font-semibold">Select a template</div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowTemplatePicker(false)}
+                          className="h-7 w-7 p-0 hover:bg-accent"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="max-h-60 overflow-y-auto scrollbar-custom">
+                        {templates.map(template => (
+                          <button
+                            key={template.id}
+                            onClick={() => {
+                              handleTemplateChange(template.id);
+                              setShowTemplatePicker(false);
+                            }}
+                            className="block w-full text-left px-4 py-3 hover:bg-accent/50 border-b last:border-0 transition-all hover:shadow-sm"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-sm">{template.name}</span>
+                              {template.status && (
+                                <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/30">{template.status}</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5">{template.body}</p>
+                          </button>
+                        ))}
+                        {templates.length === 0 && (
+                          <div className="p-6 text-sm text-muted-foreground text-center">
+                            No templates available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="text-center text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p className="text-lg font-medium">Select a chat</p>
+                  <p className="text-sm">Choose a conversation from the left to start messaging</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
         </div>
       )}
       {selectedTemplate && Object.keys(templateVariables).length > 0 && (

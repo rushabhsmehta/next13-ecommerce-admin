@@ -232,31 +232,25 @@ export default function WhatsAppSettingsPage() {
   useEffect(() => {
     const buildContactsAndConvos = () => {
       if (!messages || messages.length === 0) {
-        // No messages yet, return empty
         return { contacts: [], convos: {} };
       }
 
       const contactMap: Record<string, Contact> = {};
       const convoMap: Record<string, ChatMsg[]> = {};
 
-      // Group messages by phone number (use 'to' for outbound, 'from' for inbound)
+      // Group messages by phone number
       messages.forEach(msg => {
-        // Determine the contact phone number
         const contactPhone = msg.direction === 'inbound' ? msg.from : msg.to;
         
         if (!contactPhone || contactPhone === 'business') return;
 
         // Create contact if not exists
         if (!contactMap[contactPhone]) {
-          // Clean phone number for display (remove whatsapp: prefix if present)
-          const cleanPhone = contactPhone.replace(/^whatsapp:/, '');
-          const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
-          
           contactMap[contactPhone] = {
             id: contactPhone,
-            name: formattedPhone, // Show clean formatted phone as name
+            name: contactPhone,
             phone: contactPhone,
-            avatarText: cleanPhone.replace(/\D/g, '').slice(-2) || 'CT'
+            avatarText: contactPhone.replace(/\D/g, '').slice(-2) || 'CT'
           };
         }
 
@@ -318,8 +312,17 @@ export default function WhatsAppSettingsPage() {
         convoMap[phone].sort((a, b) => a.ts - b.ts);
       });
 
+      // Convert contacts to array and sort by most recent message
+      const contactsList = Object.values(contactMap).sort((a, b) => {
+        const lastMsgA = convoMap[a.id]?.[convoMap[a.id].length - 1];
+        const lastMsgB = convoMap[b.id]?.[convoMap[b.id].length - 1];
+        const timeA = lastMsgA?.ts || 0;
+        const timeB = lastMsgB?.ts || 0;
+        return timeB - timeA; // Most recent first
+      });
+
       return {
-        contacts: Object.values(contactMap),
+        contacts: contactsList,
         convos: convoMap
       };
     };
@@ -337,6 +340,18 @@ export default function WhatsAppSettingsPage() {
       
       console.log('✅ Loaded contacts:', newContacts.length);
       console.log('✅ Conversations:', Object.keys(newConvos).length);
+      console.log('✅ Contact IDs:', newContacts.map(c => c.id));
+      console.log('📊 Contact details:', newContacts.map(c => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        msgCount: newConvos[c.id]?.length || 0
+      })));
+    } else {
+      // Clear contacts if no messages
+      setContacts([]);
+      setConvos({});
+      console.log('⚠️ No contacts to display');
     }
   }, [messages, templates]);
 
@@ -1278,6 +1293,22 @@ export default function WhatsAppSettingsPage() {
                           </div>
                         )}
                         <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                        
+                        {/* WhatsApp-style timestamp and status */}
+                        <div className={cn(
+                          "flex items-center gap-1 mt-1 text-xs",
+                          m.direction === 'out' ? "text-white/70 justify-end" : "text-muted-foreground justify-start"
+                        )}>
+                          <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+                          {m.direction === 'out' && (
+                            <span className="inline-flex">
+                              {m.status === 0 && <span className="opacity-50">🕐</span>}
+                              {m.status === 1 && <span className="opacity-70">✓</span>}
+                              {m.status === 2 && <span className="opacity-90">✓✓</span>}
+                              {m.status === 3 && <span className="text-blue-300">✓✓</span>}
+                            </span>
+                          )}
+                        </div>
                         
                         {m.metadata?.buttons && m.metadata.buttons.length > 0 && (
                           <div className={cn(

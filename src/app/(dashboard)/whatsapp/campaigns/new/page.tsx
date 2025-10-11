@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Send, Users, FileText, Settings } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, Users, FileText, Settings, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'react-hot-toast';
 
 type Step = 'details' | 'recipients' | 'settings' | 'review';
+
+interface WhatsAppTemplate {
+  id: string;
+  name: string;
+  language: string;
+  status: string;
+  category: string;
+  components: Array<{
+    type: string;
+    format?: string;
+    text?: string;
+    example?: {
+      body_text?: Array<Array<string>>;
+      header_text?: Array<string>;
+    };
+  }>;
+}
 
 interface CampaignData {
   name: string;
@@ -33,10 +50,12 @@ export default function NewCampaignPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<Step>('details');
   const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
     description: '',
-    templateName: 'tour_package_marketing',
+    templateName: '',
     templateLanguage: 'en_US',
     recipients: [],
     rateLimit: 10,
@@ -47,9 +66,54 @@ export default function NewCampaignPage() {
   const [recipientInput, setRecipientInput] = useState({
     phoneNumber: '',
     name: '',
-    var1: '',
-    var2: '',
+    variables: {} as Record<string, string>,
   });
+
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch('/api/whatsapp/templates');
+      if (!response.ok) throw new Error('Failed to fetch templates');
+      
+      const data = await response.json();
+      setTemplates(data.templates || []);
+      
+      // Set first template as default if available
+      if (data.templates && data.templates.length > 0) {
+        setCampaignData(prev => ({
+          ...prev,
+          templateName: data.templates[0].name,
+          templateLanguage: data.templates[0].language,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      toast.error('Failed to load templates');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Get selected template details
+  const selectedTemplate = templates.find(t => t.name === campaignData.templateName);
+  
+  // Extract parameter count from template body component
+  const getTemplateParameters = (): number => {
+    if (!selectedTemplate) return 0;
+    
+    const bodyComponent = selectedTemplate.components.find(c => c.type === 'BODY');
+    if (!bodyComponent || !bodyComponent.text) return 0;
+    
+    // Count {{1}}, {{2}}, etc. placeholders in template text
+    const matches = bodyComponent.text.match(/\{\{\d+\}\}/g);
+    return matches ? matches.length : 0;
+  };
+
+  const parameterCount = getTemplateParameters();
 
   const steps: { id: Step; title: string; icon: any }[] = [
     { id: 'details', title: 'Campaign Details', icon: FileText },
@@ -78,13 +142,14 @@ export default function NewCampaignPage() {
       return;
     }
 
-    const newRecipient = {
+    const newRecipient: {
+      phoneNumber: string;
+      name: string;
+      variables: Record<string, string>;
+    } = {
       phoneNumber: recipientInput.phoneNumber,
       name: recipientInput.name,
-      variables: {
-        '1': recipientInput.var1,
-        '2': recipientInput.var2,
-      },
+      variables: recipientInput.variables,
     };
 
     setCampaignData({
@@ -92,7 +157,7 @@ export default function NewCampaignPage() {
       recipients: [...campaignData.recipients, newRecipient],
     });
 
-    setRecipientInput({ phoneNumber: '', name: '', var1: '', var2: '' });
+    setRecipientInput({ phoneNumber: '', name: '', variables: {} });
     toast.success('Recipient added');
   };
 
@@ -134,7 +199,7 @@ export default function NewCampaignPage() {
 
       const data = await response.json();
       toast.success('Campaign created successfully!');
-      router.push(`/campaigns/${data.campaign.id}`);
+      router.push(`/whatsapp/campaigns/${data.campaign.id}`);
     } catch (error: any) {
       console.error('Error creating campaign:', error);
       toast.error(error.message);
@@ -170,38 +235,49 @@ export default function NewCampaignPage() {
 
             <div>
               <Label htmlFor="template">WhatsApp Template</Label>
-              <Select
-                value={campaignData.templateName}
-                onValueChange={(value) => setCampaignData({ ...campaignData, templateName: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tour_package_marketing">Tour Package Marketing</SelectItem>
-                  <SelectItem value="hello_world">Hello World</SelectItem>
-                </SelectContent>
-              </Select>
+              {loadingTemplates ? (
+                <div className="text-sm text-muted-foreground">Loading templates...</div>
+              ) : (
+                <Select
+                  value={campaignData.templateName}
+                  onValueChange={(value) => {
+                    const template = templates.find(t => t.name === value);
+                    setCampaignData({ 
+                      ...campaignData, 
+                      templateName: value,
+                      templateLanguage: template?.language || 'en_US'
+                    });
+                    // Reset recipient variables when template changes
+                    setRecipientInput({ phoneNumber: '', name: '', variables: {} });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.filter(t => t.status === 'APPROVED').map((template) => (
+                      <SelectItem key={template.id} value={template.name}>
+                        {template.name} ({template.language})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <p className="text-sm text-muted-foreground mt-1">
                 Only approved templates can be used
               </p>
-            </div>
-
-            <div>
-              <Label htmlFor="language">Template Language</Label>
-              <Select
-                value={campaignData.templateLanguage}
-                onValueChange={(value) => setCampaignData({ ...campaignData, templateLanguage: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en_US">English (US)</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="hi">Hindi</SelectItem>
-                </SelectContent>
-              </Select>
+              {selectedTemplate && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>{parameterCount} variable(s)</strong> required for this template
+                  </p>
+                  {selectedTemplate.components.find(c => c.type === 'BODY')?.text && (
+                    <p className="text-xs text-blue-700 mt-1">
+                      Template: {selectedTemplate.components.find(c => c.type === 'BODY')?.text}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -239,26 +315,44 @@ export default function NewCampaignPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="var1">Variable 1 (e.g., Package Name)</Label>
-                    <Input
-                      id="var1"
-                      placeholder="Bali Premium Package"
-                      value={recipientInput.var1}
-                      onChange={(e) => setRecipientInput({ ...recipientInput, var1: e.target.value })}
-                    />
+                {/* Dynamic variable inputs based on template parameters */}
+                {parameterCount > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Info className="h-4 w-4 text-blue-600" />
+                      <span>Template Variables (Required)</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {Array.from({ length: parameterCount }, (_, i) => (
+                        <div key={i}>
+                          <Label htmlFor={`var${i + 1}`}>
+                            Variable {i + 1} *
+                          </Label>
+                          <Input
+                            id={`var${i + 1}`}
+                            placeholder={`Enter value for {{${i + 1}}}`}
+                            value={recipientInput.variables[String(i + 1)] || ''}
+                            onChange={(e) => setRecipientInput({ 
+                              ...recipientInput, 
+                              variables: {
+                                ...recipientInput.variables,
+                                [String(i + 1)]: e.target.value
+                              }
+                            })}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="var2">Variable 2 (e.g., Price)</Label>
-                    <Input
-                      id="var2"
-                      placeholder="₹45,000"
-                      value={recipientInput.var2}
-                      onChange={(e) => setRecipientInput({ ...recipientInput, var2: e.target.value })}
-                    />
+                )}
+
+                {parameterCount === 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      ℹ️ This template doesn&apos;t require any variables. Just add phone number and name.
+                    </p>
                   </div>
-                </div>
+                )}
 
                 <Button onClick={addRecipient} className="w-full">
                   Add Recipient
@@ -285,9 +379,12 @@ export default function NewCampaignPage() {
                         <div>
                           <p className="font-medium">{recipient.name || 'No name'}</p>
                           <p className="text-sm text-muted-foreground">{recipient.phoneNumber}</p>
-                          {(recipient.variables['1'] || recipient.variables['2']) && (
+                          {Object.keys(recipient.variables).length > 0 && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Variables: {recipient.variables['1']}, {recipient.variables['2']}
+                              Variables: {Object.entries(recipient.variables)
+                                .sort(([a], [b]) => Number(a) - Number(b))
+                                .map(([key, value]) => `{{${key}}}: ${value}`)
+                                .join(', ')}
                             </p>
                           )}
                         </div>
@@ -375,61 +472,71 @@ export default function NewCampaignPage() {
       case 'review':
         return (
           <div className="space-y-6">
-            <Card>
+            <Card className="border-green-200 bg-green-50/50">
               <CardHeader>
-                <CardTitle>Campaign Summary</CardTitle>
+                <CardTitle className="text-green-800">Campaign Summary</CardTitle>
+                <CardDescription>Review your campaign before creating</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Campaign Name</p>
-                  <p className="font-medium">{campaignData.name}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white p-4 rounded-lg border">
+                    <p className="text-sm text-muted-foreground">Campaign Name</p>
+                    <p className="font-medium text-lg">{campaignData.name}</p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border">
+                    <p className="text-sm text-muted-foreground">Template</p>
+                    <p className="font-medium text-lg">{campaignData.templateName}</p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border">
+                    <p className="text-sm text-muted-foreground">Total Recipients</p>
+                    <p className="font-medium text-3xl text-green-600">{campaignData.recipients.length}</p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border">
+                    <p className="text-sm text-muted-foreground">Rate Limit</p>
+                    <p className="font-medium text-lg">{campaignData.rateLimit} msg/min</p>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border">
+                    <p className="text-sm text-muted-foreground">Send Window</p>
+                    <p className="font-medium text-lg">
+                      {campaignData.sendWindowStart}:00 - {campaignData.sendWindowEnd}:00
+                    </p>
+                  </div>
+
+                  {campaignData.scheduledFor && (
+                    <div className="bg-white p-4 rounded-lg border">
+                      <p className="text-sm text-muted-foreground">Scheduled For</p>
+                      <p className="font-medium text-lg">
+                        {new Date(campaignData.scheduledFor).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {campaignData.description && (
-                  <div>
+                  <div className="bg-white p-4 rounded-lg border">
                     <p className="text-sm text-muted-foreground">Description</p>
                     <p className="font-medium">{campaignData.description}</p>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Template</p>
-                  <p className="font-medium">{campaignData.templateName}</p>
-                </div>
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Recipients</p>
-                  <p className="font-medium text-2xl">{campaignData.recipients.length}</p>
-                </div>
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Rate Limit</p>
-                  <p className="font-medium">{campaignData.rateLimit} messages per minute</p>
-                </div>
-
-                <div>
-                  <p className="text-sm text-muted-foreground">Send Window</p>
-                  <p className="font-medium">
-                    {campaignData.sendWindowStart}:00 - {campaignData.sendWindowEnd}:00
-                  </p>
-                </div>
-
-                {campaignData.scheduledFor && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Scheduled For</p>
-                    <p className="font-medium">
-                      {new Date(campaignData.scheduledFor).toLocaleString()}
-                    </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                ⚠️ <strong>Important:</strong> This campaign will be created as a draft. 
-                You can review it and start sending from the campaign details page.
-              </p>
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <Info className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-yellow-900">Important</p>
+                  <p className="text-sm text-yellow-800 mt-1">
+                    This campaign will be created as a draft. You can review it and start sending from the campaign details page.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -437,17 +544,24 @@ export default function NewCampaignPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create Campaign</h1>
-          <p className="text-muted-foreground">
-            Send WhatsApp templates to multiple customers
-          </p>
+    <div className="max-w-4xl mx-auto space-y-6 pb-8">
+      {/* Header with gradient */}
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 p-8 text-white">
+        <div className="absolute inset-0 bg-grid-white/10"></div>
+        <div className="relative flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.back()}
+            className="text-white hover:bg-white/20"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Create Campaign</h1>
+            <p className="text-green-50 mt-1">
+              Send WhatsApp templates to multiple customers
+            </p>
+          </div>
         </div>
       </div>
 
@@ -463,22 +577,22 @@ export default function NewCampaignPage() {
               <div className="flex flex-col items-center">
                 <div
                   className={`
-                    flex items-center justify-center w-10 h-10 rounded-full border-2
-                    ${isActive ? 'border-primary bg-primary text-primary-foreground' : ''}
-                    ${isCompleted ? 'border-primary bg-primary text-primary-foreground' : ''}
+                    flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300
+                    ${isActive ? 'border-green-500 bg-green-500 text-white shadow-lg shadow-green-500/50 scale-110' : ''}
+                    ${isCompleted ? 'border-green-500 bg-green-500 text-white' : ''}
                     ${!isActive && !isCompleted ? 'border-gray-300 text-gray-400' : ''}
                   `}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <p className={`text-sm mt-2 ${isActive ? 'font-semibold' : ''}`}>
+                <p className={`text-sm mt-2 text-center ${isActive ? 'font-semibold text-green-600' : ''}`}>
                   {step.title}
                 </p>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 mx-4 ${
-                    isCompleted ? 'bg-primary' : 'bg-gray-300'
+                  className={`flex-1 h-1 mx-4 rounded-full transition-all duration-300 ${
+                    isCompleted ? 'bg-green-500' : 'bg-gray-300'
                   }`}
                 />
               )}
@@ -488,7 +602,7 @@ export default function NewCampaignPage() {
       </div>
 
       {/* Step Content */}
-      <Card>
+      <Card className="border-2">
         <CardContent className="pt-6">
           {renderStepContent()}
         </CardContent>
@@ -500,17 +614,35 @@ export default function NewCampaignPage() {
           variant="outline"
           onClick={handlePrevious}
           disabled={currentStepIndex === 0}
+          className="min-w-[120px]"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>
 
         {currentStep === 'review' ? (
-          <Button onClick={createCampaign} disabled={loading}>
-            {loading ? 'Creating...' : 'Create Campaign'}
+          <Button 
+            onClick={createCampaign} 
+            disabled={loading}
+            className="min-w-[160px] bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                Creating...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Create Campaign
+              </>
+            )}
           </Button>
         ) : (
-          <Button onClick={handleNext}>
+          <Button 
+            onClick={handleNext}
+            className="min-w-[120px] bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+          >
             Next
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

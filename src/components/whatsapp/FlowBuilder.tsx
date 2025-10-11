@@ -62,7 +62,11 @@ export default function FlowBuilder({ onComplete }: { onComplete?: () => void })
       const response = await fetch('/api/whatsapp/flows/manage?action=list');
       const data = await response.json();
       if (data.success) {
-        setFlows(data.flows || []);
+        // API returns 'data' not 'flows'
+        setFlows(data.data || []);
+      } else {
+        console.error('Failed to fetch flows:', data.error);
+        toast.error(data.error || 'Failed to load flows');
       }
     } catch (error) {
       console.error('Error fetching flows:', error);
@@ -157,7 +161,7 @@ export default function FlowBuilder({ onComplete }: { onComplete?: () => void })
 
     try {
       const response = await fetch(
-        `/api/whatsapp/flows/manage?action=delete&flowId=${flowId}`,
+        `/api/whatsapp/flows/manage?id=${flowId}`,
         { method: 'DELETE' }
       );
 

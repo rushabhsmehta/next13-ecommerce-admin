@@ -778,22 +778,34 @@ model Images {
 }
 
 model Customer {
-  id                  String            @id @default(uuid())
-  name                String
-  contact             String?
-  email               String?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @default(now())
-  associatePartnerId  String?
-  birthdate           DateTime?         @db.Date
-  marriageAnniversary DateTime?         @db.Date
-  isTdsDeductor       Boolean           @default(false)
-  tanNumber           String?
-  saleDetails         SaleDetail[]
-  receiptDetails      ReceiptDetail[]
-  refundPayments      PaymentDetail[]
-  associatePartner    AssociatePartner? @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
-  tdsTransactions     TDSTransaction[]
+  id                    String                      @id @default(uuid())
+  name                  String
+  contact               String?
+  email                 String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @default(now())
+  associatePartnerId    String?
+  birthdate             DateTime?                   @db.Date
+  marriageAnniversary   DateTime?                   @db.Date
+  isTdsDeductor         Boolean                     @default(false)
+  tanNumber             String?
+  
+  // Marketing Preferences
+  marketingOptIn        Boolean                     @default(true)
+  marketingOptInAt      DateTime?
+  marketingOptOutAt     DateTime?
+  
+  // Relations
+  saleDetails           SaleDetail[]
+  receiptDetails        ReceiptDetail[]
+  refundPayments        PaymentDetail[]
+  associatePartner      AssociatePartner?           @relation(fields: [associatePartnerId], references: [id], onDelete: SetNull)
+  tdsTransactions       TDSTransaction[]
+  
+  // WhatsApp Campaign Relations
+  campaignRecipients    WhatsAppCampaignRecipient[]
+  whatsappCarts         WhatsAppCart[]
+  whatsappOrders        WhatsAppOrder[]
 
   @@index([associatePartnerId])
 }
@@ -1550,6 +1562,426 @@ model VariantHotelMapping {
   @@index([packageVariantId])
   @@index([itineraryId])
   @@index([hotelId])
+}
+
+// ============================================================================
+// WhatsApp Campaigns & Catalog Models
+// ============================================================================
+
+model WhatsAppCampaign {
+  id               String                      @id @default(uuid())
+  name             String
+  description      String?                     @db.Text
+  
+  // Template Configuration
+  templateName     String
+  templateLanguage String                      @default("en_US")
+  templateVariables Json?                      // Dynamic variables for template
+  
+  // Targeting
+  targetType       String                      // "all", "segment", "manual", "imported"
+  segmentQuery     Json?                       // Saved query for dynamic segments
+  
+  // Scheduling
+  status           String                      @default("draft") // draft, scheduled, sending, paused, completed, cancelled, failed
+  scheduledFor     DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  
+  // Settings
+  sendWindowStart  Int?                        // Hour to start sending (0-23)
+  sendWindowEnd    Int?                        // Hour to stop sending (0-23)
+  rateLimit        Int                         @default(10) // Messages per minute
+  retryFailed      Boolean                     @default(true)
+  maxRetries       Int                         @default(3)
+  
+  // Stats (cached for performance)
+  totalRecipients  Int                         @default(0)
+  sentCount        Int                         @default(0)
+  deliveredCount   Int                         @default(0)
+  readCount        Int                         @default(0)
+  failedCount      Int                         @default(0)
+  respondedCount   Int                         @default(0)
+  
+  // Metadata
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+  createdBy        String?                     // User ID who created it
+  organizationId   String?
+  tags             Json?                       // For categorization (array of strings)
+  
+  // Relations
+  recipients       WhatsAppCampaignRecipient[]
+  
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@index([organizationId])
+  @@index([createdBy])
+}
+
+model WhatsAppCampaignRecipient {
+  id               String            @id @default(uuid())
+  campaignId       String
+  
+  // Recipient Info
+  phoneNumber      String            // E.164 format
+  customerId       String?           // Link to Customer model
+  name             String?
+  
+  // Template Variables (personalization)
+  variables        Json?             // {"name": "John", "package": "Bali Premium"}
+  
+  // Sending Status
+  status           String            @default("pending") // pending, sending, sent, delivered, read, failed, responded, opted_out
+  sentAt           DateTime?
+  deliveredAt      DateTime?
+  readAt           DateTime?
+  failedAt         DateTime?
+  
+  // Error Handling
+  errorCode        String?
+  errorMessage     String?           @db.Text
+  retryCount       Int               @default(0)
+  lastRetryAt      DateTime?
+  
+  // Response Tracking
+  respondedAt      DateTime?
+  responseMessage  String?           @db.Text
+  
+  // Message Reference
+  messageId        String?           // WhatsApp message ID (wamid)
+  messageSid       String?           // Our internal message ID
+  
+  // Metadata
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  // Relations
+  campaign         WhatsAppCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  @@index([campaignId])
+  @@index([status])
+  @@index([customerId])
+  @@index([phoneNumber])
+  @@index([sentAt])
+}
+
+model WhatsAppCatalog {
+  id                  String                @id @default(uuid())
+  
+  // Meta Integration
+  metaCatalogId       String?               @unique // Meta Commerce Manager catalog ID
+  
+  // Basic Info
+  name                String
+  description         String?               @db.Text
+  currency            String                @default("INR")
+  
+  // Settings
+  isActive            Boolean               @default(true)
+  isPublic            Boolean               @default(false)
+  autoSync            Boolean               @default(false) // Auto-sync with Meta Commerce Manager
+  lastSyncAt          DateTime?
+  
+  // Configuration
+  businessCategoryId  String?               // E.g., "Travel", "Tours"
+  defaultImageUrl     String?
+  
+  // Stats
+  totalProducts       Int                   @default(0)
+  activeProducts      Int                   @default(0)
+  totalOrders         Int                   @default(0)
+  totalRevenue        Decimal               @default(0) @db.Decimal(10, 2)
+  
+  // Metadata
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  organizationId      String?
+  
+  // Relations
+  products            WhatsAppProduct[]
+  
+  @@index([metaCatalogId])
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model WhatsAppProduct {
+  id                String                      @id @default(uuid())
+  catalogId         String
+  
+  // Meta Integration
+  metaProductId     String?                     @unique // Meta product ID (retailer_id)
+  
+  // Basic Info
+  sku               String                      @unique
+  name              String
+  description       String?                     @db.Text
+  
+  // Pricing
+  price             Decimal                     @db.Decimal(10, 2)
+  salePrice         Decimal?                    @db.Decimal(10, 2)
+  currency          String                      @default("INR")
+  
+  // Inventory
+  availability      String                      @default("in_stock") // in_stock, out_of_stock, preorder
+  quantity          Int?
+  
+  // Media
+  imageUrl          String?
+  imageUrls         Json?                       // Multiple images as JSON array
+  videoUrl          String?
+  
+  // Organization
+  category          String?
+  brand             String?
+  condition         String                      @default("new") // new, refurbished
+  
+  // Variants (for tour packages)
+  hasVariants       Boolean                     @default(false)
+  variantOptions    Json?                       // e.g., {"duration": ["3 days", "5 days"], "accommodation": ["Standard", "Premium"]}
+  
+  // SEO & Discovery
+  tags              Json?                       // Tags as JSON array
+  url               String?                     // Product page URL
+  
+  // Status
+  isActive          Boolean                     @default(true)
+  isVisible         Boolean                     @default(true)
+  
+  // Stats
+  viewCount         Int                         @default(0)
+  shareCount        Int                         @default(0)
+  cartAddCount      Int                         @default(0)
+  purchaseCount     Int                         @default(0)
+  
+  // Metadata
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  lastSyncAt        DateTime?
+  
+  // Relations
+  catalog           WhatsAppCatalog             @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  variants          WhatsAppProductVariant[]
+  cartItems         WhatsAppCartItem[]
+  orderItems        WhatsAppOrderItem[]
+  
+  @@index([catalogId])
+  @@index([metaProductId])
+  @@index([sku])
+  @@index([isActive, isVisible])
+  @@index([category])
+}
+
+model WhatsAppProductVariant {
+  id                String                @id @default(uuid())
+  productId         String
+  
+  // Variant Info
+  sku               String                @unique
+  name              String                // "Bali 5 Days Premium Package"
+  options           Json                  // {"duration": "5 days", "accommodation": "Premium"}
+  
+  // Pricing
+  price             Decimal               @db.Decimal(10, 2)
+  salePrice         Decimal?              @db.Decimal(10, 2)
+  
+  // Inventory
+  availability      String                @default("in_stock")
+  quantity          Int?
+  
+  // Media
+  imageUrl          String?
+  
+  // Status
+  isActive          Boolean               @default(true)
+  
+  // Stats
+  purchaseCount     Int                   @default(0)
+  
+  // Metadata
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  
+  // Relations
+  product           WhatsAppProduct       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems         WhatsAppCartItem[]
+  orderItems        WhatsAppOrderItem[]
+  
+  @@index([productId])
+  @@index([sku])
+}
+
+model WhatsAppCart {
+  id                String              @id @default(uuid())
+  
+  // Customer Info
+  phoneNumber       String
+  customerId        String?
+  sessionId         String?             // WhatsAppSession ID
+  
+  // Status
+  status            String              @default("active") // active, checkout, converted, abandoned
+  
+  // Totals
+  subtotal          Decimal             @default(0) @db.Decimal(10, 2)
+  tax               Decimal             @default(0) @db.Decimal(10, 2)
+  discount          Decimal             @default(0) @db.Decimal(10, 2)
+  total             Decimal             @default(0) @db.Decimal(10, 2)
+  currency          String              @default("INR")
+  
+  // Checkout
+  checkoutAt        DateTime?
+  abandonedAt       DateTime?
+  convertedAt       DateTime?
+  
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  expiresAt         DateTime?           // Auto-expire after X days
+  
+  // Relations
+  customer          Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items             WhatsAppCartItem[]
+  order             WhatsAppOrder?
+  
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model WhatsAppCartItem {
+  id                String                    @id @default(uuid())
+  cartId            String
+  
+  // Product Info
+  productId         String
+  variantId         String?
+  
+  // Quantity & Pricing
+  quantity          Int                       @default(1)
+  unitPrice         Decimal                   @db.Decimal(10, 2)
+  totalPrice        Decimal                   @db.Decimal(10, 2)
+  
+  // Customization
+  notes             String?                   @db.Text
+  customFields      Json?
+  
+  // Metadata
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  
+  // Relations
+  cart              WhatsAppCart              @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product           WhatsAppProduct           @relation(fields: [productId], references: [id])
+  variant           WhatsAppProductVariant?   @relation(fields: [variantId], references: [id])
+  
+  @@index([cartId])
+  @@index([productId])
+}
+
+model WhatsAppOrder {
+  id                String              @id @default(uuid())
+  orderNumber       String              @unique // "ORD-2025-001234"
+  
+  // Customer Info
+  cartId            String              @unique
+  phoneNumber       String
+  customerId        String?
+  
+  // Contact Info
+  customerName      String
+  customerEmail     String?
+  
+  // Order Details
+  status            String              @default("pending") // pending, confirmed, processing, completed, cancelled, refunded
+  
+  // Pricing
+  subtotal          Decimal             @db.Decimal(10, 2)
+  tax               Decimal             @db.Decimal(10, 2)
+  discount          Decimal             @db.Decimal(10, 2)
+  shippingFee       Decimal             @default(0) @db.Decimal(10, 2)
+  total             Decimal             @db.Decimal(10, 2)
+  currency          String              @default("INR")
+  
+  // Payment
+  paymentStatus     String              @default("unpaid") // unpaid, partial, paid, refunded
+  paymentMethod     String?             // "whatsapp_pay", "razorpay", "bank_transfer"
+  paidAmount        Decimal             @default(0) @db.Decimal(10, 2)
+  
+  // Fulfillment
+  fulfillmentStatus String              @default("unfulfilled") // unfulfilled, partially_fulfilled, fulfilled
+  shippingAddress   Json?
+  billingAddress    Json?
+  
+  // Tracking
+  trackingNumber    String?
+  estimatedDelivery DateTime?
+  deliveredAt       DateTime?
+  
+  // Notes
+  customerNotes     String?             @db.Text
+  internalNotes     String?             @db.Text
+  
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  confirmedAt       DateTime?
+  cancelledAt       DateTime?
+  
+  // Relations
+  cart              WhatsAppCart        @relation(fields: [cartId], references: [id])
+  customer          Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items             WhatsAppOrderItem[]
+  
+  @@index([orderNumber])
+  @@index([status])
+  @@index([customerId])
+  @@index([phoneNumber])
+  @@index([createdAt])
+}
+
+model WhatsAppOrderItem {
+  id                String                    @id @default(uuid())
+  orderId           String
+  
+  // Product Info
+  productId         String
+  variantId         String?
+  
+  // Snapshot (preserve data even if product deleted)
+  productName       String
+  productSku        String
+  productImage      String?
+  variantOptions    Json?
+  
+  // Quantity & Pricing
+  quantity          Int
+  unitPrice         Decimal                   @db.Decimal(10, 2)
+  totalPrice        Decimal                   @db.Decimal(10, 2)
+  
+  // Fulfillment
+  fulfillmentStatus String                    @default("unfulfilled")
+  fulfilledQuantity Int                       @default(0)
+  
+  // Customization
+  notes             String?                   @db.Text
+  customFields      Json?
+  
+  // Metadata
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  
+  // Relations
+  order             WhatsAppOrder             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           WhatsAppProduct           @relation(fields: [productId], references: [id])
+  variant           WhatsAppProductVariant?   @relation(fields: [variantId], references: [id])
+  
+  @@index([orderId])
+  @@index([productId])
 }
 
 enum OrganizationRole {

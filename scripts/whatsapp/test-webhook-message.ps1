@@ -63,7 +63,7 @@ try {
     Write-Host "   FROM: 919978783238" -ForegroundColor White
     Write-Host "   MESSAGE: 'Hello! I'm interested in your tour packages.'" -ForegroundColor White
     Write-Host ""
-    Write-Host "📍 View in UI: https://admin.aagamholidays.com/settings/whatsapp" -ForegroundColor Cyan
+    Write-Host "📍 View in UI: https://admin.aagamholidays.com/whatsapp/chat" -ForegroundColor Cyan
     
 } catch {
     Write-Host "❌ Error:" -ForegroundColor Red

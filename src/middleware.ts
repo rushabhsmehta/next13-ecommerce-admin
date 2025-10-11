@@ -14,11 +14,13 @@ export default authMiddleware({
     "/api/auth/:path*",
     "/api/debug-whatsapp",
     "/api/public-debug",
+    "/api/whatsapp/webhook",  // Only webhook is public for Meta callbacks
   ],
   
   // Use ignoredRoutes for webhook endpoints to completely bypass authentication
   ignoredRoutes: [
-    "/api/whatsapp/:path*",
+    // Webhook needs to completely bypass middleware for Meta to access it
+    "/api/whatsapp/webhook",
   ],
   
   async beforeAuth(req) {

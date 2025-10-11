@@ -201,7 +201,7 @@ export default function WhatsAppSettingsPage() {
   const [activeId, setActiveId] = useState<string>('');
   const [convos, setConvos] = useState<Record<string, ChatMsg[]>>({});
   const [typing, setTyping] = useState(false);
-  const [liveSend, setLiveSend] = useState(false);
+  const [liveSend, setLiveSend] = useState(true); // ✅ ENABLE LIVE SENDING
   const [sendingLive, setSendingLive] = useState(false);
   
   // Ref for auto-scrolling to bottom of chat
@@ -1549,16 +1549,44 @@ export default function WhatsAppSettingsPage() {
             
             if (!res.ok || !j.success) {
               const errorMsg = j.error || 'Send failed';
+              const errorDetails = j.details || '';
+              const requiresTemplate = j.requiresTemplate || false;
+              const metaErrorCode = j.metaErrorCode;
+              
               addDebugLog('error', '❌ Text Message Send Failed', {
                 error: errorMsg,
+                details: errorDetails,
+                requiresTemplate,
+                metaErrorCode,
                 statusCode: res.status,
                 responseBody: j
               });
+              
+              // Show helpful message with error code if available
+              let displayMessage = errorMsg;
+              if (metaErrorCode) {
+                displayMessage = `${errorMsg} (Error ${metaErrorCode})`;
+              }
+              if (errorDetails && errorDetails !== errorMsg) {
+                displayMessage += `\n\n${errorDetails}`;
+              }
+              
+              if (requiresTemplate) {
+                displayMessage += '\n\nPlease use a template message instead.';
+                toast.error(displayMessage, {
+                  duration: 8000,
+                });
+              } else {
+                toast.error(displayMessage, {
+                  duration: 6000,
+                });
+              }
+              
               throw new Error(errorMsg);
             }
             
             addDebugLog('success', '✅ Text Message Sent Successfully!', {
-              messageId: j.messageId,
+              messageId: j.messageId || j.messageSid,
               timestamp: new Date().toISOString()
             });
             
@@ -1585,17 +1613,17 @@ export default function WhatsAppSettingsPage() {
         liveSendStatus: false
       });
     }
-    // Fake reply
-    setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      const rid = `r${Math.random().toString(36).slice(2,8)}`;
-      setConvos(p => {
-        const arr = [...(p[activeContact.id] || [])];
-        arr.push({ id: rid, text: '👍 Noted!', direction: 'in', ts: Date.now(), status: 3 });
-        return { ...p, [activeContact.id]: arr };
-      });
-    }, 1800);
+    // ❌ REMOVED: Fake reply simulation - Real messages will come from webhook
+    // setTyping(true);
+    // setTimeout(() => {
+    //   setTyping(false);
+    //   const rid = `r${Math.random().toString(36).slice(2,8)}`;
+    //   setConvos(p => {
+    //     const arr = [...(p[activeContact.id] || [])];
+    //     arr.push({ id: rid, text: '👍 Noted!', direction: 'in', ts: Date.now(), status: 3 });
+    //     return { ...p, [activeContact.id]: arr };
+    //   });
+    // }, 1800);
   };
 
   const openTemplatePreview = () => {

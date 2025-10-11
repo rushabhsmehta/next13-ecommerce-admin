@@ -6,6 +6,7 @@ import {
   emitWhatsAppEvent,
 } from '@/lib/whatsapp';
 import type { SessionUpdateInput, WhatsAppInteractiveMessagePayload } from '@/lib/whatsapp';
+import prisma from '@/lib/prismadb';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +52,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // ℹ️ NOTE: We let Meta's API handle 24-hour window validation
+    // This is more reliable than checking our database, since:
+    // 1. Database might have different phone number formats
+    // 2. Meta has the authoritative source of truth
+    // 3. Meta's error messages (131047, 131026) are clear
+    // We'll catch and display Meta's errors to the user
+    
+    console.log('📤 Attempting to send message to:', cleanTo);
 
     let sessionHints: SessionUpdateInput | undefined;
     if (sessionHintsInput && typeof sessionHintsInput === 'object') {
@@ -116,21 +126,77 @@ export async function POST(request: NextRequest) {
         raw: result.rawResponse,
       });
     } else {
+      // Enhanced error response with Meta error details
+      const errorDetail = result.error || 'Unknown error occurred';
+      const is24HourError = errorDetail.includes('131047') || errorDetail.includes('131026') || errorDetail.includes('re-engagement');
+      
+      console.error('❌ WhatsApp message send failed:', {
+        error: errorDetail,
+        is24HourError,
+        to: cleanTo,
+      });
+
+      // Try to extract Meta error code if available
+      let metaErrorCode = null;
+      let metaErrorMessage = errorDetail;
+      
+      // Check if error contains Meta error code pattern
+      const errorCodeMatch = errorDetail.match(/\((\d+)\)/);
+      if (errorCodeMatch) {
+        metaErrorCode = parseInt(errorCodeMatch[1]);
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: result.error,
+          error: is24HourError 
+            ? 'Cannot send message - 24-hour messaging window expired' 
+            : errorDetail,
+          details: is24HourError
+            ? 'This customer has not messaged you within the last 24 hours. You can only send free-form messages within 24 hours of the customer\'s last message. Please use an approved template message instead.'
+            : metaErrorMessage,
+          requiresTemplate: is24HourError,
+          metaErrorCode,
           dbRecord: result.dbRecord,
           provider: result.provider,
+          rawError: result.error,
         },
-        { status: 500 }
+        { status: is24HourError ? 403 : 500 }
       );
     }
-  } catch (error) {
-    console.error('Error in WhatsApp send API:', error);
+  } catch (error: any) {
+    console.error('❌ Error in WhatsApp send API:', error);
+    
+    // Extract Meta API error details if available
+    const errorMessage = error?.message || 'Internal server error';
+    const is24HourError = errorMessage.includes('131047') || errorMessage.includes('131026') || errorMessage.includes('re-engagement');
+    
+    // Try to parse error response for Meta error code
+    let metaErrorCode = null;
+    let metaErrorMessage = errorMessage;
+    
+    if (error?.response) {
+      try {
+        const errorData = typeof error.response === 'string' ? JSON.parse(error.response) : error.response;
+        if (errorData?.error?.code) {
+          metaErrorCode = errorData.error.code;
+          metaErrorMessage = errorData.error.message || errorMessage;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        error: is24HourError 
+          ? 'Cannot send message - 24-hour messaging window expired' 
+          : 'Failed to send message',
+        details: metaErrorMessage,
+        requiresTemplate: is24HourError,
+        metaErrorCode,
+      },
+      { status: is24HourError ? 403 : 500 }
     );
   }
 }

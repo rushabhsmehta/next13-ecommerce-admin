@@ -116,10 +116,13 @@ const NAV_ITEMS = [
     ],
   },
   {
-    title: "Communication",
+    title: "WhatsApp",
     items: [
-      { title: "WhatsApp Chat", url: "/settings/whatsapp" },
-      { title: "WhatsApp Management", url: "/settings/whatsapp-management" },
+      { title: "Overview", url: "/whatsapp" },
+      { title: "Live Chat", url: "/whatsapp/chat" },
+      { title: "Templates", url: "/whatsapp/templates" },
+      { title: "Flows", url: "/whatsapp/flows" },
+      { title: "Campaigns", url: "/whatsapp/campaigns" },
     ],
   },
   {

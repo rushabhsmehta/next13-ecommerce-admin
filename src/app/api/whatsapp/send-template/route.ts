@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
       bodyParams = variables.map((v: any) => String(v));
     } else if (variables && typeof variables === 'object') {
       const entries = Object.entries(variables as Record<string, any>);
+      const flowButtonsList: Array<{ index: number; parameter: any }> = [];
       
       // Check for numeric keys (1, 2, 3, etc.) for body parameters
       const numeric = entries
@@ -125,6 +126,7 @@ export async function POST(request: NextRequest) {
         const regularKeys = Object.keys(variables as any).filter(key => 
           !SPECIAL_KEYS.includes(key) && 
           !key.startsWith('button') && 
+          !key.startsWith('_flow_') &&
           !key.startsWith('_')
         );
         
@@ -147,6 +149,33 @@ export async function POST(request: NextRequest) {
           headerParams = headerData;
         }
       }
+
+      Object.entries(variables as Record<string, any>).forEach(([key, value]) => {
+        const flowMatch = key.match(/^_flow_button_(\d+)$/);
+        if (flowMatch && value && typeof value === 'object') {
+          const index = Number(flowMatch[1]);
+          const parameter: any = { ...(value as any) };
+
+          if (!parameter.type) {
+            parameter.type = 'flow';
+          }
+          if (!parameter.flow_message_version) {
+            parameter.flow_message_version = '3';
+          }
+          if (!parameter.flow_token) {
+            parameter.flow_token = `flow-${Date.now()}-${index}`;
+          }
+          if (typeof parameter.flow_action_data === 'string') {
+            try {
+              parameter.flow_action_data = JSON.parse(parameter.flow_action_data);
+            } catch {
+              // leave as string if parsing fails
+            }
+          }
+
+          flowButtonsList.push({ index, parameter });
+        }
+      });
       
       // Handle Flow button parameters
       if ((variables as any).flow_token || (variables as any).flowToken) {
@@ -194,6 +223,19 @@ export async function POST(request: NextRequest) {
           index: 0,
           parameters: [{ type: 'text', text: String((variables as any).cta_url) }],
         });
+      }
+
+      if (flowButtonsList.length) {
+        flowButtonsList
+          .sort((a, b) => a.index - b.index)
+          .forEach(({ index, parameter }) => {
+            buttonParams.push({
+              type: 'button',
+              sub_type: 'flow',
+              index,
+              parameters: [parameter],
+            });
+          });
       }
     }
 

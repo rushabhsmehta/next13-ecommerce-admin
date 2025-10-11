@@ -278,7 +278,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     }
   }, [extractText]);
 
-  const formatINR = (val: string | number): string => {
+  const formatINR = useCallback((val: string | number): string => {
     try {
       const n = parseFloat(String(val).replace(/[^\d.-]/g, ''));
       if (isNaN(n)) return String(val);
@@ -286,9 +286,9 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
     } catch {
       return String(val);
     }
-  };
+  }, []);
 
-  const parsePricingSection = (pricingData: any): Array<{ name?: string; price?: string; description?: string }> => {
+  const parsePricingSection = useCallback((pricingData: any): Array<{ name?: string; price?: string; description?: string }> => {
     if (!pricingData) return [];
     try {
       if (Array.isArray(pricingData)) return pricingData;
@@ -306,14 +306,14 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       console.error('Error parsing pricing section:', error);
     }
     return [];
-  };
+  }, []);
 
-  const renderBulletList = (items: string[]) => items.map(i => `
+  const renderBulletList = useCallback((items: string[]) => items.map(i => `
     <div style="display: flex; align-items: flex-start; margin-bottom: 8px; line-height: 1.5;">
       <span style="color: #ea580c; margin-right: 8px; font-weight: bold; flex-shrink: 0;">•</span>
       <span style="color: #374151; font-size: 13px;">${i}</span>
     </div>
-  `).join('');
+  `).join(''), []);
 
   // BUILD SECTIONS
 
@@ -779,7 +779,7 @@ const TourPackagePDFGeneratorWithVariants: React.FC<TourPackagePDFGeneratorWithV
       </html>
     `;
     return fullHtml;
-  }, [initialData, currentCompany, locations, hotels, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection, renderBulletList]);
+  }, [initialData, currentCompany, locations, buildVariantsSection, brandColors, brandGradients, cardStyle, containerStyle, contentStyle, headerStyleAlt, iconStyle, itineraryHeaderStyle, pageBreakBefore, pageStyle, parsePolicyField, priceCardStyle, sectionTitleStyle, formatINR, parsePricingSection, renderBulletList]);
 
   const generatePDF = useCallback(async () => {
     setLoading(true);

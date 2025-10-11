@@ -126,7 +126,7 @@ async function graphRequest<T>(endpoint: string, options: GraphRequestOptions = 
   return payload as T;
 }
 
-async function graphBusinessRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
+export async function graphBusinessRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
   if (!META_WHATSAPP_ACCESS_TOKEN || !META_WHATSAPP_BUSINESS_ID) {
     throw new Error(
       'Meta WhatsApp Business ID missing. Set META_WHATSAPP_BUSINESS_ID or META_WHATSAPP_BUSINESS_ACCOUNT_ID.'

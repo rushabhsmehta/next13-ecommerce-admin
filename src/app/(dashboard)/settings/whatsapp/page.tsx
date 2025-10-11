@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -61,6 +61,13 @@ interface WhatsAppTemplateButton {
   text?: string;
   url?: string;
   phone?: string;
+  flowId?: string;
+  flowName?: string;
+  flowCta?: string;
+  flowMessageVersion?: string;
+  flowAction?: string;
+  flowActionData?: any;
+  flowToken?: string;
 }
 
 interface WhatsAppTemplate {
@@ -79,6 +86,29 @@ interface WhatsAppTemplate {
     buttons: WhatsAppTemplateButton[];
   };
 }
+
+const stripWhatsAppPrefix = (value?: string | null) => {
+  if (!value) return '';
+  return value.replace(/^whatsapp:/i, '').trim();
+};
+
+const normalizeContactAddress = (value?: string | null) => {
+  if (!value) return null;
+  const stripped = stripWhatsAppPrefix(value);
+  if (!stripped || /^business$/i.test(stripped)) return null;
+  if (stripped.startsWith('+')) return stripped;
+  const digits = stripped.replace(/[^\d]/g, '');
+  if (!digits) return stripped;
+  if (digits.startsWith('00')) return `+${digits.slice(2)}`;
+  return `+${digits}`;
+};
+
+const formatContactLabel = (value?: string | null) => {
+  const normalized = normalizeContactAddress(value);
+  if (normalized) return normalized;
+  const stripped = stripWhatsAppPrefix(value);
+  return stripped || 'Unknown contact';
+};
 
 export default function WhatsAppSettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -108,6 +138,17 @@ export default function WhatsAppSettingsPage() {
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
+  // Debug Logs State
+  type DebugLog = {
+    id: string;
+    timestamp: Date;
+    type: 'info' | 'success' | 'error' | 'warning';
+    action: string;
+    details: any;
+  };
+  const [debugLogs, setDebugLogs] = useState<DebugLog[]>([]);
+  const [showDebugLogs, setShowDebugLogs] = useState(true);
+
   // Interactive WhatsApp-like preview state
   type ChatMsg = { 
     id: string; 
@@ -119,8 +160,40 @@ export default function WhatsAppSettingsPage() {
       templateId?: string;
       templateName?: string;
       headerImage?: string;
-      buttons?: Array<{type?: string; text?: string; url?: string; phone?: string}>;
+      buttons?: Array<{type?: string; text?: string; url?: string; phone?: string; sub_type?: string; index?: number}>;
+      flowButtons?: Array<{ index: number; parameter: any; warnings?: string[] }>;
       components?: any[];
+      variables?: Record<string, any>;
+      whatsappType?: string;
+      contactName?: string;
+      waId?: string;
+      textPreview?: string;
+      media?: {
+        id?: string;
+        mimeType?: string;
+        filename?: string;
+        caption?: string;
+        sha256?: string;
+        size?: number;
+        url?: string;
+      };
+      location?: {
+        latitude: number;
+        longitude: number;
+        name?: string;
+        address?: string;
+        url?: string;
+      };
+      interactive?: {
+        type?: string;
+        buttonReply?: { id?: string; title?: string; payload?: string };
+        listReply?: { id?: string; title?: string; description?: string };
+        original?: any;
+      };
+      sharedContacts?: Array<any>;
+      reaction?: any;
+      rawMessage?: any;
+      rawPayload?: any;
     };
   };
   type Contact = { id: string; name: string; phone: string; avatarText?: string };
@@ -141,13 +214,21 @@ export default function WhatsAppSettingsPage() {
 
   const handleAddNewChat = () => {
     if (!newChatNumber) return;
-    const id = newChatNumber.trim();
-    if (!/^\+\d{10,15}$/.test(id)) {
-      toast.error('Invalid phone number. Use E.164 format (e.g. +1234567890)');
+    const normalized = normalizeContactAddress(newChatNumber);
+    if (!normalized) {
+      toast.error('Invalid phone number. Use digits with country code (e.g. +1234567890 or 1234567890).');
       return;
     }
-    setContacts(prev => prev.some(c => c.id === id) ? prev : [...prev, { id, name: `whatsapp:${id.slice(0, 6)}…`, phone: id, avatarText: id.replace(/\D/g, '').slice(-2) || 'CT' }]);
-    setActiveId(id);
+    setContacts(prev => prev.some(c => c.id === normalized)
+      ? prev
+      : [...prev, {
+          id: normalized,
+          name: normalized,
+          phone: normalized,
+          avatarText: normalized.replace(/\D/g, '').slice(-2) || 'CT'
+        }]
+    );
+    setActiveId(normalized);
     setShowNewChatDialog(false);
     setNewChatNumber('');
   };
@@ -167,6 +248,581 @@ export default function WhatsAppSettingsPage() {
     }
     return Array.from(set);
   };
+
+  const getMessagePreviewLabel = (message?: ChatMsg): string => {
+    if (!message) return 'Start a conversation';
+    const metadata = message.metadata;
+
+    if (metadata?.templateName || metadata?.templateId) {
+      return `Template • ${metadata.templateName || metadata.templateId}`;
+    }
+
+    const whatsappType = metadata?.whatsappType;
+    if (whatsappType && whatsappType !== 'text') {
+      switch (whatsappType) {
+        case 'image':
+          return 'Media • Image';
+        case 'video':
+          return 'Media • Video';
+        case 'audio':
+          return 'Media • Audio';
+        case 'document':
+          return metadata?.media?.filename
+            ? `Document • ${metadata.media.filename}`
+            : 'Media • Document';
+        case 'sticker':
+          return 'Sticker';
+        case 'location':
+          return metadata?.location?.name
+            ? `Location • ${metadata.location.name}`
+            : 'Location shared';
+        case 'contacts':
+          {
+            const count = metadata?.sharedContacts?.length || 1;
+            return count > 1 ? `Contacts • ${count} shared` : 'Contact shared';
+          }
+        case 'interactive':
+          if (metadata.interactive?.buttonReply?.title) {
+            return `Button reply • ${metadata.interactive.buttonReply.title}`;
+          }
+          if (metadata.interactive?.listReply?.title) {
+            return `List reply • ${metadata.interactive.listReply.title}`;
+          }
+          return 'Interactive response';
+        default:
+          break;
+      }
+    }
+
+    const text = message.text?.trim();
+    return text || metadata?.textPreview || 'Start a conversation';
+  };
+
+  const getTemplateComponentSample = (component: any): string => {
+    if (!component) return '';
+    if (typeof component.text === 'string') return component.text;
+    const example = component.example ?? {};
+    if (Array.isArray(example.header_text) && example.header_text.length > 0) {
+      return example.header_text[0];
+    }
+    if (Array.isArray(example.body_text) && example.body_text.length > 0) {
+      return example.body_text[0];
+    }
+    if (Array.isArray(example.body_texts) && example.body_texts.length > 0) {
+      return example.body_texts[0];
+    }
+    if (typeof example.text === 'string') {
+      return example.text;
+    }
+    return '';
+  };
+
+  const renderMessageContent = (msg: ChatMsg) => {
+    const metadata = msg.metadata || {};
+    const segments: JSX.Element[] = [];
+
+    const whatsappType = metadata.whatsappType;
+    const media = metadata.media;
+
+    const buildMediaSrc = (mediaId?: string | null) => {
+      if (!mediaId) return null;
+      return `/api/whatsapp/media/${mediaId}`;
+    };
+
+    if (whatsappType && whatsappType !== 'text') {
+      if (whatsappType === 'image' && media?.id) {
+        const src = buildMediaSrc(media.id);
+        segments.push(
+          <div key="image" className="overflow-hidden rounded-xl border border-white/10 bg-black/10">
+            {src ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={media.caption || 'Received image'}
+                  className="max-h-80 w-full object-cover"
+                />
+              </>
+            ) : (
+              <div className="p-4 text-sm">Image attachment unavailable</div>
+            )}
+            {(media.caption || metadata.textPreview) && (
+              <div className="px-3 py-2 text-sm whitespace-pre-wrap">
+                {media.caption || metadata.textPreview}
+              </div>
+            )}
+          </div>
+        );
+      } else if (whatsappType === 'video' && media?.id) {
+        const src = buildMediaSrc(media.id);
+        segments.push(
+          <div key="video" className="overflow-hidden rounded-xl border border-white/10 bg-black/10">
+            {src ? (
+              <video controls className="w-full" src={src} />
+            ) : (
+              <div className="p-4 text-sm">Video attachment unavailable</div>
+            )}
+            {(media.caption || metadata.textPreview) && (
+              <div className="px-3 py-2 text-sm whitespace-pre-wrap">
+                {media.caption || metadata.textPreview}
+              </div>
+            )}
+          </div>
+        );
+      } else if ((whatsappType === 'audio' || whatsappType === 'voice') && media?.id) {
+        const src = buildMediaSrc(media.id);
+        segments.push(
+          <div key="audio" className="rounded-xl border border-white/10 bg-white/5 p-3">
+            {src ? (
+              <audio controls className="w-full" src={src} />
+            ) : (
+              <div className="text-sm">Audio attachment unavailable</div>
+            )}
+            {metadata.textPreview && (
+              <p className="mt-2 text-xs opacity-80">{metadata.textPreview}</p>
+            )}
+          </div>
+        );
+      } else if (whatsappType === 'document' && media?.id) {
+        const src = buildMediaSrc(media.id);
+        segments.push(
+          <a
+            key="document"
+            href={src || '#'}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              "flex items-center gap-3 rounded-xl border px-3 py-2 text-sm transition-colors",
+              msg.direction === 'out' ? 'border-white/20 hover:bg-white/10' : 'border-emerald-200 hover:bg-emerald-50'
+            )}
+          >
+            <FileText className="h-4 w-4" />
+            <div className="flex-1">
+              <div className="font-medium">{media.filename || 'Document'}</div>
+              {media.mimeType && (
+                <div className="text-xs opacity-80">{media.mimeType}</div>
+              )}
+            </div>
+          </a>
+        );
+      } else if (whatsappType === 'location' && metadata.location) {
+        const { latitude, longitude, name, address } = metadata.location;
+        const mapsUrl = metadata.location.url || `https://maps.google.com/?q=${latitude},${longitude}`;
+        segments.push(
+          <div key="location" className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="font-semibold text-sm">{name || 'Location shared'}</div>
+            {address && <div className="text-xs opacity-80">{address}</div>}
+            <div className="mt-2 text-xs">
+              Lat: {latitude} • Lng: {longitude}
+            </div>
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium underline"
+            >
+              Open in Maps
+            </a>
+          </div>
+        );
+      } else if (whatsappType === 'contacts' && metadata.sharedContacts?.length) {
+        segments.push(
+          <div key="contacts" className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+            <div className="font-semibold text-sm">Shared Contacts</div>
+            {metadata.sharedContacts.map((contact, idx) => (
+              <div key={idx} className="rounded-lg bg-white/10 px-3 py-2 text-xs">
+                <div className="font-medium">
+                  {contact?.name?.formatted_name || contact?.name?.first_name || 'Contact'}
+                </div>
+                {Array.isArray(contact?.phones) && contact.phones.length > 0 && (
+                  <div className="mt-1">
+                    {contact.phones.map((phone: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="opacity-70">{phone.type || 'phone'}:</span>
+                        <span>{phone.phone}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      } else if (whatsappType === 'interactive' && metadata.interactive) {
+        const interactive = metadata.interactive;
+        segments.push(
+          <div key="interactive" className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+            <div className="font-semibold mb-1">Interactive response</div>
+            {interactive.buttonReply && (
+              <div>
+                <div className="text-xs uppercase opacity-70">Button</div>
+                <div>{interactive.buttonReply.title}</div>
+                {interactive.buttonReply.payload && (
+                  <div className="mt-1 text-xs opacity-80">Payload: {interactive.buttonReply.payload}</div>
+                )}
+              </div>
+            )}
+            {interactive.listReply && (
+              <div>
+                <div className="text-xs uppercase opacity-70">List selection</div>
+                <div>{interactive.listReply.title}</div>
+                {interactive.listReply.description && (
+                  <div className="mt-1 text-xs opacity-80">{interactive.listReply.description}</div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      } else if (whatsappType === 'sticker' && media?.id) {
+        const src = buildMediaSrc(media.id);
+        segments.push(
+          <div key="sticker" className="flex justify-center">
+            {src ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="Sticker" className="h-32 w-32" />
+              </>
+            ) : (
+              <div className="p-4 text-sm">Sticker unavailable</div>
+            )}
+          </div>
+        );
+      }
+    }
+
+    const isTemplateMessage = Boolean(metadata.templateId || metadata.templateName);
+
+    if (isTemplateMessage) {
+      const variables = (metadata.variables as Record<string, any>) || {};
+      const variableAny = variables as any;
+      const components = metadata.components || [];
+      const findComponent = (type: string) =>
+        components.find((c: any) => (c?.type || c?.role || '')?.toString().toLowerCase() === type.toLowerCase());
+
+      const headerComponent = findComponent('header');
+      const footerComponent = findComponent('footer');
+      const bodyComponent = findComponent('body');
+
+      const headerTemplate = getTemplateComponentSample(headerComponent);
+      const footerTemplate = getTemplateComponentSample(footerComponent);
+      const bodyTemplate = getTemplateComponentSample(bodyComponent);
+
+      const headerOverride = variableAny?.header?.text ?? variableAny?.header_text ?? variableAny?._header_text;
+      const headerText = headerOverride || (headerTemplate ? substituteTemplate(headerTemplate, variables) : '');
+
+      const bodyText = bodyTemplate ? substituteTemplate(bodyTemplate, variables) : (msg.text || '');
+
+      const footerOverride = variableAny?.footer?.text ?? variableAny?.footer_text ?? variableAny?._footer_text;
+      const footerText = footerTemplate ? substituteTemplate(footerTemplate, variables) : footerOverride;
+
+      segments.push(
+        <div key="template" className="space-y-2">
+          <div className={cn(
+            "flex items-center gap-2 text-xs uppercase tracking-wide font-semibold",
+            msg.direction === 'out' ? 'text-white/80' : 'text-emerald-600'
+          )}>
+            <FileText className="h-3.5 w-3.5" />
+            <span className="truncate">{metadata.templateName || metadata.templateId || 'Template'}</span>
+          </div>
+
+          {headerText && (
+            <p className={cn(
+              "text-sm font-semibold",
+              msg.direction === 'out' ? 'text-white' : 'text-emerald-700'
+            )}>
+              {headerText}
+            </p>
+          )}
+
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{bodyText || msg.text}</p>
+
+          {footerText && (
+            <p className={cn(
+              "text-xs italic opacity-80",
+              msg.direction === 'out' ? 'text-white/80' : 'text-muted-foreground'
+            )}>
+              {footerText}
+            </p>
+          )}
+        </div>
+      );
+    } else {
+      const textContent = metadata.textPreview || msg.text;
+      const looksLikePlaceholder = typeof textContent === 'string'
+        ? /^\s*\[[^\]]+\]\s*$/.test(textContent)
+        : false;
+      const shouldHidePlaceholder = looksLikePlaceholder && whatsappType && whatsappType !== 'text';
+
+      if (textContent && !shouldHidePlaceholder) {
+        segments.push(
+          <p key="text" className="text-sm whitespace-pre-wrap leading-relaxed">
+            {textContent}
+          </p>
+        );
+      }
+    }
+
+    if (segments.length === 0) {
+      return <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>;
+    }
+
+    return <div className="space-y-2">{segments}</div>;
+  };
+
+    const buildTemplateSubmission = (
+      template: WhatsAppTemplate | undefined,
+      stateVars: { [key: string]: string }
+    ) => {
+      const processed: Record<string, any> = {};
+      const flowButtons = new Map<number, any>();
+      const flowWarnings: Array<{ index: number; error: string }> = [];
+
+      let documentLink: string | null = null;
+      let documentFilename: string | null = null;
+      let headerTextOverride: string | null = null;
+
+      const bodyVarSet = new Set<string>();
+      if (template) {
+        const bodyVars = Array.isArray(template.variables) && template.variables.length > 0
+          ? (template.variables as string[])
+          : extractPlaceholders(template.body);
+        bodyVars.forEach((v) => bodyVarSet.add(String(v)));
+
+        const headerComponent = template.components?.find((c: any) => c.type === 'HEADER' || c.type === 'header');
+        if (headerComponent?.text) {
+          extractPlaceholders(headerComponent.text).forEach((v) => bodyVarSet.add(String(v)));
+        }
+      }
+
+      Object.entries(stateVars).forEach(([key, rawValue]) => {
+        if (rawValue === undefined || rawValue === null) {
+          return;
+        }
+        const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+        if (value === '') {
+          return;
+        }
+
+        if (key === '_header_image') {
+          processed.headerImage = value;
+          return;
+        }
+
+        if (key === '_header_video') {
+          processed.header = {
+            type: 'video',
+            video: { link: value },
+          };
+          return;
+        }
+
+        if (key === '_header_document') {
+          documentLink = value;
+          return;
+        }
+
+        if (key === '_header_document_filename') {
+          documentFilename = value;
+          return;
+        }
+
+        if (key === '_header_text') {
+          headerTextOverride = value;
+          return;
+        }
+
+        const urlMatch = key.match(/^_button_(\d+)_url$/);
+        if (urlMatch) {
+          const idx = Number(urlMatch[1]);
+          processed[`button${idx}`] = [value];
+          return;
+        }
+
+        const flowMatch = key.match(/^_flow_(\d+)_(.+)$/);
+        if (flowMatch) {
+          const idx = Number(flowMatch[1]);
+          const field = flowMatch[2];
+          const existing = flowButtons.get(idx) || { index: idx };
+
+          if (field === 'token') {
+            existing.flow_token = value;
+          } else if (field === 'id') {
+            existing.flow_id = value;
+          } else if (field === 'name') {
+            existing.flow_name = value;
+          } else if (field === 'cta') {
+            existing.flow_cta = value;
+          } else if (field === 'message_version') {
+            existing.flow_message_version = value;
+          } else if (field === 'action') {
+            existing.flow_action = value;
+          } else if (field === 'action_data') {
+            existing._raw_action_data = value;
+            if (typeof value === 'string' && value.trim().length > 0) {
+              try {
+                existing.flow_action_data = JSON.parse(value);
+              } catch (err: any) {
+                existing.flow_action_data = value;
+                existing._action_data_error = err?.message || 'Invalid JSON';
+              }
+            }
+          } else if (field === 'action_payload') {
+            existing.flow_action_payload = value;
+          } else if (field === 'token_label') {
+            existing.flow_token_label = value;
+          } else {
+            existing[field] = value;
+          }
+
+          flowButtons.set(idx, existing);
+          return;
+        }
+
+        if (bodyVarSet.has(key) || /^\d+$/.test(key)) {
+          processed[key] = value;
+          return;
+        }
+
+        processed[key] = value;
+      });
+
+      if (documentLink) {
+        processed.header = {
+          type: 'document',
+          document: {
+            link: documentLink,
+            filename: documentFilename || 'document.pdf',
+          },
+        };
+      } else if (headerTextOverride) {
+        processed.header = {
+          type: 'text',
+          text: headerTextOverride,
+        };
+      }
+
+      const flowButtonArray: Array<{ index: number; parameter: any; warnings?: string[] }> = [];
+
+      flowButtons.forEach((flow, idx) => {
+        const parameter: any = {
+          type: 'flow',
+          flow_token: flow.flow_token || `flow-${Date.now()}-${idx}`,
+          flow_message_version: flow.flow_message_version || '3',
+        };
+
+        if (flow.flow_id) parameter.flow_id = flow.flow_id;
+        if (flow.flow_name) parameter.flow_name = flow.flow_name;
+        if (flow.flow_cta) parameter.flow_cta = flow.flow_cta;
+        if (flow.flow_action) parameter.flow_action = flow.flow_action;
+        if (flow.flow_action_data !== undefined && flow.flow_action_data !== '') {
+          parameter.flow_action_data = flow.flow_action_data;
+        }
+        if (flow.flow_action_payload) {
+          parameter.flow_action_payload = flow.flow_action_payload;
+        }
+        if (flow.flow_token_label) {
+          parameter.flow_token_label = flow.flow_token_label;
+        }
+
+        if (flow._action_data_error) {
+          flowWarnings.push({ index: idx, error: flow._action_data_error });
+        }
+
+        processed[`_flow_button_${idx}`] = parameter;
+        flowButtonArray.push({
+          index: idx,
+          parameter,
+          warnings: flow._action_data_error ? [flow._action_data_error] : undefined,
+        });
+      });
+
+      return {
+        variables: processed,
+        flowButtons: flowButtonArray,
+        warnings: flowWarnings,
+      };
+    };
+
+    const orderTemplateVariableKeys = (keys: string[]) => {
+      const body: string[] = [];
+      const header: string[] = [];
+      const button: string[] = [];
+      const flow: string[] = [];
+      const other: string[] = [];
+
+      keys.forEach((key) => {
+        if (key.startsWith('_flow_')) {
+          flow.push(key);
+        } else if (key.startsWith('_header')) {
+          header.push(key);
+        } else if (key.startsWith('_button_')) {
+          button.push(key);
+        } else if (key.startsWith('_')) {
+          other.push(key);
+        } else {
+          body.push(key);
+        }
+      });
+
+      return [...body, ...header, ...button, ...flow, ...other];
+    };
+
+    const formatVariableLabel = (variable: string) => {
+      if (/^\d+$/.test(variable)) {
+        return `Body Variable {{${variable}}}`;
+      }
+
+      if (variable.startsWith('_header_document')) {
+        return variable.endsWith('filename') ? 'Header Document Filename' : 'Header Document URL';
+      }
+
+      if (variable === '_header_image') return 'Header Image URL';
+      if (variable === '_header_video') return 'Header Video URL';
+      if (variable === '_header_text') return 'Header Text';
+
+      const buttonMatch = variable.match(/^_button_(\d+)_url$/);
+      if (buttonMatch) {
+        const idx = Number(buttonMatch[1]) + 1;
+        return `Button ${idx} URL Parameter`;
+      }
+
+      const flowMatch = variable.match(/^_flow_(\d+)_(.+)$/);
+      if (flowMatch) {
+        const idx = Number(flowMatch[1]) + 1;
+        const field = flowMatch[2]
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (ch) => ch.toUpperCase());
+        return `Flow Button ${idx} ${field}`;
+      }
+
+      return variable
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (ch) => ch.toUpperCase());
+    };
+
+    const variableHelperText = (variable: string): string | undefined => {
+      if (variable === '_header_image') return 'Public HTTPS link to the header image.';
+      if (variable === '_header_video') return 'Public HTTPS link to the header video.';
+      if (variable === '_header_document') return 'Public HTTPS link to the document (PDF, etc.).';
+      if (variable === '_header_document_filename') return 'Filename that will appear to the recipient (e.g., brochure.pdf).';
+
+      const flowMatch = variable.match(/^_flow_(\d+)_(.+)$/);
+      if (flowMatch) {
+        const field = flowMatch[2];
+        if (field === 'token') return 'Unique token for this flow invocation. Auto-generated but editable.';
+        if (field === 'message_version') return 'Flow message version (default 3).';
+        if (field === 'id') return 'Flow ID from WhatsApp Flows Manager.';
+        if (field === 'name') return 'Human readable flow name for logging.';
+        if (field === 'cta') return 'CTA label shown on the button.';
+        if (field === 'action') return 'Optional flow action (navigate or data_exchange).';
+        if (field === 'action_data') return 'JSON payload passed as flow_action_data.';
+        if (field === 'action_payload') return 'Optional JSON payload for flow_action_payload.';
+      }
+
+      return undefined;
+    };
+
+    const isLongFormField = (variable: string) => /action_data|payload|json/i.test(variable);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -216,6 +872,38 @@ export default function WhatsAppSettingsPage() {
     };
   }, []);
 
+  // Debug Logging Helper
+  const addDebugLog = (type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
+    const log: DebugLog = {
+      id: `log-${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      type,
+      action,
+      details: typeof details === 'object' ? details : { value: details }
+    };
+    setDebugLogs(prev => [log, ...prev].slice(0, 100)); // Keep last 100 logs
+  };
+
+  const clearDebugLogs = () => {
+    setDebugLogs([]);
+    addDebugLog('info', 'Debug logs cleared', { count: 0 });
+  };
+
+  const exportDebugLogs = () => {
+    const logsText = debugLogs.map(log => 
+      `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}] ${log.action}\n${JSON.stringify(log.details, null, 2)}`
+    ).join('\n\n' + '='.repeat(80) + '\n\n');
+    
+    const blob = new Blob([logsText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `whatsapp-debug-logs-${new Date().toISOString()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addDebugLog('success', 'Debug logs exported', { count: debugLogs.length });
+  };
+
   // Simple delivery animation for preview bubble: none -> sent -> delivered -> read
   useEffect(() => {
     if (!phoneNumber && !selectedTemplate) return; // animate only when form has content
@@ -240,17 +928,35 @@ export default function WhatsAppSettingsPage() {
 
       // Group messages by phone number
       messages.forEach(msg => {
-        const contactPhone = msg.direction === 'inbound' ? msg.from : msg.to;
-        
-        if (!contactPhone || contactPhone === 'business') return;
+        const normalizedFrom = normalizeContactAddress(msg.from);
+        const normalizedTo = normalizeContactAddress(msg.to);
+        const baseMetadata = ((msg as any).metadata || {}) as ChatMsg['metadata'];
+
+        const contactPhone = msg.direction === 'inbound'
+          ? (normalizedFrom || normalizedTo)
+          : (normalizedTo || normalizedFrom);
+
+        if (!contactPhone) return;
+
+        const profileName = baseMetadata?.contactName;
+        const displayName = profileName
+          ? profileName
+          : msg.direction === 'inbound'
+            ? formatContactLabel(msg.from)
+            : formatContactLabel(msg.to);
 
         // Create contact if not exists
         if (!contactMap[contactPhone]) {
           contactMap[contactPhone] = {
             id: contactPhone,
-            name: contactPhone,
+            name: displayName,
             phone: contactPhone,
             avatarText: contactPhone.replace(/\D/g, '').slice(-2) || 'CT'
+          };
+        } else if (profileName && contactMap[contactPhone].name !== profileName) {
+          contactMap[contactPhone] = {
+            ...contactMap[contactPhone],
+            name: profileName,
           };
         }
 
@@ -260,21 +966,66 @@ export default function WhatsAppSettingsPage() {
         }
 
         // Extract readable message text and template metadata
-        let messageText = msg.message || '[No content]';
+        let messageText = msg.message || baseMetadata?.textPreview || '[No content]';
         let templateMetadata: ChatMsg['metadata'] = undefined;
         
         // Check if message has metadata with template info (cast to any to avoid TS error until Prisma regenerates)
         const msgMetadata = (msg as any).metadata;
         if (msgMetadata?.templateId || msgMetadata?.templateName) {
           const template = templates.find(t => t.id === msgMetadata.templateId || t.name === msgMetadata.templateName);
-          if (template) {
-            templateMetadata = {
-              templateId: template.id,
-              templateName: template.name,
-              headerImage: msgMetadata.headerImage,
-              buttons: template.whatsapp?.buttons || msgMetadata.buttons,
-              components: template.components
-            };
+          const templateButtons = Array.isArray(msgMetadata?.buttons)
+            ? msgMetadata.buttons
+            : template?.whatsapp?.buttons;
+          templateMetadata = {
+            templateId: template?.id || msgMetadata?.templateId,
+            templateName: template?.name || msgMetadata?.templateName,
+            headerImage: msgMetadata?.headerImage || msgMetadata?.header?.image,
+            buttons: templateButtons,
+            flowButtons: Array.isArray(msgMetadata?.flowButtons) ? msgMetadata.flowButtons : undefined,
+            components: template?.components || msgMetadata?.components,
+            variables: msgMetadata?.variables,
+          };
+        }
+
+        if (baseMetadata?.whatsappType && baseMetadata.whatsappType !== 'text') {
+          switch (baseMetadata.whatsappType) {
+            case 'image':
+              messageText = baseMetadata.media?.caption || baseMetadata.textPreview || '📷 Image';
+              break;
+            case 'video':
+              messageText = baseMetadata.media?.caption || '🎞️ Video';
+              break;
+            case 'audio':
+              messageText = '🎧 Audio message';
+              break;
+            case 'document':
+              messageText = baseMetadata.media?.filename || '📄 Document';
+              break;
+            case 'sticker':
+              messageText = '🩵 Sticker';
+              break;
+            case 'location':
+              messageText = baseMetadata.location?.name
+                ? `📍 ${baseMetadata.location.name}`
+                : '📍 Location shared';
+              break;
+            case 'contacts':
+              {
+                const contactCount = baseMetadata.sharedContacts?.length || 1;
+                messageText = contactCount > 1 ? `👥 Shared ${contactCount} contacts` : '👤 Shared contact';
+              }
+              break;
+            case 'interactive':
+              if (baseMetadata.interactive?.buttonReply?.title) {
+                messageText = `↩️ Button reply: ${baseMetadata.interactive.buttonReply.title}`;
+              } else if (baseMetadata.interactive?.listReply?.title) {
+                messageText = `📋 List reply: ${baseMetadata.interactive.listReply.title}`;
+              } else {
+                messageText = '🧾 Interactive response';
+              }
+              break;
+            default:
+              messageText = baseMetadata.textPreview || messageText;
           }
         }
         
@@ -289,7 +1040,7 @@ export default function WhatsAppSettingsPage() {
                 templateId: template.id,
                 templateName: template.name,
                 buttons: template.whatsapp?.buttons,
-                components: template.components
+                components: template.components,
               };
             } else {
               messageText = `Template: ${templateId}`;
@@ -297,13 +1048,18 @@ export default function WhatsAppSettingsPage() {
           }
         }
         
+        const mergedMetadata: ChatMsg['metadata'] = {
+          ...(baseMetadata || {}),
+          ...(templateMetadata || {}),
+        };
+
         convoMap[contactPhone].push({
           id: msg.id || msg.messageSid || `msg-${Math.random()}`,
           text: messageText,
           direction: msg.direction === 'inbound' ? 'in' : 'out',
           ts: new Date(msg.createdAt).getTime(),
           status: msg.status === 'delivered' ? 2 : msg.status === 'read' ? 3 : msg.status === 'sent' ? 1 : 0,
-          metadata: templateMetadata
+          metadata: mergedMetadata
         });
       });
 
@@ -353,9 +1109,230 @@ export default function WhatsAppSettingsPage() {
       setConvos({});
       console.log('⚠️ No contacts to display');
     }
-  }, [messages, templates]);
+  }, [messages, templates, activeId]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
+  const shouldShowTemplateDialog = showTemplatePreview && !!selectedTemplate;
+  const orderedTemplateVariableKeys = orderTemplateVariableKeys(Object.keys(templateVariables));
+
+  const activeTemplate = useMemo(
+    () => templates.find((tpl) => tpl.id === selectedTemplate),
+    [templates, selectedTemplate]
+  );
+
+  const templateFlowButtons = useMemo(
+    () => activeTemplate?.whatsapp?.buttons?.filter((btn) => btn.type === 'FLOW') ?? [],
+    [activeTemplate]
+  );
+
+  const flowVariableGroups = useMemo(
+    () => {
+      const groups = new Map<number, string[]>();
+      orderedTemplateVariableKeys.forEach((key) => {
+        const match = key.match(/^_flow_(\d+)_/);
+        if (!match) return;
+        const idx = Number(match[1]);
+        const existing = groups.get(idx) || [];
+        existing.push(key);
+        groups.set(idx, existing);
+      });
+      return Array.from(groups.entries()).map(([index, variables]) => ({ index, variables }));
+    },
+    [orderedTemplateVariableKeys]
+  );
+
+  const standardVariableKeys = useMemo(
+    () => orderedTemplateVariableKeys.filter((key) => !key.startsWith('_flow_')),
+    [orderedTemplateVariableKeys]
+  );
+
+  const flowFieldPriority = (variable: string) => {
+    const match = variable.match(/^_flow_\d+_(.+)$/);
+    if (!match) return 99;
+    const order = [
+      'token',
+      'token_label',
+      'message_version',
+      'id',
+      'name',
+      'cta',
+      'action',
+      'action_payload',
+      'action_data',
+    ];
+    const field = match[1];
+    const idx = order.indexOf(field);
+    return idx === -1 ? order.length + 1 : idx;
+  };
+
+  const renderVariableControl = (
+    variable: string,
+    options: {
+      idPrefix?: string;
+      textareaRows?: number;
+      helperClassName?: string;
+      labelClassName?: string;
+    } = {}
+  ) => {
+    const helper = variableHelperText(variable);
+    const fieldId = `${options.idPrefix ?? 'var'}-${variable}`;
+    const currentValue = templateVariables[variable] ?? '';
+    const isLongField = isLongFormField(variable);
+    const label = formatVariableLabel(variable);
+    const textareaRows = options.textareaRows ?? (isLongField ? 6 : 4);
+
+    return (
+      <div key={variable} className="space-y-1.5">
+        <Label htmlFor={fieldId} className={cn('text-sm font-medium', options.labelClassName)}>
+          {label}
+        </Label>
+        {isLongField ? (
+          <Textarea
+            id={fieldId}
+            placeholder={`Enter ${label.toLowerCase()}`}
+            value={currentValue}
+            onChange={(e) =>
+              setTemplateVariables((prev) => ({
+                ...prev,
+                [variable]: e.target.value,
+              }))
+            }
+            rows={textareaRows}
+            className="mt-1 font-mono"
+          />
+        ) : (
+          <Input
+            id={fieldId}
+            placeholder={`Enter value for ${label}`}
+            value={currentValue}
+            onChange={(e) =>
+              setTemplateVariables((prev) => ({
+                ...prev,
+                [variable]: e.target.value,
+              }))
+            }
+            className="mt-1"
+            autoComplete="off"
+          />
+        )}
+        {helper && (
+          <p className={cn('text-xs text-muted-foreground', options.helperClassName)}>{helper}</p>
+        )}
+      </div>
+    );
+  };
+
+  const regenerateFlowTokens = useCallback(
+    (flowIndex?: number) => {
+      if (flowVariableGroups.length === 0) return;
+
+      setTemplateVariables((prev) => {
+        const next = { ...prev };
+        const stamp = Date.now();
+        const buildToken = (idx: number) => {
+          const targetGroup = flowVariableGroups.find((group) => group.index === idx);
+          const hasTokenField = targetGroup?.variables.some((variable) => variable.endsWith('_token'));
+          if (!hasTokenField) return;
+          const token =
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+              ? crypto.randomUUID()
+              : `flow-${stamp}-${idx}-${Math.floor(Math.random() * 1000)}`;
+          next[`_flow_${idx}_token`] = token;
+        };
+
+        if (typeof flowIndex === 'number') {
+          buildToken(flowIndex);
+        } else {
+          flowVariableGroups.forEach((group) => buildToken(group.index));
+        }
+
+        return next;
+      });
+
+      toast.success(
+        typeof flowIndex === 'number' ? 'Flow token regenerated' : 'Flow tokens refreshed'
+      );
+    },
+    [flowVariableGroups]
+  );
+
+  const applyFlowDefaults = useCallback(
+    (flowIndex: number) => {
+      const btn = templateFlowButtons[flowIndex];
+      const group = flowVariableGroups.find((g) => g.index === flowIndex);
+      if (!group) {
+        toast.error('No flow fields available for this template');
+        return;
+      }
+
+      setTemplateVariables((prev) => {
+        const next = { ...prev };
+
+        group.variables.forEach((variable) => {
+          const match = variable.match(/^_flow_\d+_(.+)$/);
+          if (!match) return;
+          const field = match[1];
+
+          const assign = (value: any, fallback?: string) => {
+            if (value === undefined || value === null) {
+              if (fallback !== undefined) {
+                next[variable] = fallback;
+              }
+              return;
+            }
+            if (typeof value === 'object') {
+              next[variable] = JSON.stringify(value, null, 2);
+            } else {
+              next[variable] = String(value);
+            }
+          };
+
+          switch (field) {
+            case 'token': {
+              const defaultToken =
+                btn?.flowToken ||
+                (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                  ? crypto.randomUUID()
+                  : `flow-${Date.now()}-${flowIndex}`);
+              assign(defaultToken);
+              break;
+            }
+            case 'message_version':
+              assign(btn?.flowMessageVersion ?? '3');
+              break;
+            case 'id':
+              assign(btn?.flowId ?? next[variable]);
+              break;
+            case 'name':
+              assign(btn?.flowName ?? btn?.text ?? next[variable]);
+              break;
+            case 'cta':
+              assign(btn?.flowCta ?? btn?.text ?? next[variable]);
+              break;
+            case 'action':
+              assign(btn?.flowAction ?? next[variable]);
+              break;
+            case 'action_data':
+              assign(btn?.flowActionData ?? next[variable]);
+              break;
+            case 'action_payload':
+              assign((btn as any)?.flowActionPayload ?? next[variable]);
+              break;
+            case 'token_label':
+              assign((btn as any)?.flowTokenLabel ?? next[variable]);
+              break;
+            default:
+              assign(next[variable]);
+          }
+        });
+
+        return next;
+      });
+
+      toast.success('Flow defaults applied');
+    },
+    [flowVariableGroups, templateFlowButtons]
+  );
 
   // Auto-scroll to bottom when messages change or active contact changes
   useEffect(() => {
@@ -365,7 +1342,18 @@ export default function WhatsAppSettingsPage() {
   }, [convos, activeId]);
 
   const sendPreviewMessage = () => {
-    if (!activeContact) return;
+    if (!activeContact) {
+      addDebugLog('error', '❌ No Active Contact', { action: 'send_attempt_blocked' });
+      return;
+    }
+    
+    addDebugLog('info', '📤 Send Message Initiated', {
+      contactName: activeContact.name,
+      contactPhone: activeContact.phone,
+      hasTemplate: !!selectedTemplate,
+      templateId: selectedTemplate || null
+    });
+    
     const selectedTemplateId = selectedTemplate;
     const tpl = templates.find(t => t.id === selectedTemplateId);
     const hasVars = tpl && (Array.isArray(tpl.variables) ? tpl.variables.length > 0 : Object.keys(extractPlaceholders(tpl.body)).length > 0);
@@ -374,25 +1362,96 @@ export default function WhatsAppSettingsPage() {
         // If template is selected and has variables, but they are not filled,
         // we just return, because the modal should be handling it.
         // This prevents sending a message with unfilled placeholders.
+        addDebugLog('warning', '⚠️ Template Variables Not Filled', {
+          templateId: selectedTemplateId,
+          templateName: tpl?.name,
+          requiredVariables: Object.keys(templateVariables),
+          filledVariables: Object.entries(templateVariables).filter(([k,v]) => v).map(([k]) => k),
+          missingVariables: Object.entries(templateVariables).filter(([k,v]) => !v).map(([k]) => k)
+        });
         return;
     }
 
     const base = selectedTemplateId ? (tpl?.body || '') : (message || '');
     const text = selectedTemplateId ? substituteTemplate(base, templateVariables) : base;
-    if (!text.trim()) return;
+
+    if (!text.trim()) {
+      addDebugLog('error', '❌ Empty Message', { action: 'send_blocked' });
+      return;
+    }
+
+    addDebugLog('info', '📝 Message Text Prepared', {
+      isTemplate: !!selectedTemplateId,
+      originalText: base,
+      substitutedText: text,
+      variablesUsed: selectedTemplateId ? Object.keys(templateVariables) : []
+    });
+
+    const submission = selectedTemplateId && tpl
+      ? buildTemplateSubmission(tpl, templateVariables)
+      : { variables: {}, flowButtons: [], warnings: [] };
+    const processedVariables = submission.variables;
+
+    addDebugLog('info', '🔄 Template Variables Transformed', {
+      keys: Object.keys(processedVariables),
+      flowButtonCount: submission.flowButtons.length,
+      headerIncluded: Boolean(processedVariables.header || processedVariables.headerImage),
+    });
+
+    submission.warnings?.forEach(({ index, error }) => {
+      addDebugLog('warning', '⚠️ Flow Action Data Warning', { buttonIndex: index, error });
+    });
+
+    const templateMetadata = selectedTemplateId && tpl ? {
+      templateId: tpl.id,
+      templateName: tpl.name,
+      headerImage: processedVariables.headerImage || templateVariables['_header_image'],
+      buttons: tpl.whatsapp?.buttons || [],
+      components: tpl.components || [],
+      flowButtons: submission.flowButtons,
+      variables: processedVariables,
+    } : undefined;
+
+    if (templateMetadata) {
+      addDebugLog('info', '🎨 Template Metadata Built', {
+        templateId: templateMetadata.templateId,
+        templateName: templateMetadata.templateName,
+        hasHeaderImage: !!templateMetadata.headerImage,
+        buttonCount: templateMetadata.buttons.length,
+        componentCount: templateMetadata.components.length,
+        components: templateMetadata.components.map((c: any) => c.type)
+      });
+    }
 
     // Clear message and template selection after preparing the message
     setMessage('');
     if (selectedTemplateId) {
         setSelectedTemplate('');
         setTemplateVariables({});
+        setShowTemplatePreview(false);
+        addDebugLog('info', '🧹 Template Selection Cleared', { templateId: selectedTemplateId });
     }
 
     const id = `m${Math.random().toString(36).slice(2,8)}`;
     const now = Date.now();
+    
+    addDebugLog('success', '✅ Message Added to UI', {
+      messageId: id,
+      timestamp: now,
+      direction: 'out',
+      hasMetadata: !!templateMetadata
+    });
+    
     setConvos(prev => {
       const arr = prev[activeContact.id] ? [...prev[activeContact.id]] : [];
-      arr.push({ id, text, direction: 'out', ts: now, status: 0 });
+      arr.push({ 
+        id, 
+        text, 
+        direction: 'out', 
+        ts: now, 
+        status: 0,
+        metadata: templateMetadata
+      });
       return { ...prev, [activeContact.id]: arr };
     });
     // Animate status per message id
@@ -401,6 +1460,11 @@ export default function WhatsAppSettingsPage() {
     setTimeout(() => setConvos(p => ({...p, [activeContact.id]: p[activeContact.id].map(m => m.id===id?{...m, status:3}:m)})), 1400);
     // Live send via API if enabled
     if (liveSend) {
+      addDebugLog('info', '🌐 Live Send Enabled - Preparing API Call', {
+        liveSendStatus: true,
+        recipientPhone: activeContact.phone
+      });
+
       setSendingLive(true);
       const to = activeContact.phone;
       (async () => {
@@ -409,39 +1473,117 @@ export default function WhatsAppSettingsPage() {
             if (!tpl) {
               throw new Error('Selected template not found');
             }
-            const res = await fetch('/api/whatsapp/send-template', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                to,
+            const apiPayload = {
+              to,
+              templateId: tpl.id,
+              templateName: tpl.name,
+              templateBody: tpl.body,
+              languageCode: tpl.language || 'en_US',
+              variables: processedVariables,
+              saveToDb: true,
+              metadata: {
                 templateId: tpl.id,
                 templateName: tpl.name,
-                languageCode: tpl.language || 'en_US',
-                variables: templateVariables,
-                saveToDb: true,
-              })
+                sentFrom: 'chat_interface',
+                flowButtons: submission.flowButtons,
+              }
+            };
+
+            addDebugLog('info', '📦 API Payload Constructed', {
+              endpoint: '/api/whatsapp/send-template',
+              payload: apiPayload
+            });
+
+            const res = await fetch('/api/whatsapp/send-template', {
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(apiPayload)
             });
             const j = await res.json();
-            if (!res.ok || !j.success) throw new Error(j.error || 'Send failed');
-            toast.success('Template sent');
+            
+            addDebugLog('info', '📡 API Response Received', {
+              status: res.status,
+              ok: res.ok,
+              success: j.success,
+              response: j
+            });
+            
+            if (!res.ok || !j.success) {
+              const errorMsg = j.error || 'Send failed';
+              addDebugLog('error', '❌ Template Send Failed', {
+                error: errorMsg,
+                statusCode: res.status,
+                responseBody: j
+              });
+              throw new Error(errorMsg);
+            }
+            
+            addDebugLog('success', '✅ Template Sent Successfully!', {
+              messageId: j.messageId,
+              wabaId: j.wabaId,
+              timestamp: new Date().toISOString()
+            });
+            
+            toast.success('Template sent successfully!');
             // Refresh messages to show what was sent
             setTimeout(() => fetchMessages(), 1000);
           } else {
+            addDebugLog('info', '💬 Sending Regular Text Message', {
+              to,
+              messageText: text,
+              messageLength: text.length
+            });
+            
             const res = await fetch('/api/whatsapp/send', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ to, message: text, saveToDb: true })
             });
             const j = await res.json();
-            if (!res.ok || !j.success) throw new Error(j.error || 'Send failed');
+            
+            addDebugLog('info', '📡 Text Message API Response', {
+              status: res.status,
+              ok: res.ok,
+              success: j.success,
+              response: j
+            });
+            
+            if (!res.ok || !j.success) {
+              const errorMsg = j.error || 'Send failed';
+              addDebugLog('error', '❌ Text Message Send Failed', {
+                error: errorMsg,
+                statusCode: res.status,
+                responseBody: j
+              });
+              throw new Error(errorMsg);
+            }
+            
+            addDebugLog('success', '✅ Text Message Sent Successfully!', {
+              messageId: j.messageId,
+              timestamp: new Date().toISOString()
+            });
+            
             toast.success('Message sent');
             // Refresh messages to show what was sent
             setTimeout(() => fetchMessages(), 1000);
           }
         } catch (e: any) {
+          addDebugLog('error', '❌ Live Send Exception', {
+            errorMessage: e?.message || String(e),
+            errorStack: e?.stack,
+            wasTemplate: !!selectedTemplateId
+          });
           toast.error(`Live send failed: ${e?.message || e}`);
         } finally {
           setSendingLive(false);
+          addDebugLog('info', 'Live send process completed', { 
+            sendingLive: false 
+          });
         }
       })();
+    } else {
+      addDebugLog('info', 'Live send disabled - message only shown in UI', {
+        liveSendStatus: false
+      });
     }
     // Fake reply
     setTyping(true);
@@ -488,38 +1630,13 @@ export default function WhatsAppSettingsPage() {
 
     setIsLoading(true);
     try {
-      // Process template variables into the correct format
-      const processedVariables: any = {};
-      
-      Object.entries(templateVariables).forEach(([key, value]) => {
-        if (key === '_header_image' && value) {
-          processedVariables.headerImage = value;
-        } else if (key === '_header_video' && value) {
-          processedVariables.header = {
-            type: 'video',
-            video: { link: value }
-          };
-        } else if (key === '_header_document' && value) {
-          const filename = templateVariables['_header_document_filename'] || 'document.pdf';
-          processedVariables.header = {
-            type: 'document',
-            document: { link: value, filename }
-          };
-        } else if (key === '_header_document_filename') {
-          // Skip, already handled in _header_document
-        } else if (key.startsWith('_button_')) {
-          // Handle button URL parameters
-          const btnMatch = key.match(/_button_(\d+)_url/);
-          if (btnMatch && value) {
-            const btnIndex = parseInt(btnMatch[1]);
-            processedVariables[`button${btnIndex}`] = [value];
-          }
-        } else if (value) {
-          // Regular template variable
-          processedVariables[key] = value;
-        }
+      const submission = buildTemplateSubmission(tpl, templateVariables);
+      const processedVariables = submission.variables;
+
+      submission.warnings?.forEach(({ index, error }) => {
+        addDebugLog('warning', '⚠️ Flow Action Data Warning (Test Send)', { buttonIndex: index, error });
       });
-      
+
       // Always use unified endpoint; it will route to Cloud Template or local text
       const response = await fetch('/api/whatsapp/send-template', {
         method: 'POST',
@@ -536,7 +1653,8 @@ export default function WhatsAppSettingsPage() {
             templateName: tpl.name,
             headerImage: processedVariables.headerImage,
             buttons: tpl.whatsapp?.buttons,
-            components: tpl.components
+            components: tpl.components,
+            flowButtons: submission.flowButtons,
           }
         }),
       });
@@ -564,7 +1682,8 @@ export default function WhatsAppSettingsPage() {
                 templateName: tpl.name,
                 headerImage: processedVariables.headerImage,
                 buttons: tpl.whatsapp?.buttons,
-                components: tpl.components
+                  components: tpl.components,
+                  flowButtons: submission.flowButtons,
               }
             });
             return { ...prev, [activeContact.phone]: arr };
@@ -586,66 +1705,148 @@ export default function WhatsAppSettingsPage() {
       toast.error('Failed to send message');
     } finally {
       setIsLoading(false);
+      setShowTemplatePreview(false);
     }
   };
 
   const handleTemplateChange = (templateId: string) => {
+    addDebugLog('info', '🎯 Template Selection Started', { templateId });
+
     setSelectedTemplate(templateId);
     const template = templates.find(t => t.id === templateId);
-    if (template) {
-      // Initialize variables object
-      const vars: {[key: string]: string} = {};
-      
-      // Extract body variables
-      const list = Array.isArray(template.variables) && template.variables.length > 0
-        ? (template.variables as string[])
-        : extractPlaceholders(template.body);
-      (list || []).forEach((variable: string) => {
-        vars[variable] = '';
+
+    if (!template) {
+      addDebugLog('error', 'Template Not Found', { templateId, availableCount: templates.length });
+      return;
+    }
+
+    addDebugLog('success', '✅ Template Found', {
+      id: template.id,
+      name: template.name,
+      language: template.language,
+      category: template.category,
+      status: template.status
+    });
+
+    const vars: { [key: string]: string } = {};
+
+    const list = Array.isArray(template.variables) && template.variables.length > 0
+      ? (template.variables as string[])
+      : extractPlaceholders(template.body);
+
+    addDebugLog('info', '📝 Body Variables Extracted', {
+      bodyText: template.body,
+      variableCount: list?.length || 0,
+      variables: list || []
+    });
+
+    (list || []).forEach((variable: string) => {
+      vars[variable] = '';
+    });
+
+    const components = template.components || [];
+    const headerComponent = components.find((c: any) => c.type === 'HEADER' || c.type === 'header');
+
+    if (headerComponent) {
+      const headerFormat = headerComponent.format || headerComponent.type;
+
+      addDebugLog('info', '🖼️ Header Component Found', {
+        format: headerFormat,
+        hasText: !!headerComponent.text,
+        text: headerComponent.text || null
       });
-      
-      // Check for header component in template.components
-      const components = template.components || [];
-      const headerComponent = components.find((c: any) => c.type === 'HEADER' || c.type === 'header');
-      
-      if (headerComponent) {
-        const headerFormat = headerComponent.format || headerComponent.type;
-        
-        // Add header field based on format
-        if (headerFormat === 'IMAGE' || headerFormat === 'image') {
-          vars['_header_image'] = '';
-        } else if (headerFormat === 'VIDEO' || headerFormat === 'video') {
-          vars['_header_video'] = '';
-        } else if (headerFormat === 'DOCUMENT' || headerFormat === 'document') {
-          vars['_header_document'] = '';
-          vars['_header_document_filename'] = '';
-        } else if (headerFormat === 'TEXT' || headerFormat === 'text') {
-          // Extract text variables from header
-          const headerText = headerComponent.text || '';
-          const headerVars = extractPlaceholders(headerText);
-          headerVars.forEach((v: string) => {
-            if (!vars[v]) vars[v] = '';
-          });
-        }
+
+      if (headerFormat === 'IMAGE' || headerFormat === 'image') {
+        vars['_header_image'] = '';
+        addDebugLog('info', 'Added IMAGE header variable', { field: '_header_image' });
+      } else if (headerFormat === 'VIDEO' || headerFormat === 'video') {
+        vars['_header_video'] = '';
+        addDebugLog('info', 'Added VIDEO header variable', { field: '_header_video' });
+      } else if (headerFormat === 'DOCUMENT' || headerFormat === 'document') {
+        vars['_header_document'] = '';
+        vars['_header_document_filename'] = '';
+        addDebugLog('info', 'Added DOCUMENT header variables', {
+          fields: ['_header_document', '_header_document_filename']
+        });
+      } else if (headerFormat === 'TEXT' || headerFormat === 'text') {
+        const headerText = headerComponent.text || '';
+        const headerVars = extractPlaceholders(headerText);
+
+        addDebugLog('info', 'Processing TEXT header', {
+          headerText,
+          headerVariableCount: headerVars.length,
+          headerVariables: headerVars
+        });
+
+        headerVars.forEach((v: string) => {
+          if (!vars[v]) vars[v] = '';
+        });
       }
-      
-      // Check for button components with dynamic URLs
-      const buttonComponents = components.filter((c: any) => 
-        (c.type === 'BUTTONS' || c.type === 'buttons') && c.buttons
-      );
-      
-      buttonComponents.forEach((btnComp: any) => {
+    } else {
+      addDebugLog('info', 'No header component found', { componentCount: components.length });
+    }
+
+    const buttonComponents = components.filter((c: any) =>
+      (c.type === 'BUTTONS' || c.type === 'buttons') && c.buttons
+    );
+
+    if (buttonComponents.length > 0) {
+      addDebugLog('info', '🔘 Button Components Found', { count: buttonComponents.length });
+
+      buttonComponents.forEach((btnComp: any, compIndex: number) => {
         btnComp.buttons?.forEach((btn: any, index: number) => {
           if (btn.type === 'URL' && btn.url && btn.url.includes('{{')) {
-            // URL button with variable
             vars[`_button_${index}_url`] = '';
+            addDebugLog('info', 'Added URL button variable', {
+              buttonIndex: index,
+              field: `_button_${index}_url`,
+              urlPattern: btn.url,
+              buttonText: btn.text
+            });
+          } else if (btn.type === 'FLOW') {
+            const flowIndex = index;
+            const defaultToken = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+              ? crypto.randomUUID()
+              : `flow-${Date.now()}-${flowIndex}`;
+
+            vars[`_flow_${flowIndex}_token`] = btn.flowToken || defaultToken;
+            vars[`_flow_${flowIndex}_message_version`] = btn.flowMessageVersion || '3';
+            vars[`_flow_${flowIndex}_id`] = btn.flowId || '';
+            vars[`_flow_${flowIndex}_name`] = btn.flowName || btn.text || '';
+            vars[`_flow_${flowIndex}_cta`] = btn.flowCta || btn.text || '';
+            vars[`_flow_${flowIndex}_action`] = btn.flowAction || '';
+
+            const flowActionData = btn.flowActionData || null;
+            vars[`_flow_${flowIndex}_action_data`] = flowActionData
+              ? JSON.stringify(flowActionData, null, 2)
+              : '';
+
+            addDebugLog('info', 'Added FLOW button variables', {
+              buttonIndex: index,
+              token: vars[`_flow_${flowIndex}_token`],
+              flowId: vars[`_flow_${flowIndex}_id`],
+              flowName: vars[`_flow_${flowIndex}_name`],
+              flowCta: vars[`_flow_${flowIndex}_cta`],
+              flowAction: vars[`_flow_${flowIndex}_action`],
+              hasActionData: !!vars[`_flow_${flowIndex}_action_data`]
+            });
           }
         });
       });
-      
-      setTemplateVariables(vars);
-      setMessage(''); // Clear manual message
     }
+
+    const totalVariables = Object.keys(vars).length;
+    addDebugLog('success', '✨ Template Variables Initialized', {
+      totalCount: totalVariables,
+      allVariables: Object.keys(vars),
+      bodyVars: list || [],
+      headerVars: headerComponent ? 'yes' : 'no',
+      buttonVars: buttonComponents.length > 0 ? 'yes' : 'no'
+    });
+
+    setTemplateVariables(vars);
+    setShowTemplatePreview(true);
+    setMessage('');
   };
 
   const runDiagnostics = async () => {
@@ -1074,6 +2275,92 @@ export default function WhatsAppSettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Debug Logs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FileText className="h-5 w-5" />
+                  <span>Debug Logs</span>
+                  <Badge variant="secondary">{debugLogs.length}</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => setShowDebugLogs(!showDebugLogs)} 
+                    variant="ghost" 
+                    size="sm"
+                  >
+                    {showDebugLogs ? 'Hide' : 'Show'}
+                  </Button>
+                  {debugLogs.length > 0 && (
+                    <>
+                      <Button onClick={exportDebugLogs} variant="outline" size="sm">
+                        Export
+                      </Button>
+                      <Button onClick={clearDebugLogs} variant="outline" size="sm">
+                        Clear
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardTitle>
+              <CardDescription>
+                Detailed logs of template selection, variable extraction, and sending process
+              </CardDescription>
+            </CardHeader>
+            {showDebugLogs && (
+              <CardContent>
+                {debugLogs.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p>No debug logs yet. Select a template or send a message to see logs.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {debugLogs.map((log) => {
+                      const typeColors = {
+                        info: 'bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-100',
+                        success: 'bg-green-50 border-green-200 text-green-900 dark:bg-green-950 dark:border-green-800 dark:text-green-100',
+                        error: 'bg-red-50 border-red-200 text-red-900 dark:bg-red-950 dark:border-red-800 dark:text-red-100',
+                        warning: 'bg-yellow-50 border-yellow-200 text-yellow-900 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-100'
+                      };
+                      
+                      const typeIcons = {
+                        info: '📘',
+                        success: '✅',
+                        error: '❌',
+                        warning: '⚠️'
+                      };
+                      
+                      return (
+                        <div 
+                          key={log.id} 
+                          className={`border rounded-lg p-3 text-sm ${typeColors[log.type]}`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center space-x-2 font-medium">
+                              <span>{typeIcons[log.type]}</span>
+                              <span>{log.action}</span>
+                            </div>
+                            <span className="text-xs opacity-70">
+                              {log.timestamp.toLocaleTimeString()}
+                            </span>
+                          </div>
+                          {Object.keys(log.details).length > 0 && (
+                            <div className="mt-2 text-xs opacity-80">
+                              <pre className="whitespace-pre-wrap font-mono overflow-x-auto">
+                                {JSON.stringify(log.details, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
+
           {/* Recent Messages */}
           <Card>
             <CardHeader>
@@ -1128,7 +2415,7 @@ export default function WhatsAppSettingsPage() {
           </Card>
         </>
       ) : (
-        <div className="flex h-[calc(100vh-12rem)] rounded-lg shadow-lg border overflow-hidden bg-background">
+  <div className="flex h-[calc(100vh-12rem)] rounded-2xl border overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-slate-100 shadow-xl dark:from-[#0b141a] dark:via-[#111b21] dark:to-[#0b141a] dark:border-slate-800/80">
           <style jsx global>{`
             .scrollbar-custom::-webkit-scrollbar {
               width: 6px;
@@ -1146,8 +2433,8 @@ export default function WhatsAppSettingsPage() {
           `}</style>
           
           {/* Chat Sidebar */}
-          <div className="flex w-80 flex-col border-r bg-muted/30">
-            <div className="flex items-center justify-between border-b p-4 bg-background/50">
+          <div className="flex w-80 flex-col border-r border-emerald-100/60 bg-white/70 backdrop-blur-md dark:border-slate-800 dark:bg-[#111b21]/80">
+            <div className="flex items-center justify-between border-b border-emerald-100/60 bg-white/60 p-4 backdrop-blur dark:border-slate-800 dark:bg-[#0b141a]/70">
               <h1 className="text-2xl font-bold">Chats</h1>
               <div className="flex gap-2">
                 <Button
@@ -1171,28 +2458,29 @@ export default function WhatsAppSettingsPage() {
               </div>
             </div>
 
-            <div className="p-3 border-b bg-background/50">
+            <div className="border-b border-emerald-100/60 bg-white/50 p-3 backdrop-blur-sm dark:border-slate-800 dark:bg-[#0b141a]/70">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search chats..."
-                  className="pl-9 bg-background border-border h-10"
+                  className="h-10 border border-emerald-100/70 bg-white/80 pl-9 backdrop-blur-sm focus-visible:ring-emerald-400 dark:border-slate-700 dark:bg-[#1f2c33]/80"
                   value={chatSearchTerm}
                   onChange={(e) => setChatSearchTerm(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="flex-1 space-y-1 overflow-y-auto scrollbar-custom p-2">
+            <div className="flex-1 space-y-1 overflow-y-auto p-2 scrollbar-custom">
               {filteredContacts.map(c => {
                 const last = (convos[c.id] || [])[convos[c.id]?.length-1];
                 const isActive = activeId === c.id;
+                const lastPreviewText = getMessagePreviewLabel(last);
                 return (
                   <div
                     key={c.id}
                     className={cn(
-                      "hover:bg-accent/50 flex cursor-pointer items-center gap-3 rounded-lg p-3 transition-all",
-                      isActive && "bg-accent shadow-sm"
+                      "flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all hover:bg-emerald-100/60 dark:hover:bg-emerald-900/30",
+                      isActive && "bg-emerald-200/80 text-emerald-900 shadow-md dark:bg-emerald-900/50 dark:text-emerald-100"
                     )}
                     onClick={() => setActiveId(c.id)}
                   >
@@ -1209,7 +2497,7 @@ export default function WhatsAppSettingsPage() {
                         </span>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">
-                        {last?.text || 'Start a conversation'}
+                        {lastPreviewText}
                       </p>
                     </div>
                   </div>
@@ -1219,10 +2507,10 @@ export default function WhatsAppSettingsPage() {
           </div>
 
           {/* Chat Main */}
-          <div className="flex flex-1 flex-col bg-background">
+          <div className="flex flex-1 flex-col bg-transparent">
             {activeContact ? (
               <>
-                <div className="flex items-center justify-between border-b p-4 bg-background/50">
+                <div className="flex items-center justify-between border-b border-emerald-100/60 bg-white/60 p-4 backdrop-blur-sm dark:border-slate-800 dark:bg-[#0b141a]/70">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
@@ -1260,86 +2548,121 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-4 overflow-y-auto scrollbar-custom p-6 bg-muted/10">
-                  {(convos[activeContact.id] || []).map(m => (
-                    <div key={m.id} className={cn(
-                      "flex items-start gap-3",
-                      m.direction === 'out' && "justify-end"
-                    )}>
-                      {m.direction === 'in' && (
-                        <Avatar className="h-8 w-8 flex-shrink-0">
-                          <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
-                            {activeContact.avatarText || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div
-                        className={cn(
-                          "max-w-[70%] rounded-2xl p-3 shadow-sm",
-                          m.direction === 'out'
-                            ? "bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-br-md"
-                            : "bg-background border rounded-bl-md"
+                <div className="flex-1 space-y-4 overflow-y-auto bg-transparent p-6 scrollbar-custom">
+                  {(convos[activeContact.id] || []).map(m => {
+                    const templateButtons = m.metadata?.buttons ?? [];
+                    const flowButtons = m.metadata?.flowButtons ?? [];
+                    const hasAnyButtons = templateButtons.length > 0 || flowButtons.length > 0;
+
+                    return (
+                      <div key={m.id} className={cn(
+                        "flex items-start gap-3",
+                        m.direction === 'out' && "justify-end"
+                      )}>
+                        {m.direction === 'in' && (
+                          <Avatar className="h-8 w-8 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
+                              {activeContact.avatarText || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
                         )}
-                      >
-                        {m.metadata?.headerImage && (
-                          <div className="mb-2 -mt-3 -mx-3 overflow-hidden rounded-t-2xl">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={m.metadata.headerImage}
-                              alt="Header"
-                              className="w-full h-auto max-h-[200px] object-cover"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                            />
+                        <div
+                          className={cn(
+                            "max-w-[70%] rounded-3xl p-3 shadow-md",
+                            m.direction === 'out'
+                              ? "rounded-br-xl border border-emerald-400/60 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 text-white shadow-emerald-500/20"
+                              : "rounded-bl-xl border border-emerald-100/70 bg-white/90 text-slate-900 backdrop-blur-sm dark:border-[#1f2c33] dark:bg-[#1f2c33]/80 dark:text-slate-100"
+                          )}
+                        >
+                          {m.metadata?.headerImage && (
+                            <div className="mb-2 -mt-3 -mx-3 overflow-hidden rounded-t-2xl">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={m.metadata.headerImage}
+                                alt="Header"
+                                className="w-full h-auto max-h-[200px] object-cover"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            </div>
+                          )}
+
+                          {renderMessageContent(m)}
+
+                          {/* WhatsApp-style timestamp and status */}
+                          <div
+                            className={cn(
+                              "mt-2 flex items-center gap-1 text-xs",
+                              m.direction === 'out'
+                                ? "justify-end text-white/80"
+                                : "justify-start text-emerald-800/80 dark:text-emerald-200/80"
+                            )}
+                          >
+                            <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+                            {m.direction === 'out' && (
+                              <span className="inline-flex">
+                                {m.status === 0 && <span className="opacity-50">🕐</span>}
+                                {m.status === 1 && <span className="opacity-70">✓</span>}
+                                {m.status === 2 && <span className="opacity-90">✓✓</span>}
+                                {m.status === 3 && <span className="text-blue-300">✓✓</span>}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.text}</p>
-                        
-                        {/* WhatsApp-style timestamp and status */}
-                        <div className={cn(
-                          "flex items-center gap-1 mt-1 text-xs",
-                          m.direction === 'out' ? "text-white/70 justify-end" : "text-muted-foreground justify-start"
-                        )}>
-                          <span>{new Date(m.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
-                          {m.direction === 'out' && (
-                            <span className="inline-flex">
-                              {m.status === 0 && <span className="opacity-50">🕐</span>}
-                              {m.status === 1 && <span className="opacity-70">✓</span>}
-                              {m.status === 2 && <span className="opacity-90">✓✓</span>}
-                              {m.status === 3 && <span className="text-blue-300">✓✓</span>}
-                            </span>
+
+                          {hasAnyButtons && (
+                            <div className={cn(
+                              "-mx-3 mt-3 -mb-3 border-t pt-1",
+                              m.direction === 'out' ? "border-white/30" : "border-emerald-100/60 dark:border-[#1f2c33]"
+                            )}>
+                              {templateButtons.map((btn, idx) => (
+                                <button
+                                  key={`tpl-${idx}`}
+                                  className={cn(
+                                    "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
+                                    idx > 0 && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
+                                    m.direction === 'out'
+                                      ? "text-white hover:bg-white/15"
+                                      : "text-emerald-700 hover:bg-emerald-100/60 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
+                                  )}
+                                  onClick={() => {
+                                    if (btn.url) window.open(btn.url, '_blank');
+                                    if (btn.phone) window.open(`tel:${btn.phone}`, '_blank');
+                                  }}
+                                >
+                                  {btn.type === 'PHONE_NUMBER' && '📞 '}
+                                  {(btn.type === 'URL' || btn.sub_type === 'url') && '🔗 '}
+                                  {btn.text || 'Button'}
+                                </button>
+                              ))}
+
+                              {flowButtons.map(({ index, parameter }) => {
+                                const cta = parameter?.flow_cta || parameter?.flow_name || `Flow Button ${index + 1}`;
+                                return (
+                                  <button
+                                    key={`flow-${index}`}
+                                    className={cn(
+                                      "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
+                                      (templateButtons.length > 0 || index > 0) && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
+                                      "cursor-default",
+                                      m.direction === 'out'
+                                        ? "text-white hover:bg-white/10"
+                                        : "text-emerald-700 hover:bg-emerald-100/60 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
+                                    )}
+                                    disabled
+                                    title="Flow buttons launch inside WhatsApp"
+                                  >
+                                    <span className="inline-flex items-center justify-center gap-2">
+                                      <ArrowRight className="h-3.5 w-3.5" />
+                                      <span>{cta}</span>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
-                        
-                        {m.metadata?.buttons && m.metadata.buttons.length > 0 && (
-                          <div className={cn(
-                            "mt-2 -mb-3 -mx-3 border-t pt-1",
-                            m.direction === 'out' ? "border-white/20" : "border-border"
-                          )}>
-                            {m.metadata.buttons.map((btn, idx) => (
-                              <button
-                                key={idx}
-                                className={cn(
-                                  "w-full px-3 py-2.5 text-sm font-medium text-center transition-colors",
-                                  idx > 0 && (m.direction === 'out' ? "border-t border-white/20" : "border-t border-border"),
-                                  m.direction === 'out' 
-                                    ? "text-white hover:bg-white/10" 
-                                    : "text-emerald-600 hover:bg-emerald-50"
-                                )}
-                                onClick={() => {
-                                  if (btn.url) window.open(btn.url, '_blank');
-                                  if (btn.phone) window.open(`tel:${btn.phone}`, '_blank');
-                                }}
-                              >
-                                {btn.type === 'PHONE_NUMBER' && '📞 '}
-                                {btn.type === 'URL' && '🔗 '}
-                                {btn.text || 'Button'}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   
                   {typing && (
                     <div className="flex items-center gap-3">
@@ -1348,7 +2671,7 @@ export default function WhatsAppSettingsPage() {
                           {activeContact.avatarText || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="bg-background border rounded-2xl rounded-bl-md p-4 shadow-sm">
+                      <div className="rounded-2xl rounded-bl-md border border-emerald-100/70 bg-white/90 p-4 shadow-sm dark:border-[#1f2c33] dark:bg-[#1f2c33]/80">
                         <div className="flex gap-1.5">
                           <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '0ms'}}></span>
                           <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{animationDelay: '150ms'}}></span>
@@ -1361,7 +2684,7 @@ export default function WhatsAppSettingsPage() {
                   <div ref={chatMessagesEndRef} />
                 </div>
 
-                <div className="flex items-center gap-3 border-t bg-background/80 backdrop-blur-sm p-4">
+                <div className="flex items-center gap-3 border-t border-emerald-100/60 bg-white/70 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#0b141a]/80">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1388,12 +2711,13 @@ export default function WhatsAppSettingsPage() {
                   
                   <Input
                     placeholder={selectedTemplate ? 'Template selected. Type to clear.' : 'Type a message...'}
-                    className="flex-1 border-none bg-muted/30 focus-visible:ring-1 focus-visible:ring-emerald-500/50 h-10 rounded-full px-4"
+                    className="h-11 flex-1 rounded-full border border-emerald-100/70 bg-white/80 px-4 text-slate-900 shadow-inner focus-visible:ring-emerald-400 dark:border-[#1f2c33] dark:bg-[#1f2c33]/80 dark:text-slate-100"
                     value={selectedTemplate ? substituteTemplate(templates.find(t => t.id===selectedTemplate)?.body || '', templateVariables) : message}
                     onChange={(e) => {
                       if (selectedTemplate) {
                         setSelectedTemplate('');
                         setTemplateVariables({});
+                        setShowTemplatePreview(false);
                       }
                       setMessage(e.target.value);
                     }}
@@ -1407,7 +2731,7 @@ export default function WhatsAppSettingsPage() {
                   
                   <Button
                     size="icon"
-                    className="rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md"
+                    className="rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/30 transition-all hover:scale-105 hover:from-emerald-600 hover:to-teal-600"
                     onClick={sendPreviewMessage}
                     disabled={!activeContact || sendingLive}
                   >
@@ -1417,8 +2741,8 @@ export default function WhatsAppSettingsPage() {
 
                 {showTemplatePicker && (
                   <div className="absolute bottom-20 left-4 right-4 max-w-md mx-auto">
-                    <div className="bg-background border rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm">
-                      <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+                    <div className="overflow-hidden rounded-xl border border-emerald-100/70 bg-white/90 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-[#111b21]/90">
+                      <div className="flex items-center justify-between border-b border-emerald-100/60 bg-emerald-50/60 p-4 dark:border-slate-800 dark:bg-[#1f2c33]/80">
                         <div className="text-sm font-semibold">Select a template</div>
                         <Button
                           variant="ghost"
@@ -1437,7 +2761,7 @@ export default function WhatsAppSettingsPage() {
                               handleTemplateChange(template.id);
                               setShowTemplatePicker(false);
                             }}
-                            className="block w-full text-left px-4 py-3 hover:bg-accent/50 border-b last:border-0 transition-all hover:shadow-sm"
+                            className="block w-full border-b border-emerald-50/70 px-4 py-3 text-left transition-all hover:bg-emerald-50/60 hover:shadow-sm dark:border-slate-800/80 dark:hover:bg-emerald-900/30"
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-semibold text-sm">{template.name}</span>
@@ -1470,8 +2794,18 @@ export default function WhatsAppSettingsPage() {
           </div>
         </div>
       )}
-      {selectedTemplate && Object.keys(templateVariables).length > 0 && (
-        <Dialog open={true} onOpenChange={() => { setSelectedTemplate(''); setTemplateVariables({}); setShowTemplatePicker(false); }}>
+      {shouldShowTemplateDialog && (
+        <Dialog
+          open={shouldShowTemplateDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowTemplatePreview(false);
+              setSelectedTemplate('');
+              setTemplateVariables({});
+              setShowTemplatePicker(false);
+            }
+          }}
+        >
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Send Template: {templates.find(t => t.id === selectedTemplate)?.name}</DialogTitle>
@@ -1506,64 +2840,268 @@ export default function WhatsAppSettingsPage() {
               {/* Template Variables */}
               <div className="space-y-3">
                 <h4 className="font-semibold text-sm">Template Variables</h4>
-                {Object.keys(templateVariables).map((variable) => (
-                  <div key={variable}>
-                    <Label htmlFor={`var-${variable}`} className="text-sm font-medium">{variable}</Label>
-                    <Input
-                      id={`var-${variable}`}
-                      placeholder={`Enter value for ${variable}`}
-                      value={templateVariables[variable] || ''}
-                      onChange={(e) => setTemplateVariables({
-                        ...templateVariables,
-                        [variable]: e.target.value
-                      })}
-                      className="mt-1"
-                    />
+                {standardVariableKeys.length === 0 && flowVariableGroups.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    This template doesn&rsquo;t require any variables. You&rsquo;re good to send it as-is.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {standardVariableKeys.length > 0 && (
+                      <div className="space-y-3">
+                        {standardVariableKeys.map((variable) => renderVariableControl(variable))}
+                      </div>
+                    )}
+
+                    {flowVariableGroups.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <h5 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                              Flow Button Configuration
+                            </h5>
+                            <p className="text-xs text-emerald-600/80 dark:text-emerald-300/80">
+                              Review flow metadata before sending. Tokens should stay unique per send.
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-emerald-200 text-emerald-700 hover:bg-emerald-100/50 dark:border-emerald-800 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                            onClick={() => regenerateFlowTokens()}
+                          >
+                            Regenerate all tokens
+                          </Button>
+                        </div>
+
+                        <div className="space-y-3">
+                          {flowVariableGroups.map(({ index, variables }) => {
+                            const templateBtn = templateFlowButtons[index];
+                            const flowIdValue = templateVariables[`_flow_${index}_id`] || templateBtn?.flowId || '';
+                            const flowActionValue = templateVariables[`_flow_${index}_action`] || templateBtn?.flowAction || '';
+                            const flowTokenValue = templateVariables[`_flow_${index}_token`] || templateBtn?.flowToken || '';
+                            const flowDisplayName =
+                              templateVariables[`_flow_${index}_cta`] ||
+                              templateVariables[`_flow_${index}_name`] ||
+                              templateBtn?.flowCta ||
+                              templateBtn?.flowName ||
+                              templateBtn?.text ||
+                              `Flow Button ${index + 1}`;
+
+                            const orderedFields = [...variables].sort(
+                              (a, b) => flowFieldPriority(a) - flowFieldPriority(b)
+                            );
+
+                            return (
+                              <div
+                                key={index}
+                                className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-900/20"
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                                      Flow Button {index + 1}
+                                    </p>
+                                    <p className="text-xs text-emerald-700/90 dark:text-emerald-300/70">
+                                      {flowDisplayName}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 border-emerald-300/80 px-3 text-emerald-700 hover:bg-emerald-100/60 dark:border-emerald-700 dark:text-emerald-200 dark:hover:bg-emerald-900/40"
+                                      onClick={() => regenerateFlowTokens(index)}
+                                    >
+                                      New token
+                                    </Button>
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      className="h-8 bg-emerald-500/90 px-3 text-white hover:bg-emerald-600/90 dark:bg-emerald-600/80"
+                                      onClick={() => applyFlowDefaults(index)}
+                                    >
+                                      Use template defaults
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                                  {flowTokenValue && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-300/80 text-emerald-800 dark:border-emerald-700 dark:text-emerald-100"
+                                    >
+                                      Token: {flowTokenValue.length > 18 ? `${flowTokenValue.slice(0, 18)}…` : flowTokenValue}
+                                    </Badge>
+                                  )}
+                                  {flowIdValue && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-300/80 text-emerald-800 dark:border-emerald-700 dark:text-emerald-100"
+                                    >
+                                      Flow ID: {flowIdValue}
+                                    </Badge>
+                                  )}
+                                  {flowActionValue && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-emerald-300/80 text-emerald-800 dark:border-emerald-700 dark:text-emerald-100"
+                                    >
+                                      Action: {flowActionValue}
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                                  {orderedFields.map((variable) =>
+                                    renderVariableControl(variable, {
+                                      idPrefix: `flow-${index}`,
+                                      textareaRows: variable.includes('action_data') ? 8 : undefined,
+                                      helperClassName: 'text-emerald-700 dark:text-emerald-300/80',
+                                      labelClassName: 'text-emerald-800 dark:text-emerald-200',
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
 
               {/* Preview Section */}
               <div className="space-y-2 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                 <h4 className="font-semibold text-sm flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
-                  Message Preview
+                  WhatsApp Message Preview
                 </h4>
-                <div className="bg-white dark:bg-gray-900 rounded-lg border overflow-hidden">
-                  {/* Header Image Preview */}
-                  {templateVariables['_header_image'] && (
-                    <div className="w-full bg-gray-100 dark:bg-gray-800">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img 
-                        src={templateVariables['_header_image']} 
-                        alt="Header" 
-                        className="w-full h-auto max-h-48 object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  {/* Message Body */}
-                  <div className="p-3">
-                    <p className="text-sm whitespace-pre-wrap">
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 overflow-hidden shadow-lg max-w-sm mx-auto">
+                  {/* Header Component - All Formats */}
+                  {(() => {
+                    const tpl = templates.find(t => t.id === selectedTemplate);
+                    const components = tpl?.components || [];
+                    const headerComponent = components.find((c: any) => 
+                      (c.type === 'HEADER' || c.type === 'header')
+                    );
+                    
+                    if (!headerComponent) return null;
+                    
+                    const headerFormat = (headerComponent.format || '').toUpperCase();
+                    
+                    // IMAGE Header
+                    if (headerFormat === 'IMAGE' && templateVariables['_header_image']) {
+                      return (
+                        <div className="w-full bg-gray-100 dark:bg-gray-800">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img 
+                            src={templateVariables['_header_image']} 
+                            alt="Header" 
+                            className="w-full h-auto max-h-48 object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    // VIDEO Header
+                    if (headerFormat === 'VIDEO' && templateVariables['_header_video']) {
+                      return (
+                        <div className="w-full bg-gray-900">
+                          <video 
+                            src={templateVariables['_header_video']} 
+                            className="w-full h-auto max-h-48"
+                            controls
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    // DOCUMENT Header
+                    if (headerFormat === 'DOCUMENT' && templateVariables['_header_document']) {
+                      return (
+                        <div className="w-full bg-gray-100 dark:bg-gray-800 p-3 flex items-center gap-3">
+                          <FileText className="h-8 w-8 text-red-600" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {templateVariables['_header_document_filename'] || 'document.pdf'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">PDF Document</p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // TEXT Header
+                    if (headerFormat === 'TEXT' && headerComponent.text) {
+                      return (
+                        <div className="px-3 pt-3 pb-1">
+                          <p className="text-base font-bold text-gray-900 dark:text-white">
+                            {substituteTemplate(headerComponent.text, templateVariables)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
+                  
+                  {/* Body Component */}
+                  <div className="px-3 py-3">
+                    <p className="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed">
                       {substituteTemplate(
                         templates.find(t => t.id === selectedTemplate)?.body || '',
                         templateVariables
                       )}
                     </p>
                   </div>
-                  {/* Template Buttons Preview */}
+                  
+                  {/* Footer Component */}
+                  {(() => {
+                    const tpl = templates.find(t => t.id === selectedTemplate);
+                    const components = tpl?.components || [];
+                    const footerComponent = components.find((c: any) => 
+                      (c.type === 'FOOTER' || c.type === 'footer')
+                    );
+                    
+                    if (footerComponent && footerComponent.text) {
+                      return (
+                        <div className="px-3 pb-2">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {footerComponent.text}
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  
+                  {/* Buttons Component */}
                   {(() => {
                     const tpl = templates.find(t => t.id === selectedTemplate);
                     if (tpl?.whatsapp?.buttons && tpl.whatsapp.buttons.length > 0) {
                       return (
-                        <div className="border-t px-3 py-2 space-y-1">
+                        <div className="border-t border-gray-200 dark:border-gray-700">
                           {tpl.whatsapp.buttons.map((btn, idx) => (
-                            <div key={idx} className="text-center py-2 text-sm text-blue-600 dark:text-blue-400 font-medium border-t first:border-t-0">
+                            <button
+                              key={idx}
+                              className="w-full px-4 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-gray-50 dark:hover:bg-gray-800 border-t first:border-t-0 border-gray-200 dark:border-gray-700 text-center transition-colors"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                toast(`Button: ${btn.text || btn.type}`);
+                              }}
+                            >
+                              {btn.type === 'PHONE_NUMBER' && '📞 '}
+                              {btn.type === 'URL' && '🔗 '}
+                              {btn.type === 'QUICK_REPLY' && '↩️ '}
+                              {btn.type === 'FLOW' && '🧭 '}
                               {btn.text || btn.type}
-                            </div>
+                            </button>
                           ))}
                         </div>
                       );
@@ -1579,12 +3117,23 @@ export default function WhatsAppSettingsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setSelectedTemplate(''); setTemplateVariables({}); setShowTemplatePicker(false); }}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowTemplatePreview(false);
+                  setSelectedTemplate('');
+                  setTemplateVariables({});
+                  setShowTemplatePicker(false);
+                }}
+              >
+                Cancel
+              </Button>
               <Button 
                 onClick={() => { 
                   sendTestMessage(); 
                   setSelectedTemplate(''); 
                   setTemplateVariables({});
+                  setShowTemplatePreview(false);
                   setShowTemplatePicker(false);
                 }}
                 disabled={(!activeContact && !phoneNumber) || Object.values(templateVariables).some(v => !v)}

@@ -22,6 +22,13 @@ function normalizeButtons(components: any[] | undefined) {
     text: button.text,
     url: button.url,
     phone: button.phone_number,
+    flowId: button.flow_id || button.flowId,
+    flowName: button.flow_name || button.flowName,
+    flowCta: button.flow_cta || button.flowCta,
+  flowMessageVersion: button.flow_message_version || button.flowMessageVersion,
+    flowAction: button.flow_action || button.flowAction,
+    flowActionData: button.flow_action_data || button.flow_action_payload || button.flowActionData,
+    flowToken: button.flow_token || button.flowToken,
   }));
   return {
     hasCta: buttons.length > 0,

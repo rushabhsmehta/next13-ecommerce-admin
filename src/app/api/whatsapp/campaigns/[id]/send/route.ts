@@ -93,6 +93,13 @@ async function processCampaignInBackground(campaignId: string) {
 
     if (!campaign) return;
 
+    const templateRecord = await prisma.whatsAppTemplate.findUnique({
+      where: { name: campaign.templateName },
+      select: { body: true }
+    });
+
+    const templateBody = templateRecord?.body || undefined;
+
     const rateLimit = campaign.rateLimit || 10; // Messages per minute
     const delayBetweenMessages = (60 / rateLimit) * 1000; // Milliseconds
 
@@ -125,6 +132,7 @@ async function processCampaignInBackground(campaignId: string) {
         const result = await sendWhatsAppTemplate({
           to: recipient.phoneNumber,
           templateName: campaign.templateName,
+          templateBody,
           languageCode: campaign.templateLanguage,
           bodyParams,
           metadata: {

@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Send, Users, FileText, Settings, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, Users, FileText, Settings, Info, RefreshCw, Tag, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
 type Step = 'details' | 'recipients' | 'settings' | 'review';
 
@@ -45,11 +48,28 @@ interface CampaignData {
     phoneNumber: string;
     name: string;
     variables: Record<string, string>;
+    whatsappCustomerId?: string;
   }>;
   rateLimit: number;
   sendWindowStart: number;
   sendWindowEnd: number;
   scheduledFor?: string;
+}
+
+interface WhatsAppDirectoryCustomer {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  phoneNumber: string;
+  email: string | null;
+  tags: string[];
+  isOptedIn: boolean;
+}
+
+interface WhatsAppCustomerListResponse {
+  success: boolean;
+  data: WhatsAppDirectoryCustomer[];
+  tags: { tag: string; count: number }[];
 }
 
 export default function NewCampaignPage() {
@@ -74,11 +94,28 @@ export default function NewCampaignPage() {
     name: '',
     variables: {} as Record<string, string>,
   });
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [directoryLoading, setDirectoryLoading] = useState(false);
+  const [directoryCustomers, setDirectoryCustomers] = useState<WhatsAppDirectoryCustomer[]>([]);
+  const [directoryTags, setDirectoryTags] = useState<{ tag: string; count: number }[]>([]);
+  const [directorySearchInput, setDirectorySearchInput] = useState('');
+  const [directorySearch, setDirectorySearch] = useState('');
+  const [directorySelectedRows, setDirectorySelectedRows] = useState<Record<string, boolean>>({});
+  const [directorySelectedTags, setDirectorySelectedTags] = useState<string[]>([]);
+  const [bulkVariableDefaults, setBulkVariableDefaults] = useState<Record<string, string>>({});
 
   // Fetch templates on mount
   useEffect(() => {
     fetchTemplates();
   }, []);
+
+  useEffect(() => {
+    if (!customerPickerOpen) {
+      return;
+    }
+    const handle = setTimeout(() => setDirectorySearch(directorySearchInput), 400);
+    return () => clearTimeout(handle);
+  }, [directorySearchInput, customerPickerOpen]);
 
   const fetchTemplates = async () => {
     try {
@@ -103,6 +140,70 @@ export default function NewCampaignPage() {
       setLoadingTemplates(false);
     }
   };
+
+  const fetchDirectoryCustomers = useCallback(async () => {
+    if (!customerPickerOpen) {
+      return;
+    }
+    try {
+      setDirectoryLoading(true);
+      const params = new URLSearchParams();
+      params.set('limit', '200');
+      if (directorySearch.trim()) {
+        params.set('search', directorySearch.trim());
+      }
+      if (directorySelectedTags.length) {
+        params.set('tags', directorySelectedTags.join(','));
+      }
+      const response = await fetch(`/api/whatsapp/customers?${params.toString()}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to load customers' }));
+        throw new Error(error.error || 'Failed to load customers');
+      }
+      const payload = (await response.json()) as WhatsAppCustomerListResponse;
+      setDirectoryCustomers(
+        payload.data.map((customer) => ({
+          ...customer,
+          tags: Array.isArray(customer.tags)
+            ? (customer.tags as unknown as string[])
+            : [],
+        }))
+      );
+      setDirectoryTags(payload.tags);
+      setDirectorySelectedRows((current) => {
+        const next: Record<string, boolean> = {};
+        payload.data.forEach((customer) => {
+          if (current[customer.id]) {
+            next[customer.id] = true;
+          }
+        });
+        return next;
+      });
+    } catch (error: any) {
+      console.error('Error fetching WhatsApp customers directory', error);
+      toast.error(error?.message || 'Could not load WhatsApp customers');
+    } finally {
+      setDirectoryLoading(false);
+    }
+  }, [customerPickerOpen, directorySearch, directorySelectedTags]);
+
+  useEffect(() => {
+    if (!customerPickerOpen) {
+      return;
+    }
+    fetchDirectoryCustomers();
+  }, [customerPickerOpen, fetchDirectoryCustomers]);
+
+  useEffect(() => {
+    if (customerPickerOpen) {
+      return;
+    }
+    setDirectorySelectedRows({});
+    setDirectorySearchInput('');
+    setDirectorySearch('');
+    setDirectorySelectedTags([]);
+    setBulkVariableDefaults({});
+  }, [customerPickerOpen]);
 
   // Get selected template details
   const selectedTemplate = templates.find(t => t.name === campaignData.templateName);
@@ -131,6 +232,13 @@ export default function NewCampaignPage() {
   };
 
   const parameterCount = getTemplateParameters();
+  const getTemplateVariableKeys = () => {
+    if (!selectedTemplate) return [] as string[];
+    if (selectedTemplate.namedVariables && selectedTemplate.namedVariables.length > 0) {
+      return selectedTemplate.namedVariables.map((param, index) => param?.param_name || String(index + 1));
+    }
+    return Array.from({ length: parameterCount }, (_, index) => String(index + 1));
+  };
 
   const steps: { id: Step; title: string; icon: any }[] = [
     { id: 'details', title: 'Campaign Details', icon: FileText },
@@ -159,12 +267,28 @@ export default function NewCampaignPage() {
       return;
     }
 
+    const variableKeys = getTemplateVariableKeys();
+    if (variableKeys.length > 0) {
+      const missing = variableKeys.filter((key) => !recipientInput.variables[key]?.toString().trim());
+      if (missing.length > 0) {
+        toast.error(`Fill all template variables (${missing.join(', ')}) before adding`);
+        return;
+      }
+    }
+
+    const normalizedPhone = recipientInput.phoneNumber.trim();
+    const alreadyExists = campaignData.recipients.some((recipient) => recipient.phoneNumber === normalizedPhone);
+    if (alreadyExists) {
+      toast.error('This phone number is already in the recipient list');
+      return;
+    }
+
     const newRecipient: {
       phoneNumber: string;
       name: string;
       variables: Record<string, string>;
     } = {
-      phoneNumber: recipientInput.phoneNumber,
+      phoneNumber: normalizedPhone,
       name: recipientInput.name,
       variables: recipientInput.variables,
     };
@@ -225,6 +349,69 @@ export default function NewCampaignPage() {
     }
   };
 
+  const handleAddFromDirectory = () => {
+    const selectedIds = Object.entries(directorySelectedRows)
+      .filter(([, value]) => value)
+      .map(([id]) => id);
+
+    if (!selectedIds.length) {
+      toast.error('Select at least one customer');
+      return;
+    }
+
+    const selectedCustomers = directoryCustomers.filter((customer) => selectedIds.includes(customer.id));
+    if (!selectedCustomers.length) {
+      toast.error('Selected customers are not available in the current view');
+      return;
+    }
+
+    const variableKeys = getTemplateVariableKeys();
+    if (variableKeys.length > 0) {
+      const missingDefaults = variableKeys.filter((key) => !bulkVariableDefaults[key]?.trim());
+      if (missingDefaults.length > 0) {
+        toast.error(`Provide default values for: ${missingDefaults.join(', ')}`);
+        return;
+      }
+    }
+
+    const existingPhones = new Set(campaignData.recipients.map((recipient) => recipient.phoneNumber));
+    const newRecipients = selectedCustomers
+      .filter((customer) => {
+        if (existingPhones.has(customer.phoneNumber)) {
+          return false;
+        }
+        existingPhones.add(customer.phoneNumber);
+        return true;
+      })
+      .map((customer) => {
+        const variables: Record<string, string> = {};
+        const variableKeys = getTemplateVariableKeys();
+        variableKeys.forEach((key) => {
+          const value = bulkVariableDefaults[key] ?? '';
+          variables[key] = value.trim();
+        });
+
+        return {
+          phoneNumber: customer.phoneNumber,
+          name: `${customer.firstName}${customer.lastName ? ` ${customer.lastName}` : ''}`,
+          variables,
+          whatsappCustomerId: customer.id,
+        };
+      });
+
+    if (!newRecipients.length) {
+      toast.error('All selected customers are already in the recipient list');
+      return;
+    }
+
+    setCampaignData((prev) => ({
+      ...prev,
+      recipients: [...prev.recipients, ...newRecipients],
+    }));
+    setCustomerPickerOpen(false);
+    toast.success(`Added ${newRecipients.length} WhatsApp customer${newRecipients.length > 1 ? 's' : ''}`);
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 'details':
@@ -259,13 +446,15 @@ export default function NewCampaignPage() {
                   value={campaignData.templateName}
                   onValueChange={(value) => {
                     const template = templates.find(t => t.name === value);
-                    setCampaignData({ 
-                      ...campaignData, 
+                    setCampaignData((prev) => ({ 
+                      ...prev, 
                       templateName: value,
-                      templateLanguage: template?.language || 'en_US'
-                    });
+                      templateLanguage: template?.language || 'en_US',
+                      recipients: [],
+                    }));
                     // Reset recipient variables when template changes
                     setRecipientInput({ phoneNumber: '', name: '', variables: {} });
+                    setBulkVariableDefaults({});
                   }}
                 >
                   <SelectTrigger>
@@ -308,11 +497,231 @@ export default function NewCampaignPage() {
           <div className="space-y-6">
             {/* Add Recipient Form */}
             <Card>
-              <CardHeader>
-                <CardTitle>Add Recipient</CardTitle>
-                <CardDescription>
-                  Add recipients one by one or upload a CSV file
-                </CardDescription>
+              <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <CardTitle>Add Recipient</CardTitle>
+                  <CardDescription>
+                    Add recipients manually or pull them from the WhatsApp customer directory.
+                  </CardDescription>
+                </div>
+                <Dialog open={customerPickerOpen} onOpenChange={setCustomerPickerOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Select from WhatsApp customers
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-5xl">
+                    <DialogHeader>
+                      <DialogTitle>Select WhatsApp Customers</DialogTitle>
+                      <DialogDescription>
+                        Choose customers from the dedicated WhatsApp directory. Opted-out contacts cannot be selected.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-5">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="relative">
+                            <Input
+                              value={directorySearchInput}
+                              onChange={(event) => setDirectorySearchInput(event.target.value)}
+                              placeholder="Search by name, email, or phone"
+                              className="w-64"
+                            />
+                            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          </div>
+                          <Button variant="outline" onClick={fetchDirectoryCustomers} disabled={directoryLoading}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Refresh
+                          </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Selected: {Object.values(directorySelectedRows).filter(Boolean).length}
+                        </div>
+                      </div>
+
+                      {directoryTags.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {directoryTags.map((tag) => (
+                            <Button
+                              key={tag.tag}
+                              size="sm"
+                              variant={directorySelectedTags.includes(tag.tag) ? 'default' : 'outline'}
+                              className="flex items-center gap-2"
+                              onClick={() =>
+                                setDirectorySelectedTags((current) =>
+                                  current.includes(tag.tag)
+                                    ? current.filter((item) => item !== tag.tag)
+                                    : [...current, tag.tag]
+                                )
+                              }
+                            >
+                              <Tag className="h-3 w-3" />
+                              {tag.tag}
+                              <Badge variant={directorySelectedTags.includes(tag.tag) ? 'secondary' : 'outline'}>
+                                {tag.count}
+                              </Badge>
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="rounded-lg border">
+                        <div className="max-h-80 overflow-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-muted/60 backdrop-blur">
+                              <tr className="text-left">
+                                <th className="w-10 p-3">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4"
+                                    aria-label="Select all"
+                                    checked={
+                                      directoryCustomers.filter((customer) => customer.isOptedIn).length > 0 &&
+                                      directoryCustomers
+                                        .filter((customer) => customer.isOptedIn)
+                                        .every((customer) => directorySelectedRows[customer.id])
+                                    }
+                                    onChange={(event) => {
+                                      const checked = event.target.checked;
+                                      const next: Record<string, boolean> = {};
+                                      if (checked) {
+                                        directoryCustomers.forEach((customer) => {
+                                          if (customer.isOptedIn) {
+                                            next[customer.id] = true;
+                                          }
+                                        });
+                                      }
+                                      setDirectorySelectedRows(next);
+                                    }}
+                                  />
+                                </th>
+                                <th className="p-3">Customer</th>
+                                <th className="p-3">Tags</th>
+                                <th className="p-3">Opt-in</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {directoryLoading ? (
+                                <tr>
+                                  <td colSpan={4} className="p-6 text-center">
+                                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground/30 border-t-green-500" />
+                                  </td>
+                                </tr>
+                              ) : directoryCustomers.length === 0 ? (
+                                <tr>
+                                  <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                                    No WhatsApp customers found. Manage your directory in{' '}
+                                    <Link href="/whatsapp/customers" className="text-primary hover:underline">
+                                      List of Customers
+                                    </Link>
+                                    .
+                                  </td>
+                                </tr>
+                              ) : (
+                                directoryCustomers.map((customer) => (
+                                  <tr
+                                    key={customer.id}
+                                    className={customer.isOptedIn ? 'border-t' : 'border-t bg-destructive/10'}
+                                  >
+                                    <td className="p-3 align-top">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4"
+                                        checked={!!directorySelectedRows[customer.id]}
+                                        onChange={(event) =>
+                                          setDirectorySelectedRows((current) => ({
+                                            ...current,
+                                            [customer.id]: event.target.checked,
+                                          }))
+                                        }
+                                        disabled={!customer.isOptedIn}
+                                        aria-label={`Select ${customer.firstName}`}
+                                      />
+                                    </td>
+                                    <td className="p-3 align-top">
+                                      <div className="font-semibold">
+                                        {customer.firstName} {customer.lastName || ''}
+                                      </div>
+                                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                        <span>{customer.phoneNumber}</span>
+                                        {customer.email && <span>{customer.email}</span>}
+                                      </div>
+                                    </td>
+                                    <td className="p-3 align-top">
+                                      {customer.tags.length ? (
+                                        <div className="flex flex-wrap gap-2">
+                                          {customer.tags.map((tag) => (
+                                            <Badge key={`${customer.id}-${tag}`} variant="outline">
+                                              {tag}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">No tags</span>
+                                      )}
+                                    </td>
+                                    <td className="p-3 align-top">
+                                      <Badge variant={customer.isOptedIn ? 'secondary' : 'destructive'}>
+                                        {customer.isOptedIn ? 'Opted In' : 'Opted Out'}
+                                      </Badge>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {parameterCount > 0 && (
+                        <div className="space-y-3 rounded-lg border bg-muted/40 p-4">
+                          <div className="text-sm font-medium">
+                            Template variables
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Provide default values to personalise the template for all selected customers. You can edit individual recipients after adding them.
+                          </p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {getTemplateVariableKeys().map((key, index) => {
+                              const namedParam = selectedTemplate?.namedVariables?.[index];
+                              const label = namedParam?.param_name || `Variable ${index + 1}`;
+                              return (
+                                <div key={key} className="grid gap-2">
+                                  <Label htmlFor={`bulk-variable-${key}`}>{label}</Label>
+                                  <Input
+                                    id={`bulk-variable-${key}`}
+                                    value={bulkVariableDefaults[key] || ''}
+                                    onChange={(event) =>
+                                      setBulkVariableDefaults((prev) => ({
+                                        ...prev,
+                                        [key]: event.target.value,
+                                      }))
+                                    }
+                                    placeholder={namedParam?.example ? `e.g. ${namedParam.example}` : `Value for {{${key}}}`}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm text-muted-foreground">
+                        {Object.values(directorySelectedRows).filter(Boolean).length} customer(s) selected.
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <Button variant="outline" onClick={() => setCustomerPickerOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddFromDirectory} disabled={directoryLoading}>
+                          Add to Recipients
+                        </Button>
+                      </div>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -403,8 +812,15 @@ export default function NewCampaignPage() {
                   {campaignData.recipients.map((recipient, index) => (
                     <Card key={index}>
                       <CardContent className="flex items-center justify-between py-4">
-                        <div>
-                          <p className="font-medium">{recipient.name || 'No name'}</p>
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium">{recipient.name || 'No name'}</p>
+                            {recipient.whatsappCustomerId && (
+                              <Badge variant="secondary" className="text-xs">
+                                WhatsApp directory
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{recipient.phoneNumber}</p>
                           {Object.keys(recipient.variables).length > 0 && (
                             <p className="text-xs text-muted-foreground mt-1">

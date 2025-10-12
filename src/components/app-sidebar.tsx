@@ -119,6 +119,7 @@ const NAV_ITEMS = [
     title: "WhatsApp",
     items: [
       { title: "Overview", url: "/whatsapp" },
+      { title: "List of Customers", url: "/whatsapp/customers" },
       { title: "Live Chat", url: "/whatsapp/chat" },
       { title: "Templates", url: "/whatsapp/templates" },
       { title: "Flows", url: "/whatsapp/flows" },

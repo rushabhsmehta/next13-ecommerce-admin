@@ -1628,6 +1628,7 @@ model WhatsAppCampaignRecipient {
   phoneNumber      String            // E.164 format
   customerId       String?           // Link to Customer model
   name             String?
+  whatsappCustomerId String?
   
   // Template Variables (personalization)
   variables        Json?             // {"name": "John", "package": "Bali Premium"}
@@ -1660,12 +1661,37 @@ model WhatsAppCampaignRecipient {
   // Relations
   campaign         WhatsAppCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   customer         Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  whatsappCustomer WhatsAppCustomer? @relation(fields: [whatsappCustomerId], references: [id], onDelete: SetNull)
   
   @@index([campaignId])
   @@index([status])
   @@index([customerId])
   @@index([phoneNumber])
   @@index([sentAt])
+  @@index([whatsappCustomerId])
+}
+
+model WhatsAppCustomer {
+  id               String                       @id @default(uuid())
+  firstName        String
+  lastName         String?
+  phoneNumber      String                       @unique
+  email            String?
+  tags             Json?
+  notes            String?                      @db.Text
+  importedAt       DateTime?
+  importedFrom     String?
+  isOptedIn        Boolean                      @default(true)
+  lastContactedAt  DateTime?
+  metadata         Json?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  campaignRecipients WhatsAppCampaignRecipient[]
+
+  @@index([firstName])
+  @@index([lastName])
+  @@index([isOptedIn])
 }
 
 model WhatsAppCatalog {

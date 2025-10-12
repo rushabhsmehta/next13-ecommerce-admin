@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap } from 'lucide-react';
+import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 
@@ -9,6 +9,24 @@ export default function WhatsAppOverviewPage() {
   const router = useRouter();
 
   const features = [
+    {
+      title: 'List of Customers',
+      description: 'Manage WhatsApp-specific customers, tags, and opt-ins',
+      icon: Users,
+      href: '/whatsapp/customers',
+      color: 'text-teal-600',
+      bgColor: 'bg-teal-50 dark:bg-teal-950',
+      borderColor: 'border-l-teal-500',
+      gradientFrom: 'from-teal-500',
+      gradientTo: 'to-cyan-500',
+      features: [
+        'Dedicated WhatsApp customer list',
+        'Tag-based segmentation',
+        'CSV import with validation',
+        'Opt-in tracking',
+        'Campaign selection integration'
+      ]
+    },
     {
       title: 'Live Chat',
       description: 'Send and receive WhatsApp messages in real-time',
@@ -139,7 +157,7 @@ export default function WhatsAppOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <div className="text-4xl font-bold">4</div>
+              <div className="text-4xl font-bold">{features.length}</div>
               <Zap className="h-5 w-5 text-blue-600" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">Active modules</p>

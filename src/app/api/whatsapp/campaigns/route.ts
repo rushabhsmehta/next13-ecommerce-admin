@@ -112,14 +112,35 @@ export async function POST(req: NextRequest) {
 
     // Add recipients if provided
     if (recipients.length > 0) {
+      const enhancedRecipients = await Promise.all(
+        recipients.map(async (recipient: any) => {
+          let phoneNumber = recipient.phoneNumber;
+
+          if ((!phoneNumber || phoneNumber.trim().length === 0) && recipient.whatsappCustomerId) {
+            const customer = await prisma.whatsAppCustomer.findUnique({
+              where: { id: recipient.whatsappCustomerId },
+              select: { phoneNumber: true },
+            });
+            phoneNumber = customer?.phoneNumber;
+          }
+
+          if (!phoneNumber) {
+            throw new Error('Recipient phone number is required');
+          }
+
+          return {
+            campaignId: campaign.id,
+            phoneNumber,
+            customerId: recipient.customerId || null,
+            whatsappCustomerId: recipient.whatsappCustomerId || null,
+            name: recipient.name || null,
+            variables: recipient.variables || {},
+          };
+        })
+      );
+
       await prisma.whatsAppCampaignRecipient.createMany({
-        data: recipients.map((recipient: any) => ({
-          campaignId: campaign.id,
-          phoneNumber: recipient.phoneNumber,
-          customerId: recipient.customerId || null,
-          name: recipient.name || null,
-          variables: recipient.variables || {}
-        }))
+        data: enhancedRecipients,
       });
     }
 

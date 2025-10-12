@@ -25,7 +25,7 @@ function normalizeButtons(components: any[] | undefined) {
     flowId: button.flow_id || button.flowId,
     flowName: button.flow_name || button.flowName,
     flowCta: button.flow_cta || button.flowCta,
-  flowMessageVersion: button.flow_message_version || button.flowMessageVersion,
+    flowMessageVersion: button.flow_message_version || button.flowMessageVersion,
     flowAction: button.flow_action || button.flowAction,
     flowActionData: button.flow_action_data || button.flow_action_payload || button.flowActionData,
     flowToken: button.flow_token || button.flowToken,
@@ -40,6 +40,13 @@ function normalizeTemplate(template: any) {
   const components = template.components || [];
   const bodyComponent = components.find((component: any) => component.type === 'BODY');
   const bodyText = bodyComponent?.text || '';
+  const bodyExample = bodyComponent?.example || {};
+  const bodyNamedParams = Array.isArray(bodyExample.body_text_named_params)
+    ? bodyExample.body_text_named_params
+    : [];
+  const bodyExampleValues = Array.isArray(bodyExample.body_text)
+    ? bodyExample.body_text
+    : [];
 
   return {
     id: `${template.name}:${template.language}`,
@@ -49,6 +56,8 @@ function normalizeTemplate(template: any) {
     category: template.category,
     body: bodyText,
     variables: extractVariables(bodyText),
+    namedVariables: bodyNamedParams,
+    exampleValues: bodyExampleValues,
     whatsapp: normalizeButtons(components),
     components,
     updatedAt: template.last_updated_time || null,

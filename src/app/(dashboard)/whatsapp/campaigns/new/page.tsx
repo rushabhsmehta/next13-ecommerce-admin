@@ -25,9 +25,15 @@ interface WhatsAppTemplate {
     text?: string;
     example?: {
       body_text?: Array<Array<string>>;
+      body_text_named_params?: Array<{
+        param_name: string;
+        example?: string;
+      }>;
       header_text?: Array<string>;
     };
   }>;
+  exampleValues?: Array<Array<string>>;
+  namedVariables?: Array<{ param_name: string; example?: string }>;
 }
 
 interface CampaignData {
@@ -105,11 +111,22 @@ export default function NewCampaignPage() {
   const getTemplateParameters = (): number => {
     if (!selectedTemplate) return 0;
     
+    if (selectedTemplate.namedVariables && selectedTemplate.namedVariables.length > 0) {
+      return selectedTemplate.namedVariables.length;
+    }
+
+    if (Array.isArray(selectedTemplate.exampleValues) && selectedTemplate.exampleValues.length > 0) {
+      const firstRow = selectedTemplate.exampleValues[0];
+      if (Array.isArray(firstRow)) {
+        return firstRow.length;
+      }
+    }
+
     const bodyComponent = selectedTemplate.components.find(c => c.type === 'BODY');
-    if (!bodyComponent || !bodyComponent.text) return 0;
-    
-    // Count {{1}}, {{2}}, etc. placeholders in template text
-    const matches = bodyComponent.text.match(/\{\{\d+\}\}/g);
+    const bodyText = bodyComponent?.text;
+    if (!bodyText) return 0;
+
+    const matches = bodyText.match(/\{\{[^}]+\}\}/g);
     return matches ? matches.length : 0;
   };
 
@@ -271,11 +288,15 @@ export default function NewCampaignPage() {
                   <p className="text-sm text-blue-800">
                     <strong>{parameterCount} variable(s)</strong> required for this template
                   </p>
-                  {selectedTemplate.components.find(c => c.type === 'BODY')?.text && (
+                  {selectedTemplate.namedVariables && selectedTemplate.namedVariables.length > 0 ? (
+                    <p className="text-xs text-blue-700 mt-1">
+                      Variables: {selectedTemplate.namedVariables.map(v => v.param_name).join(', ')}
+                    </p>
+                  ) : selectedTemplate.components.find(c => c.type === 'BODY')?.text ? (
                     <p className="text-xs text-blue-700 mt-1">
                       Template: {selectedTemplate.components.find(c => c.type === 'BODY')?.text}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>
@@ -323,25 +344,31 @@ export default function NewCampaignPage() {
                       <span>Template Variables (Required)</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      {Array.from({ length: parameterCount }, (_, i) => (
-                        <div key={i}>
-                          <Label htmlFor={`var${i + 1}`}>
-                            Variable {i + 1} *
-                          </Label>
-                          <Input
-                            id={`var${i + 1}`}
-                            placeholder={`Enter value for {{${i + 1}}}`}
-                            value={recipientInput.variables[String(i + 1)] || ''}
-                            onChange={(e) => setRecipientInput({ 
-                              ...recipientInput, 
-                              variables: {
-                                ...recipientInput.variables,
-                                [String(i + 1)]: e.target.value
-                              }
-                            })}
-                          />
-                        </div>
-                      ))}
+                      {Array.from({ length: parameterCount }, (_, i) => {
+                        const index = i + 1;
+                        const namedParam = selectedTemplate?.namedVariables?.[i];
+                        const label = namedParam?.param_name ? namedParam.param_name : `Variable ${index}`;
+                        const key = namedParam?.param_name || String(index);
+                        return (
+                          <div key={key}>
+                            <Label htmlFor={`var${key}`}>
+                              {label} *
+                            </Label>
+                            <Input
+                              id={`var${key}`}
+                              placeholder={namedParam?.example ? `e.g. ${namedParam.example}` : `Enter value for {{${key}}}`}
+                              value={recipientInput.variables[key] || ''}
+                              onChange={(e) => setRecipientInput({ 
+                                ...recipientInput, 
+                                variables: {
+                                  ...recipientInput.variables,
+                                  [key]: e.target.value
+                                }
+                              })}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

@@ -1287,16 +1287,56 @@ export async function sendWhatsAppTemplate(
   const scheduleDate = parseDateInput(params.scheduleFor);
   
   // Create a readable message preview
-  const messagePreview = params.templateBody 
+  const messagePreview = params.templateBody
     ? substituteTemplateVariables(params.templateBody, params.bodyParams || [])
     : templatePreview(params.templateName, components);
+
+  const metadataWithPreview: Record<string, any> | undefined = (() => {
+    if (!params.metadata && !messagePreview) {
+      return undefined;
+    }
+
+    const enriched: Record<string, any> = {
+      ...(params.metadata || {}),
+    };
+
+    if (!enriched.templateName) {
+      enriched.templateName = params.templateName;
+    }
+
+    if (messagePreview && !enriched.textPreview) {
+      enriched.textPreview = messagePreview;
+    }
+
+    if (!enriched.whatsappType) {
+      enriched.whatsappType = 'template';
+    }
+
+    if (params.templateBody && !enriched.templateBody) {
+      enriched.templateBody = params.templateBody;
+    }
+
+    if (params.bodyParams && enriched.bodyParams === undefined) {
+      enriched.bodyParams = params.bodyParams;
+    }
+
+    if (params.buttonParams && params.buttonParams.length > 0 && enriched.buttonParams === undefined) {
+      enriched.buttonParams = params.buttonParams;
+    }
+
+    if (params.headerParams && enriched.headerParams === undefined) {
+      enriched.headerParams = params.headerParams;
+    }
+
+    return enriched;
+  })();
   
   if (scheduleDate && scheduleDate.getTime() > Date.now() + 1000 && (params.saveToDb ?? true)) {
     const record = await persistOutboundMessage({
       to: destination,
       message: messagePreview,
       status: 'scheduled',
-      metadata: params.metadata,
+  metadata: metadataWithPreview,
       payload,
       sessionId: session?.id ?? undefined,
       automationId: params.automationId,
@@ -1340,7 +1380,7 @@ export async function sendWhatsAppTemplate(
         message: messagePreview, // Use the readable preview we created earlier
         status: 'sent',
         messageSid,
-        metadata: params.metadata,
+  metadata: metadataWithPreview,
         payload,
         sessionId: session?.id ?? undefined,
         automationId: params.automationId,
@@ -1389,7 +1429,7 @@ export async function sendWhatsAppTemplate(
         message: templatePreview(params.templateName, components),
         status: 'failed',
         errorMessage: error?.message || 'Unknown error',
-        metadata: params.metadata,
+  metadata: metadataWithPreview,
         payload,
         sessionId: session?.id ?? undefined,
         automationId: params.automationId,

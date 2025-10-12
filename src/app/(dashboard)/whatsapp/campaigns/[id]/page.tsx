@@ -95,6 +95,7 @@ export default function CampaignDetailsPage() {
   }, [campaign, fetchCampaign]);
 
   const sendCampaign = async () => {
+    const existingStatus = campaign?.status;
     setSending(true);
     try {
       const response = await fetch(`/api/whatsapp/campaigns/${campaignId}/send`, {
@@ -106,7 +107,11 @@ export default function CampaignDetailsPage() {
         throw new Error(error.error || 'Failed to send campaign');
       }
 
-      toast.success('Campaign sending started!');
+      if (existingStatus === 'completed') {
+        toast.success('Retry started. Campaign is sending again.');
+      } else {
+        toast.success('Campaign sending started!');
+      }
       fetchCampaign();
     } catch (error: any) {
       console.error('Error sending campaign:', error);
@@ -164,7 +169,8 @@ export default function CampaignDetailsPage() {
     ? Math.round((campaign.readCount / campaign.deliveredCount) * 100)
     : 0;
 
-  const canSend = campaign.status === 'draft' || campaign.status === 'scheduled';
+  const canRetry = campaign.status === 'completed';
+  const canSend = campaign.status === 'draft' || campaign.status === 'scheduled' || canRetry;
   const canDelete = campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'completed';
 
   return (
@@ -219,7 +225,10 @@ export default function CampaignDetailsPage() {
                 <Button 
                   onClick={sendCampaign} 
                   disabled={sending}
-                  className="bg-white text-green-600 hover:bg-green-50"
+                  className={cn(
+                    'bg-white text-green-600 hover:bg-green-50',
+                    canRetry && 'border border-green-200'
+                  )}
                 >
                   {sending ? (
                     <>
@@ -229,7 +238,7 @@ export default function CampaignDetailsPage() {
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                      Send Campaign
+                      {canRetry ? 'Retry Campaign' : 'Send Campaign'}
                     </>
                   )}
                 </Button>

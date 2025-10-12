@@ -36,8 +36,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check campaign status
-    if (campaign.status !== 'draft' && campaign.status !== 'scheduled') {
+    // Completed campaigns can be retried – reset stats and recipient states
+    const isCompletedRetry = campaign.status === 'completed';
+
+    if (!isCompletedRetry && campaign.status !== 'draft' && campaign.status !== 'scheduled') {
       return NextResponse.json(
         { error: 'Campaign cannot be sent in current status' },
         { status: 400 }
@@ -47,22 +49,51 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     // Check if campaign has recipients
     if (campaign.recipients.length === 0) {
       return NextResponse.json(
-        { error: 'Campaign has no pending recipients' },
+        { error: 'Campaign has no recipients to send' },
         { status: 400 }
       );
     }
 
-    // Update campaign status to sending
-    await prisma.whatsAppCampaign.update({
-      where: { id: params.id },
-      data: {
-        status: 'sending',
-        startedAt: new Date()
-      }
-    });
+    if (isCompletedRetry) {
+      await prisma.$transaction(async (tx) => {
+        await tx.whatsAppCampaignRecipient.updateMany({
+          where: { campaignId: params.id },
+          data: {
+            status: 'pending',
+            sentAt: null,
+            deliveredAt: null,
+            readAt: null,
+            errorMessage: null,
+            errorCode: null,
+          }
+        });
 
-    // Start sending in background (we'll improve this with a queue later)
-    processCampaignInBackground(campaign.id);
+        await tx.whatsAppCampaign.update({
+          where: { id: params.id },
+          data: {
+            status: 'sending',
+            sentCount: 0,
+            deliveredCount: 0,
+            readCount: 0,
+            failedCount: 0,
+            respondedCount: 0,
+            startedAt: new Date(),
+            completedAt: null,
+          }
+        });
+      });
+    } else {
+      await prisma.whatsAppCampaign.update({
+        where: { id: params.id },
+        data: {
+          status: 'sending',
+          startedAt: new Date()
+        }
+      });
+    }
+
+  // Start sending in background (we'll improve this with a queue later)
+  processCampaignInBackground(campaign.id);
 
     return NextResponse.json({
       success: true,
@@ -118,15 +149,7 @@ async function processCampaignInBackground(campaignId: string) {
           ...(recipient.variables as any || {})
         };
 
-        // Convert variables object to array for bodyParams (assuming variables are named "1", "2", "3", etc.)
-        const bodyParams: Array<string | number> = [];
-        if (variables) {
-          // Extract numeric keys and sort them
-          const keys = Object.keys(variables).filter(k => !isNaN(Number(k))).sort((a, b) => Number(a) - Number(b));
-          keys.forEach(key => {
-            bodyParams.push(variables[key]);
-          });
-        }
+        const { bodyParams, buttonParams, headerParams } = deriveTemplateParameters(variables);
 
         // Send message
         const result = await sendWhatsAppTemplate({
@@ -135,6 +158,8 @@ async function processCampaignInBackground(campaignId: string) {
           templateBody,
           languageCode: campaign.templateLanguage,
           bodyParams,
+          buttonParams,
+          headerParams,
           metadata: {
             campaignId: campaign.id,
             recipientId: recipient.id
@@ -194,6 +219,169 @@ async function processCampaignInBackground(campaignId: string) {
       }
     });
   }
+}
+
+// Translate stored variable maps into WhatsApp API payload pieces so campaign sends honour media headers & buttons.
+function deriveTemplateParameters(variables: Record<string, any> | null | undefined) {
+  const clean = (value: unknown): string | undefined => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed.length ? trimmed : undefined;
+    }
+    const str = String(value).trim();
+    return str.length ? str : undefined;
+  };
+
+  const vars = variables || {};
+  const bodyParams: Array<string | number> = [];
+  const buttonParams: Array<any> = [];
+  let headerParams: any = undefined;
+
+  const headerImage = clean(vars['_header_image'] ?? vars['headerImage'] ?? vars['header_image']);
+  const headerVideo = clean(vars['_header_video'] ?? vars['headerVideo'] ?? vars['header_video']);
+  const headerDocument = clean(vars['_header_document'] ?? vars['headerDocument'] ?? vars['header_document']);
+  const headerDocumentFilename = clean(vars['_header_document_filename'] ?? vars['headerDocumentFilename'] ?? vars['header_document_filename']);
+  const headerText = clean(vars['_header_text'] ?? vars['headerText'] ?? vars['header_text'] ?? vars['header']);
+
+  if (headerImage) {
+    headerParams = {
+      type: 'image',
+      image: { link: headerImage },
+    };
+  } else if (headerVideo) {
+    headerParams = {
+      type: 'video',
+      video: { link: headerVideo },
+    };
+  } else if (headerDocument) {
+    headerParams = {
+      type: 'document',
+      document: {
+        link: headerDocument,
+        ...(headerDocumentFilename ? { filename: headerDocumentFilename } : {}),
+      },
+    };
+  } else if (headerText) {
+    headerParams = {
+      type: 'text',
+      text: headerText,
+    };
+  }
+
+  const numericKeys = Object.keys(vars)
+    .filter((key) => /^\d+$/.test(key))
+    .sort((a, b) => Number(a) - Number(b));
+
+  if (numericKeys.length > 0) {
+    numericKeys.forEach((key) => {
+      const value = clean(vars[key]);
+      if (value !== undefined) {
+        bodyParams.push(value);
+      }
+    });
+  } else {
+    const candidateKeys = Object.keys(vars)
+      .filter((key) => !key.startsWith('_'))
+      .filter((key) => !['header', 'headerImage', 'header_image', 'headerVideo', 'header_video', 'headerDocument', 'header_document', 'headerDocumentFilename', 'header_document_filename', 'cta_url'].includes(key));
+
+    candidateKeys.sort();
+    candidateKeys.forEach((key) => {
+      const value = clean(vars[key]);
+      if (value !== undefined) {
+        bodyParams.push(value);
+      }
+    });
+  }
+
+  const urlButtonMap = new Map<number, Array<{ type: string; text: string }>>();
+  Object.entries(vars).forEach(([key, rawValue]) => {
+    const match = key.match(/^_button_(\d+)_url$/);
+    if (!match) {
+      return;
+    }
+    const value = clean(rawValue);
+    if (!value) {
+      return;
+    }
+    const index = Number(match[1]);
+    const existing = urlButtonMap.get(index) || [];
+    existing.push({ type: 'text', text: value });
+    urlButtonMap.set(index, existing);
+  });
+
+  Array.from(urlButtonMap.entries())
+    .sort(([a], [b]) => a - b)
+    .forEach(([index, params]) => {
+      buttonParams.push({
+        type: 'button',
+        sub_type: 'url',
+        index,
+        parameters: params,
+      });
+    });
+
+  const flowButtonMap = new Map<number, Record<string, any>>();
+  Object.entries(vars).forEach(([key, rawValue]) => {
+    const match = key.match(/^_flow_(\d+)_(.+)$/);
+    if (!match) {
+      return;
+    }
+    const index = Number(match[1]);
+    const field = match[2];
+    const target = flowButtonMap.get(index) || {};
+    if (field === 'action_data') {
+      try {
+        target.flow_action_data = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue;
+      } catch {
+        const fallback = clean(rawValue);
+        if (fallback) {
+          target.flow_action_data = fallback;
+        }
+      }
+    } else {
+      const value = clean(rawValue);
+      if (value) {
+        target[`flow_${field}`] = value;
+      }
+    }
+    flowButtonMap.set(index, target);
+  });
+
+  Array.from(flowButtonMap.entries())
+    .sort(([a], [b]) => a - b)
+    .forEach(([index, config]) => {
+      const parameter: Record<string, any> = { type: 'flow' };
+      Object.entries(config).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        parameter[key] = value;
+      });
+      if (!parameter.flow_token) {
+        parameter.flow_token = `flow-${Date.now()}-${index}`;
+      }
+      buttonParams.push({
+        type: 'button',
+        sub_type: 'flow',
+        index,
+        parameters: [parameter],
+      });
+    });
+
+  const ctaUrl = clean(vars.cta_url);
+  if (ctaUrl) {
+    buttonParams.push({
+      type: 'button',
+      sub_type: 'url',
+      index: 0,
+      parameters: [{ type: 'text', text: ctaUrl }],
+    });
+  }
+
+  return { bodyParams, buttonParams, headerParams };
 }
 function extractErrorCode(error: any): string | null {
   if (typeof error === 'string') {

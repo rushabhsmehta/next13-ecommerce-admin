@@ -153,9 +153,9 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
     const term = search.trim();
     const digits = extractDigits(term);
     where.OR = [
-      { firstName: { contains: term, mode: 'insensitive' } },
-      { lastName: { contains: term, mode: 'insensitive' } },
-      { email: { contains: term, mode: 'insensitive' } },
+      { firstName: { contains: term } },
+      { lastName: { contains: term } },
+      { email: { contains: term } },
     ];
     if (digits.length >= 4) {
       where.OR?.push({ phoneNumber: { contains: digits } });
@@ -177,7 +177,7 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
   ]);
 
   const uniqueTags = await prisma.whatsAppCustomer.findMany({
-    where: { tags: { not: null } },
+    where: { tags: { not: Prisma.DbNull } },
     select: { tags: true },
   });
 
@@ -272,7 +272,7 @@ export async function upsertWhatsAppCustomers(
 
 export async function getWhatsAppCustomerTags() {
   const rows = await prisma.whatsAppCustomer.findMany({
-    where: { tags: { not: null } },
+    where: { tags: { not: Prisma.DbNull } },
     select: { tags: true },
   });
 

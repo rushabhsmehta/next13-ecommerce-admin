@@ -22,6 +22,7 @@ interface WhatsAppTemplate {
   language: string;
   status: string;
   category: string;
+  body?: string;
   components: Array<{
     type: string;
     format?: string;
@@ -70,6 +71,16 @@ interface WhatsAppCustomerListResponse {
   success: boolean;
   data: WhatsAppDirectoryCustomer[];
   tags: { tag: string; count: number }[];
+}
+
+interface TemplateVariableField {
+  key: string;
+  label: string;
+  required: boolean;
+  source: 'body' | 'header' | 'footer' | 'button';
+  type: 'text' | 'image' | 'video' | 'document';
+  placeholder?: string;
+  helperText?: string;
 }
 
 export default function NewCampaignPage() {
@@ -208,37 +219,182 @@ export default function NewCampaignPage() {
   // Get selected template details
   const selectedTemplate = templates.find(t => t.name === campaignData.templateName);
   
-  // Extract parameter count from template body component
-  const getTemplateParameters = (): number => {
-    if (!selectedTemplate) return 0;
-    
-    if (selectedTemplate.namedVariables && selectedTemplate.namedVariables.length > 0) {
-      return selectedTemplate.namedVariables.length;
+  const templateVariableFields = useMemo<TemplateVariableField[]>(() => {
+    if (!selectedTemplate) {
+      return [];
     }
 
-    if (Array.isArray(selectedTemplate.exampleValues) && selectedTemplate.exampleValues.length > 0) {
-      const firstRow = selectedTemplate.exampleValues[0];
-      if (Array.isArray(firstRow)) {
-        return firstRow.length;
+    const fieldsByKey = new Map<string, TemplateVariableField>();
+    const fieldOrder: string[] = [];
+
+    const addField = (field: TemplateVariableField) => {
+      const existing = fieldsByKey.get(field.key);
+      if (!existing) {
+        fieldsByKey.set(field.key, field);
+        fieldOrder.push(field.key);
+        return;
+      }
+      fieldsByKey.set(field.key, {
+        ...existing,
+        label: existing.label || field.label,
+        required: existing.required || field.required,
+        placeholder: existing.placeholder || field.placeholder,
+        helperText: existing.helperText || field.helperText,
+        type: existing.type || field.type,
+        source: existing.source,
+      });
+    };
+
+    const extractPlaceholders = (text: string | undefined) => {
+      if (!text) return [] as string[];
+      const seen = new Set<string>();
+      const keys: string[] = [];
+      const regex = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(text))) {
+        const key = match[1];
+        if (!seen.has(key)) {
+          seen.add(key);
+          keys.push(key);
+        }
+      }
+      return keys;
+    };
+
+    const components = selectedTemplate.components || [];
+    const headerComponent = components.find(
+      (component) => component.type === 'HEADER' || component.type === 'header'
+    );
+    const headerFormat = typeof headerComponent?.format === 'string'
+      ? headerComponent.format.toUpperCase()
+      : undefined;
+
+  if (headerComponent && headerFormat === 'TEXT') {
+      const headerExamples = Array.isArray(headerComponent.example?.header_text)
+        ? (headerComponent.example?.header_text as string[])
+        : [];
+      extractPlaceholders(headerComponent.text).forEach((key, index) => {
+        addField({
+          key,
+          label: /^\d+$/.test(key) ? `Variable ${key}` : key,
+          required: true,
+          source: 'header',
+          type: 'text',
+          placeholder: headerExamples[index] ? `e.g. ${headerExamples[index]}` : undefined,
+        });
+      });
+    }
+
+    if (headerComponent && headerFormat && headerFormat !== 'TEXT') {
+      if (headerFormat === 'IMAGE') {
+        addField({
+          key: '_header_image',
+          label: 'Header image URL',
+          required: true,
+          source: 'header',
+          type: 'image',
+          placeholder: 'https://example.com/banner.jpg',
+          helperText: 'Provide a publicly accessible HTTPS image URL (JPEG/PNG, max 5MB).',
+        });
+      } else if (headerFormat === 'VIDEO') {
+        addField({
+          key: '_header_video',
+          label: 'Header video URL',
+          required: true,
+          source: 'header',
+          type: 'video',
+          placeholder: 'https://example.com/promo.mp4',
+          helperText: 'Provide a publicly accessible HTTPS video URL supported by WhatsApp.',
+        });
+      } else if (headerFormat === 'DOCUMENT') {
+        addField({
+          key: '_header_document',
+          label: 'Header document URL',
+          required: true,
+          source: 'header',
+          type: 'document',
+          placeholder: 'https://example.com/brochure.pdf',
+          helperText: 'Provide a publicly accessible HTTPS document URL (PDF, max 5MB).',
+        });
+        addField({
+          key: '_header_document_filename',
+          label: 'Header document filename',
+          required: false,
+          source: 'header',
+          type: 'text',
+          placeholder: 'e.g. brochure.pdf',
+          helperText: 'Optional: customise the displayed filename for the document.',
+        });
+      } else if (headerFormat === 'IMAGE_AND_TEXT') {
+        // Handle any future combined format defensively by capturing media requirement
+        addField({
+          key: '_header_image',
+          label: 'Header image URL',
+          required: true,
+          source: 'header',
+          type: 'image',
+          placeholder: 'https://example.com/banner.jpg',
+          helperText: 'Provide a publicly accessible HTTPS image URL (JPEG/PNG, max 5MB).',
+        });
       }
     }
 
-    const bodyComponent = selectedTemplate.components.find(c => c.type === 'BODY');
-    const bodyText = bodyComponent?.text;
-    if (!bodyText) return 0;
+    const bodyPlaceholders = extractPlaceholders(selectedTemplate.body);
+    const namedVariables = Array.isArray(selectedTemplate.namedVariables)
+      ? selectedTemplate.namedVariables
+      : [];
 
-    const matches = bodyText.match(/\{\{[^}]+\}\}/g);
-    return matches ? matches.length : 0;
-  };
+    bodyPlaceholders.forEach((key, index) => {
+      const named = namedVariables[index];
+      addField({
+        key,
+        label: named?.param_name || (/^\d+$/.test(key) ? `Variable ${key}` : key),
+        required: true,
+        source: 'body',
+        type: 'text',
+        placeholder: named?.example ? `e.g. ${named.example}` : undefined,
+      });
+    });
 
-  const parameterCount = getTemplateParameters();
-  const getTemplateVariableKeys = () => {
-    if (!selectedTemplate) return [] as string[];
-    if (selectedTemplate.namedVariables && selectedTemplate.namedVariables.length > 0) {
-      return selectedTemplate.namedVariables.map((param, index) => param?.param_name || String(index + 1));
+    const footerComponent = components.find(
+      (component) => component.type === 'FOOTER' || component.type === 'footer'
+    );
+    if (footerComponent?.text) {
+      extractPlaceholders(footerComponent.text).forEach((key) => {
+        addField({
+          key,
+          label: /^\d+$/.test(key) ? `Variable ${key}` : key,
+          required: true,
+          source: 'footer',
+          type: 'text',
+        });
+      });
     }
-    return Array.from({ length: parameterCount }, (_, index) => String(index + 1));
+
+    return fieldOrder.map((key) => fieldsByKey.get(key)!).filter(Boolean);
+  }, [selectedTemplate]);
+
+  const requiredVariableCount = templateVariableFields.filter((field) => field.required).length;
+  const optionalVariableCount = templateVariableFields.length - requiredVariableCount;
+
+  const normalizeVariableValue = (value: unknown): string => {
+    if (value === undefined || value === null) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+    return String(value).trim();
   };
+
+  const templateFieldOrder = useMemo(() => {
+    const order = new Map<string, number>();
+    templateVariableFields.forEach((field, index) => {
+      order.set(field.key, index);
+    });
+    return order;
+  }, [templateVariableFields]);
+
 
   const steps: { id: Step; title: string; icon: any }[] = [
     { id: 'details', title: 'Campaign Details', icon: FileText },
@@ -267,11 +423,13 @@ export default function NewCampaignPage() {
       return;
     }
 
-    const variableKeys = getTemplateVariableKeys();
-    if (variableKeys.length > 0) {
-      const missing = variableKeys.filter((key) => !recipientInput.variables[key]?.toString().trim());
+    if (templateVariableFields.length > 0) {
+      const missing = templateVariableFields
+        .filter((field) => field.required)
+        .filter((field) => normalizeVariableValue(recipientInput.variables[field.key]) === '')
+        .map((field) => field.label);
       if (missing.length > 0) {
-        toast.error(`Fill all template variables (${missing.join(', ')}) before adding`);
+        toast.error(`Fill all required template variables (${missing.join(', ')}) before adding`);
         return;
       }
     }
@@ -283,6 +441,25 @@ export default function NewCampaignPage() {
       return;
     }
 
+    const variables: Record<string, string> = {};
+    templateVariableFields.forEach((field) => {
+      const rawValue = recipientInput.variables[field.key];
+      const value = normalizeVariableValue(rawValue);
+      if (field.required || value) {
+        variables[field.key] = value;
+      }
+    });
+
+    Object.entries(recipientInput.variables).forEach(([key, rawValue]) => {
+      if (variables[key] !== undefined) {
+        return;
+      }
+      const value = normalizeVariableValue(rawValue);
+      if (value) {
+        variables[key] = value;
+      }
+    });
+
     const newRecipient: {
       phoneNumber: string;
       name: string;
@@ -290,7 +467,7 @@ export default function NewCampaignPage() {
     } = {
       phoneNumber: normalizedPhone,
       name: recipientInput.name,
-      variables: recipientInput.variables,
+      variables,
     };
 
     setCampaignData({
@@ -365,9 +542,11 @@ export default function NewCampaignPage() {
       return;
     }
 
-    const variableKeys = getTemplateVariableKeys();
-    if (variableKeys.length > 0) {
-      const missingDefaults = variableKeys.filter((key) => !bulkVariableDefaults[key]?.trim());
+    if (templateVariableFields.length > 0) {
+      const missingDefaults = templateVariableFields
+        .filter((field) => field.required)
+        .filter((field) => normalizeVariableValue(bulkVariableDefaults[field.key]) === '')
+        .map((field) => field.label);
       if (missingDefaults.length > 0) {
         toast.error(`Provide default values for: ${missingDefaults.join(', ')}`);
         return;
@@ -385,10 +564,12 @@ export default function NewCampaignPage() {
       })
       .map((customer) => {
         const variables: Record<string, string> = {};
-        const variableKeys = getTemplateVariableKeys();
-        variableKeys.forEach((key) => {
-          const value = bulkVariableDefaults[key] ?? '';
-          variables[key] = value.trim();
+        templateVariableFields.forEach((field) => {
+          const rawValue = bulkVariableDefaults[field.key];
+          const value = normalizeVariableValue(rawValue);
+          if (field.required || value) {
+            variables[field.key] = value;
+          }
         });
 
         return {
@@ -473,19 +654,29 @@ export default function NewCampaignPage() {
                 Only approved templates can be used
               </p>
               {selectedTemplate && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <strong>{parameterCount} variable(s)</strong> required for this template
-                  </p>
-                  {selectedTemplate.namedVariables && selectedTemplate.namedVariables.length > 0 ? (
-                    <p className="text-xs text-blue-700 mt-1">
-                      Variables: {selectedTemplate.namedVariables.map(v => v.param_name).join(', ')}
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                  {templateVariableFields.length === 0 ? (
+                    <p className="text-sm text-blue-800">
+                      This template has no variables. You only need the recipient phone numbers.
                     </p>
-                  ) : selectedTemplate.components.find(c => c.type === 'BODY')?.text ? (
-                    <p className="text-xs text-blue-700 mt-1">
-                      Template: {selectedTemplate.components.find(c => c.type === 'BODY')?.text}
+                  ) : (
+                    <>
+                      <p className="text-sm text-blue-800">
+                        <strong>{requiredVariableCount}</strong> required field{requiredVariableCount === 1 ? '' : 's'}
+                        {optionalVariableCount > 0 && (
+                          <span> • {optionalVariableCount} optional field{optionalVariableCount === 1 ? '' : 's'}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Fields: {templateVariableFields.map((field) => `${field.label}${field.required ? '' : ' (optional)'}`).join(', ')}
+                      </p>
+                    </>
+                  )}
+                  {selectedTemplate.components.find((c) => c.type === 'BODY')?.text && (
+                    <p className="text-xs text-blue-700">
+                      Template body: {selectedTemplate.components.find((c) => c.type === 'BODY')?.text}
                     </p>
-                  ) : null}
+                  )}
                 </div>
               )}
             </div>
@@ -674,7 +865,7 @@ export default function NewCampaignPage() {
                         </div>
                       </div>
 
-                      {parameterCount > 0 && (
+                      {templateVariableFields.length > 0 && (
                         <div className="space-y-3 rounded-lg border bg-muted/40 p-4">
                           <div className="text-sm font-medium">
                             Template variables
@@ -683,23 +874,27 @@ export default function NewCampaignPage() {
                             Provide default values to personalise the template for all selected customers. You can edit individual recipients after adding them.
                           </p>
                           <div className="grid gap-3 sm:grid-cols-2">
-                            {getTemplateVariableKeys().map((key, index) => {
-                              const namedParam = selectedTemplate?.namedVariables?.[index];
-                              const label = namedParam?.param_name || `Variable ${index + 1}`;
+                            {templateVariableFields.map((field) => {
                               return (
-                                <div key={key} className="grid gap-2">
-                                  <Label htmlFor={`bulk-variable-${key}`}>{label}</Label>
+                                <div key={field.key} className="grid gap-2">
+                                  <Label htmlFor={`bulk-variable-${field.key}`}>
+                                    {field.label}
+                                    {field.required ? ' *' : ' (optional)'}
+                                  </Label>
                                   <Input
-                                    id={`bulk-variable-${key}`}
-                                    value={bulkVariableDefaults[key] || ''}
+                                    id={`bulk-variable-${field.key}`}
+                                    value={bulkVariableDefaults[field.key] || ''}
                                     onChange={(event) =>
                                       setBulkVariableDefaults((prev) => ({
                                         ...prev,
-                                        [key]: event.target.value,
+                                        [field.key]: event.target.value,
                                       }))
                                     }
-                                    placeholder={namedParam?.example ? `e.g. ${namedParam.example}` : `Value for {{${key}}}`}
+                                    placeholder={field.placeholder || undefined}
                                   />
+                                  {field.helperText && (
+                                    <p className="text-xs text-muted-foreground">{field.helperText}</p>
+                                  )}
                                 </div>
                               );
                             })}
@@ -746,26 +941,26 @@ export default function NewCampaignPage() {
                 </div>
 
                 {/* Dynamic variable inputs based on template parameters */}
-                {parameterCount > 0 && (
+                {templateVariableFields.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Info className="h-4 w-4 text-blue-600" />
-                      <span>Template Variables (Required)</span>
+                      <span>
+                        Template Variables{optionalVariableCount > 0 ? ' (Required & Optional)' : ' (Required)'}
+                      </span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      {Array.from({ length: parameterCount }, (_, i) => {
-                        const index = i + 1;
-                        const namedParam = selectedTemplate?.namedVariables?.[i];
-                        const label = namedParam?.param_name ? namedParam.param_name : `Variable ${index}`;
-                        const key = namedParam?.param_name || String(index);
+                      {templateVariableFields.map((field) => {
+                        const key = field.key;
                         return (
                           <div key={key}>
                             <Label htmlFor={`var${key}`}>
-                              {label} *
+                              {field.label}
+                              {field.required ? ' *' : ' (optional)'}
                             </Label>
                             <Input
                               id={`var${key}`}
-                              placeholder={namedParam?.example ? `e.g. ${namedParam.example}` : `Enter value for {{${key}}}`}
+                              placeholder={field.placeholder || `Enter value for {{${key}}}`}
                               value={recipientInput.variables[key] || ''}
                               onChange={(e) => setRecipientInput({ 
                                 ...recipientInput, 
@@ -775,6 +970,9 @@ export default function NewCampaignPage() {
                                 }
                               })}
                             />
+                            {field.helperText && (
+                              <p className="text-xs text-muted-foreground mt-1">{field.helperText}</p>
+                            )}
                           </div>
                         );
                       })}
@@ -782,7 +980,7 @@ export default function NewCampaignPage() {
                   </div>
                 )}
 
-                {parameterCount === 0 && (
+                {templateVariableFields.length === 0 && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-800">
                       ℹ️ This template doesn&apos;t require any variables. Just add phone number and name.
@@ -825,8 +1023,20 @@ export default function NewCampaignPage() {
                           {Object.keys(recipient.variables).length > 0 && (
                             <p className="text-xs text-muted-foreground mt-1">
                               Variables: {Object.entries(recipient.variables)
-                                .sort(([a], [b]) => Number(a) - Number(b))
-                                .map(([key, value]) => `{{${key}}}: ${value}`)
+                                .sort(([a], [b]) => {
+                                  const indexA = templateFieldOrder.get(a);
+                                  const indexB = templateFieldOrder.get(b);
+                                  if (indexA !== undefined && indexB !== undefined) {
+                                    return indexA - indexB;
+                                  }
+                                  if (indexA !== undefined) return -1;
+                                  if (indexB !== undefined) return 1;
+                                  if (!Number.isNaN(Number(a)) && !Number.isNaN(Number(b))) {
+                                    return Number(a) - Number(b);
+                                  }
+                                  return a.localeCompare(b);
+                                })
+                                .map(([key, value]) => `${key.startsWith('_') ? key : `{{${key}}}`}: ${value}`)
                                 .join(', ')}
                             </p>
                           )}

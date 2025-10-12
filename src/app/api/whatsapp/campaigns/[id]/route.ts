@@ -148,7 +148,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // If campaign is sending, cancel it
+    // If campaign is actively sending, cancel instead of deleting
     if (campaign.status === 'sending') {
       await prisma.whatsAppCampaign.update({
         where: { id: params.id },
@@ -164,8 +164,16 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Otherwise delete it (if draft or scheduled)
-    if (campaign.status === 'draft' || campaign.status === 'scheduled') {
+    const deletableStatuses = new Set([
+      'draft',
+      'scheduled',
+      'completed',
+      'failed',
+      'cancelled',
+      'paused'
+    ]);
+
+    if (deletableStatuses.has(campaign.status)) {
       await prisma.whatsAppCampaign.delete({
         where: { id: params.id }
       });
@@ -176,7 +184,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       });
     }
 
-    // Cannot delete completed campaigns
+    // Remaining statuses (e.g. retry in progress) cannot be deleted directly
     return NextResponse.json(
       { error: 'Cannot delete campaign in current status' },
       { status: 400 }

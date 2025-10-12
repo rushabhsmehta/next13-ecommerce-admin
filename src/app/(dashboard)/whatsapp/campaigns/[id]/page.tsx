@@ -171,7 +171,7 @@ export default function CampaignDetailsPage() {
 
   const canRetry = campaign.status === 'completed';
   const canSend = campaign.status === 'draft' || campaign.status === 'scheduled' || canRetry;
-  const canDelete = campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'completed';
+  const canDelete = ['draft', 'scheduled', 'completed', 'failed', 'cancelled', 'paused'].includes(campaign.status);
 
   return (
     <div className="space-y-6 pb-8">

@@ -110,6 +110,10 @@ const formatContactLabel = (value?: string | null) => {
   return stripped || 'Unknown contact';
 };
 
+const DEFAULT_MESSAGE_FETCH_LIMIT = 100;
+const INITIAL_VISIBLE_MESSAGES = 5;
+const LOAD_MORE_MESSAGES_STEP = 5;
+
 export default function WhatsAppSettingsPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [message, setMessage] = useState('');
@@ -137,6 +141,9 @@ export default function WhatsAppSettingsPage() {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const lastReadMapRef = useRef<Record<string, number>>({});
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
 
   // Debug Logs State
   type DebugLog = {
@@ -824,6 +831,19 @@ export default function WhatsAppSettingsPage() {
 
     const isLongFormField = (variable: string) => /action_data|payload|json/i.test(variable);
 
+  const fetchMessages = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/whatsapp/messages?limit=${DEFAULT_MESSAGE_FETCH_LIMIT}`);
+      const result = await response.json();
+      if (result.success) {
+        setMessages(result.messages);
+        console.log('📨 Fetched messages:', result.messages.length);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -857,8 +877,8 @@ export default function WhatsAppSettingsPage() {
       }
     };
 
-    fetchConfig();
-    fetchMessages();
+  fetchConfig();
+  fetchMessages();
     fetchTemplates();
     fetchOrg();
 
@@ -870,7 +890,7 @@ export default function WhatsAppSettingsPage() {
     return () => {
       clearInterval(messageRefreshInterval);
     };
-  }, []);
+  }, [fetchMessages]);
 
   // Debug Logging Helper
   const addDebugLog = (type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
@@ -1088,12 +1108,57 @@ export default function WhatsAppSettingsPage() {
     if (newContacts.length > 0) {
       setContacts(newContacts);
       setConvos(newConvos);
-      
-      // Set active contact if not already set
-      if (!activeId || !newContacts.find(c => c.id === activeId)) {
-        setActiveId(newContacts[0].id);
+
+      let resolvedActiveId = activeId;
+      if (!resolvedActiveId || !newContacts.some(c => c.id === resolvedActiveId)) {
+        resolvedActiveId = newContacts[0].id;
+        const history = newConvos[resolvedActiveId] || [];
+        const lastTs = history.length > 0 ? history[history.length - 1].ts : Date.now();
+        lastReadMapRef.current[resolvedActiveId] = lastTs;
+        setActiveId(resolvedActiveId);
       }
-      
+
+      const unreadSummary: Record<string, number> = {};
+      newContacts.forEach(contact => {
+        const history = newConvos[contact.id] || [];
+        if (!history.length) {
+          return;
+        }
+        const lastReadTs = lastReadMapRef.current[contact.id] ?? 0;
+        const unread = history.reduce((count, msg) => (
+          msg.direction === 'in' && msg.ts > lastReadTs ? count + 1 : count
+        ), 0);
+        if (unread > 0) {
+          unreadSummary[contact.id] = unread;
+        }
+      });
+      setUnreadCounts(unreadSummary);
+
+      setVisibleMessageCounts(prev => {
+        let changed = false;
+        const next: Record<string, number> = { ...prev };
+
+        // Ensure every contact has an entry with at least the initial count
+        newContacts.forEach(contact => {
+          const history = newConvos[contact.id] || [];
+          const desired = Math.min(INITIAL_VISIBLE_MESSAGES, history.length || INITIAL_VISIBLE_MESSAGES);
+          if (!next[contact.id]) {
+            next[contact.id] = desired || INITIAL_VISIBLE_MESSAGES;
+            changed = true;
+          }
+        });
+
+        // Remove entries for contacts no longer present
+        Object.keys(next).forEach(key => {
+          if (!newContacts.some(contact => contact.id === key)) {
+            delete next[key];
+            changed = true;
+          }
+        });
+
+        return changed ? next : prev;
+      });
+
       console.log('✅ Loaded contacts:', newContacts.length);
       console.log('✅ Conversations:', Object.keys(newConvos).length);
       console.log('✅ Contact IDs:', newContacts.map(c => c.id));
@@ -1107,11 +1172,53 @@ export default function WhatsAppSettingsPage() {
       // Clear contacts if no messages
       setContacts([]);
       setConvos({});
+      setUnreadCounts({});
+      setVisibleMessageCounts({});
       console.log('⚠️ No contacts to display');
     }
   }, [messages, templates, activeId]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
+
+  const activeContactMessages = activeContact ? (convos[activeContact.id] || []) : [];
+  const activeVisibleCount = activeContact
+    ? (visibleMessageCounts[activeContact.id] ?? Math.min(
+        INITIAL_VISIBLE_MESSAGES,
+        activeContactMessages.length || INITIAL_VISIBLE_MESSAGES
+      ))
+    : INITIAL_VISIBLE_MESSAGES;
+  const activeVisibleMessages = activeContactMessages.slice(-activeVisibleCount);
+  const hasMoreActiveMessages = activeContactMessages.length > activeVisibleMessages.length;
+
+  useEffect(() => {
+    if (!activeId) {
+      return;
+    }
+
+    const history = convos[activeId] || [];
+
+    if (history.length === 0) {
+      setUnreadCounts(prev => {
+        if (!prev[activeId]) return prev;
+        const next = { ...prev };
+        delete next[activeId];
+        return next;
+      });
+      return;
+    }
+
+    const latestTimestamp = history[history.length - 1].ts;
+    if ((lastReadMapRef.current[activeId] ?? 0) < latestTimestamp) {
+      lastReadMapRef.current[activeId] = latestTimestamp;
+    }
+
+    setUnreadCounts(prev => {
+      if (!prev[activeId]) return prev;
+      const next = { ...prev };
+      delete next[activeId];
+      return next;
+    });
+  }, [activeId, convos]);
   const shouldShowTemplateDialog = showTemplatePreview && !!selectedTemplate;
   const orderedTemplateVariableKeys = orderTemplateVariableKeys(Object.keys(templateVariables));
 
@@ -1903,19 +2010,6 @@ export default function WhatsAppSettingsPage() {
     }
   };
 
-  const fetchMessages = async () => {
-    try {
-      const response = await fetch('/api/whatsapp/messages?limit=100');
-      const result = await response.json();
-      if (result.success) {
-        setMessages(result.messages);
-        console.log('📨 Fetched messages:', result.messages.length);
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'sent':
@@ -1930,6 +2024,47 @@ export default function WhatsAppSettingsPage() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  const handleSelectContact = useCallback((contactId: string) => {
+    const history = convos[contactId] || [];
+    const lastTs = history.length > 0 ? history[history.length - 1].ts : Date.now();
+    lastReadMapRef.current[contactId] = lastTs;
+
+    setUnreadCounts(prev => {
+      if (!prev[contactId]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[contactId];
+      return next;
+    });
+
+    setVisibleMessageCounts(prev => {
+      const existing = prev[contactId];
+      const desired = Math.min(
+        INITIAL_VISIBLE_MESSAGES,
+        history.length || INITIAL_VISIBLE_MESSAGES
+      );
+      if (existing && existing >= desired) {
+        return prev;
+      }
+      return { ...prev, [contactId]: desired };
+    });
+
+    setActiveId(contactId);
+  }, [convos]);
+
+  const handleLoadMoreMessages = useCallback((contactId: string) => {
+    setVisibleMessageCounts(prev => {
+      const current = prev[contactId] ?? INITIAL_VISIBLE_MESSAGES;
+      const historyLength = (convos[contactId] || []).length;
+      const nextCount = Math.min(historyLength, current + LOAD_MORE_MESSAGES_STEP);
+      if (nextCount === current) {
+        return prev;
+      }
+      return { ...prev, [contactId]: nextCount };
+    });
+  }, [convos]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -2398,7 +2533,7 @@ export default function WhatsAppSettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={fetchMessages} variant="outline" className="mb-4">
+              <Button onClick={() => fetchMessages()} variant="outline" className="mb-4">
                 Refresh Messages
               </Button>
 
@@ -2500,9 +2635,16 @@ export default function WhatsAppSettingsPage() {
 
             <div className="flex-1 space-y-1 overflow-y-auto p-2 scrollbar-custom">
               {filteredContacts.map(c => {
-                const last = (convos[c.id] || [])[convos[c.id]?.length-1];
+                const history = convos[c.id] || [];
+                const last = history[history.length - 1];
                 const isActive = activeId === c.id;
                 const lastPreviewText = getMessagePreviewLabel(last);
+                const unreadCount = unreadCounts[c.id] || 0;
+                const showUnread = unreadCount > 0;
+                const timestampLabel = last
+                  ? new Date(last.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : '';
+
                 return (
                   <div
                     key={c.id}
@@ -2510,7 +2652,7 @@ export default function WhatsAppSettingsPage() {
                       "flex cursor-pointer items-center gap-3 rounded-xl p-3 transition-all hover:bg-emerald-100/60 dark:hover:bg-emerald-900/30",
                       isActive && "bg-emerald-200/80 text-emerald-900 shadow-md dark:bg-emerald-900/50 dark:text-emerald-100"
                     )}
-                    onClick={() => setActiveId(c.id)}
+                    onClick={() => handleSelectContact(c.id)}
                   >
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-semibold">
@@ -2520,9 +2662,16 @@ export default function WhatsAppSettingsPage() {
                     <div className="flex-1 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-sm truncate">{c.name}</span>
-                        <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">
-                          {last ? new Date(last.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
-                        </span>
+                        <div className="flex items-center gap-2 ml-2">
+                          {showUnread && (
+                            <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-semibold text-white">
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                          )}
+                          <span className="text-muted-foreground text-xs flex-shrink-0">
+                            {timestampLabel}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">
                         {lastPreviewText}
@@ -2531,6 +2680,7 @@ export default function WhatsAppSettingsPage() {
                   </div>
                 );
               })}
+
             </div>
           </div>
 
@@ -2577,7 +2727,20 @@ export default function WhatsAppSettingsPage() {
                 </div>
 
                 <div className="flex-1 space-y-4 overflow-y-auto bg-transparent p-6 scrollbar-custom">
-                  {(convos[activeContact.id] || []).map(m => {
+                  {hasMoreActiveMessages && (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleLoadMoreMessages(activeContact.id)}
+                        className="text-xs font-medium"
+                      >
+                        Load earlier messages
+                      </Button>
+                    </div>
+                  )}
+
+                  {activeVisibleMessages.map(m => {
                     const templateButtons = m.metadata?.buttons ?? [];
                     const flowButtons = m.metadata?.flowButtons ?? [];
                     const hasAnyButtons = templateButtons.length > 0 || flowButtons.length > 0;

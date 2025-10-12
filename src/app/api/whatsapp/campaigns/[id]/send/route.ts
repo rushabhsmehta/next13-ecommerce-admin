@@ -98,12 +98,6 @@ async function processCampaignInBackground(campaignId: string) {
 
     for (const recipient of campaign.recipients) {
       try {
-        // Check if within send window
-        if (!isWithinSendWindow(campaign)) {
-          console.log('Outside send window, pausing...');
-          await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
-          continue;
-        }
 
         // Update status to sending
         await prisma.whatsAppCampaignRecipient.update({
@@ -193,24 +187,6 @@ async function processCampaignInBackground(campaignId: string) {
     });
   }
 }
-
-function isWithinSendWindow(campaign: any): boolean {
-  if (campaign.sendWindowStart === null || campaign.sendWindowEnd === null) {
-    return true; // No window restrictions
-  }
-
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  if (campaign.sendWindowStart <= campaign.sendWindowEnd) {
-    // Normal window (e.g., 9 AM to 9 PM)
-    return currentHour >= campaign.sendWindowStart && currentHour < campaign.sendWindowEnd;
-  } else {
-    // Window crosses midnight (e.g., 9 PM to 9 AM)
-    return currentHour >= campaign.sendWindowStart || currentHour < campaign.sendWindowEnd;
-  }
-}
-
 function extractErrorCode(error: any): string | null {
   if (typeof error === 'string') {
     const match = error.match(/\(#(\d+)\)/);

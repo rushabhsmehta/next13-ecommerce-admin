@@ -74,9 +74,25 @@ export default function CampaignDetailsPage() {
 
   useEffect(() => {
     fetchCampaign();
-    const interval = setInterval(fetchCampaign, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
   }, [fetchCampaign]);
+
+  useEffect(() => {
+    if (!campaign) {
+      return;
+    }
+
+    const activeStatuses = ['sending', 'scheduled'];
+    const shouldPoll = activeStatuses.includes(campaign.status);
+
+    if (!shouldPoll) {
+      return;
+    }
+
+    const intervalDuration = campaign.status === 'sending' ? 10000 : 30000; // Poll less aggressively
+    const interval = setInterval(fetchCampaign, intervalDuration);
+
+    return () => clearInterval(interval);
+  }, [campaign, fetchCampaign]);
 
   const sendCampaign = async () => {
     setSending(true);

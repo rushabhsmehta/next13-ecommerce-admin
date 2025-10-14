@@ -209,8 +209,8 @@ export async function POST(request: NextRequest) {
         const btn = (variables as any)[btnKey];
         if (Array.isArray(btn)) {
           buttonParams.push({
-            type: 'button',
-            sub_type: 'url',
+            type: 'BUTTON',
+            sub_type: 'URL',
             index: i,
             parameters: btn.map((v: any) => ({ type: 'text', text: String(v) })),
           });
@@ -218,8 +218,8 @@ export async function POST(request: NextRequest) {
       }
       if ((variables as any).cta_url) {
         buttonParams.push({
-          type: 'button',
-          sub_type: 'url',
+          type: 'BUTTON',
+          sub_type: 'URL',
           index: 0,
           parameters: [{ type: 'text', text: String((variables as any).cta_url) }],
         });
@@ -229,11 +229,36 @@ export async function POST(request: NextRequest) {
         flowButtonsList
           .sort((a, b) => a.index - b.index)
           .forEach(({ index, parameter }) => {
+            const action: Record<string, any> = {};
+            Object.entries(parameter || {}).forEach(([key, value]) => {
+              if (key === 'type' || value === undefined || value === null || value === '') {
+                return;
+              }
+              if (key === 'flow_action_data') {
+                action.flow_action_data = value;
+                return;
+              }
+              if (key.startsWith('flow_')) {
+                action[key] = value;
+                return;
+              }
+              action[key] = value;
+            });
+
+            if (!action.flow_token) {
+              action.flow_token = `flow-${Date.now()}-${index}`;
+            }
+
             buttonParams.push({
-              type: 'button',
-              sub_type: 'flow',
+              type: 'BUTTON',
+              sub_type: 'FLOW',
               index,
-              parameters: [parameter],
+              parameters: [
+                {
+                  type: 'ACTION',
+                  action,
+                },
+              ],
             });
           });
       }

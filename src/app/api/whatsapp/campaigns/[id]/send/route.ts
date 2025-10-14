@@ -328,8 +328,8 @@ function deriveTemplateParameters(variables: Record<string, any> | null | undefi
     .sort(([a], [b]) => a - b)
     .forEach(([index, params]) => {
       buttonParams.push({
-        type: 'button',
-        sub_type: 'url',
+        type: 'BUTTON',
+        sub_type: 'URL',
         index,
         parameters: params,
       });
@@ -365,29 +365,44 @@ function deriveTemplateParameters(variables: Record<string, any> | null | undefi
   Array.from(flowButtonMap.entries())
     .sort(([a], [b]) => a - b)
     .forEach(([index, config]) => {
-      const parameter: Record<string, any> = { type: 'flow' };
+      const action: Record<string, any> = {};
       Object.entries(config).forEach(([key, value]) => {
-        if (value === undefined || value === null) {
+        if (value === undefined || value === null || value === '') {
           return;
         }
-        parameter[key] = value;
+        if (key === 'flow_action_data') {
+          action.flow_action_data = value;
+          return;
+        }
+        if (key.startsWith('flow_')) {
+          action[key] = value;
+          return;
+        }
+        action[key] = value;
       });
-      if (!parameter.flow_token) {
-        parameter.flow_token = `flow-${Date.now()}-${index}`;
+
+      if (!action.flow_token) {
+        action.flow_token = `flow-${Date.now()}-${index}`;
       }
+
       buttonParams.push({
-        type: 'button',
-        sub_type: 'flow',
+        type: 'BUTTON',
+        sub_type: 'FLOW',
         index,
-        parameters: [parameter],
+        parameters: [
+          {
+            type: 'ACTION',
+            action,
+          },
+        ],
       });
     });
 
   const ctaUrl = clean(vars.cta_url);
   if (ctaUrl) {
     buttonParams.push({
-      type: 'button',
-      sub_type: 'url',
+      type: 'BUTTON',
+      sub_type: 'URL',
       index: 0,
       parameters: [{ type: 'text', text: ctaUrl }],
     });

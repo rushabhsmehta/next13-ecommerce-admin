@@ -525,19 +525,64 @@ function buildTemplateComponents(
   }
 
   if (buttonParams.length) {
-    buttonParams.forEach((buttonConfig: any, index: number) => {
+    const normalizeParam = (p: any) => {
+      if (!p) return p;
+      const type = (p.type || p.TYPE || '').toString().toLowerCase();
+      if (type === 'action') {
+        return { type: 'action', action: p.action || p.ACTION || p.value || p };
+      }
+      if (type === 'text') {
+        return { type: 'text', text: String(p.text ?? p.value ?? p) };
+      }
+      if (type === 'payload') {
+        return { type: 'payload', payload: p.payload };
+      }
+      // Fallback: try common fields
+      if (p.action) return { type: 'action', action: p.action };
+      if (p.text) return { type: 'text', text: String(p.text) };
+      return p;
+    };
+
+    buttonParams.forEach((buttonConfig: any, idx: number) => {
       if (!buttonConfig) return;
+
+      // If caller provided a full config object, normalize casing
       if (buttonConfig.type) {
+        const rawType = String(buttonConfig.type || '').toLowerCase();
+        if (rawType === 'button') {
+          const subTypeRaw = String(buttonConfig.sub_type || buttonConfig.subType || buttonConfig.subType || '').toLowerCase();
+          const parameters = Array.isArray(buttonConfig.parameters)
+            ? buttonConfig.parameters.map(normalizeParam)
+            : [];
+
+          built.push({
+            type: 'BUTTON',
+            sub_type: (subTypeRaw || 'url').toUpperCase(),
+            index: typeof buttonConfig.index === 'number' ? buttonConfig.index : idx,
+            parameters: parameters.map((p: any) => {
+              if (!p) return p;
+              if ((p.type || '').toString().toLowerCase() === 'action') return { ...p, type: 'ACTION' };
+              return p;
+            }),
+          });
+          return;
+        }
+
+        // If it's not a button (unexpected), push as provided
         built.push(buttonConfig);
         return;
       }
+
+      // If it's a simple array or primitive, construct a URL button with text params
+      const parameters = Array.isArray(buttonConfig)
+        ? buttonConfig.map((v: any) => ({ type: 'text', text: String(v) }))
+        : [{ type: 'text', text: String(buttonConfig) }];
+
       built.push({
-        type: 'button',
-        sub_type: 'url',
-        index,
-        parameters: Array.isArray(buttonConfig)
-          ? buttonConfig.map((value: any) => ({ type: 'text', text: String(value) }))
-          : [{ type: 'text', text: String(buttonConfig) }],
+        type: 'BUTTON',
+        sub_type: 'URL',
+        index: idx,
+        parameters,
       });
     });
   }

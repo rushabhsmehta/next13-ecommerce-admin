@@ -1,8 +1,8 @@
 const https = require('https');
 
 // Configuration from environment
-const ACCESS_TOKEN = 'EAAVramqNmOUBPmXA9DAvQUgwcRlmZBdZCWQDEr3547bEUDnPlz3VVGbkPJKrIMkk4wjgoB9Qk9HDZCJCRAW7sle6gfZCZCL8yvVKw2ssshqgqvwixmOrwdDdRWsip52JO8IzmwtXIZAvLN8KUsQphmypNcvzZCJFTKpSguM29JUCEnKjnmLLsxuXlgPVxPfe9zC3wZDZD';
-const BUSINESS_ACCOUNT_ID = '820775724010469';
+const ACCESS_TOKEN = 'EAAVramqNmOUBPtEe4FDERasA5t0utGyAl7FhLLDAMWBJ4M4sbm6Ld5OjAuxJg6U9HxWmW1OUYz4cIEiueegKv8mKW6UIxURj8iS51jJzuwVVq60r1XUmRyJo8mWDN6dsKj4lTDcx5j7xItKSNczPNxZAaJqZAAerLanwvZCqbFhvTLKf3DfGaQJ9WAdQiICqQZDZD';
+const BUSINESS_ACCOUNT_ID = '1163477029017210';
 
 function getTemplates() {
     console.log('📋 Getting templates from business account...');

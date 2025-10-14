@@ -247,8 +247,8 @@ function buildSendPayload(template: any, parameters?: any) {
   if (parameters?.buttons) {
     Object.entries(parameters.buttons as Record<number, string[]>).forEach(([index, values]) => {
       components.push({
-        type: 'button',
-        sub_type: 'url',
+        type: 'BUTTON',
+        sub_type: 'URL',
         index: parseInt(index),
         parameters: values.map(v => ({
           type: 'text',

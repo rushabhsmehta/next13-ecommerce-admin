@@ -56,6 +56,36 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     const body = await req.json();
 
+      // Allow status-only updates (pause/resume) from UI
+      if (body && typeof body.status === 'string') {
+        const allowedStatuses = ['draft', 'scheduled', 'sending', 'paused', 'completed', 'failed', 'cancelled'];
+        if (!allowedStatuses.includes(body.status)) {
+          return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+        }
+
+        const updateData: any = { status: body.status };
+        if (body.status === 'sending') {
+          updateData.startedAt = new Date();
+        }
+        if (body.status === 'completed') {
+          updateData.completedAt = new Date();
+        }
+        if (body.status === 'scheduled' && body.scheduledFor !== undefined) {
+          updateData.scheduledFor = body.scheduledFor ? new Date(body.scheduledFor) : null;
+        }
+
+        const updatedCampaign = await prisma.whatsAppCampaign.update({
+          where: { id: params.id },
+          data: updateData,
+          include: {
+            recipients: true,
+            _count: { select: { recipients: true } }
+          }
+        });
+
+        return NextResponse.json({ success: true, campaign: updatedCampaign });
+      }
+
     // Check if campaign exists and is editable
     const existingCampaign = await prisma.whatsAppCampaign.findUnique({
       where: { id: params.id }
@@ -83,8 +113,6 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       templateLanguage,
       templateVariables,
       scheduledFor,
-      sendWindowStart,
-      sendWindowEnd,
       rateLimit,
       tags
     } = body;
@@ -102,8 +130,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
           scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
           status: scheduledFor ? 'scheduled' : 'draft'
         }),
-        ...(sendWindowStart !== undefined && { sendWindowStart }),
-        ...(sendWindowEnd !== undefined && { sendWindowEnd }),
+  // sendWindowStart/sendWindowEnd removed
         ...(rateLimit !== undefined && { rateLimit }),
         ...(tags !== undefined && { tags })
       },

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Send, Trash2, BarChart3, Users, Download, RefreshCw, CheckCircle, XCircle, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Send, Trash2, BarChart3, Users, Download, RefreshCw, CheckCircle, XCircle, MessageSquare, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -88,7 +88,9 @@ export default function CampaignDetailsPage() {
       return;
     }
 
-    const intervalDuration = campaign.status === 'sending' ? 10000 : 30000; // Poll less aggressively
+    // If sending, poll much less frequently to avoid aggressive retries.
+    // Enforce minimum 30 minutes between attempts when sending: 30 * 60 * 1000 ms
+    const intervalDuration = campaign.status === 'sending' ? 30 * 60 * 1000 : 30000; // scheduled still 30s
     const interval = setInterval(fetchCampaign, intervalDuration);
 
     return () => clearInterval(interval);
@@ -139,6 +141,48 @@ export default function CampaignDetailsPage() {
       console.error('Error deleting campaign:', error);
       toast.error(error.message);
       setDeleting(false);
+    }
+  };
+
+  const pauseCampaign = async () => {
+    try {
+      const response = await fetch(`/api/whatsapp/campaigns/${campaignId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'paused' })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to pause campaign');
+      }
+
+      toast.success('Campaign paused');
+      fetchCampaign();
+    } catch (error: any) {
+      console.error('Error pausing campaign:', error);
+      toast.error(error.message || 'Failed to pause campaign');
+    }
+  };
+
+  const resumeCampaign = async () => {
+    try {
+      const response = await fetch(`/api/whatsapp/campaigns/${campaignId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'scheduled' })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to resume campaign');
+      }
+
+      toast.success('Campaign resumed');
+      fetchCampaign();
+    } catch (error: any) {
+      console.error('Error resuming campaign:', error);
+      toast.error(error.message || 'Failed to resume campaign');
     }
   };
 
@@ -241,6 +285,29 @@ export default function CampaignDetailsPage() {
                       {canRetry ? 'Retry Campaign' : 'Send Campaign'}
                     </>
                   )}
+                </Button>
+              )}
+
+              {/* Pause / Resume controls */}
+              {campaign.status === 'sending' && (
+                <Button
+                  variant="ghost"
+                  onClick={pauseCampaign}
+                  className="text-white bg-white/10 hover:bg-white/20"
+                >
+                  <Pause className="mr-2 h-4 w-4" />
+                  Pause
+                </Button>
+              )}
+
+              {campaign.status === 'paused' && (
+                <Button
+                  variant="secondary"
+                  onClick={resumeCampaign}
+                  className="bg-white/20 hover:bg-white/30 text-white"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Resume
                 </Button>
               )}
 

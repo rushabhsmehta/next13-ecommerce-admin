@@ -74,9 +74,7 @@ export async function POST(req: NextRequest) {
       targetType = 'manual',
       segmentQuery,
       recipients = [],
-      scheduledFor,
-      sendWindowStart,
-      sendWindowEnd,
+  scheduledFor,
       rateLimit = 10,
       tags
     } = body;
@@ -101,8 +99,6 @@ export async function POST(req: NextRequest) {
         segmentQuery: segmentQuery || {},
         status: scheduledFor ? 'scheduled' : 'draft',
         scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-        sendWindowStart,
-        sendWindowEnd,
         rateLimit,
         tags: tags || {},
         createdBy: userId,

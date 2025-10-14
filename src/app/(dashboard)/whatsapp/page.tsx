@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users } from 'lucide-react';
+import { MessageSquare, FileText, Workflow, Megaphone, ArrowRight, Settings, Sparkles, CheckCircle2, Zap, Users, LayoutGrid } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 
@@ -43,6 +43,24 @@ export default function WhatsAppOverviewPage() {
         'Quick replies',
         'Media support (images, videos, documents)',
         'Message history'
+      ]
+    },
+    {
+      title: 'Catalog',
+      description: 'Curate and sync tour packages directly to Meta Commerce',
+      icon: LayoutGrid,
+      href: '/whatsapp/catalog',
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950',
+      borderColor: 'border-l-emerald-500',
+      gradientFrom: 'from-emerald-500',
+      gradientTo: 'to-teal-500',
+      features: [
+        'Rich tour package storytelling',
+        'One-click Meta catalog sync',
+        'Variant and pricing controls',
+        'Archival and restore workflows',
+        'Optimistic management toasts (coming soon)'
       ]
     },
     {
@@ -189,7 +207,7 @@ export default function WhatsAppOverviewPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-bold">Platform Features</h2>
-          <Badge variant="secondary" className="px-3">4 Modules</Badge>
+          <Badge variant="secondary" className="px-3">{features.length} Modules</Badge>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
           {features.map((feature) => {

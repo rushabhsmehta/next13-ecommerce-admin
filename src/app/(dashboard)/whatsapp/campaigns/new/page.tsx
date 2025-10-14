@@ -52,8 +52,6 @@ interface CampaignData {
     whatsappCustomerId?: string;
   }>;
   rateLimit: number;
-  sendWindowStart: number;
-  sendWindowEnd: number;
   scheduledFor?: string;
 }
 
@@ -96,8 +94,7 @@ export default function NewCampaignPage() {
     templateLanguage: 'en_US',
     recipients: [],
     rateLimit: 10,
-    sendWindowStart: 9,
-    sendWindowEnd: 21,
+      // send window removed
   });
 
   const [recipientInput, setRecipientInput] = useState({
@@ -1075,37 +1072,7 @@ export default function NewCampaignPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="sendWindowStart">Send Window Start (hour)</Label>
-                <Input
-                  id="sendWindowStart"
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={campaignData.sendWindowStart}
-                  onChange={(e) => setCampaignData({ ...campaignData, sendWindowStart: parseInt(e.target.value) })}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Start time: {campaignData.sendWindowStart}:00
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="sendWindowEnd">Send Window End (hour)</Label>
-                <Input
-                  id="sendWindowEnd"
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={campaignData.sendWindowEnd}
-                  onChange={(e) => setCampaignData({ ...campaignData, sendWindowEnd: parseInt(e.target.value) })}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  End time: {campaignData.sendWindowEnd}:00
-                </p>
-              </div>
-            </div>
+            {/* Send window settings removed */}
 
             <div>
               <Label htmlFor="scheduledFor">Schedule for Later (optional)</Label>
@@ -1152,12 +1119,7 @@ export default function NewCampaignPage() {
                     <p className="font-medium text-lg">{campaignData.rateLimit} msg/min</p>
                   </div>
 
-                  <div className="bg-white p-4 rounded-lg border">
-                    <p className="text-sm text-muted-foreground">Send Window</p>
-                    <p className="font-medium text-lg">
-                      {campaignData.sendWindowStart}:00 - {campaignData.sendWindowEnd}:00
-                    </p>
-                  </div>
+                  {/* Send window removed from summary */}
 
                   {campaignData.scheduledFor && (
                     <div className="bg-white p-4 rounded-lg border">

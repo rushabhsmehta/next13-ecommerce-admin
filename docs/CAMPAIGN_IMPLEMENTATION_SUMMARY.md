@@ -148,8 +148,6 @@ Content-Type: application/json
     }
   ],
   "rateLimit": 10,  // Messages per minute
-  "sendWindowStart": 9,  // 9 AM
-  "sendWindowEnd": 21   // 9 PM
 }
 ```
 
@@ -349,8 +347,7 @@ GET /api/whatsapp/campaigns/{campaignId}/stats
   startedAt?: DateTime;
   completedAt?: DateTime;
   
-  sendWindowStart?: number;  // 0-23
-  sendWindowEnd?: number;    // 0-23
+  // sendWindowStart/sendWindowEnd removed from API
   rateLimit: number;         // Messages per minute
   
   createdAt: DateTime;

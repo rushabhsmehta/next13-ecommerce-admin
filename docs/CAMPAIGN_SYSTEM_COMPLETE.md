@@ -358,8 +358,7 @@ const response = await fetch('/api/whatsapp/campaigns', {
       }
     ],
     rateLimit: 10,
-    sendWindowStart: 9,
-    sendWindowEnd: 21
+  // send window removed
   })
 });
 

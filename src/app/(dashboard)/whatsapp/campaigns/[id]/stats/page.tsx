@@ -65,7 +65,8 @@ export default function CampaignStatsPage() {
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 10000); // Refresh every 10 seconds
+    // Reduce stats polling to 30 minutes to avoid aggressive retries when campaigns are long-running
+    const interval = setInterval(fetchStats, 30 * 60 * 1000); // 30 minutes
     return () => clearInterval(interval);
   }, [fetchStats]);
 

@@ -10,6 +10,7 @@
         "postinstall": "prisma generate",
         "update-accommodation-policies": "node update-accommodation-policies.js",
         "seed-whatsapp-templates": "node seed-whatsapp-templates.js",
+    "create-and-publish-catalog": "node scripts/whatsapp/run-create-and-publish-catalog.js",
         "cleanup-legacy-whatsapp": "node scripts/cleanup-legacy-whatsapp.js"
     },
     "dependencies": {

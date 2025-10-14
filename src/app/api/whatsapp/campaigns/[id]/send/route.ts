@@ -137,6 +137,18 @@ async function processCampaignInBackground(campaignId: string) {
     for (const recipient of campaign.recipients) {
       try {
 
+        // Re-read campaign status to support pause/cancel while background job is running
+        const freshCampaign = await prisma.whatsAppCampaign.findUnique({ where: { id: campaignId } });
+        if (!freshCampaign) break;
+        if (freshCampaign.status === 'paused' || freshCampaign.status === 'cancelled') {
+          // Stop processing further recipients
+          await prisma.whatsAppCampaign.update({
+            where: { id: campaignId },
+            data: { status: freshCampaign.status, completedAt: new Date() }
+          });
+          break;
+        }
+
         // Update status to sending
         await prisma.whatsAppCampaignRecipient.update({
           where: { id: recipient.id },
@@ -408,17 +420,33 @@ async function handleSendError(
   const maxRetries = 3;
 
   if (shouldRetry && recipient.retryCount < maxRetries) {
-    // Mark for retry
-    await prisma.whatsAppCampaignRecipient.update({
-      where: { id: recipientId },
-      data: {
-        status: 'retry',
-        errorCode,
-        errorMessage,
-        retryCount: { increment: 1 },
-        lastRetryAt: new Date()
-      }
-    });
+    // Respect a minimum backoff between retries (30 minutes)
+    const MIN_RETRY_MS = 30 * 60 * 1000;
+    const now = new Date();
+    if (!recipient.lastRetryAt || (now.getTime() - new Date(recipient.lastRetryAt).getTime()) > MIN_RETRY_MS) {
+      // Mark for retry
+      await prisma.whatsAppCampaignRecipient.update({
+        where: { id: recipientId },
+        data: {
+          status: 'retry',
+          errorCode,
+          errorMessage,
+          retryCount: { increment: 1 },
+          lastRetryAt: now
+        }
+      });
+    } else {
+      // Too soon to retry; keep as failed for now and increment failed count
+      await prisma.whatsAppCampaignRecipient.update({
+        where: { id: recipientId },
+        data: {
+          status: 'failed',
+          errorCode,
+          errorMessage,
+          failedAt: now
+        }
+      });
+    }
   } else {
     // Mark as failed
     await prisma.whatsAppCampaignRecipient.update({

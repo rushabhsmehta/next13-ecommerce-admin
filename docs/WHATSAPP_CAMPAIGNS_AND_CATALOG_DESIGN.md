@@ -130,8 +130,6 @@ model WhatsAppCampaign {
   completedAt     DateTime?
   
   // Settings
-  sendWindowStart Int?     // Hour to start sending (0-23)
-  sendWindowEnd   Int?     // Hour to stop sending (0-23)
   rateLimit       Int      @default(10) // Messages per minute
   retryFailed     Boolean  @default(true)
   maxRetries      Int      @default(3)

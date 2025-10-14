@@ -76,7 +76,8 @@ export default function CampaignsPage() {
 
   useEffect(() => {
     fetchCampaigns();
-    const interval = setInterval(fetchCampaigns, 10000); // Refresh every 10 seconds
+    // Reduce polling to 30 minutes to avoid aggressive retries. 30 minutes = 1800000 ms
+    const interval = setInterval(fetchCampaigns, 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchCampaigns]);
 

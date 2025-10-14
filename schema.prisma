@@ -1589,8 +1589,6 @@ model WhatsAppCampaign {
   completedAt      DateTime?
   
   // Settings
-  sendWindowStart  Int?                        // Hour to start sending (0-23)
-  sendWindowEnd    Int?                        // Hour to stop sending (0-23)
   rateLimit        Int                         @default(10) // Messages per minute
   retryFailed      Boolean                     @default(true)
   maxRetries       Int                         @default(3)
@@ -1791,6 +1789,7 @@ model WhatsAppProduct {
   // Relations
   catalog           WhatsAppCatalog             @relation(fields: [catalogId], references: [id], onDelete: Cascade)
   variants          WhatsAppProductVariant[]
+  tourPackage       WhatsAppTourPackage?
   cartItems         WhatsAppCartItem[]
   orderItems        WhatsAppOrderItem[]
   
@@ -1835,9 +1834,94 @@ model WhatsAppProductVariant {
   product           WhatsAppProduct       @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems         WhatsAppCartItem[]
   orderItems        WhatsAppOrderItem[]
+  tourVariant       WhatsAppTourPackageVariant?
   
   @@index([productId])
   @@index([sku])
+}
+
+enum WhatsAppTourPackageStatus {
+  draft
+  active
+  inactive
+  archived
+}
+
+enum WhatsAppCatalogSyncStatus {
+  pending
+  in_progress
+  synced
+  failed
+}
+
+model WhatsAppTourPackage {
+  id                    String                      @id @default(uuid())
+  productId             String                      @unique
+
+  // Core Content
+  title                 String
+  subtitle              String?
+  heroImageUrl          String?
+  gallery               Json?                       // Additional media assets
+  location              String?
+  itinerarySummary      String?                     @db.Text
+  highlights            Json?                       // e.g. ["Sunset cruise", "Guided tour"]
+  inclusions            Json?                       // Array of strings
+  exclusions            Json?                       // Array of strings
+  bookingUrl            String?
+  termsAndConditions    String?                     @db.Text
+
+  // Pricing & Availability
+  basePrice             Decimal?                    @db.Decimal(10, 2)
+  currency              String                      @default("INR")
+  seasonalAvailability  Json?                       // [{"start": "2025-11-01", "end": "2026-03-31"}]
+  durationNights        Int?
+  durationDays          Int?
+
+  // Sync Metadata
+  status                WhatsAppTourPackageStatus   @default(draft)
+  syncStatus            WhatsAppCatalogSyncStatus   @default(pending)
+  catalogProductId      String?                     // Meta catalog product id
+  retailerId            String?                     // Retailer-friendly id
+  lastSyncAt            DateTime?
+  lastSyncError         String?                     @db.Text
+
+  // Audit
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  // Relations
+  product               WhatsAppProduct             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variants              WhatsAppTourPackageVariant[]
+
+  @@index([status])
+  @@index([catalogProductId])
+  @@index([retailerId])
+}
+
+model WhatsAppTourPackageVariant {
+  id                    String                    @id @default(uuid())
+  tourPackageId         String
+  productVariantId      String                     @unique
+
+  name                  String
+  description           String?                   @db.Text
+  heroImageUrl          String?
+  priceOverride         Decimal?                  @db.Decimal(10, 2)
+  availabilityNotes     String?                   @db.Text
+  seasonalAvailability  Json?
+  status                WhatsAppTourPackageStatus @default(active)
+
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  tourPackage           WhatsAppTourPackage       @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
+  variant               WhatsAppProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@index([tourPackageId])
+  @@index([status])
 }
 
 model WhatsAppCart {

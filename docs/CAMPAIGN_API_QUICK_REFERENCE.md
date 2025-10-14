@@ -116,8 +116,6 @@ const campaign = {
   
   // Settings
   rateLimit: 10,  // 10 messages per minute
-  sendWindowStart: 9,  // 9 AM
-  sendWindowEnd: 21,   // 9 PM
   
   // Optional: Schedule for later
   scheduledFor: "2025-10-15T10:00:00Z"

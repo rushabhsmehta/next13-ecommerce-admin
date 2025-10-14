@@ -4,12 +4,48 @@ import prisma from './prismadb';
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+// Prefer the explicit "BUSINESS_ACCOUNT_ID" env var if present (common naming)
 const META_WHATSAPP_BUSINESS_ID =
-  process.env.META_WHATSAPP_BUSINESS_ID || process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID || '';
+  process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID || process.env.META_WHATSAPP_BUSINESS_ID || '';
 const META_API_BASE = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${META_WHATSAPP_PHONE_NUMBER_ID}`;
-const META_BUSINESS_BASE = META_WHATSAPP_BUSINESS_ID
-  ? `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${META_WHATSAPP_BUSINESS_ID}`
-  : '';
+
+// We'll lazily resolve the effective WhatsApp Business Account (WABA) id.
+// Lazily cached resolved WABA id. Initialize from env (if provided).
+let resolvedBusinessId: string | null = META_WHATSAPP_BUSINESS_ID || null;
+
+async function resolveBusinessId(): Promise<string> {
+  if (resolvedBusinessId) return resolvedBusinessId;
+
+  // If env provided, use it
+  if (META_WHATSAPP_BUSINESS_ID) {
+    resolvedBusinessId = META_WHATSAPP_BUSINESS_ID;
+    return resolvedBusinessId;
+  }
+
+  // Fallback: derive WABA from phone number node (/PHONE_ID?fields=whatsapp_business_account)
+  if (!META_WHATSAPP_PHONE_NUMBER_ID) {
+    throw new Error('Missing META_WHATSAPP_PHONE_NUMBER_ID required to auto-resolve business id');
+  }
+
+  const url = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${META_WHATSAPP_PHONE_NUMBER_ID}?fields=whatsapp_business_account`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${META_WHATSAPP_ACCESS_TOKEN}` }
+  });
+  const payload = await res.json().catch(() => null);
+  if (!res.ok || !payload) {
+    throw new Error(
+      `Failed to auto-resolve WABA id from phone number: ${payload?.error?.message || res.statusText}`
+    );
+  }
+
+  const waba = payload?.whatsapp_business_account?.id;
+  if (!waba) {
+    throw new Error('Phone number record did not include whatsapp_business_account id');
+  }
+
+  resolvedBusinessId = String(waba);
+  return resolvedBusinessId;
+}
 
 const META_APP_ID = process.env.META_APP_ID || '';
 const META_APP_SECRET = process.env.META_APP_SECRET || '';
@@ -26,14 +62,14 @@ type GraphRequestOptions = {
   headers?: Record<string, string>;
 };
 
-class GraphApiError extends Error {
+export class GraphApiError extends Error {
   constructor(public status: number, message: string, public response: any) {
     super(message);
     this.name = 'GraphApiError';
   }
 }
 
-async function graphRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
+export async function graphRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
   if (!META_WHATSAPP_ACCESS_TOKEN || !META_WHATSAPP_PHONE_NUMBER_ID) {
     throw new Error(
       'Missing Meta WhatsApp credentials. Please set META_WHATSAPP_ACCESS_TOKEN and META_WHATSAPP_PHONE_NUMBER_ID'
@@ -127,13 +163,15 @@ async function graphRequest<T>(endpoint: string, options: GraphRequestOptions = 
 }
 
 export async function graphBusinessRequest<T>(endpoint: string, options: GraphRequestOptions = {}): Promise<T> {
-  if (!META_WHATSAPP_ACCESS_TOKEN || !META_WHATSAPP_BUSINESS_ID) {
-    throw new Error(
-      'Meta WhatsApp Business ID missing. Set META_WHATSAPP_BUSINESS_ID or META_WHATSAPP_BUSINESS_ACCOUNT_ID.'
-    );
+  if (!META_WHATSAPP_ACCESS_TOKEN) {
+    throw new Error('Missing Meta WhatsApp access token. Set META_WHATSAPP_ACCESS_TOKEN.');
   }
 
-  const url = new URL(`${META_BUSINESS_BASE}/${endpoint}`);
+  // Resolve the business id (WABA) lazily; if not set in env, derive from phone number
+  const businessId = await resolveBusinessId();
+  const BUSINESS_BASE = `https://graph.facebook.com/${META_GRAPH_API_VERSION}/${businessId}`;
+
+  const url = new URL(`${BUSINESS_BASE}/${endpoint}`);
   if (options.searchParams) {
     Object.entries(options.searchParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -1701,7 +1739,7 @@ export async function listWhatsAppTemplates(limit = 25, after?: string) {
 export async function syncWhatsAppTemplates(limit = 25) {
   if (!META_WHATSAPP_BUSINESS_ID) {
     throw new Error(
-      'Meta WhatsApp Business ID missing. Set META_WHATSAPP_BUSINESS_ID or META_WHATSAPP_BUSINESS_ACCOUNT_ID.'
+      'Meta WhatsApp Business ID missing. Set META_WHATSAPP_BUSINESS_ACCOUNT_ID or META_WHATSAPP_BUSINESS_ID.'
     );
   }
 
@@ -1794,6 +1832,8 @@ export function getMetaConfigStatus() {
   return {
     hasPhoneNumberId: !!META_WHATSAPP_PHONE_NUMBER_ID,
     hasAccessToken: !!META_WHATSAPP_ACCESS_TOKEN,
+    // Indicate whether a WhatsApp Business Account id was provided (prefer BUSINESS_ACCOUNT_ID var)
+    hasBusinessAccountId: !!process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID,
     hasBusinessId: !!META_WHATSAPP_BUSINESS_ID,
     hasAppId: !!META_APP_ID,
     hasAppSecret: !!META_APP_SECRET,

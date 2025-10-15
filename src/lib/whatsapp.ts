@@ -1386,13 +1386,7 @@ export async function sendWhatsAppTemplate(
 
   const storedComponentsRaw = storedTemplate?.components;
   const storedComponents = (() => {
-    if (
-      storedComponentsRaw === null ||
-      storedComponentsRaw === undefined ||
-      storedComponentsRaw === Prisma.JsonNull ||
-      storedComponentsRaw === Prisma.DbNull ||
-      storedComponentsRaw === Prisma.AnyNull
-    ) {
+    if (storedComponentsRaw === null || storedComponentsRaw === undefined) {
       return undefined;
     }
     if (Array.isArray(storedComponentsRaw)) {
@@ -1418,7 +1412,7 @@ export async function sendWhatsAppTemplate(
   const storedFlowButtons =
     storedComponents?.flatMap((component: any) => {
       if (!component || component.type !== 'BUTTONS' || !Array.isArray(component.buttons)) {
-        return [];
+        return [] as Array<{ index: number; definition: Record<string, any> }>;
       }
       return component.buttons
         .map((button: any, idx: number) => ({
@@ -1428,9 +1422,9 @@ export async function sendWhatsAppTemplate(
               : typeof component?.index === 'number'
               ? component.index
               : idx,
-          definition: button,
+          definition: button as Record<string, any>,
         }))
-        .filter(({ definition }) => normalizeSubType(definition) === 'FLOW');
+        .filter(({ definition }: { definition: Record<string, any> }) => normalizeSubType(definition) === 'FLOW');
     }) ?? [];
 
   if (!existingFlowButtons.length && storedFlowButtons.length) {

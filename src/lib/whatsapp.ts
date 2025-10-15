@@ -1,4 +1,5 @@
-import type { Prisma, WhatsAppAutomation, WhatsAppMessage, WhatsAppSession } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import type { WhatsAppAutomation, WhatsAppMessage, WhatsAppSession } from '@prisma/client';
 import prisma from './prismadb';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
@@ -1317,12 +1318,173 @@ export interface SendTemplateParams {
 export async function sendWhatsAppTemplate(
   params: SendTemplateParams
 ): Promise<WhatsAppMessageResponse> {
+  const effectiveButtonParams: Array<any> = Array.isArray(params.buttonParams)
+    ? params.buttonParams.map((button) => (button ? { ...button } : button))
+    : [];
+
+  const normalizeSubType = (input: any) => {
+    const raw = input?.sub_type ?? input?.subType ?? input?.type;
+    return typeof raw === 'string' ? raw.toUpperCase() : '';
+  };
+
+  const ensureActionPayload = (button: any, templateButton?: any) => {
+    if (!button) {
+      return;
+    }
+
+    button.type = 'BUTTON';
+    button.sub_type = normalizeSubType(button) || 'FLOW';
+
+    if (!Array.isArray(button.parameters)) {
+      button.parameters = [];
+    }
+
+    let actionParam = button.parameters.find(
+      (param: any) => typeof param?.type === 'string' && param.type.toUpperCase() === 'ACTION'
+    );
+
+    if (!actionParam) {
+      actionParam = { type: 'ACTION', action: {} };
+      button.parameters.push(actionParam);
+    }
+
+    const actionPayload =
+      actionParam.action && typeof actionParam.action === 'object'
+        ? { ...actionParam.action }
+        : {};
+
+    const templateHints = templateButton && typeof templateButton === 'object' ? templateButton : {};
+
+    if (!actionPayload.flow_token) {
+      const hintedToken =
+        templateHints.flow_token ||
+        templateHints.flowToken ||
+        templateHints.default_flow_token ||
+        templateHints.defaultFlowToken;
+      actionPayload.flow_token =
+        hintedToken || `auto_flow_token_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    actionParam.action = actionPayload;
+  };
+
+  let storedTemplate:
+    | {
+        id: string;
+        components: Prisma.JsonValue | null;
+      }
+    | null = null;
+
+  try {
+    storedTemplate = await prisma.whatsAppTemplate.findUnique({
+      where: { name: params.templateName },
+      select: { id: true, components: true },
+    });
+  } catch (lookupError) {
+    console.warn('[WhatsApp] Failed to load stored template metadata:', lookupError);
+  }
+
+  const storedComponentsRaw = storedTemplate?.components;
+  const storedComponents = (() => {
+    if (
+      storedComponentsRaw === null ||
+      storedComponentsRaw === undefined ||
+      storedComponentsRaw === Prisma.JsonNull ||
+      storedComponentsRaw === Prisma.DbNull ||
+      storedComponentsRaw === Prisma.AnyNull
+    ) {
+      return undefined;
+    }
+    if (Array.isArray(storedComponentsRaw)) {
+      return storedComponentsRaw as Array<Record<string, any>>;
+    }
+    if (typeof storedComponentsRaw === 'string') {
+      try {
+        const parsed = JSON.parse(storedComponentsRaw);
+        if (Array.isArray(parsed)) {
+          return parsed as Array<Record<string, any>>;
+        }
+      } catch (parseError) {
+        console.warn('[WhatsApp] Failed to parse stored template components JSON:', parseError);
+      }
+    }
+    return undefined;
+  })();
+
+  const existingFlowButtons = effectiveButtonParams.filter(
+    (button) => normalizeSubType(button) === 'FLOW'
+  );
+
+  const storedFlowButtons =
+    storedComponents?.flatMap((component: any) => {
+      if (!component || component.type !== 'BUTTONS' || !Array.isArray(component.buttons)) {
+        return [];
+      }
+      return component.buttons
+        .map((button: any, idx: number) => ({
+          index:
+            typeof button?.index === 'number'
+              ? button.index
+              : typeof component?.index === 'number'
+              ? component.index
+              : idx,
+          definition: button,
+        }))
+        .filter(({ definition }) => normalizeSubType(definition) === 'FLOW');
+    }) ?? [];
+
+  if (!existingFlowButtons.length && storedFlowButtons.length) {
+    storedFlowButtons.forEach(({ index, definition }) => {
+      const normalizedIndex = typeof index === 'number' ? index : effectiveButtonParams.length;
+      const synthesizedButton: any = {
+        type: 'BUTTON',
+        sub_type: 'FLOW',
+        index: normalizedIndex,
+      };
+
+      if (definition?.text) {
+        synthesizedButton.text = definition.text;
+      }
+
+      ensureActionPayload(synthesizedButton, definition);
+      effectiveButtonParams.push(synthesizedButton);
+    });
+
+    console.log('[WhatsApp] Added flow button defaults from stored template', {
+      templateName: params.templateName,
+      synthesizedButtons: effectiveButtonParams.filter((btn) => normalizeSubType(btn) === 'FLOW'),
+    });
+  } else if (existingFlowButtons.length) {
+    existingFlowButtons.forEach((button) => {
+      if (normalizeSubType(button) !== 'FLOW') {
+        return;
+      }
+
+      const matchedStored = storedFlowButtons.find(({ index, definition }) => {
+        if (typeof button.index === 'number' && typeof index === 'number' && button.index === index) {
+          return true;
+        }
+        if (definition?.text && button?.text && definition.text === button.text) {
+          return true;
+        }
+        return false;
+      });
+
+      ensureActionPayload(button, matchedStored?.definition);
+    });
+
+    console.log('[WhatsApp] Normalized provided flow button parameters', {
+      templateName: params.templateName,
+      buttonCount: existingFlowButtons.length,
+    });
+  }
+
   console.log('[WhatsApp] sendWhatsAppTemplate called with params:', {
     to: params.to,
     templateName: params.templateName,
     languageCode: params.languageCode,
     bodyParams: params.bodyParams,
-    buttonParams: params.buttonParams,
+    buttonParams: effectiveButtonParams,
     headerParams: params.headerParams,
     hasComponents: !!params.components,
     componentsLength: params.components?.length,
@@ -1331,10 +1493,13 @@ export async function sendWhatsAppTemplate(
   const destination = normalizeE164(params.to);
   console.log('[WhatsApp] Normalized destination:', destination);
 
+  const componentSource =
+    Array.isArray(params.components) && params.components.length ? params.components : undefined;
+
   const components = buildTemplateComponents(
     params.bodyParams || [],
-    params.buttonParams || [],
-    params.components,
+    effectiveButtonParams,
+    componentSource,
     params.headerParams
   );
 
@@ -1405,6 +1570,10 @@ export async function sendWhatsAppTemplate(
 
     if (params.buttonParams && params.buttonParams.length > 0 && enriched.buttonParams === undefined) {
       enriched.buttonParams = params.buttonParams;
+    }
+
+    if ((!params.buttonParams || params.buttonParams.length === 0) && effectiveButtonParams.length > 0) {
+      enriched.buttonParams = effectiveButtonParams;
     }
 
     if (params.headerParams && enriched.headerParams === undefined) {
@@ -1801,17 +1970,22 @@ export async function syncWhatsAppTemplates(limit = 25) {
       );
       const bodyText = bodyComponent?.text || template.body || '';
       const variables = extractTemplateVariables(bodyText);
+      const normalizedComponents = Array.isArray(template.components)
+        ? template.components.map((component: any) => ({ ...component }))
+        : undefined;
 
       await prisma.whatsAppTemplate.upsert({
         where: { name: template.name },
         update: {
           body: bodyText,
+          components: normalizedComponents ? (normalizedComponents as Prisma.InputJsonValue) : Prisma.JsonNull,
           variables: variables.length ? (variables as Prisma.InputJsonValue) : undefined,
           updatedAt: new Date(),
         },
         create: {
           name: template.name,
           body: bodyText,
+          components: normalizedComponents ? (normalizedComponents as Prisma.InputJsonValue) : Prisma.JsonNull,
           variables: variables.length ? (variables as Prisma.InputJsonValue) : undefined,
         },
       });

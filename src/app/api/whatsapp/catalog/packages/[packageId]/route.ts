@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { WhatsAppTourPackageStatus } from '@prisma/client';
 import prisma from '@/lib/prismadb';
-import { updateTourPackage } from '@/lib/whatsapp-catalog';
+import { deleteTourPackage, updateTourPackage } from '@/lib/whatsapp-catalog';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -75,7 +75,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -87,13 +87,20 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Package id is required' }, { status: 400 });
     }
 
+    const hardDelete = request.nextUrl.searchParams.get('hard') === 'true';
+
+    if (hardDelete) {
+      await deleteTourPackage(packageId);
+      return NextResponse.json({ success: true, deleted: true });
+    }
+
     const tourPackage = await updateTourPackage(packageId, {
       status: WhatsAppTourPackageStatus.archived,
     });
 
     return NextResponse.json({ success: true, tourPackage });
   } catch (error: any) {
-    console.error('Failed to archive WhatsApp tour package', error);
+    console.error('Failed to delete/archive WhatsApp tour package', error);
     if (error?.code === 'P2025') {
       return NextResponse.json({ error: 'Tour package not found' }, { status: 404 });
     }

@@ -762,6 +762,58 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
   return fetchTourPackageWithRelations(id);
 }
 
+export async function deleteTourPackage(id: string, options?: { removeFromMeta?: boolean }) {
+  const removeFromMeta = options?.removeFromMeta !== false;
+
+  const pkg = await prisma.whatsAppTourPackage.findUnique({
+    where: { id },
+    include: {
+      product: true,
+    },
+  });
+
+  if (!pkg) {
+    throw new Error(`Tour package ${id} not found.`);
+  }
+
+  const metaProductId = pkg.catalogProductId || pkg.product.metaProductId;
+
+  if (removeFromMeta && metaProductId) {
+    try {
+      await graphCatalogRequest(`${metaProductId}`, { method: 'DELETE' });
+    } catch (error) {
+      if (!(error instanceof GraphApiError) || (error as GraphApiError).status !== 404) {
+        throw error;
+      }
+    }
+  }
+
+  const wasActive = !isArchivedStatus(pkg.status);
+
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.whatsAppTourPackageVariant.deleteMany({ where: { tourPackageId: id } });
+      await tx.whatsAppProductVariant.deleteMany({ where: { productId: pkg.productId } });
+      await tx.whatsAppTourPackage.delete({ where: { id } });
+      await tx.whatsAppProduct.delete({ where: { id: pkg.productId } });
+
+      const updateData: Prisma.WhatsAppCatalogUpdateInput = {
+        totalProducts: { decrement: 1 },
+      };
+
+      if (wasActive) {
+        updateData.activeProducts = { decrement: 1 };
+      }
+
+      await tx.whatsAppCatalog.update({
+        where: { id: pkg.product.catalogId },
+        data: updateData,
+      });
+    },
+    { timeout: 20000 }
+  );
+}
+
 export async function syncPendingTourPackages(limit = 10) {
   const catalog = await ensureDefaultCatalog();
   if (!catalog.metaCatalogId) {

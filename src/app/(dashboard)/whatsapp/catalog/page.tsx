@@ -17,6 +17,7 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  Trash2,
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -319,6 +320,7 @@ export default function WhatsAppCatalogDashboard() {
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [syncingIds, setSyncingIds] = useState<string[]>([]);
   const [archivingIds, setArchivingIds] = useState<string[]>([]);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -635,6 +637,31 @@ export default function WhatsAppCatalogDashboard() {
     }
   }
 
+  async function handleDeletePackage(id: string) {
+    const confirmed = window.confirm('Delete this catalog entry permanently? This cannot be undone.');
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingIds((current) => (current.includes(id) ? current : [...current, id]));
+      const response = await fetch(`/api/whatsapp/catalog/packages/${id}?hard=true`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to delete package');
+      }
+      toast.success('Package deleted');
+      setRefreshKey((value) => value + 1);
+    } catch (error) {
+      console.error('Failed to delete package', error);
+      toast.error((error as Error)?.message || 'Could not delete package');
+    } finally {
+      setDeletingIds((current) => current.filter((item) => item !== id));
+    }
+  }
+
   const heroLoading = summaryLoading && !summary;
   const isEmpty = !packagesLoading && packages.length === 0;
 
@@ -917,6 +944,7 @@ export default function WhatsAppCatalogDashboard() {
               {packages.map((pkg) => {
                 const syncing = syncingIds.includes(pkg.id);
                 const archiving = archivingIds.includes(pkg.id);
+                const deleting = deletingIds.includes(pkg.id);
                 const lastSynced = pkg.lastSyncAt
                   ? `Synced ${formatDistanceToNow(new Date(pkg.lastSyncAt), { addSuffix: true })}`
                   : 'Not synced yet';
@@ -1040,6 +1068,7 @@ export default function WhatsAppCatalogDashboard() {
                             variant="secondary"
                             className="rounded-xl"
                             onClick={() => openEditModal(pkg.id)}
+                            disabled={deleting}
                           >
                             Edit details
                           </Button>
@@ -1047,21 +1076,40 @@ export default function WhatsAppCatalogDashboard() {
                             variant="outline"
                             className="rounded-xl"
                             onClick={() => handleSyncPackage(pkg.id)}
-                            disabled={syncing}
+                            disabled={syncing || deleting}
                           >
                             {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
                             {syncing ? 'Syncing' : 'Sync now'}
                           </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          className="rounded-xl text-muted-foreground hover:text-rose-600"
-                          onClick={() => handleArchivePackage(pkg.id)}
-                          disabled={archiving || pkg.status === 'archived'}
-                        >
-                          {archiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
-                          {pkg.status === 'archived' ? 'Archived' : 'Archive'}
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            className="rounded-xl text-muted-foreground hover:text-rose-600"
+                            onClick={() => handleArchivePackage(pkg.id)}
+                            disabled={archiving || pkg.status === 'archived' || deleting}
+                          >
+                            {archiving ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <XCircle className="mr-2 h-4 w-4" />
+                            )}
+                            {pkg.status === 'archived' ? 'Archived' : 'Archive'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="rounded-xl text-rose-600 hover:text-rose-500"
+                            onClick={() => handleDeletePackage(pkg.id)}
+                            disabled={deleting}
+                          >
+                            {deleting ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            {deleting ? 'Deleting…' : 'Delete'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

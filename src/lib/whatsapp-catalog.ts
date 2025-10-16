@@ -792,9 +792,23 @@ export async function deleteTourPackage(id: string, options?: { removeFromMeta?:
     try {
       await graphCatalogRequest(`${metaProductId}`, { method: 'DELETE' });
     } catch (error) {
-      if (!(error instanceof GraphApiError) || (error as GraphApiError).status !== 404) {
+      const isGraphError = error instanceof GraphApiError;
+      const status = isGraphError ? (error as GraphApiError).status : undefined;
+      const graphPayload = isGraphError ? (error as GraphApiError).response?.error : undefined;
+      const graphCode = graphPayload?.code;
+      const graphMessage = (error as Error).message || '';
+      const unsupportedDelete = /unsupported delete request/i.test(graphMessage);
+
+      if (!isGraphError || (!unsupportedDelete && status !== 404 && graphCode !== 100)) {
         throw error;
       }
+
+      console.warn('Meta product delete ignored because it appears to be already removed', {
+        metaProductId,
+        status,
+        graphCode,
+        graphMessage,
+      });
     }
   }
 

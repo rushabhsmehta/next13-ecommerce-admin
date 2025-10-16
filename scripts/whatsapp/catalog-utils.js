@@ -151,6 +151,7 @@ async function syncTourPackageToMeta(prisma, catalog, pkg, product) {
   const rawPrice = product.price !== undefined && product.price !== null ? product.price : pkg.basePrice;
   const numericPrice = Number(rawPrice) || 0;
   const integerPrice = Math.round(numericPrice);
+  const serializedPrice = Number.isFinite(integerPrice) ? String(integerPrice) : '0';
 
   const payload = {
     retailer_id: pkg.retailerId || product.sku,
@@ -162,7 +163,7 @@ async function syncTourPackageToMeta(prisma, catalog, pkg, product) {
       exclusions: pkg.exclusions,
       fallback: product.description,
     }),
-    price: integerPrice,
+    price: serializedPrice,
     currency: pkg.currency || product.currency || 'INR',
     availability: 'in stock',
     condition: 'new',
@@ -170,6 +171,16 @@ async function syncTourPackageToMeta(prisma, catalog, pkg, product) {
     url: pkg.bookingUrl || product.url,
     brand: 'Tour Package',
   };
+
+  if (Array.isArray(pkg.gallery) && pkg.gallery.length) {
+    const additionalImages = pkg.gallery
+      .map((url) => (typeof url === 'string' ? url.trim() : ''))
+      .filter((url) => url.length > 0)
+      .slice(0, 10);
+    if (additionalImages.length) {
+      payload.additional_image_urls = additionalImages;
+    }
+  }
 
   const catalogId = catalog.metaCatalogId || DEFAULT_CATALOG_ID;
   const endpoint = `${catalogId}/products`;

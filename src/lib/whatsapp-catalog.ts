@@ -35,8 +35,12 @@ function formatPriceForMeta(amount?: Prisma.Decimal | number | null) {
   if (amount === null || amount === undefined) {
     return undefined;
   }
-  const numeric = amount instanceof Prisma.Decimal ? amount : new Prisma.Decimal(Number(amount) || 0);
-  return numeric.toFixed(2);
+  const numeric = amount instanceof Prisma.Decimal ? Number(amount) : Number(amount);
+  if (Number.isNaN(numeric)) {
+    return undefined;
+  }
+  const integerValue = Math.round(numeric);
+  return String(integerValue);
 }
 
 function extractStringArray(value: Prisma.JsonValue | string[] | null | undefined): string[] {
@@ -713,7 +717,13 @@ export async function syncTourPackageToMeta(id: string): Promise<TourPackageWith
     };
 
     if (Array.isArray(pkg.gallery) && pkg.gallery.length) {
-      payload.additional_image_urls = pkg.gallery.join(',');
+      const additionalImages = pkg.gallery
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter((value) => value.length > 0)
+        .slice(0, 10);
+      if (additionalImages.length) {
+        payload.additional_image_urls = additionalImages;
+      }
     }
 
     let metaProductId = pkg.catalogProductId || pkg.product.metaProductId || null;

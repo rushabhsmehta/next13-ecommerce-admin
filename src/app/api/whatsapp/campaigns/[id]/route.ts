@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       include: {
         recipients: {
           take: 100, // Limit to prevent huge payloads
-          orderBy: { createdAt: 'desc' }
+          orderBy: { updatedAt: 'desc' }
         },
         _count: {
           select: { recipients: true }
@@ -36,7 +36,24 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    return NextResponse.json({ campaign });
+    const groupedStatuses = await prisma.whatsAppCampaignRecipient.groupBy({
+      where: { campaignId: params.id },
+      by: ['status'],
+      _count: { _all: true },
+    });
+
+    const statusSummary = groupedStatuses.reduce<Record<string, number>>((acc, item) => {
+      acc[item.status] = item._count._all;
+      return acc;
+    }, {});
+
+    const retryQueueDetails = await buildRetrySchedule(params.id);
+
+    return NextResponse.json({
+      campaign,
+      statusSummary: mapStatusSummary(statusSummary),
+      retrySchedule: retryQueueDetails,
+    });
   } catch (error) {
     console.error('Error fetching campaign:', error);
     return NextResponse.json(
@@ -44,6 +61,76 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
+}
+
+const BASE_RETRY_DELAY_MS = 30 * 1000;
+const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
+
+function computeBackoffMs(retryCount: number): number {
+  const attempt = Math.max(1, retryCount);
+  const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+  return Math.min(delay, MAX_RETRY_DELAY_MS);
+}
+
+function mapStatusSummary(summary: Record<string, number>) {
+  return {
+    pending: summary['pending'] ?? 0,
+    sending: summary['sending'] ?? 0,
+    retry: summary['retry'] ?? 0,
+    sent: summary['sent'] ?? 0,
+    delivered: summary['delivered'] ?? 0,
+    read: summary['read'] ?? 0,
+    failed: summary['failed'] ?? 0,
+    opted_out: summary['opted_out'] ?? 0,
+    responded: summary['responded'] ?? 0,
+    other: Object.entries(summary)
+      .filter(([status]) => !['pending', 'sending', 'retry', 'sent', 'delivered', 'read', 'failed', 'opted_out', 'responded'].includes(status))
+      .reduce((acc, [status, count]) => {
+        acc[status] = count;
+        return acc;
+      }, {} as Record<string, number>),
+  };
+}
+
+async function buildRetrySchedule(campaignId: string) {
+  const retryingRecipients = await prisma.whatsAppCampaignRecipient.findMany({
+    where: {
+      campaignId,
+      status: 'retry',
+      lastRetryAt: { not: null },
+    },
+    select: {
+      id: true,
+      retryCount: true,
+      lastRetryAt: true,
+    },
+    orderBy: { lastRetryAt: 'asc' },
+    take: 10,
+  });
+
+  if (retryingRecipients.length === 0) {
+    return { nextRetryAt: null, queue: [] };
+  }
+
+  const queue = retryingRecipients.map((recipient) => {
+    const baseTime = recipient.lastRetryAt ? recipient.lastRetryAt.getTime() : Date.now();
+    const scheduledAt = new Date(baseTime + computeBackoffMs(recipient.retryCount));
+
+    return {
+      id: recipient.id,
+      retryCount: recipient.retryCount,
+      scheduledAt: scheduledAt.toISOString(),
+    };
+  });
+
+  const nextRetryAt = queue.reduce<string | null>((soonest, item) => {
+    if (!soonest) {
+      return item.scheduledAt;
+    }
+    return new Date(item.scheduledAt) < new Date(soonest) ? item.scheduledAt : soonest;
+  }, null);
+
+  return { nextRetryAt, queue };
 }
 
 // PUT /api/whatsapp/campaigns/[id] - Update campaign

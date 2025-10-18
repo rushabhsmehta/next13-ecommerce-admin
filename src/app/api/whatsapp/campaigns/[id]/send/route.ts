@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prismadb';
 import { auth } from '@clerk/nextjs/server';
 import { sendWhatsAppTemplate } from '@/lib/whatsapp';
+import type { WhatsAppCampaign, WhatsAppCampaignRecipient } from '@prisma/client';
 
 interface RouteParams {
   params: {
@@ -110,127 +111,272 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// Background processor (simplified version - will be replaced with queue)
+// Background processor with throttled dispatch and retry backoff
 async function processCampaignInBackground(campaignId: string) {
   try {
     const campaign = await prisma.whatsAppCampaign.findUnique({
       where: { id: campaignId },
-      include: {
-        recipients: {
-          where: { status: 'pending' }
-        }
-      }
+      select: {
+        id: true,
+        templateName: true,
+        templateLanguage: true,
+        templateVariables: true,
+        rateLimit: true,
+        retryFailed: true,
+        maxRetries: true,
+      },
     });
 
-    if (!campaign) return;
+    if (!campaign) {
+      return;
+    }
 
     const templateRecord = await prisma.whatsAppTemplate.findUnique({
       where: { name: campaign.templateName },
-      select: { body: true }
+      select: { body: true },
     });
 
     const templateBody = templateRecord?.body || undefined;
+    const messagesPerSecond = resolveMessagesPerSecond(campaign.rateLimit);
+    const batchSize = Math.max(messagesPerSecond * 5, 20);
 
-    const rateLimit = campaign.rateLimit || 10; // Messages per minute
-    const delayBetweenMessages = (60 / rateLimit) * 1000; // Milliseconds
+    while (true) {
+      const statusSnapshot = await prisma.whatsAppCampaign.findUnique({
+        where: { id: campaignId },
+        select: { status: true },
+      });
 
-    for (const recipient of campaign.recipients) {
-      try {
+      if (!statusSnapshot || statusSnapshot.status === 'cancelled' || statusSnapshot.status === 'failed') {
+        return;
+      }
 
-        // Re-read campaign status to support pause/cancel while background job is running
-        const freshCampaign = await prisma.whatsAppCampaign.findUnique({ where: { id: campaignId } });
-        if (!freshCampaign) break;
-        if (freshCampaign.status === 'paused' || freshCampaign.status === 'cancelled') {
-          // Stop processing further recipients
-          await prisma.whatsAppCampaign.update({
-            where: { id: campaignId },
-            data: { status: freshCampaign.status, completedAt: new Date() }
-          });
-          break;
-        }
+      if (statusSnapshot.status === 'paused') {
+        await sleep(5000);
+        continue;
+      }
 
-        // Update status to sending
-        await prisma.whatsAppCampaignRecipient.update({
-          where: { id: recipient.id },
-          data: { status: 'sending' }
+      const candidateRecipients = await prisma.whatsAppCampaignRecipient.findMany({
+        where: {
+          campaignId,
+          status: { in: ['pending', 'retry'] },
+        },
+        orderBy: [
+          { status: 'asc' },
+          { createdAt: 'asc' },
+        ],
+        take: batchSize,
+      });
+
+      if (!candidateRecipients.length) {
+        const remaining = await prisma.whatsAppCampaignRecipient.count({
+          where: {
+            campaignId,
+            status: { in: ['pending', 'retry', 'sending'] },
+          },
         });
 
-        // Merge campaign variables with recipient-specific variables
-        const variables = {
-          ...(campaign.templateVariables as any || {}),
-          ...(recipient.variables as any || {})
-        };
+        if (remaining === 0) {
+          await prisma.whatsAppCampaign.update({
+            where: { id: campaignId },
+            data: {
+              status: 'completed',
+              completedAt: new Date(),
+            },
+          });
+        }
 
-        const { bodyParams, buttonParams, headerParams } = deriveTemplateParameters(variables);
+        return;
+      }
 
-        // Send message
-        const result = await sendWhatsAppTemplate({
-          to: recipient.phoneNumber,
-          templateName: campaign.templateName,
-          templateBody,
-          languageCode: campaign.templateLanguage,
-          bodyParams,
-          buttonParams,
-          headerParams,
-          metadata: {
-            campaignId: campaign.id,
-            recipientId: recipient.id
+      const now = Date.now();
+      const readyRecipients = candidateRecipients.filter((recipient) => recipient.status === 'pending' || isRetryWindowElapsed(recipient, now));
+
+      if (!readyRecipients.length) {
+        const waitMs = computeNextRetryDelay(candidateRecipients, now);
+        await sleep(waitMs);
+        continue;
+      }
+
+      const windows = chunkArray(readyRecipients, messagesPerSecond);
+
+      for (const windowRecipients of windows) {
+        const windowStart = Date.now();
+
+        const statusCheck = await prisma.whatsAppCampaign.findUnique({
+          where: { id: campaignId },
+          select: { status: true },
+        });
+
+        if (!statusCheck || ['paused', 'cancelled', 'failed'].includes(statusCheck.status)) {
+          if (statusCheck && (statusCheck.status === 'paused' || statusCheck.status === 'cancelled')) {
+            await prisma.whatsAppCampaign.update({
+              where: { id: campaignId },
+              data: { completedAt: new Date() },
+            });
           }
-        });
-
-        if (result.success) {
-          // Update recipient status
-          await prisma.whatsAppCampaignRecipient.update({
-            where: { id: recipient.id },
-            data: {
-              status: 'sent',
-              sentAt: new Date(),
-              messageId: result.messageSid || null,
-              messageSid: result.dbRecord?.id || null
-            }
-          });
-
-          // Update campaign stats
-          await prisma.whatsAppCampaign.update({
-            where: { id: campaignId },
-            data: {
-              sentCount: { increment: 1 }
-            }
-          });
-        } else {
-          // Handle error
-          const errorCode = extractErrorCode(result.error);
-          await handleSendError(recipient.id, campaignId, result.error || 'Unknown error', errorCode);
+          return;
         }
 
-        // Rate limiting delay
-        await new Promise(resolve => setTimeout(resolve, delayBetweenMessages));
-      } catch (error: any) {
-        console.error(`Error sending to ${recipient.phoneNumber}:`, error);
-        await handleSendError(recipient.id, campaignId, error.message);
+        await Promise.all(
+          windowRecipients.map((recipient) =>
+            sendSingleRecipient({
+              campaign,
+              recipient,
+              templateBody,
+              campaignId,
+            })
+          )
+        );
+
+        const elapsed = Date.now() - windowStart;
+        if (elapsed < 1000) {
+          await sleep(1000 - elapsed);
+        }
       }
     }
-
-    // Mark campaign as completed
-    await prisma.whatsAppCampaign.update({
-      where: { id: campaignId },
-      data: {
-        status: 'completed',
-        completedAt: new Date()
-      }
-    });
   } catch (error) {
     console.error('Error processing campaign:', error);
-    
-    // Mark campaign as failed
+
     await prisma.whatsAppCampaign.update({
       where: { id: campaignId },
       data: {
         status: 'failed',
-        completedAt: new Date()
-      }
+        completedAt: new Date(),
+      },
     });
   }
+}
+
+async function sendSingleRecipient({
+  campaign,
+  recipient,
+  templateBody,
+  campaignId,
+}: {
+  campaign: Pick<WhatsAppCampaign, 'id' | 'templateName' | 'templateLanguage' | 'templateVariables' | 'retryFailed' | 'maxRetries'>;
+  recipient: WhatsAppCampaignRecipient;
+  templateBody?: string;
+  campaignId: string;
+}) {
+  try {
+    await prisma.whatsAppCampaignRecipient.update({
+      where: { id: recipient.id },
+      data: { status: 'sending' },
+    });
+
+    const variables = {
+      ...(campaign.templateVariables as any || {}),
+      ...(recipient.variables as any || {}),
+    };
+
+    const { bodyParams, buttonParams, headerParams } = deriveTemplateParameters(variables);
+
+    const result = await sendWhatsAppTemplate({
+      to: recipient.phoneNumber,
+      templateName: campaign.templateName,
+      templateBody,
+      languageCode: campaign.templateLanguage,
+      bodyParams,
+      buttonParams,
+      headerParams,
+      metadata: {
+        campaignId: campaign.id,
+        recipientId: recipient.id,
+      },
+    });
+
+    if (result.success) {
+      await prisma.whatsAppCampaignRecipient.update({
+        where: { id: recipient.id },
+        data: {
+          status: 'sent',
+          sentAt: new Date(),
+          messageId: result.messageSid || null,
+          messageSid: result.dbRecord?.id || null,
+          retryCount: 0,
+          lastRetryAt: null,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+
+      await prisma.whatsAppCampaign.update({
+        where: { id: campaignId },
+        data: {
+          sentCount: { increment: 1 },
+        },
+      });
+    } else {
+      const errorCode = extractErrorCode(result.error);
+      await handleSendError(recipient.id, campaignId, result.error || 'Unknown error', errorCode, campaign);
+    }
+  } catch (error: any) {
+    console.error(`Error sending to ${recipient.phoneNumber}:`, error);
+    await handleSendError(recipient.id, campaignId, error?.message || 'Failed to send message', undefined, campaign);
+  }
+}
+
+const BASE_RETRY_DELAY_MS = 30 * 1000;
+const MAX_RETRY_DELAY_MS = 5 * 60 * 1000;
+
+function computeBackoffMs(retryCount: number): number {
+  const attempt = Math.max(1, retryCount);
+  const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+  return Math.min(delay, MAX_RETRY_DELAY_MS);
+}
+
+function isRetryWindowElapsed(recipient: WhatsAppCampaignRecipient, now: number): boolean {
+  if (recipient.status !== 'retry') {
+    return true;
+  }
+  if (!recipient.lastRetryAt) {
+    return true;
+  }
+  const requiredDelay = computeBackoffMs(recipient.retryCount);
+  const elapsed = now - recipient.lastRetryAt.getTime();
+  return elapsed >= requiredDelay;
+}
+
+function computeNextRetryDelay(recipients: WhatsAppCampaignRecipient[], now: number): number {
+  const waits = recipients
+    .filter((recipient) => recipient.status === 'retry' && recipient.lastRetryAt)
+    .map((recipient) => {
+      const requiredDelay = computeBackoffMs(recipient.retryCount);
+      const elapsed = now - (recipient.lastRetryAt?.getTime() ?? now);
+      return Math.max(requiredDelay - elapsed, 1000);
+    });
+
+  if (!waits.length) {
+    return 3000;
+  }
+
+  return Math.min(...waits);
+}
+
+function resolveMessagesPerSecond(rateLimitPerMinute?: number | null): number {
+  const DEFAULT_MESSAGES_PER_SECOND = 15;
+  const MAX_MESSAGES_PER_SECOND = 25;
+  const perMinute = Math.max(0, rateLimitPerMinute ?? 0);
+  if (perMinute <= 0) {
+    return DEFAULT_MESSAGES_PER_SECOND;
+  }
+  const derived = Math.floor(perMinute / 60);
+  return Math.min(MAX_MESSAGES_PER_SECOND, Math.max(1, derived));
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  if (size <= 0) {
+    return [items];
+  }
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 // Translate stored variable maps into WhatsApp API payload pieces so campaign sends honour media headers & buttons.
@@ -422,7 +568,8 @@ async function handleSendError(
   recipientId: string,
   campaignId: string,
   errorMessage: string,
-  errorCode?: string | null
+  errorCode: string | null | undefined,
+  campaign: Pick<WhatsAppCampaign, 'retryFailed' | 'maxRetries'>
 ) {
   const recipient = await prisma.whatsAppCampaignRecipient.findUnique({
     where: { id: recipientId }
@@ -430,57 +577,44 @@ async function handleSendError(
 
   if (!recipient) return;
 
-  // Determine if we should retry
-  const shouldRetry = shouldRetryError(errorCode);
-  const maxRetries = 3;
+  const now = new Date();
+  const retryEnabled = campaign.retryFailed !== false;
+  const hardStop = !shouldRetryError(errorCode);
+  const configuredMaxRetries = typeof campaign.maxRetries === 'number' ? campaign.maxRetries : 3;
+  const maxRetries = Math.max(0, configuredMaxRetries);
+  const nextRetryCount = recipient.retryCount + 1;
 
-  if (shouldRetry && recipient.retryCount < maxRetries) {
-  const MIN_RETRY_MS = 3 * 1000;
-    const now = new Date();
-    if (!recipient.lastRetryAt || (now.getTime() - new Date(recipient.lastRetryAt).getTime()) > MIN_RETRY_MS) {
-      // Mark for retry
-      await prisma.whatsAppCampaignRecipient.update({
-        where: { id: recipientId },
-        data: {
-          status: 'retry',
-          errorCode,
-          errorMessage,
-          retryCount: { increment: 1 },
-          lastRetryAt: now
-        }
-      });
-    } else {
-      // Too soon to retry; keep as failed for now and increment failed count
-      await prisma.whatsAppCampaignRecipient.update({
-        where: { id: recipientId },
-        data: {
-          status: 'failed',
-          errorCode,
-          errorMessage,
-          failedAt: now
-        }
-      });
-    }
-  } else {
-    // Mark as failed
+  if (retryEnabled && !hardStop && nextRetryCount <= maxRetries) {
     await prisma.whatsAppCampaignRecipient.update({
       where: { id: recipientId },
       data: {
-        status: errorCode === '131050' ? 'opted_out' : 'failed',
+        status: 'retry',
         errorCode,
         errorMessage,
-        failedAt: new Date()
-      }
+        retryCount: nextRetryCount,
+        lastRetryAt: now,
+        failedAt: null,
+      },
     });
-
-    // Update campaign stats
-    await prisma.whatsAppCampaign.update({
-      where: { id: campaignId },
-      data: {
-        failedCount: { increment: 1 }
-      }
-    });
+    return;
   }
+
+  await prisma.whatsAppCampaignRecipient.update({
+    where: { id: recipientId },
+    data: {
+      status: errorCode === '131050' ? 'opted_out' : 'failed',
+      errorCode,
+      errorMessage,
+      failedAt: now,
+    },
+  });
+
+  await prisma.whatsAppCampaign.update({
+    where: { id: campaignId },
+    data: {
+      failedCount: { increment: 1 },
+    },
+  });
 }
 
 function shouldRetryError(errorCode: string | null | undefined): boolean {

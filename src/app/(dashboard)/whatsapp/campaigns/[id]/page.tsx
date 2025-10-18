@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Send, Trash2, BarChart3, Users, Download, RefreshCw, CheckCircle, XCircle, MessageSquare, Pause } from 'lucide-react';
+import { ArrowLeft, Send, Trash2, BarChart3, Users, RefreshCw, CheckCircle, XCircle, MessageSquare, Pause, Loader2, Clock3, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Campaign {
   id: string;
@@ -37,6 +38,9 @@ interface Campaign {
   startedAt?: string;
   completedAt?: string;
   createdAt: string;
+  rateLimit?: number | null;
+  retryFailed?: boolean;
+  maxRetries?: number;
   recipients: Array<{
     id: string;
     phoneNumber: string;
@@ -44,8 +48,48 @@ interface Campaign {
     status: string;
     sentAt?: string;
     errorMessage?: string;
+    retryCount?: number;
+    lastRetryAt?: string;
+    updatedAt?: string;
   }>;
 }
+
+interface StatusSummaryResponse {
+  pending: number;
+  sending: number;
+  retry: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  opted_out: number;
+  responded: number;
+  other: Record<string, number>;
+}
+
+interface RetryScheduleItem {
+  id: string;
+  retryCount: number;
+  scheduledAt: string;
+}
+
+interface RetryScheduleSnapshot {
+  nextRetryAt: string | null;
+  queue: RetryScheduleItem[];
+}
+
+const blankStatusSummary: StatusSummaryResponse = {
+  pending: 0,
+  sending: 0,
+  retry: 0,
+  sent: 0,
+  delivered: 0,
+  read: 0,
+  failed: 0,
+  opted_out: 0,
+  responded: 0,
+  other: {},
+};
 
 export default function CampaignDetailsPage() {
   const router = useRouter();
@@ -56,6 +100,73 @@ export default function CampaignDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [statusSummary, setStatusSummary] = useState<StatusSummaryResponse | null>(null);
+  const [retrySchedule, setRetrySchedule] = useState<RetryScheduleSnapshot | null>(null);
+
+  const summary = statusSummary ?? blankStatusSummary;
+  const messagesPerSecond = resolveMessagesPerSecond(campaign?.rateLimit ?? undefined);
+  const totalAttention = summary.failed + summary.opted_out;
+  const nextRetryLabel = summary.retry > 0
+    ? retrySchedule?.nextRetryAt
+      ? formatDistanceToNow(new Date(retrySchedule.nextRetryAt), { addSuffix: true })
+      : 'as soon as the backoff window clears'
+    : 'No retries scheduled';
+
+  const liveSteps = useMemo(() => {
+    if (!campaign) {
+      return [];
+    }
+
+    const deliveredCount = campaign?.deliveredCount ?? 0;
+
+    return [
+      {
+        key: 'queued',
+        label: 'Queued for send',
+        description: summary.pending > 0
+          ? `${summary.pending} recipient${summary.pending === 1 ? '' : 's'} waiting for dispatch.`
+          : 'No recipients waiting in the queue.',
+        icon: Loader2,
+        active: summary.pending > 0,
+      },
+      {
+        key: 'dispatching',
+        label: 'Dispatching current batch',
+        description: summary.sending > 0
+          ? `Messaging ${summary.sending} recipient${summary.sending === 1 ? '' : 's'} at ~${messagesPerSecond} msg/s.`
+          : 'No messages currently leaving the queue.',
+        icon: Send,
+        active: summary.sending > 0,
+      },
+      {
+        key: 'retry',
+        label: 'Waiting on retry window',
+        description: summary.retry > 0
+          ? `Retry queue has ${summary.retry} recipient${summary.retry === 1 ? '' : 's'}; next retry ${nextRetryLabel}.`
+          : 'No recipients waiting for a retry window.',
+        icon: RotateCcw,
+        active: summary.retry > 0,
+      },
+      {
+        key: 'delivered',
+        label: 'Delivered successfully',
+        description: summary.delivered > 0
+          ? `${summary.delivered} delivered and ${deliveredCount} logged overall.`
+          : 'Deliveries will appear here once confirmed.',
+        icon: CheckCircle,
+        active: summary.delivered > 0,
+      },
+      {
+        key: 'attention',
+        label: 'Needs attention',
+        description: totalAttention > 0
+          ? `${totalAttention} recipient${totalAttention === 1 ? '' : 's'} failed or opted out.`
+          : 'No failures or opt-outs detected.',
+        icon: AlertTriangle,
+        active: totalAttention > 0,
+      },
+    ];
+  }, [campaign, summary.pending, summary.sending, summary.retry, summary.delivered, totalAttention, messagesPerSecond, nextRetryLabel]);
 
   const fetchCampaign = useCallback(async () => {
     try {
@@ -64,6 +175,8 @@ export default function CampaignDetailsPage() {
       
       const data = await response.json();
       setCampaign(data.campaign);
+      setStatusSummary(data.statusSummary ?? null);
+      setRetrySchedule(data.retrySchedule ?? null);
     } catch (error) {
       console.error('Error fetching campaign:', error);
       toast.error('Failed to load campaign');
@@ -367,6 +480,111 @@ export default function CampaignDetailsPage() {
         </Card>
       )}
 
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card className="border border-blue-100">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock3 className="h-4 w-4 text-blue-600" />
+              Live Send Timeline
+            </CardTitle>
+            <CardDescription>Follow each stage as recipients move through the queue.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {liveSteps.map((step) => {
+                const Icon = step.icon;
+                return (
+                  <div
+                    key={step.key}
+                    className={cn(
+                      'flex items-start gap-3 rounded-lg border p-3 transition-colors',
+                      step.active
+                        ? 'border-blue-300 bg-blue-50'
+                        : 'border-transparent bg-muted/40'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'mt-0.5 flex h-9 w-9 items-center justify-center rounded-full border',
+                        step.active
+                          ? 'border-blue-400 bg-blue-100 text-blue-700'
+                          : 'border-border bg-background text-muted-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold">{step.label}</p>
+                      <p className="text-xs text-muted-foreground">{step.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-slate-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Loader2 className="h-4 w-4 text-slate-600" />
+              Queue Snapshot
+            </CardTitle>
+            <CardDescription>Refreshed every few seconds while this page is open.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {[{
+                label: 'Pending queue',
+                value: summary.pending,
+              }, {
+                label: 'Currently sending',
+                value: summary.sending,
+              }, {
+                label: 'Retry queue',
+                value: summary.retry,
+              }, {
+                label: 'Delivered',
+                value: summary.delivered,
+              }, {
+                label: 'Read',
+                value: summary.read,
+              }, {
+                label: 'Failures / opt-outs',
+                value: totalAttention,
+              }].map((item) => (
+                <div key={item.label} className="rounded-md border border-slate-200 bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <p className="text-lg font-semibold">{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+              <p className="font-semibold">Throughput</p>
+              <p className="mt-1">Target rate ~{messagesPerSecond} message{messagesPerSecond === 1 ? '' : 's'} per second.</p>
+            </div>
+
+            {summary.retry > 0 && (
+              <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                <p className="font-semibold">Retry pipeline</p>
+                <p className="mt-1">Next retry {nextRetryLabel}.</p>
+                {retrySchedule?.queue?.length ? (
+                  <ul className="mt-2 space-y-1 max-h-28 overflow-y-auto pr-1">
+                    {retrySchedule.queue.map((retry) => (
+                      <li key={retry.id} className="flex items-center justify-between">
+                        <span>Retry attempt {retry.retryCount}</span>
+                        <span>{formatDistanceToNow(new Date(retry.scheduledAt), { addSuffix: true })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-2 hover:shadow-lg transition-shadow duration-300">
@@ -515,4 +733,14 @@ export default function CampaignDetailsPage() {
       </Card>
     </div>
   );
+}
+
+function resolveMessagesPerSecond(rateLimit?: number | null): number {
+  const DEFAULT_MESSAGES_PER_SECOND = 15;
+  const MAX_MESSAGES_PER_SECOND = 25;
+  if (!rateLimit || rateLimit <= 0) {
+    return DEFAULT_MESSAGES_PER_SECOND;
+  }
+  const derived = Math.floor(rateLimit / 60);
+  return Math.min(MAX_MESSAGES_PER_SECOND, Math.max(1, derived));
 }

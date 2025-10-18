@@ -47,6 +47,26 @@ export async function GET(
                 },
                 itinerary: true
               }
+            },
+            tourPackagePricings: {
+              include: {
+                mealPlan: true,
+                vehicleType: true,
+                locationSeasonalPeriod: true,
+                pricingComponents: {
+                  include: {
+                    pricingAttribute: true
+                  },
+                  orderBy: {
+                    pricingAttribute: {
+                      sortOrder: 'asc'
+                    }
+                  }
+                }
+              },
+              orderBy: {
+                startDate: 'asc'
+              }
             }
           },
           orderBy: { sortOrder: 'asc' }
@@ -453,6 +473,61 @@ export async function PATCH(
               console.log(`[VARIANTS] ⚠️ No valid hotel mappings to create for variant: ${createdVariant.name}`);
             }
           }
+
+          if (variant.copiedFromTourPackageId) {
+            try {
+              console.log(`[VARIANTS] Copying seasonal pricing for variant ${createdVariant.id} from package ${variant.copiedFromTourPackageId}`);
+              const sourcePricings = await prismadb.tourPackagePricing.findMany({
+                where: {
+                  tourPackageId: variant.copiedFromTourPackageId,
+                  packageVariantId: null,
+                },
+                include: {
+                  pricingComponents: true,
+                },
+                orderBy: {
+                  startDate: 'asc',
+                },
+              });
+
+              if (sourcePricings.length === 0) {
+                console.log(`[VARIANTS] ⚠️ No pricing records found to copy from package ${variant.copiedFromTourPackageId}`);
+              } else {
+                await Promise.all(
+                  sourcePricings.map((pricing) =>
+                    prismadb.tourPackagePricing.create({
+                      data: {
+                        tourPackageId: params.tourPackageId,
+                        packageVariantId: createdVariant.id,
+                        startDate: pricing.startDate,
+                        endDate: pricing.endDate,
+                        isActive: pricing.isActive,
+                        description: pricing.description,
+                        mealPlanId: pricing.mealPlanId,
+                        numberOfRooms: pricing.numberOfRooms,
+                        locationSeasonalPeriodId: pricing.locationSeasonalPeriodId,
+                        isGroupPricing: pricing.isGroupPricing,
+                        vehicleTypeId: pricing.vehicleTypeId,
+                        pricingComponents: pricing.pricingComponents.length > 0
+                          ? {
+                              create: pricing.pricingComponents.map((component) => ({
+                                pricingAttributeId: component.pricingAttributeId,
+                                price: component.price,
+                                purchasePrice: component.purchasePrice,
+                                description: component.description,
+                              })),
+                            }
+                          : undefined,
+                      },
+                    })
+                  )
+                );
+                console.log(`[VARIANTS] ✅ Copied ${sourcePricings.length} seasonal pricing records to variant ${createdVariant.id}`);
+              }
+            } catch (pricingCopyError) {
+              console.error('[VARIANTS] Failed to copy seasonal pricing', pricingCopyError);
+            }
+          }
         }
         
         console.log('[VARIANTS] Successfully saved all package variants');
@@ -492,6 +567,26 @@ export async function PATCH(
                   }
                 },
                 itinerary: true
+              },
+            },
+            tourPackagePricings: {
+              include: {
+                mealPlan: true,
+                vehicleType: true,
+                locationSeasonalPeriod: true,
+                pricingComponents: {
+                  include: {
+                    pricingAttribute: true
+                  },
+                  orderBy: {
+                    pricingAttribute: {
+                      sortOrder: 'asc'
+                    }
+                  }
+                }
+              },
+              orderBy: {
+                startDate: 'asc'
               }
             }
           },

@@ -81,6 +81,26 @@ const tourPackagePage = async ({
               },
               itinerary: true
             }
+          },
+          tourPackagePricings: {
+            include: {
+              mealPlan: true,
+              vehicleType: true,
+              locationSeasonalPeriod: true,
+              pricingComponents: {
+                include: {
+                  pricingAttribute: true
+                },
+                orderBy: {
+                  pricingAttribute: {
+                    sortOrder: 'asc'
+                  }
+                }
+              }
+            },
+            orderBy: {
+              startDate: 'asc'
+            }
           }
         },
         orderBy: { sortOrder: 'asc' }
@@ -91,6 +111,38 @@ const tourPackagePage = async ({
 
   // Check if current user is an associate (for read-only mode)
   const isAssociate = await isCurrentUserAssociate();
+
+  const currentLocationId = tourPackage?.locationId ?? null;
+
+  const availableTourPackages = currentLocationId
+    ? await prismadb.tourPackage.findMany({
+        where: {
+          id: {
+            not: params.tourPackageId,
+          },
+          locationId: currentLocationId,
+          isArchived: false,
+        },
+        select: {
+          id: true,
+          tourPackageName: true,
+          numDaysNight: true,
+          itineraries: {
+            select: {
+              id: true,
+              dayNumber: true,
+              hotelId: true,
+            },
+            orderBy: {
+              dayNumber: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          tourPackageName: 'asc',
+        },
+      })
+    : [];
 
 
   // console.log("Fetched tourPackage:", tourPackage);
@@ -151,6 +203,7 @@ const tourPackagePage = async ({
               hotels={hotels}
               activitiesMaster={activitiesMaster}
               itinerariesMaster={itinerariesMaster}
+              availableTourPackages={availableTourPackages}
               readOnly={isAssociate} />
           </div>
         </div>

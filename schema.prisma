@@ -595,6 +595,7 @@ model PricingComponent {
 model TourPackagePricing {
   id                       String                  @id @default(uuid())
   tourPackageId            String
+  packageVariantId         String?
   startDate                DateTime
   endDate                  DateTime
   isActive                 Boolean                 @default(true)
@@ -610,9 +611,11 @@ model TourPackagePricing {
   mealPlan                 MealPlan                @relation(fields: [mealPlanId], references: [id])
   locationSeasonalPeriod   LocationSeasonalPeriod? @relation(fields: [locationSeasonalPeriodId], references: [id])
   vehicleType              VehicleType?            @relation(fields: [vehicleTypeId], references: [id])
+  packageVariant           PackageVariant?         @relation(fields: [packageVariantId], references: [id], onDelete: Cascade)
   pricingComponents        PricingComponent[]
 
   @@index([tourPackageId])
+  @@index([packageVariantId])
   @@index([mealPlanId])
   @@index([startDate, endDate])
   @@index([numberOfRooms])
@@ -1543,6 +1546,7 @@ model PackageVariant {
   updatedAt            DateTime                @updatedAt
   tourPackage          TourPackage?            @relation(fields: [tourPackageId], references: [id], onDelete: Cascade)
   variantHotelMappings VariantHotelMapping[]
+  tourPackagePricings  TourPackagePricing[]
 
   @@index([tourPackageId])
   @@index([sortOrder])

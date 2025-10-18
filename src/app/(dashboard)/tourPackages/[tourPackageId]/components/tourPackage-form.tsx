@@ -2,13 +2,31 @@
 
 import * as z from "zod"
 import axios from "axios"
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useRef, useState } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useMemo, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useFieldArray, useForm } from "react-hook-form"
+import { FieldErrors, useFieldArray, useForm } from "react-hook-form"
 import { toast } from "react-hot-toast"
 import { CheckIcon, ChevronDown, ChevronUp, Trash, Plus, ListChecks, AlertCircle, ScrollText } from "lucide-react"
-import { Activity, Images, ItineraryMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"
-import { Location, Hotel, TourPackage, Itinerary, FlightDetails, ActivityMaster } from "@prisma/client"
+import {
+  Activity,
+  Images,
+  ItineraryMaster,
+  RoomType,
+  OccupancyType,
+  MealPlan,
+  VehicleType,
+  Location,
+  Hotel,
+  TourPackage,
+  Itinerary,
+  FlightDetails,
+  ActivityMaster,
+  PackageVariant as PrismaPackageVariant,
+  TourPackagePricing,
+  PricingComponent,
+  PricingAttribute,
+  LocationSeasonalPeriod,
+} from "@prisma/client"
 import { useParams, useRouter } from "next/navigation"
 import JoditEditor from "jodit-react";
 
@@ -136,20 +154,80 @@ const formSchema = z.object({
     name: z.string().min(1, "Variant name is required"),
     description: z.string().optional(),
     isDefault: z.boolean().optional(),
-    sortOrder: z.number().optional(),
-    priceModifier: z.number().optional(),
-    hotelMappings: z.record(z.string()).optional()
-  })).optional()
+    sortOrder: z.coerce.number().optional(),
+    priceModifier: z.coerce.number().optional(),
+    hotelMappings: z.record(z.string()).optional(),
+    copiedFromTourPackageId: z.string().optional().nullable()
+  })).optional().default([])
 });
 
 type TourPackageFormValues = z.infer<typeof formSchema>
 
+interface TourPackageSummaryItinerary {
+  id: string;
+  dayNumber: number | null;
+  hotelId: string | null;
+}
+
+interface TourPackageSummary {
+  id: string;
+  tourPackageName: string | null;
+  numDaysNight: string | null;
+  itineraries: TourPackageSummaryItinerary[];
+}
+
+type TourPackageVariantWithRelations = PrismaPackageVariant & {
+  variantHotelMappings: Array<{
+    id: string;
+    itineraryId: string;
+    hotelId: string;
+    itinerary: Itinerary;
+    hotel: (Hotel & { images: Images[] }) | null;
+  }>;
+  tourPackagePricings: Array<
+    TourPackagePricing & {
+      mealPlan: MealPlan | null;
+      vehicleType: VehicleType | null;
+      locationSeasonalPeriod: LocationSeasonalPeriod | null;
+      pricingComponents: Array<
+        PricingComponent & {
+          pricingAttribute: PricingAttribute | null;
+        }
+      >;
+    }
+  >;
+};
+
+const toPlainNumber = (value: unknown): number => {
+  if (value == null) return 0;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof value === "object" && value !== null) {
+    const asNumber = (value as any).toNumber?.();
+    if (typeof asNumber === "number" && Number.isFinite(asNumber)) {
+      return asNumber;
+    }
+    const asString = (value as any).toString?.();
+    if (typeof asString === "string") {
+      const parsed = Number.parseFloat(asString);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+  }
+  return 0;
+};
+
 interface TourPackageFormProps {
-  initialData: TourPackage & {
+  initialData: (TourPackage & {
     images: Images[];
     itineraries: Itinerary[];
     flightDetails: FlightDetails[];
-  } | null;
+    packageVariants: TourPackageVariantWithRelations[];
+  }) | null;
   locations: Location[];
   hotels: (Hotel & { images: Images[] })[];
   activitiesMaster: (ActivityMaster & {
@@ -162,6 +240,7 @@ interface TourPackageFormProps {
     })[] | null;
 
   })[] | null;
+  availableTourPackages: TourPackageSummary[];
   readOnly?: boolean;
 };
 
@@ -171,6 +250,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   hotels,
   activitiesMaster,
   itinerariesMaster,
+  availableTourPackages,
   readOnly = false,
 }) => {
   const params = useParams();
@@ -294,7 +374,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
   };
 
   // Transform packageVariants from API response to component format
-  const transformPackageVariants = (variants: any[]): any[] => {
+  const transformPackageVariants = (variants: TourPackageVariantWithRelations[] | undefined): any[] => {
     if (!variants || !Array.isArray(variants)) return [];
     
     console.log('🔄 [TRANSFORM VARIANTS] Transforming packageVariants from API:', {
@@ -322,13 +402,30 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       return {
         id: variant.id,
         name: variant.name,
-        description: variant.description,
+        description: variant.description ?? undefined,
         isDefault: variant.isDefault,
-        sortOrder: variant.sortOrder,
-        priceModifier: variant.priceModifier,
-        hotelMappings
+        sortOrder: typeof variant.sortOrder === "number" ? variant.sortOrder : Number(variant.sortOrder) || 0,
+        priceModifier: toPlainNumber(variant.priceModifier),
+        hotelMappings,
+        copiedFromTourPackageId: (variant as any).copiedFromTourPackageId ?? undefined,
+        seasonalPricings: [],
       };
     });
+  };
+
+  const extractVariantPricingLookup = (
+     variants: TourPackageVariantWithRelations[] | undefined
+  ): Record<string, TourPackageVariantWithRelations["tourPackagePricings"]> => {
+    if (!Array.isArray(variants)) {
+      return {};
+    }
+
+    return variants.reduce((acc, variant) => {
+      if (variant?.id && Array.isArray(variant?.tourPackagePricings) && variant.tourPackagePricings.length > 0) {
+        acc[variant.id] = variant.tourPackagePricings;
+      }
+      return acc;
+    }, {} as Record<string, TourPackageVariantWithRelations["tourPackagePricings"]>);
   };
 
   const transformInitialData = (data: any) => {
@@ -426,6 +523,14 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     packageVariants: [],
   };
 
+  const packageVariantData = initialData?.packageVariants;
+  const variantPricingLookup = useMemo(() => {
+    if (!packageVariantData || packageVariantData.length === 0) {
+      return {};
+    }
+    return extractVariantPricingLookup(packageVariantData);
+  }, [packageVariantData]);
+
   const form = useForm<TourPackageFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -492,9 +597,24 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
     form.setValue('slug', slug);
   }, [form, tourPackageName]);
 
+  const handleSubmitError = (errors: FieldErrors<TourPackageFormValues>) => {
+    console.error('❌ [TOUR PACKAGE FORM] Validation errors prevented submission', {
+      errorKeys: Object.keys(errors),
+      errors,
+    });
+
+    if (errors.packageVariants) {
+      console.error('❌ [TOUR PACKAGE FORM] packageVariants validation details', errors.packageVariants);
+    }
+  };
+
   const onSubmit = async (data: TourPackageFormValues) => {
 
-    // console.log("Data Being Submitted is : ", data)
+    console.log('📋 [TOUR PACKAGE FORM] Raw submit data received', {
+      variantsCount: data.packageVariants?.length || 0,
+      hasItineraries: Array.isArray(data.itineraries) && data.itineraries.length > 0,
+      payload: data,
+    });
     const formattedData = {
       ...data,
       itineraries: data.itineraries.map(itinerary => ({
@@ -513,6 +633,11 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       packageVariants: data.packageVariants || [], // Include variants
     };
 
+    console.log('📦 [TOUR PACKAGE FORM] Formatted request payload', {
+      variantsCount: formattedData.packageVariants.length,
+      itineraryCount: formattedData.itineraries.length,
+      payload: formattedData,
+    });
 
 
     try {
@@ -529,11 +654,19 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       } else {
         await axios.post(`/api/tourPackages`, formattedData);
       }
+      console.log('✅ [TOUR PACKAGE FORM] Tour package saved successfully', {
+        tourPackageId: params.tourPackageId,
+        isUpdate: Boolean(initialData),
+      });
       router.refresh();
       router.push(`/tourPackages`);
       toast.success(toastMessage);
     } catch (error: any) {
-      console.error('Error:', error.response ? error.response.data : error.message);  // Updated line
+      console.error('❌ [TOUR PACKAGE FORM] Failed to save tour package', {
+        message: error?.message,
+        status: error?.response?.status,
+        responseData: error?.response?.data,
+      });
       toast.error('Something went wrong.');
     } finally {
       setLoading(false);
@@ -658,7 +791,7 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
       <Separator />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit, handleSubmitError)} className="space-y-8">
           {Object.keys(form.formState.errors).length > 0 && (
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
@@ -2000,6 +2133,9 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                 form={form}
                 loading={loading}
                 hotels={hotels}
+                availableTourPackages={availableTourPackages}
+                variantPricingLookup={variantPricingLookup}
+                tourPackageId={initialData?.id}
               />
             </TabsContent>
 

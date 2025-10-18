@@ -22,8 +22,14 @@ export async function GET(
     // Get query parameters for date filtering
     const url = new URL(req.url);
     const startDate = url.searchParams.get("startDate");
-    const endDate = url.searchParams.get("endDate");    // Build the filter based on available parameters
-    let dateFilter = {};    if (startDate && endDate) {
+    const endDate = url.searchParams.get("endDate");
+    const packageVariantId = url.searchParams.get("packageVariantId");
+    const includeGlobal = url.searchParams.get("includeGlobal") !== "false";
+    const onlyGlobal = url.searchParams.get("onlyGlobal") === "true";
+
+    // Build the filter based on available parameters
+    let dateFilter = {};
+    if (startDate && endDate) {
       dateFilter = {
         AND: [
           { startDate: { lte: dateToUtc(endDate)! } },
@@ -32,12 +38,28 @@ export async function GET(
       };
     }
 
+    const whereClause: any = {
+      tourPackageId: params.tourPackageId,
+      isActive: true,
+      ...dateFilter,
+    };
+
+    if (onlyGlobal) {
+      whereClause.packageVariantId = null;
+    } else if (packageVariantId) {
+      if (includeGlobal) {
+        whereClause.OR = [
+          { packageVariantId },
+          { packageVariantId: null },
+        ];
+      } else {
+        whereClause.packageVariantId = packageVariantId;
+      }
+    }
+
     const tourPackagePricing = await prismadb.tourPackagePricing.findMany({
-      where: {
-        tourPackageId: params.tourPackageId,
-        isActive: true,
-        ...dateFilter
-      },      include: {
+      where: whereClause,
+      include: {
         mealPlan: true,        
         locationSeasonalPeriod: true,
         vehicleType: true,

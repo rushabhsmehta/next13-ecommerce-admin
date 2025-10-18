@@ -75,9 +75,9 @@ export default function CampaignsPage() {
   }, [filter, router]);
 
   useEffect(() => {
-    fetchCampaigns();
-    // Reduce polling to 30 minutes to avoid aggressive retries. 30 minutes = 1800000 ms
-    const interval = setInterval(fetchCampaigns, 30 * 60 * 1000);
+  fetchCampaigns();
+  // Poll frequently so dashboard reflects campaign changes in near real-time.
+  const interval = setInterval(fetchCampaigns, 3000);
     return () => clearInterval(interval);
   }, [fetchCampaigns]);
 

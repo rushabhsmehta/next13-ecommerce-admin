@@ -435,8 +435,7 @@ async function handleSendError(
   const maxRetries = 3;
 
   if (shouldRetry && recipient.retryCount < maxRetries) {
-    // Respect a minimum backoff between retries (30 minutes)
-    const MIN_RETRY_MS = 30 * 60 * 1000;
+  const MIN_RETRY_MS = 3 * 1000;
     const now = new Date();
     if (!recipient.lastRetryAt || (now.getTime() - new Date(recipient.lastRetryAt).getTime()) > MIN_RETRY_MS) {
       // Mark for retry

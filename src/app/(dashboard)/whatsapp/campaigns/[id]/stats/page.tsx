@@ -64,9 +64,8 @@ export default function CampaignStatsPage() {
   }, [campaignId, router]);
 
   useEffect(() => {
-    fetchStats();
-    // Reduce stats polling to 30 minutes to avoid aggressive retries when campaigns are long-running
-    const interval = setInterval(fetchStats, 30 * 60 * 1000); // 30 minutes
+  fetchStats();
+  const interval = setInterval(fetchStats, 3000);
     return () => clearInterval(interval);
   }, [fetchStats]);
 

@@ -88,10 +88,7 @@ export default function CampaignDetailsPage() {
       return;
     }
 
-    // If sending, poll much less frequently to avoid aggressive retries.
-    // Enforce minimum 30 minutes between attempts when sending: 30 * 60 * 1000 ms
-    const intervalDuration = campaign.status === 'sending' ? 30 * 60 * 1000 : 30000; // scheduled still 30s
-    const interval = setInterval(fetchCampaign, intervalDuration);
+    const interval = setInterval(fetchCampaign, 3000);
 
     return () => clearInterval(interval);
   }, [campaign, fetchCampaign]);

@@ -5,10 +5,17 @@ import Navbar from "@/components/navbar";
 import Link from "next/link";
 
 const tourPackageQueryPage = async ({
-  params
+  params,
+  searchParams,
 }: {
-  params: { tourPackageQueryId: string }
+  params: { tourPackageQueryId: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }) => {
+  const selectedOptionParam = searchParams?.search;
+  const selectedOption = Array.isArray(selectedOptionParam)
+    ? selectedOptionParam[0]
+    : selectedOptionParam;
+  const preferredOption = selectedOption && selectedOption.length ? selectedOption : "AH";
   const tourPackageQuery = await prismadb.tourPackageQuery.findUnique({
     where: {
       id: params.tourPackageQueryId,
@@ -106,7 +113,7 @@ const tourPackageQueryPage = async ({
             <div className="text-sm text-gray-600">Prepared by: <span className="font-semibold">{preparedByLog.userName}</span> <span className="ml-2">({preparedByLog.userEmail})</span></div>
             {tourPackageQuery && (
               <Link
-                href={`/tourPackageQueryPDFGenerator/${tourPackageQuery.id}`}
+                href={`/tourPackageQueryPDFGenerator/${tourPackageQuery.id}?search=${preferredOption}`}
                 className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-orange-500 text-white hover:bg-orange-600"
               >
                 Download PDF

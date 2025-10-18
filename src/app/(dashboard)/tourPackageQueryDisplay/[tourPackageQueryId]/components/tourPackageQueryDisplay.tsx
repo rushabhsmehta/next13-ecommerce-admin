@@ -207,10 +207,14 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
 }) => {
 
   const searchParams = useSearchParams();
-  const selectedOption = searchParams.get('search') || 'Empty'; // 'option' is the name of your query parameter
+  const selectedOption = searchParams.get('search') || 'AH';
 
-  // Now you can use selectedOption to get data from your companyInfo object
-  const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
+  const fallbackCompany = companyInfo.AH;
+  const selectedCompany = companyInfo[selectedOption] ?? companyInfo.Empty;
+  const currentCompany = {
+    ...fallbackCompany,
+    ...selectedCompany,
+  };
 
   const [preparedBy, setPreparedBy] = useState<{ name: string; email: string } | null>(null);
   useEffect(() => {
@@ -264,7 +268,7 @@ export const TourPackageQueryDisplay: React.FC<TourPackageQueryDisplayProps> = (
               {preparedBy && (
                 <div className="text-sm text-gray-600">Prepared by: <span className="font-semibold">{preparedBy.name}</span> <span className="ml-2">({preparedBy.email})</span></div>
               )}
-              <Link href={`/tourPackageQueryPDFGenerator/${initialData.id}`} className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-orange-500 text-white hover:bg-orange-600">Download PDF</Link>
+              <Link href={`/tourPackageQueryPDFGenerator/${initialData.id}?search=${selectedOption}`} className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium bg-orange-500 text-white hover:bg-orange-600">Download PDF</Link>
             </div>
 
             {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (

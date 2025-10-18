@@ -661,7 +661,7 @@ const TourPackagePDFGenerator: React.FC<TourPackagePDFGeneratorProps> = ({
         const associatedItineraries = initialData.itineraries?.filter((itinerary) => itinerary.hotelId === hotel.id) ?? [];
         const dayNumbers = associatedItineraries
           .map((itinerary) => itinerary.dayNumber)
-          .filter((dayNumber) => typeof dayNumber === "number");
+          .filter((dayNumber): dayNumber is number => typeof dayNumber === "number");
         const earliestDay = dayNumbers.length ? Math.min(...dayNumbers) : Number.POSITIVE_INFINITY;
         return { hotel, earliestDay };
       })

@@ -305,6 +305,60 @@ export default function WhatsAppSettingsPage() {
     return String(value);
   };
 
+  const coerceFlowSummaryObject = (input: unknown): Record<string, any> | null => {
+    if (!input) {
+      return null;
+    }
+    if (Array.isArray(input)) {
+      const aggregate: Record<string, any> = {};
+      input.forEach((entry, index) => {
+        if (entry === null || entry === undefined) {
+          return;
+        }
+        if (typeof entry === 'object' && !Array.isArray(entry)) {
+          const objectEntry = entry as Record<string, any>;
+          const keyCandidate =
+            objectEntry.label ||
+            objectEntry.title ||
+            objectEntry.question ||
+            objectEntry.key ||
+            objectEntry.name ||
+            objectEntry.id;
+          const key = typeof keyCandidate === 'string' && keyCandidate.trim().length > 0
+            ? keyCandidate
+            : `Field ${index + 1}`;
+
+          const valueCandidate =
+            objectEntry.value ??
+            objectEntry.answer ??
+            objectEntry.response ??
+            objectEntry.selection ??
+            objectEntry.selected_option ??
+            objectEntry.selectedValue ??
+            objectEntry.text ??
+            objectEntry.content ??
+            objectEntry.answers ??
+            objectEntry.values ??
+            objectEntry.data ??
+            entry;
+
+          aggregate[key] = valueCandidate;
+        } else {
+          aggregate[`Field ${index + 1}`] = entry;
+        }
+      });
+      return Object.keys(aggregate).length > 0 ? aggregate : null;
+    }
+    if (typeof input === 'object') {
+      const record = input as Record<string, any>;
+      if (Object.keys(record).length === 0) {
+        return null;
+      }
+      return record;
+    }
+    return null;
+  };
+
   const extractFlowSubmissionDetails = (
     metadata?: ChatMsg['metadata']
   ): FlowSubmissionDetails | null => {
@@ -331,13 +385,9 @@ export default function WhatsAppSettingsPage() {
 
     const candidates: Array<Record<string, any>> = [];
     const pushCandidate = (value: unknown) => {
-      if (
-        value &&
-        typeof value === 'object' &&
-        !Array.isArray(value) &&
-        Object.keys(value as Record<string, unknown>).length > 0
-      ) {
-        candidates.push(value as Record<string, any>);
+      const coerced = coerceFlowSummaryObject(value);
+      if (coerced) {
+        candidates.push(coerced);
       }
     };
 
@@ -351,6 +401,21 @@ export default function WhatsAppSettingsPage() {
       pushCandidate(parsed.submission);
       pushCandidate(parsed.answers);
       pushCandidate(parsed.fields);
+      pushCandidate(parsed.submissions);
+      pushCandidate(parsed.form);
+      pushCandidate(parsed.formData);
+      pushCandidate(parsed.form_data);
+      pushCandidate(parsed.results);
+      pushCandidate(parsed.responses);
+      if (parsed.steps) {
+        pushCandidate(parsed.steps);
+      }
+      if (parsed.sections) {
+        pushCandidate(parsed.sections);
+      }
+      if (parsed.questions) {
+        pushCandidate(parsed.questions);
+      }
     }
 
     const summary = candidates[0];

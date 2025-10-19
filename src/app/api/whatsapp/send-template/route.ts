@@ -282,6 +282,8 @@ export async function POST(request: NextRequest) {
             type: 'ACTION',
             action: {
               flow_token: flowToken,
+              flow_message_version: '3',
+              flow_action: 'navigate',
             },
           },
         ],

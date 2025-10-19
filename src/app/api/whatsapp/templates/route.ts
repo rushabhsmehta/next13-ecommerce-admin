@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listWhatsAppTemplates } from '@/lib/whatsapp';
+import prismadb from '@/lib/prismadb';
 
 const BUSINESS_ID =
   process.env.META_WHATSAPP_BUSINESS_ID || process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID;
@@ -19,6 +20,7 @@ function normalizeButtons(components: any[] | undefined) {
   const buttonsComponent = (components || []).find((component: any) => component.type === 'BUTTONS');
   const buttons = (buttonsComponent?.buttons || []).map((button: any) => ({
     type: button.type,
+    index: typeof button.index === 'number' ? button.index : undefined,
     text: button.text,
     url: button.url,
     phone: button.phone_number,
@@ -29,6 +31,8 @@ function normalizeButtons(components: any[] | undefined) {
     flowAction: button.flow_action || button.flowAction,
     flowActionData: button.flow_action_data || button.flow_action_payload || button.flowActionData,
     flowToken: button.flow_token || button.flowToken,
+    flowRedirectUrl: button.flow_redirect_url || button.flowRedirectUrl,
+    flowTokenLabel: button.flow_token_label || button.flowTokenLabel,
   }));
   return {
     hasCta: buttons.length > 0,
@@ -61,6 +65,7 @@ function normalizeTemplate(template: any) {
     whatsapp: normalizeButtons(components),
     components,
     updatedAt: template.last_updated_time || null,
+    flowDefaults: undefined,
   };
 }
 
@@ -82,7 +87,7 @@ export async function GET(request: NextRequest) {
     const debugEnabled = url.searchParams.get('debug') === '1' || process.env.WHATSAPP_DEBUG === '1';
     const debugEvents: any[] = [];
 
-    const templates: any[] = [];
+  const templates: any[] = [];
     let after: string | undefined;
     let page = 0;
     const maxPages = 10;
@@ -105,6 +110,31 @@ export async function GET(request: NextRequest) {
         break;
       }
     } while (after);
+
+    const templateNames = templates.map((tpl) => tpl?.name).filter(Boolean) as string[];
+
+    if (templateNames.length) {
+      try {
+        const storedTemplates = await prismadb.whatsAppTemplate.findMany({
+          where: { name: { in: templateNames } },
+          select: { name: true, flowDefaults: true },
+        });
+        const defaultsMap = new Map<string, any>(
+          storedTemplates.map((tpl) => [tpl.name, tpl.flowDefaults])
+        );
+        templates.forEach((tpl) => {
+          if (!tpl || typeof tpl !== 'object') {
+            return;
+          }
+          const defaults = defaultsMap.get(tpl.name);
+          if (defaults) {
+            tpl.flowDefaults = defaults;
+          }
+        });
+      } catch (defaultsError) {
+        console.warn('Failed to merge stored flow defaults', defaultsError);
+      }
+    }
 
     const payload: any = { success: true, templates, count: templates.length };
     if (debugEnabled) {

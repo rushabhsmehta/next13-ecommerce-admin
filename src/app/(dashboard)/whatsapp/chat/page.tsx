@@ -58,6 +58,7 @@ interface OrganizationInfo {
 
 interface WhatsAppTemplateButton {
   type?: string;
+  index?: number;
   text?: string;
   url?: string;
   phone?: string;
@@ -68,6 +69,24 @@ interface WhatsAppTemplateButton {
   flowAction?: string;
   flowActionData?: any;
   flowToken?: string;
+  flowRedirectUrl?: string;
+  flowTokenLabel?: string;
+}
+
+interface WhatsAppFlowButtonDefault {
+  index?: number;
+  text?: string;
+  action?: {
+    flow_id?: string;
+    flow_name?: string;
+    flow_cta?: string;
+    flow_action?: string;
+    flow_action_data?: any;
+    flow_action_payload?: any;
+    flow_message_version?: string;
+    flow_redirect_url?: string;
+    flow_token_label?: string;
+  };
 }
 
 interface WhatsAppTemplate {
@@ -85,6 +104,7 @@ interface WhatsAppTemplate {
     hasCta: boolean;
     buttons: WhatsAppTemplateButton[];
   };
+  flowDefaults?: WhatsAppFlowButtonDefault[];
 }
 
 const stripWhatsAppPrefix = (value?: string | null) => {
@@ -123,15 +143,13 @@ export default function WhatsAppSettingsPage() {
   const [config, setConfig] = useState<WhatsAppConfig | null>(null);
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [templateVariables, setTemplateVariables] = useState<{[key: string]: string}>({});
+  const [templateVariables, setTemplateVariables] = useState<{ [key: string]: string }>({});
   const [useTemplate, setUseTemplate] = useState(true);
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagResult, setDiagResult] = useState<any>(null);
-  // Preview state
   const [org, setOrg] = useState<OrganizationInfo>({});
   const [darkPreview, setDarkPreview] = useState(true);
   const [deliveryStage, setDeliveryStage] = useState<0 | 1 | 2 | 3>(0);
-  const [previewScale, setPreviewScale] = useState(1.0);
   const [previewWide, setPreviewWide] = useState(true);
   const BASE_PREVIEW_WIDTH = 720; // px
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -1227,9 +1245,58 @@ export default function WhatsAppSettingsPage() {
     [templates, selectedTemplate]
   );
 
+  const templateFlowDefaults = useMemo(() => {
+    const defaults = activeTemplate?.flowDefaults;
+    return Array.isArray(defaults) ? defaults : [];
+  }, [activeTemplate]);
+
+  const flowDefaultsIndexMap = useMemo(() => {
+    const map = new Map<number, WhatsAppFlowButtonDefault>();
+    templateFlowDefaults.forEach((entry) => {
+      if (entry && typeof entry === 'object' && typeof entry.index === 'number') {
+        map.set(entry.index, entry);
+      }
+    });
+    return map;
+  }, [templateFlowDefaults]);
+
+  const flowDefaultsTextMap = useMemo(() => {
+    const map = new Map<string, WhatsAppFlowButtonDefault>();
+    templateFlowDefaults.forEach((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return;
+      }
+      const text = (entry as WhatsAppFlowButtonDefault).text;
+      if (typeof text === 'string' && text.trim()) {
+        map.set(text.trim(), entry);
+      }
+    });
+    return map;
+  }, [templateFlowDefaults]);
+
   const templateFlowButtons = useMemo(
     () => activeTemplate?.whatsapp?.buttons?.filter((btn) => btn.type === 'FLOW') ?? [],
     [activeTemplate]
+  );
+
+  const resolveFlowDefaults = useCallback(
+    (flowIndex: number, button?: WhatsAppTemplateButton | undefined) => {
+      const candidates: Array<WhatsAppFlowButtonDefault | undefined> = [];
+      if (typeof flowIndex === 'number') {
+        candidates.push(flowDefaultsIndexMap.get(flowIndex));
+      }
+      if (button) {
+        const buttonIndex = typeof button.index === 'number' ? button.index : undefined;
+        if (typeof buttonIndex === 'number') {
+          candidates.push(flowDefaultsIndexMap.get(buttonIndex));
+        }
+        if (button.text && button.text.trim()) {
+          candidates.push(flowDefaultsTextMap.get(button.text.trim()));
+        }
+      }
+      return candidates.find((candidate) => candidate && typeof candidate === 'object');
+    },
+    [flowDefaultsIndexMap, flowDefaultsTextMap]
   );
 
   const flowVariableGroups = useMemo(
@@ -1252,6 +1319,40 @@ export default function WhatsAppSettingsPage() {
     () => orderedTemplateVariableKeys.filter((key) => !key.startsWith('_flow_')),
     [orderedTemplateVariableKeys]
   );
+
+  const requiredTemplateVariableKeys = useMemo(() => {
+    return orderedTemplateVariableKeys.filter((key) => {
+      if (key.startsWith('_flow_')) {
+        if (/_(action|action_data|action_payload)$/.test(key)) {
+          return false;
+        }
+        if (/_token_label$/.test(key)) {
+          return false;
+        }
+        return true;
+      }
+      if (key.startsWith('_header_')) {
+        // Only require the media/text value, not helper fields like filename
+        return !key.endsWith('_filename');
+      }
+      return true;
+    });
+  }, [orderedTemplateVariableKeys]);
+
+  const missingRequiredTemplateKeys = useMemo(() => {
+    return requiredTemplateVariableKeys.filter((key) => {
+      const value = templateVariables[key];
+      if (value === undefined || value === null) {
+        return true;
+      }
+      if (typeof value === 'string' && value.trim() === '') {
+        return true;
+      }
+      return false;
+    });
+  }, [requiredTemplateVariableKeys, templateVariables]);
+
+  const hasMissingRequiredTemplateVars = missingRequiredTemplateKeys.length > 0;
 
   const flowFieldPriority = (variable: string) => {
     const match = variable.match(/^_flow_\d+_(.+)$/);
@@ -1372,12 +1473,17 @@ export default function WhatsAppSettingsPage() {
         return;
       }
 
+      const defaults = resolveFlowDefaults(flowIndex, btn) || undefined;
+      const defaultAction = defaults?.action;
+
       setTemplateVariables((prev) => {
         const next = { ...prev };
 
         group.variables.forEach((variable) => {
           const match = variable.match(/^_flow_\d+_(.+)$/);
-          if (!match) return;
+          if (!match) {
+            return;
+          }
           const field = match[1];
 
           const assign = (value: any, fallback?: string) => {
@@ -1405,31 +1511,65 @@ export default function WhatsAppSettingsPage() {
               break;
             }
             case 'message_version':
-              assign(btn?.flowMessageVersion ?? '3');
+              assign(
+                defaultAction?.flow_message_version ??
+                  btn?.flowMessageVersion ??
+                  next[variable] ??
+                  '3'
+              );
               break;
             case 'id':
-              assign(btn?.flowId ?? next[variable]);
+              assign(defaultAction?.flow_id ?? btn?.flowId ?? next[variable]);
               break;
             case 'name':
-              assign(btn?.flowName ?? btn?.text ?? next[variable]);
+              assign(
+                defaultAction?.flow_name ??
+                  btn?.flowName ??
+                  btn?.text ??
+                  next[variable]
+              );
               break;
             case 'cta':
-              assign(btn?.flowCta ?? btn?.text ?? next[variable]);
+              assign(
+                defaultAction?.flow_cta ??
+                  btn?.flowCta ??
+                  btn?.text ??
+                  next[variable]
+              );
               break;
             case 'action':
-              assign(btn?.flowAction ?? next[variable]);
+              assign(defaultAction?.flow_action ?? btn?.flowAction ?? next[variable]);
               break;
             case 'action_data':
-              assign(btn?.flowActionData ?? next[variable]);
+              assign(defaultAction?.flow_action_data ?? btn?.flowActionData ?? next[variable]);
               break;
             case 'action_payload':
-              assign((btn as any)?.flowActionPayload ?? next[variable]);
+              assign(
+                defaultAction?.flow_action_payload ??
+                  (btn as any)?.flowActionPayload ??
+                  next[variable]
+              );
               break;
             case 'token_label':
-              assign((btn as any)?.flowTokenLabel ?? next[variable]);
+              assign(
+                defaultAction?.flow_token_label ??
+                  (btn as any)?.flowTokenLabel ??
+                  next[variable]
+              );
+              break;
+            case 'redirect_url':
+              assign(
+                defaultAction?.flow_redirect_url ??
+                  btn?.flowRedirectUrl ??
+                  next[variable]
+              );
               break;
             default:
-              assign(next[variable]);
+              if (defaultAction && field in defaultAction) {
+                assign((defaultAction as any)[field] ?? next[variable]);
+              } else {
+                assign(next[variable]);
+              }
           }
         });
 
@@ -1438,7 +1578,7 @@ export default function WhatsAppSettingsPage() {
 
       toast.success('Flow defaults applied');
     },
-    [flowVariableGroups, templateFlowButtons]
+    [flowVariableGroups, templateFlowButtons, resolveFlowDefaults]
   );
 
   // Auto-scroll to bottom when messages change or active contact changes
@@ -1607,91 +1747,29 @@ export default function WhatsAppSettingsPage() {
               body: JSON.stringify(apiPayload)
             });
             const j = await res.json();
-            
-            addDebugLog('info', '📡 API Response Received', {
-              status: res.status,
-              ok: res.ok,
-              success: j.success,
-              response: j
-            });
-            
-            if (!res.ok || !j.success) {
-              const errorMsg = j.error || 'Send failed';
-              addDebugLog('error', '❌ Template Send Failed', {
-                error: errorMsg,
-                statusCode: res.status,
-                responseBody: j
+            if (!res.ok || j?.success === false) {
+              const errorPayload: any = j?.error ?? j?.errors ?? j;
+              const displayMessage =
+                errorPayload?.displayMessage ||
+                errorPayload?.message ||
+                errorPayload?.error ||
+                'Failed to send message';
+              const errorMsg =
+                errorPayload?.message ||
+                errorPayload?.error ||
+                j?.message ||
+                displayMessage;
+
+              addDebugLog('error', '❌ Live Send API Error', {
+                status: res.status,
+                statusText: res.statusText,
+                errorPayload,
               });
+
+              toast.error(displayMessage, { duration: 6000 });
               throw new Error(errorMsg);
             }
-            
-            addDebugLog('success', '✅ Template Sent Successfully!', {
-              messageId: j.messageId,
-              wabaId: j.wabaId,
-              timestamp: new Date().toISOString()
-            });
-            
-            toast.success('Template sent successfully!');
-            // Refresh messages to show what was sent
-            setTimeout(() => fetchMessages(), 1000);
-          } else {
-            addDebugLog('info', '💬 Sending Regular Text Message', {
-              to,
-              messageText: text,
-              messageLength: text.length
-            });
-            
-            const res = await fetch('/api/whatsapp/send', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to, message: text, saveToDb: true })
-            });
-            const j = await res.json();
-            
-            addDebugLog('info', '📡 Text Message API Response', {
-              status: res.status,
-              ok: res.ok,
-              success: j.success,
-              response: j
-            });
-            
-            if (!res.ok || !j.success) {
-              const errorMsg = j.error || 'Send failed';
-              const errorDetails = j.details || '';
-              const requiresTemplate = j.requiresTemplate || false;
-              const metaErrorCode = j.metaErrorCode;
-              
-              addDebugLog('error', '❌ Text Message Send Failed', {
-                error: errorMsg,
-                details: errorDetails,
-                requiresTemplate,
-                metaErrorCode,
-                statusCode: res.status,
-                responseBody: j
-              });
-              
-              // Show helpful message with error code if available
-              let displayMessage = errorMsg;
-              if (metaErrorCode) {
-                displayMessage = `${errorMsg} (Error ${metaErrorCode})`;
-              }
-              if (errorDetails && errorDetails !== errorMsg) {
-                displayMessage += `\n\n${errorDetails}`;
-              }
-              
-              if (requiresTemplate) {
-                displayMessage += '\n\nPlease use a template message instead.';
-                toast.error(displayMessage, {
-                  duration: 8000,
-                });
-              } else {
-                toast.error(displayMessage, {
-                  duration: 6000,
-                });
-              }
-              
-              throw new Error(errorMsg);
-            }
-            
+
             addDebugLog('success', '✅ Text Message Sent Successfully!', {
               messageId: j.messageId || j.messageSid,
               timestamp: new Date().toISOString()
@@ -1700,6 +1778,57 @@ export default function WhatsAppSettingsPage() {
             toast.success('Message sent');
             // Refresh messages to show what was sent
             setTimeout(() => fetchMessages(), 1000);
+          } else {
+            addDebugLog('info', '💬 Sending Regular Text Message', {
+              to,
+              messageText: text,
+              messageLength: text.length,
+            });
+
+            const res = await fetch('/api/whatsapp/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to, message: text, saveToDb: true }),
+            });
+            const j = await res.json();
+
+            if (!res.ok || j?.success === false) {
+              const errorPayload: any = j?.error ?? j?.errors ?? j;
+              const requiresTemplate = Boolean(errorPayload?.requiresTemplate);
+              const metaErrorCode = errorPayload?.metaErrorCode;
+              const displayMessageBase =
+                errorPayload?.displayMessage ||
+                errorPayload?.message ||
+                errorPayload?.error ||
+                'Failed to send message';
+              const detail = errorPayload?.details;
+              let displayMessage = displayMessageBase;
+              if (metaErrorCode) {
+                displayMessage = `${displayMessageBase} (Error ${metaErrorCode})`;
+              }
+              if (detail && detail !== displayMessageBase) {
+                displayMessage += `\n\n${detail}`;
+              }
+              if (requiresTemplate) {
+                displayMessage += '\n\nPlease use a template message instead.';
+              }
+
+              addDebugLog('error', '❌ Text Message API Error', {
+                status: res.status,
+                statusText: res.statusText,
+                errorPayload,
+              });
+
+              toast.error(displayMessage, { duration: requiresTemplate ? 8000 : 6000 });
+              throw new Error(displayMessageBase);
+            }
+
+            addDebugLog('success', '✅ Text Message Sent Successfully!', {
+              messageId: j.messageId || j.messageSid,
+              timestamp: new Date().toISOString(),
+            });
+
+            toast.success('Message sent');
           }
         } catch (e: any) {
           addDebugLog('error', '❌ Live Send Exception', {
@@ -3300,9 +3429,9 @@ export default function WhatsAppSettingsPage() {
                     return null;
                   })()}
                 </div>
-                {Object.values(templateVariables).some(v => !v) && (
+                {hasMissingRequiredTemplateVars && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    ⚠️ Some variables are empty. Fill all fields to see the complete preview.
+                    ⚠️ Complete the required fields to enable sending.
                   </p>
                 )}
               </div>
@@ -3327,7 +3456,7 @@ export default function WhatsAppSettingsPage() {
                   setShowTemplatePreview(false);
                   setShowTemplatePicker(false);
                 }}
-                disabled={(!activeContact && !phoneNumber) || Object.values(templateVariables).some(v => !v)}
+                disabled={(!activeContact && !phoneNumber) || hasMissingRequiredTemplateVars}
                 className="bg-[#25D366] hover:bg-[#22c15e] text-white"
               >
                 Send Template

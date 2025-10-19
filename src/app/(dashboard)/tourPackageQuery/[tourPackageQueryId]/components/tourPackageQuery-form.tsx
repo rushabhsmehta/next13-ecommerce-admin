@@ -20,7 +20,7 @@ import { RoomAllocationComponent, TransportDetailsComponent } from "@/components
 import { useRouter, useParams } from "next/navigation";
 import { CalendarIcon, Check as CheckIcon, ChevronsUpDown, Trash, FileCheck, ListPlus, Plane, Tag, MapPin, ChevronDown, ChevronUp, Plus, FileText, Users, Calculator, ListChecks, AlertCircle, ScrollText, BuildingIcon, UtensilsIcon, BedDoubleIcon, CarIcon, MapPinIcon, Trash2, PlusCircle, ImageIcon, BedIcon, Type, AlignLeft, Sparkles } from "lucide-react";
 import { Activity, AssociatePartner, Images, ItineraryMaster, RoomAllocation, TransportDetail } from "@prisma/client"
-import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client"; // Add prisma types
+import { Location, Hotel, TourPackage, TourPackageQuery, Itinerary, FlightDetails, ActivityMaster, RoomType, OccupancyType, MealPlan, VehicleType, PackageVariant, VariantHotelMapping, TourPackagePricing, PricingComponent, PricingAttribute, LocationSeasonalPeriod } from "@prisma/client"; // Add prisma types
 import { toast } from "react-hot-toast"
 import { DevTool } from "@hookform/devtools"
 
@@ -164,6 +164,9 @@ const formSchema = z.object({
   selectedTemplateId: z.string().optional(),
   selectedTemplateType: z.string().optional(),
   tourPackageTemplateName: z.string().optional(),
+  selectedTourPackageVariantId: z.string().optional(),
+  selectedTourPackageVariantName: z.string().optional(),
+  numberOfRooms: z.number().optional(),
   // Added fields for storing pricing configuration
   selectedMealPlanId: z.string().optional(),
   occupancySelections: z.array(
@@ -245,6 +248,20 @@ interface TourPackageQueryFormProps {
       activities: (Activity & {
         activityImages: Images[];
       })[] | null;
+    })[] | null;
+    packageVariants?: (PackageVariant & {
+      variantHotelMappings: (VariantHotelMapping & {
+        hotel: Hotel & { images: Images[] };
+        itinerary: Itinerary | null;
+      })[];
+      tourPackagePricings: (TourPackagePricing & {
+        mealPlan: MealPlan | null;
+        vehicleType: VehicleType | null;
+        locationSeasonalPeriod: LocationSeasonalPeriod | null;
+        pricingComponents: (PricingComponent & {
+          pricingAttribute: PricingAttribute | null;
+        })[];
+      })[];
     })[] | null;
   })[] | null;
   tourPackageQueries: (TourPackageQuery & {
@@ -438,7 +455,11 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       tourPackageTemplate: initialData.selectedTemplateType === 'TourPackage' ? (initialData.selectedTemplateId || '') : '',
       tourPackageQueryTemplate: initialData.selectedTemplateType === 'TourPackageQuery' ? (initialData.selectedTemplateId || '') : '',
       selectedMealPlanId: initialData.selectedMealPlanId || '',
-      occupancySelections: initialData.occupancySelections || [],      inclusions: parseJsonField(initialData.inclusions),
+    selectedTourPackageVariantId: (initialData as any).selectedTourPackageVariantId || '',
+    selectedTourPackageVariantName: (initialData as any).selectedTourPackageVariantName || '',
+  numberOfRooms: (initialData as any).numberOfRooms ?? 1,
+    occupancySelections: initialData.occupancySelections || [],
+    inclusions: parseJsonField(initialData.inclusions),
       exclusions: parseJsonField(initialData.exclusions),
       kitchenGroupPolicy: parseJsonField((initialData as any).kitchenGroupPolicy) || KITCHEN_GROUP_POLICY_DEFAULT,
       importantNotes: parseJsonField(initialData.importantNotes),
@@ -491,7 +512,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       selectedTemplateType: '',
       tourPackageTemplateName: '',
       selectedMealPlanId: '',
-      occupancySelections: [],
+  selectedTourPackageVariantId: '',
+  selectedTourPackageVariantName: '',
+  numberOfRooms: 1,
+  occupancySelections: [],
     };  const form = useForm<TourPackageQueryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues
@@ -567,6 +591,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('selectedTemplateType', 'TourPackage');
       form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${selectedTourPackageId.substring(0, 8)}`);
       form.setValue('tourPackageQueryTemplate', ''); // Clear the other template field
+      form.setValue('selectedTourPackageVariantId', '');
+      form.setValue('selectedTourPackageVariantName', '');
 
       // Rest of your existing setValue calls
       form.setValue('tourPackageQueryType', selectedTourPackage.tourPackageType || '');
@@ -604,7 +630,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         transportDetails: (itinerary as any).transportDetails || [],
 
       })) || [];
-      form.setValue('itineraries', transformedItineraries);      form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
+  form.setValue('itineraries', transformedItineraries);
+  form.setValue('flightDetails', (selectedTourPackage.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
         flightNumber: flight.flightNumber || undefined,
@@ -616,6 +643,92 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         images: (flight as any).images || []
       })));
       form.setValue('pricingSection', parsePricingSection(selectedTourPackage.pricingSection) || DEFAULT_PRICING_SECTION);
+
+      const defaultVariant = selectedTourPackage.packageVariants?.find(variantItem => variantItem.isDefault);
+      if (defaultVariant?.id) {
+        handleTourPackageVariantSelection(selectedTourPackageId, defaultVariant.id);
+      }
+    }
+  };
+
+  const handleTourPackageVariantSelection = (tourPackageId: string, selectedVariantId: string) => {
+    const selectedTourPackage = tourPackages?.find(tp => tp.id === tourPackageId);
+    if (!selectedTourPackage) {
+      toast.error('Unable to locate selected tour package.');
+      return;
+    }
+
+    if (!selectedVariantId) {
+      form.setValue('selectedTourPackageVariantId', '');
+      form.setValue('selectedTourPackageVariantName', '');
+      form.setValue('selectedTemplateId', tourPackageId);
+      form.setValue('selectedTemplateType', 'TourPackage');
+      form.setValue('tourPackageTemplateName', selectedTourPackage.tourPackageName || `Package ${tourPackageId.substring(0, 8)}`);
+      return;
+    }
+
+    const variant = selectedTourPackage.packageVariants?.find(variantItem => variantItem.id === selectedVariantId);
+    if (!variant) {
+      toast.error('Variant not found for selected tour package.');
+      return;
+    }
+
+    form.setValue('selectedTourPackageVariantId', selectedVariantId);
+    form.setValue('selectedTourPackageVariantName', variant.name || 'Variant');
+    form.setValue('selectedTemplateId', selectedVariantId);
+    form.setValue('selectedTemplateType', 'TourPackageVariant');
+    form.setValue('tourPackageTemplate', tourPackageId);
+    const combinedTemplateName = [selectedTourPackage.tourPackageName, variant.name].filter(Boolean).join(' - ');
+    if (combinedTemplateName) {
+      form.setValue('tourPackageTemplateName', combinedTemplateName);
+    }
+
+    const hotelDayLookup = new Map<number, string>();
+    variant.variantHotelMappings?.forEach(mapping => {
+      const dayNumber = mapping.itinerary?.dayNumber;
+      if (typeof dayNumber === 'number') {
+        hotelDayLookup.set(dayNumber, mapping.hotelId);
+      }
+    });
+
+    const currentItineraries = form.getValues('itineraries') || [];
+    let appliedHotelCount = 0;
+
+    const updatedItineraries = currentItineraries.map((itinerary: any) => {
+      const rawDay = itinerary?.dayNumber;
+      const dayNumber = typeof rawDay === 'number' ? rawDay : Number(rawDay);
+      if (Number.isFinite(dayNumber) && hotelDayLookup.has(dayNumber)) {
+        const nextHotelId = hotelDayLookup.get(dayNumber) || itinerary.hotelId || '';
+        if (nextHotelId && nextHotelId !== itinerary.hotelId) {
+          appliedHotelCount += 1;
+        }
+        return {
+          ...itinerary,
+          hotelId: nextHotelId,
+        };
+      }
+      return itinerary;
+    });
+
+    form.setValue('itineraries', updatedItineraries);
+
+    if (Array.isArray(variant.tourPackagePricings) && variant.tourPackagePricings.length > 0) {
+      const sortedPricings = [...variant.tourPackagePricings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      const primaryPricing = sortedPricings[0];
+      if (primaryPricing?.mealPlanId) {
+        form.setValue('selectedMealPlanId', primaryPricing.mealPlanId);
+      }
+      if (primaryPricing?.numberOfRooms) {
+        form.setValue('numberOfRooms', primaryPricing.numberOfRooms);
+      }
+    }
+
+    if (appliedHotelCount > 0) {
+      toast.success(`Variant details applied successfully for ${appliedHotelCount} itinerary day${appliedHotelCount === 1 ? '' : 's'}.`);
+    } else if (variant.variantHotelMappings && variant.variantHotelMappings.length > 0) {
+      toast.success('Variant selected. No matching itinerary days were updated. Please verify day numbers match the variant configuration.');
+    } else {
+      toast.success('Variant selected. This variant does not define custom hotel mappings.');
     }
   };
   const handleTourPackageQuerySelection = (selectedTourPackageQueryId: string) => {
@@ -628,6 +741,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
       form.setValue('selectedTemplateId', selectedTourPackageQueryId);
       form.setValue('selectedTemplateType', 'TourPackage');
       form.setValue('tourPackageTemplate', ''); // Clear the other template field
+    form.setValue('selectedTourPackageVariantId', '');
+    form.setValue('selectedTourPackageVariantName', '');
 
       // Copy values from the selected template
       form.setValue('tourPackageQueryType', selectedTourPackageQuery.tourPackageQueryType || '');
@@ -667,7 +782,8 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
         roomAllocations: (itinerary as any).roomAllocations || [],
         transportDetails: (itinerary as any).transportDetails || [],
       })) || [];
-      form.setValue('itineraries', transformedItineraries);      // Set flight details
+  form.setValue('itineraries', transformedItineraries);
+  // Set flight details
       form.setValue('flightDetails', (selectedTourPackageQuery.flightDetails || []).map(flight => ({
         date: flight.date || undefined,
         flightName: flight.flightName || undefined,
@@ -1007,6 +1123,7 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 openQueryTemplate={openQueryTemplate}
                 setOpenQueryTemplate={setOpenQueryTemplate}
                 handleTourPackageSelection={handleTourPackageSelection}
+                handleTourPackageVariantSelection={handleTourPackageVariantSelection}
                 handleTourPackageQuerySelection={handleTourPackageQuerySelection}
                 form={form}
               />
@@ -1077,8 +1194,10 @@ export const TourPackageQueryForm: React.FC<TourPackageQueryFormProps> = ({
                 mealPlans={mealPlans}
                 vehicleTypes={vehicleTypes}
                 priceCalculationResult={priceCalculationResult}
-                setPriceCalculationResult={setPriceCalculationResult} selectedTemplateId={form.watch('selectedTemplateId')}
+                setPriceCalculationResult={setPriceCalculationResult}
+                selectedTemplateId={form.watch('selectedTemplateId')}
                 selectedTemplateType={form.watch('selectedTemplateType')}
+                selectedTourPackageVariantId={form.watch('selectedTourPackageVariantId')}
               />
             </TabsContent>
             <TabsContent value="policies" className="space-y-4 mt-4">

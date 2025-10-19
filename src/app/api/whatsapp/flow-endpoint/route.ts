@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prismadb from '@/lib/prismadb';
 import crypto from 'crypto';
-import { emitWhatsAppEvent, recordAnalyticsEvent, updateWhatsAppSession } from '@/lib/whatsapp';
+import {
+  emitWhatsAppEvent,
+  recordAnalyticsEvent,
+  sendWhatsAppMessage,
+  updateWhatsAppSession,
+} from '@/lib/whatsapp';
 
 const DESTINATION_OPTIONS = [
   {
@@ -770,6 +775,7 @@ async function handleActivities(body: FlowDataExchangeRequest): Promise<FlowResp
 
 async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<FlowResponse> {
   const { sessionId, state } = await loadFlowSession(body.flow_token);
+  const summaryData = buildSummaryData(state);
 
   const bookingId = await persistBooking(body.flow_token, state, sessionId);
 
@@ -791,6 +797,57 @@ async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<Flow
     },
   });
 
+  try {
+    const session = await prismadb.whatsAppSession.findUnique({ where: { id: sessionId } });
+    const destination = session?.phoneNumber || session?.waId;
+    if (destination) {
+      const summaryMessage = [
+        "Thanks for sharing your travel preferences! Here's what we captured:",
+        `- Destination: ${summaryData.destination}`,
+        `- Dates: ${summaryData.dates}`,
+        `- Travelers: ${summaryData.travelers}`,
+        `- Package: ${summaryData.package_type}`,
+        `- Accommodation: ${summaryData.accommodation}`,
+        `- Activities: ${summaryData.activities}`,
+        `- Estimated Total: ${summaryData.total_price}`,
+        `Booking ID: ${bookingId}`,
+        'Our team will get in touch shortly with tailored options.',
+      ].join('\n');
+
+      await sendWhatsAppMessage({
+        to: destination,
+        message: summaryMessage,
+        metadata: {
+          flowToken: body.flow_token,
+          bookingId,
+          flowSummary: summaryData,
+          flowFollowup: true,
+        },
+        sessionHints: {
+          flowToken: body.flow_token,
+          waId: session?.waId ?? undefined,
+          phoneNumber: session?.phoneNumber ?? undefined,
+          contextPatch: {
+            lastSummaryMessageAt: new Date().toISOString(),
+            flowSummary: summaryData,
+            lastBookingId: bookingId,
+          },
+          lastAction: 'flow:summary-message',
+        },
+      });
+
+      await emitWhatsAppEvent('flow.summary.message.sent', {
+        sessionId,
+        context: {
+          flowToken: body.flow_token,
+          bookingId,
+        },
+      });
+    }
+  } catch (messageError) {
+    console.error('Failed to send flow summary follow-up message', messageError);
+  }
+
   return {
     version: body.version,
     screen: 'BOOKING_CONFIRMATION',
@@ -799,6 +856,7 @@ async function handlePackageSummary(body: FlowDataExchangeRequest): Promise<Flow
         booking_id: bookingId,
         status: 'confirmed',
       },
+      summary: summaryData,
     },
   };
 }

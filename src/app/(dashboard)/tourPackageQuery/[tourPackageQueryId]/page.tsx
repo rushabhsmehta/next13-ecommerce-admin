@@ -102,7 +102,44 @@ const tourPackageQueryPage = async ({
             }
           }
         }
-      }
+      },
+      packageVariants: {
+        include: {
+          variantHotelMappings: {
+            include: {
+              hotel: {
+                include: {
+                  images: true,
+                },
+              },
+              itinerary: true,
+            },
+          },
+          tourPackagePricings: {
+            include: {
+              mealPlan: true,
+              vehicleType: true,
+              locationSeasonalPeriod: true,
+              pricingComponents: {
+                include: {
+                  pricingAttribute: true,
+                },
+                orderBy: {
+                  pricingAttribute: {
+                    sortOrder: 'asc',
+                  },
+                },
+              },
+            },
+            orderBy: {
+              startDate: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+      },
     }
   });
 

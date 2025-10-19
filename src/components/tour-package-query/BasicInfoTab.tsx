@@ -4,7 +4,7 @@ import { Control } from "react-hook-form";
 import { FileText, ChevronDown, CheckIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import JoditEditor from "jodit-react";
-import { AssociatePartner, TourPackage, TourPackageQuery } from "@prisma/client";
+import { AssociatePartner, TourPackage, TourPackageQuery, PackageVariant, VariantHotelMapping, Hotel, Itinerary } from "@prisma/client";
 
 import {
   Command,
@@ -38,17 +38,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TourPackageQueryFormValues } from "@/app/(dashboard)/tourPackageQuery/[tourPackageQueryId]/components/tourPackageQuery-form"; // Adjust path if needed
 import { DISCLAIMER_DEFAULT, TOUR_PACKAGE_QUERY_TYPE_DEFAULT, TOUR_CATEGORY_DEFAULT } from "./defaultValues";
 
+type TourPackageWithVariants = TourPackage & {
+  packageVariants?: (PackageVariant & {
+    variantHotelMappings: (VariantHotelMapping & {
+      hotel: Hotel;
+      itinerary: Itinerary | null;
+    })[];
+  })[] | null;
+};
+
 interface BasicInfoProps {
   control: Control<TourPackageQueryFormValues>;
   loading: boolean;
   associatePartners: AssociatePartner[];
-  tourPackages: TourPackage[] | null;
+  tourPackages: TourPackageWithVariants[] | null;
   tourPackageQueries: TourPackageQuery[] | null;
   openTemplate: boolean;
   setOpenTemplate: (open: boolean) => void;
   openQueryTemplate: boolean;
   setOpenQueryTemplate: (open: boolean) => void;
   handleTourPackageSelection: (id: string) => void;
+  handleTourPackageVariantSelection?: (tourPackageId: string, variantId: string) => void;
   handleTourPackageQuerySelection: (id: string) => void;
   form: any; // Use a more specific type if available
 }
@@ -64,10 +74,16 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
   openQueryTemplate,
   setOpenQueryTemplate,
   handleTourPackageSelection,
+  handleTourPackageVariantSelection,
   handleTourPackageQuerySelection,
   form
 }) => {
   const editor = useRef(null);
+  const [openVariantPopover, setOpenVariantPopover] = useState(false);
+  const selectedTourPackageId = form.watch('tourPackageTemplate');
+  const selectedVariantId = form.watch('selectedTourPackageVariantId');
+  const selectedTourPackage = tourPackages?.find(tp => tp.id === selectedTourPackageId);
+  const availableVariants = selectedTourPackage?.packageVariants || [];
 
   return (
     <Card>
@@ -139,6 +155,96 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
             </FormItem>
           )}
         />
+
+        {handleTourPackageVariantSelection && (
+          <FormField
+            control={control}
+            name="selectedTourPackageVariantId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Load Variant Specific Details</FormLabel>
+                <Popover open={openVariantPopover} onOpenChange={setOpenVariantPopover}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          (!field.value || field.value.length === 0) && "text-muted-foreground"
+                        )}
+                        disabled={!selectedTourPackageId || availableVariants.length === 0}
+                      >
+                        {!selectedTourPackageId
+                          ? "Select a tour package first"
+                          : availableVariants.length === 0
+                            ? "No variants configured for this package"
+                            : selectedVariantId
+                              ? availableVariants.find(variant => variant.id === selectedVariantId)?.name || "Variant selected"
+                              : "Select Tour Package Variant"
+                        }
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search tour package variant..." />
+                      <CommandEmpty>No variant found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__clear_variant__"
+                          onSelect={() => {
+                            if (handleTourPackageVariantSelection && selectedTourPackageId) {
+                              handleTourPackageVariantSelection(selectedTourPackageId, '');
+                            }
+                            setOpenVariantPopover(false);
+                          }}
+                        >
+                          <CheckIcon
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !field.value ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Clear Variant Selection
+                        </CommandItem>
+                        {availableVariants.map((variant) => (
+                          <CommandItem
+                            value={variant.name ?? ''}
+                            key={variant.id}
+                            onSelect={() => {
+                              if (handleTourPackageVariantSelection && selectedTourPackageId) {
+                                handleTourPackageVariantSelection(selectedTourPackageId, variant.id);
+                              }
+                              setOpenVariantPopover(false);
+                            }}
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                variant.id === field.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {variant.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormDescription>
+                  {selectedTourPackageId
+                    ? availableVariants.length === 0
+                      ? "This tour package has no variants defined."
+                      : "Select a variant to copy its hotel assignments and seasonal pricing preferences."
+                    : "Choose a tour package first to enable variant selection."}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={control}

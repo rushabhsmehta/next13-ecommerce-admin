@@ -1403,6 +1403,7 @@ model WhatsAppTemplate {
   body      String   @db.Text
   components Json?
   variables Json?
+  flowDefaults Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

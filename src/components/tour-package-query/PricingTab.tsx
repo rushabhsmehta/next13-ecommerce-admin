@@ -52,6 +52,7 @@ interface PricingTabProps {
   setPriceCalculationResult: (result: any) => void;
   selectedTemplateId?: string; // New prop for the selected template ID
   selectedTemplateType?: string; // New prop for the selected template type
+  selectedTourPackageVariantId?: string;
 }
 
 // Define calculation methods
@@ -74,12 +75,17 @@ const PricingTab: React.FC<PricingTabProps> = ({
   priceCalculationResult,
   setPriceCalculationResult,
   selectedTemplateId,
-  selectedTemplateType
+  selectedTemplateType,
+  selectedTourPackageVariantId
 }) => {
   // State for selected calculation method
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(
-    selectedTemplateId && selectedTemplateType === 'TourPackage' ? 'autoTourPackage' : 'manual'
-  );  // State for Tour Package Pricing selection criteria
+    selectedTemplateId && (selectedTemplateType === 'TourPackage' || selectedTemplateType === 'TourPackageVariant')
+      ? 'autoTourPackage'
+      : 'manual'
+  );
+  const isTourPackageTemplate = selectedTemplateType === 'TourPackage' || selectedTemplateType === 'TourPackageVariant';
+  // State for Tour Package Pricing selection criteria
   const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);  // State for number of rooms
   const [numberOfRooms, setNumberOfRooms] = useState<number>(1);
   // State for tour package details
@@ -95,38 +101,49 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // State to track initial load to prevent loops
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);// Fetch tour package details when selectedTemplateId changes
   useEffect(() => {
-    if (selectedTemplateId && selectedTemplateType === 'TourPackage') {
-      // Try to get tour package name from form first
-      const nameFromForm = form.getValues('tourPackageTemplateName');
-      
-      if (nameFromForm) {
-        setTourPackageName(nameFromForm);
-        return; // Don't fetch if we already have the name
-      }
-            
-      // Otherwise, get the name from the API
-      setIsFetchingPackage(true);
-      
-      axios.get(`/api/tourPackages/${selectedTemplateId}`)
-        .then(response => {
-          const packageData = response.data;
-          if (packageData) {
-            const packageName = packageData.name || packageData.tourPackageName || `Package ${selectedTemplateId.substring(0, 8)}...`;
-            setTourPackageName(packageName);
-            // Save to form for future use
-            form.setValue('tourPackageTemplateName', packageName);
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching tour package details:", error);
-          setTourPackageName(`Package ${selectedTemplateId.substring(0, 8)}...`);
-        })
-        .finally(() => {
-          setIsFetchingPackage(false);
-        });
-    } else {
+    if (!selectedTemplateId || !selectedTemplateType) {
       setTourPackageName("");
+      return;
     }
+
+    const nameFromForm = form.getValues('tourPackageTemplateName');
+    if (nameFromForm) {
+      setTourPackageName(nameFromForm);
+      return;
+    }
+
+    if (selectedTemplateType !== 'TourPackage' && selectedTemplateType !== 'TourPackageVariant') {
+      setTourPackageName("");
+      return;
+    }
+
+    const baseTourPackageId = selectedTemplateType === 'TourPackageVariant'
+      ? form.getValues('tourPackageTemplate') || ''
+      : selectedTemplateId;
+
+    if (!baseTourPackageId) {
+      setTourPackageName("");
+      return;
+    }
+
+    setIsFetchingPackage(true);
+
+    axios.get(`/api/tourPackages/${baseTourPackageId}`)
+      .then(response => {
+        const packageData = response.data;
+        if (packageData) {
+          const packageName = packageData.name || packageData.tourPackageName || `Package ${baseTourPackageId.substring(0, 8)}...`;
+          setTourPackageName(packageName);
+          form.setValue('tourPackageTemplateName', packageName);
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching tour package details:", error);
+        setTourPackageName(`Package ${baseTourPackageId.substring(0, 8)}...`);
+      })
+      .finally(() => {
+        setIsFetchingPackage(false);
+      });
   }, [selectedTemplateId, selectedTemplateType, form]);  // Load and handle saved meal plan and room configuration
   useEffect(() => {
     // Try to restore any saved meal plan and room configuration
@@ -231,16 +248,23 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
   // Function to handle fetching available pricing components without applying them
   const handleFetchAvailablePricingComponents = async () => {
-    const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
-    if (!tourPackageTemplateId) {
+    const baseTourPackageId = selectedTemplateType === 'TourPackageVariant'
+      ? form.getValues('tourPackageTemplate') || ''
+      : (selectedTemplateId || form.getValues('tourPackageTemplate'));
+
+    if (!baseTourPackageId) {
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
     }
 
-    if (selectedTemplateType !== 'TourPackage') {
-      toast.error("Auto calculation of pricing is only available for Tour Package templates.");
+    if (!isTourPackageTemplate) {
+      toast.error("Auto calculation of pricing is only available for Tour Package templates or variants.");
       return;
     }
+
+    const resolvedVariantId = selectedTourPackageVariantId
+      || form.getValues('selectedTourPackageVariantId')
+      || (selectedTemplateType === 'TourPackageVariant' ? selectedTemplateId : '');
 
     if (!selectedMealPlanId) {
       toast.error("Please select a Meal Plan for Tour Package Pricing.");
@@ -261,7 +285,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
     toast.loading("Fetching available pricing components...");
     try {
-      const response = await axios.get(`/api/tourPackages/${tourPackageTemplateId}/pricing`);
+      const queryParams = new URLSearchParams();
+      if (resolvedVariantId) {
+        queryParams.append('packageVariantId', resolvedVariantId);
+        queryParams.append('includeGlobal', '1');
+      }
+      const requestUrl = queryParams.toString()
+        ? `/api/tourPackages/${baseTourPackageId}/pricing?${queryParams.toString()}`
+        : `/api/tourPackages/${baseTourPackageId}/pricing`;
+      const response = await axios.get(requestUrl);
       const tourPackagePricings = response.data;
       toast.dismiss();
 
@@ -403,17 +435,24 @@ const PricingTab: React.FC<PricingTabProps> = ({
   // Function to handle fetching and applying Tour Package Pricing (Legacy - kept for backward compatibility)
   const handleFetchTourPackagePricing = async () => {
     // First check if we have a selected template id from props
-    const tourPackageTemplateId = selectedTemplateId || form.getValues('tourPackageTemplate');
-    if (!tourPackageTemplateId) {
+    const baseTourPackageId = selectedTemplateType === 'TourPackageVariant'
+      ? form.getValues('tourPackageTemplate') || ''
+      : (selectedTemplateId || form.getValues('tourPackageTemplate'));
+
+    if (!baseTourPackageId) {
       toast.error("Please select a Tour Package Template first in the Basic Info tab.");
       return;
     }
 
     // Check if the selectedTemplateType is 'TourPackage'
-    if (selectedTemplateType !== 'TourPackage') {
-      toast.error("Auto calculation of pricing is only available for Tour Package templates.");
+    if (!isTourPackageTemplate) {
+      toast.error("Auto calculation of pricing is only available for Tour Package templates or variants.");
       return;
     }
+
+    const resolvedVariantId = selectedTourPackageVariantId
+      || form.getValues('selectedTourPackageVariantId')
+      || (selectedTemplateType === 'TourPackageVariant' ? selectedTemplateId : '');
 
     // Check required fields for new model
     if (!selectedMealPlanId) {
@@ -435,7 +474,15 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
     toast.loading("Fetching and matching tour package pricing...");
     try {
-      const response = await axios.get(`/api/tourPackages/${tourPackageTemplateId}/pricing`);
+      const queryParams = new URLSearchParams();
+      if (resolvedVariantId) {
+        queryParams.append('packageVariantId', resolvedVariantId);
+        queryParams.append('includeGlobal', '1');
+      }
+      const requestUrl = queryParams.toString()
+        ? `/api/tourPackages/${baseTourPackageId}/pricing?${queryParams.toString()}`
+        : `/api/tourPackages/${baseTourPackageId}/pricing`;
+      const response = await axios.get(requestUrl);
       const tourPackagePricings = response.data;
       toast.dismiss();
 
@@ -535,23 +582,29 @@ const PricingTab: React.FC<PricingTabProps> = ({
 
   // Reset calculation method when selectedTemplateType changes
   useEffect(() => {
-    if (selectedTemplateType !== 'TourPackage') {
+    if (!isTourPackageTemplate) {
       setCalculationMethod('manual');
     }
-  }, [selectedTemplateType]);
+  }, [selectedTemplateType, isTourPackageTemplate]);
 
   // Handle template type change - reset to manual calculation if not a Tour Package
   useEffect(() => {
-    if (selectedTemplateType !== 'TourPackage' && calculationMethod === 'autoTourPackage') {
+    if (!isTourPackageTemplate && calculationMethod === 'autoTourPackage') {
       setCalculationMethod('manual');
       toast.error("Auto calculation is only available for Tour Packages. Switched to manual pricing.");
     }
-  }, [selectedTemplateType, calculationMethod]);
+  }, [selectedTemplateType, calculationMethod, isTourPackageTemplate]);
 
   // Fetch tour package name when selectedTemplateId changes
   useEffect(() => {
-    fetchTourPackageName(selectedTemplateId || "");
-  }, [selectedTemplateId, fetchTourPackageName]);  // When meal plan and room configuration change, save them to the form
+    const baseTourPackageId = selectedTemplateType === 'TourPackageVariant'
+      ? form.getValues('tourPackageTemplate') || ''
+      : selectedTemplateId || '';
+
+    if (baseTourPackageId) {
+      fetchTourPackageName(baseTourPackageId);
+    }
+  }, [selectedTemplateId, selectedTemplateType, fetchTourPackageName, form]);  // When meal plan and room configuration change, save them to the form
   useEffect(() => {
     if (selectedMealPlanId) {
       const currentFormValue = form.getValues('selectedMealPlanId');
@@ -626,16 +679,16 @@ const PricingTab: React.FC<PricingTabProps> = ({
               <RadioGroupItem 
                 value="autoTourPackage" 
                 id="autoTourPackage"
-                disabled={!selectedTemplateId || selectedTemplateType !== 'TourPackage'} 
+                disabled={!selectedTemplateId || !isTourPackageTemplate} 
                 className="text-purple-600" 
               />
               <div className="flex-1">
-                <label htmlFor="autoTourPackage" className={`text-sm font-medium cursor-pointer flex items-center ${(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? 'text-slate-400' : 'text-slate-700'}`}>
+                <label htmlFor="autoTourPackage" className={`text-sm font-medium cursor-pointer flex items-center ${(!selectedTemplateId || !isTourPackageTemplate) ? 'text-slate-400' : 'text-slate-700'}`}>
                   <Package className="mr-2 h-4 w-4 text-purple-600" />
                   📦 Use Tour Package Pricing
                 </label>
                 <p className="text-xs text-slate-500 mt-1">Use pre-defined pricing from selected tour package template</p>
-                {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') && (
+                {(!selectedTemplateId || !isTourPackageTemplate) && (
                   <p className="text-xs text-amber-500 mt-1">
                     {!selectedTemplateId ? "Select a tour package first" : "Only for Tour Package templates"}
                   </p>
@@ -1034,7 +1087,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
               <h3 className="text-lg font-semibold text-purple-800">📦 Tour Package Pricing</h3>
             </div>
             
-            {(!selectedTemplateId || selectedTemplateType !== 'TourPackage') ? (
+            {(!selectedTemplateId || !isTourPackageTemplate) ? (
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-800 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center">
                   <AlertCircle className="mr-2 h-5 w-5 text-amber-600" />
@@ -1042,7 +1095,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     {!selectedTemplateId ? (
                       "🔧 Please select a Tour Package template first in the Basic Info tab."
                     ) : (
-                      "⚠️ Auto calculation of pricing is only available for Tour Package templates."
+                      "⚠️ Auto calculation of pricing is only available for Tour Package templates or their variants."
                     )}
                   </p>
                 </div>
@@ -1213,7 +1266,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                   type="button"
                   onClick={handleFetchAvailablePricingComponents}
                   className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white border-purple-600 shadow-md mb-4"
-                  disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
+                  disabled={loading || !selectedTemplateId || !isTourPackageTemplate || !selectedMealPlanId || numberOfRooms <= 0}
                 >
                   <Calculator className="mr-2 h-4 w-4" />
                   🔍 Fetch Available Pricing Components
@@ -1428,7 +1481,7 @@ const PricingTab: React.FC<PricingTabProps> = ({
                     onClick={handleFetchTourPackagePricing}
                     variant="outline"
                     className="w-full bg-gray-500 hover:bg-gray-600 text-white border-gray-600"
-                    disabled={loading || !selectedTemplateId || selectedTemplateType !== 'TourPackage' || !selectedMealPlanId || numberOfRooms <= 0}
+                    disabled={loading || !selectedTemplateId || !isTourPackageTemplate || !selectedMealPlanId || numberOfRooms <= 0}
                   >
                     <Calculator className="mr-2 h-4 w-4" />
                     Fetch & Apply All Components (Legacy)

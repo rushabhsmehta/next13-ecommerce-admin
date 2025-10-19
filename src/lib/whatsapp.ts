@@ -1025,13 +1025,16 @@ export async function sendWhatsAppMessage(
   const destination = normalizeE164(params.to);
   let session: WhatsAppSession | null = null;
   let payload: GraphMessagePayload | null = null;
+  const sessionHints: SessionUpdateInput = {
+    ...(params.sessionHints || {}),
+    phoneNumber: destination,
+    waId: params.waId || params.sessionHints?.waId,
+  };
 
   try {
     payload = buildMessagePayload({ ...params, destination });
     session = await ensureSession({
-      ...(params.sessionHints || {}),
-      phoneNumber: destination,
-      waId: params.waId || params.sessionHints?.waId,
+      ...sessionHints,
       lastAction: 'message.prepare',
     });
 
@@ -1125,13 +1128,7 @@ export async function sendWhatsAppMessage(
     let dbRecord: WhatsAppMessage | undefined;
     if (params.saveToDb !== false) {
       try {
-        const fallbackSession =
-          session ??
-          (await ensureSession({
-            ...(params.sessionHints || {}),
-            phoneNumber: destination,
-            waId: params.waId,
-          }));
+  const fallbackSession = session ?? (await ensureSession({ ...sessionHints }));
         dbRecord = await persistOutboundMessage({
           to: destination,
           message:
@@ -1327,6 +1324,9 @@ export async function sendWhatsAppTemplate(
     return typeof raw === 'string' ? raw.toUpperCase() : '';
   };
 
+  const flowDefaultsIndexMap = new Map<number, Record<string, any>>();
+  const flowDefaultsTextMap = new Map<string, Record<string, any>>();
+
   const ensureActionPayload = (button: any, templateButton?: any) => {
     if (!button) {
       return;
@@ -1339,9 +1339,10 @@ export async function sendWhatsAppTemplate(
       button.parameters = [];
     }
 
-    let actionParam = button.parameters.find(
-      (param: any) => typeof param?.type === 'string' && param.type.toUpperCase() === 'ACTION'
-    );
+    let actionParam = button.parameters.find((param: any) => {
+      const paramType = (param?.type || param?.TYPE || '').toString().toUpperCase();
+      return paramType === 'ACTION';
+    });
 
     if (!actionParam) {
       actionParam = { type: 'ACTION', action: {} };
@@ -1354,15 +1355,168 @@ export async function sendWhatsAppTemplate(
         : {};
 
     const templateHints = templateButton && typeof templateButton === 'object' ? templateButton : {};
+    const templateActionParam = Array.isArray(templateHints.parameters)
+      ? templateHints.parameters.find((param: any) => {
+          const paramType = (param?.type || param?.TYPE || '').toString().toUpperCase();
+          return paramType === 'ACTION';
+        })
+      : undefined;
+    const templateActionPayload = templateActionParam && typeof templateActionParam === 'object'
+      ? templateActionParam.action || templateActionParam.ACTION || templateActionParam.payload || {}
+      : {};
+
+    const storedDefault = (() => {
+      const candidates: Array<any> = [];
+      const buttonIndex = typeof button?.index === 'number' ? button.index : undefined;
+      const templateIndex = typeof templateHints?.index === 'number' ? templateHints.index : undefined;
+      const templateButtonIndex = typeof templateHints?.button_index === 'number' ? templateHints.button_index : undefined;
+      const textHints = [button?.text, templateHints?.text, templateHints?.title];
+
+      if (typeof buttonIndex === 'number') {
+        const match = flowDefaultsIndexMap.get(buttonIndex);
+        if (match) candidates.push(match);
+      }
+      if (typeof templateIndex === 'number') {
+        const match = flowDefaultsIndexMap.get(templateIndex);
+        if (match) candidates.push(match);
+      }
+      if (typeof templateButtonIndex === 'number') {
+        const match = flowDefaultsIndexMap.get(templateButtonIndex);
+        if (match) candidates.push(match);
+      }
+      textHints.forEach((textCandidate) => {
+        if (typeof textCandidate === 'string' && textCandidate.trim()) {
+          const match = flowDefaultsTextMap.get(textCandidate.trim());
+          if (match) candidates.push(match);
+        }
+      });
+
+      return candidates.find((candidate) => candidate && typeof candidate === 'object');
+    })();
+
+    const hintSources: Array<Record<string, any>> = [];
+    if (Object.keys(templateHints).length) {
+      hintSources.push(templateHints);
+    }
+    if (templateActionPayload && typeof templateActionPayload === 'object') {
+      hintSources.push(templateActionPayload as Record<string, any>);
+    }
+    if (storedDefault && typeof storedDefault === 'object') {
+      hintSources.push(storedDefault as Record<string, any>);
+      if (storedDefault.action && typeof storedDefault.action === 'object') {
+        hintSources.push(storedDefault.action as Record<string, any>);
+      }
+    }
+
+    const readHint = (...keys: string[]) => {
+      for (const source of hintSources) {
+        for (const key of keys) {
+          if (!Object.prototype.hasOwnProperty.call(source, key)) {
+            continue;
+          }
+          const value = source[key];
+          if (value !== undefined && value !== null && value !== '') {
+            return value;
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const assignFromHints = (
+      targetKey: string,
+      keys: string[],
+      transform?: (value: any) => any
+    ) => {
+      if (actionPayload[targetKey] !== undefined && actionPayload[targetKey] !== null && actionPayload[targetKey] !== '') {
+        return;
+      }
+      const hint = readHint(...keys);
+      if (hint === undefined) {
+        return;
+      }
+      try {
+        actionPayload[targetKey] = transform ? transform(hint) : hint;
+      } catch {
+        actionPayload[targetKey] = hint;
+      }
+    };
+
+    const parseActionData = (value: any) => {
+      if (value === undefined || value === null || value === '') {
+        return value;
+      }
+      if (typeof value === 'string') {
+        try {
+          return JSON.parse(value);
+        } catch {
+          return value;
+        }
+      }
+      return value;
+    };
 
     if (!actionPayload.flow_token) {
-      const hintedToken =
-        templateHints.flow_token ||
-        templateHints.flowToken ||
-        templateHints.default_flow_token ||
-        templateHints.defaultFlowToken;
+      const hintedToken = readHint(
+        'flow_token',
+        'flowToken',
+        'default_flow_token',
+        'defaultFlowToken'
+      );
       actionPayload.flow_token =
         hintedToken || `auto_flow_token_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+  assignFromHints('flow_id', ['flow_id', 'flowId']);
+  assignFromHints('flow_cta', ['flow_cta', 'flowCta']);
+  assignFromHints('flow_action', ['flow_action', 'flowAction']);
+  assignFromHints('flow_name', ['flow_name', 'flowName']);
+  assignFromHints('flow_redirect_url', ['flow_redirect_url', 'flowRedirectUrl']);
+  assignFromHints('flow_action_data', ['flow_action_data', 'flowActionData'], parseActionData);
+  assignFromHints('flow_action_payload', ['flow_action_payload', 'flowActionPayload'], parseActionData);
+
+    const navigateScreen = readHint('navigate_screen', 'navigateScreen');
+    if (navigateScreen) {
+      const existingData = actionPayload.flow_action_data && typeof actionPayload.flow_action_data === 'object'
+        ? { ...actionPayload.flow_action_data }
+        : {};
+      if (!('screen' in existingData)) {
+        existingData.screen = navigateScreen;
+      }
+      actionPayload.flow_action_data = existingData;
+    }
+
+    if (actionPayload.flow_action_data && !actionPayload.flow_action_payload) {
+      actionPayload.flow_action_payload = actionPayload.flow_action_data;
+    }
+
+    delete actionPayload.flow_action_data;
+    delete actionPayload.flow_action_payload;
+    delete actionPayload.flow_id;
+    delete actionPayload.flow_action;
+    delete actionPayload.flow_message_version;
+    delete actionPayload.flow_cta;
+  delete actionPayload.flow_name;
+    delete actionPayload.flow_redirect_url;
+    delete actionPayload.flow_token_label;
+
+    if (!button.text) {
+      const textHint = readHint('text', 'title', 'label');
+      if (typeof textHint === 'string' && textHint.trim()) {
+        button.text = textHint;
+      }
+    }
+
+    if (typeof button.index !== 'number') {
+      const templateIndex =
+        typeof templateHints.index === 'number'
+          ? templateHints.index
+          : typeof templateHints.button_index === 'number'
+          ? templateHints.button_index
+          : undefined;
+      if (typeof templateIndex === 'number') {
+        button.index = templateIndex;
+      }
     }
 
     actionParam.action = actionPayload;
@@ -1372,13 +1526,14 @@ export async function sendWhatsAppTemplate(
     | {
         id: string;
         components: Prisma.JsonValue | null;
+        flowDefaults: Prisma.JsonValue | null;
       }
     | null = null;
 
   try {
     storedTemplate = await prisma.whatsAppTemplate.findUnique({
       where: { name: params.templateName },
-      select: { id: true, components: true },
+      select: { id: true, components: true, flowDefaults: true },
     });
   } catch (lookupError) {
     console.warn('[WhatsApp] Failed to load stored template metadata:', lookupError);
@@ -1408,6 +1563,43 @@ export async function sendWhatsAppTemplate(
   const existingFlowButtons = effectiveButtonParams.filter(
     (button) => normalizeSubType(button) === 'FLOW'
   );
+
+  const storedFlowDefaultsRaw = storedTemplate?.flowDefaults;
+  const storedFlowDefaults = (() => {
+    if (!storedFlowDefaultsRaw) {
+      return [] as Array<Record<string, any>>;
+    }
+    if (Array.isArray(storedFlowDefaultsRaw)) {
+      return storedFlowDefaultsRaw as Array<Record<string, any>>;
+    }
+    if (typeof storedFlowDefaultsRaw === 'string') {
+      try {
+        const parsed = JSON.parse(storedFlowDefaultsRaw);
+        if (Array.isArray(parsed)) {
+          return parsed as Array<Record<string, any>>;
+        }
+      } catch (parseError) {
+        console.warn('[WhatsApp] Failed to parse stored flow defaults JSON:', parseError);
+      }
+    }
+    return [] as Array<Record<string, any>>;
+  })();
+
+  storedFlowDefaults.forEach((entry: Record<string, any>) => {
+    if (!entry || typeof entry !== 'object') {
+      return;
+    }
+
+    const idx = Number((entry as any).index);
+    if (!Number.isNaN(idx)) {
+      flowDefaultsIndexMap.set(idx, entry);
+    }
+
+    const text = (entry as any).text;
+    if (typeof text === 'string' && text.trim()) {
+      flowDefaultsTextMap.set(text.trim(), entry);
+    }
+  });
 
   const storedFlowButtons =
     storedComponents?.flatMap((component: any) => {
@@ -1473,6 +1665,162 @@ export async function sendWhatsAppTemplate(
     });
   }
 
+  const sanitizeFlowDefaults = (buttons: Array<any>) => {
+    const sanitized: Array<Record<string, any>> = [];
+
+    buttons.forEach((button) => {
+      if (normalizeSubType(button) !== 'FLOW') {
+        return;
+      }
+
+      const actionParam = Array.isArray(button.parameters)
+        ? button.parameters.find((param: any) => {
+            const paramType = (param?.type || param?.TYPE || '').toString().toUpperCase();
+            return paramType === 'ACTION';
+          })
+        : undefined;
+
+      const actionPayload = actionParam && typeof actionParam === 'object' ? actionParam.action : undefined;
+      if (!actionPayload || typeof actionPayload !== 'object') {
+        return;
+      }
+
+      const sanitizedAction: Record<string, any> = {};
+      Object.entries(actionPayload).forEach(([key, value]) => {
+        if (key === 'flow_token') {
+          return;
+        }
+        if (value === undefined || value === null || value === '') {
+          return;
+        }
+        sanitizedAction[key] = value;
+      });
+
+      const hasActionData = Object.keys(sanitizedAction).length > 0;
+      const meta: Record<string, any> = {
+        index: typeof button.index === 'number' ? button.index : undefined,
+        text: button.text,
+        action: hasActionData ? sanitizedAction : undefined,
+      };
+
+      if (typeof button.index !== 'number') {
+        delete meta.index;
+      }
+      if (!button.text) {
+        delete meta.text;
+      }
+      if (!hasActionData) {
+        delete meta.action;
+      }
+
+      if (meta.index === undefined && !meta.text && !hasActionData) {
+        return;
+      }
+
+      sanitized.push(meta);
+    });
+
+    return sanitized;
+  };
+
+  const persistFlowDefaults = async (buttons: Array<any>) => {
+    if (!storedTemplate?.id) {
+      return;
+    }
+
+    const sanitized = sanitizeFlowDefaults(buttons);
+    if (!sanitized.length) {
+      return;
+    }
+
+    const existingSerialized = JSON.stringify(storedFlowDefaults);
+    const newSerialized = JSON.stringify(sanitized);
+    if (existingSerialized === newSerialized) {
+      return;
+    }
+
+    try {
+      await prisma.whatsAppTemplate.update({
+        where: { id: storedTemplate.id },
+        data: {
+          flowDefaults: sanitized as Prisma.InputJsonValue,
+        },
+      });
+    } catch (persistError) {
+      console.warn('[WhatsApp] Failed to persist flow defaults', {
+        templateName: params.templateName,
+        error: persistError instanceof Error ? persistError.message : persistError,
+      });
+    }
+  };
+
+  await persistFlowDefaults(effectiveButtonParams);
+
+  const sanitizedFlowDefaultsSnapshot = sanitizeFlowDefaults(effectiveButtonParams);
+  const flowDefaultsLookup = new Map<string, Record<string, any>>();
+  sanitizedFlowDefaultsSnapshot.forEach((entry) => {
+    const cloned = JSON.parse(JSON.stringify(entry));
+    if (typeof entry.index === 'number') {
+      flowDefaultsLookup.set(`index:${entry.index}`, cloned);
+    }
+    if (typeof entry.text === 'string' && entry.text.trim()) {
+      flowDefaultsLookup.set(`text:${entry.text.trim()}`, cloned);
+    }
+  });
+
+  const flowButtonDetails: Array<Record<string, any>> = [];
+  effectiveButtonParams.forEach((button) => {
+    if (normalizeSubType(button) !== 'FLOW') {
+      return;
+    }
+
+    const actionParam = Array.isArray(button.parameters)
+      ? button.parameters.find((param: any) => {
+          const paramType = (param?.type || param?.TYPE || '').toString().toUpperCase();
+          return paramType === 'ACTION';
+        })
+      : undefined;
+
+    const actionPayload = actionParam && typeof actionParam === 'object' ? actionParam.action : undefined;
+    const flowTokenRaw = actionPayload && typeof actionPayload === 'object' ? actionPayload.flow_token : undefined;
+    const flowToken = typeof flowTokenRaw === 'string' ? flowTokenRaw.trim() : '';
+    if (!flowToken) {
+      return;
+    }
+
+    const detail: Record<string, any> = { token: flowToken };
+    if (typeof button.index === 'number') {
+      detail.index = button.index;
+    }
+    if (typeof button.text === 'string' && button.text.trim()) {
+      detail.text = button.text.trim();
+    }
+
+    let defaultsMatch: Record<string, any> | undefined;
+    if (typeof button.index === 'number') {
+      defaultsMatch = flowDefaultsLookup.get(`index:${button.index}`);
+    }
+    if (!defaultsMatch && typeof button.text === 'string' && button.text.trim()) {
+      defaultsMatch = flowDefaultsLookup.get(`text:${button.text.trim()}`);
+    }
+    if (defaultsMatch) {
+      detail.defaults = defaultsMatch;
+    }
+
+    flowButtonDetails.push(detail);
+  });
+
+  const flowTokens = flowButtonDetails.map((detail) => detail.token);
+  const uniqueFlowTokens = Array.from(new Set(flowTokens));
+  const flowAssignmentTimestamp = uniqueFlowTokens.length ? new Date().toISOString() : undefined;
+  if (flowAssignmentTimestamp) {
+    flowButtonDetails.forEach((detail) => {
+      if (!detail.assignedAt) {
+        detail.assignedAt = flowAssignmentTimestamp;
+      }
+    });
+  }
+
   console.log('[WhatsApp] sendWhatsAppTemplate called with params:', {
     to: params.to,
     templateName: params.templateName,
@@ -1482,6 +1830,7 @@ export async function sendWhatsAppTemplate(
     headerParams: params.headerParams,
     hasComponents: !!params.components,
     componentsLength: params.components?.length,
+    flowTokens: uniqueFlowTokens,
   });
 
   const destination = normalizeE164(params.to);
@@ -1520,11 +1869,6 @@ export async function sendWhatsAppTemplate(
   };
 
   console.log('[WhatsApp] Final payload to send:', JSON.stringify(payload, null, 2));
-
-  const session = await ensureSession({
-    ...(params.sessionHints || {}),
-    phoneNumber: destination,
-  });
 
   const scheduleDate = parseDateInput(params.scheduleFor);
   
@@ -1574,15 +1918,80 @@ export async function sendWhatsAppTemplate(
       enriched.headerParams = params.headerParams;
     }
 
+    if (uniqueFlowTokens.length) {
+      if (!enriched.flowTokens) {
+        enriched.flowTokens = uniqueFlowTokens;
+      }
+      const latestFlowToken = uniqueFlowTokens[uniqueFlowTokens.length - 1];
+      enriched.latestFlowToken = latestFlowToken;
+      if (flowAssignmentTimestamp) {
+        enriched.flowAssignedAt = flowAssignmentTimestamp;
+      }
+      if (!enriched.flowButtons && flowButtonDetails.length) {
+        enriched.flowButtons = JSON.parse(JSON.stringify(flowButtonDetails));
+      }
+      if (!enriched.flowDefaults && sanitizedFlowDefaultsSnapshot.length) {
+        enriched.flowDefaults = JSON.parse(JSON.stringify(sanitizedFlowDefaultsSnapshot));
+      }
+      if (!enriched.flowTemplateName) {
+        enriched.flowTemplateName = params.templateName;
+      }
+    }
+
     return enriched;
   })();
   
+  const sessionHints: SessionUpdateInput & { contextPatch?: Record<string, any> } = {
+    ...(params.sessionHints || {}),
+  };
+
+  const baseContextPatch =
+    params.sessionHints?.contextPatch && typeof params.sessionHints.contextPatch === 'object'
+      ? { ...params.sessionHints.contextPatch }
+      : undefined;
+
+  if (baseContextPatch) {
+    sessionHints.contextPatch = baseContextPatch;
+  }
+
+  sessionHints.phoneNumber = destination;
+
+  if (uniqueFlowTokens.length) {
+    const existingTokens = Array.isArray((sessionHints.contextPatch as any)?.flowTokens)
+      ? (sessionHints.contextPatch as any).flowTokens.filter((value: any) => typeof value === 'string')
+      : [];
+    const mergedTokens = Array.from(new Set([...existingTokens, ...uniqueFlowTokens]));
+    const latestFlowToken = mergedTokens[mergedTokens.length - 1];
+    const nextContextPatch: Record<string, any> = {
+      ...(sessionHints.contextPatch || {}),
+      flowTokens: mergedTokens,
+      lastFlowToken: latestFlowToken,
+      lastFlowTemplateName: params.templateName,
+    };
+    if (flowAssignmentTimestamp) {
+      nextContextPatch.lastFlowAssignedAt = flowAssignmentTimestamp;
+    }
+    if (sanitizedFlowDefaultsSnapshot.length) {
+      nextContextPatch.flowDefaults = JSON.parse(JSON.stringify(sanitizedFlowDefaultsSnapshot));
+    }
+    if (flowButtonDetails.length) {
+      nextContextPatch.flowButtons = JSON.parse(JSON.stringify(flowButtonDetails));
+    }
+    sessionHints.contextPatch = nextContextPatch;
+    if (uniqueFlowTokens.length === 1) {
+      sessionHints.flowToken = uniqueFlowTokens[0];
+    }
+    sessionHints.lastAction = sessionHints.lastAction || 'flow:template-sent';
+  }
+
+  const session = await ensureSession(sessionHints);
+
   if (scheduleDate && scheduleDate.getTime() > Date.now() + 1000 && (params.saveToDb ?? true)) {
     const record = await persistOutboundMessage({
       to: destination,
       message: messagePreview,
       status: 'scheduled',
-  metadata: metadataWithPreview,
+      metadata: metadataWithPreview,
       payload,
       sessionId: session?.id ?? undefined,
       automationId: params.automationId,
@@ -1626,7 +2035,7 @@ export async function sendWhatsAppTemplate(
         message: messagePreview, // Use the readable preview we created earlier
         status: 'sent',
         messageSid,
-  metadata: metadataWithPreview,
+        metadata: metadataWithPreview,
         payload,
         sessionId: session?.id ?? undefined,
         automationId: params.automationId,
@@ -1675,7 +2084,7 @@ export async function sendWhatsAppTemplate(
         message: templatePreview(params.templateName, components),
         status: 'failed',
         errorMessage: error?.message || 'Unknown error',
-  metadata: metadataWithPreview,
+        metadata: metadataWithPreview,
         payload,
         sessionId: session?.id ?? undefined,
         automationId: params.automationId,

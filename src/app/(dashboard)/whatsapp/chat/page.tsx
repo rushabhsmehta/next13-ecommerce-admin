@@ -189,6 +189,10 @@ export default function WhatsAppSettingsPage() {
       flowButtons?: Array<{ index: number; parameter: any; warnings?: string[] }>;
       components?: any[];
       variables?: Record<string, any>;
+  flowSummary?: Record<string, any>;
+  flowToken?: string;
+  flowTokenLabel?: string;
+  flowName?: string;
       whatsappType?: string;
       contactName?: string;
       waId?: string;
@@ -222,6 +226,185 @@ export default function WhatsAppSettingsPage() {
     };
   };
   type Contact = { id: string; name: string; phone: string; avatarText?: string };
+  type FlowSubmissionDetails = {
+    summary?: Record<string, any>;
+    flowName?: string;
+    flowToken?: string;
+    responseText?: string;
+    isFlowReply: boolean;
+  };
+
+  const safeParseFlowJson = (raw: unknown): any | null => {
+    if (!raw) return null;
+    if (typeof raw === 'object') {
+      return raw;
+    }
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const humanizeFlowLabel = (key: string) => {
+    return key
+      .replace(/[_\-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  const formatFlowDetailValue = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => formatFlowDetailValue(entry))
+        .filter((entry) => entry.length > 0)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>)
+        .map(([nestedKey, nestedValue]) => {
+          const formatted = formatFlowDetailValue(nestedValue);
+          if (!formatted) return '';
+          return `${humanizeFlowLabel(nestedKey)}: ${formatted}`;
+        })
+        .filter((entry) => entry.length > 0);
+      return entries.join('; ');
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'Yes' : 'No';
+    }
+    return String(value);
+  };
+
+  const formatFlowValuePreview = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => formatFlowValuePreview(entry))
+        .filter((entry) => entry.length > 0)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      const nested = Object.values(value as Record<string, unknown>)
+        .map((entry) => formatFlowValuePreview(entry))
+        .filter((entry) => entry.length > 0);
+      return nested.join(', ');
+    }
+    if (typeof value === 'boolean') {
+      return value ? 'Yes' : 'No';
+    }
+    return String(value);
+  };
+
+  const extractFlowSubmissionDetails = (
+    metadata?: ChatMsg['metadata']
+  ): FlowSubmissionDetails | null => {
+    if (!metadata) return null;
+
+    const interactiveOriginal =
+      metadata.interactive?.original ||
+      (metadata.rawMessage && metadata.rawMessage.interactive) ||
+      undefined;
+
+    const nfmReply =
+      interactiveOriginal?.nfm_reply ||
+      interactiveOriginal?.nfm_response ||
+      metadata.rawMessage?.interactive?.nfm_reply ||
+      metadata.rawMessage?.interactive?.nfm_response;
+
+    const responseJsonCandidate =
+      nfmReply?.response_json ??
+      nfmReply?.responseJson ??
+      interactiveOriginal?.response_json ??
+      interactiveOriginal?.responseJson;
+
+    const parsed = safeParseFlowJson(responseJsonCandidate);
+
+    const candidates: Array<Record<string, any>> = [];
+    const pushCandidate = (value: unknown) => {
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        Object.keys(value as Record<string, unknown>).length > 0
+      ) {
+        candidates.push(value as Record<string, any>);
+      }
+    };
+
+    pushCandidate(metadata.flowSummary);
+    if (parsed) {
+      pushCandidate(parsed.summary);
+      if (parsed.data) {
+        pushCandidate(parsed.data.summary);
+        pushCandidate(parsed.data);
+      }
+      pushCandidate(parsed.submission);
+      pushCandidate(parsed.answers);
+      pushCandidate(parsed.fields);
+    }
+
+    const summary = candidates[0];
+
+    const flowTokenCandidates = [
+      metadata.flowToken,
+      metadata.flowTokenLabel,
+      metadata.variables?.flowToken,
+      metadata.variables?._flow_token,
+      nfmReply?.flow_token,
+      nfmReply?.flowToken,
+      parsed?.flow_token,
+      parsed?.flowToken,
+      parsed?.data?.flow_token,
+      parsed?.data?.flowToken,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+    const flowNameCandidates = [
+      metadata.flowName,
+      nfmReply?.flow_name,
+      nfmReply?.flowName,
+      nfmReply?.name,
+      parsed?.flow_name,
+      parsed?.flowName,
+      parsed?.data?.flow_name,
+      parsed?.data?.flowName,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+    const flowToken = flowTokenCandidates[0];
+    const flowName = flowNameCandidates[0];
+
+    const responseBodyCandidates = [
+      nfmReply?.body,
+      parsed?.body,
+      parsed?.message,
+      parsed?.text,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+    const isFlowReply = Boolean(nfmReply || metadata.flowSummary || summary);
+
+    const responseText = isFlowReply ? responseBodyCandidates[0] : undefined;
+
+    if (!summary && !flowToken && !flowName && !responseText) {
+      return isFlowReply ? { summary, flowName, flowToken, responseText, isFlowReply } : null;
+    }
+
+    return {
+      summary,
+      flowName,
+      flowToken,
+      responseText,
+      isFlowReply,
+    };
+  };
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [convos, setConvos] = useState<Record<string, ChatMsg[]>>({});
@@ -276,7 +459,8 @@ export default function WhatsAppSettingsPage() {
 
   const getMessagePreviewLabel = (message?: ChatMsg): string => {
     if (!message) return 'Start a conversation';
-    const metadata = message.metadata;
+  const metadata = message.metadata;
+  const flowDetails = extractFlowSubmissionDetails(metadata);
 
     if (metadata?.templateName || metadata?.templateId) {
       return `Template • ${metadata.templateName || metadata.templateId}`;
@@ -313,6 +497,41 @@ export default function WhatsAppSettingsPage() {
           if (metadata.interactive?.listReply?.title) {
             return `List reply • ${metadata.interactive.listReply.title}`;
           }
+          if (flowDetails?.summary) {
+            const entries = Object.entries(flowDetails.summary).filter(([_, value]) => {
+              if (value === null || value === undefined) return false;
+              if (typeof value === 'string' && value.trim().length === 0) return false;
+              if (Array.isArray(value) && value.length === 0) return false;
+              if (
+                typeof value === 'object' &&
+                !Array.isArray(value) &&
+                Object.keys(value as Record<string, unknown>).length === 0
+              ) {
+                return false;
+              }
+              return true;
+            });
+
+            if (entries.length > 0) {
+              const preview = entries
+                .slice(0, 2)
+                .map(([key, value]) => `${humanizeFlowLabel(key)}: ${formatFlowValuePreview(value)}`)
+                .filter((part) => part.trim().length > 0)
+                .join(' • ');
+              if (preview) {
+                return preview;
+              }
+            }
+          }
+          if (flowDetails?.responseText) {
+            return flowDetails.responseText;
+          }
+          if (flowDetails?.flowName) {
+            return `Flow response • ${flowDetails.flowName}`;
+          }
+          if (flowDetails?.flowToken) {
+            return `Flow response • ${flowDetails.flowToken}`;
+          }
           return 'Interactive response';
         default:
           break;
@@ -345,6 +564,7 @@ export default function WhatsAppSettingsPage() {
   const renderMessageContent = (msg: ChatMsg) => {
     const metadata = msg.metadata || {};
     const segments: JSX.Element[] = [];
+    const flowDetails = extractFlowSubmissionDetails(metadata);
 
     const whatsappType = metadata.whatsappType;
     const media = metadata.media;
@@ -353,6 +573,57 @@ export default function WhatsAppSettingsPage() {
       if (!mediaId) return null;
       return `/api/whatsapp/media/${mediaId}`;
     };
+
+    const flowSummaryEntries = flowDetails?.summary
+      ? Object.entries(flowDetails.summary).filter(([_, value]) => {
+          if (value === null || value === undefined) return false;
+          if (typeof value === 'string' && value.trim().length === 0) return false;
+          if (Array.isArray(value) && value.length === 0) return false;
+          if (
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            Object.keys(value as Record<string, unknown>).length === 0
+          ) {
+            return false;
+          }
+          return true;
+        })
+      : [];
+
+    const flowSummaryElements = flowSummaryEntries
+      .map(([key, value]) => {
+        const formatted = formatFlowDetailValue(value);
+        if (!formatted) return null;
+        return (
+          <div
+            key={`flow-field-${key}`}
+            className={cn(
+              'rounded-lg border px-3 py-2',
+              msg.direction === 'out'
+                ? 'border-white/15 bg-white/5'
+                : 'border-emerald-100 bg-emerald-50'
+            )}
+          >
+            <div
+              className={cn(
+                'text-[11px] font-semibold uppercase tracking-wide',
+                msg.direction === 'out' ? 'text-white/70' : 'text-emerald-700'
+              )}
+            >
+              {humanizeFlowLabel(key)}
+            </div>
+            <div
+              className={cn(
+                'mt-0.5 text-sm whitespace-pre-wrap leading-relaxed',
+                msg.direction === 'out' ? 'text-white' : 'text-emerald-900'
+              )}
+            >
+              {formatted}
+            </div>
+          </div>
+        );
+      })
+      .filter((element): element is JSX.Element => element !== null);
 
     if (whatsappType && whatsappType !== 'text') {
       if (whatsappType === 'image' && media?.id) {
@@ -475,26 +746,65 @@ export default function WhatsAppSettingsPage() {
         );
       } else if (whatsappType === 'interactive' && metadata.interactive) {
         const interactive = metadata.interactive;
+        const hasSummary = flowSummaryElements.length > 0;
         segments.push(
-          <div key="interactive" className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
-            <div className="font-semibold mb-1">Interactive response</div>
+          <div
+            key="interactive"
+            className={cn(
+              'rounded-xl border p-3 text-sm',
+              msg.direction === 'out'
+                ? 'border-white/10 bg-white/5 text-white'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            )}
+          >
+            <div
+              className={cn(
+                'font-semibold mb-1',
+                msg.direction === 'out' ? 'text-white' : 'text-emerald-900'
+              )}
+            >
+              {flowDetails?.isFlowReply ? 'Flow submission' : 'Interactive response'}
+            </div>
+            {flowDetails?.flowName && (
+              <div className="text-xs uppercase tracking-wide opacity-80">
+                {flowDetails.flowName}
+              </div>
+            )}
+            {flowDetails?.responseText && (
+              <div className="mt-1 whitespace-pre-wrap leading-relaxed">
+                {flowDetails.responseText}
+              </div>
+            )}
             {interactive.buttonReply && (
-              <div>
+              <div className="mt-2 space-y-1">
                 <div className="text-xs uppercase opacity-70">Button</div>
                 <div>{interactive.buttonReply.title}</div>
                 {interactive.buttonReply.payload && (
-                  <div className="mt-1 text-xs opacity-80">Payload: {interactive.buttonReply.payload}</div>
+                  <div className="mt-1 text-xs opacity-80">
+                    Payload: {interactive.buttonReply.payload}
+                  </div>
                 )}
               </div>
             )}
             {interactive.listReply && (
-              <div>
+              <div className="mt-2 space-y-1">
                 <div className="text-xs uppercase opacity-70">List selection</div>
                 <div>{interactive.listReply.title}</div>
                 {interactive.listReply.description && (
                   <div className="mt-1 text-xs opacity-80">{interactive.listReply.description}</div>
                 )}
               </div>
+            )}
+            {flowDetails?.flowToken && (
+              <div className="mt-2 text-[11px] uppercase tracking-wide opacity-60">
+                Flow Token: {flowDetails.flowToken}
+              </div>
+            )}
+            {hasSummary && (
+              <div className="mt-3 space-y-2">{flowSummaryElements}</div>
+            )}
+            {!flowDetails?.isFlowReply && !interactive.buttonReply && !interactive.listReply && (
+              <div className="text-xs opacity-70">No additional data captured.</div>
             )}
           </div>
         );
@@ -585,6 +895,14 @@ export default function WhatsAppSettingsPage() {
           </p>
         );
       }
+    }
+
+    if (whatsappType !== 'interactive' && flowDetails?.isFlowReply && flowSummaryElements.length > 0) {
+      segments.push(
+        <div key="flow-summary" className="mt-2 space-y-2">
+          {flowSummaryElements}
+        </div>
+      );
     }
 
     if (segments.length === 0) {

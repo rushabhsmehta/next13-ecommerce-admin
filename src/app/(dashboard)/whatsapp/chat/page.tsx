@@ -12,11 +12,12 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from 'react-hot-toast';
-import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon } from 'lucide-react';
+import { Send, MessageSquare, Settings, CheckCircle, XCircle, FileText, Plus, Sun, Moon, Cloud, Info, Smile, Search, X, MoreVertical, ArrowRight, ImageIcon, ShoppingBag, Check, ChevronsUpDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import EmojiPicker, { Theme as EmojiTheme } from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 interface WhatsAppMessage {
@@ -107,6 +108,23 @@ interface WhatsAppTemplate {
   flowDefaults?: WhatsAppFlowButtonDefault[];
 }
 
+type CatalogOption = {
+  id: string;
+  name: string | null;
+  metaCatalogId: string | null;
+  currency?: string | null;
+  isActive?: boolean | null;
+  isPublic?: boolean | null;
+  autoSync?: boolean | null;
+};
+
+type CatalogProductOption = {
+  id: string;
+  name: string;
+  retailerId: string;
+  sku?: string | null;
+};
+
 const stripWhatsAppPrefix = (value?: string | null) => {
   if (!value) return '';
   return value.replace(/^whatsapp:/i, '').trim();
@@ -159,6 +177,7 @@ export default function WhatsAppSettingsPage() {
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showCatalogComposer, setShowCatalogComposer] = useState(false);
   const lastReadMapRef = useRef<Record<string, number>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [visibleMessageCounts, setVisibleMessageCounts] = useState<Record<string, number>>({});
@@ -175,56 +194,95 @@ export default function WhatsAppSettingsPage() {
   const [showDebugLogs, setShowDebugLogs] = useState(true);
 
   // Interactive WhatsApp-like preview state
-  type ChatMsg = { 
-    id: string; 
-    text: string; 
-    direction: 'in'|'out'; 
-    ts: number; 
-    status?: 0|1|2|3;
-    metadata?: {
-      templateId?: string;
-      templateName?: string;
-      headerImage?: string;
-      buttons?: Array<{type?: string; text?: string; url?: string; phone?: string; sub_type?: string; index?: number}>;
-      flowButtons?: Array<{ index: number; parameter: any; warnings?: string[] }>;
-      components?: any[];
-      variables?: Record<string, any>;
-  flowSummary?: Record<string, any>;
-  flowToken?: string;
-  flowTokenLabel?: string;
-  flowName?: string;
-      whatsappType?: string;
-      contactName?: string;
-      waId?: string;
-      textPreview?: string;
-      media?: {
-        id?: string;
-        mimeType?: string;
-        filename?: string;
-        caption?: string;
-        sha256?: string;
-        size?: number;
-        url?: string;
-      };
-      location?: {
-        latitude: number;
-        longitude: number;
-        name?: string;
-        address?: string;
-        url?: string;
-      };
-      interactive?: {
-        type?: string;
-        buttonReply?: { id?: string; title?: string; payload?: string };
-        listReply?: { id?: string; title?: string; description?: string };
-        original?: any;
-      };
-      sharedContacts?: Array<any>;
-      reaction?: any;
-      rawMessage?: any;
-      rawPayload?: any;
+  type ChatMsgMetadata = {
+    templateId?: string;
+    templateName?: string;
+    headerImage?: string;
+    buttons?: Array<{ type?: string; text?: string; url?: string; phone?: string; sub_type?: string; index?: number }>;
+    flowButtons?: Array<{ index: number; parameter: any; warnings?: string[] }>;
+    components?: any[];
+    variables?: Record<string, any>;
+    flowSummary?: Record<string, any>;
+  flowSummaryRaw?: any;
+    flowToken?: string;
+    flowTokenLabel?: string;
+    flowName?: string;
+    flowId?: string;
+    flowSubmission?: {
+      flowId?: string;
+      flowName?: string;
+      flowToken?: string;
+      response?: any;
+      raw?: any;
+      screen?: any;
+    };
+    whatsappType?: string;
+    contactName?: string;
+    waId?: string;
+    textPreview?: string;
+    media?: {
+      id?: string;
+      mimeType?: string;
+      filename?: string;
+      caption?: string;
+      sha256?: string;
+      size?: number;
+      url?: string;
+    };
+    location?: {
+      latitude: number;
+      longitude: number;
+      name?: string;
+      address?: string;
+      url?: string;
+    };
+    interactive?: {
+      type?: string;
+      buttonReply?: { id?: string; title?: string; payload?: string };
+      listReply?: { id?: string; title?: string; description?: string };
+      original?: any;
+      bodyText?: string;
+      flowResponse?: any;
+      nfmReply?: any;
+    };
+    sharedContacts?: Array<any>;
+    reaction?: any;
+    rawMessage?: any;
+    rawPayload?: any;
+    catalog?: {
+      type?: 'product' | 'product_list';
+      catalogId?: string;
+      productRetailerId?: string;
+      productIds?: string[];
+      sections?: Array<{ title?: string; productItems: string[] }>;
     };
   };
+
+  type ChatMsg = {
+    id: string;
+    text: string;
+    direction: 'in' | 'out';
+    ts: number;
+    status?: 0 | 1 | 2 | 3;
+    metadata?: ChatMsgMetadata;
+  };
+  type CatalogInteractivePayload =
+    | {
+        type: 'product';
+        body: string;
+        footer?: string;
+        header?: { type: 'text'; text: string };
+        catalogId: string;
+        productRetailerId: string;
+      }
+    | {
+        type: 'product_list';
+        body: string;
+        footer?: string;
+        header: { type: 'text'; text: string };
+        catalogId: string;
+        sections: Array<{ title?: string; productItems: Array<{ productRetailerId: string }> }>;
+      };
   type Contact = { id: string; name: string; phone: string; avatarText?: string };
   type FlowSubmissionDetails = {
     summary?: Record<string, any>;
@@ -379,7 +437,9 @@ export default function WhatsAppSettingsPage() {
       nfmReply?.response_json ??
       nfmReply?.responseJson ??
       interactiveOriginal?.response_json ??
-      interactiveOriginal?.responseJson;
+      interactiveOriginal?.responseJson ??
+      metadata.flowSummaryRaw ??
+      metadata.flowSubmission?.response;
 
     const parsed = safeParseFlowJson(responseJsonCandidate);
 
@@ -391,7 +451,13 @@ export default function WhatsAppSettingsPage() {
       }
     };
 
+    pushCandidate(metadata.flowSubmission?.response);
     pushCandidate(metadata.flowSummary);
+    pushCandidate(metadata.flowSummaryRaw);
+  pushCandidate(metadata.flowSubmission?.screen);
+  pushCandidate(metadata.interactive?.flowResponse?.parsedResponse);
+  pushCandidate(metadata.interactive?.flowResponse?.summary);
+  pushCandidate(metadata.interactive?.nfmReply);
     if (parsed) {
       pushCandidate(parsed.summary);
       if (parsed.data) {
@@ -423,6 +489,9 @@ export default function WhatsAppSettingsPage() {
     const flowTokenCandidates = [
       metadata.flowToken,
       metadata.flowTokenLabel,
+  metadata.flowSubmission?.flowToken,
+  metadata.interactive?.flowResponse?.flow_token,
+  metadata.interactive?.flowResponse?.flowToken,
       metadata.variables?.flowToken,
       metadata.variables?._flow_token,
       nfmReply?.flow_token,
@@ -435,6 +504,9 @@ export default function WhatsAppSettingsPage() {
 
     const flowNameCandidates = [
       metadata.flowName,
+  metadata.flowSubmission?.flowName,
+  metadata.interactive?.flowResponse?.name,
+  metadata.interactive?.flowResponse?.flow_name,
       nfmReply?.flow_name,
       nfmReply?.flowName,
       nfmReply?.name,
@@ -476,9 +548,95 @@ export default function WhatsAppSettingsPage() {
   const [typing, setTyping] = useState(false);
   const [liveSend, setLiveSend] = useState(true); // ✅ ENABLE LIVE SENDING
   const [sendingLive, setSendingLive] = useState(false);
+  const [catalogMode, setCatalogMode] = useState<'single' | 'multi'>('single');
+  const [catalogRecipient, setCatalogRecipient] = useState('');
+  const [catalogId, setCatalogId] = useState('');
+  const [catalogHeader, setCatalogHeader] = useState('Explore our catalog');
+  const [catalogBody, setCatalogBody] = useState('Here are a few picks we think you will love.');
+  const [catalogFooter, setCatalogFooter] = useState('Reply if you need more details.');
+  const [catalogProductId, setCatalogProductId] = useState('');
+  const [catalogProductIds, setCatalogProductIds] = useState('');
+  const [catalogSectionTitle, setCatalogSectionTitle] = useState('Featured');
+  const [catalogOptions, setCatalogOptions] = useState<CatalogOption[]>([]);
+  const [catalogsLoading, setCatalogsLoading] = useState(false);
+  const [catalogProductOptions, setCatalogProductOptions] = useState<CatalogProductOption[]>([]);
+  const [catalogProductsLoading, setCatalogProductsLoading] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [catalogSelectOpen, setCatalogSelectOpen] = useState(false);
+  const [productSelectOpen, setProductSelectOpen] = useState(false);
+  const [multiProductSelectOpen, setMultiProductSelectOpen] = useState(false);
+  const [sendingCatalog, setSendingCatalog] = useState(false);
   
+  const catalogsLoadingRef = useRef(false);
+  const catalogProductsLoadingRef = useRef(false);
+
   // Ref for auto-scrolling to bottom of chat
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  const selectedCatalogOption = useMemo(() => {
+    if (!catalogId) return null;
+    return (
+      catalogOptions.find(
+        (option) => option.metaCatalogId === catalogId || option.id === catalogId
+      ) || null
+    );
+  }, [catalogId, catalogOptions]);
+
+  const selectedSingleProductOption = useMemo(() => {
+    if (!catalogProductId) return null;
+    return catalogProductOptions.find((option) => option.retailerId === catalogProductId) || null;
+  }, [catalogProductId, catalogProductOptions]);
+
+  const selectedProductSummaries = useMemo(() => {
+    if (selectedProductIds.length === 0) return [] as Array<{ id: string; label: string }>;
+    return selectedProductIds.map((retailerId) => {
+      const match = catalogProductOptions.find((option) => option.retailerId === retailerId);
+      const label = match ? `${match.name} • ${match.retailerId}` : retailerId;
+      return { id: retailerId, label };
+    });
+  }, [selectedProductIds, catalogProductOptions]);
+
+  const catalogSelectionLabel = useMemo(() => {
+    if (catalogsLoading) {
+      return 'Loading catalogs…';
+    }
+    if (selectedCatalogOption) {
+      const id = selectedCatalogOption.metaCatalogId || selectedCatalogOption.id;
+      const name = selectedCatalogOption.name || id;
+      const currency = selectedCatalogOption.currency ? ` • ${selectedCatalogOption.currency}` : '';
+      return `${name}${currency}`;
+    }
+    if (catalogId) {
+      return `Custom: ${catalogId}`;
+    }
+    return 'Select catalog';
+  }, [catalogsLoading, selectedCatalogOption, catalogId]);
+
+  const singleProductLabel = useMemo(() => {
+    if (catalogProductsLoading) {
+      return 'Loading products…';
+    }
+    if (selectedSingleProductOption) {
+      return `${selectedSingleProductOption.name} • ${selectedSingleProductOption.retailerId}`;
+    }
+    if (catalogProductId) {
+      return `Custom: ${catalogProductId}`;
+    }
+    return 'Select product';
+  }, [catalogProductsLoading, selectedSingleProductOption, catalogProductId]);
+
+  const multiProductLabel = useMemo(() => {
+    if (catalogProductsLoading) {
+      return 'Loading products…';
+    }
+    if (selectedProductIds.length === 1) {
+      return selectedProductSummaries[0]?.label ?? 'Select products';
+    }
+    if (selectedProductIds.length > 1) {
+      return `${selectedProductIds.length} products selected`;
+    }
+    return 'Select products';
+  }, [catalogProductsLoading, selectedProductIds.length, selectedProductSummaries]);
 
   const filteredContacts = contacts.filter(c => 
     c.name.toLowerCase().includes(chatSearchTerm.toLowerCase()) ||
@@ -561,6 +719,17 @@ export default function WhatsAppSettingsPage() {
           }
           if (metadata.interactive?.listReply?.title) {
             return `List reply • ${metadata.interactive.listReply.title}`;
+          }
+          if (metadata.catalog?.type === 'product') {
+            const label = metadata.catalog.productRetailerId || metadata.interactive?.bodyText || flowDetails?.responseText;
+            return label ? `Catalog • ${label}` : 'Catalog product';
+          }
+          if (metadata.catalog?.type === 'product_list') {
+            const count = metadata.catalog.productIds?.length || 0;
+            if (count > 0) {
+              return `Catalog • ${count} item${count === 1 ? '' : 's'}`;
+            }
+            return metadata.interactive?.bodyText || 'Catalog selection';
           }
           if (flowDetails?.summary) {
             const entries = Object.entries(flowDetails.summary).filter(([_, value]) => {
@@ -811,68 +980,158 @@ export default function WhatsAppSettingsPage() {
         );
       } else if (whatsappType === 'interactive' && metadata.interactive) {
         const interactive = metadata.interactive;
-        const hasSummary = flowSummaryElements.length > 0;
-        segments.push(
-          <div
-            key="interactive"
-            className={cn(
-              'rounded-xl border p-3 text-sm',
-              msg.direction === 'out'
-                ? 'border-white/10 bg-white/5 text-white'
-                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
-            )}
-          >
+        const interactiveType = (interactive.type || '').toLowerCase();
+        const catalog = metadata.catalog;
+        const isCatalog =
+          catalog?.type === 'product' ||
+          catalog?.type === 'product_list' ||
+          interactiveType === 'product' ||
+          interactiveType === 'product_list';
+
+        if (isCatalog) {
+          const resolvedCatalogType = catalog?.type || (interactiveType as 'product' | 'product_list');
+          const resolvedBody =
+            interactive.bodyText || metadata.textPreview || catalog?.productRetailerId || msg.text;
+          const productIds = (() => {
+            if (resolvedCatalogType === 'product') {
+              return catalog?.productRetailerId ? [catalog.productRetailerId] : [];
+            }
+            return catalog?.productIds || [];
+          })();
+
+          segments.push(
             <div
+              key="catalog"
               className={cn(
-                'font-semibold mb-1',
-                msg.direction === 'out' ? 'text-white' : 'text-emerald-900'
+                'rounded-xl border p-3 text-sm',
+                msg.direction === 'out'
+                  ? 'border-white/10 bg-white/5 text-white'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-900'
               )}
             >
-              {flowDetails?.isFlowReply ? 'Flow submission' : 'Interactive response'}
+              <div
+                className={cn(
+                  'font-semibold mb-1',
+                  msg.direction === 'out' ? 'text-white' : 'text-emerald-900'
+                )}
+              >
+                Catalog message
+              </div>
+              {resolvedBody && (
+                <div className="whitespace-pre-wrap leading-relaxed">{resolvedBody}</div>
+              )}
+              {catalog?.catalogId && (
+                <div className="mt-2 text-xs opacity-80">
+                  Catalog ID: {catalog.catalogId}
+                </div>
+              )}
+              {productIds.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {productIds.map((id, idx) => (
+                    <div
+                      key={`${id}-${idx}`}
+                      className={cn(
+                        'rounded border px-3 py-1 text-xs',
+                        msg.direction === 'out' ? 'border-white/20 bg-white/10' : 'border-emerald-200 bg-white'
+                      )}
+                    >
+                      {id}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {catalog?.sections && catalog.sections.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {catalog.sections.map((section, idx) => (
+                    <div key={`catalog-section-${idx}`} className="space-y-1">
+                      {section.title && (
+                        <div className="text-xs uppercase tracking-wide opacity-70">
+                          {section.title}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {section.productItems.map((itemId, itemIdx) => (
+                          <span
+                            key={`${itemId}-${itemIdx}`}
+                            className={cn(
+                              'rounded border px-2 py-0.5 text-[11px] font-medium',
+                              msg.direction === 'out' ? 'border-white/20 text-white/90' : 'border-emerald-200 text-emerald-900'
+                            )}
+                          >
+                            {itemId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {flowDetails?.flowName && (
-              <div className="text-xs uppercase tracking-wide opacity-80">
-                {flowDetails.flowName}
-              </div>
-            )}
-            {flowDetails?.responseText && (
-              <div className="mt-1 whitespace-pre-wrap leading-relaxed">
-                {flowDetails.responseText}
-              </div>
-            )}
-            {interactive.buttonReply && (
-              <div className="mt-2 space-y-1">
-                <div className="text-xs uppercase opacity-70">Button</div>
-                <div>{interactive.buttonReply.title}</div>
-                {interactive.buttonReply.payload && (
-                  <div className="mt-1 text-xs opacity-80">
-                    Payload: {interactive.buttonReply.payload}
-                  </div>
+          );
+        } else {
+          const hasSummary = flowSummaryElements.length > 0;
+          segments.push(
+            <div
+              key="interactive"
+              className={cn(
+                'rounded-xl border p-3 text-sm',
+                msg.direction === 'out'
+                  ? 'border-white/10 bg-white/5 text-white'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              )}
+            >
+              <div
+                className={cn(
+                  'font-semibold mb-1',
+                  msg.direction === 'out' ? 'text-white' : 'text-emerald-900'
                 )}
+              >
+                {flowDetails?.isFlowReply ? 'Flow submission' : 'Interactive response'}
               </div>
-            )}
-            {interactive.listReply && (
-              <div className="mt-2 space-y-1">
-                <div className="text-xs uppercase opacity-70">List selection</div>
-                <div>{interactive.listReply.title}</div>
-                {interactive.listReply.description && (
-                  <div className="mt-1 text-xs opacity-80">{interactive.listReply.description}</div>
-                )}
-              </div>
-            )}
-            {flowDetails?.flowToken && (
-              <div className="mt-2 text-[11px] uppercase tracking-wide opacity-60">
-                Flow Token: {flowDetails.flowToken}
-              </div>
-            )}
-            {hasSummary && (
-              <div className="mt-3 space-y-2">{flowSummaryElements}</div>
-            )}
-            {!flowDetails?.isFlowReply && !interactive.buttonReply && !interactive.listReply && (
-              <div className="text-xs opacity-70">No additional data captured.</div>
-            )}
-          </div>
-        );
+              {flowDetails?.flowName && (
+                <div className="text-xs uppercase tracking-wide opacity-80">
+                  {flowDetails.flowName}
+                </div>
+              )}
+              {flowDetails?.responseText && (
+                <div className="mt-1 whitespace-pre-wrap leading-relaxed">
+                  {flowDetails.responseText}
+                </div>
+              )}
+              {interactive.buttonReply && (
+                <div className="mt-2 space-y-1">
+                  <div className="text-xs uppercase opacity-70">Button</div>
+                  <div>{interactive.buttonReply.title}</div>
+                  {interactive.buttonReply.payload && (
+                    <div className="mt-1 text-xs opacity-80">
+                      Payload: {interactive.buttonReply.payload}
+                    </div>
+                  )}
+                </div>
+              )}
+              {interactive.listReply && (
+                <div className="mt-2 space-y-1">
+                  <div className="text-xs uppercase opacity-70">List selection</div>
+                  <div>{interactive.listReply.title}</div>
+                  {interactive.listReply.description && (
+                    <div className="mt-1 text-xs opacity-80">{interactive.listReply.description}</div>
+                  )}
+                </div>
+              )}
+              {flowDetails?.flowToken && (
+                <div className="mt-2 text-[11px] uppercase tracking-wide opacity-60">
+                  Flow Token: {flowDetails.flowToken}
+                </div>
+              )}
+              {hasSummary && (
+                <div className="mt-3 space-y-2">{flowSummaryElements}</div>
+              )}
+              {!flowDetails?.isFlowReply && !interactive.buttonReply && !interactive.listReply && (
+                <div className="text-xs opacity-70">No additional data captured.</div>
+              )}
+            </div>
+          );
+        }
       } else if (whatsappType === 'sticker' && media?.id) {
         const src = buildMediaSrc(media.id);
         segments.push(
@@ -1245,6 +1504,109 @@ export default function WhatsAppSettingsPage() {
     }
   }, []);
 
+  // Debug Logging Helper
+  const addDebugLog = (type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
+    const log: DebugLog = {
+      id: `log-${Date.now()}-${Math.random()}`,
+      timestamp: new Date(),
+      type,
+      action,
+      details: typeof details === 'object' ? details : { value: details }
+    };
+    setDebugLogs(prev => [log, ...prev].slice(0, 100)); // Keep last 100 logs
+  };
+
+  const clearDebugLogs = () => {
+    setDebugLogs([]);
+    addDebugLog('info', 'Debug logs cleared', { count: 0 });
+  };
+
+  const exportDebugLogs = () => {
+    const logsText = debugLogs.map(log => 
+      `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}] ${log.action}\n${JSON.stringify(log.details, null, 2)}`
+    ).join('\n\n' + '='.repeat(80) + '\n\n');
+    
+    const blob = new Blob([logsText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `whatsapp-debug-logs-${new Date().toISOString()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addDebugLog('success', 'Debug logs exported', { count: debugLogs.length });
+  };
+
+  const fetchCatalogSummary = useCallback(async () => {
+    if (catalogsLoadingRef.current) return;
+    catalogsLoadingRef.current = true;
+    setCatalogsLoading(true);
+    try {
+      const response = await fetch('/api/whatsapp/catalog');
+      if (!response.ok) {
+        throw new Error('Failed to load catalog summary');
+      }
+      const data = await response.json();
+      if (Array.isArray(data.availableCatalogs)) {
+        setCatalogOptions(data.availableCatalogs);
+      }
+      if (data?.defaultCatalogId) {
+        setCatalogId((current) => current || data.defaultCatalogId);
+      }
+    } catch (error) {
+      console.error('Error fetching catalog summary', error);
+      toast.error('Unable to load catalog list');
+    } finally {
+      catalogsLoadingRef.current = false;
+      setCatalogsLoading(false);
+    }
+  }, []);
+
+  const fetchCatalogProducts = useCallback(async () => {
+    if (catalogProductsLoadingRef.current) return;
+    catalogProductsLoadingRef.current = true;
+    setCatalogProductsLoading(true);
+    try {
+      const response = await fetch('/api/whatsapp/catalog/packages?limit=200&includeVariants=false');
+      if (!response.ok) {
+        throw new Error('Failed to load catalog products');
+      }
+      const payload = await response.json();
+      const options: CatalogProductOption[] = Array.isArray(payload?.data)
+        ? payload.data
+            .map((item: any) => {
+              const retailerId = item?.retailerId || item?.product?.sku || item?.product?.retailerId;
+              if (!retailerId) {
+                return null;
+              }
+              const name = item?.title || item?.product?.name || 'Untitled product';
+              return {
+                id: item?.id || retailerId,
+                name,
+                retailerId: String(retailerId).trim(),
+                sku: item?.product?.sku || null,
+              } as CatalogProductOption;
+            })
+            .filter((option: CatalogProductOption | null): option is CatalogProductOption => Boolean(option))
+        : [];
+
+      const uniqueByRetailer = options.reduce<CatalogProductOption[]>((acc, option) => {
+        if (!acc.some((entry) => entry.retailerId === option.retailerId)) {
+          acc.push(option);
+        }
+        return acc;
+      }, []);
+
+      uniqueByRetailer.sort((a, b) => a.name.localeCompare(b.name));
+      setCatalogProductOptions(uniqueByRetailer);
+    } catch (error) {
+      console.error('Error fetching catalog products', error);
+      toast.error('Unable to load catalog products');
+    } finally {
+      catalogProductsLoadingRef.current = false;
+      setCatalogProductsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -1278,9 +1640,10 @@ export default function WhatsAppSettingsPage() {
       }
     };
 
-  fetchConfig();
-  fetchMessages();
+    fetchConfig();
+    fetchMessages();
     fetchTemplates();
+    fetchCatalogSummary();
     fetchOrg();
 
     // Auto-refresh messages every 10 seconds
@@ -1291,39 +1654,33 @@ export default function WhatsAppSettingsPage() {
     return () => {
       clearInterval(messageRefreshInterval);
     };
-  }, [fetchMessages]);
+  }, [fetchMessages, fetchCatalogSummary]);
 
-  // Debug Logging Helper
-  const addDebugLog = (type: 'info' | 'success' | 'error' | 'warning', action: string, details: any = {}) => {
-    const log: DebugLog = {
-      id: `log-${Date.now()}-${Math.random()}`,
-      timestamp: new Date(),
-      type,
-      action,
-      details: typeof details === 'object' ? details : { value: details }
-    };
-    setDebugLogs(prev => [log, ...prev].slice(0, 100)); // Keep last 100 logs
-  };
+  useEffect(() => {
+    if (!showCatalogComposer) {
+      return;
+    }
 
-  const clearDebugLogs = () => {
-    setDebugLogs([]);
-    addDebugLog('info', 'Debug logs cleared', { count: 0 });
-  };
+    if (!catalogsLoading && catalogOptions.length === 0) {
+      fetchCatalogSummary();
+    }
 
-  const exportDebugLogs = () => {
-    const logsText = debugLogs.map(log => 
-      `[${log.timestamp.toISOString()}] [${log.type.toUpperCase()}] ${log.action}\n${JSON.stringify(log.details, null, 2)}`
-    ).join('\n\n' + '='.repeat(80) + '\n\n');
-    
-    const blob = new Blob([logsText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `whatsapp-debug-logs-${new Date().toISOString()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    addDebugLog('success', 'Debug logs exported', { count: debugLogs.length });
-  };
+    if (!catalogProductsLoading && catalogProductOptions.length === 0) {
+      fetchCatalogProducts();
+    }
+
+    setSelectedProductIds((prev) => {
+      const parsed = catalogProductIds
+        .split(/[\s,;]+/)
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+      const unique = Array.from(new Set(parsed));
+      if (prev.length === unique.length && prev.every((value, index) => value === unique[index])) {
+        return prev;
+      }
+      return unique;
+    });
+  }, [showCatalogComposer, catalogsLoading, catalogOptions.length, catalogProductsLoading, catalogProductOptions.length, catalogProductIds, fetchCatalogSummary, fetchCatalogProducts]);
 
   // Simple delivery animation for preview bubble: none -> sent -> delivered -> read
   useEffect(() => {
@@ -1437,6 +1794,18 @@ export default function WhatsAppSettingsPage() {
               }
               break;
             case 'interactive':
+              if (baseMetadata.catalog?.type === 'product') {
+                const label = baseMetadata.catalog.productRetailerId || baseMetadata.textPreview || 'Catalog product';
+                messageText = `🛍️ Catalog • ${label}`;
+                break;
+              }
+              if (baseMetadata.catalog?.type === 'product_list') {
+                const count = baseMetadata.catalog.productIds?.length || 0;
+                messageText = count > 0
+                  ? `🛍️ Catalog • ${count} item${count === 1 ? '' : 's'}`
+                  : '🛍️ Catalog shared';
+                break;
+              }
               if (baseMetadata.interactive?.buttonReply?.title) {
                 messageText = `↩️ Button reply: ${baseMetadata.interactive.buttonReply.title}`;
               } else if (baseMetadata.interactive?.listReply?.title) {
@@ -1580,6 +1949,15 @@ export default function WhatsAppSettingsPage() {
   }, [messages, templates, activeId]);
 
   const activeContact = contacts.find(c => c.id === activeId) || null;
+
+  useEffect(() => {
+    const normalizedPhone = normalizeContactAddress(activeContact?.phone);
+    if (normalizedPhone) {
+      setCatalogRecipient(normalizedPhone);
+    } else if (!activeContact?.phone) {
+      setCatalogRecipient('');
+    }
+  }, [activeContact?.phone]);
 
   const activeContactMessages = activeContact ? (convos[activeContact.id] || []) : [];
   const activeVisibleCount = activeContact
@@ -2244,6 +2622,211 @@ export default function WhatsAppSettingsPage() {
     //   });
     // }, 1800);
   };
+
+  const sendCatalogMessage = useCallback(async () => {
+    const resolvedRecipient = normalizeContactAddress(catalogRecipient || activeContact?.phone);
+    if (!resolvedRecipient) {
+      toast.error('Select a recipient phone number first.');
+      return;
+    }
+
+    const trimmedCatalogId = catalogId.trim();
+    if (!trimmedCatalogId) {
+      toast.error('Catalog ID is required.');
+      return;
+    }
+
+    const trimmedHeader = catalogHeader.trim();
+    const trimmedFooter = catalogFooter.trim();
+    const resolvedBody = catalogBody.trim() || 'Browse these items from our catalog.';
+
+  let interactivePayload: CatalogInteractivePayload | null = null;
+  let metadataCatalog: ChatMsgMetadata['catalog'] = undefined;
+
+    if (catalogMode === 'single') {
+      const trimmedProductId = catalogProductId.trim();
+      if (!trimmedProductId) {
+        toast.error('Product Retailer ID is required for a single product message.');
+        return;
+      }
+
+      interactivePayload = {
+        type: 'product',
+        body: resolvedBody,
+        footer: trimmedFooter || undefined,
+        catalogId: trimmedCatalogId,
+        productRetailerId: trimmedProductId,
+      };
+
+      metadataCatalog = {
+        type: 'product',
+        catalogId: trimmedCatalogId,
+        productRetailerId: trimmedProductId,
+        productIds: [trimmedProductId],
+      };
+    } else {
+      const parsedIdsSource = selectedProductIds.length > 0
+        ? selectedProductIds
+        : catalogProductIds
+            .split(/[\s,;]+/)
+            .map((entry) => entry.trim())
+            .filter((entry) => entry.length > 0);
+
+      const parsedIds = Array.from(new Set(parsedIdsSource.map((id) => id.trim()).filter((id) => id.length > 0)));
+
+      if (parsedIds.length === 0) {
+        toast.error('Add at least one product retailer ID for the catalog list.');
+        return;
+      }
+
+      const sectionTitle = catalogSectionTitle.trim() || undefined;
+      const sectionPayload = [
+        {
+          title: sectionTitle,
+          productItems: parsedIds.map((id) => ({ productRetailerId: id })),
+        },
+      ];
+
+      const headerText = trimmedHeader || sectionTitle || 'Product Catalog';
+
+      interactivePayload = {
+        type: 'product_list',
+        body: resolvedBody,
+        footer: trimmedFooter || undefined,
+        header: { type: 'text', text: headerText },
+        catalogId: trimmedCatalogId,
+        sections: sectionPayload,
+      };
+
+      metadataCatalog = {
+        type: 'product_list',
+        catalogId: trimmedCatalogId,
+        productIds: parsedIds,
+        sections: sectionPayload.map((section) => ({
+          title: section.title,
+          productItems: section.productItems.map((item) => item.productRetailerId),
+        })),
+      };
+    }
+
+    if (!interactivePayload) {
+      toast.error('Unable to prepare catalog message.');
+      return;
+    }
+
+    try {
+      setSendingCatalog(true);
+
+      const metadataPayload: ChatMsgMetadata = {
+        whatsappType: 'interactive',
+        textPreview: resolvedBody,
+        interactive: {
+          type: interactivePayload.type,
+          bodyText: resolvedBody,
+          original: interactivePayload,
+        },
+        catalog: metadataCatalog,
+      };
+
+      const response = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: resolvedRecipient,
+          type: 'interactive',
+          interactive: interactivePayload,
+          metadata: metadataPayload,
+          saveToDb: true,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        const detail = result?.error || result?.details || 'Failed to send catalog message';
+        toast.error(detail);
+        return;
+      }
+
+      toast.success('Catalog message sent');
+      setShowCatalogComposer(false);
+
+      if (activeContact && activeContact.phone === resolvedRecipient) {
+        const localId = `catalog-${Date.now()}`;
+        const timestamp = Date.now();
+        const localMetadata: ChatMsgMetadata = {
+          whatsappType: 'interactive',
+          textPreview: resolvedBody,
+          interactive: {
+            type: interactivePayload.type,
+            original: interactivePayload,
+            bodyText: resolvedBody,
+          },
+          catalog: metadataCatalog,
+        };
+
+        const localMessage: ChatMsg = {
+          id: localId,
+          text: resolvedBody,
+          direction: 'out',
+          ts: timestamp,
+          status: 0,
+          metadata: localMetadata,
+        };
+
+        setConvos((prev) => {
+          const existing = prev[activeContact.id] ? [...prev[activeContact.id]] : [];
+          existing.push(localMessage);
+          return { ...prev, [activeContact.id]: existing };
+        });
+
+        setTimeout(() => {
+          setConvos((prev) => ({
+            ...prev,
+            [activeContact.id]: (prev[activeContact.id] || []).map((msg) =>
+              msg.id === localId ? { ...msg, status: 1 } : msg
+            ),
+          }));
+        }, 300);
+        setTimeout(() => {
+          setConvos((prev) => ({
+            ...prev,
+            [activeContact.id]: (prev[activeContact.id] || []).map((msg) =>
+              msg.id === localId ? { ...msg, status: 2 } : msg
+            ),
+          }));
+        }, 700);
+        setTimeout(() => {
+          setConvos((prev) => ({
+            ...prev,
+            [activeContact.id]: (prev[activeContact.id] || []).map((msg) =>
+              msg.id === localId ? { ...msg, status: 3 } : msg
+            ),
+          }));
+        }, 1100);
+      }
+
+      setTimeout(() => fetchMessages(), 1200);
+    } catch (error: any) {
+      console.error('Failed to send catalog message', error);
+      toast.error(error?.message || 'Failed to send catalog message');
+    } finally {
+      setSendingCatalog(false);
+    }
+  }, [
+    catalogRecipient,
+    catalogId,
+    catalogHeader,
+    catalogBody,
+    catalogFooter,
+    catalogProductId,
+    catalogProductIds,
+    selectedProductIds,
+    catalogSectionTitle,
+    catalogMode,
+    activeContact,
+    fetchMessages,
+  ]);
 
   const openTemplatePreview = () => {
     if (!selectedTemplate) {
@@ -2930,6 +3513,7 @@ export default function WhatsAppSettingsPage() {
               )}
             </CardContent>
           </Card>
+
           {/* Cloud API Diagnostics */}
           <Card>
             <CardHeader>
@@ -3387,7 +3971,379 @@ export default function WhatsAppSettingsPage() {
                   <div ref={chatMessagesEndRef} />
                 </div>
 
-                <div className="flex items-center gap-3 border-t border-emerald-100/60 bg-white/70 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#0b141a]/80">
+                {showCatalogComposer && (
+                  <div className="border-t border-emerald-100/60 bg-white/80 px-4 py-4 space-y-4 text-sm backdrop-blur-md dark:border-slate-800 dark:bg-[#0b141a]/80">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">Catalog message</p>
+                        <p className="text-xs text-muted-foreground">Share products from your WhatsApp catalog.</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                        onClick={() => setShowCatalogComposer(false)}
+                        title="Close catalog composer"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-catalog-recipient">Recipient</Label>
+                        <Input
+                          id="inline-catalog-recipient"
+                          type="tel"
+                          placeholder="Defaults to the active chat"
+                          value={catalogRecipient}
+                          onChange={(event) => setCatalogRecipient(event.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave blank to use the open conversation.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-catalog-mode">Catalog Mode</Label>
+                        <Select
+                          value={catalogMode}
+                          onValueChange={(value) => setCatalogMode(value as 'single' | 'multi')}
+                        >
+                          <SelectTrigger id="inline-catalog-mode">
+                            <SelectValue placeholder="Choose catalog message type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="single">Single product</SelectItem>
+                            <SelectItem value="multi">Multi-product catalog</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-catalog-id">Catalog</Label>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <Popover open={catalogSelectOpen} onOpenChange={setCatalogSelectOpen}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="justify-between gap-2 sm:min-w-[220px]"
+                                disabled={catalogsLoading && catalogOptions.length === 0}
+                              >
+                                <span className="truncate text-left text-sm font-medium">
+                                  {catalogSelectionLabel}
+                                </span>
+                                <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[320px] p-0">
+                              {catalogsLoading && catalogOptions.length === 0 ? (
+                                <div className="p-4 text-sm text-muted-foreground">Loading catalogs…</div>
+                              ) : (
+                                <Command>
+                                  <CommandInput placeholder="Search catalog..." />
+                                  <CommandEmpty>No catalogs found.</CommandEmpty>
+                                  <CommandList>
+                                    <CommandGroup heading="Synced catalogs">
+                                      {catalogOptions.map((option) => {
+                                        const value = option.metaCatalogId || option.id;
+                                        const isSelected = value === catalogId;
+                                        return (
+                                          <CommandItem
+                                            key={option.id}
+                                            value={value}
+                                            onSelect={() => {
+                                              setCatalogId(value);
+                                              setCatalogSelectOpen(false);
+                                            }}
+                                          >
+                                            <Check className={cn('mr-2 h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')} />
+                                            <div className="flex flex-col">
+                                              <span className="text-sm font-medium">{option.name || value}</span>
+                                              <span className="text-xs text-muted-foreground">
+                                                {option.metaCatalogId || option.id}
+                                                {option.currency ? ` • ${option.currency}` : ''}
+                                              </span>
+                                            </div>
+                                          </CommandItem>
+                                        );
+                                      })}
+                                    </CommandGroup>
+                                    <CommandGroup>
+                                      <CommandItem
+                                        key="custom-catalog"
+                                        onSelect={() => {
+                                          setCatalogSelectOpen(false);
+                                          setCatalogId('');
+                                        }}
+                                      >
+                                        <Check className={cn('mr-2 h-4 w-4 shrink-0', !catalogId ? 'opacity-100' : 'opacity-0')} />
+                                        <span>Use custom catalog ID</span>
+                                      </CommandItem>
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                          <Input
+                            id="inline-catalog-id"
+                            placeholder="Commerce Manager catalog ID"
+                            value={catalogId}
+                            onChange={(event) => setCatalogId(event.target.value)}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Pick from your synced catalogs or paste any Meta catalog ID.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-catalog-header">Header (optional)</Label>
+                        <Input
+                          id="inline-catalog-header"
+                          placeholder="Featured trips, seasonal offers..."
+                          value={catalogHeader}
+                          onChange={(event) => setCatalogHeader(event.target.value)}
+                          disabled={catalogMode === 'single'}
+                        />
+                        {catalogMode === 'single' && (
+                          <p className="text-xs text-muted-foreground">
+                            Single product messages do not support headers.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="inline-catalog-body">Message Body</Label>
+                      <Textarea
+                        id="inline-catalog-body"
+                        rows={3}
+                        placeholder="Guidance required by Meta - describe what you are sending."
+                        value={catalogBody}
+                        onChange={(event) => setCatalogBody(event.target.value)}
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="inline-catalog-footer">Footer (optional)</Label>
+                        <Input
+                          id="inline-catalog-footer"
+                          placeholder="Add a short closing note"
+                          value={catalogFooter}
+                          onChange={(event) => setCatalogFooter(event.target.value)}
+                        />
+                      </div>
+                      {catalogMode === 'single' ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="inline-catalog-product-id">Product Retailer ID</Label>
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <Popover open={productSelectOpen} onOpenChange={setProductSelectOpen}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="justify-between gap-2 sm:min-w-[220px]"
+                                  disabled={catalogProductsLoading && catalogProductOptions.length === 0}
+                                >
+                                  <span className="truncate text-left text-sm font-medium">
+                                    {singleProductLabel}
+                                  </span>
+                                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[340px] p-0">
+                                {catalogProductsLoading && catalogProductOptions.length === 0 ? (
+                                  <div className="p-4 text-sm text-muted-foreground">Loading products…</div>
+                                ) : (
+                                  <Command>
+                                    <CommandInput placeholder="Search product..." />
+                                    <CommandEmpty>No catalog products found.</CommandEmpty>
+                                    <CommandList>
+                                      <CommandGroup heading="Catalog products">
+                                        {catalogProductOptions.map((option) => {
+                                          const isSelected = option.retailerId === catalogProductId;
+                                          return (
+                                            <CommandItem
+                                              key={option.retailerId}
+                                              value={option.retailerId}
+                                              onSelect={() => {
+                                                setCatalogProductId(option.retailerId);
+                                                setProductSelectOpen(false);
+                                              }}
+                                            >
+                                              <Check className={cn('mr-2 h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')} />
+                                              <div className="flex flex-col">
+                                                <span className="text-sm font-medium">{option.name}</span>
+                                                <span className="text-xs text-muted-foreground">{option.retailerId}</span>
+                                              </div>
+                                            </CommandItem>
+                                          );
+                                        })}
+                                      </CommandGroup>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          key="custom-product"
+                                          onSelect={() => {
+                                            setProductSelectOpen(false);
+                                            setCatalogProductId('');
+                                          }}
+                                        >
+                                          <Check className={cn('mr-2 h-4 w-4 shrink-0', catalogProductId ? 'opacity-0' : 'opacity-100')} />
+                                          <span>Use custom retailer ID</span>
+                                        </CommandItem>
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                            <Input
+                              id="inline-catalog-product-id"
+                              placeholder="product_retailer_id"
+                              value={catalogProductId}
+                              onChange={(event) => setCatalogProductId(event.target.value)}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Select a synced product or paste any Meta retailer ID.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="inline-catalog-section-title">Section Title (optional)</Label>
+                          <Input
+                            id="inline-catalog-section-title"
+                            placeholder="Recommended tours"
+                            value={catalogSectionTitle}
+                            onChange={(event) => setCatalogSectionTitle(event.target.value)}
+                          />
+                          <Label htmlFor="inline-catalog-product-ids">Product Retailer IDs</Label>
+                          <div className="space-y-2">
+                            <Popover open={multiProductSelectOpen} onOpenChange={setMultiProductSelectOpen}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="justify-between gap-2 sm:min-w-[220px]"
+                                  disabled={catalogProductsLoading && catalogProductOptions.length === 0}
+                                >
+                                  <span className="truncate text-left text-sm font-medium">
+                                    {multiProductLabel}
+                                  </span>
+                                  <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[360px] p-0">
+                                {catalogProductsLoading && catalogProductOptions.length === 0 ? (
+                                  <div className="p-4 text-sm text-muted-foreground">Loading products…</div>
+                                ) : (
+                                  <Command>
+                                    <CommandInput placeholder="Search product..." />
+                                    <CommandEmpty>No catalog products found.</CommandEmpty>
+                                    <CommandList>
+                                      <CommandGroup heading="Catalog products">
+                                        {catalogProductOptions.map((option) => {
+                                          const isSelected = selectedProductIds.includes(option.retailerId);
+                                          return (
+                                            <CommandItem
+                                              key={option.retailerId}
+                                              value={option.retailerId}
+                                              onSelect={() => {
+                                                setSelectedProductIds((prev) => {
+                                                  const has = prev.includes(option.retailerId);
+                                                  const next = has
+                                                    ? prev.filter((value) => value !== option.retailerId)
+                                                    : [...prev, option.retailerId];
+                                                  setCatalogProductIds(next.join('\n'));
+                                                  return next;
+                                                });
+                                              }}
+                                            >
+                                              <Check className={cn('mr-2 h-4 w-4 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')} />
+                                              <div className="flex flex-col">
+                                                <span className="text-sm font-medium">{option.name}</span>
+                                                <span className="text-xs text-muted-foreground">{option.retailerId}</span>
+                                              </div>
+                                            </CommandItem>
+                                          );
+                                        })}
+                                      </CommandGroup>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          key="clear-multi"
+                                          onSelect={() => {
+                                            setSelectedProductIds([]);
+                                            setCatalogProductIds('');
+                                            setMultiProductSelectOpen(false);
+                                          }}
+                                        >
+                                          <Check className={cn('mr-2 h-4 w-4 shrink-0', selectedProductIds.length === 0 ? 'opacity-100' : 'opacity-0')} />
+                                          <span>Clear selected products</span>
+                                        </CommandItem>
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                            {selectedProductSummaries.length > 0 && (
+                              <div className="flex flex-wrap gap-1 text-[11px] text-muted-foreground">
+                                {selectedProductSummaries.map((summary) => (
+                                  <span key={summary.id} className="rounded-full bg-muted px-2 py-0.5">
+                                    {summary.label}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <Textarea
+                              id="inline-catalog-product-ids"
+                              rows={3}
+                              placeholder="Enter one product_retailer_id per line or separate with commas"
+                              value={catalogProductIds}
+                              onChange={(event) => {
+                                const raw = event.target.value;
+                                setCatalogProductIds(raw);
+                                const parsed = raw
+                                  .split(/[\s,;]+/)
+                                  .map((entry) => entry.trim())
+                                  .filter((entry) => entry.length > 0);
+                                setSelectedProductIds(Array.from(new Set(parsed)));
+                              }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Search your catalog and we&rsquo;ll fill the IDs, or paste them manually.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Meta requires a body message and valid product identifiers before sending.
+                      </p>
+                      <Button
+                        onClick={sendCatalogMessage}
+                        disabled={
+                          sendingCatalog ||
+                          !catalogId.trim() ||
+                          (catalogMode === 'single'
+                            ? !catalogProductId.trim()
+                            : catalogProductIds.trim().length === 0)
+                        }
+                        className="bg-[#128C7E] text-white hover:bg-[#0f776b] md:px-6"
+                      >
+                        {sendingCatalog ? 'Sending Catalog…' : 'Send Catalog Message'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  className={cn(
+                    "flex items-center gap-3 border-t border-emerald-100/60 bg-white/70 p-4 backdrop-blur-md dark:border-slate-800 dark:bg-[#0b141a]/80",
+                    showCatalogComposer && "border-t-0"
+                  )}
+                >
                   <Button
                     variant="ghost"
                     size="icon"
@@ -3396,6 +4352,29 @@ export default function WhatsAppSettingsPage() {
                     title="Select template"
                   >
                     <FileText className="h-5 w-5" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "text-muted-foreground hover:text-foreground hover:bg-accent",
+                      showCatalogComposer && "bg-emerald-500 text-white hover:bg-emerald-600"
+                    )}
+                    onClick={() => {
+                      if (!activeContact) {
+                        toast.error('Select a chat before sending a catalog message.');
+                        return;
+                      }
+                      const normalizedPhone = normalizeContactAddress(activeContact.phone);
+                      if (normalizedPhone && !catalogRecipient.trim()) {
+                        setCatalogRecipient(normalizedPhone);
+                      }
+                      setShowCatalogComposer((prev) => !prev);
+                    }}
+                    title="Send catalog message"
+                  >
+                    <ShoppingBag className="h-5 w-5" />
                   </Button>
                   
                   <Popover>

@@ -39,6 +39,22 @@ const fetchMediaMimeType = async (mediaId?: string | null) => {
   }
 };
 
+const safeParseJson = (input: unknown) => {
+  if (!input) return undefined;
+  if (typeof input === 'string') {
+    try {
+      return JSON.parse(input);
+    } catch (err) {
+      console.warn('⚠️ Failed to parse JSON string', err);
+      return undefined;
+    }
+  }
+  if (typeof input === 'object') {
+    return input as Record<string, any>;
+  }
+  return undefined;
+};
+
 const buildIncomingMetadata = async (value: any, message: any) => {
   const contacts = Array.isArray(value?.contacts) ? value.contacts : [];
   const primaryContact = contacts[0] || {};
@@ -141,9 +157,10 @@ const buildIncomingMetadata = async (value: any, message: any) => {
         ? `Shared ${message.contacts.length} contacts`
         : 'Shared contact';
       break;
-    case 'interactive':
+    case 'interactive': {
+      const interactiveType = message.interactive?.type;
       metadata.interactive = {
-        type: message.interactive?.type,
+        type: interactiveType,
         buttonReply: message.interactive?.button_reply
           ? {
               id: message.interactive.button_reply.id,
@@ -159,17 +176,121 @@ const buildIncomingMetadata = async (value: any, message: any) => {
             }
           : undefined,
         original: message.interactive,
+        bodyText: message.interactive?.body?.text,
+        nfmReply: message.interactive?.nfm_reply || message.interactive?.nfmReply,
       };
-      if (metadata.interactive?.buttonReply?.title) {
+
+      if (interactiveType === 'flow_response') {
+        const flowResponse = message.interactive?.flow_response || message.interactive?.flowResponse || {};
+        const responseJsonRaw = flowResponse?.response_json ?? flowResponse?.responseJson ?? flowResponse?.response;
+        const parsedResponse = safeParseJson(responseJsonRaw);
+        const summaryCandidate = safeParseJson(flowResponse?.summary) ?? parsedResponse;
+        const flowName = flowResponse?.name || flowResponse?.flow_name || message.interactive?.header?.text;
+        const flowToken = flowResponse?.flow_token || flowResponse?.flowToken;
+        const flowId = flowResponse?.flow_id || flowResponse?.flowId;
+        const flowTokenLabel = flowResponse?.flow_token_label || flowResponse?.flowTokenLabel;
+        const screenPayload = flowResponse?.screen || flowResponse?.screens || flowResponse?.screen_response;
+        metadata.interactive.flowResponse = {
+          ...flowResponse,
+          parsedResponse,
+          summary: summaryCandidate,
+        };
+        metadata.flowSummary = summaryCandidate;
+        metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowResponse;
+        if (flowName) metadata.flowName = flowName;
+        if (flowToken) metadata.flowToken = flowToken;
+        if (flowId) metadata.flowId = flowId;
+        if (flowTokenLabel) metadata.flowTokenLabel = flowTokenLabel;
+        metadata.flowSubmission = {
+          flowId,
+          flowName,
+          flowToken,
+          response: parsedResponse,
+          raw: flowResponse,
+          screen: screenPayload,
+        };
+        metadata.textPreview = message.interactive?.body?.text || metadata.textPreview || (flowName ? `Flow response: ${flowName}` : 'Flow response submitted');
+        messageBody = metadata.textPreview || 'Flow response submitted';
+        break;
+      }
+
+      if (interactiveType === 'product') {
+        const action = message.interactive?.action || {};
+        const catalogId = action.catalog_id || action.catalogId;
+        const productRetailerId = action.product_retailer_id || action.productRetailerId;
+        metadata.catalog = {
+          type: 'product',
+          catalogId,
+          productRetailerId,
+        };
+        metadata.textPreview = message.interactive?.body?.text || message.interactive?.header?.text || metadata.textPreview;
+        messageBody = metadata.textPreview || 'Catalog product shared';
+      } else if (message.interactive?.type === 'product_list') {
+        const action = message.interactive?.action || {};
+        const sections = Array.isArray(action.sections) ? action.sections : [];
+        const catalogId = action.catalog_id || action.catalogId;
+        const normalizedSections: Array<{ title?: string; productItems: string[] }> = sections.map((section: any) => {
+          const items = Array.isArray(section.product_items)
+            ? section.product_items
+            : Array.isArray(section.products)
+            ? section.products
+            : [];
+          return {
+            title: section.title,
+            productItems: items
+              .map((item: any) => item?.product_retailer_id || item?.productRetailerId)
+              .filter((value: any) => typeof value === 'string' && value.trim().length > 0),
+          };
+        });
+        metadata.catalog = {
+          type: 'product_list',
+          catalogId,
+          sections: normalizedSections,
+          productIds: normalizedSections.flatMap((section) => section.productItems),
+        };
+        metadata.textPreview = message.interactive?.body?.text || message.interactive?.header?.text || metadata.textPreview;
+        messageBody = metadata.textPreview || 'Catalog shared';
+      } else if (metadata.interactive?.buttonReply?.title) {
         messageBody = `Button reply: ${metadata.interactive.buttonReply.title}`;
         metadata.textPreview = metadata.interactive.buttonReply.title;
       } else if (metadata.interactive?.listReply?.title) {
         messageBody = `List reply: ${metadata.interactive.listReply.title}`;
         metadata.textPreview = metadata.interactive.listReply.title;
       } else {
-        messageBody = 'Interactive response';
+        messageBody = message.interactive?.body?.text || 'Interactive response';
       }
       break;
+    }
+    case 'flow': {
+      const flowPayload = message.flow || {};
+      const flowResponse = flowPayload.flow_response || flowPayload.response || {};
+      const responseJsonRaw = flowResponse?.response_json ?? flowPayload?.response_json ?? flowResponse?.response;
+      const parsedResponse = safeParseJson(responseJsonRaw);
+      const summaryCandidate = safeParseJson(flowResponse?.summary) ?? safeParseJson(flowPayload?.summary) ?? parsedResponse;
+      const flowName = flowResponse?.name || flowResponse?.flow_name || flowPayload?.name || flowPayload?.flow_name;
+      const flowToken = flowResponse?.flow_token || flowResponse?.flowToken || flowPayload?.flow_token;
+      const flowId = flowResponse?.flow_id || flowResponse?.flowId || flowPayload?.flow_id;
+      const flowTokenLabel = flowResponse?.flow_token_label || flowResponse?.flowTokenLabel || flowPayload?.flow_token_label;
+  const screenPayload = flowResponse?.screen || flowResponse?.screens || flowPayload?.screen;
+      metadata.whatsappType = 'flow';
+      metadata.flowSummary = summaryCandidate;
+  metadata.flowSummaryRaw = responseJsonRaw ?? flowResponse?.summary ?? flowPayload?.summary ?? flowPayload;
+      if (flowName) metadata.flowName = flowName;
+      if (flowToken) metadata.flowToken = flowToken;
+      if (flowTokenLabel) metadata.flowTokenLabel = flowTokenLabel;
+      if (flowId) metadata.flowId = flowId;
+      metadata.flowSubmission = {
+        flowId,
+        flowName,
+        flowToken,
+        response: parsedResponse,
+        raw: flowPayload,
+        screen: screenPayload,
+      };
+      metadata.textPreview = flowPayload?.body?.text || metadata.textPreview || (flowName ? `Flow response: ${flowName}` : 'Flow response received');
+      messageBody = metadata.textPreview || 'Flow response received';
+      break;
+    }
     case 'reaction':
       metadata.reaction = message.reaction;
       messageBody = `Reacted with ${message.reaction?.emoji || 'reaction'}`;

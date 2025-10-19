@@ -295,15 +295,54 @@ export interface InteractiveHeader {
   mediaUrl?: string;
 }
 
-export interface WhatsAppInteractiveMessagePayload {
-  type: 'button' | 'list';
+export interface InteractiveProductItem {
+  productRetailerId: string;
+  title?: string;
+  description?: string;
+}
+
+export interface InteractiveProductSection {
+  title?: string;
+  productItems: InteractiveProductItem[];
+}
+
+interface WhatsAppInteractiveBasePayload {
   body: string;
   footer?: string;
   header?: InteractiveHeader;
-  buttons?: InteractiveButton[];
-  sections?: InteractiveSection[];
+}
+
+export interface WhatsAppInteractiveButtonPayload extends WhatsAppInteractiveBasePayload {
+  type: 'button';
+  buttons: InteractiveButton[];
   actionTitle?: string;
 }
+
+export interface WhatsAppInteractiveListPayload extends WhatsAppInteractiveBasePayload {
+  type: 'list';
+  sections: InteractiveSection[];
+  actionTitle?: string;
+}
+
+export interface WhatsAppInteractiveProductPayload extends WhatsAppInteractiveBasePayload {
+  type: 'product';
+  catalogId: string;
+  productRetailerId: string;
+  header?: { type: 'text'; text: string };
+}
+
+export interface WhatsAppInteractiveProductListPayload extends WhatsAppInteractiveBasePayload {
+  type: 'product_list';
+  catalogId: string;
+  header?: { type: 'text'; text: string };
+  sections: InteractiveProductSection[];
+}
+
+export type WhatsAppInteractiveMessagePayload =
+  | WhatsAppInteractiveButtonPayload
+  | WhatsAppInteractiveListPayload
+  | WhatsAppInteractiveProductPayload
+  | WhatsAppInteractiveProductListPayload;
 
 export interface SessionUpdateInput {
   flowToken?: string;
@@ -355,7 +394,7 @@ function buildInteractivePayload(interactive: WhatsAppInteractiveMessagePayload)
   if (interactive.header) {
     if (interactive.header.type === 'text') {
       base.header = { type: 'text', text: interactive.header.text };
-    } else if (interactive.header.mediaUrl) {
+    } else if ('mediaUrl' in interactive.header && interactive.header.mediaUrl) {
       base.header = {
         type: interactive.header.type,
         [interactive.header.type]: {
@@ -365,28 +404,68 @@ function buildInteractivePayload(interactive: WhatsAppInteractiveMessagePayload)
     }
   }
 
-  if (interactive.type === 'button') {
-    const buttons = (interactive.buttons || []).map((button) => ({
-      type: 'reply',
-      reply: {
-        id: button.id,
-        title: button.title,
-      },
-    }));
-    base.action = { buttons };
-  } else {
-    const sections = (interactive.sections || []).map((section) => ({
-      title: section.title,
-      rows: section.rows.map((row) => ({
-        id: row.id,
-        title: row.title,
-        description: row.description,
-      })),
-    }));
-    base.action = {
-      button: interactive.actionTitle || 'Select',
-      sections,
-    };
+  switch (interactive.type) {
+    case 'button': {
+      const buttons = interactive.buttons.map((button) => ({
+        type: 'reply',
+        reply: {
+          id: button.id,
+          title: button.title,
+        },
+      }));
+      base.action = { buttons };
+      break;
+    }
+    case 'list': {
+      const sections = interactive.sections.map((section) => ({
+        title: section.title,
+        rows: section.rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          description: row.description,
+        })),
+      }));
+      base.action = {
+        button: interactive.actionTitle || 'Select',
+        sections,
+      };
+      break;
+    }
+    case 'product': {
+      // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages#product-messages
+      base.action = {
+        catalog_id: interactive.catalogId,
+        product_retailer_id: interactive.productRetailerId,
+      };
+      break;
+    }
+    case 'product_list': {
+      // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages#multi-product-messages
+      const sections = interactive.sections.map((section) => ({
+        title: section.title,
+        product_items: section.productItems.map((item) => ({
+          product_retailer_id: item.productRetailerId,
+        })),
+      }));
+
+      const resolvedHeaderText = (() => {
+        if (interactive.header?.text) {
+          return interactive.header.text;
+        }
+        const firstTitle = interactive.sections.find((section) => !!section.title)?.title;
+        return firstTitle || 'Catalog';
+      })();
+
+      base.header = { type: 'text', text: resolvedHeaderText };
+      base.action = {
+        catalog_id: interactive.catalogId,
+        sections,
+      };
+      break;
+    }
+    default: {
+      throw new Error(`Unsupported interactive message type: ${(interactive as any).type}`);
+    }
   }
 
   return base;

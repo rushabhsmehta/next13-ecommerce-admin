@@ -15,7 +15,20 @@ export async function GET() {
 
     const catalog = await ensureCatalogReady();
 
-    const [totalPackages, statusGroups, syncGroups] = await Promise.all([
+    const [availableCatalogs, totalPackages, statusGroups, syncGroups] = await Promise.all([
+      prisma.whatsAppCatalog.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          metaCatalogId: true,
+          currency: true,
+          isActive: true,
+          isPublic: true,
+          autoSync: true,
+        },
+      }),
       prisma.whatsAppTourPackage.count(),
       prisma.whatsAppTourPackage.groupBy({
         by: ['status'],
@@ -40,6 +53,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       catalog,
+      availableCatalogs,
       stats: {
         totalPackages,
         byStatus: statusCounts,

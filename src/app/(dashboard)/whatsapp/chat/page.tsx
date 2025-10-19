@@ -307,6 +307,19 @@ export default function WhatsAppSettingsPage() {
     return null;
   };
 
+  const tryParseJsonString = (input: unknown): unknown => {
+    if (typeof input !== 'string') return input;
+    const trimmed = input.trim();
+    if (!trimmed) return input;
+    const firstChar = trimmed[0];
+    if (firstChar !== '{' && firstChar !== '[') return input;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return input;
+    }
+  };
+
   const humanizeFlowLabel = (key: string) => {
     return key
       .replace(/[_\-]+/g, ' ')
@@ -318,6 +331,10 @@ export default function WhatsAppSettingsPage() {
   const formatFlowDetailValue = (value: unknown): string => {
     if (value === null || value === undefined) {
       return '';
+    }
+    const normalized = tryParseJsonString(value);
+    if (normalized !== value) {
+      return formatFlowDetailValue(normalized);
     }
     if (Array.isArray(value)) {
       return value
@@ -345,6 +362,10 @@ export default function WhatsAppSettingsPage() {
     if (value === null || value === undefined) {
       return '';
     }
+    const normalized = tryParseJsonString(value);
+    if (normalized !== value) {
+      return formatFlowValuePreview(normalized);
+    }
     if (Array.isArray(value)) {
       return value
         .map((entry) => formatFlowValuePreview(entry))
@@ -366,6 +387,10 @@ export default function WhatsAppSettingsPage() {
   const coerceFlowSummaryObject = (input: unknown): Record<string, any> | null => {
     if (!input) {
       return null;
+    }
+    const normalized = tryParseJsonString(input);
+    if (normalized !== input) {
+      return coerceFlowSummaryObject(normalized);
     }
     if (Array.isArray(input)) {
       const aggregate: Record<string, any> = {};
@@ -454,10 +479,10 @@ export default function WhatsAppSettingsPage() {
     pushCandidate(metadata.flowSubmission?.response);
     pushCandidate(metadata.flowSummary);
     pushCandidate(metadata.flowSummaryRaw);
-  pushCandidate(metadata.flowSubmission?.screen);
-  pushCandidate(metadata.interactive?.flowResponse?.parsedResponse);
-  pushCandidate(metadata.interactive?.flowResponse?.summary);
-  pushCandidate(metadata.interactive?.nfmReply);
+    pushCandidate(metadata.flowSubmission?.screen);
+    pushCandidate(metadata.interactive?.flowResponse?.parsedResponse);
+    pushCandidate(metadata.interactive?.flowResponse?.summary);
+    pushCandidate(metadata.interactive?.nfmReply);
     if (parsed) {
       pushCandidate(parsed.summary);
       if (parsed.data) {

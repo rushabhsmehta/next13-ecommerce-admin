@@ -122,9 +122,11 @@ function parseTagInput(raw: string) {
 }
 
 export default function WhatsAppCustomersPage() {
+  const PAGE_SIZE = 25;
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [customers, setCustomers] = useState<WhatsAppCustomerRow[]>([]);
   const [tagSummary, setTagSummary] = useState<TagSummary[]>([]);
   const [searchInput, setSearchInput] = useState('');
@@ -155,8 +157,8 @@ export default function WhatsAppCustomersPage() {
       if (optInFilter !== 'all') {
         params.set('isOptedIn', optInFilter === 'opted-in' ? 'true' : 'false');
       }
-      params.set('page', String(page));
-      params.set('limit', '100');
+  params.set('page', String(page));
+  params.set('limit', String(PAGE_SIZE));
       const response = await fetch(`/api/whatsapp/customers?${params.toString()}`);
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Failed to fetch customers' }));
@@ -187,6 +189,15 @@ export default function WhatsAppCustomersPage() {
 
   const columns = useMemo<ColumnDef<WhatsAppCustomerRow>[]>(
     () => [
+      {
+        id: 'serial',
+        header: () => <span className="text-xs uppercase tracking-wide text-muted-foreground">#</span>,
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">{(page - 1) * PAGE_SIZE + row.index + 1}</span>
+        ),
+        size: 60,
+        enableSorting: false,
+      },
       {
         accessorKey: 'firstName',
         header: 'Name',
@@ -299,7 +310,7 @@ export default function WhatsAppCustomersPage() {
         ),
       },
     ],
-    [fetchCustomers]
+    [fetchCustomers, page]
   );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -389,6 +400,95 @@ export default function WhatsAppCustomersPage() {
   };
 
   const activeFilters = selectedTags.length + (optInFilter === 'all' ? 0 : 1) + (searchTerm ? 1 : 0);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const showingFrom = customers.length ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const showingTo = customers.length ? (page - 1) * PAGE_SIZE + customers.length : 0;
+
+  const handlePageChange = useCallback(
+    (nextPage: number) => {
+      const clamped = Math.min(Math.max(1, nextPage), totalPages);
+      setPage(clamped);
+    },
+    [totalPages]
+  );
+
+  const [pageInput, setPageInput] = useState<string>('1');
+
+  useEffect(() => {
+    setPageInput(String(page));
+  }, [page]);
+
+  const goToInputPage = useCallback(() => {
+    const parsed = parseInt(pageInput, 10);
+    if (Number.isNaN(parsed)) {
+      toast.error('Enter a valid page number');
+      return;
+    }
+    handlePageChange(parsed);
+  }, [handlePageChange, pageInput]);
+
+  const handlePageInputKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        goToInputPage();
+      }
+    },
+    [goToInputPage]
+  );
+
+  const handleExport = useCallback(async () => {
+    try {
+      setExporting(true);
+      const params = new URLSearchParams();
+      if (searchTerm.trim()) {
+        params.set('search', searchTerm.trim());
+      }
+      if (selectedTags.length) {
+        params.set('tags', selectedTags.join(','));
+      }
+      if (optInFilter !== 'all') {
+        params.set('isOptedIn', optInFilter === 'opted-in' ? 'true' : 'false');
+      }
+
+      const query = params.toString();
+      const response = await fetch(`/api/whatsapp/customers/export${query ? `?${query}` : ''}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to export customers' }));
+        throw new Error(error.error || 'Failed to export customers');
+      }
+
+      const blob = await response.blob();
+      let filename = `whatsapp-customers-${new Date().toISOString().slice(0, 10)}.csv`;
+      const disposition = response.headers.get('content-disposition');
+      if (disposition) {
+        const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(disposition);
+        const extracted = match?.[1] || match?.[2];
+        if (extracted) {
+          try {
+            filename = decodeURIComponent(extracted);
+          } catch {
+            filename = extracted;
+          }
+        }
+      }
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      toast.success('Download started');
+    } catch (error: any) {
+      console.error('Failed to export WhatsApp customers', error);
+      toast.error(error?.message || 'Could not export customers');
+    } finally {
+      setExporting(false);
+    }
+  }, [searchTerm, selectedTags, optInFilter]);
 
   return (
     <div className="space-y-8 p-6">
@@ -469,6 +569,10 @@ export default function WhatsAppCustomersPage() {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </Button>
+                <Button variant="outline" onClick={handleExport} disabled={exporting}>
+                  <Download className="mr-2 h-4 w-4" />
+                  {exporting ? 'Preparing...' : 'Download CSV'}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -523,7 +627,45 @@ export default function WhatsAppCustomersPage() {
                   <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted-foreground/20 border-t-green-500" />
                 </div>
               ) : (
-                <DataTable columns={columns} data={customers} enablePagination={false} />
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      Showing {showingFrom}-{showingTo} of {total.toLocaleString()} customers
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1 || loading}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">Page</span>
+                      <Input
+                        value={pageInput}
+                        onChange={(event) => setPageInput(event.target.value.replace(/[^0-9]/g, ''))}
+                        onKeyDown={handlePageInputKeyDown}
+                        className="h-8 w-16 text-center"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">of {totalPages}</span>
+                      <Button variant="outline" size="sm" onClick={goToInputPage} disabled={loading}>
+                        Go
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page >= totalPages || loading}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                  <DataTable columns={columns} data={customers} enablePagination={false} />
+                </div>
               )}
             </CardContent>
           </Card>

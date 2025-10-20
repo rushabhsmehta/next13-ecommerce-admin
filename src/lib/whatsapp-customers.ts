@@ -21,7 +21,7 @@ export type WhatsAppCustomerFilters = {
   isOptedIn?: boolean;
   skip?: number;
   take?: number;
-  orderBy?: Prisma.WhatsAppCustomerOrderByWithRelationInput;
+  orderBy?: Prisma.WhatsAppCustomerOrderByWithRelationInput | Prisma.WhatsAppCustomerOrderByWithRelationInput[];
 };
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -133,16 +133,8 @@ function buildUpdateData(input: Partial<WhatsAppCustomerInput>): Prisma.WhatsApp
   return data;
 }
 
-export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {}) {
-  const {
-    search,
-    tags,
-    isOptedIn,
-    skip = 0,
-    take = DEFAULT_PAGE_SIZE,
-    orderBy = { createdAt: 'desc' },
-  } = filters;
-
+function buildWhatsAppCustomerWhere(filters: Pick<WhatsAppCustomerFilters, 'search' | 'tags' | 'isOptedIn'>) {
+  const { search, tags, isOptedIn } = filters;
   const where: Prisma.WhatsAppCustomerWhereInput = {};
 
   if (typeof isOptedIn === 'boolean') {
@@ -165,6 +157,21 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
   if (tags && tags.length > 0) {
     where.tags = { array_contains: tags } as Prisma.JsonFilter;
   }
+
+  return where;
+}
+
+export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {}) {
+  const {
+    search,
+    tags,
+    isOptedIn,
+    skip = 0,
+    take = DEFAULT_PAGE_SIZE,
+    orderBy = { createdAt: 'desc' },
+  } = filters;
+
+  const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn });
 
   const [data, total] = await Promise.all([
     prisma.whatsAppCustomer.findMany({
@@ -200,6 +207,13 @@ export async function listWhatsAppCustomers(filters: WhatsAppCustomerFilters = {
     total,
     tags: Array.from(tagSet.entries()).map(([tag, count]) => ({ tag, count })),
   };
+}
+
+export async function exportWhatsAppCustomers(filters: WhatsAppCustomerFilters = {}) {
+  const { search, tags, isOptedIn } = filters;
+  const where = buildWhatsAppCustomerWhere({ search, tags, isOptedIn });
+  const orderBy = filters.orderBy ?? [{ firstName: 'asc' }, { lastName: 'asc' }];
+  return prisma.whatsAppCustomer.findMany({ where, orderBy });
 }
 
 export async function getWhatsAppCustomerById(id: string) {

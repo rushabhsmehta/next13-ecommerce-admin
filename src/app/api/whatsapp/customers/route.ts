@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
     const tags = parseTagsParam(url.searchParams.get('tags'));
     const isOptedInParam = url.searchParams.get('isOptedIn');
     const page = Math.max(parseInt(url.searchParams.get('page') || '1', 10), 1);
-    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '50', 10), 1), 200);
+    const MAX_LIMIT = 1000;
+    const limitParam = parseInt(url.searchParams.get('limit') || '50', 10);
+    const limit = Math.min(Math.max(Number.isNaN(limitParam) ? 50 : limitParam, 1), MAX_LIMIT);
 
     const filters = {
       search,

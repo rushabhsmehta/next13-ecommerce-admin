@@ -155,8 +155,8 @@ export default function NewCampaignPage() {
     }
     try {
       setDirectoryLoading(true);
-      const params = new URLSearchParams();
-      params.set('limit', '200');
+  const params = new URLSearchParams();
+  params.set('limit', '1000');
       if (directorySearch.trim()) {
         params.set('search', directorySearch.trim());
       }

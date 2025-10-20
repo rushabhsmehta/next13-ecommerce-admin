@@ -68,6 +68,20 @@ interface CustomerResponse {
   };
 }
 
+interface CsvDuplicateEntry {
+  phoneNumber: string;
+  occurrences: Array<{ rowNumber: number; name: string }>;
+}
+
+interface CsvImportSummary {
+  created: number;
+  updated: number;
+  total: number;
+  totalRows?: number;
+  uniquePhones?: number;
+  duplicates?: CsvDuplicateEntry[];
+}
+
 type PendingCustomer = {
   firstName: string;
   lastName: string;
@@ -109,7 +123,7 @@ export default function WhatsAppCustomersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [formValues, setFormValues] = useState<PendingCustomer>(DEFAULT_FORM);
-  const [csvSummary, setCsvSummary] = useState<{ created: number; updated: number; total: number } | null>(null);
+  const [csvSummary, setCsvSummary] = useState<CsvImportSummary | null>(null);
   const [optInFilter, setOptInFilter] = useState<'all' | 'opted-in' | 'opted-out'>('all');
 
   useEffect(() => {
@@ -604,8 +618,34 @@ export default function WhatsAppCustomersPage() {
                 </Button>
               </div>
               {csvSummary && (
-                <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-300">
-                  Imported {csvSummary.total} rows. Added {csvSummary.created} new customers, updated {csvSummary.updated} existing records.
+                <div className="space-y-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-300">
+                  <p>
+                    Processed {csvSummary.totalRows ?? csvSummary.total} row(s). Added {csvSummary.created} new
+                    customer{csvSummary.created === 1 ? '' : 's'}, updated {csvSummary.updated} existing record{csvSummary.updated === 1 ? '' : 's'}.
+                  </p>
+                  {typeof csvSummary.uniquePhones === 'number' && (
+                    <p>
+                      Normalised {csvSummary.uniquePhones} unique phone number{csvSummary.uniquePhones === 1 ? '' : 's'}
+                      {csvSummary.duplicates?.length
+                        ? ` and merged ${csvSummary.duplicates.length} duplicate phone number${csvSummary.duplicates.length === 1 ? '' : 's'}.`
+                        : '.'}
+                    </p>
+                  )}
+                  {csvSummary.duplicates?.length ? (
+                    <details className="rounded border border-green-200/70 bg-white/60 p-2 text-xs text-green-900 transition dark:border-green-900/60 dark:bg-green-950/50 dark:text-green-200">
+                      <summary className="cursor-pointer font-semibold">View duplicate details</summary>
+                      <ul className="mt-1 space-y-1">
+                        {csvSummary.duplicates.slice(0, 10).map((duplicate) => (
+                          <li key={duplicate.phoneNumber}>
+                            {duplicate.phoneNumber}: {duplicate.occurrences.map((occurrence) => `${occurrence.name} (row ${occurrence.rowNumber})`).join('; ')}
+                          </li>
+                        ))}
+                        {csvSummary.duplicates.length > 10 && (
+                          <li>...and {csvSummary.duplicates.length - 10} more phone number(s).</li>
+                        )}
+                      </ul>
+                    </details>
+                  ) : null}
                 </div>
               )}
             </CardContent>

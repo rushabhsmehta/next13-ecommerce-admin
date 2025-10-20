@@ -176,7 +176,7 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
 
     // Clamp bottom margin to avoid footer overlap when a footer is present
     if (options?.footerHtml) {
-      const minBottomPx = 96; // safe minimum space for branded footer
+      const minBottomPx = 200; // generous space to prevent footer overlap with tall sections
       const currentBottomPx = pxToNumber(composed.bottom) ?? minBottomPx;
       if (currentBottomPx < minBottomPx) {
         composed.bottom = `${minBottomPx}px`;
@@ -185,7 +185,7 @@ export async function generatePDF(htmlContent: string, options?: GeneratePdfOpti
 
     // Slightly protect top margin if a header is present
     if (options?.headerHtml) {
-      const minTopPx = 72;
+      const minTopPx = 120;
       const currentTopPx = pxToNumber(composed.top) ?? minTopPx;
       if (currentTopPx < minTopPx) {
         composed.top = `${minTopPx}px`;

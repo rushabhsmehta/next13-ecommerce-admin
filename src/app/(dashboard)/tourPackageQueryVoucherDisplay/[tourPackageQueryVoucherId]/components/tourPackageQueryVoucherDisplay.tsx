@@ -3,10 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircleIcon, ChefHatIcon, CreditCardIcon, InfoIcon, PlaneIcon, PlaneTakeoffIcon, Shield, XCircleIcon } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { VoucherActions } from "@/components/voucher-actions";
 import type { Location, Images, Hotel, TourPackageQuery, Itinerary, FlightDetails, Activity, RoomAllocation, TransportDetail, RoomType, OccupancyType, MealPlan, VehicleType } from "@prisma/client";
 import { useSearchParams } from 'next/navigation';
-import { table } from 'console';
-import { format, parseISO } from 'date-fns';
 import { formatLocalDate } from '@/lib/timezone-utils';
 
 interface TourPackageQueryVoucherDisplayProps {
@@ -126,14 +125,14 @@ const PolicySection = ({ title, items }: { title: string; items: string[] }) => 
   };
 
   return (
-    <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
-      <div className="flex items-center mb-4">
+    <div className="rounded-xl border border-orange-100 bg-white/90 p-4 shadow-sm sm:p-5">
+      <div className="mb-3 flex items-center gap-3 text-gray-800">
         {getIcon()}
-        <h3 className="text-2xl font-bold ml-2 text-gray-800">{title}</h3>
+        <h3 className="text-base font-semibold sm:text-lg">{title}</h3>
       </div>
-      <ul className="list-disc pl-10 space-y-2 text-xl">
+      <ul className="list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-gray-700 sm:pl-6">
         {items.map((item, index) => (
-          <li key={index} className="text-gray-700">{item}</li>
+          <li key={index} className="leading-relaxed">{item}</li>
         ))}
       </ul>
     </div>
@@ -152,168 +151,169 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   // Now you can use selectedOption to get data from your companyInfo object
   const currentCompany = companyInfo[selectedOption] ?? companyInfo['Empty'];
 
+  const supplierView = selectedOption === 'SupplierA' || selectedOption === 'SupplierB';
+  const customerSummary = [initialData?.customerName, initialData?.customerNumber].filter(Boolean).join(' | ') || 'Details unavailable';
+  const assignedSummary = [initialData?.assignedTo, initialData?.assignedToMobileNumber, initialData?.assignedToEmail].filter(Boolean).join(' | ') || 'Not assigned';
+  const totalPriceClean = initialData?.totalPrice ? String(initialData.totalPrice).trim() : '';
+  const totalPriceParsed = totalPriceClean ? Number(totalPriceClean.replace(/[^0-9.-]/g, '')) : NaN;
+  const formattedTotalPrice = totalPriceClean
+    ? (Number.isNaN(totalPriceParsed) ? totalPriceClean : `₹ ${totalPriceParsed.toLocaleString('en-IN')}`)
+    : '';
+  const pricingItems = parsePricingSection(initialData?.pricingSection);
+  const hasPricing = !supplierView && selectedOption !== 'Empty' && pricingItems.length > 0;
+
+  const footerLabel = [currentCompany.name || initialData?.tourPackageQueryName, 'Booking Voucher']
+    .filter(Boolean)
+    .join(' • ');
+  const footerPrimaryLine = currentCompany.name
+    ? [currentCompany.name, currentCompany.address].filter(Boolean).join(' • ')
+    : initialData?.tourPackageQueryName || '';
+  const footerSecondaryLine = [
+    currentCompany.phone ? `Phone: ${currentCompany.phone}` : null,
+    currentCompany.email ? `Email: ${currentCompany.email}` : null,
+  ]
+    .filter(Boolean)
+    .join(' • ');
+  const footerWebsite = currentCompany.website || '';
+  const footerLogo = currentCompany.logo || '';
+  const footerTagline = selectedOption === 'AH' ? 'Your Trusted Travel Partner' : '';
+
   // Update the PolicySection component with larger font sizes
 
 
   if (!initialData || !initialData.isFeatured) return <div>No data available</div>;
 
   return (
-    <div className="flex flex-col space-y-2 md:space-y-4 px-4 sm:px-2 md:px-8 lg:px-40">
-      {/* Tour Images */}
-      <Card className="break-inside-avoid font-bold">
-        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg flex justify-between items-center">
-          <CardTitle className="flex items-center justify-between text-2xl font-bold">
-            <span>Booking Voucher</span>
-          </CardTitle>
-        </CardHeader>
-      </Card>
+    <div className="space-y-4 px-3 sm:px-4 md:px-6 lg:px-10 xl:px-16">
+      <div className="flex justify-center print:hidden sm:justify-end">
+        <VoucherActions id={initialData.id} type="tour-package-query" />
+      </div>
 
-      {selectedOption !== 'Empty' && (
-
-        <Card className="border-b">          <CardDescription className="flex justify-between items-center px-4">
-            <div className="inline-block relative w-48 h-48">
-              <Image src={currentCompany.logo} alt={`${currentCompany.name || 'Company'} Logo`} fill className="object-contain" />
-            </div>
-            <ul>
-              <li>{currentCompany.address}</li>
-              <li>Phone: {currentCompany.phone}</li>
-              <li>Email: <Link href={`mailto:${currentCompany.email}`} className="text-blue-600 underline">{currentCompany.email}</Link></li>
-              <li>Website: <Link href={currentCompany.website || '#'} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{currentCompany.website}</Link></li>
-
-            </ul>
-          </CardDescription>
-        </Card >
-      )}
-
-      <Card className="break-inside-avoid">
-        <CardHeader>
-          <div>
-            <CardDescription className="text-2xl font-bold  mb-4">
-              {initialData.tourPackageQueryNumber}
-            </CardDescription>
-            <CardDescription className="text-xl font-bold  mb-4">
-              {initialData.tourPackageQueryName}
-            </CardDescription>
-            <CardDescription className="text-xl font-bold  mb-4">
-              {initialData.tourPackageQueryType}
-            </CardDescription>
-
-            {selectedOption !== 'SupplierA' && selectedOption !== "SupplierB" && (
-              <CardDescription className="text-xl">
-                <div className="mb-2">
-                  <span className="font-bold">Customer:</span> {initialData.customerName} | {initialData.customerNumber}
+      <div
+        id="voucher-content"
+        data-pdf-footer-label={footerLabel}
+        data-pdf-footer-primary={footerPrimaryLine}
+        data-pdf-footer-secondary={footerSecondaryLine}
+        data-pdf-footer-website={footerWebsite}
+        data-pdf-footer-logo={footerLogo}
+        data-pdf-footer-tagline={footerTagline}
+        className="mx-auto flex w-full max-w-3xl flex-col space-y-3 rounded-2xl border border-orange-100 bg-white/95 p-4 pb-28 shadow-lg sm:space-y-4 sm:p-6 sm:pb-32"
+      >
+  <Card data-pdf-section="true" className="break-inside-avoid font-bold avoid-break-inside">
+          <CardHeader className="bg-gray-50 rounded-t-lg flex flex-col gap-4 p-6">
+            <div className="flex flex-col items-center gap-3 text-center">
+              {selectedOption !== 'Empty' && currentCompany.logo ? (
+                <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-orange-200 bg-white shadow-sm">
+                  <Image src={currentCompany.logo} alt={`${currentCompany.name || 'Company'} Logo`} width={56} height={56} className="max-h-12 max-w-12 object-contain" />
                 </div>
-                <div>
-                  <span className="font-bold">Assigned To:</span> {initialData.assignedTo} | {initialData.assignedToMobileNumber} | {initialData.assignedToEmail}
-                </div>
-              </CardDescription>
-            )}
-          </div>
-        </CardHeader>        {initialData.images.map((image, index) => (
-          <div key={index} className="w-full h-[500px]">
-            <Image
-              src={image.url}
-              alt={`${initialData.tourPackageQueryName || 'Tour'} Image ${index + 1}`}
-              width={1200}
-              height={500}
-              className="object-cover w-full h-full"// Ensures images are responsive and maintain aspect ratio
-            />
-          </div>
-        ))}
-      </Card>
-
-      {/* Tour Package Details */}
-      <Card className="break-inside-avoid border shadow-lg rounded-lg">
-        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <h2 className="text-2xl font-bold">Tour Information</h2>
-        </CardHeader>
-
-        <CardContent className="p-6">
-          <div className="grid gap-6 md:grid-cols-1 text-gray-700">
-            <div className="mb-4">
-              <div className="font-semibold text-xl">
-                Location:
-                <span className="ml-2 text-2xl text-gray-900">
-                  {locations.find(location => location.id === initialData.locationId)?.label}
+              ) : null}
+              <div className="flex flex-col items-center gap-1">
+                {currentCompany.name ? (
+                  <span className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-500">
+                    {currentCompany.name}
+                  </span>
+                ) : null}
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text text-center leading-snug print-gradient-fallback">
+                  {initialData.tourPackageQueryName}
+                </CardTitle>
+                <CardDescription className="text-sm font-medium text-gray-500">
+                  Voucher Reference: {initialData.tourPackageQueryNumber}
+                </CardDescription>
+                <span className="mt-1 h-1 w-16 rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-pink-500" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-orange-700">
+                  Booking Voucher
+                </span>
+                <span className="text-sm font-semibold text-gray-600">
+                  {initialData.tourPackageQueryType} Package
                 </span>
               </div>
             </div>
-
-            {initialData.numDaysNight && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Duration:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numDaysNight}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex mb-4">
-              {initialData.tourStartsFrom && (
-                <div className="font-semibold text-xl">
-                  Period:
-                  <span className="ml-2 text-2xl text-gray-900">{formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy')}</span>
-                </div>
-              )}
-              {initialData.tourEndsOn && (
-                <div className="ml-4 font-semibold text-xl">
-                  To:
-                  <span className="ml-2 text-2xl text-gray-900">{formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy')}</span>
-                </div>
-              )}
+          </CardHeader>
+          {initialData.images.map((image, index) => (
+            <div key={index} className="h-[220px] w-full overflow-hidden rounded-b-2xl sm:h-[300px] md:h-[380px]">
+              <Image
+                src={image.url}
+                alt={`${initialData.tourPackageQueryName || 'Tour'} Image ${index + 1}`}
+                width={1200}
+                height={400}
+                className="h-full w-full object-cover"
+              />
             </div>
+          ))}
+        </Card>
 
+  <Card data-pdf-section="true" data-pdf-break-before="true" className="rounded-xl border border-orange-200 shadow-sm">
+          <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-5 py-5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-semibold text-gray-900">Guest & Assignment Details</h2>
+              <CardDescription className="text-sm text-gray-500">
+                Matches the styling used in the Tour Package Query download PDF.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 px-5 py-5 text-[15px] text-gray-700 md:text-sm">
+            {!supplierView && (
+              <>
+                <div className="space-y-1">
+                  <span className="font-semibold text-gray-600">Customer</span>
+                  <span className="font-medium text-gray-900">{customerSummary}</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="font-semibold text-gray-600">Assigned To</span>
+                  <span className="font-medium text-gray-900">{assignedSummary}</span>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      {/* Tour Package Details */}
+  <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-md rounded-xl">
+        <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback">Tour Information</h2>
+            <span className="hidden rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-orange-700 sm:inline-flex">
+              Overview
+            </span>
+          </div>
+        </CardHeader>
+
+        <CardContent className="px-5 py-5">
+          <div className="grid gap-x-6 gap-y-4 text-[15px] leading-relaxed sm:grid-cols-2 md:text-sm lg:grid-cols-3">
+            <div>
+              <span className="font-semibold text-gray-600">Location:</span> <span className="font-medium text-gray-900">{locations.find(location => location.id === initialData.locationId)?.label}</span>
+            </div>
+            {initialData.numDaysNight && (
+              <div>
+                <span className="font-semibold text-gray-600">Duration:</span> <span className="font-medium text-gray-900">{initialData.numDaysNight}</span>
+              </div>
+            )}
+            {(initialData.tourStartsFrom || initialData.tourEndsOn) && (
+              <div className="col-span-full lg:col-span-1">
+                <span className="font-semibold text-gray-600">Period:</span> <span className="font-medium text-gray-900">{initialData.tourStartsFrom ? formatLocalDate(initialData.tourStartsFrom, 'dd-MM-yyyy') : ''}{initialData.tourStartsFrom && initialData.tourEndsOn && ' → '}{initialData.tourEndsOn ? formatLocalDate(initialData.tourEndsOn, 'dd-MM-yyyy') : ''}</span>
+              </div>
+            )}
             {initialData.transport && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Transport:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.transport}</span>
-                </div>
+              <div>
+                <span className="font-semibold text-gray-600">Transport:</span> <span className="font-medium text-gray-900">{initialData.transport}</span>
               </div>
             )}
-
             {initialData.pickup_location && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Pickup:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.pickup_location}</span>
-                </div>
+              <div>
+                <span className="font-semibold text-gray-600">Pickup:</span> <span className="font-medium text-gray-900">{initialData.pickup_location}</span>
               </div>
             )}
-
             {initialData.drop_location && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Drop:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.drop_location}</span>
-                </div>
+              <div>
+                <span className="font-semibold text-gray-600">Drop:</span> <span className="font-medium text-gray-900">{initialData.drop_location}</span>
               </div>
             )}
-
-            {initialData.numAdults && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Adults:
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numAdults}</span>
-                </div>
-              </div>
-            )}
-
-            {initialData.numChild5to12 && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Children (5 - 12 Years):
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild5to12}</span>
-                </div>
-              </div>
-            )}
-
-            {initialData.numChild0to5 && (
-              <div className="mb-4">
-                <div className="font-semibold text-xl">
-                  Children (0 - 5 Years):
-                  <span className="ml-2 text-2xl text-gray-900">{initialData.numChild0to5}</span>
-                </div>
+            {(initialData.numAdults || initialData.numChild5to12 || initialData.numChild0to5) && (
+              <div className="col-span-full lg:col-span-2 flex flex-wrap gap-x-8 gap-y-1">
+                {initialData.numAdults && <span><span className="font-semibold text-gray-600">Adults:</span> <span className="font-medium text-gray-900">{initialData.numAdults}</span></span>}
+                {initialData.numChild5to12 && <span><span className="font-semibold text-gray-600">Children 5-12:</span> <span className="font-medium text-gray-900">{initialData.numChild5to12}</span></span>}
+                {initialData.numChild0to5 && <span><span className="font-semibold text-gray-600">Children 0-5:</span> <span className="font-medium text-gray-900">{initialData.numChild0to5}</span></span>}
               </div>
             )}
           </div>
@@ -321,246 +321,226 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       </Card>
 
 
-      {/* 
-      {selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && (
-        <Card className="break-inside-avoid border shadow-lg rounded-lg">
-          <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <h2 className="text-2xl font-bold">Tour Pricing</h2>
-          </CardHeader>
-
-          {initialData.price && selectedOption !== 'Empty' && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.price !== ' ' && (
-            <Card className="grid gap-4 border rounded-lg shadow-lg p-6">
-              <CardContent>
-                <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-                  <span className="text-orange-500" dangerouslySetInnerHTML={{ __html: initialData.price || '' }} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          <CardContent className="p-6">
-            <div className="grid gap-6 md:grid-cols-2 text-gray-700">
-              {initialData.pricePerAdult !== '' && (
-                <div className="md:col-span-1">
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price per Adult:</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerAdult}</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="md:col-span-1 space-y-4">
-                {initialData.pricePerChildOrExtraBed !== '' && (
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price for Triple Occupancy:</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildOrExtraBed}</span>
-                  </div>
-                )}
-                {initialData.pricePerChild5to12YearsNoBed !== '' && (
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price per Child (5-12 Years - No bed):</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChild5to12YearsNoBed}</span>
-                  </div>
-                )}
-                {initialData.pricePerChildwithSeatBelow5Years !== '' && (
-                  <div className="font-semibold text-xl bg-gray-100 p-4 rounded-lg shadow-sm">
-                    <span className="block text-gray-900">Price per Child with Seat (Below 5 Years):</span>
-                    <span className="text-2xl font-normal text-gray-700">{initialData.pricePerChildwithSeatBelow5Years}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      */}
-
-
-
-      {initialData.pricingSection && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && parsePricingSection(initialData.pricingSection).length > 0 && (
-        <div className="mt-6 border border-orange-200 rounded-lg overflow-hidden shadow-md">
-          <div className="bg-gradient-to-r from-orange-100 to-orange-50 px-4 py-3 border-b flex justify-between items-center">
-            <h3 className="text-xl font-bold text-orange-800">Detailed Pricing</h3>
-            <div className="text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full">
-              {initialData.isFeatured ? "Confirmed Prices" : "Indicative Prices"}
-            </div>
+      {hasPricing && (
+        <div data-pdf-section="true" className="mt-4 overflow-hidden rounded-xl border border-orange-200 shadow-sm">
+          <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-4 py-3">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 sm:text-xl">
+              <span className="text-base">💰</span>
+              <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent print-gradient-fallback">Pricing Options</span>
+            </h3>
+            <span className="text-xs uppercase tracking-wide text-gray-500">INR</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white">
-              <thead>
-                <tr className="bg-orange-50 text-orange-800 uppercase text-sm leading-normal">
-                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Category</th>
-                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Price</th>
-                  <th className="py-3 px-6 text-left font-bold border-b-2 border-orange-200">Details</th>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full bg-white text-sm">
+              <colgroup>
+                <col style={{ width: '55%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '25%' }} />
+              </colgroup>
+              <thead className="bg-gray-50 text-[11px] uppercase text-gray-600">
+                <tr className="divide-x divide-gray-200">
+                  <th className="px-3 py-2 text-left font-semibold">Item</th>
+                  <th className="px-3 py-2 text-center font-semibold">Base</th>
+                  <th className="px-3 py-2 text-left font-semibold">Notes</th>
                 </tr>
               </thead>
-              <tbody className="text-gray-600 text-md">
-                {parsePricingSection(initialData.pricingSection).map((item, index) => (
-                  <tr key={index} className={`${index % 2 === 0 ? 'bg-white' : 'bg-orange-50'} hover:bg-orange-100 transition-colors duration-150`}>
-                    <td className="py-3 px-6 border-b border-orange-100 font-medium">
-                      {item.name}
-                    </td>
-                    <td className="py-3 px-6 border-b border-orange-100 font-semibold">
-                      {item.price || '-'}
-                    </td>
-                    <td className="py-3 px-6 border-b border-orange-100">
-                      {item.description || '-'}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-gray-100">
+                {pricingItems.map((item, index) => {
+                  const normalizedPrice = item.price?.toString().replace(/[^0-9.-]/g, '') ?? '';
+                  const parsed = normalizedPrice ? Number(normalizedPrice) : NaN;
+                  const formattedPrice = Number.isNaN(parsed) ? item.price || '-' : `₹ ${parsed.toLocaleString('en-IN')}`;
+
+                  return (
+                    <tr key={index} className="hover:bg-orange-50/60">
+                      <td className="max-w-[220px] truncate px-3 py-2 font-medium text-gray-900">{item.name}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-center font-semibold text-green-600">{formattedPrice}</td>
+                      <td className="px-3 py-2 text-gray-700 leading-snug">{item.description || '-'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-col gap-3 bg-white px-4 py-4 md:hidden">
+            {pricingItems.map((item, index) => {
+              const normalizedPrice = item.price?.toString().replace(/[^0-9.-]/g, '') ?? '';
+              const parsed = normalizedPrice ? Number(normalizedPrice) : NaN;
+              const formattedPrice = Number.isNaN(parsed) ? item.price || '-' : `₹ ${parsed.toLocaleString('en-IN')}`;
 
-            <div className="bg-orange-50 px-6 py-4 text-orange-800 text-sm italic">
-              * All prices are in INR and subject to availability at the time of confirmation.
-            </div>
+              return (
+                <div key={index} className="rounded-lg border border-orange-100 bg-white/90 p-4 shadow-sm">
+                  <div className="text-base font-semibold text-gray-900">{item.name}</div>
+                  <div className="mt-2 flex items-center justify-between text-sm text-gray-600">
+                    <span className="font-medium text-gray-700">Base Price</span>
+                    <span className="text-lg font-semibold text-green-600">{formattedPrice}</span>
+                  </div>
+                  {item.description && (
+                    <p className="mt-2 text-[15px] leading-relaxed text-gray-600">{item.description}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between border-t border-orange-100 bg-gray-50 px-4 py-2 text-xs text-gray-500">
+            <span>Prices are indicative until confirmed.</span>
+            <span className="font-medium text-orange-600">{initialData.isFeatured ? 'Confirmed' : 'Indicative'}</span>
           </div>
         </div>
       )}
 
-      {initialData.totalPrice && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && selectedOption !== 'Empty' && initialData.totalPrice !== ' ' && (
-        <Card>
-          <CardContent>
-            <div className="font-semibold text-2xl text-gray-900 bg-gray-100 p-4 rounded-lg shadow-sm">
-              Total Price: <span className="text-orange-500">{initialData.totalPrice}</span>
-            </div>
+      {formattedTotalPrice && !supplierView && selectedOption !== 'Empty' && (
+        <Card data-pdf-section="true" className="border border-orange-200 shadow-sm rounded-xl">
+          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+            <CardTitle className="text-lg font-semibold text-gray-900">Total Package Price</CardTitle>
+            <CardDescription className="text-sm text-gray-500">Quoted value in INR</CardDescription>
+          </CardHeader>
+          <CardContent className="px-5 py-5">
+            <div className="text-2xl font-semibold text-orange-600">{formattedTotalPrice}</div>
           </CardContent>
         </Card>
       )}
 
       {initialData.remarks !== '' && (
-        <Card className="break-inside-avoid text-3xl">
-          <CardContent>
-            <div>
-              <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }}></div>
-            </div>
+        <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
+          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+            <CardTitle className="text-lg font-semibold text-gray-900">Additional Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="px-5 py-5 text-base leading-relaxed text-gray-700">
+            <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
           </CardContent>
         </Card>
       )}
 
 
       {/* Itineraries */}
-      <Card className="break-inside-avoid border shadow-lg rounded-lg">
-        <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-          <h2 className="text-2xl font-bold">Short Itinerary</h2>
+  <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
+        <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+          <h2 className="text-2xl font-semibold text-gray-900">Short Itinerary</h2>
         </CardHeader>
 
-        {
-          initialData.itineraries && initialData.itineraries.map((itinerary, index) => {
-            // Remove the initial <p> tag and any closing tags
-            const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
-            return (
-              <CardHeader key={index} className="d-flex align-items-center border-b border-gray-300 px-4 py-2">
-                <div className="flex-grow-1 font-semibold" dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
-              </CardHeader>
-            );
-          })
-        }
+        {initialData.itineraries?.map((itinerary, index) => {
+          const cleanedTitle = itinerary.itineraryTitle?.replace(/^<p>/, '').replace(/<\/p>$/, '');
+          return (
+            <div key={index} className="border-b border-orange-100 px-5 py-3 text-[15px] font-medium text-gray-700 last:border-b-0 md:text-sm">
+              <div dangerouslySetInnerHTML={{ __html: `Day ${itinerary.dayNumber} : ${itinerary.days} - ${cleanedTitle || ''}` }} />
+            </div>
+          );
+        })}
       </Card>
 
       {/* Flight Details */}
-      {initialData.flightDetails && selectedOption !== 'SupplierA' && selectedOption !== 'SupplierB' && initialData.flightDetails.length > 0 && (
-        <Card className="break-inside-avoid border rounded-lg shadow-lg p-6">
-          <CardHeader className="p-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <CardTitle className="text-2xl font-bold">Flight Details</CardTitle>
+      {initialData.flightDetails && !supplierView && initialData.flightDetails.length > 0 && (
+        <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
+          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+            <CardTitle className="text-2xl font-semibold text-gray-900">Flight Details</CardTitle>
           </CardHeader>
-          {initialData.flightDetails.map((flight: FlightDetails, index: number) => (
-            <CardContent key={index} className="bg-gray-100 rounded-lg shadow-sm p-4 my-4">
-              <div className="flex items-center justify-between border-b pb-2 mb-2">
-                <span className="font-semibold text-xl text-gray-700">{flight.date}</span>
-                <div className="text-xl text-gray-700">
-                  <span className="font-semibold">{flight.flightName}</span> |
-                  <span className="ml-1">{flight.flightNumber}</span>
+          <CardContent className="px-5 py-5 space-y-4">
+            {initialData.flightDetails.map((flight: FlightDetails, index: number) => (
+              <div key={index} className="rounded-lg border border-orange-100 bg-white px-4 py-3 shadow-sm">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-orange-100 pb-2">
+                  <span className="text-[15px] font-semibold text-gray-900 md:text-sm">{flight.date}</span>
+                  <div className="text-[15px] font-medium text-gray-700 md:text-sm">
+                    <span>{flight.flightName}</span>
+                    {flight.flightNumber && <span className="ml-2 text-gray-500">({flight.flightNumber})</span>}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-4 text-[15px] text-gray-700 md:text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{flight.from}</span>
+                    <span className="text-gray-500">{flight.departureTime}</span>
+                  </div>
+                  <div className="flex flex-col items-center text-gray-500">
+                    <PlaneTakeoffIcon className="h-4 w-4" />
+                    <span className="text-xs">{flight.flightDuration}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{flight.to}</span>
+                    <span className="text-gray-500">{flight.arrivalTime}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="font-bold text-xs text-gray-700">{flight.from}</div>
-                  <div className="text-xs text-gray-600 ml-2">{flight.departureTime}</div>
-                </div>
-                <div className="mx-2 text-center">
-                  <span className="text-gray-600"><PlaneTakeoffIcon /></span>
-                  <div className="text-xs text-gray-600">{flight.flightDuration}</div>
-                  <hr className="border-t-2 border-gray-400 mx-1" />
-                </div>
-                <div className="flex items-center">
-                  <div className="font-bold text-xs text-gray-700">{flight.to}</div>
-                  <div className="text-xs text-gray-600 ml-2">{flight.arrivalTime}</div>
-                </div>
-              </div>
-            </CardContent>
-          ))}
+            ))}
+          </CardContent>
         </Card>
-      )}      {/* Itineraries and Hotel Details */}
+      )}
+      {/* Itineraries and Hotel Details */}
       {initialData.itineraries && initialData.itineraries.length > 0 && (
-        <Card className="break-inside-avoid border shadow-lg rounded-lg">
-          <CardHeader className="p-6 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-t-lg">
-            <h2 className="text-2xl font-bold">Accomodation Details</h2>
+        <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
+          <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
+            <h2 className="text-2xl font-semibold text-gray-900">Accommodation Details</h2>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 py-5 space-y-6">
             {initialData.itineraries.map((itinerary: Itinerary & { roomAllocations: (RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; })[] }, itineraryIdx: number) => {
               const hotelDetails = hotels.find(hotel => hotel.id === itinerary.hotelId);
-              
+
               return (
-                <div key={itineraryIdx} className="mb-6">
-                  <h3 className="text-xl font-bold mb-3 px-3 py-2 bg-orange-100 text-orange-800 rounded-md">
+                <div key={itineraryIdx} data-pdf-section="true" className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900">
                     Day {itinerary.dayNumber}: {itinerary.days} - {hotelDetails?.name || 'Hotel'}
                   </h3>
-                  
+
                   {itinerary.roomAllocations && itinerary.roomAllocations.length > 0 ? (
-                    <table className="min-w-full divide-y divide-gray-200 mt-2 border">
-                      <thead className="bg-gradient-to-r from-red-500 to-orange-500 text-white">
-                        <tr>
-                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                            Room Type
-                          </th>
-                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                            Occupancy
-                          </th>
-                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                            Meal Plan
-                          </th>
-                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                            Quantity
-                          </th>
-                          <th scope="col" className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
-                            Voucher No.
-                          </th>
-                        
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {itinerary.roomAllocations.map((room: RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; }, roomIdx: number) => (
-                          <tr key={roomIdx} className={roomIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
-                              <div>
-                                {(() => {
-                                  const customText = typeof (room as any)?.customRoomType === 'string' ? ((room as any).customRoomType as string).trim() : '';
-                                  const isCustom = customText.length > 0;
-                                  const label = isCustom ? customText : (room.roomType?.name || '-');
-                                  return (<span>{label}</span>);
-                                })()}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
-                              {room.occupancyType?.name || '-'}
-                            </td>
-                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
-                              {room.mealPlan?.name || '-'}
-                            </td>
-                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-900">
-                              {(room as any).quantity || '-'}
-                            </td>
-                            <td className="px-3 py-2 whitespace-normal text-sm text-gray-600">
-                              {(room as any).voucherNumber || '-'}
-                            </td>                           
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <>
+                      <div className="hidden overflow-x-auto md:block">
+                        <table className="min-w-full divide-y divide-orange-100 overflow-hidden rounded-lg border border-orange-100">
+                          <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                            <tr>
+                              <th scope="col" className="px-3 py-2 text-left font-semibold">Room Type</th>
+                              <th scope="col" className="px-3 py-2 text-left font-semibold">Occupancy</th>
+                              <th scope="col" className="px-3 py-2 text-left font-semibold">Meal Plan</th>
+                              <th scope="col" className="px-3 py-2 text-left font-semibold">Quantity</th>
+                              <th scope="col" className="px-3 py-2 text-left font-semibold">Voucher No.</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-orange-100 text-sm text-gray-700">
+                            {itinerary.roomAllocations.map((room: RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; }, roomIdx: number) => {
+                              const customText = typeof (room as any)?.customRoomType === 'string' ? ((room as any).customRoomType as string).trim() : '';
+                              const label = customText.length > 0 ? customText : (room.roomType?.name || '-');
+                              return (
+                                <tr key={roomIdx} className="bg-white transition-colors hover:bg-orange-50/60">
+                                  <td className="px-3 py-2 font-medium text-gray-900">{label}</td>
+                                  <td className="px-3 py-2">{room.occupancyType?.name || '-'}</td>
+                                  <td className="px-3 py-2">{room.mealPlan?.name || '-'}</td>
+                                  <td className="px-3 py-2">{(room as any).quantity || '-'}</td>
+                                  <td className="px-3 py-2 text-gray-600">{(room as any).voucherNumber || '-'}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="flex flex-col gap-3 md:hidden">
+                        {itinerary.roomAllocations.map((room: RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; }, roomIdx: number) => {
+                          const customText = typeof (room as any)?.customRoomType === 'string' ? ((room as any).customRoomType as string).trim() : '';
+                          const label = customText.length > 0 ? customText : (room.roomType?.name || '-');
+                          return (
+                            <div key={roomIdx} className="rounded-lg border border-orange-100 bg-white/90 p-4 shadow-sm">
+                              <div className="text-base font-semibold text-gray-900">{label}</div>
+                              <dl className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                <div>
+                                  <dt className="font-medium text-gray-700">Occupancy</dt>
+                                  <dd>{room.occupancyType?.name || '-'}</dd>
+                                </div>
+                                <div>
+                                  <dt className="font-medium text-gray-700">Meal Plan</dt>
+                                  <dd>{room.mealPlan?.name || '-'}</dd>
+                                </div>
+                                <div>
+                                  <dt className="font-medium text-gray-700">Quantity</dt>
+                                  <dd>{(room as any).quantity || '-'}</dd>
+                                </div>
+                                <div>
+                                  <dt className="font-medium text-gray-700">Voucher No.</dt>
+                                  <dd>{(room as any).voucherNumber || '-'}</dd>
+                                </div>
+                              </dl>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
-                    <div className="text-center py-4 bg-gray-100 rounded-md text-gray-600">
+                    <div className="rounded-lg border border-dashed border-orange-200 bg-gray-50 py-4 text-center text-sm text-gray-500">
                       No room allocation details available
                     </div>
                   )}
@@ -571,9 +551,10 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
         </Card>
       )}
       {/* Replace individual policy sections with a single organized section */}
-      <Card className="break-before-all border rounded-lg shadow-lg overflow-hidden mb-8">
-        <CardHeader className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 text-center">
-          <CardTitle className="text-4xl font-bold">Policies & Terms</CardTitle>
+      <Card data-pdf-section="true" data-pdf-break-before="true" className="break-before-all border border-orange-200 shadow-sm rounded-xl overflow-hidden mb-8">
+        <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100 text-center">
+          <CardTitle className="text-3xl font-semibold text-gray-900">Policies & Terms</CardTitle>
+          <CardDescription className="text-sm text-gray-500 mt-1">Key inclusions, exclusions, and travel guidelines for this voucher.</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <PolicySection title="Inclusions" items={parsePolicyField(initialData.inclusions)} />
@@ -587,6 +568,37 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <PolicySection title="Terms and Conditions" items={parsePolicyField(initialData.termsconditions)} />
         </CardContent>
       </Card>
+
+      {selectedOption !== 'Empty' && (
+        <Card data-pdf-section="true" data-pdf-break-before="true" className="border border-orange-200 shadow-sm rounded-xl overflow-hidden">
+          <CardContent className="flex flex-col gap-6 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-6 py-6 md:flex-row md:items-center md:justify-between">
+            <div className="relative mx-auto h-32 w-32 md:mx-0 md:h-40 md:w-40">
+              <Image src={currentCompany.logo || '/aagamholidays.png'} alt={`${currentCompany.name || 'Company'} Logo`} fill className="object-contain" />
+            </div>
+            <ul className="space-y-1 text-center text-[15px] font-medium text-gray-700 md:text-left md:text-sm">
+              {currentCompany.name && (
+                <li className="text-lg font-semibold text-gray-900">{currentCompany.name}</li>
+              )}
+              {currentCompany.address && <li>{currentCompany.address}</li>}
+              {currentCompany.phone && <li>Phone: {currentCompany.phone}</li>}
+              {currentCompany.email && (
+                <li>
+                  Email: <Link href={`mailto:${currentCompany.email}`} className="text-orange-600 hover:text-orange-700">{currentCompany.email}</Link>
+                </li>
+              )}
+              {currentCompany.website && (
+                <li>
+                  Website: <Link href={currentCompany.website} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">{currentCompany.website}</Link>
+                </li>
+              )}
+            </ul>
+          </CardContent>
+          <div className="bg-white px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-orange-600">
+            Thank you for choosing {currentCompany.name || 'our services'} – wishing you a memorable journey!
+          </div>
+        </Card>
+      )}
     </div>
-  );
+  </div>
+);
 };

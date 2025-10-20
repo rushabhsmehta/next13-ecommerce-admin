@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
+import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { CldUploadWidget } from 'next-cloudinary';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,8 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, PaymentDetail, Supplier, Customer } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Extended the PaymentDetail to include images relationship
 interface PaymentWithImages extends PaymentDetail {
@@ -64,6 +66,75 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
   
   // Calculate totals
   const totalPayments = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
+
+  const formatAmountForPdf = (value: number) => {
+    return formatPrice(value).replace('₹', 'Rs. ');
+  };
+
+  const handleExportPaymentsPDF = () => {
+    if (!paymentsData.length) {
+      toast.error('No payments to export');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const generatedAt = format(new Date(), "dd MMM yyyy HH:mm");
+    const sanitizedName = tourPackageName.replace(/\s+/g, '-').toLowerCase() || 'tour-package';
+
+    doc.setFontSize(16);
+    doc.text(`Payment Records - ${tourPackageName}`, 40, 40);
+    doc.setFontSize(10);
+    doc.text(`Generated on ${generatedAt}`, 40, 60);
+
+    const rows = paymentsData.map((payment, index) => {
+      const isBank = !!payment.bankAccountId;
+      const accountType = isBank ? 'Bank' : payment.cashAccountId ? 'Cash' : '-';
+      const accountName = isBank
+        ? bankAccounts.find(b => b.id === payment.bankAccountId)?.accountName || '-'
+        : payment.cashAccountId
+          ? cashAccounts.find(c => c.id === payment.cashAccountId)?.accountName || '-'
+          : '-';
+      const partyName = payment.paymentType === 'customer_refund'
+        ? payment.customer
+          ? `${payment.customer.name}${payment.customer.contact ? ` - ${payment.customer.contact}` : ''}`
+          : 'N/A'
+        : payment.supplier
+          ? `${payment.supplier.name}${payment.supplier.contact ? ` - ${payment.supplier.contact}` : ''}`
+          : 'N/A';
+      const typeLabel = payment.paymentType === 'customer_refund' ? 'Customer Refund' : 'Payment';
+
+      return [
+        index + 1,
+        partyName,
+        typeLabel,
+        format(new Date(payment.paymentDate), 'dd MMM yyyy'),
+        accountType,
+        accountName,
+        formatAmountForPdf(payment.amount),
+        payment.note || 'No description'
+      ];
+    });
+
+    autoTable(doc, {
+      head: [['#', 'Party', 'Type', 'Date', 'Account Type', 'Account Name', 'Amount', 'Description']],
+      body: rows,
+      startY: 80,
+      styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak' },
+      headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [245, 245, 255] },
+      columnStyles: {
+        6: { halign: 'right', cellWidth: 110 },
+        7: { cellWidth: 220 }
+      }
+    });
+
+    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 80;
+    doc.setFontSize(12);
+    doc.text(`Total Payments: ${formatAmountForPdf(totalPayments)}`, 40, finalY + 30);
+
+    const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
+    doc.save(`payment-records-${sanitizedName}-${timestamp}.pdf`);
+  };
   
   // Function to handle edit
   const handleEdit = (payment: any) => {
@@ -158,6 +229,16 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({
           <Badge variant="outline" className="text-indigo-800 border-indigo-800">
             {paymentsData.length} records
           </Badge>
+          <Button
+            onClick={handleExportPaymentsPDF}
+            size="sm"
+            variant="outline"
+            className="text-indigo-600 border-indigo-600 hover:bg-indigo-50"
+            disabled={!paymentsData.length}
+          >
+            <FileDown className="h-4 w-4 mr-1" />
+            Download PDF
+          </Button>
           <Button 
             onClick={() => {
               setEditItem(null);

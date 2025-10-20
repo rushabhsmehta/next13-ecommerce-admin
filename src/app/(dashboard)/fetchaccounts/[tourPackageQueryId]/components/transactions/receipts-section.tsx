@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { CldUploadWidget } from 'next-cloudinary';
-import { CalendarIcon, Edit, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
+import { CalendarIcon, Edit, FileDown, Image as ImageIcon, Upload, PlusCircleIcon, Trash2, User as UserIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import toast from 'react-hot-toast';
 import { BankAccount, CashAccount, Customer, ReceiptDetail, Supplier } from '@prisma/client';
 import ImageViewer from '@/components/ui/image-viewer';
 import ImageUpload from '@/components/ui/image-upload';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Extended the ReceiptDetail to include images relationship
 interface ReceiptWithImages extends ReceiptDetail {
@@ -64,6 +66,75 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
   
   // Calculate totals
   const totalReceipts = receiptsData.reduce((sum, receipt) => sum + receipt.amount, 0);
+
+  const formatAmountForPdf = (value: number) => {
+    return formatPrice(value).replace('₹', 'Rs. ');
+  };
+
+  const handleExportReceiptsPDF = () => {
+    if (!receiptsData.length) {
+      toast.error('No receipts to export');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const generatedAt = format(new Date(), "dd MMM yyyy HH:mm");
+    const sanitizedName = tourPackageName.replace(/\s+/g, '-').toLowerCase() || 'tour-package';
+
+    doc.setFontSize(16);
+    doc.text(`Receipt Records - ${tourPackageName}`, 40, 40);
+    doc.setFontSize(10);
+    doc.text(`Generated on ${generatedAt}`, 40, 60);
+
+    const rows = receiptsData.map((receipt, index) => {
+      const isBank = !!receipt.bankAccountId;
+      const accountType = isBank ? 'Bank' : receipt.cashAccountId ? 'Cash' : '-';
+      const accountName = isBank
+        ? bankAccounts.find(b => b.id === receipt.bankAccountId)?.accountName || '-'
+        : receipt.cashAccountId
+          ? cashAccounts.find(c => c.id === receipt.cashAccountId)?.accountName || '-'
+          : '-';
+      const partyName = receipt.receiptType === 'supplier_refund'
+        ? receipt.supplier
+          ? `${receipt.supplier.name}${receipt.supplier.contact ? ` - ${receipt.supplier.contact}` : ''}`
+          : 'N/A'
+        : receipt.customer
+          ? `${receipt.customer.name}${receipt.customer.contact ? ` - ${receipt.customer.contact}` : ''}`
+          : 'N/A';
+      const typeLabel = receipt.receiptType === 'supplier_refund' ? 'Supplier Refund' : 'Receipt';
+
+      return [
+        index + 1,
+        partyName,
+        typeLabel,
+        format(new Date(receipt.receiptDate), 'dd MMM yyyy'),
+        accountType,
+        accountName,
+        formatAmountForPdf(receipt.amount),
+        receipt.note || 'No description'
+      ];
+    });
+
+    autoTable(doc, {
+      head: [['#', 'Party', 'Type', 'Date', 'Account Type', 'Account Name', 'Amount', 'Description']],
+      body: rows,
+      startY: 80,
+      styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak' },
+      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [236, 253, 245] },
+      columnStyles: {
+        6: { halign: 'right', cellWidth: 110 },
+        7: { cellWidth: 220 }
+      }
+    });
+
+    const finalY = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 80;
+    doc.setFontSize(12);
+    doc.text(`Total Receipts: ${formatAmountForPdf(totalReceipts)}`, 40, finalY + 30);
+
+    const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
+    doc.save(`receipt-records-${sanitizedName}-${timestamp}.pdf`);
+  };
   
   // Function to handle edit
   const handleEdit = (receipt: any) => {
@@ -159,6 +230,16 @@ const ReceiptsSection: React.FC<ReceiptsSectionProps> = ({
           <Badge variant="outline" className="text-emerald-800 border-emerald-800">
             {receiptsData.length} records
           </Badge>
+          <Button
+            onClick={handleExportReceiptsPDF}
+            size="sm"
+            variant="outline"
+            className="text-emerald-600 border-emerald-600 hover:bg-emerald-50"
+            disabled={!receiptsData.length}
+          >
+            <FileDown className="h-4 w-4 mr-1" />
+            Download PDF
+          </Button>
           <Button 
             onClick={() => {
               setEditItem(null);

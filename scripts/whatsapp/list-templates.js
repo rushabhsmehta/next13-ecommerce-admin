@@ -84,4 +84,5 @@ if (!ACCESS_TOKEN) {
 }
 
 // Fetch templates
+
 listTemplates();

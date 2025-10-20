@@ -80,6 +80,16 @@ interface CsvImportSummary {
   totalRows?: number;
   uniquePhones?: number;
   duplicates?: CsvDuplicateEntry[];
+  validRows?: number;
+  skippedRows?: number;
+  failed?: number;
+  partial?: boolean;
+}
+
+interface CsvErrorEntry {
+  rowNumber: number;
+  message: string;
+  row?: Record<string, string>;
 }
 
 type PendingCustomer = {
@@ -124,6 +134,7 @@ export default function WhatsAppCustomersPage() {
   const [total, setTotal] = useState(0);
   const [formValues, setFormValues] = useState<PendingCustomer>(DEFAULT_FORM);
   const [csvSummary, setCsvSummary] = useState<CsvImportSummary | null>(null);
+  const [csvErrors, setCsvErrors] = useState<CsvErrorEntry[]>([]);
   const [optInFilter, setOptInFilter] = useState<'all' | 'opted-in' | 'opted-out'>('all');
 
   useEffect(() => {
@@ -335,6 +346,7 @@ export default function WhatsAppCustomersPage() {
     const file = event.target.files[0];
     setImporting(true);
     setCsvSummary(null);
+    setCsvErrors([]);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -342,13 +354,30 @@ export default function WhatsAppCustomersPage() {
         method: 'POST',
         body: formData,
       });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Failed to import customers' }));
-        throw new Error(error.error || 'Failed to import customers');
+      let payload: any = null;
+      try {
+        payload = await response.json();
+      } catch {
+        // ignore
       }
-      const payload = await response.json();
-      toast.success('CSV import completed');
-      setCsvSummary(payload.summary);
+      if (!response.ok) {
+        if (payload?.summary) {
+          setCsvSummary({ ...payload.summary, partial: payload.partial ?? payload.summary?.partial });
+        }
+        if (payload?.errors) {
+          setCsvErrors(payload.errors);
+        }
+        const message = payload?.error || 'Failed to import customers';
+        throw new Error(message);
+      }
+
+      const summary: CsvImportSummary | null = payload?.summary
+        ? { ...payload.summary, partial: payload.partial ?? payload.summary?.partial }
+        : null;
+
+      setCsvSummary(summary);
+      setCsvErrors(payload?.errors ?? []);
+      toast.success(payload?.partial ? 'Import completed with warnings' : 'CSV import completed');
       fetchCustomers();
     } catch (error: any) {
       console.error('Error importing WhatsApp customers', error);
@@ -618,11 +647,29 @@ export default function WhatsAppCustomersPage() {
                 </Button>
               </div>
               {csvSummary && (
-                <div className="space-y-2 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-300">
+                <div className="space-y-3 rounded-lg bg-green-50 p-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-300">
                   <p>
                     Processed {csvSummary.totalRows ?? csvSummary.total} row(s). Added {csvSummary.created} new
                     customer{csvSummary.created === 1 ? '' : 's'}, updated {csvSummary.updated} existing record{csvSummary.updated === 1 ? '' : 's'}.
                   </p>
+                  {typeof csvSummary.validRows === 'number' && (
+                    <p>Accepted {csvSummary.validRows} row{csvSummary.validRows === 1 ? '' : 's'} after validation.</p>
+                  )}
+                  {typeof csvSummary.skippedRows === 'number' && csvSummary.skippedRows > 0 && (
+                    <p className="text-amber-800 dark:text-amber-300">
+                      Skipped {csvSummary.skippedRows} row{csvSummary.skippedRows === 1 ? '' : 's'} because of validation issues.
+                    </p>
+                  )}
+                  {typeof csvSummary.failed === 'number' && csvSummary.failed > 0 && (
+                    <p className="text-amber-800 dark:text-amber-300">
+                      Failed to import {csvSummary.failed} row{csvSummary.failed === 1 ? '' : 's'}. See details below.
+                    </p>
+                  )}
+                  {csvSummary.partial && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Import completed with warnings. Review failed rows and re-upload once corrected.
+                    </p>
+                  )}
                   {typeof csvSummary.uniquePhones === 'number' && (
                     <p>
                       Normalised {csvSummary.uniquePhones} unique phone number{csvSummary.uniquePhones === 1 ? '' : 's'}
@@ -646,6 +693,34 @@ export default function WhatsAppCustomersPage() {
                       </ul>
                     </details>
                   ) : null}
+                  {csvErrors.length > 0 && (
+                    <details className="rounded border border-amber-200/70 bg-white/70 p-2 text-xs text-amber-900 transition dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                      <summary className="cursor-pointer font-semibold">
+                        View failed rows ({csvErrors.length})
+                      </summary>
+                      <ul className="mt-2 space-y-2">
+                        {csvErrors.slice(0, 25).map((entry) => (
+                          <li key={`${entry.rowNumber}-${entry.message}`} className="space-y-1">
+                            <div>Row {entry.rowNumber}: {entry.message}</div>
+                            {entry.row && Object.keys(entry.row).length > 0 && (
+                              <div className="grid gap-x-2 gap-y-1 text-[11px] text-amber-800 dark:text-amber-200 sm:grid-cols-2">
+                                {Object.entries(entry.row).map(([key, value]) => (
+                                  <span key={key} className="truncate">
+                                    <span className="font-semibold">{key}:</span> {value || '—'}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                        {csvErrors.length > 25 && (
+                          <li className="text-[11px] text-muted-foreground">
+                            Showing first 25 issues. Export the error report to edit remaining rows.
+                          </li>
+                        )}
+                      </ul>
+                    </details>
+                  )}
                 </div>
               )}
             </CardContent>

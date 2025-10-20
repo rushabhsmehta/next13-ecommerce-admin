@@ -14,11 +14,20 @@ export type WhatsAppCustomerCsvDuplicate = {
   occurrences: Array<{ rowNumber: number; name: string }>;
 };
 
+export type WhatsAppCustomerCsvError = {
+  rowNumber: number;
+  message: string;
+  row?: Record<string, string>;
+};
+
 export type WhatsAppCustomerCsvParseResult = {
   customers: WhatsAppCustomerInput[];
   totalRows: number;
+  validRows: number;
+  skippedRows: number;
   uniquePhones: number;
   duplicates: WhatsAppCustomerCsvDuplicate[];
+  errors: WhatsAppCustomerCsvError[];
 };
 
 function sanitizeHeader(header: string) {
@@ -94,6 +103,19 @@ export function parseWhatsAppCustomerCsv(
 
   const customerInputs: WhatsAppCustomerInput[] = [];
   const occurrences = new Map<string, Array<{ rowNumber: number; name: string }>>();
+  const errors: WhatsAppCustomerCsvError[] = [];
+
+  const snapshotRow = (record: Record<string, string | undefined>) => {
+    const snapshot: Record<string, string> = {};
+    Object.entries(record).forEach(([header, value]) => {
+      const key = sanitizeHeader(header) || header;
+      const cleaned = cleanValue(value);
+      if (cleaned !== undefined) {
+        snapshot[key] = cleaned;
+      }
+    });
+    return snapshot;
+  };
 
   records.forEach((record, index) => {
     const rowNumber = index + 2; // account for header row
@@ -105,12 +127,15 @@ export function parseWhatsAppCustomerCsv(
 
     const firstName = get("first name");
     const mobile = get("mobile number");
+    const rowSnapshot = snapshotRow(record);
 
     if (!firstName) {
-      throw new Error(`Row ${rowNumber}: first name is required`);
+      errors.push({ rowNumber, message: "First name is required", row: rowSnapshot });
+      return;
     }
     if (!mobile) {
-      throw new Error(`Row ${rowNumber}: mobile number is required`);
+      errors.push({ rowNumber, message: "Mobile number is required", row: rowSnapshot });
+      return;
     }
 
     let phoneNumber: string;
@@ -118,7 +143,8 @@ export function parseWhatsAppCustomerCsv(
       phoneNumber = normalizeWhatsAppPhone(mobile);
     } catch (error: any) {
       const message = error?.message || "Invalid phone number";
-      throw new Error(`Row ${rowNumber}: ${message}`);
+      errors.push({ rowNumber, message, row: rowSnapshot });
+      return;
     }
 
     const lastName = get("last name");
@@ -152,7 +178,10 @@ export function parseWhatsAppCustomerCsv(
   return {
     customers: customerInputs,
     totalRows: records.length,
+    validRows: customerInputs.length,
+    skippedRows: records.length - customerInputs.length,
     uniquePhones: occurrences.size,
     duplicates,
+    errors,
   };
 }

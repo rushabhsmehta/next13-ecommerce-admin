@@ -178,6 +178,8 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   const footerLogo = currentCompany.logo || '';
   const footerTagline = selectedOption === 'AH' ? 'Your Trusted Travel Partner' : '';
 
+  const sectionTitleGradient = "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback";
+
   // Update the PolicySection component with larger font sizes
 
 
@@ -213,7 +215,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
                     {currentCompany.name}
                   </span>
                 ) : null}
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text text-center leading-snug print-gradient-fallback">
+                <CardTitle className={`text-2xl font-bold ${sectionTitleGradient} text-center leading-snug`}>
                   {initialData.tourPackageQueryName}
                 </CardTitle>
                 <CardDescription className="text-sm font-medium text-gray-500">
@@ -247,7 +249,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   <Card data-pdf-section="true" data-pdf-break-before="true" className="rounded-xl border border-orange-200 shadow-sm">
           <CardHeader className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-5 py-5">
             <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold text-gray-900">Guest & Assignment Details</h2>
+              <h2 className={`text-lg font-semibold ${sectionTitleGradient}`}>Guest & Assignment Details</h2>
               <CardDescription className="text-sm text-gray-500">
                 Matches the styling used in the Tour Package Query download PDF.
               </CardDescription>
@@ -272,7 +274,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
   <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-md rounded-xl">
         <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-transparent bg-clip-text print-gradient-fallback">Tour Information</h2>
+            <h2 className={`text-2xl font-bold ${sectionTitleGradient}`}>Tour Information</h2>
             <span className="hidden rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-orange-700 sm:inline-flex">
               Overview
             </span>
@@ -326,7 +328,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
           <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-orange-50 px-4 py-3">
             <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 sm:text-xl">
               <span className="text-base">💰</span>
-              <span className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 bg-clip-text text-transparent print-gradient-fallback">Pricing Options</span>
+              <span className={sectionTitleGradient}>Pricing Options</span>
             </h3>
             <span className="text-xs uppercase tracking-wide text-gray-500">INR</span>
           </div>
@@ -391,7 +393,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {formattedTotalPrice && !supplierView && selectedOption !== 'Empty' && (
         <Card data-pdf-section="true" className="border border-orange-200 shadow-sm rounded-xl">
           <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-            <CardTitle className="text-lg font-semibold text-gray-900">Total Package Price</CardTitle>
+            <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Total Package Price</CardTitle>
             <CardDescription className="text-sm text-gray-500">Quoted value in INR</CardDescription>
           </CardHeader>
           <CardContent className="px-5 py-5">
@@ -403,7 +405,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {initialData.remarks !== '' && (
         <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
           <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-            <CardTitle className="text-lg font-semibold text-gray-900">Additional Notes</CardTitle>
+            <CardTitle className={`text-lg font-semibold ${sectionTitleGradient}`}>Additional Notes</CardTitle>
           </CardHeader>
           <CardContent className="px-5 py-5 text-base leading-relaxed text-gray-700">
             <div dangerouslySetInnerHTML={{ __html: initialData.remarks || '' }} />
@@ -415,7 +417,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {/* Itineraries */}
   <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
         <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-          <h2 className="text-2xl font-semibold text-gray-900">Short Itinerary</h2>
+          <h2 className={`text-2xl font-semibold ${sectionTitleGradient}`}>Short Itinerary</h2>
         </CardHeader>
 
         {initialData.itineraries?.map((itinerary, index) => {
@@ -432,7 +434,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {initialData.flightDetails && !supplierView && initialData.flightDetails.length > 0 && (
         <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
           <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-            <CardTitle className="text-2xl font-semibold text-gray-900">Flight Details</CardTitle>
+            <CardTitle className={`text-2xl font-semibold ${sectionTitleGradient}`}>Flight Details</CardTitle>
           </CardHeader>
           <CardContent className="px-5 py-5 space-y-4">
             {initialData.flightDetails.map((flight: FlightDetails, index: number) => (
@@ -467,7 +469,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {initialData.itineraries && initialData.itineraries.length > 0 && (
         <Card data-pdf-section="true" className="break-inside-avoid border border-orange-200 shadow-sm rounded-xl">
           <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100">
-            <h2 className="text-2xl font-semibold text-gray-900">Accommodation Details</h2>
+            <h2 className={`text-2xl font-semibold ${sectionTitleGradient}`}>Accommodation Details</h2>
           </CardHeader>
           <CardContent className="px-5 py-5 space-y-6">
             {initialData.itineraries.map((itinerary: Itinerary & { roomAllocations: (RoomAllocation & { roomType: RoomType | null; occupancyType: OccupancyType | null; mealPlan: MealPlan | null; quantity?: number | null; voucherNumber?: string | null; customRoomType?: string | null; })[] }, itineraryIdx: number) => {
@@ -553,7 +555,7 @@ export const TourPackageQueryVoucherDisplay: React.FC<TourPackageQueryVoucherDis
       {/* Replace individual policy sections with a single organized section */}
       <Card data-pdf-section="true" data-pdf-break-before="true" className="break-before-all border border-orange-200 shadow-sm rounded-xl overflow-hidden mb-8">
         <CardHeader className="px-5 py-5 bg-gradient-to-r from-orange-50 via-white to-orange-50 border-b border-orange-100 text-center">
-          <CardTitle className="text-3xl font-semibold text-gray-900">Policies & Terms</CardTitle>
+          <CardTitle className={`text-3xl font-semibold ${sectionTitleGradient}`}>Policies & Terms</CardTitle>
           <CardDescription className="text-sm text-gray-500 mt-1">Key inclusions, exclusions, and travel guidelines for this voucher.</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">

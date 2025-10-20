@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyWebhookSignature, updateMessageStatus } from '@/lib/whatsapp';
+import { verifyWebhookSignature, updateMessageStatus, sendWhatsAppMessage } from '@/lib/whatsapp';
 
 const META_GRAPH_API_VERSION = process.env.META_GRAPH_API_VERSION || 'v22.0';
 const META_WHATSAPP_ACCESS_TOKEN = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
@@ -418,6 +418,40 @@ export async function POST(request: NextRequest) {
                     });
                     
                     console.log(`✅ Saved incoming message ${message.id} from ${message.from}`);
+
+                    const flowAckEligible =
+                      message.type === 'interactive' &&
+                      (message.interactive?.type === 'flow_response' ||
+                        message.interactive?.type === 'nfm_reply');
+
+                    if (flowAckEligible && fromNumber) {
+                      const flowToken =
+                        metadata.flowToken ||
+                        metadata.flowSubmission?.flowToken ||
+                        metadata.interactive?.flowResponse?.flow_token ||
+                        metadata.interactive?.flowResponse?.flowToken;
+                      const flowName = metadata.flowName || metadata.flowSubmission?.flowName;
+                      const acknowledgement =
+                        'Thank you. We received your response. Our representative will contact you soon.';
+
+                      try {
+                        await sendWhatsAppMessage({
+                          to: fromNumber,
+                          message: acknowledgement,
+                          context: { messageId: message.id },
+                          metadata: {
+                            automation: 'flow-auto-acknowledgement',
+                            flowToken,
+                            flowName,
+                            sourceMessageId: message.id,
+                          },
+                          tags: ['flow-auto-ack'],
+                        });
+                        console.log('🤖 Sent flow acknowledgement to', fromNumber);
+                      } catch (ackError) {
+                        console.error('❌ Failed to send flow acknowledgement', ackError);
+                      }
+                    }
                   } catch (dbError) {
                     console.error('❌ Error saving incoming message to database:', dbError);
                   }

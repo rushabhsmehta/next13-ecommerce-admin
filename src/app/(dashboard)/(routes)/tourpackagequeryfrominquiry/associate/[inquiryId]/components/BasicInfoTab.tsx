@@ -637,7 +637,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                       height: 200,
                       toolbar: !getFieldDisabled(false),
                     }}
-                    onChange={(e) => field.onChange(e)}
+                    onBlur={(content) => field.onChange(content)}
+                    onChange={() => {}}
                   />
                 </div>
               </FormControl>

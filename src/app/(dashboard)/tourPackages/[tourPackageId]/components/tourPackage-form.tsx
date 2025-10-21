@@ -1397,11 +1397,13 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                         <JoditEditor
                                           ref={editor}
                                           value={itinerary.itineraryTitle || ''}
-                                          onChange={(e) => {
+                                          onBlur={(content) => {
                                             const newItineraries = [...value]
-                                            newItineraries[index] = { ...itinerary, itineraryTitle: e }
+                                            newItineraries[index] = { ...itinerary, itineraryTitle: content }
                                             onChange(newItineraries)
-                                          }} />
+                                          }}
+                                          onChange={() => {}}
+                                        />
                                       </FormControl>
                                     </FormItem>
 
@@ -1411,11 +1413,13 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                         <JoditEditor
                                           ref={editor}
                                           value={itinerary.itineraryDescription || ''}
-                                          onChange={(e) => {
+                                          onBlur={(content) => {
                                             const newItineraries = [...value]
-                                            newItineraries[index] = { ...itinerary, itineraryDescription: e }
+                                            newItineraries[index] = { ...itinerary, itineraryDescription: content }
                                             onChange(newItineraries)
-                                          }} />
+                                          }}
+                                          onChange={() => {}}
+                                        />
                                       </FormControl>
                                     </FormItem>
 
@@ -1547,26 +1551,29 @@ export const TourPackageForm: React.FC<TourPackageFormProps> = ({
                                             <JoditEditor
                                               ref={editor}
                                               value={activity.activityTitle || ''}
-                                              onChange={(e) => {
+                                              onBlur={(content) => {
                                                 const newItineraries = [...value]
-                                                newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: e }
+                                                newItineraries[index].activities[activityIndex] = { ...activity, activityTitle: content }
                                                 onChange(newItineraries)
-                                              }} />
+                                              }}
+                                              onChange={() => {}}
+                                            />
                                           </FormControl>
                                         </FormItem>
 
                                         <FormItem>
                                           <FormLabel>Activity Description</FormLabel>
                                           <FormControl>
-
                                             <JoditEditor
                                               ref={editor}
                                               value={activity.activityDescription || ''}
-                                              onChange={(e) => {
+                                              onBlur={(content) => {
                                                 const newItineraries = [...value]
-                                                newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: e }
+                                                newItineraries[index].activities[activityIndex] = { ...activity, activityDescription: content }
                                                 onChange(newItineraries)
-                                              }} />
+                                              }}
+                                              onChange={() => {}}
+                                            />
 
                                           </FormControl>
                                         </FormItem>

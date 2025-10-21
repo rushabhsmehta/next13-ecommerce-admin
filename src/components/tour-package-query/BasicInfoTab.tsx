@@ -636,7 +636,8 @@ const BasicInfoTab: React.FC<BasicInfoProps> = ({
                   config={{
                     readonly: loading,
                   }}
-                  onChange={(e) => field.onChange(e)}
+                  onBlur={(content) => field.onChange(content)}
+                  onChange={() => {}}
                 />
               </FormControl>
               <FormDescription>

@@ -615,7 +615,7 @@ function ItineraryTab({
                                                   toolbar: true,
                                                   theme: 'default',
                                                 }}
-                                                onChange={(newContent) => {
+                                                onBlur={(newContent) => {
                                                   const updatedItineraries = [...value];
                                                   updatedItineraries[index].activities[activityIndex] = normalizeActivity({
                                                     ...updatedItineraries[index].activities[activityIndex],
@@ -623,6 +623,7 @@ function ItineraryTab({
                                                   });
                                                   onChange(updatedItineraries);
                                                 }}
+                                                onChange={() => {}}
                                               />
                                             </FormControl>
                                           </FormItem>
@@ -645,7 +646,7 @@ function ItineraryTab({
                                                   toolbar: true,
                                                   theme: 'default',
                                                 }}
-                                                onChange={(newContent) => {
+                                                onBlur={(newContent) => {
                                                   const updatedItineraries = [...value];
                                                   updatedItineraries[index].activities[activityIndex] = normalizeActivity({
                                                     ...updatedItineraries[index].activities[activityIndex],
@@ -653,6 +654,7 @@ function ItineraryTab({
                                                   });
                                                   onChange(updatedItineraries);
                                                 }}
+                                                onChange={() => {}}
                                               />
                                             </FormControl>
                                           </FormItem>

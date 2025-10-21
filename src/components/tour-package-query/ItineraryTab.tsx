@@ -35,7 +35,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -602,23 +601,28 @@ function ItineraryTab({
                                           <FormItem>
                                             <FormLabel>Activity Title</FormLabel>
                                             <FormControl>
-                                              <Input
-                                                disabled={loading}
-                                                placeholder="Activity Title"
+                                              <JoditEditor
+                                                ref={(node) => {
+                                                  if (node) {
+                                                    editorsRef.current[`activity-title-${index}-${activityIndex}`] = node;
+                                                  } else {
+                                                    delete editorsRef.current[`activity-title-${index}-${activityIndex}`];
+                                                  }
+                                                }}
                                                 value={activity.activityTitle || ''}
-                                                onChange={(e) => {
-                                                  const newItineraries = [...value];
-                                                  newItineraries[index].activities[activityIndex] = {
-                                                    ...newItineraries[index].activities[activityIndex],
-                                                    activityTitle: e.target.value
-                                                  };
-                                                  onChange(newItineraries);
+                                                config={{
+                                                  readonly: loading,
+                                                  toolbar: true,
+                                                  theme: 'default',
                                                 }}
-                                                onKeyDown={(e) => {
-                                                  // Prevent keyboard events from bubbling up to accordion
-                                                  e.stopPropagation();
+                                                onChange={(newContent) => {
+                                                  const updatedItineraries = [...value];
+                                                  updatedItineraries[index].activities[activityIndex] = normalizeActivity({
+                                                    ...updatedItineraries[index].activities[activityIndex],
+                                                    activityTitle: newContent,
+                                                  });
+                                                  onChange(updatedItineraries);
                                                 }}
-                                                className="bg-white"
                                               />
                                             </FormControl>
                                           </FormItem>
@@ -627,23 +631,28 @@ function ItineraryTab({
                                           <FormItem>
                                             <FormLabel>Description</FormLabel>
                                             <FormControl>
-                                              <Textarea
-                                                disabled={loading}
-                                                placeholder="Activity Description"
+                                              <JoditEditor
+                                                ref={(node) => {
+                                                  if (node) {
+                                                    editorsRef.current[`activity-description-${index}-${activityIndex}`] = node;
+                                                  } else {
+                                                    delete editorsRef.current[`activity-description-${index}-${activityIndex}`];
+                                                  }
+                                                }}
                                                 value={activity.activityDescription || ''}
-                                                onChange={(e) => {
-                                                  const newItineraries = [...value];
-                                                  newItineraries[index].activities[activityIndex] = {
-                                                    ...newItineraries[index].activities[activityIndex],
-                                                    activityDescription: e.target.value
-                                                  };
-                                                  onChange(newItineraries);
+                                                config={{
+                                                  readonly: loading,
+                                                  toolbar: true,
+                                                  theme: 'default',
                                                 }}
-                                                onKeyDown={(e) => {
-                                                  // Prevent keyboard events from bubbling up to accordion
-                                                  e.stopPropagation();
+                                                onChange={(newContent) => {
+                                                  const updatedItineraries = [...value];
+                                                  updatedItineraries[index].activities[activityIndex] = normalizeActivity({
+                                                    ...updatedItineraries[index].activities[activityIndex],
+                                                    activityDescription: newContent,
+                                                  });
+                                                  onChange(updatedItineraries);
                                                 }}
-                                                className="bg-white min-h-[100px]"
                                               />
                                             </FormControl>
                                           </FormItem>
